@@ -65,6 +65,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Boolean waitMemberTransactions(Integer destPort, Integer sourcePort = 0);
   Undefined waitForDelayedGRStart(Integer port, String rootpass,
                                   Integer timeout = 60);
+  Undefined waitForConnectionErrorInRecovery(Integer port, Integer errorNumber,
+                                             Integer timeout = 60);
   Undefined expectPrompt(String prompt, String answer);
   Undefined expectPassword(String prompt, String password);
   Integer makeFileReadonly(String path);
@@ -98,6 +100,8 @@ class Testutils : public mysqlsh::Extensible_object {
   str wait_member_state(int port, str[] states);
   bool wait_member_transactions(int destPort, int sourcePort = 0);
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
+  None wait_for_connection_error_in_recovery(int port, int errorNumber,
+                                             int timeout = 60);
   None expect_prompt(str prompt, str answer);
   None expect_password(str prompt, str password);
   int make_file_readonly(str path);
@@ -182,6 +186,9 @@ class Testutils : public mysqlsh::Extensible_object {
   // InnoDB cluster routines
   void wait_for_delayed_gr_start(int port, const std::string &root_pass,
                                  int timeout = 100);
+
+  void wait_for_connection_error_in_recovery(int port, int error_number,
+                                             int timeout = 60);
 
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);

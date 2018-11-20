@@ -641,6 +641,37 @@ void MetadataStorage::set_replicaset_group_name(
   execute_sql(query);
 }
 
+void MetadataStorage::set_cluster_name(const std::string &cluster_name,
+                                       const std::string &new_cluster_name) {
+  shcore::sqlstring query;
+
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
+
+  // Check if the Cluster exists
+  if (!cluster_exists(cluster_name)) {
+    throw Exception::logic_error("The cluster with the name '" + cluster_name +
+                                 "' does not exist.");
+  } else {
+    Transaction tx(shared_from_this());
+
+    // Get the cluster_id
+    uint64_t cluster_id = get_cluster_id(cluster_name);
+
+    // Get all replicasets belonging to the cluster.
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.clusters SET "
+        "cluster_name = ? WHERE cluster_id = ?",
+        0);
+    query << new_cluster_name;
+    query << cluster_id;
+    query.done();
+
+    execute_sql(query);
+    tx.commit();
+  }
+}
+
 bool MetadataStorage::get_cluster_from_query(const std::string &query,
                                              std::shared_ptr<Cluster> cluster) {
   try {
@@ -830,6 +861,35 @@ bool MetadataStorage::is_instance_label_unique(uint64_t rs_id,
   query.done();
 
   return 0 == execute_sql(query)->fetch_one()->get_int(0);
+}
+
+void MetadataStorage::set_instance_label(uint64_t rs_id,
+                                         const std::string &label,
+                                         const std::string &new_label) {
+  shcore::sqlstring query;
+
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
+
+  // Check if the label exists
+  if (is_instance_label_unique(rs_id, label)) {
+    throw Exception::logic_error("The instance with the label '" + label +
+                                 "' does not exist.");
+  } else {
+    Transaction tx(shared_from_this());
+
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances SET "
+        "instance_name = ? WHERE replicaset_id = ? AND instance_name = ?",
+        0);
+    query << new_label;
+    query << rs_id;
+    query << label;
+    query.done();
+
+    execute_sql(query);
+    tx.commit();
+  }
 }
 
 std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {

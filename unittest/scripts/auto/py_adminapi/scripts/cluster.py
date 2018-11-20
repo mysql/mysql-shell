@@ -20,8 +20,11 @@ validate_members(cluster, [
     'rejoin_instance',
     'remove_instance',
     'rescan',
+    'options',
     'status',
     'set_primary_instance',
+    'set_option',
+    'set_instance_option',
     'switch_to_multi_primary_mode',
     'switch_to_single_primary_mode'
     ])

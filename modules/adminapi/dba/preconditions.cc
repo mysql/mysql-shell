@@ -98,6 +98,9 @@ const std::map<std::string, FunctionAvailability>
         {"Cluster.status",
          {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any,
           ManagedInstance::State::Any}},
+        {"Cluster.options",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any,
+          ManagedInstance::State::Any}},
         {"Cluster.dissolve",
          {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
           ManagedInstance::State::OnlineRW}},
@@ -121,6 +124,12 @@ const std::map<std::string, FunctionAvailability>
          {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
         {"Cluster.setPrimaryInstance",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+        {"Cluster.setOption",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+        {"Cluster.setInstanceOption",
          {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
           ManagedInstance::State::OnlineRW |
               ManagedInstance::State::OnlineRO}}};

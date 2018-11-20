@@ -8,7 +8,7 @@ shell.help()
 shell.help("options")
 
 //@ Help on Options, \? [USE:Help on Options]
-\? options
+\? shell.options
 
 //@ Help on Connect
 shell.help("connect")

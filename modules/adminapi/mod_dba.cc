@@ -167,6 +167,97 @@ std::set<std::string> Dba::_reboot_cluster_opts = {
     "user",         "dbUser", "password", "removeInstances", "rejoinInstances",
     "clearReadOnly"};
 
+/*
+ * Global helper text for InnoDB Cluster configuration options used in:
+ *  - dba.createCluster()
+ *  - Cluster.addInstance()
+ *  - Cluster.setOption()
+ *  - Cluster.setInstanceOption()
+ */
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION,
+              "@li exitStateAction: string value indicating the group "
+              "replication exit state action.");
+REGISTER_HELP(CLUSTER_OPT_MEMBER_WEIGHT,
+              "@li memberWeight: integer value with a percentage weight for "
+              "automatic primary election on failover.");
+REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY,
+              "@li failoverConsistency: string value indicating the "
+              "consistency guarantees for primary failover in single primary "
+              "mode.");
+REGISTER_HELP(CLUSTER_OPT_EXPEL_TIMEOUT,
+              "@li expelTimeout: integer value to define the time period in "
+              "seconds that cluster members should wait for a non-responding "
+              "member before evicting it from the cluster.");
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL,
+              "The exitStateAction option supports the following values:");
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL1,
+              "@li ABORT_SERVER: if used, the instance shuts itself down if "
+              "it leaves the cluster unintentionally.");
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL2,
+              "@li READ_ONLY: if used, the instance switches itself to "
+              "super-read-only mode if it leaves the cluster "
+              "unintentionally.");
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL3,
+              "If exitStateAction is not specified READ_ONLY will be used "
+              "by default.");
+REGISTER_HELP(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA,
+              "The value for exitStateAction is used to configure how Group "
+              "Replication behaves when a server instance leaves the group "
+              "unintentionally, for example after encountering an applier "
+              "error. When set to ABORT_SERVER, the instance shuts itself "
+              "down, and when set to READ_ONLY the server switches itself to "
+              "super-read-only mode. The exitStateAction option accepts "
+              "case-insensitive string values, being the accepted values: "
+              "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
+              "READ_ONLY.");
+
+REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA,
+              "The value for memberWeight is used to set the Group Replication "
+              "system variable 'group_replication_member_weight'. The "
+              "memberWeight option accepts integer values. Group Replication "
+              "limits the value range from 0 to 100, automatically adjusting "
+              "it if a lower/bigger value is provided. Group Replication uses "
+              "a default value of 50 if no value is provided.");
+
+REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL,
+              "The failoverConsistency option supports the following values:");
+REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL1,
+              "@li BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or "
+              "write) to the new primary will be put on hold until "
+              "after the backlog from the old primary is applied.");
+REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL2,
+              "@li EVENTUAL: if used, read queries to the new primary are "
+              "allowed even if the backlog isn't applied.");
+REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL3,
+              "If failoverConsistency is not specified, EVENTUAL will be used "
+              "by default.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA,
+    "The value for failoverConsistency is used to set the Group "
+    "Replication system variable 'group_replication_failover_consistency' and "
+    "configure how Group Replication behaves when a new primary instance is "
+    "elected. When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or "
+    "write) to the newly elected primary that is applying backlog from the "
+    "old primary, will be hold be hold before execution until the backlog "
+    "is applied. When set to EVENTUAL, read queries to the new primary are "
+    "allowed even if the backlog isn't applied but writes will fail (if the "
+    "backlog isn't applied) due to super-read-only mode being enabled. The "
+    "client may return old valued. The failoverConsistency option accepts "
+    "case-insensitive string values, being the accepted values: "
+    "BEFORE_ON_PRIMARY_FAILOVER (or 1) and EVENTUAL (or 0). The default value "
+    "is EVENTUAL.");
+
+REGISTER_HELP(CLUSTER_OPT_EXPELTIMEOUT_EXTRA,
+              "The value for expelTimeout is used to set the Group Replication "
+              "system variable 'group_replication_member_expel_timeout' and "
+              "configure how long Group Replication will wait before expelling "
+              "from the group any members suspected of having failed. On slow "
+              "networks, or when there are expected machine slowdowns, "
+              "increase the value of this option. The expelTimeout option "
+              "accepts positive integer values in the range [0, 3600]. The "
+              "default value is 0.");
+
 // Documentation of the DBA Class
 REGISTER_HELP_TOPIC(AdminAPI, CATEGORY, adminapi, Contents, SCRIPTING);
 REGISTER_HELP(ADMINAPI_BRIEF,
@@ -736,21 +827,12 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
               "@li groupSeeds: string value with a comma-separated list of "
               "the Group Replication peer addresses to be used instead of the "
               "automatically generated one.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12,
-              "@li exitStateAction: string value indicating the group "
-              "replication exit state action.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
-              "@li memberWeight: integer value with a percentage weight for "
-              "automatic primary election on failover.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "${CLUSTER_OPT_EXIT_STATE_ACTION}");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "${CLUSTER_OPT_MEMBER_WEIGHT}");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
-              "@li failoverConsistency: string value indicating the "
-              "consistency guarantees for primary failover in single primary "
-              "mode.");
+              "${CLUSTER_OPT_FAILOVER_CONSISTENCY}");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15,
-              "@li expelTimeout: integer value to define the time period in "
-              "seconds that cluster members should wait for a non-responding "
-              "member before evicting it from the cluster.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "${CLUSTER_OPT_EXPEL_TIMEOUT}");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
               "@attention The multiMaster option will be removed in a "
@@ -786,19 +868,12 @@ REGISTER_HELP(
     "If memberSslMode is not specified AUTO will be used by default.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
-              "The exitStateAction option supports the following values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
-              "@li ABORT_SERVER: if used, the instance shuts itself down if "
-              "it leaves the cluster unintentionally.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
-              "@li READ_ONLY: if used, the instance switches itself to "
-              "super-read-only mode if it leaves the cluster "
-              "unintentionally.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
-              "If exitStateAction is not specified READ_ONLY will be used "
-              "by default.");
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
+              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
               "The ipWhitelist format is a comma separated list of IP "
               "addresses or subnet CIDR "
               "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "
@@ -806,16 +881,16 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
               "from the instance private network to be automatically set for "
               "the whitelist.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
               "The groupName, localAddress, and groupSeeds are advanced "
               "options and their usage is discouraged since incorrect values "
               "can lead to Group Replication errors.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
               "The value for groupName is used to set the Group Replication "
               "system variable 'group_replication_group_name'.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
               "The value for localAddress is used to set the Group "
               "Replication system variable 'group_replication_local_address'. "
               "The localAddress option accepts values in the format: "
@@ -830,58 +905,22 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
               "(> 65535) then a random value in the range [10000, 65535] is "
               "used.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL34,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
               "The value for groupSeeds is used to set the Group Replication "
               "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL35,
-              "The value for exitStateAction is used to configure how Group "
-              "Replication behaves when a server instance leaves the group "
-              "unintentionally, for example after encountering an applier "
-              "error. When set to ABORT_SERVER, the instance shuts itself "
-              "down, and when set to READ_ONLY the server switches itself to "
-              "super-read-only mode. The exitStateAction option accepts "
-              "case-insensitive string values, being the accepted values: "
-              "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
-              "READ_ONLY.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
+              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL36,
-              "The value for memberWeight is used to set the Group Replication "
-              "system variable 'group_replication_member_weight'. The "
-              "memberWeight option accepts integer values. Group Replication "
-              "limits the value range from 0 to 100, automatically adjusting "
-              "it if a lower/bigger value is provided. Group Replication uses "
-              "a default value of 50 if no value is provided.");
-REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL37,
-    "The value for failoverConsistency is used to configure how Group "
-    "Replication behaves when a new primary instance is elected and accepts "
-    "the following values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL38,
-              "@li BEFORE_ON_PRIMARY_FAILOVER (or 1)");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL39, "@li EVENTUAL (or 0)");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL40,
-              "When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or "
-              "write) to the newly elected primary will be put on hold until "
-              "after the backlog from the old primary is applied.");
-REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL41,
-    "When set to EVENTUAL, read queries to the new primary are "
-    "allowed even if the backlog isn't applied but writes will fail "
-    "(if the backlog isn't applied) due to super-read-only mode being "
-    "enabled.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL42,
-              "If failoverConsistency is not specified, EVENTUAL will be used "
-              "by default.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL43,
-              "The value for expelTimeout is used to configure how long Group "
-              "Replication will wait before expelling from the group any "
-              "members suspected of having failed. On slow networks, or when "
-              "there are expected machine slowdowns, increase the value of "
-              "this option. The expelTimeout option accepts positive integer "
-              "values in the range [0, 3600]. The default value is 0.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL34,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL35,
+              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL36, "${CLUSTER_OPT_EXPELTIMEOUT_EXTRA}");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -920,11 +959,11 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL43,
  * $(DBA_CREATECLUSTER_DETAIL9)
  * $(DBA_CREATECLUSTER_DETAIL10)
  * $(DBA_CREATECLUSTER_DETAIL11)
- * $(DBA_CREATECLUSTER_DETAIL12)
- * $(DBA_CREATECLUSTER_DETAIL13)
- * $(DBA_CREATECLUSTER_DETAIL14)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT)
+ * $(CLUSTER_OPT_FAILOVER_CONSISTENCY)
+ * $(CLUSTER_OPT_EXPEL_TIMEOUT)
  *
- * $(DBA_CREATECLUSTER_DETAIL15)
  * $(DBA_CREATECLUSTER_DETAIL16)
  * $(DBA_CREATECLUSTER_DETAIL17)
  * $(DBA_CREATECLUSTER_DETAIL18)
@@ -933,12 +972,12 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL43,
  * $(DBA_CREATECLUSTER_DETAIL21)
  * $(DBA_CREATECLUSTER_DETAIL22)
  *
+ * $(DBA_CREATECLUSTER_DETAIL22)
  * $(DBA_CREATECLUSTER_DETAIL23)
  * $(DBA_CREATECLUSTER_DETAIL24)
  * $(DBA_CREATECLUSTER_DETAIL25)
- * $(DBA_CREATECLUSTER_DETAIL26)
- *
- * $(DBA_CREATECLUSTER_DETAIL27)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
+ * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL)
  *
  * $(DBA_CREATECLUSTER_DETAIL28)
  *
@@ -950,27 +989,13 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL43,
  *
  * $(DBA_CREATECLUSTER_DETAIL32)
  *
- * $(DBA_CREATECLUSTER_DETAIL33)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
  *
- * $(DBA_CREATECLUSTER_DETAIL34)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
  *
- * $(DBA_CREATECLUSTER_DETAIL35)
+ * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA)
  *
- * $(DBA_CREATECLUSTER_DETAIL36)
- *
- * $(DBA_CREATECLUSTER_DETAIL37)
- *
- * $(DBA_CREATECLUSTER_DETAIL38)
- *
- * $(DBA_CREATECLUSTER_DETAIL39)
- *
- * $(DBA_CREATECLUSTER_DETAIL40)
- *
- * $(DBA_CREATECLUSTER_DETAIL41)
- *
- * $(DBA_CREATECLUSTER_DETAIL42)
- *
- * $(DBA_CREATECLUSTER_DETAIL43)
+ * $(CLUSTER_OPT_EXPELTIMEOUT_EXTRA)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -1558,10 +1583,7 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
  *
  * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
  * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
@@ -2442,10 +2464,7 @@ REGISTER_HELP(
  *
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)

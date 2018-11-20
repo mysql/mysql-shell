@@ -87,6 +87,15 @@ c.help('help')
 #@ global help for help[USE:cluster.help]
 \help cluster.help
 
+#@ cluster.options
+c.help('options')
+
+#@ global ? for options[USE:cluster.options]
+\? cluster.options
+
+#@ global help for options[USE:cluster.options]
+\help cluster.options
+
 #@ cluster.name
 c.help('name')
 
@@ -113,6 +122,24 @@ c.help('remove_instance')
 
 #@ global help for remove_instance[USE:cluster.remove_instance]
 \help cluster.remove_instance
+
+#@ cluster.set_instance_option
+c.help('set_instance_option')
+
+#@ global ? for set_instance_option[USE:cluster.set_instance_option]
+\? cluster.set_instance_option
+
+#@ global help for set_instance_option[USE:cluster.set_instance_option]
+\help cluster.set_instance_option
+
+#@ cluster.set_option
+c.help('set_option')
+
+#@ global ? for set_option[USE:cluster.set_option]
+\? cluster.set_option
+
+#@ global help for set_option[USE:cluster.set_option]
+\help cluster.set_option
 
 #@ cluster.rescan
 c.help('rescan')

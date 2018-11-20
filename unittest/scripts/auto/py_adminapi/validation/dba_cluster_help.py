@@ -42,6 +42,9 @@ FUNCTIONS
       help([member])
             Provides help about this class and it's members
 
+      options([options])
+            Lists the cluster configuration options.
+
       rejoin_instance(instance[, options])
             Rejoins an Instance to the cluster.
 
@@ -50,6 +53,12 @@ FUNCTIONS
 
       rescan([options])
             Rescans the cluster.
+
+      set_instance_option(instance, option, value)
+            Changes the value of a configuration option in a Cluster member.
+
+      set_option(option, value)
+            Changes the value of a configuration option for the whole cluster.
 
       set_primary_instance(instance)
             Elects a specific cluster member as the new primary.
@@ -66,6 +75,7 @@ FUNCTIONS
       For more help on a specific function use: cluster.help('<functionName>')
 
       e.g. cluster.help('addInstance')
+
 
 #@<OUT> cluster.add_instance
 NAME
@@ -436,6 +446,32 @@ SYNTAX
 WHERE
       member: If specified, provides detailed information on the given member.
 
+#@<OUT> cluster.options
+NAME
+      options - Lists the cluster configuration options.
+
+SYNTAX
+      <Cluster>.options([options])
+
+WHERE
+      options: Dictionary with options.
+
+RETURNS
+       A JSON object describing the configuration options of the cluster.
+
+DESCRIPTION
+      This function lists the cluster configuration options for itsReplicaSets
+      and Instances. The following options may be given to controlthe amount of
+      information gathered and returned.
+
+      - all: if true, includes information about all group_replication system
+        variables.
+
+EXCEPTIONS
+      MetadataError in the following scenarios:
+
+      - If the Metadata is inaccessible.
+
 #@<OUT> cluster.name
 NAME
       name - Retrieves the name of the cluster.
@@ -578,6 +614,198 @@ EXCEPTIONS
       - If the instance accounts are invalid.
       - If an error occurs when trying to remove the instance (e.g., instance
         is not reachable).
+
+#@<OUT> cluster.set_instance_option
+NAME
+      set_instance_option - Changes the value of a configuration option in a
+                            Cluster member.
+
+SYNTAX
+      <Cluster>.set_instance_option(instance, option, value)
+
+WHERE
+      instance: An instance definition.
+      option: The configuration option to be changed.
+      value: The value that the configuration option shall get.
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function changes an InnoDB Cluster configuration option in a member
+      of the cluster.
+
+      The instance definition is the connection data for the instance.
+
+      For additional information on connection data use \? connection.
+
+      Only TCP/IP connections are allowed for this function.
+
+      The option parameter is the name of the configuration option to be
+      changed
+
+      The value parameter is the value that the configuration option shall get.
+
+      The accepted values for the configuration option are:
+
+      - exitStateAction: string value indicating the group replication exit
+        state action.
+      - memberWeight: integer value with a percentage weight for automatic
+        primary election on failover.
+      - label a string identifier of the instance.
+
+      The exitStateAction option supports the following values:
+
+      - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
+        cluster unintentionally.
+      - READ_ONLY: if used, the instance switches itself to super-read-only
+        mode if it leaves the cluster unintentionally.
+
+      If exitStateAction is not specified READ_ONLY will be used by default.
+
+      The value for exitStateAction is used to configure how Group Replication
+      behaves when a server instance leaves the group unintentionally, for
+      example after encountering an applier error. When set to ABORT_SERVER,
+      the instance shuts itself down, and when set to READ_ONLY the server
+      switches itself to super-read-only mode. The exitStateAction option
+      accepts case-insensitive string values, being the accepted values:
+      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+
+      The value for memberWeight is used to set the Group Replication system
+      variable 'group_replication_member_weight'. The memberWeight option
+      accepts integer values. Group Replication limits the value range from 0
+      to 100, automatically adjusting it if a lower/bigger value is provided.
+      Group Replication uses a default value of 50 if no value is provided.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the 'instance' parameter is empty.
+      - If the 'instance' parameter is invalid.
+      - If the 'instance' definition is a connection dictionary but empty.
+      - If the 'option' parameter is empty.
+      - If the 'value' parameter is empty.
+      - If the 'option' parameter is invalid.
+
+      RuntimeError in the following scenarios:
+
+      - If 'instance' does not refer to a cluster member.
+      - If the cluster has no visible quorum.
+      - If 'instance' is not ONLINE.
+      - If 'instance' does not support the configuration option passed in
+        'option'.
+      - If the value passed in 'option' is not valid for Group Replication.
+
+
+#@<OUT> cluster.set_option
+NAME
+      set_option - Changes the value of a configuration option for the whole
+                   cluster.
+
+SYNTAX
+      <Cluster>.set_option(option, value)
+
+WHERE
+      option: The configuration option to be changed.
+      value: The value that the configuration option shall get.
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function changes an InnoDB Cluster configuration option in all
+      members of the cluster.
+
+      The 'option' parameter is the name of the configuration option to be
+      changed.
+
+      The value parameter is the value that the configuration option shall get.
+
+      The accepted values for the configuration option are:
+
+      - clusterName: string value to define the cluster name.
+      - exitStateAction: string value indicating the group replication exit
+        state action.
+      - memberWeight: integer value with a percentage weight for automatic
+        primary election on failover.
+      - failoverConsistency: string value indicating the consistency guarantees
+        for primary failover in single primary mode.
+      - expelTimeout: integer value to define the time period in seconds that
+        cluster members should wait for a non-responding member before evicting
+        it from the cluster.
+
+      The value for the configuration option is used to set the Group
+      Replication system variable that corresponds to it.
+
+      The exitStateAction option supports the following values:
+
+      - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
+        cluster unintentionally.
+      - READ_ONLY: if used, the instance switches itself to super-read-only
+        mode if it leaves the cluster unintentionally.
+
+      If exitStateAction is not specified READ_ONLY will be used by default.
+
+      The failoverConsistency option supports the following values:
+
+      - BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or write) to the
+        new primary will be put on hold until after the backlog from the old
+        primary is applied.
+      - EVENTUAL: if used, read queries to the new primary are allowed even if
+        the backlog isn't applied.
+
+      If failoverConsistency is not specified, EVENTUAL will be used by
+      default.
+
+      The value for exitStateAction is used to configure how Group Replication
+      behaves when a server instance leaves the group unintentionally, for
+      example after encountering an applier error. When set to ABORT_SERVER,
+      the instance shuts itself down, and when set to READ_ONLY the server
+      switches itself to super-read-only mode. The exitStateAction option
+      accepts case-insensitive string values, being the accepted values:
+      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+
+      The value for memberWeight is used to set the Group Replication system
+      variable 'group_replication_member_weight'. The memberWeight option
+      accepts integer values. Group Replication limits the value range from 0
+      to 100, automatically adjusting it if a lower/bigger value is provided.
+      Group Replication uses a default value of 50 if no value is provided.
+
+      The value for failoverConsistency is used to set the Group Replication
+      system variable 'group_replication_failover_consistency' and configure
+      how Group Replication behaves when a new primary instance is elected.
+      When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or write) to
+      the newly elected primary that is applying backlog from the old primary,
+      will be hold be hold before execution until the backlog is applied. When
+      set to EVENTUAL, read queries to the new primary are allowed even if the
+      backlog isn't applied but writes will fail (if the backlog isn't applied)
+      due to super-read-only mode being enabled. The client may return old
+      valued. The failoverConsistency option accepts case-insensitive string
+      values, being the accepted values: BEFORE_ON_PRIMARY_FAILOVER (or 1) and
+      EVENTUAL (or 0). The default value is EVENTUAL.
+
+      The value for expelTimeout is used to set the Group Replication system
+      variable 'group_replication_member_expel_timeout' and configure how long
+      Group Replication will wait before expelling from the group any members
+      suspected of having failed. On slow networks, or when there are expected
+      machine slowdowns, increase the value of this option. The expelTimeout
+      option accepts positive integer values in the range [0, 3600]. The
+      default value is 0.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the 'option' parameter is empty.
+      - If the 'value' parameter is empty.
+      - If the 'option' parameter is invalid.
+
+      RuntimeError in the following scenarios:
+
+      - If any of the cluster members do not support the configuration option
+        passed in 'option'.
+      - If the value passed in 'option' is not valid for Group Replication.
+      - If the cluster has no visible quorum.
+      - If any of the cluster members is not ONLINE.
 
 #@<OUT> cluster.rescan
 NAME

@@ -38,6 +38,9 @@ validateMember(members, 'forceQuorumUsingPartitionOf');
 validateMember(members, 'switchToSinglePrimaryMode');
 validateMember(members, 'switchToMultiPrimaryMode');
 validateMember(members, 'setPrimaryInstance');
+validateMember(members, 'options');
+validateMember(members, 'setOption');
+validateMember(members, 'setInstanceOption');
 
 //@ Cluster: addInstance errors
 Cluster.addInstance();

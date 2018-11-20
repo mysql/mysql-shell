@@ -393,6 +393,17 @@ DESCRIPTION
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
+      The failoverConsistency option supports the following values:
+
+      - BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or write) to the
+        new primary will be put on hold until after the backlog from the old
+        primary is applied.
+      - EVENTUAL: if used, read queries to the new primary are allowed even if
+        the backlog isn't applied.
+
+      If failoverConsistency is not specified, EVENTUAL will be used by
+      default.
+
       The ipWhitelist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
@@ -435,26 +446,22 @@ DESCRIPTION
       to 100, automatically adjusting it if a lower/bigger value is provided.
       Group Replication uses a default value of 50 if no value is provided.
 
-      The value for failoverConsistency is used to configure how Group
-      Replication behaves when a new primary instance is elected and accepts
-      the following values:
-
-      - BEFORE_ON_PRIMARY_FAILOVER (or 1)
-      - EVENTUAL (or 0)
-
+      The value for failoverConsistency is used to set the Group Replication
+      system variable 'group_replication_failover_consistency' and configure
+      how Group Replication behaves when a new primary instance is elected.
       When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or write) to
-      the newly elected primary will be put on hold until after the backlog
-      from the old primary is applied.
+      the newly elected primary that is applying backlog from the old primary,
+      will be hold be hold before execution until the backlog is applied. When
+      set to EVENTUAL, read queries to the new primary are allowed even if the
+      backlog isn't applied but writes will fail (if the backlog isn't applied)
+      due to super-read-only mode being enabled. The client may return old
+      valued. The failoverConsistency option accepts case-insensitive string
+      values, being the accepted values: BEFORE_ON_PRIMARY_FAILOVER (or 1) and
+      EVENTUAL (or 0). The default value is EVENTUAL.
 
-      When set to EVENTUAL, read queries to the new primary are allowed even if
-      the backlog isn't applied but writes will fail (if the backlog isn't
-      applied) due to super-read-only mode being enabled.
-
-      If failoverConsistency is not specified, EVENTUAL will be used by
-      default.
-
-      The value for expelTimeout is used to configure how long Group
-      Replication will wait before expelling from the group any members
+      The value for expelTimeout is used to set the Group Replication system
+      variable 'group_replication_member_expel_timeout' and configure how long
+      Group Replication will wait before expelling from the group any members
       suspected of having failed. On slow networks, or when there are expected
       machine slowdowns, increase the value of this option. The expelTimeout
       option accepts positive integer values in the range [0, 3600]. The

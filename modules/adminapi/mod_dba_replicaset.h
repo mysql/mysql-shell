@@ -132,6 +132,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
   Undefined setPrimaryInstance(InstanceDef instance);
+  Undefined setInstanceOption(InstanceDef instance, String option,
+                              String value);
 
 #elif DOXYGEN_PY
   str get_name();
@@ -147,6 +149,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
   None set_primary_instance(InstanceDef instance);
+  None set_instance_option(InstanceDef instance, str option, str value);
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -178,6 +181,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
+  void set_instance_option(const Connection_options &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
 
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void switch_to_multi_primary_mode();

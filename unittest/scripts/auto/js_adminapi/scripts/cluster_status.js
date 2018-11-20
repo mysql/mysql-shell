@@ -371,6 +371,9 @@ for (var i in accounts) {
 testutil.startSandbox(__mysql_sandbox_port2);
 // the recovery should fail because it can't connect to the primary
 cluster.rejoinInstance(__sandbox_uri2);
+
+testutil.waitForConnectionErrorInRecovery(__mysql_sandbox_port2, 1045);
+
 var stat = cluster.status({queryMembers:true});
 println(stat);
 // TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
