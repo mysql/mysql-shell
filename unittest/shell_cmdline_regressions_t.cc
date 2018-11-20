@@ -408,4 +408,14 @@ TEST_F(Command_line_test, bug26970629) {
   }
 }
 
+TEST_F(Command_line_test, bug28814112) {
+  // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
+  // SESSION
+  int rc = execute({_mysqlsh, "-e", "shell.setCurrentSchema('mysql')", NULL});
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Shell.connect: An open session is required to perform this operation. "
+      "(RuntimeError)");
+}
+
 }  // namespace tests

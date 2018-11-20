@@ -268,7 +268,7 @@ oidcoll.find().sort("_id");
 /// FRA1-02A  validate that missing schema name (and missing schema in current
 /// session) raise an error  - DEV
 EXPECT_THROWS(function() {
-  util.importJson(__import_data_path + '/sample.json', {});
+  util.importJson(__import_data_path + '/sample.json');
 }, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 var rc = testutil.callMysqlsh([xuri, '--import', __import_data_path + '/sample.json', 'sample']);
@@ -337,7 +337,7 @@ coll_.select("doc").orderBy("id");
 //@ FRB1-04 function call
 /// FRB1-04 Validates that missing schema name is an error  - DEV
 EXPECT_THROWS(function() {
-  util.importJson(__import_data_path + '/sample.json', {});
+  util.importJson(__import_data_path + '/sample.json');
 }, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 //@ FRB1-04 cli
@@ -348,7 +348,7 @@ EXPECT_STDOUT_CONTAINS("Error: --import requires a default schema on the active 
 //@ FRB1-05
 /// FRB1-05 Validate that missing table name when input is STDIN is an error
 EXPECT_THROWS(function() {
-  util.importJson('', {});
+  util.importJson('');
 }, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 EXPECT_THROWS(function() {
@@ -549,6 +549,15 @@ EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/2MB_doc.json' +
     '" to collection `wl10606`.`2MB_less________` in MySQL Server at');
 EXPECT_STDOUT_CONTAINS("Total successfully imported documents 1 ");
+
+//@<> Import document using invalid options
+EXPECT_THROWS(function() {
+  util.importJson(__import_data_path + '/2MB_doc.json', {
+    schema : target_schema,
+    collection: "2MB_less________",
+    unexisting: 5
+  });
+}, "Util.importJson: Invalid options: unexisting");
 
 //@ Teardown
 session.close();
