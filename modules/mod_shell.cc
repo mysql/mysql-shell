@@ -559,6 +559,12 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
 
 void Shell::set_current_schema(const std::string &name) {
   auto session = _shell_core->get_dev_session();
+
+  if (!(session && session->is_open())) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
   shcore::Value new_schema = shcore::Value::Null();
 
   if (!name.empty()) {

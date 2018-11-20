@@ -15,7 +15,7 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
-      importJson(file, options)
+      importJson(file[, options])
             Import JSON documents from file to collection or table in MySQL
             Server using X Protocol session.
 
@@ -115,11 +115,11 @@ NAME
                    MySQL Server using X Protocol session.
 
 SYNTAX
-      util.importJson(file, options)
+      util.importJson(file[, options])
 
 WHERE
       file: Path to JSON documents file
-      options: Dictionary with options
+      options: Dictionary with import options
 
 DESCRIPTION
       Options dictionary:

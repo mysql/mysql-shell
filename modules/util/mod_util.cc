@@ -59,7 +59,7 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
       std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
       "data", shcore::Map);
 
-  expose("importJson", &Util::import_json, "path", "options");
+  expose("importJson", &Util::import_json, "path", "?options");
 }
 
 static std::string format_upgrade_issue(const Upgrade_issue &problem) {
@@ -473,7 +473,8 @@ REGISTER_HELP(UTIL_IMPORTJSON_BRIEF,
 
 REGISTER_HELP(UTIL_IMPORTJSON_PARAM, "@param file Path to JSON documents file");
 
-REGISTER_HELP(UTIL_IMPORTJSON_PARAM1, "@param options Dictionary with options");
+REGISTER_HELP(UTIL_IMPORTJSON_PARAM1,
+              "@param options Optional dictionary with import options");
 
 REGISTER_HELP(UTIL_IMPORTJSON_DETAIL, "Options dictionary:");
 
@@ -578,12 +579,19 @@ None Util::import_json(str file, dict options);
 #endif
 void Util::import_json(const std::string &file,
                        const shcore::Dictionary_t &options) {
-  {
-    const shcore::Argument_map opts(*options);
-    const std::set<std::string> valid_options{"schema", "collection", "table",
-                                              "tableColumn", "convertBsonOid"};
-    opts.ensure_keys({}, valid_options, "the options");
-  }
+  std::string schema;
+  std::string collection;
+  std::string table;
+  std::string table_column;
+  bool convert_bson_id = false;
+
+  shcore::Option_unpacker unpacker(options);
+  unpacker.optional("schema", &schema);
+  unpacker.optional("collection", &collection);
+  unpacker.optional("table", &table);
+  unpacker.optional("tableColumn", &table_column);
+  unpacker.optional("convertBsonOid", &convert_bson_id);
+  unpacker.end();
 
   auto shell_session = _shell_core.get_dev_session();
 
@@ -611,8 +619,8 @@ void Util::import_json(const std::string &file,
 
   Prepare_json_import prepare{xsession};
 
-  if (options->has_key("schema")) {
-    prepare.schema(options->get_string("schema"));
+  if (!schema.empty()) {
+    prepare.schema(schema);
   } else if (!shell_session->get_current_schema().empty()) {
     prepare.schema(shell_session->get_current_schema());
   } else {
@@ -623,20 +631,20 @@ void Util::import_json(const std::string &file,
 
   prepare.path(file);
 
-  if (options->has_key("table")) {
-    prepare.table(options->get_string("table"));
+  if (!table.empty()) {
+    prepare.table(table);
   }
 
-  if (options->has_key("tableColumn")) {
-    prepare.column(options->get_string("tableColumn"));
+  if (!table_column.empty()) {
+    prepare.column(table_column);
   }
 
-  if (options->has_key("collection")) {
-    if (options->has_key("tableColumn")) {
+  if (!collection.empty()) {
+    if (!table_column.empty()) {
       throw std::invalid_argument(
           "tableColumn cannot be used with collection.");
     }
-    prepare.collection(options->get_string("collection"));
+    prepare.collection(collection);
   }
 
   // Validate provided parameters and build Json_importer object.
@@ -653,7 +661,7 @@ void Util::import_json(const std::string &file,
   });
 
   try {
-    importer.load_from(options->get_bool("convertBsonOid", false));
+    importer.load_from(convert_bson_id);
   } catch (...) {
     importer.print_stats();
     throw;
