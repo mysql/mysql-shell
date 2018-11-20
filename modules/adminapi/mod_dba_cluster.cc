@@ -30,6 +30,8 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/dba/cluster_options.h"
+#include "modules/adminapi/dba/cluster_set_option.h"
 #include "modules/adminapi/dba/cluster_status.h"
 #include "modules/adminapi/dba/remove_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
@@ -134,6 +136,18 @@ void Cluster::init() {
       "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
   expose<void, const shcore::Dictionary_t &, Cluster>(
       "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
+
+  expose("options", &Cluster::options, "?options");
+
+  expose("setOption", &Cluster::set_option, "option", "value");
+
+  expose<void, const shcore::Dictionary_t &, const std::string &,
+         const shcore::Value &, Cluster>("setInstanceOption",
+                                         &Cluster::set_instance_option,
+                                         "instanceDef", "option", "value");
+  expose<void, const std::string &, const std::string &, const shcore::Value &,
+         Cluster>("setInstanceOption", &Cluster::set_instance_option,
+                  "instanceDef", "option", "value");
 }
 
 // Documentation of the getName function
@@ -513,10 +527,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL28,
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL3)
  * $(CLUSTER_ADDINSTANCE_DETAIL4)
@@ -739,10 +750,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15,
  *
  * $(CLUSTER_REJOININSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(CLUSTER_REJOININSTANCE_DETAIL3)
  * $(CLUSTER_REJOININSTANCE_DETAIL4)
@@ -904,10 +912,7 @@ REGISTER_HELP(
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
@@ -1204,8 +1209,15 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
     bool warning = (state.source_state != ManagedInstance::OnlineRW &&
                     state.source_state != ManagedInstance::OnlineRO);
 
-    ret_val = shcore::Value(
-        cluster_status(this, query_members, query_members || extended));
+    // Create the Cluster_status command and execute it.
+    Cluster_status op_status(this, extended, query_members);
+    // Always execute finish when leaving "try catch".
+    auto finally =
+        shcore::on_leave_scope([&op_status]() { op_status.finish(); });
+    // Prepare the Cluster_status command execution (validations).
+    op_status.prepare();
+    // Execute Cluster_status operations.
+    ret_val = op_status.execute();
 
     if (warning) {
       std::string warning =
@@ -1220,6 +1232,69 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
 
   return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(options, Cluster);
+REGISTER_HELP(CLUSTER_OPTIONS_BRIEF,
+              "Lists the cluster configuration options.");
+REGISTER_HELP(CLUSTER_OPTIONS_PARAM,
+              "@param options Optional Dictionary with options.");
+
+REGISTER_HELP(CLUSTER_OPTIONS_THROWS,
+              "MetadataError in the following scenarios:");
+REGISTER_HELP(CLUSTER_OPTIONS_THROWS1, "@li If the Metadata is inaccessible.");
+
+REGISTER_HELP(CLUSTER_OPTIONS_RETURNS,
+              "@returns A JSON object describing the configuration options of "
+              "the cluster.");
+
+REGISTER_HELP(
+    CLUSTER_OPTIONS_DETAIL,
+    "This function lists the cluster configuration options for its"
+    "ReplicaSets and Instances. The following options may be given to control"
+    "the amount of information gathered and returned.");
+REGISTER_HELP(CLUSTER_OPTIONS_DETAIL1,
+              "@li all: if true, includes information about all "
+              "group_replication system variables.");
+
+/**
+ * $(CLUSTER_OPTIONS_BRIEF)
+ *
+ * $(CLUSTER_OPTIONS_PARAM)
+ *
+ * $(CLUSTER_OPTIONS_THROWS)
+ * $(CLUSTER_OPTIONS_THROWS1)
+ * $(CLUSTER_OPTIONS_THROWS2)
+ *
+ * $(CLUSTER_OPTIONS_RETURNS)
+ *
+ * $(CLUSTER_OPTIONS_DETAIL)
+ *
+ * $(CLUSTER_OPTIONS_DETAIL1)
+ */
+#if DOXYGEN_JS
+String Cluster::options(Dictionary options) {}
+#elif DOXYGEN_PY
+str Cluster::options(dict options) {}
+#endif
+
+shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("options");
+  auto state = check_preconditions("options");
+
+  bool all = false;
+  // Retrieves optional options
+  Unpack_options(options).optional("all", &all).end();
+
+  // Create the Cluster_options command and execute it.
+  Cluster_options op_option(this, all);
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope([&op_option]() { op_option.finish(); });
+  // Prepare the Cluster_options command execution (validations).
+  op_option.prepare();
+  // Execute Cluster_options operations.
+  return op_option.execute();
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
@@ -1586,10 +1661,7 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
@@ -1633,13 +1705,6 @@ shcore::Value Cluster::force_quorum_using_partition_of(
       get_function_name("forceQuorumUsingPartitionOf"));
 
   return ret_val;
-}
-
-void Cluster::set_option(const std::string &option,
-                         const shcore::Value &value) {
-  if (!_options) _options.reset(new shcore::Value::Map_type());
-
-  (*_options)[option] = value;
 }
 
 void Cluster::set_attribute(const std::string &attribute,
@@ -1749,10 +1814,7 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref
- * connection_data.
- *
- * Only TCP/IP connections are allowed for this function.
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
  *
@@ -1863,7 +1925,9 @@ REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4,
  *
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2)
+ *
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
+ *
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4)
  */
@@ -2001,7 +2065,9 @@ REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL3,
  *
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2)
+ *
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
+ *
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
  */
 #if DOXYGEN_JS
@@ -2037,6 +2103,309 @@ void Cluster::set_primary_instance(const shcore::Dictionary_t &instance_def) {
   target_instance = get_connection_options(instance_def);
 
   set_primary_instance(target_instance);
+}
+
+REGISTER_HELP_FUNCTION(setOption, Cluster);
+REGISTER_HELP(
+    CLUSTER_SETOPTION_BRIEF,
+    "Changes the value of a configuration option for the whole cluster.");
+
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS1,
+              "@li If the 'option' parameter is empty.");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS2,
+              "@li If the 'value' parameter is empty.");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS3,
+              "@li If the 'option' parameter is invalid.");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS4,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS5,
+              "@li If any of the cluster members do not support the "
+              "configuration option passed in 'option'.");
+REGISTER_HELP(
+    CLUSTER_SETOPTION_THROWS6,
+    "@li If the value passed in 'option' is not valid for Group Replication.");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS7,
+              "@li If the cluster has no visible quorum.");
+REGISTER_HELP(CLUSTER_SETOPTION_THROWS8,
+              "@li If any of the cluster members is not ONLINE.");
+
+REGISTER_HELP(CLUSTER_SETOPTION_RETURNS, "@returns Nothing.");
+
+REGISTER_HELP(CLUSTER_SETOPTION_PARAM,
+              "@param option The configuration option to be changed.");
+REGISTER_HELP(
+    CLUSTER_SETOPTION_PARAM1,
+    "@param value The value that the configuration option shall get.");
+
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL,
+              "This function changes an InnoDB Cluster configuration option in "
+              "all members of the cluster.");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL1,
+              "The 'option' parameter is the name of the configuration option "
+              "to be changed.");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL2,
+              "The value parameter is the value that the configuration option "
+              "shall get.");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL3,
+              "The accepted values for the configuration option are:");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL4,
+              "@li clusterName: string value to define the cluster name.");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL5, "${CLUSTER_OPT_EXIT_STATE_ACTION}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL6, "${CLUSTER_OPT_MEMBER_WEIGHT}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL7, "${CLUSTER_OPT_FAILOVER_CONSISTENCY}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL8, "${CLUSTER_OPT_EXPEL_TIMEOUT}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL9,
+              "The value for the configuration option is used to set the Group "
+              "Replication system variable that corresponds to it.");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL10,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL11,
+              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL12,
+              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL13,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL14,
+              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}");
+REGISTER_HELP(CLUSTER_SETOPTION_DETAIL15, "${CLUSTER_OPT_EXPELTIMEOUT_EXTRA}");
+
+/**
+ * $(CLUSTER_SETOPTION_BRIEF)
+ *
+ * $(CLUSTER_SETOPTION_THROWS)
+ * $(CLUSTER_SETOPTION_THROWS1)
+ * $(CLUSTER_SETOPTION_THROWS2)
+ * $(CLUSTER_SETOPTION_THROWS3)
+ * $(CLUSTER_SETOPTION_THROWS4)
+ * $(CLUSTER_SETOPTION_THROWS5)
+ * $(CLUSTER_SETOPTION_THROWS6)
+ * $(CLUSTER_SETOPTION_THROWS7)
+ * $(CLUSTER_SETOPTION_THROWS8)
+ *
+ * $(CLUSTER_SETOPTION_RETURNS)
+ *
+ * $(CLUSTER_SETOPTION_PARAM)
+ * $(CLUSTER_SETOPTION_PARAM1)
+ *
+ * $(CLUSTER_SETOPTION_DETAIL)
+ * $(CLUSTER_SETOPTION_DETAIL1)
+ * $(CLUSTER_SETOPTION_DETAIL2)
+ * $(CLUSTER_SETOPTION_DETAIL3)
+ * $(CLUSTER_SETOPTION_DETAIL4)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT)
+ * $(CLUSTER_SETOPTION_DETAIL6)
+ * $(CLUSTER_SETOPTION_DETAIL7)
+ * $(CLUSTER_SETOPTION_DETAIL8)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
+ * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
+ * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA)
+ * $(CLUSTER_OPT_EXPELTIMEOUT_EXTRA)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setOption(String option, String value) {}
+#elif DOXYGEN_PY
+None Cluster::set_option(str option, str value) {}
+#endif
+
+void Cluster::set_option(const std::string &option,
+                         const shcore::Value &value) {
+  assert_valid("setOption");
+  check_preconditions("setOption");
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  // Set Cluster configuration option
+
+  // Create the Cluster_set_option object and execute it.
+  std::unique_ptr<Cluster_set_option> op_cluster_set_option;
+
+  // Validation types due to a limitation on the expose() framework.
+  // Currently, it's not possible to do overloading of functions that overload
+  // an argument of type string/int since the type int is convertible to
+  // string, thus overloading becomes ambiguous. As soon as that limitation is
+  // gone, this type checking shall go away too.
+  if (value.type == shcore::String) {
+    std::string value_str = value.as_string();
+    op_cluster_set_option =
+        shcore::make_unique<Cluster_set_option>(this, option, value_str);
+  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
+    int64_t value_int = value.as_int();
+    op_cluster_set_option =
+        shcore::make_unique<Cluster_set_option>(this, option, value_int);
+  } else {
+    throw shcore::Exception::argument_error(
+        "Argument #2 is expected to be a string or an Integer.");
+  }
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_cluster_set_option]() { op_cluster_set_option->finish(); });
+
+  // Prepare the Set_option command execution (validations).
+  op_cluster_set_option->prepare();
+
+  // Execute Set_instance_option operations.
+  op_cluster_set_option->execute();
+}
+
+REGISTER_HELP_FUNCTION(setInstanceOption, Cluster);
+REGISTER_HELP(
+    CLUSTER_SETINSTANCEOPTION_BRIEF,
+    "Changes the value of a configuration option in a Cluster member.");
+
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS1,
+              "@li If the 'instance' parameter is empty.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS2,
+              "@li If the 'instance' parameter is invalid.");
+REGISTER_HELP(
+    CLUSTER_SETINSTANCEOPTION_THROWS3,
+    "@li If the 'instance' definition is a connection dictionary but empty.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS4,
+              "@li If the 'option' parameter is empty.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS5,
+              "@li If the 'value' parameter is empty.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS6,
+              "@li If the 'option' parameter is invalid.");
+
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS7,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS8,
+              "@li If 'instance' does not refer to a cluster member.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS9,
+              "@li If the cluster has no visible quorum.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS10,
+              "@li If 'instance' is not ONLINE.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS11,
+              "@li If 'instance' does not support the configuration option "
+              "passed in 'option'.");
+REGISTER_HELP(
+    CLUSTER_SETINSTANCEOPTION_THROWS12,
+    "@li If the value passed in 'option' is not valid for Group Replication.");
+
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_RETURNS, "@returns Nothing.");
+
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_PARAM,
+              "@param instance An instance definition.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_PARAM1,
+              "@param option The configuration option to be changed.");
+REGISTER_HELP(
+    CLUSTER_SETINSTANCEOPTION_PARAM2,
+    "@param value The value that the configuration option shall get.");
+
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL,
+              "This function changes an InnoDB Cluster configuration option in "
+              "a member of the cluster.");
+REGISTER_HELP(
+    CLUSTER_SETINSTANCEOPTION_DETAIL1,
+    "The instance definition is the connection data for the instance.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL2,
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL3,
+              "The option parameter is the name of the configuration option to "
+              "be changed");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL4,
+              "The value parameter is the value that the configuration option "
+              "shall get.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL5,
+              "The accepted values for the configuration option are:");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL6,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION}");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL7,
+              "${CLUSTER_OPT_MEMBER_WEIGHT}");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL8,
+              "@li label a string identifier of the instance.");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL9,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL10,
+              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
+REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL11,
+              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
+
+/**
+ * $(CLUSTER_SETINSTANCEOPTION_BRIEF)
+ *
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS1)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS2)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS3)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS4)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS5)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS6)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS7)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS8)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS9)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS10)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS11)
+ * $(CLUSTER_SETINSTANCEOPTION_THROWS12)
+ *
+ * $(CLUSTER_SETINSTANCEOPTION_RETURNS)
+ *
+ * $(CLUSTER_SETINSTANCEOPTION_PARAM)
+ * $(CLUSTER_SETINSTANCEOPTION_PARAM1)
+ * $(CLUSTER_SETINSTANCEOPTION_PARAM2)
+ *
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL)
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL1)
+ *
+ * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
+ *
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL3)
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL4)
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL5)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT)
+ * $(CLUSTER_SETINSTANCEOPTION_DETAIL8)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
+ * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
+ * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setInstanceOption(InstanceDef instance, String option,
+                                     String value) {}
+#elif DOXYGEN_PY
+None Cluster::set_instance_option(InstanceDef instance, str option, str value);
+#endif
+void Cluster::set_instance_option(const Connection_options &instance_def,
+                                  const std::string &option,
+                                  const shcore::Value &value) {
+  assert_valid("setInstanceOption");
+  check_preconditions("setInstanceOption");
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  // Set the option in the Default ReplicaSet
+  _default_replica_set->set_instance_option(instance_def, option, value);
+}
+
+void Cluster::set_instance_option(const std::string &instance_def,
+                                  const std::string &option,
+                                  const shcore::Value &value) {
+  mysqlshdk::db::Connection_options target_instance;
+
+  target_instance = get_connection_options(instance_def);
+
+  set_instance_option(target_instance, option, value);
+}
+
+void Cluster::set_instance_option(const shcore::Dictionary_t &instance_def,
+                                  const std::string &option,
+                                  const shcore::Value &value) {
+  mysqlshdk::db::Connection_options target_instance;
+
+  target_instance = get_connection_options(instance_def);
+
+  set_instance_option(target_instance, option, value);
 }
 
 Cluster_check_info Cluster::check_preconditions(

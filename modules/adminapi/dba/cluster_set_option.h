@@ -21,66 +21,74 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
-#define MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#ifndef MODULES_ADMINAPI_DBA_CLUSTER_SET_OPTION_H_
+#define MODULES_ADMINAPI_DBA_CLUSTER_SET_OPTION_H_
 
-#include <map>
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/dba/replicaset_set_option.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
+#include "mysqlshdk/libs/config/config.h"
 
 namespace mysqlsh {
 namespace dba {
 
-class Cluster_status : public Command_interface {
+class Cluster_set_option : public Command_interface {
  public:
-  Cluster_status(Cluster *cluster, mysqlshdk::utils::nullable<bool> m_extended,
-                 mysqlshdk::utils::nullable<bool> m_query_members);
+  Cluster_set_option(Cluster *cluster, const std::string &option,
+                     const std::string &value);
+  Cluster_set_option(Cluster *cluster, const std::string &option,
+                     int64_t value);
 
-  ~Cluster_status() override;
+  ~Cluster_set_option() override;
 
   /**
-   * Prepare the options command for execution.
-   * NOTE: Not currently used (does nothing).
+   * Prepare the Cluster_set_option command for execution.
+   * Validates parameters and others, more specifically
+   * - Validate if the option is valid, being the accepted values:
+   *     - exitStateAction
+   *     - memberWeight
+   *     - failoverConsistency
+   *     - expelTimeout
+   *     - clusterName
+   * - Verify user privileges to execute operation;
+   * - Verify if the cluster has quorum (preconditions check)
    */
   void prepare() override;
 
   /**
-   * Execute the cluster status command.
-   * More specifically:
-   * - Iterate through all ReplicaSets of the Cluster in order to obtain the
-   * status of each one
+   * Execute the Set_option command.
    *
-   * @return an shcore::Value containing a dictionary object with the command
-   * output
+   * @return An empty shcore::Value.
    */
   shcore::Value execute() override;
 
   /**
    * Rollback the command.
    *
-   * NOTE: Not currently used (does nothing).
+   * NOTE: Not currently used.
    */
   void rollback() override;
 
   /**
    * Finalize the command execution.
-   *
-   * NOTE: Not currently used (does nothing).
    */
   void finish() override;
 
  private:
   Cluster *m_cluster = nullptr;
-  mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
+  // Configuration object (to read and set instance configurations).
+  std::string m_option;
+  mysqlshdk::utils::nullable<std::string> m_value_str;
+  mysqlshdk::utils::nullable<int64_t> m_value_int;
 
-  shcore::Value get_replicaset_status(
-      const std::shared_ptr<ReplicaSet> &replicaset);
+  std::unique_ptr<Replicaset_set_option> m_replicaset_set_option;
+
+  void ensure_option_valid();
 };
-
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#endif  // MODULES_ADMINAPI_DBA_CLUSTER_SET_OPTION_H_

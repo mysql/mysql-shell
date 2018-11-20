@@ -145,6 +145,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitMemberTransactions", &Testutils::wait_member_transactions,
          "dest_port", "?source_port");
 
+  expose("waitForConnectionErrorInRecovery",
+         &Testutils::wait_for_connection_error_in_recovery, "port",
+         "errorNumber", "?timeout");
+
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
@@ -1526,6 +1530,77 @@ std::string Testutils::wait_member_state(int member_port,
   throw std::runtime_error(
       "Timeout while waiting for cluster member to become one of " + states +
       ": seems to be stuck as " + current_state);
+}
+
+///@{
+/**
+ * Waits until a cluster member sees a connection error in the recovery phase
+ * @param port The port of the instance to be polled listens for MySQL
+ * connections.
+ * @param states An array containing the states that would cause the poll cycle
+ * to finish.
+ * @param direct If true, opens a direct session to the member to be observed.
+ * @returns The state of the member.
+ *
+ * This function is to be used with the members of a cluster.
+ *
+ * It will start a polling cycle verifying the member state, the cycle will end
+ * when one of the expected states is reached or if the timeout of 60 seconds
+ * occurs.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::waitForConnectionErrorInRecovery(Integer port,
+                                                      Integer errorNumber,
+                                                      Integer timeout = 60);
+#elif DOXYGEN_PY
+None Testutils::wait_for_connection_error_in_recovery(int port, int errorNumber,
+                                                      int timeout = 60);
+#endif
+///@}
+void Testutils::wait_for_connection_error_in_recovery(int port,
+                                                      int error_number,
+                                                      int timeout) {
+  if (error_number == 0) {
+    throw std::invalid_argument(
+        "error_number argument for wait_for_connection_error_in_recovery() "
+        "can't be zero.");
+  }
+
+  int current_error_number = 0;
+  int elapsed_time = 0;
+  std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
+
+  const uint32_t sleep_time = mysqlshdk::db::replay::g_replay_mode ==
+                                      mysqlshdk::db::replay::Mode::Replay
+                                  ? 1
+                                  : 1000;
+
+  // Convert negative timeout values to 0
+  timeout = timeout >= 0 ? timeout : 0;
+  while (!timeout || elapsed_time < timeout) {
+    auto result = session->query(
+        "SELECT LAST_ERROR_NUMBER FROM "
+        "performance_schema.replication_connection_status WHERE channel_name = "
+        "\"group_replication_recovery\"");
+
+    if (auto row = result->fetch_one()) {
+      current_error_number = row->get_int(0);
+    }
+
+    if (current_error_number == error_number) {
+      break;
+    }
+
+    elapsed_time += 1;
+    shcore::sleep_ms(sleep_time);
+  }
+
+  session->close();
+  if (current_error_number != error_number) {
+    throw std::runtime_error(
+        "Timeout waiting for the connection Error number " +
+        std::to_string(error_number) + " in the recovery phase.");
+  }
 }
 
 ///@{

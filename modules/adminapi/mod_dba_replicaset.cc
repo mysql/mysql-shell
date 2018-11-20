@@ -36,6 +36,7 @@
 #include "modules/adminapi/dba/dissolve.h"
 #include "modules/adminapi/dba/remove_instance.h"
 #include "modules/adminapi/dba/replicaset_rescan.h"
+#include "modules/adminapi/dba/replicaset_set_instance_option.h"
 #include "modules/adminapi/dba/replicaset_set_primary_instance.h"
 #include "modules/adminapi/dba/replicaset_switch_to_multi_primary_mode.h"
 #include "modules/adminapi/dba/replicaset_switch_to_single_primary_mode.h"
@@ -180,6 +181,50 @@ void ReplicaSet::verify_topology_type_change() const {
         "current Group Replication configuration (Multi-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
+}
+
+void ReplicaSet::set_instance_option(const Connection_options &instance_def,
+                                     const std::string &option,
+                                     const shcore::Value &value) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
+  // Set ReplicaSet configuration option
+
+  // Create the Replicaset_set_instance_option object and execute it.
+  std::unique_ptr<Replicaset_set_instance_option> op_set_instance_option;
+
+  // Validation types due to a limitation on the expose() framework.
+  // Currently, it's not possible to do overloading of functions that overload
+  // an argument of type string/int since the type int is convertible to
+  // string, thus overloading becomes ambiguous. As soon as that limitation is
+  // gone, this type checking shall go away too.
+  if (value.type == shcore::String) {
+    std::string value_str = value.as_string();
+    op_set_instance_option =
+        shcore::make_unique<Replicaset_set_instance_option>(this, instance_def,
+                                                            option, value_str);
+  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
+    int64_t value_int = value.as_int();
+    op_set_instance_option =
+        shcore::make_unique<Replicaset_set_instance_option>(this, instance_def,
+                                                            option, value_int);
+  } else {
+    throw shcore::Exception::argument_error(
+        "Argument #2 is expected to be a string or an Integer.");
+  }
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_set_instance_option]() { op_set_instance_option->finish(); });
+
+  // Prepare the Replicaset_set_instance_option command execution (validations).
+  op_set_instance_option->prepare();
+
+  // Execute Replicaset_set_instance_option operations.
+  op_set_instance_option->execute();
 }
 
 void ReplicaSet::adopt_from_gr() {

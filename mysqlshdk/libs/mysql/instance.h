@@ -60,6 +60,7 @@ class IInstance {
   virtual std::string descr() const = 0;
   virtual std::string get_canonical_hostname() const = 0;
   virtual int get_canonical_port() const = 0;
+  virtual std::string get_canonical_address() const = 0;
 
   virtual void cache_global_sysvars(bool force_refresh = false) = 0;
   virtual utils::nullable<std::string> get_cached_global_sysvar(
@@ -132,6 +133,7 @@ class Instance : public IInstance {
 
   std::string descr() const override;
   std::string get_canonical_hostname() const override;
+  std::string get_canonical_address() const override;
   int get_canonical_port() const override;
 
   void cache_global_sysvars(bool force_refresh = false) override;

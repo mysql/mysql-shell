@@ -21,82 +21,78 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/dba/cluster_status.h"
-#include "modules/adminapi/dba/replicaset_status.h"
+#include "modules/adminapi/dba/cluster_options.h"
+#include "modules/adminapi/dba/replicaset_options.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {
 namespace dba {
 
-Cluster_status::Cluster_status(Cluster *cluster,
-                               mysqlshdk::utils::nullable<bool> extended,
-                               mysqlshdk::utils::nullable<bool> query_member)
-    : m_cluster(cluster), m_extended(extended), m_query_members(query_member) {}
+Cluster_options::Cluster_options(Cluster *cluster, bool all)
+    : m_cluster(cluster), m_all(all) {}
 
-Cluster_status::~Cluster_status() {}
+Cluster_options::~Cluster_options() {}
 
-void Cluster_status::prepare() {}
-
-shcore::Value Cluster_status::get_replicaset_status(
-    const std::shared_ptr<ReplicaSet> &replicaset) {
-  shcore::Value ret;
-
-  // Create the ReplicaSet Status command and execute it.
-  Replicaset_status op_replicaset_status(replicaset, m_extended,
-                                         m_query_members);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
-      [&op_replicaset_status]() { op_replicaset_status.finish(); });
-  // Prepare the ReplicaSet Status command execution (validations).
-  op_replicaset_status.prepare();
-  // Execute Status operations.
-  ret = op_replicaset_status.execute();
-
-  return ret;
+void Cluster_options::prepare() {
+  // Nothing to be done. Metadata session validation is done by the
+  // MetadataStorage class itself
 }
 
-shcore::Value Cluster_status::execute() {
+/**
+ * Get the configuration options from a specific ReplicaSet
+ *
+ * This function gets the options from a specific ReplicaSet by creating an
+ * object of Options and executing it
+ *
+ * @param replicaset target ReplicaSet to get the options from
+ *
+ * @return a shcore::Value containing a dictionary object with the command
+ * output
+ */
+shcore::Value Cluster_options::get_replicaset_options(
+    const std::shared_ptr<ReplicaSet> &replicaset) {
+  // Create the Replicaset_options command and execute it.
+  Replicaset_options op_replicaset_options(replicaset, m_all);
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_replicaset_options]() { op_replicaset_options.finish(); });
+  // Prepare the Options command execution (validations).
+  op_replicaset_options.prepare();
+
+  // Execute Options operations.
+  return op_replicaset_options.execute();
+}
+
+shcore::Value Cluster_options::execute() {
   shcore::Dictionary_t dict = shcore::make_dict();
 
   (*dict)["clusterName"] = shcore::Value(m_cluster->get_name());
 
-  // Get the default replicaSet status
+  // Get the default replicaSet options
   {
     shcore::Value ret;
 
     std::shared_ptr<ReplicaSet> default_rs =
         m_cluster->get_default_replicaset();
 
-    ret = get_replicaset_status(default_rs);
+    ret = get_replicaset_options(default_rs);
 
     (*dict)["defaultReplicaSet"] = shcore::Value(ret);
   }
 
-  // Iterate all replicasets and get the status for each one
-
-  mysqlshdk::mysql::Instance target_instance(m_cluster->get_group_session());
-
-  std::string addr = target_instance.get_canonical_address();
-  (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
-
-  // metadata server, if its a different one
-  if (m_cluster->metadata()->get_session() != m_cluster->get_group_session()) {
-    auto mdsession = m_cluster->metadata()->get_session();
-    mysqlshdk::mysql::Instance md_instance(mdsession);
-    (*dict)["metadataServer"] =
-        shcore::Value(md_instance.get_canonical_address());
-  }
+  // TODO(.) As soon as Support for multiple ReplicaSets is added, we must
+  // iterate all replicasets and get the options for each one
 
   return shcore::Value(dict);
 }
 
-void Cluster_status::rollback() {
+void Cluster_options::rollback() {
   // Do nothing right now, but it might be used in the future when
   // transactional command execution feature will be available.
 }
 
-void Cluster_status::finish() {}
+void Cluster_options::finish() {}
 
 }  // namespace dba
 }  // namespace mysqlsh

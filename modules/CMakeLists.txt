@@ -56,6 +56,7 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_sql.cc"
       "adminapi/dba/validations.cc"
       "adminapi/dba/check_instance.cc"
+      "adminapi/dba/replicaset_status.cc"
       "adminapi/dba/cluster_status.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"
@@ -67,7 +68,12 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/replicaset_topology_configuration_command.cc"
       "adminapi/dba/replicaset_switch_to_single_primary_mode.cc"
       "adminapi/dba/replicaset_switch_to_multi_primary_mode.cc"
-      "adminapi/dba/replicaset_set_primary_instance.cc")
+      "adminapi/dba/replicaset_set_primary_instance.cc"
+      "adminapi/dba/cluster_options.cc"
+      "adminapi/dba/replicaset_options.cc"
+      "adminapi/dba/cluster_set_option.cc"
+      "adminapi/dba/replicaset_set_option.cc"
+      "adminapi/dba/replicaset_set_instance_option.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

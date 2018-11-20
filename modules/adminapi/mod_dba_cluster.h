@@ -68,6 +68,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
   Undefined setPrimaryInstance(InstanceDef instance);
+  String options(Dictionary options);
+  Undefined setOption(String option, String value);
+  Undefined setInstanceOption(InstanceDef instance, String option,
+                              String value);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -84,6 +88,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
   None set_primary_instance(InstanceDef instance);
+  str options(dict options);
+  None set_option(str option, str value);
+  None set_instance_option(InstanceDef instance, str option, str value);
 #endif
 
   Cluster(const std::string &name,
@@ -123,7 +130,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   void set_name(const std::string &name) { _name = name; }
 
-  void set_option(const std::string &option, const shcore::Value &value);
   void set_options(const std::string &json) {
     _options = shcore::Value::parse(json).as_map();
   }
@@ -186,6 +192,16 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void set_primary_instance(const std::string &instance_def);
   void set_primary_instance(const shcore::Dictionary_t &instance_def);
 
+  shcore::Value options(const shcore::Dictionary_t &options);
+
+  void set_option(const std::string &option, const shcore::Value &value);
+  void set_instance_option(const shcore::Dictionary_t &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
+  void set_instance_option(const std::string &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
+
   Cluster_check_info check_preconditions(
       const std::string &function_name) const;
 
@@ -242,7 +258,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void set_primary_instance(const Connection_options &instance_def);
+  void set_instance_option(const Connection_options &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
 };
+
 }  // namespace dba
 }  // namespace mysqlsh
 

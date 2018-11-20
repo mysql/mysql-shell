@@ -58,6 +58,16 @@ int Instance::get_canonical_port() const {
   return row->is_null(0) ? 0 : row->get_int(0);
 }
 
+std::string Instance::get_canonical_address() const {
+  // returns the canonical address that should be used to reach this instance in
+  // the format: canonical_hostname + ':' + canonical_port
+  std::string addr = get_canonical_hostname();
+  addr += ":";
+  addr += std::to_string(get_canonical_port());
+
+  return addr;
+}
+
 void Instance::cache_global_sysvars(bool force_refresh) {
   if (force_refresh || _global_sysvars.empty())
     _global_sysvars = get_system_variables({}, Var_qualifier::GLOBAL);

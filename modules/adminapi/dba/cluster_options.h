@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
-#define MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#ifndef MODULES_ADMINAPI_DBA_CLUSTER_OPTIONS_H_
+#define MODULES_ADMINAPI_DBA_CLUSTER_OPTIONS_H_
 
 #include <map>
 #include <string>
@@ -34,12 +34,11 @@
 namespace mysqlsh {
 namespace dba {
 
-class Cluster_status : public Command_interface {
+class Cluster_options : public Command_interface {
  public:
-  Cluster_status(Cluster *cluster, mysqlshdk::utils::nullable<bool> m_extended,
-                 mysqlshdk::utils::nullable<bool> m_query_members);
+  Cluster_options(Cluster *cluster, bool all);
 
-  ~Cluster_status() override;
+  ~Cluster_options() override;
 
   /**
    * Prepare the options command for execution.
@@ -48,10 +47,10 @@ class Cluster_status : public Command_interface {
   void prepare() override;
 
   /**
-   * Execute the cluster status command.
+   * Execute the cluster options command.
    * More specifically:
    * - Iterate through all ReplicaSets of the Cluster in order to obtain the
-   * status of each one
+   * configuration options of each one
    *
    * @return an shcore::Value containing a dictionary object with the command
    * output
@@ -74,13 +73,13 @@ class Cluster_status : public Command_interface {
 
  private:
   Cluster *m_cluster = nullptr;
-  mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
+  bool m_all = false;
 
-  shcore::Value get_replicaset_status(
+  shcore::Value get_replicaset_options(
       const std::shared_ptr<ReplicaSet> &replicaset);
 };
 
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#endif  // MODULES_ADMINAPI_DBA_CLUSTER_OPTIONS_H_

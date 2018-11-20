@@ -161,6 +161,14 @@ struct Type_info<shcore::Value> {
 };
 
 template <>
+struct Type_info<const shcore::Value &> {
+  static shcore::Value to_native(const shcore::Value &in) { return in; }
+  static Value_type vtype() { return shcore::Undefined; }
+  static const char *code() { return "V"; }
+  static shcore::Value default_value() { return shcore::Value(); }
+};
+
+template <>
 struct Type_info<const shcore::Dictionary_t &> {
   static shcore::Dictionary_t to_native(const shcore::Value &in) {
     return in.as_map();
@@ -676,7 +684,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     assert(!a3doc.empty());
 
     Cpp_function::Metadata &md =
-        get_metadata(class_name() + "::" + name + ":" + Type_info<A2>::code() +
+        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code() +
                      Type_info<A2>::code() + Type_info<A3>::code());
     if (md.name[0].empty()) {
       set_metadata(md, name, Type_info<R>::vtype(),

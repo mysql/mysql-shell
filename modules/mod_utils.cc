@@ -63,7 +63,7 @@ mysqlshdk::db::Connection_options get_connection_options(
     const shcore::Dictionary_t &instance_def) {
   mysqlshdk::db::Connection_options ret_val;
 
-  if (instance_def->size() == 0) {
+  if (instance_def == nullptr || instance_def->size() == 0) {
     throw std::invalid_argument(
         "Invalid connection options, no options provided.");
   }

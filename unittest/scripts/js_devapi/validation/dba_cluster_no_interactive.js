@@ -1,5 +1,5 @@
 //@ Cluster: validating members
-|Cluster Members: 16|
+|Cluster Members: 19|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
@@ -16,6 +16,9 @@
 |switchToSinglePrimaryMode: OK|
 |switchToMultiPrimaryMode: OK|
 |setPrimaryInstance: OK|
+|options: OK|
+|setOption: OK|
+|setInstanceOption: OK|
 
 //@# Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0

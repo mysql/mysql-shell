@@ -70,6 +70,12 @@ cluster.help("help")
 //@ Help. \? [USE:Help]
 \? cluster.help
 
+//@ Options
+cluster.help("options")
+
+//@ Options. \? [USE:Options]
+\? cluster.options
+
 //@ Rejoin Instance
 cluster.help("rejoinInstance")
 
@@ -82,6 +88,18 @@ cluster.help("removeInstance");
 
 //@ Remove Instance, \? [USE:Remove Instance]
 \? removeInstance
+
+//@ SetInstanceOption
+cluster.help("setInstanceOption")
+
+//@ SetInstanceOption, \? [USE:SetInstanceOption]
+\? setInstanceOption
+
+//@ SetOption
+cluster.help("setOption")
+
+//@ SetOption, \? [USE:SetOption]
+\? setOption
 
 //@ Rescan
 cluster.help("rescan")

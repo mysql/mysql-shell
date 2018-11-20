@@ -2,7 +2,7 @@
 shell.options.help()
 
 //@ Shell Options Help, \? [USE:Shell Options Help]
-\? options
+\? shell.options
 
 //@ Help on help
 shell.options.help("help")

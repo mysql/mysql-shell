@@ -45,6 +45,8 @@
 namespace mysqlsh {
 namespace dba {
 
+class MetadataStorage;
+
 void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
@@ -69,6 +71,7 @@ constexpr const char kGroupName[] = "groupName";
 constexpr const char kGrGroupName[] = "group_replication_group_name";
 constexpr const char kMemberSslMode[] = "memberSslMode";
 constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
+constexpr const char kClusterName[] = "clusterName";
 
 // Group Replication configuration option availability regarding MySQL Server
 // version
@@ -93,7 +96,60 @@ const std::map<std::string, Option_availability> k_global_supported_options{
      {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
     {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}}};
 
-class MetadataStorage;
+/**
+ * Map of the global ReplicaSet configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, std::string> k_global_options{
+    {kGroupName, kGrGroupName}, {kMemberSslMode, kGrMemberSslMode}};
+
+/**
+ * Map of the instance configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, std::string> k_instance_options{
+    {kExitStateAction, kGrExitStateAction},
+    {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},
+    {kLocalAddress, kGrLocalAddress},
+    {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},
+    {kFailoverConsistency, kGrFailoverConsistency}};
+
+/**
+ * Map of the supported global ReplicaSet configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability>
+    k_global_replicaset_supported_options{
+        {kExitStateAction,
+         {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+          mysqlshdk::utils::Version("5.7.24")}},
+        {kMemberWeight,
+         {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+          mysqlshdk::utils::Version("5.7.20")}},
+        {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
+        {kFailoverConsistency,
+         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}}};
+
+/**
+ * Map of the supported global Cluster configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability>
+    k_global_cluster_supported_options{{kClusterName, {""}}};
+
+/**
+ * Map of the supported instance configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability> k_instance_supported_options{
+    {kExitStateAction,
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+      mysqlshdk::utils::Version("5.7.24")}},
+    {kMemberWeight,
+     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+      mysqlshdk::utils::Version("5.7.20")}}};
 
 struct Instance_definition {
   int host_id;

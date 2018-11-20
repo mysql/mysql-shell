@@ -86,6 +86,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   bool is_replicaset_active(uint64_t rs_id);
   void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset,
                                  const std::string &group_name);
+  void set_cluster_name(const std::string &cluster_name,
+                        const std::string &new_cluster_name);
   virtual void load_cluster(const std::string &cluster_name,
                             std::shared_ptr<Cluster> cluster);
   virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
@@ -103,6 +105,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * @return True if the given instance label is unique.
    */
   bool is_instance_label_unique(uint64_t rs_id, const std::string &label) const;
+  void set_instance_label(uint64_t rs_id, const std::string &label,
+                          const std::string &new_label);
   uint64_t get_replicaset_count(uint64_t rs_id) const;
 
   std::string get_seed_instance(uint64_t rs_id);

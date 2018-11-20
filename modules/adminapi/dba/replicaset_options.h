@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
-#define MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#ifndef MODULES_ADMINAPI_DBA_REPLICASET_OPTIONS_H_
+#define MODULES_ADMINAPI_DBA_REPLICASET_OPTIONS_H_
 
 #include <map>
 #include <string>
@@ -34,24 +34,26 @@
 namespace mysqlsh {
 namespace dba {
 
-class Cluster_status : public Command_interface {
+class Replicaset_options : public Command_interface {
  public:
-  Cluster_status(Cluster *cluster, mysqlshdk::utils::nullable<bool> m_extended,
-                 mysqlshdk::utils::nullable<bool> m_query_members);
+  Replicaset_options(std::shared_ptr<ReplicaSet> replicaset,
+                     mysqlshdk::utils::nullable<bool> all);
 
-  ~Cluster_status() override;
+  ~Replicaset_options() override;
 
   /**
-   * Prepare the options command for execution.
-   * NOTE: Not currently used (does nothing).
+   * Prepare the ReplicaSet options command for execution.
+   * Validates parameters and others, more specifically:
+   *   - Gets the current members list
+   *   - Connects to every ReplicaSet member and populates the internal
+   * connection lists
    */
   void prepare() override;
 
   /**
-   * Execute the cluster status command.
+   * Execute the ReplicaSet options command.
    * More specifically:
-   * - Iterate through all ReplicaSets of the Cluster in order to obtain the
-   * status of each one
+   * - Lists the configuration options of the ReplicaSet and its Instances.
    *
    * @return an shcore::Value containing a dictionary object with the command
    * output
@@ -67,20 +69,31 @@ class Cluster_status : public Command_interface {
 
   /**
    * Finalize the command execution.
-   *
-   * NOTE: Not currently used (does nothing).
+   * More specifically:
+   * - Reset all auxiliary (temporary) data used for the operation execution.
    */
   void finish() override;
 
  private:
-  Cluster *m_cluster = nullptr;
-  mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
+  std::shared_ptr<ReplicaSet> m_replicaset;
+  mysqlshdk::utils::nullable<bool> m_all;
 
-  shcore::Value get_replicaset_status(
-      const std::shared_ptr<ReplicaSet> &replicaset);
+  std::vector<ReplicaSet::Instance_info> m_instances;
+  std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
+      m_member_sessions;
+  std::map<std::string, std::string> m_member_connect_errors;
+
+  void connect_to_members();
+
+  shcore::Array_t collect_global_options();
+
+  shcore::Array_t get_instance_options(
+      const mysqlshdk::mysql::Instance &instance);
+
+  shcore::Dictionary_t collect_replicaset_options();
 };
 
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#endif  // MODULES_ADMINAPI_DBA_REPLICASET_OPTIONS_H_
