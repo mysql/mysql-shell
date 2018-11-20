@@ -37,7 +37,16 @@ function(CHECK_CXX11)
   check_cxx_compiler_flag("-std=c++11" support_11)
 
   if(support_11)
-    set(CXX11_FLAG "-std=c++11" PARENT_SCOPE)
+    IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+      FOREACH(flag
+              CMAKE_CXX_FLAGS_MINSIZEREL
+              CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO
+              CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_DEBUG_INIT)
+        SET("${flag}" "${${flag}} /std:c++11")
+      ENDFOREACH()
+    ELSE()
+      SET(CXX11_FLAG "-std=c++11" PARENT_SCOPE)
+    ENDIF()
   else()
     message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++11 standard")
   endif()
@@ -64,6 +73,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   if("${MSVC_VERSION}" VERSION_LESS 1800)
     message(FATAL_ERROR "Need at least ${CMAKE_CXX_COMPILER} 12.0")
   endif()
+
+  check_cxx11()
+
   # /TP is needed so .cc files are recognoized as C++ source files by MSVC
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /TP")
 
