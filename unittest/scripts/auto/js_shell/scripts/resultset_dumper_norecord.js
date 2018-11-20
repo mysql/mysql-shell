@@ -48,7 +48,7 @@ session.close();
 //------------------------------------------
 
 
-//@<>---------- TEST FOR MULTIBYTE CHARACTER FORMATTING ---------- {!__os_type != 'windows'}
+//@<>---------- TEST FOR MULTIBYTE CHARACTER FORMATTING ----------
 shell.connect(__uripwd);
 var schema = session.createSchema('resultset_dumper');
 session.sql('create table resultset_dumper.mbtable(data VARCHAR(100))');
@@ -64,15 +64,15 @@ table.insert('data').
       values('🇯🇵🈳🆕🆒').
       values('®7⃣⏰☕♒♣\0⛽🌄🌠🎨🐍🐾');
 
-//@ table in table format {!__os_type != 'windows'}
+//@ table in table format
 shell.options.resultFormat = 'table';
 table.select();
 
-//@ table in tabbed format {!__os_type != 'windows'}
+//@ table in tabbed format
 shell.options.resultFormat="tabbed";
 table.select();
 
-//@ table in vertical format {!__os_type != 'windows'}
+//@ table in vertical format
 shell.options.resultFormat="vertical";
 table.select();
 
@@ -88,19 +88,19 @@ collection.add({_id:'8', name:'🚀🚑🚙🚬🚻🛀', year: 2004});
 collection.add({_id:'9', name:'🇯🇵🈳🆕🆒', year: 2004});
 collection.add({_id:'10', name:'®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾', year: 2004});
 
-//@ Pulling as collection in JSON format {!__os_type != 'windows'}
+//@ Pulling as collection in JSON format
 collection.find();
 
-//@ pulling as table in table format {!__os_type != 'windows'}
+//@ pulling as table in table format
 shell.options.resultFormat="table";
 var table = schema.getCollectionAsTable('mbcollection');
 table.select();
 
-//@ pulling as table in tabbed format {!__os_type != 'windows'}
+//@ pulling as table in tabbed format
 shell.options.resultFormat="tabbed";
 table.select();
 
-//@ pulling as table in vertical format {!__os_type != 'windows'}
+//@ pulling as table in vertical format
 shell.options.resultFormat="vertical";
 table.select();
 
