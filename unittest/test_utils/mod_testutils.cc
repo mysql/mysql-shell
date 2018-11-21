@@ -53,6 +53,7 @@
 #include <unistd.h>
 #endif
 
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -100,7 +101,9 @@ const char *k_boilerplate_root_password = "root";
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      std::shared_ptr<mysqlsh::Command_line_shell> shell,
                      const std::string &mysqlsh_path)
-    : _shell(shell), _mysqlsh_path(mysqlsh_path) {
+    : mysqlsh::Extensible_object("testutil", "testutil"),
+      _shell(shell),
+      _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
@@ -166,6 +169,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("cpfile", &Testutils::cp_file, "source", "target");
   expose("rmfile", &Testutils::rm_file, "target");
   expose("touch", &Testutils::touch, "file");
+  expose("enableExtensible", &Testutils::enable_extensible);
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -173,6 +177,161 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
   _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
+}
+
+void Testutils::enable_extensible() {
+  auto topic = shcore::Help_registry::get()->get_topic("testutil", true);
+
+  if (!topic) {
+    REGISTER_HELP_OBJECT(testutil, shellapi);
+    REGISTER_HELP(TESTUTIL_BRIEF,
+                  "Gives access to general testing functions and properties.");
+    REGISTER_HELP(TESTUTIL_GLOBAL_BRIEF,
+                  "Gives access to general testing functions and properties.");
+  }
+
+  shcore::Cpp_function::Metadata *md;
+
+  // Exposes the function, grabs the metadata function metadata
+  md = expose("registerModule", &Testutils::register_module, "parent", "name",
+              "?options");
+
+  // Creates an object validator for the options parameter
+  auto options1 = std::make_shared<shcore::Option_validator>();
+  options1->allowed = {
+      {"brief", shcore::Value_type::String, shcore::Param_flag::Optional},
+      {"details", shcore::Value_type::Array, shcore::Param_flag::Optional}};
+
+  // Overwrites the default validator with the created one
+  md->signature[2].validator = options1;
+
+  // Registers the function help on the help system
+  if (!topic) {
+    register_function_help(
+        "testutil", "registerModule", "Registers a test module.",
+        {"@param parent The module that will contain the new module.",
+         "@param name The name of the new module.",
+         "@param options Optional options with help information for the "
+         "module."},
+        {"Registers a new test module into an existing test module.",
+         "The parent module should be an existing module, in the format of: "
+         "testutil[.<name>]*]",
+         "The name should be a valid identifier.",
+         "The object will be registered using the same name in both JavaScript "
+         "and Python.",
+         "The options parameter accepts the following options:",
+         "@li brief string. Short description of the new module.",
+         "@li details array. Detailed description of the module.",
+         "Each entry in the details array will be turned into a paragraph on "
+         "the module help.",
+         "Only strings are allowed in the details array."});
+  }
+
+  // Exposes the function, grabs the metadata function metadata
+  md = expose("registerFunction", &Testutils::register_module_function,
+              "parent", "name", "function", "?definition");
+
+  // Sets a custom validator for the options parameter
+  auto options2 = std::make_shared<shcore::Option_validator>();
+  /*  options2->allowed = {{"brief", shcore::Value_type::String,
+    shcore::Param_flag::Optional},
+                         {"details", shcore::Value_type::Array,
+    shcore::Param_flag::Optional},
+                         {"parameters", shcore::Value_type::Array,
+    shcore::Param_flag::Optional}}; md->signature[3].validator = options2;*/
+
+  if (!topic) {
+    register_function_help(
+        "testutil", "registerFunction", "Registers a test utility function.",
+        {"@param parent The module that will contain the new function.",
+         "@param name The name of the new function in camelCase format.",
+         "@param function The function callback to be executed when the new "
+         "function is called.",
+         "@param definition Optional Options containing additional function "
+         "definition details."},
+        {"Registers a new function into an existing test module.",
+         "The name should be a valid identifier.",
+         "It should be an existing module, in the format of: "
+         "testutil[.<name>]*]",
+         "The function will be registered following the respective naming "
+         "convention for JavaScript and Python.",
+         "The definition parameter accepts the following options:",
+         "@li brief string. Short description of the new function.",
+         "@li details array. Detailed description of the new function.",
+         "@li parameters array. List of parameters the new function receives.",
+         "Each entry in the details array will be turned into a paragraph on "
+         "the module help.",
+         "Only strings are allowed in the details array.",
+         "Each parameter is defined as a dictionary, the following properties "
+         "are allowed:",
+         "@li name: defines the name of the parameter",
+         "@li brief: a short description of the parameter",
+         "@li details: an array with the detailed description of the parameter",
+         "@li type: the data type of the parameter",
+         "@li required: a boolean indicating if the parameter is required or "
+         "not",
+         "The supported parameter types are:",
+         "@li string",
+         "@li integer",
+         "@li float",
+         "@li array",
+         "@li object",
+         "@li dictionary",
+         "Parameters of type 'string' may contain a 'values' property with the "
+         "list of values allowed for the parameter.",
+         "Parameters of type 'object' may contain either:",
+         "@li a 'class' property with the type of object the parameter must "
+         "be.",
+         "@li a 'classes' property with a list of types of objects that the "
+         "parameter can be.",
+         "Parameters of type 'dictionary' may contain an 'options' list "
+         "defining the options that are allowed for the parameter.",
+         "Each option on the 'options' list follows the same structure as the "
+         "parameter definition."});
+  }
+
+  // Sample dynamic object created from C++
+  // This object will be hun under testutils and will be used for testing
+  // purposes
+  register_object(
+      "sampleModuleJS", "Sample module exported from C++",
+      {"Exploring the posibility to dynamically create objects fron C++"},
+      "module");
+  register_object(
+      "sampleModulePY", "Sample module exported from C++",
+      {"Exploring the posibility to dynamically create objects fron C++"},
+      "module");
+}
+
+void Testutils::register_module(const std::string &parent,
+                                const std::string &name,
+                                shcore::Dictionary_t options) {
+  auto object = search_object(parent);
+
+  if (!object)
+    throw shcore::Exception::argument_error("Target object was not found.");
+
+  std::string brief;
+  std::vector<std::string> details;
+
+  shcore::Option_unpacker unpacker(options);
+  unpacker.optional("brief", &brief);
+  unpacker.optional("details", &details);
+  unpacker.end();
+
+  object->register_object(name, brief, details, "module");
+}
+
+void Testutils::register_module_function(
+    const std::string &parent, const std::string &name,
+    const shcore::Function_base_ref &function,
+    const shcore::Dictionary_t &definition) {
+  auto object = search_object(parent);
+
+  if (!object)
+    throw shcore::Exception::argument_error("Target object was not found.");
+
+  object->register_function(name, function, definition);
 }
 
 void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {

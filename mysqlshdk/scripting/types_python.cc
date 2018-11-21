@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,7 @@ bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
 }
 
 Value Python_function::invoke(const Argument_list &args) {
+  WillEnterPython lock;
   PyObject *argv = PyTuple_New(args.size());
 
   for (size_t index = 0; index < args.size(); index++) {

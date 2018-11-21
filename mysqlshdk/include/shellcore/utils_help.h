@@ -92,6 +92,7 @@ struct Help_topic {
 
   bool is_enabled(IShell_core::Mode mode) const;
   std::string get_name(IShell_core::Mode mode) const;
+  std::string get_base_name() const;
   std::string get_id(bool fully_qualified, IShell_core::Mode mode) const;
 };
 
@@ -132,8 +133,58 @@ class Help_registry {
   // Retrieves the help text associated to a specific token
   std::string get_token(const std::string &help);
 
-  // Registers the help text for a specific token
+  /**
+   * Helper function to register a single help entry.
+   * @param token The token under which the text entry will be associated
+   * @param data The help data
+   */
   void add_help(const std::string &token, const std::string &data);
+
+  /**
+   * Helper function to register a sigle help entry using a prefix and a tag.
+   *
+   * @param prefix The prefix of the token to be used to register the data
+   * @param tag The suffix of the token to be used to register the data.
+   * @param data The help data
+   *
+   * A token will be created as <prefix>_<tag> and the data will be registered
+   * using this token.
+   */
+  void add_help(const std::string &prefix, const std::string &tag,
+                const std::string &data);
+
+  /**
+   * Helper function to register a series of data elements under the same tag.
+   * This function allows registering data for the same tag in separate groups.
+   *
+   * @param prefix The prefix of the token to be used to register the data
+   * @param tag The suffix of the token to be used to register the data.
+   * @param sequence An in/out parameter holding the number of entries
+   *                 registered with the same tag.
+   * @param data An array with the help entries to be registered using the
+   *             same tag.
+   *
+   * For each entry in data, a token will be created as <prefix>_<tag><sequence>
+   * and the data will be registered using this token.
+   *
+   * The sequence will be increased after each entry is registered.
+   */
+  void add_help(const std::string &prefix, const std::string &tag,
+                size_t *sequence, const std::vector<std::string> &data);
+
+  /**
+   * Helper function to register a series of data elements under the same tag.
+   * This function allows registering data for the same tag in a single group.
+   *
+   * @param prefix The prefix of the token to be used to register the data
+   * @param tag The suffix of the token to be used to register the data.
+   * @param data An array with the help entries to be registered using the
+   *             same tag.
+   *
+   * This function initializes a sequence in 0 and calls the function above.
+   */
+  void add_help(const std::string &prefix, const std::string &tag,
+                const std::vector<std::string> &data);
 
   // Registers a new topic and it's associated keywords
   Help_topic *add_help_topic(const std::string &name, Topic_type type,

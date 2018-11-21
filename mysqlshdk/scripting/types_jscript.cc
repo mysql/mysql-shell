@@ -147,6 +147,7 @@ bool JScript_function::operator!=(const Function_base &UNUSED(other)) const {
 
 Value JScript_function::invoke(const Argument_list &args) {
   const unsigned argc = args.size();
+  v8::HandleScope hscope(_js->isolate());
   v8::Local<v8::Value> *argv = new v8::Local<v8::Value>[argc];
 
   for (size_t index = 0; index < args.size(); index++)
