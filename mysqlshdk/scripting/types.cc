@@ -1807,20 +1807,25 @@ Value Option_unpacker::get_optional_exact(const char *name, Value_type type,
   return Value();
 }
 
-void Option_unpacker::end() { validate(); }
+void Option_unpacker::end(const std::string &context) { validate(context); }
 
-void Option_unpacker::validate() {
+void Option_unpacker::validate(const std::string &context) {
   std::string msg;
   if (!m_unknown.empty() && !m_missing.empty()) {
     msg.append("Invalid and missing options ");
+    if (!context.empty()) msg.append(context + " ");
     msg.append("(invalid: ").append(str_join(m_unknown, ", "));
     msg.append("), (missing: ").append(str_join(m_missing, ", "));
     msg.append(")");
   } else if (!m_unknown.empty()) {
-    msg.append("Invalid options: ");
+    msg.append("Invalid options");
+    if (!context.empty()) msg.append(" " + context);
+    msg.append(": ");
     msg.append(str_join(m_unknown, ", "));
   } else if (!m_missing.empty()) {
-    msg.append("Missing required options: ");
+    msg.append("Missing required options");
+    if (!context.empty()) msg.append(" " + context);
+    msg.append(": ");
     msg.append(str_join(m_missing, ", "));
   }
   if (!msg.empty()) throw Exception::argument_error(msg);

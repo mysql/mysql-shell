@@ -200,6 +200,30 @@ struct Type_info<shcore::Array_t> {
   static shcore::Array_t default_value() { return shcore::Array_t(); }
 };
 
+template <>
+struct Type_info<Function_base_ref> {
+  static shcore::Function_base_ref to_native(const shcore::Value &in) {
+    return in.as_function();
+  }
+  static Value_type vtype() { return shcore::Function; }
+  static const char *code() { return "F"; }
+  static shcore::Function_base_ref default_value() {
+    return shcore::Function_base_ref();
+  }
+};
+
+template <>
+struct Type_info<const Function_base_ref &> {
+  static shcore::Function_base_ref to_native(const shcore::Value &in) {
+    return in.as_function();
+  }
+  static Value_type vtype() { return shcore::Function; }
+  static const char *code() { return "F"; }
+  static shcore::Function_base_ref default_value() {
+    return shcore::Function_base_ref();
+  }
+};
+
 template <typename Bridge_class>
 struct Type_info<std::shared_ptr<Bridge_class>> {
   static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
@@ -250,6 +274,56 @@ class SHCORE_PUBLIC Cpp_property_name {
   std::string _name[2];
 };
 
+/**
+ * The parameter classes below, can be used to define both
+ * parameters and options.
+ *
+ * This helper class will be used on the proper generation of
+ * error messages both on parameter definition and validation.
+ */
+struct Parameter_context {
+  std::string title;
+  mysqlshdk::utils::nullable<int> position;
+
+  std::string str() const;
+};
+
+struct Parameter;
+struct Parameter_validator {
+ public:
+  virtual void validate(const Parameter &param, const Value &data,
+                        const Parameter_context &context) const;
+};
+
+struct Object_validator : public Parameter_validator {
+  void validate(const Parameter &param, const Value &data,
+                const Parameter_context &context) const override;
+  std::vector<std::string> allowed;
+};
+
+struct String_validator : public Parameter_validator {
+  void validate(const Parameter &param, const Value &data,
+                const Parameter_context &context) const override;
+  std::vector<std::string> allowed;
+};
+
+struct Option_validator : public Parameter_validator {
+  void validate(const Parameter &param, const Value &data,
+                const Parameter_context &context) const override;
+  std::vector<Parameter> allowed;
+};
+
+enum class Param_flag { Mandatory, Optional };
+
+struct Parameter {
+  std::string name;
+  Value_type type;
+  Param_flag flag;
+  std::shared_ptr<Parameter_validator> validator;
+
+  void validate(const Value &data, const Parameter_context &context) const;
+};
+
 class SHCORE_PUBLIC Cpp_function : public Function_base {
  public:
   typedef std::function<Value(const shcore::Argument_list &)> Function;
@@ -274,16 +348,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
       const std::string &name, const Function &func,
       const std::vector<std::pair<std::string, Value_type>> &signature);
 
- protected:
-  friend class Cpp_object_bridge;
-
-  enum Param_flag { Mandatory, Optional };
-  typedef std::vector<std::pair<Value_type, Param_flag>> Raw_signature;
-  static Raw_signature gen_signature(
-      const std::vector<std::pair<std::string, Value_type>> &param_types);
-  static std::tuple<bool, int, std::string> match_signatures(
-      const Raw_signature &cand, const std::vector<Value_type> &wanted);
-
+  typedef std::vector<Parameter> Raw_signature;
   struct Metadata {
     std::string name[2];
     Raw_signature signature;
@@ -292,9 +357,20 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
     Value_type return_type;
     bool var_args;  // delme
 
+    void set_name(const std::string &name);
     void set(const std::string &name, Value_type rtype,
              const std::vector<std::pair<std::string, Value_type>> &ptypes);
+    void set(const std::string &name, Value_type rtype,
+             const std::vector<Parameter> &params);
   };
+
+ protected:
+  friend class Cpp_object_bridge;
+
+  static Raw_signature gen_signature(
+      const std::vector<std::pair<std::string, Value_type>> &param_types);
+  static std::tuple<bool, int, std::string> match_signatures(
+      const Raw_signature &cand, const std::vector<Value_type> &wanted);
 
   Cpp_function(const std::string &name, const Function &func,
                bool var_args);  // delme
@@ -408,6 +484,42 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   void detect_overload_conflicts(const std::string &name,
                                  const Cpp_function::Metadata &md);
 
+  /**
+   * exposes a function defined either in JavaScript or Python
+   * @returns a reference to the function metadata so the caller can set
+   * the help details and register them in the help system.
+   */
+  Cpp_function::Metadata *expose(const std::string &name,
+                                 const shcore::Function_base_ref &func,
+                                 const std::vector<Parameter> &parameters) {
+    assert(func);
+    assert(!name.empty());
+
+    Cpp_function::Metadata &md = get_metadata(class_name() + "::" + name + ":");
+    if (md.name[0].empty()) {
+      md.set(name, func->return_type(), parameters);
+    }
+
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
+    _funcs.emplace(std::make_pair(
+        registered_name,
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md,
+            [this, md,
+             func](const shcore::Argument_list &args) -> shcore::Value {
+              // Executes parameter validators
+              for (size_t index = 0; index < args.size(); index++) {
+                md.signature[index].validate(
+                    args[index], {"Argument", static_cast<int>(index + 1)});
+              }
+
+              return func->invoke(args);
+            }))));
+
+    return &md;
+  }
+
   /** Expose a method with 1 argument with automatic bridging.
 
   For use with methods with 1 argument, using shcore::Value compatible
@@ -423,12 +535,14 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   @param func - function pointer to the method
   @param a1doc - name of the 1st argument (must not be empty!)
   @param a1def - default value to be used if parameter is optional and not given
+  @return a reference to the function metadata so the default parameter
+  validator can be replaced with a more complex one.
   */
   template <typename R, typename A1, typename C>
-  void expose(const std::string &name, R (C::*func)(A1),
-              const std::string &a1doc,
-              const typename std::remove_const<A1>::type &a1def =
-                  Type_info<A1>::default_value()) {
+  Cpp_function::Metadata *expose(const std::string &name, R (C::*func)(A1),
+                                 const std::string &a1doc,
+                                 const typename std::remove_const<A1>::type
+                                     &a1def = Type_info<A1>::default_value()) {
     assert(func != nullptr);
     assert(!name.empty());
     assert(!a1doc.empty());
@@ -446,14 +560,21 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, func,
+            [this, func, md,
              a1def](const shcore::Argument_list &args) -> shcore::Value {
+              // Executes parameter validators
+              for (size_t index = 0; index < args.size(); index++) {
+                md.signature[index].validate(
+                    args[index], {"Argument", static_cast<int>(index + 1)});
+              }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
               return internal::Result_wrapper<R>::call([this, func, a1]() {
                 return (static_cast<C *>(this)->*func)(a1);
               });
             }))));
+
+    return &md;
   }
 
   /** Expose method with no arguments, with automatic bridging.
@@ -482,14 +603,17 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   /** Expose method with 2 arguments, with automatic bridging.
       See above for details.
+      @return a reference to the function metadata so the default parameter
+     validators can be replaced with more complex ones.
   */
   template <typename R, typename A1, typename A2, typename C>
-  void expose(const std::string &name, R (C::*func)(A1, A2),
-              const std::string &a1doc, const std::string &a2doc,
-              const typename std::remove_const<A2>::type &a2def =
-                  Type_info<A2>::default_value(),
-              const typename std::remove_const<A1>::type &a1def =
-                  Type_info<A1>::default_value()) {
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2), const std::string &a1doc,
+      const std::string &a2doc,
+      const typename std::remove_const<A2>::type &a2def =
+          Type_info<A2>::default_value(),
+      const typename std::remove_const<A1>::type &a1def =
+          Type_info<A1>::default_value()) {
     assert(func != nullptr);
     assert(!name.empty());
     assert(!a1doc.empty());
@@ -510,8 +634,13 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, func, a1def,
+            [this, md, func, a1def,
              a2def](const shcore::Argument_list &args) -> shcore::Value {
+              // Executes parameter validators
+              for (size_t index = 0; index < args.size(); index++) {
+                md.signature[index].validate(
+                    args[index], {"Argument", static_cast<int>(index + 1)});
+              }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
               const A2 &&a2 =
@@ -520,21 +649,26 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                 return (static_cast<C *>(this)->*func)(a1, a2);
               });
             }))));
+
+    return &md;
   }
 
   /** Expose method with 3 arguments, with automatic bridging.
       See above for details.
+      @return a reference to the function metadata so the default parameter
+     validators can be replaced with more complex ones.
   */
   template <typename R, typename A1, typename A2, typename A3, typename C>
-  void expose(const std::string &name, R (C::*func)(A1, A2, A3),
-              const std::string &a1doc, const std::string &a2doc,
-              const std::string &a3doc,
-              const typename std::remove_const<A3>::type &a3def =
-                  Type_info<A3>::default_value(),
-              const typename std::remove_const<A2>::type &a2def =
-                  Type_info<A2>::default_value(),
-              const typename std::remove_const<A1>::type &a1def =
-                  Type_info<A1>::default_value()) {
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc,
+      const typename std::remove_const<A3>::type &a3def =
+          Type_info<A3>::default_value(),
+      const typename std::remove_const<A2>::type &a2def =
+          Type_info<A2>::default_value(),
+      const typename std::remove_const<A1>::type &a1def =
+          Type_info<A1>::default_value()) {
     assert(func != nullptr);
     assert(!name.empty());
     assert(!a1doc.empty());
@@ -557,8 +691,13 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, func, a1def, a2def,
+            [this, md, func, a1def, a2def,
              a3def](const shcore::Argument_list &args) -> shcore::Value {
+              // Executes parameter validators
+              for (size_t index = 0; index < args.size(); index++) {
+                md.signature[index].validate(
+                    args[index], {"Argument", static_cast<int>(index + 1)});
+              }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
               const A2 &&a2 =
@@ -570,24 +709,29 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                     return (static_cast<C *>(this)->*func)(a1, a2, a3);
                   });
             }))));
+
+    return &md;
   }
 
   /** Expose method with 4 arguments, with automatic bridging.
       See above for details.
+      @return a reference to the function metadata so the default parameter
+     validators can be replaced with more complex ones.
   */
   template <typename R, typename A1, typename A2, typename A3, typename A4,
             typename C>
-  void expose(const std::string &name, R (C::*func)(A1, A2, A3, A4),
-              const std::string &a1doc, const std::string &a2doc,
-              const std::string &a3doc, const std::string &a4doc,
-              const typename std::remove_const<A4>::type &a4def =
-                  Type_info<A4>::default_value(),
-              const typename std::remove_const<A3>::type &a3def =
-                  Type_info<A3>::default_value(),
-              const typename std::remove_const<A2>::type &a2def =
-                  Type_info<A2>::default_value(),
-              const typename std::remove_const<A1>::type &a1def =
-                  Type_info<A1>::default_value()) {
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const typename std::remove_const<A4>::type &a4def =
+          Type_info<A4>::default_value(),
+      const typename std::remove_const<A3>::type &a3def =
+          Type_info<A3>::default_value(),
+      const typename std::remove_const<A2>::type &a2def =
+          Type_info<A2>::default_value(),
+      const typename std::remove_const<A1>::type &a1def =
+          Type_info<A1>::default_value()) {
     assert(func != nullptr);
     assert(!name.empty());
     assert(!a1doc.empty());
@@ -612,8 +756,13 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, func, a1def, a2def, a3def,
+            [this, md, func, a1def, a2def, a3def,
              a4def](const shcore::Argument_list &args) -> shcore::Value {
+              // Executes parameter validators
+              for (size_t index = 0; index < args.size(); index++) {
+                md.signature[index].validate(
+                    args[index], {"Argument", static_cast<int>(index + 1)});
+              }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
               const A2 &&a2 =
@@ -627,6 +776,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                     return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
                   });
             }))));
+
+    return &md;
   }
 
  protected:

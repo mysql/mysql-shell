@@ -39,6 +39,7 @@ file(GLOB api_module_SOURCES
       "mod_mysql.cc"
       "mod_mysql_*.cc"
       "mod_shell.cc"
+      "mod_extensible_object.cc"
       "mod_shell_options.cc"
       "mod_sys.cc"
       "mod_utils.cc"

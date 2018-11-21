@@ -545,6 +545,22 @@ struct value_type_for_native<std::string> {
   static std::string extract(const Value &value) { return value.as_string(); }
 };
 template <>
+struct value_type_for_native<const std::string> {
+  static const Value_type type = String;
+
+  static std::string extract(const Value &value) { return value.as_string(); }
+};
+
+template <>
+struct value_type_for_native<std::vector<std::string>> {
+  static const Value_type type = Array;
+
+  static std::vector<std::string> extract(const Value &value) {
+    return value.to_string_vector();
+  }
+};
+
+template <>
 struct value_type_for_native<Object_bridge *> {
   static const Value_type type = Object;
 };
@@ -575,6 +591,13 @@ struct value_type_for_native<Array_t> {
   static const Value_type type = Array;
 
   static Array_t extract(const Value &value) { return value.as_array(); }
+};
+
+template <>
+struct value_type_for_native<Value> {
+  static const Value_type type = Undefined;
+
+  static Value extract(const Value &value) { return value; }
 };
 
 std::string SHCORE_PUBLIC type_name(Value_type type);
@@ -635,7 +658,7 @@ class Option_unpacker {
     return *this;
   }
 
-  void end();
+  void end(const std::string &context = "");
 
  protected:
   Dictionary_t m_options;
@@ -662,7 +685,7 @@ class Option_unpacker {
   Value get_optional_exact(const char *name, Value_type type,
                            bool case_insensitive = false);
 
-  void validate();
+  void validate(const std::string &context = "");
 };
 
 class JSON_dumper;

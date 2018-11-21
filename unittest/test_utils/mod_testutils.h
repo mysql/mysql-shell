@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/mod_extensible_object.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types_cpp.h"
 #include "src/mysqlsh/cmdline_shell.h"
@@ -39,7 +40,7 @@ namespace tests {
  * \ingroup Testutils
  * Class with test utilities
  */
-class Testutils : public shcore::Cpp_object_bridge {
+class Testutils : public mysqlsh::Extensible_object {
  private:
   virtual std::string class_name() const { return "Testutils"; }
 
@@ -224,6 +225,14 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   bool version_check(const std::string &v1, const std::string &op,
                      const std::string &v2);
+
+  void register_module(const std::string &parent, const std::string &name,
+                       shcore::Dictionary_t options);
+  void register_module_function(const std::string &parent,
+                                const std::string &name,
+                                const shcore::Function_base_ref &function,
+                                const shcore::Dictionary_t &definition);
+  void enable_extensible();
 
  private:
   // Testing stuff

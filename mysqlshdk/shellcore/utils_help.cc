@@ -95,10 +95,32 @@ bool Help_topic::is_enabled(IShell_core::Mode mode) const {
 }
 
 std::string Help_topic::get_name(IShell_core::Mode mode) const {
-  if (is_member() && mode == IShell_core::Mode::Python)
-    return shcore::from_camel_case(m_name);
-  else
-    return m_name;
+  // Member topics may have different names bsaed on the scripting
+  // mode
+  if (is_member()) {
+    auto names = shcore::str_split(m_name, "|");
+    if (mode == IShell_core::Mode::Python) {
+      if (names.size() == 2)
+        return names[1];
+      else
+        return shcore::from_camel_case(m_name);
+    } else {
+      return names[0];
+    }
+  }
+
+  return m_name;
+}
+
+std::string Help_topic::get_base_name() const {
+  // Member topics may have different names bsaed on the scripting
+  // mode
+  if (is_member()) {
+    auto names = shcore::str_split(m_name, "|");
+    return names[0];
+  }
+
+  return m_name;
 }
 
 Help_topic *Help_topic::get_category() {
@@ -164,6 +186,34 @@ Help_registry *Help_registry::get() {
 void Help_registry::add_help(const std::string &token,
                              const std::string &data) {
   m_help_data[token] = data;
+}
+
+void Help_registry::add_help(const std::string &prefix, const std::string &tag,
+                             const std::string &data) {
+  auto full_prefix = prefix + "_" + tag;
+
+  add_help(full_prefix, data);
+}
+
+void Help_registry::add_help(const std::string &prefix, const std::string &tag,
+                             const std::vector<std::string> &data) {
+  size_t sequence = 0;
+  add_help(prefix, tag, &sequence, data);
+}
+
+void Help_registry::add_help(const std::string &prefix, const std::string &tag,
+                             size_t *sequence,
+                             const std::vector<std::string> &data) {
+  assert(sequence);
+
+  std::string index = (*sequence) ? std::to_string(*sequence) : "";
+
+  for (auto &entry : data) {
+    auto full_prefix = prefix + "_" + tag + index;
+    add_help(full_prefix, entry);
+    (*sequence)++;
+    index = std::to_string(*sequence);
+  }
 }
 
 Help_topic *Help_registry::add_help_topic(const std::string &name,
@@ -404,10 +454,12 @@ void Help_registry::register_keywords(Help_topic *topic, Mode_mask mode) {
   if (topic->is_member()) {
     // Member names may differ at Python and JavaScript if that's the case
     // we add a base keyword for each valid on its own context
-    std::string python_name = shcore::from_camel_case(topic->m_name);
-    if (topic->m_name != python_name) {
-      base_keywords.push_back({topic->m_name, javascript});
-      base_keywords.push_back({python_name, python});
+    auto names = shcore::str_split(topic->m_name, "|");
+    if (names.size() == 1) names.push_back(shcore::from_camel_case(names[0]));
+
+    if (names[0] != names[1]) {
+      base_keywords.push_back({names[0], javascript});
+      base_keywords.push_back({names[1], python});
     } else {
       base_keywords.push_back({topic->m_name, scripting});
     }
@@ -693,10 +745,15 @@ Help_manager::parse_function_parameters(
           start_index, paramdef.find(" ", start_index) - start_index);
 
       start_index += pname.size() + 1;
-      auto desc = paramdef.substr(start_index);
-      auto first_word = desc.substr(0, desc.find(" "));
+      std::string desc;
+      std::string first_word;
 
-      // Updates paramete names to reflect the optional attribute on the
+      if (paramdef.size() > start_index) {
+        desc = paramdef.substr(start_index);
+        first_word = desc.substr(0, desc.find(" "));
+      }
+
+      // Updates parameter names to reflect the optional attribute on the
       // signature Removed the optionsl word from the description
       if (shcore::str_caseeq(first_word, HELP_OPTIONAL_STR)) {
         if (fpnames.empty()) {
@@ -725,7 +782,7 @@ Help_manager::parse_function_parameters(
 
 void Help_manager::add_simple_function_help(
     const Help_topic &function, std::vector<std::string> *sections) {
-  std::string name = function.m_name;
+  std::string name = function.get_base_name();
   Help_topic *parent = function.m_parent;
 
   // Starts the syntax
@@ -780,13 +837,18 @@ void Help_manager::add_simple_function_help(
         std::string desc =
             format_help_text(&data, MAX_HELP_WIDTH, desc_padding, true);
 
-        desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
-                     pdata[index].first + ":");
+        if (!desc.empty()) {
+          desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
+                       pdata[index].first + ":");
 
-        where_items.push_back(desc);
+          where_items.push_back(desc);
+        }
       }
-      where += shcore::str_join(where_items, "\n");
-      sections->push_back(where);
+
+      if (!where_items.empty()) {
+        where += shcore::str_join(where_items, "\n");
+        sections->push_back(where);
+      }
     }
   }
 
@@ -811,7 +873,7 @@ void Help_manager::add_simple_function_help(
 std::string Help_manager::get_signature(const Help_topic &function) {
   std::string signature;
   Help_topic *parent = function.m_parent;
-  std::string name = function.m_name;
+  std::string name = function.get_base_name();
   std::vector<std::string> signatures;
 
   signatures = resolve_help_text(*parent, name + "_SIGNATURE");
@@ -850,7 +912,7 @@ std::string Help_manager::get_signature(const Help_topic &function) {
  */
 void Help_manager::add_chained_function_help(
     const Help_topic &main_function, std::vector<std::string> *sections) {
-  std::string name = main_function.m_name;
+  std::string name = main_function.get_base_name();
   Help_topic *parent = main_function.m_parent;
 
   // Gets the chain definition already formatted for the active language
@@ -950,7 +1012,7 @@ void Help_manager::add_chained_function_help(
 
   // Now adds a light version of the rest of the chained functions
   while (!function_topics.empty()) {
-    std::string name = function_topics[0]->m_name;
+    std::string name = function_topics[0]->get_base_name();
     std::string dname = function_topics[0]->get_name(m_mode);
     std::string signature = signatures[dname];
     std::string space(SECTION_PADDING, ' ');
@@ -1082,7 +1144,7 @@ std::string Help_manager::format_member_list(
 
     // If it is a function we need to retrieve the signature
     if (member->is_function()) {
-      std::string name = member->m_name;
+      std::string name = member->get_base_name();
       auto chain_definition =
           resolve_help_text(*member->m_parent, name + "_CHAINED");
 
@@ -1339,7 +1401,7 @@ void Help_manager::add_section(const std::string &title, const std::string &tag,
 }
 
 std::string Help_manager::format_function_help(const Help_topic &function) {
-  std::string name = function.m_name;
+  std::string name = function.get_base_name();
   std::vector<std::string> sections;
 
   // Brief Description
