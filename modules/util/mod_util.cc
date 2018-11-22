@@ -94,75 +94,94 @@ class Upgrade_check_output_formatter {
                              const std::vector<Upgrade_issue> &results) = 0;
   virtual void check_error(const Upgrade_check &check,
                            const char *description) = 0;
+  virtual void manual_check(const Upgrade_check &check) = 0;
   virtual void summarize(int error, int warning, int notice,
                          const std::string &text) = 0;
 };
 
 class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
+  Text_upgrade_checker_output() : m_console(mysqlsh::current_console()) {}
+
   void check_info(const std::string &server_addres,
                   const std::string &server_version,
                   const std::string &target_version) override {
-    auto console = mysqlsh::current_console();
-    console->print(shcore::str_format(
-        "The MySQL server at %s will now be checked for compatibility "
-        "issues for upgrade to MySQL %s...\n",
-        server_addres.c_str(), target_version.c_str()));
-
-    console->print(
-        shcore::str_format("MySQL version: %s\n", server_version.c_str()));
+    print_paragraph(
+        shcore::str_format("The MySQL server at %s, version %s, will now be "
+                           "checked for compatibility "
+                           "issues for upgrade to MySQL %s...",
+                           server_addres.c_str(), server_version.c_str(),
+                           target_version.c_str()),
+        0, 0);
   }
 
   void check_results(const Upgrade_check &check,
                      const std::vector<Upgrade_issue> &results) override {
-    auto console = mysqlsh::current_console();
-
-    console->print(
-        shcore::str_format("\n%d) %s\n", ++check_count, check.get_title()));
+    print_title(check.get_title());
 
     std::function<std::string(const Upgrade_issue &)> issue_formater(to_string);
-
     if (results.empty()) {
-      console->print("  No issues found\n");
+      print_paragraph("No issues found");
     } else if (check.get_description() != nullptr) {
-      console->print(shcore::str_format("  %s", check.get_description()));
-      if (check.get_doc_link() != nullptr)
-        console->print(shcore::str_format("\n  More information: %s",
-                                          check.get_doc_link()));
-      console->print("\n\n");
+      print_paragraph(check.get_description());
+      print_doc_links(check.get_doc_link());
+      m_console->println();
     } else {
       issue_formater = format_upgrade_issue;
     }
 
-    for (const auto &issue : results)
-      console->print(
-          shcore::str_format("  %s\n", issue_formater(issue).c_str()));
+    for (const auto &issue : results) print_paragraph(issue_formater(issue));
   }
 
   void check_error(const Upgrade_check &check,
                    const char *description) override {
-    auto console = mysqlsh::current_console();
+    print_title(check.get_title());
+    m_console->print("  ");
+    m_console->print_error(description);
+    m_console->println();
+    print_doc_links(check.get_doc_link());
+  }
 
-    console->print(
-        shcore::str_format("\n%d) %s\n", ++check_count, check.get_title()));
-    console->raw_print("Check failed: ", mysqlsh::Output_stream::STDERR);
-    console->raw_print(description, mysqlsh::Output_stream::STDERR);
-    console->raw_print("\n", mysqlsh::Output_stream::STDERR);
+  void manual_check(const Upgrade_check &check) override {
+    print_title(check.get_title());
+    print_paragraph(check.get_description());
+    print_doc_links(check.get_doc_link());
   }
 
   void summarize(int error, int warning, int notice,
                  const std::string &text) override {
-    auto console = mysqlsh::current_console();
-
-    console->raw_print("\n", mysqlsh::Output_stream::STDOUT, false);
-    console->print(shcore::str_format("Errors:   %d\n", error));
-    console->print(shcore::str_format("Warnings: %d\n", warning));
-    console->print(shcore::str_format("Notices:  %d\n\n", notice));
-    console->print(text);
+    m_console->println();
+    m_console->println(shcore::str_format("Errors:   %d", error));
+    m_console->println(shcore::str_format("Warnings: %d", warning));
+    m_console->println(shcore::str_format("Notices:  %d\n", notice));
+    m_console->println(text);
   }
 
  private:
-  int check_count = 0;
+  void print_title(const char *title) {
+    m_console->println();
+    print_paragraph(shcore::str_format("%d) %s", ++m_check_count, title), 0, 0);
+  }
+
+  void print_paragraph(const std::string &s, std::size_t base_indent = 2,
+                       std::size_t indent_by = 2) {
+    std::string indent(base_indent, ' ');
+    auto descr = shcore::str_break_into_lines(s, 80 - base_indent);
+    for (std::size_t i = 0; i < descr.size(); i++) {
+      m_console->println(indent + descr[i]);
+      if (i == 0) indent.append(std::string(indent_by, ' '));
+    }
+  }
+
+  void print_doc_links(const char *links) {
+    if (links != nullptr) {
+      std::string docs("More information:\n");
+      print_paragraph(docs + links);
+    }
+  }
+
+  int m_check_count = 0;
+  std::shared_ptr<IConsole> m_console;
 };
 
 class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
@@ -170,7 +189,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
   JSON_upgrade_checker_output()
       : m_json_document(),
         m_allocator(m_json_document.GetAllocator()),
-        m_checks(rapidjson::kArrayType) {
+        m_checks(rapidjson::kArrayType),
+        m_manual_checks(rapidjson::kArrayType) {
     m_json_document.SetObject();
   }
 
@@ -248,7 +268,31 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     rapidjson::Value descr;
     descr.SetString(description, strlen(description), m_allocator);
     check_object.AddMember("description", descr, m_allocator);
+    if (check.get_doc_link() != nullptr)
+      check_object.AddMember("documentationLink",
+                             rapidjson::StringRef(check.get_doc_link()),
+                             m_allocator);
+
+    rapidjson::Value issues(rapidjson::kArrayType);
     m_checks.PushBack(check_object, m_allocator);
+  }
+
+  void manual_check(const Upgrade_check &check) override {
+    rapidjson::Value check_object(rapidjson::kObjectType);
+    rapidjson::Value id;
+    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
+                           m_allocator);
+    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
+                           m_allocator);
+
+    check_object.AddMember("description",
+                           rapidjson::StringRef(check.get_description()),
+                           m_allocator);
+    if (check.get_doc_link() != nullptr)
+      check_object.AddMember("documentationLink",
+                             rapidjson::StringRef(check.get_doc_link()),
+                             m_allocator);
+    m_manual_checks.PushBack(check_object, m_allocator);
   }
 
   void summarize(int error, int warning, int notice,
@@ -262,17 +306,19 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_json_document.AddMember("summary", val, m_allocator);
 
     m_json_document.AddMember("checksPerformed", m_checks, m_allocator);
+    m_json_document.AddMember("manualChecks", m_manual_checks, m_allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
     m_json_document.Accept(writer);
-    mysqlsh::current_console()->print(buffer.GetString());
+    mysqlsh::current_console()->println(buffer.GetString());
   }
 
  private:
   rapidjson::Document m_json_document;
   rapidjson::Document::AllocatorType &m_allocator;
   rapidjson::Value m_checks;
+  rapidjson::Value m_manual_checks;
 };
 
 std::unique_ptr<Upgrade_check_output_formatter>
@@ -419,44 +465,54 @@ shcore::Value Util::check_for_server_upgrade(
     auto checklist =
         Upgrade_check::create_checklist(current_version, target_version);
 
-    for (size_t i = 0; i < checklist.size(); i++) try {
-        std::vector<Upgrade_issue> issues = checklist[i]->run(session);
+    const auto update_counts = [&errors, &warnings,
+                                &notices](Upgrade_issue::Level level) {
+      switch (level) {
+        case Upgrade_issue::ERROR:
+          errors++;
+          break;
+        case Upgrade_issue::WARNING:
+          warnings++;
+          break;
+        default:
+          notices++;
+          break;
+      }
+    };
 
-        for (const auto &issue : issues) switch (issue.level) {
-            case Upgrade_issue::ERROR:
-              errors++;
-              break;
-            case Upgrade_issue::WARNING:
-              warnings++;
-              break;
-            default:
-              notices++;
-              break;
-          }
-
-        print->check_results(*checklist[i], issues);
-      } catch (const std::exception &e) {
-        print->check_error(*checklist[i], e.what());
+    for (auto &check : checklist)
+      if (check->is_runnable()) {
+        try {
+          std::vector<Upgrade_issue> issues =
+              check->run(session, current_version);
+          for (const auto &issue : issues) update_counts(issue.level);
+          print->check_results(*check, issues);
+        } catch (const std::exception &e) {
+          print->check_error(*check, e.what());
+        }
+      } else {
+        update_counts(check->get_level());
+        print->manual_check(*check);
       }
 
     std::string summary;
     if (errors > 0) {
       summary = shcore::str_format(
           "%i errors were found. Please correct these issues before upgrading "
-          "to avoid compatibility issues.\n",
+          "to avoid compatibility issues.",
           errors);
     } else if (warnings > 0) {
       summary =
           "No fatal errors were found that would prevent an upgrade, "
           "but some potential issues were detected. Please ensure that the "
-          "reported issues are not significant before upgrading.\n";
+          "reported issues are not significant before upgrading.";
     } else if (notices > 0) {
       summary =
           "No fatal errors were found that would prevent an upgrade, "
           "but some potential issues were detected. Please ensure that the "
-          "reported issues are not significant before upgrading.\n";
+          "reported issues are not significant before upgrading.";
     } else {
-      summary = "No known compatibility errors or issues were found.\n";
+      summary = "No known compatibility errors or issues were found.";
     }
     print->summarize(errors, warnings, notices, summary);
   }

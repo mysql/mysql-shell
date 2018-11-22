@@ -109,7 +109,8 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
       Sql_upgrade_check::get_old_temporal_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.empty());
   // No way to create test data in 5.7
 }
@@ -122,7 +123,8 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       Sql_upgrade_check::get_reserved_keywords_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   for (auto &warning : issues) puts(to_string(warning).c_str());
   EXPECT_TRUE(issues.empty());
 
@@ -141,7 +143,8 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       "CREATE EVENT LEAD ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
       "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_EQ(10, issues.size());
   EXPECT_EQ("grouping", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
@@ -171,7 +174,8 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
       "create table utf83 (s3 varchar(64) charset 'utf8mb3', s4 varchar(64) "
       "charset 'utf8mb4');");
 
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_GE(issues.size(), 2);
   EXPECT_EQ("aaaaaaaaaaaaaaaa_utf8mb3", issues[0].schema);
   EXPECT_EQ("s3", issues[1].column);
@@ -185,14 +189,16 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_mysql_schema_check();
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
   EXPECT_NO_THROW(session->execute("create table Role_edges (i integer);"));
   EXPECT_NO_THROW(session->execute("create table triggers (i integer);"));
-  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_EQ(2, issues.size());
 #ifdef _MSC_VER
   EXPECT_EQ("role_edges", issues[0].table);
@@ -213,13 +219,15 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_innodb_rowformat_check();
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.empty());
   for (auto &warning : issues) puts(to_string(warning).c_str());
 
   ASSERT_NO_THROW(session->execute(
       "create table compact (i integer) row_format=compact engine=innodb;"));
-  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.size() == 1 && issues[0].table == "compact");
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
 }
@@ -232,7 +240,8 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_zerofill_check();
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   // some tables in mysql schema use () syntax
   size_t old_count = issues.size();
   issues.clear();
@@ -243,7 +252,8 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
       "mediumint(5) unsigned, ii INT(4), iu INT(4) unsigned, bi bigint(10), bu "
       "bigint(12) unsigned);"));
 
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   //  for (auto& warning : issues)
   //    puts(to_string(warning).c_str());
   ASSERT_EQ(11 + old_count, issues.size());
@@ -269,7 +279,8 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
       Sql_upgrade_check::get_foreign_key_length_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.empty());
   // No way to prepare test data in 5.7
 }
@@ -283,7 +294,8 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
       Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(
@@ -294,14 +306,16 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   ASSERT_NO_THROW(session->execute(
       "CREATE FUNCTION TEST_MAXDB (s CHAR(20)) RETURNS CHAR(50) "
       "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_GT(issues.size(), issues_count);
   issues_count = issues.size();
   issues.clear();
   ASSERT_NO_THROW(
       session->execute("create trigger TR_MAXDB AFTER INSERT on Clone FOR "
                        "EACH ROW delete from Clone where COMPONENT<0;"));
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_GT(issues.size(), issues_count);
   issues_count = issues.size();
   issues.clear();
@@ -309,7 +323,8 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
       session->execute("CREATE EVENT EV_MAXDB ON SCHEDULE AT CURRENT_TIMESTAMP "
                        "+ INTERVAL 1 HOUR "
                        "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;"));
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_GT(issues.size(), issues_count);
 }
 
@@ -322,7 +337,8 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       Sql_upgrade_check::get_obsolete_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_TRUE(issues.empty());
 
   std::vector<std::string> modes = {"DB2",
@@ -347,7 +363,8 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
         "CREATE FUNCTION TEST_%s (s CHAR(20)) RETURNS CHAR(50) "
         "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');",
         mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_NO_THROW(issues =
+                        check->run(session, _target_server_version.get_base()));
     ASSERT_GT(issues.size(), issues_count);
     issues_count = issues.size();
     issues.clear();
@@ -355,7 +372,8 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
         shcore::str_format("create trigger TR_%s AFTER INSERT on Clone FOR "
                            "EACH ROW delete from Clone where COMPONENT<0;",
                            mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_NO_THROW(issues =
+                        check->run(session, _target_server_version.get_base()));
     ASSERT_GT(issues.size(), issues_count);
     issues_count = issues.size();
     issues.clear();
@@ -364,7 +382,8 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
                            "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
                            "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;",
                            mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_NO_THROW(issues =
+                        check->run(session, _target_server_version.get_base()));
     ASSERT_GT(issues.size(), issues_count);
   }
 }
@@ -382,7 +401,8 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
           "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
           check->get_doc_link()));
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   std::size_t original = issues.size();
 
   ASSERT_NO_THROW(session->execute(
@@ -414,7 +434,8 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
       "vvvvvvvvvv', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'b', 'c'));"));
 
-  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_EQ(original + 2, issues.size());
   EXPECT_EQ(issues[0].table, "large_enum");
   EXPECT_EQ(issues[1].table, "large_set");
@@ -429,7 +450,8 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
           _target_server_version);
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "mysql-nutshell.html#mysql-nutshell-removals",
                       check->get_doc_link()));
@@ -441,7 +463,8 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       "create table part(i integer) TABLESPACE tpists partition "
       "by range(i) (partition p0 values less than (1000), "
       "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_EQ(2, issues.size());
   EXPECT_NO_THROW(session->execute("drop table part"));
   EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
@@ -456,7 +479,8 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
       Sql_upgrade_check::get_removed_functions_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute(
@@ -492,7 +516,8 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
                        "DO select contains(col2,col3) from geotab1;"));
   // Unable to test generated columns as at least in 5.7.19 they are
   // automatically converted to supported functions
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   EXPECT_EQ(6, issues.size());
   EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
   EXPECT_NE(std::string::npos, issues[0].description.find("ST_TOUCHES"));
@@ -529,7 +554,8 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
                       "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
                       check->get_doc_link()));
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(
@@ -577,7 +603,8 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
       "create event mov_sec ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
       "DO select * from movies group by genre desc;"));
 
-  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
   ASSERT_EQ(6, issues.size());
   EXPECT_EQ("genre_desc", issues[0].table);
   EXPECT_TRUE(shcore::str_beginswith(issues[0].description, "VIEW"));
@@ -593,6 +620,45 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   EXPECT_TRUE(shcore::str_beginswith(issues[5].description, "EVENT"));
 }
 
+TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 13))
+    SKIP_TEST(
+        "This test requires running against MySQL server version 5.7-8.0.13");
+
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_removed_sys_log_vars_check();
+  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+                      "news-8-0-13.html#mysqld-8-0-13-logging",
+                      check->get_doc_link()));
+  std::vector<Upgrade_issue> issues;
+
+  if (_target_server_version < Version(8, 0, 0)) {
+    EXPECT_THROW_LIKE(
+        check->run(session, _target_server_version.get_base()),
+        std::runtime_error,
+        "This check requires server to be at minimum at 8.0.11 version");
+  } else {
+    ASSERT_NO_THROW(issues =
+                        check->run(session, _target_server_version.get_base()));
+    EXPECT_TRUE(issues.empty());
+  }
+}
+
+TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+
+  // Preparing data for this check requires manipulating datadir by hand, we
+  // only check here that queries run fine
+  auto check = Sql_upgrade_check::get_schema_inconsistency_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues =
+                      check->run(session, _target_server_version.get_base()));
+  ASSERT_TRUE(issues.empty());
+}
+
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
@@ -600,15 +666,44 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
   PrepareTestDatabase("mysql_check_table_test");
   Check_table_command check;
   std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check.run(session));
+  ASSERT_NO_THROW(issues =
+                      check.run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(
       session->execute("create table part(i integer) engine=myisam partition "
                        "by range(i) (partition p0 values less than (1000), "
                        "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_THROW(issues = check.run(session));
+  EXPECT_NO_THROW(issues =
+                      check.run(session, _target_server_version.get_base()));
   EXPECT_TRUE(issues.size() == 1 && issues[0].table == "part");
+}
+
+TEST_F(MySQL_upgrade_check_test, manual_checks) {
+  auto manual = Upgrade_check::create_checklist("5.7", "8.0.11");
+  manual.erase(std::remove_if(manual.begin(), manual.end(),
+                              [](const std::unique_ptr<Upgrade_check> &c) {
+                                return c->is_runnable();
+                              }),
+               manual.end());
+  ASSERT_EQ(1, manual.size());
+
+  auto auth = dynamic_cast<Manual_check *>(manual[0].get());
+  ASSERT_NE(nullptr, auth);
+  ASSERT_EQ(0, strcmp(auth->get_name(), "defaultAuthenticationPlugin"));
+  ASSERT_EQ(0, strcmp(auth->get_title(),
+                      "New default authentication plugin considerations"));
+  ASSERT_EQ(Upgrade_issue::WARNING, auth->get_level());
+  ASSERT_NE(nullptr, strstr(auth->get_doc_link(),
+                            "https://dev.mysql.com/doc/refman/8.0/en/"
+                            "upgrading-from-previous-series.html#upgrade-"
+                            "caching-sha2-password-compatibility-issues"));
+  ASSERT_NE(nullptr,
+            strstr(auth->get_description(),
+                   "Warning: The new default authentication plugin "
+                   "'caching_sha2_password' offers more secure password "
+                   "hashing than previously used 'mysql_native_password' (and "
+                   "consequent improved client connection authentication)."));
 }
 
 TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
@@ -696,15 +791,41 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
       ASSERT_TRUE(checks[i]["id"].IsString());
       ASSERT_TRUE(checks[i].HasMember("title"));
       ASSERT_TRUE(checks[i]["title"].IsString());
-      ASSERT_TRUE(checks[i].HasMember("detectedProblems"));
-      ASSERT_TRUE(checks[i]["detectedProblems"].IsArray());
-      auto issues = checks[i]["detectedProblems"].GetArray();
-      for (rapidjson::SizeType j = 0; j < issues.Size(); j++) {
-        ASSERT_TRUE(issues[j].IsObject());
-        ASSERT_TRUE(issues[j].HasMember("level"));
-        ASSERT_TRUE(issues[j]["level"].IsString());
-        ASSERT_TRUE(issues[j].HasMember("dbObject"));
-        ASSERT_TRUE(issues[j]["dbObject"].IsString());
+      ASSERT_TRUE(checks[i].HasMember("status"));
+      ASSERT_TRUE(checks[i]["status"].IsString());
+      if (checks[i].HasMember("documentationLink")) {
+        ASSERT_TRUE(checks[i]["documentationLink"].IsString());
+      }
+      if (strcmp(checks[i]["status"].GetString(), "OK") == 0) {
+        ASSERT_TRUE(checks[i].HasMember("detectedProblems"));
+        ASSERT_TRUE(checks[i]["detectedProblems"].IsArray());
+        auto issues = checks[i]["detectedProblems"].GetArray();
+        for (rapidjson::SizeType j = 0; j < issues.Size(); j++) {
+          ASSERT_TRUE(issues[j].IsObject());
+          ASSERT_TRUE(issues[j].HasMember("level"));
+          ASSERT_TRUE(issues[j]["level"].IsString());
+          ASSERT_TRUE(issues[j].HasMember("dbObject"));
+          ASSERT_TRUE(issues[j]["dbObject"].IsString());
+        }
+      } else {
+        ASSERT_TRUE(checks[i].HasMember("description"));
+        ASSERT_TRUE(checks[i]["description"].IsString());
+      }
+    }
+    ASSERT_TRUE(d.HasMember("manualChecks"));
+    ASSERT_TRUE(d["manualChecks"].IsArray());
+    auto manual = d["manualChecks"].GetArray();
+    ASSERT_GT(manual.Size(), 0);
+    for (rapidjson::SizeType i = 0; i < manual.Size(); i++) {
+      ASSERT_TRUE(manual[i].IsObject());
+      ASSERT_TRUE(manual[i].HasMember("id"));
+      ASSERT_TRUE(manual[i]["id"].IsString());
+      ASSERT_TRUE(manual[i].HasMember("title"));
+      ASSERT_TRUE(manual[i]["title"].IsString());
+      ASSERT_TRUE(manual[i].HasMember("description"));
+      ASSERT_TRUE(manual[i]["description"].IsString());
+      if (manual[i].HasMember("documentationLink")) {
+        ASSERT_TRUE(manual[i]["documentationLink"].IsString());
       }
     }
   } catch (std::exception &e) {
@@ -720,8 +841,8 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   if (_target_server_version < Version(8, 0, 0) ||
       _target_server_version < shell_version)
     SKIP_TEST(
-        "This test requires running against MySQL server version 8.0, equal or "
-        "greather than the shell version");
+        "This test requires running against MySQL server version 8.0, equal "
+        "or greater than the shell version");
   Util util(_interactive_shell->shell_context().get());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
