@@ -84,6 +84,9 @@ class Upgrade_check {
     return true;
   }
 
+  static void register_manual_check(const char *ver, const char *name,
+                                    Upgrade_issue::Level level);
+
   static void prepare_translation_file(const char *filename);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
@@ -96,9 +99,12 @@ class Upgrade_check {
   virtual const char *get_title() const;
   virtual const char *get_description() const;
   virtual const char *get_doc_link() const;
+  virtual Upgrade_issue::Level get_level() const = 0;
+  virtual bool is_runnable() const { return true; }
 
   virtual std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session) = 0;
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const std::string &server_version) = 0;
 
  protected:
   virtual const char *get_description_internal() const { return nullptr; }
@@ -129,21 +135,26 @@ class Sql_upgrade_check : public Upgrade_check {
       const mysqlshdk::utils::Version &ver);
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
+  static std::unique_ptr<Sql_upgrade_check> get_removed_sys_log_vars_check();
+  static std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
                     Upgrade_issue::Level level = Upgrade_issue::WARNING,
                     const char *advice = "",
+                    const char *minimal_version = nullptr,
                     std::forward_list<std::string> &&set_up =
                         std::forward_list<std::string>(),
                     std::forward_list<std::string> &&clean_up =
                         std::forward_list<std::string>());
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session) override;
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const std::string &server_version) override;
 
   const char *get_description_internal() const override;
   const char *get_title_internal() const override;
+  Upgrade_issue::Level get_level() const override { return m_level; }
 
  protected:
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
@@ -154,6 +165,7 @@ class Sql_upgrade_check : public Upgrade_check {
   std::string m_title;
   std::string m_advice;
   std::string m_doc_link;
+  const char *m_minimal_version;
 };
 
 class Check_table_command : public Upgrade_check {
@@ -161,7 +173,12 @@ class Check_table_command : public Upgrade_check {
   Check_table_command();
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session) override;
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const std::string &) override;
+
+  Upgrade_issue::Level get_level() const override {
+    throw std::runtime_error("Unimplemented");
+  }
 
  protected:
   const char *get_description_internal() const override { return nullptr; }
@@ -169,6 +186,28 @@ class Check_table_command : public Upgrade_check {
   const char *get_title_internal() const override {
     return "Issues reported by 'check table x for upgrade' command";
   }
+};
+
+class Manual_check : public Upgrade_check {
+ public:
+  Manual_check(const char *name, Upgrade_issue::Level level)
+      : Upgrade_check(name), m_level(level) {}
+
+  Upgrade_issue::Level get_level() const override { return m_level; }
+  bool is_runnable() const override { return false; }
+
+  std::vector<Upgrade_issue> run(
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const std::string &server_version) override {
+    throw std::runtime_error("Manual check not meant to be executed");
+  }
+
+ protected:
+  const char *get_description_internal() const override {
+    return Upgrade_issue::level_to_string(m_level);
+  }
+
+  Upgrade_issue::Level m_level;
 };
 
 } /* namespace mysqlsh */

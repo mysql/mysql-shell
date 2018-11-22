@@ -152,10 +152,59 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 * groupByAscCheck.docLink
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-sql-syntax
 
+* removedSysLogVars.title
+# Removed system variables for error logging to the system log configuration
+
+* removedSysLogVars.description
+# Error: System variables related to logging using OS facilities (the Event Log on Windows, and
+# syslog on Unix and Unix-like systems) have been removed. Where appropriate, the removed system
+# variables were replaced with new system variables managed by the log_sink_syseventlog error log
+# component. Installations that used the old system variable names must update their configuration
+# to use the new variable names.
+
+* removedSysLogVars.docLink
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
+
+* schemaInconsistencyCheck.title
+# Schema inconsistencies resulting from file removal or corruption
+
+* schemaInconsistencyCheck.description
+# Error: Following tables show signs that either table datadir directory or frm file was
+# removed/corrupted. Please check server logs, examine datadir to detect the issue and fix it
+# before upgrade
+
+* schemaInconsistencyCheck.docLink
+
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command
 
 * checkTableOutput.description
 
 * checkTableOutput.docLink
+
+* defaultAuthenticationPlugin.title
+New default authentication plugin considerations
+
+* defaultAuthenticationPlugin.description
+# Warning
+Warning: The new default authentication plugin 'caching_sha2_password' offers more secure password
+hashing than previously used 'mysql_native_password' (and consequent improved client connection
+authentication). However, it also has compatibility implications that may affect existing MySQL
+installations.  If your MySQL installation must serve pre-8.0 clients and you encounter
+compatibility issues after upgrading, the simplest way to address those issues is to reconfigure
+the server to revert to the previous default authentication plugin (mysql_native_password). For
+example, use these lines in the server option file:\n
+\n
+[mysqld]\n
+default_authentication_plugin=mysql_native_password\n
+\n
+However, the setting should be viewed as temporary, not as a long term or permanent solution,
+because it causes new accounts created with the setting in effect to forego the improved
+authentication security.\n
+If you are using replication please take time to understand how the authentication plugin changes
+may impact you.
+
+* defaultAuthenticationPlugin.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
 
