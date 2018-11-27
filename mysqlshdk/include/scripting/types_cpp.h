@@ -291,6 +291,7 @@ struct Parameter_context {
 struct Parameter;
 struct Parameter_validator {
  public:
+  virtual ~Parameter_validator() = default;
   virtual void validate(const Parameter &param, const Value &data,
                         const Parameter_context &context) const;
 };
@@ -506,8 +507,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, md,
-             func](const shcore::Argument_list &args) -> shcore::Value {
+            [md, func](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
                 md.signature[index].validate(
