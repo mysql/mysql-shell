@@ -235,6 +235,8 @@ IF(HAVE_PYTHON)
   elseif(BUNDLED_PYTHON_DIR)
     INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python2.7" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main
               PATTERN "lib/python2.7/test" EXCLUDE)
+    INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/python2.7/pyconfig.h"
+            DESTINATION "${INSTALL_LIBDIR}/include/python2.7" COMPONENT main)
 
     # Copy to build dir to allow testing
     add_custom_command(TARGET mysqlsh POST_BUILD
