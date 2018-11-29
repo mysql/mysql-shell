@@ -139,3 +139,40 @@ var c = dba.createCluster('test', {failoverConsistency: "BEFORE_ON_PRIMARY_FAILO
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+// WL#12050 AdminAPI: Define the timeout for evicting previously active cluster members
+//
+// In 8.0.13, Group Replication introduced an option to allow defining
+// the timeout for evicting previously active nodes.  In order to support
+// defining such option, the AdminAPI was extended by introducing a new
+// optional parameter, named 'expelTimeout', in the dba.createCluster()
+// function.
+//
+//@ WL#12050: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+shell.connect(__sandbox_uri1);
+
+//@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}
+var c = dba.createCluster('test', {expelTimeout: 100});
+
+//@ WL#12050: Create cluster errors using expelTimeout option {VER(>=8.0.13)}
+// TSF1_3, TSF1_4, TSF1_6
+var c = dba.createCluster('test', {expelTimeout:""});
+
+var c = dba.createCluster('test', {expelTimeout: "10a"});
+
+var c = dba.createCluster('test', {expelTimeout: 10.5});
+
+var c = dba.createCluster('test', {expelTimeout: true});
+
+var c = dba.createCluster('test', {expelTimeout: -1});
+
+var c = dba.createCluster('test', {expelTimeout: 3601});
+
+//@ WL#12050: TSF1_1 Create cluster using a valid value for expelTimeout {VER(>=8.0.13)}
+var c = dba.createCluster('test', {expelTimeout: 12});
+
+//@ WL#12050: Finalization
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

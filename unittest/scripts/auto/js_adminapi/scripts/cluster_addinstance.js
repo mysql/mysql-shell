@@ -6,14 +6,6 @@ function print_gr_exit_state_action() {
   print(row[0] + "\n");
 }
 
-function print_persisted_variables(session) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-    }
-    print("\n");
-}
-
 function print_gr_member_weight() {
   var result = session.runSql('SELECT @@GLOBAL.group_replication_member_weight');
   var row = result.fetchOne();
@@ -38,6 +30,12 @@ function print_metadata_instance_addresses(session) {
 
 function print_gr_failover_consistency() {
     var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
+    var row = result.fetchOne();
+    print(row[0] + "\n");
+}
+
+function print_gr_expel_timeout() {
+    var result = session.runSql('SELECT @@GLOBAL.group_replication_member_expel_timeout');
     var row = result.fetchOne();
     print(row[0] + "\n");
 }
@@ -115,7 +113,7 @@ session.close()
 shell.connect(__sandbox_uri2);
 
 //@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
-print_persisted_variables(session);
+print_persisted_variables_like(session, "group_replication_exit_state_action");
 
 //@ WL#12049: Dissolve cluster 2 {VER(>=8.0.12)}
 c.dissolve({force: true});
@@ -142,7 +140,7 @@ session.close()
 shell.connect(__sandbox_uri2);
 
 //@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
-print_persisted_variables(session);
+print_persisted_variables_like(session, "group_replication_exit_state_action");
 
 //@ WL#12049: Finalization
 session.close();
@@ -211,7 +209,7 @@ session.close()
 shell.connect(__sandbox_uri2);
 
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
-print_persisted_variables(session);
+print_persisted_variables_like(session, "group_replication_member_weight");
 
 //@ WL#11032: Dissolve cluster 2 {VER(>=8.0.11)}
 c.dissolve({force: true});
@@ -238,7 +236,7 @@ session.close()
 shell.connect(__sandbox_uri2);
 
 //@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
-print_persisted_variables(session);
+print_persisted_variables_like(session, "group_replication_member_weight");
 
 //@ WL#11032: Finalization
 session.close();
@@ -514,6 +512,56 @@ print_persisted_variables_like(s1, "group_replication_consistency");
 print_persisted_variables_like(s2, "group_replication_consistency");
 
 //@ WL#12067: Finalization {VER(>=8.0.14)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// WL#12050 AdminAPI: Define the timeout for evicting previously active cluster members
+//
+// In 8.0.13, Group Replication introduced an option to allow defining
+// the timeout for evicting previously active nodes.  In order to support
+// defining such option, the AdminAPI was extended by introducing a new
+// optional parameter, named 'expelTimeout', in the dba.createCluster()
+// function.
+
+//@ WL#12050: Initialization {VER(>=8.0.13)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+var s1 = mysql.getSession(__sandbox_uri1);
+var s2 = mysql.getSession(__sandbox_uri2);
+
+shell.connect(__sandbox_uri1);
+
+// FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
+//@ WL#12050: TSF2_1 The value for group_replication_member_expel_timeout must be the same on all cluster members (single-primary) {VER(>=8.0.13)}
+var c = dba.createCluster('test', {expelTimeout: 100});
+c.addInstance(__sandbox_uri2);
+
+//@WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value is the same on all cluster members (single-primary) {VER(>=8.0.13)}
+print_gr_expel_timeout(s1);
+print_gr_expel_timeout(s2);
+
+//@WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value was persisted (single-primary) {VER(>=8.0.13)}
+print_persisted_variables_like(s1, "group_replication_member_expel_timeout");
+print_persisted_variables_like(s2, "group_replication_member_expel_timeout");
+
+//@ WL#12050: Dissolve cluster 1{VER(>=8.0.13)}
+c.dissolve({force: true});
+
+// FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
+//@ WL#12050: TSF2_2 The value for group_replication_member_expel_timeout must be the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+var c = dba.createCluster('test', { clearReadOnly:true, expelTimeout: 200, multiPrimary:true, force: true});
+c.addInstance(__sandbox_uri2);
+
+//@WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value is the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+print_gr_expel_timeout(s1);
+print_gr_expel_timeout(s2);
+
+//@WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value was persisted (multi-primary) {VER(>=8.0.13)}
+print_persisted_variables_like(s1, "group_replication_member_expel_timeout");
+print_persisted_variables_like(s2, "group_replication_member_expel_timeout");
+
+//@ WL#12050: Finalization {VER(>=8.0.13)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

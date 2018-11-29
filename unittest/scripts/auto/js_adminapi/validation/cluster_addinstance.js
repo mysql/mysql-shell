@@ -25,14 +25,6 @@
 
 //@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
 group_replication_exit_state_action = READ_ONLY
-group_replication_force_members =
-group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
-group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#12049: Dissolve cluster 2 {VER(>=8.0.12)}
 ||
@@ -48,13 +40,6 @@ group_replication_start_on_boot = ON
 
 //@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
 group_replication_exit_state_action = READ_ONLY
-group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
-group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#12049: Finalization
 ||
@@ -84,16 +69,7 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.12)}
-group_replication_exit_state_action = READ_ONLY
-group_replication_force_members =
-group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_weight = 0
-group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
-group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#11032: Dissolve cluster 2 {VER(>=8.0.11)}
 ||
@@ -108,14 +84,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.12)}
-group_replication_exit_state_action = READ_ONLY
-group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
-group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#11032: Finalization
 ||
@@ -234,4 +202,35 @@ auto_increment_offset = <<<__expected_auto_inc_offset>>>
 |group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER|
 
 //@ WL#12067: Finalization {VER(>=8.0.14)}
+||
+
+//@ WL#12050: Initialization {VER(>=8.0.13)}
+||
+
+//@ WL#12050: TSF2_1 The value for group_replication_member_expel_timeout must be the same on all cluster members (single-primary) {VER(>=8.0.13)}
+||
+
+//@ WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value is the same on all cluster members (single-primary) {VER(>=8.0.13)}
+|100|
+|100|
+
+//@ WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value was persisted (single-primary) {VER(>=8.0.13)}
+|group_replication_member_expel_timeout = 100|
+|group_replication_member_expel_timeout = 100|
+
+//@ WL#12050: Dissolve cluster 1 {VER(>=8.0.13)}
+||
+
+//@ WL#12050: TSF2_2 The value for group_replication_member_expel_timeout must be the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+||
+
+//@ WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value is the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+|200|
+|200|
+
+//@ WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value was persisted (multi-primary) {VER(>=8.0.13)}
+|group_replication_member_expel_timeout = 200|
+|group_replication_member_expel_timeout = 200|
+
+//@ WL#12050: Finalization {VER(>=8.0.13)}
 ||

@@ -1204,6 +1204,47 @@ TEST_F(Dba_common_test, validate_failover_consistency_supported) {
   testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
 
+TEST_F(Dba_common_test, validate_expel_timeout_supported) {
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  auto session = create_session(_mysql_sandbox_port1);
+  auto version = session->get_server_version();
+  auto null_timeout = mysqlshdk::utils::nullable<int64_t>();
+  auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
+  auto invalid_timeout1 = mysqlshdk::utils::nullable<std::int64_t>(3601);
+  auto invalid_timeout2 = mysqlshdk::utils::nullable<std::int64_t>(-1);
+
+  // if a null value was provided, it is as if the option was not provided,
+  // so no error should be thrown
+  mysqlsh::dba::validate_expel_timeout_supported(session, null_timeout);
+  // if a value non in the allowed range value was provided, an error should be
+  // thrown independently of the server version
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::validate_expel_timeout_supported(session, invalid_timeout1),
+      shcore::Exception,
+      "Invalid value for expelTimeout, integer value must be in the range: "
+      "[0, 3600]");
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::validate_expel_timeout_supported(session, invalid_timeout2),
+      shcore::Exception,
+      "Invalid value for expelTimeout, integer value must be in the range: "
+      "[0, 3600]");
+  // if a valid value was provided, an error should only be thrown
+  // in case the option is not supported by the server version.
+  if (version < mysqlshdk::utils::Version(8, 0, 13)) {
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_expel_timeout_supported(session, valid_timeout),
+        std::runtime_error,
+        "Option 'expelTimeout' not supported on target server "
+        "version:");
+  } else {
+    EXPECT_NO_THROW(
+        mysqlsh::dba::validate_expel_timeout_supported(session, valid_timeout));
+  }
+
+  session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_port1);
+}
+
 TEST_F(Dba_common_test, is_group_replication_option_supported) {
   testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
   auto session = create_session(_mysql_sandbox_port1);

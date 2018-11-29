@@ -55,3 +55,24 @@
 
 //@ WL#12067: Finalization
 ||
+
+//@ WL#12050: Initialization
+||
+
+//@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}
+||Option 'expelTimeout' not supported on target server version: '<<<__version>>>'
+
+//@ WL#12050: Create cluster errors using expelTimeout option {VER(>=8.0.13)}
+// TSF1_3, TSF1_4, TSF1_6
+||Option 'expelTimeout' Integer expected, but value is String (TypeError)
+||Option 'expelTimeout' Integer expected, but value is String (TypeError)
+||Option 'expelTimeout' is expected to be of type Integer, but is Float (TypeError)
+||Option 'expelTimeout' is expected to be of type Integer, but is Bool (TypeError)
+||Invalid value for expelTimeout, integer value must be in the range: [0, 3600] (ArgumentError)
+||Invalid value for expelTimeout, integer value must be in the range: [0, 3600] (ArgumentError)
+
+//@ WL#12050: TSF1_1 Create cluster using a valid value for expelTimeout {VER(>=8.0.13)}
+||
+
+//@ WL#12050: Finalization
+||

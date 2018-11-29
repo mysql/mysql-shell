@@ -192,6 +192,9 @@ void validate_exit_state_action_supported(
 void validate_failover_consistency_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const mysqlshdk::utils::nullable<std::string> &failover_consistency);
+void validate_expel_timeout_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout);
 void validate_member_weight_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_replication_filters(

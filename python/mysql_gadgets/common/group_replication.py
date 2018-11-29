@@ -96,6 +96,7 @@ GR_IP_WHITELIST = "group_replication_ip_whitelist"
 GR_LOCAL_ADDRESS = "group_replication_local_address"
 GR_EXIT_STATE_ACTION = "group_replication_exit_state_action"
 GR_FAILOVER_CONSISTENCY = "group_replication_consistency"
+GR_EXPEL_TIMEOUT = "group_replication_member_expel_timeout"
 GR_MEMBER_WEIGHT = "group_replication_member_weight"
 GR_FORCE_MEMBERS = "group_replication_force_members"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
@@ -196,7 +197,8 @@ DEFAULTS_FILE_OPTIONS = frozenset((GR_IP_WHITELIST,
                                    GR_SINGLE_PRIMARY_MODE,
                                    GR_EXIT_STATE_ACTION,
                                    GR_MEMBER_WEIGHT,
-                                   GR_FAILOVER_CONSISTENCY))
+                                   GR_FAILOVER_CONSISTENCY,
+                                   GR_EXPEL_TIMEOUT))
 
 EQUIVALENT_OPTION_VALUES = {
     "ON": ("ON", "1"),
@@ -511,6 +513,7 @@ def validate_exit_state_action(server, exit_state_action, dry_run=False):
                          exit_state_action, dry_run)
 
 
+
 def validate_failover_consistency(server, failover_consistency, dry_run=False):
     """Validates the value of group_replication_consistency by attempting
     to set it and catch any error from GR.
@@ -524,6 +527,21 @@ def validate_failover_consistency(server, failover_consistency, dry_run=False):
     """
     validate_gr_variable(server, "failoverConsistency", GR_FAILOVER_CONSISTENCY,
                          failover_consistency, dry_run)
+
+
+def validate_expel_timeout(server, expel_timeout, dry_run=False):
+    """Validates the value of group_replication_member_expel_timeout by
+    attempting  to set it and catch any error from GR.
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param expel_timeout:     The value of group_replication_consistency.
+    :type expel_timeout:      str
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    validate_gr_variable(server, "expelTimeout", GR_EXPEL_TIMEOUT,
+                         expel_timeout, dry_run)
 
 
 def validate_gr_variable(server, opt_name, gr_opt_name, value,
@@ -2242,6 +2260,10 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                               string containing either:
                              "BEFORE_ON_PRIMARY_FAILOVER", "EVENTUAL", "0" or
                              "1". The string is case-insensitive.
+        expel_timeout: Group Replication member expel Timeout.
+                       Must must be an integer value containing the time in
+                       seconds to wait before the killer node expels members
+                       suspected of having failed from the group.
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -2274,7 +2296,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_IP_WHITELIST: options.get("ip_whitelist", None),
         GR_EXIT_STATE_ACTION: options.get("exit_state_action", None),
         GR_MEMBER_WEIGHT: options.get("member_weight", None),
-        GR_FAILOVER_CONSISTENCY: options.get("failover_consistency", None)
+        GR_FAILOVER_CONSISTENCY: options.get("failover_consistency", None),
+        GR_EXPEL_TIMEOUT: options.get("expel_timeout", None)
     }
 
     # Validate Group Name

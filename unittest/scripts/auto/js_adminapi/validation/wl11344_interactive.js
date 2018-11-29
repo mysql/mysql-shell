@@ -201,10 +201,12 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
 true
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -350,11 +352,13 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__local_address_2>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -379,11 +383,13 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__local_address_3>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -391,11 +397,13 @@ group_replication_start_on_boot = ON
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__local_address_3>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -442,10 +450,12 @@ group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -516,10 +526,12 @@ ONLINE
 
 //@<OUT> FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
 true
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -529,19 +541,23 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-9 Check that correct values are persisted and updated when instances are added and that instances rejoin automatically {VER(>=8.0.12)}
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -640,12 +656,14 @@ ONLINE
 
 //@<OUT> FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
 true
+group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -669,10 +687,12 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
 true
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -686,21 +706,25 @@ Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave th
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
+group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
+group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED

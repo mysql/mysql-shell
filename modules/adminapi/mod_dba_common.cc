@@ -357,6 +357,35 @@ void validate_failover_consistency_supported(
 }
 
 /**
+ * Validate if the expelTimeout option is supported in the target instance
+ * version and within the accepted range. The actual value is validated by
+ * the GR plugin.
+ *
+ * @param session object which represents the session to the instance
+ * @param expel_timeout nullable object with the value of expelTimeout
+ * @throw RuntimeError if the value is not supported on the target instance
+ * @throw argument_error if the value provided not within the valid range.
+ */
+void validate_expel_timeout_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout) {
+  if (!expel_timeout.is_null()) {
+    if ((*expel_timeout) < 0 || (*expel_timeout) > 3600) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for expelTimeout, integer value must be in the range: "
+          "[0, 3600]");
+    }
+    auto version = session->get_server_version();
+    if (!is_group_replication_option_supported(session, kExpelTimeout)) {
+      throw std::runtime_error(
+          "Option 'expelTimeout' not supported on target server "
+          "version: '" +
+          version.get_full() + "'");
+    }
+  }
+}
+
+/**
  * Validate the value specified for the memberWeight option is supported on
  * the target instance
  *

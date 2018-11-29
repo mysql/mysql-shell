@@ -351,7 +351,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string ssl_mode, group_name, local_address, group_seeds,
           exit_state_action, ip_whitelist, failover_consistency;
 
-      mysqlshdk::utils::nullable<int64_t> member_weight;
+      mysqlshdk::utils::nullable<int64_t> member_weight, expel_timeout;
 
       // Retrieves optional options if exists
       mysqlsh::Unpack_options(options)
@@ -368,6 +368,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
           .optional("exitStateAction", &exit_state_action)
           .optional("memberWeight", &member_weight)
           .optional("failoverConsistency", &failover_consistency)
+          .optional_exact("expelTimeout", &expel_timeout)
           .end();
 
       // Validate SSL options for the cluster instance

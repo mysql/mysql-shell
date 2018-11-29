@@ -341,11 +341,14 @@ DESCRIPTION
         primary election on failover.
       - failoverConsistency: string value indicating the consistency guarantees
         for primary failover in single primary mode.
+      - expelTimeout: integer value to define the time period in seconds that
+        cluster members should wait for a non-responding member before evicting
+        it from the cluster.
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
 
-      A InnoDB cluster may be setup in two ways:
+      An InnoDB cluster may be setup in two ways:
 
       - Single Primary: One member of the cluster allows write operations while
         the rest are in read only mode.
@@ -434,6 +437,13 @@ DESCRIPTION
       If failoverConsistency is not specified, EVENTUAL will be used by
       default.
 
+      The value for expelTimeout is used to configure how long Group
+      Replication will wait before expelling from the group any members
+      suspected of having failed. On slow networks, or when there are expected
+      machine slowdowns, increase the value of this option. The expelTimeout
+      option accepts positive integer values in the range [0, 3600]. The
+      default value is 0.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -450,12 +460,13 @@ EXCEPTIONS
       - If adoptFromGR is true and the multiPrimary option is used.
       - If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
         exitStateAction or failoverConsistency options is empty.
+      - If the value for the expelTimeout is not in the range: [0, 3600]
 
       RuntimeError in the following scenarios:
 
       - If the value for the groupName, localAddress, groupSeeds,
-        exitStateAction, memberWeight or failoverConsistency options is not
-        valid for Group Replication.
+        exitStateAction, memberWeight, failoverConsistency or expelTimeout
+        options is not valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
 
 #@<OUT> dba.delete_sandbox_instance
