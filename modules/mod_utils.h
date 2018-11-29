@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -164,6 +165,9 @@ establish_session(const Connection_options &options, bool prompt_for_password,
 std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
 establish_mysql_session(const Connection_options &options,
                         bool prompt_for_password, bool prompt_in_loop = false);
+
+void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
+                              shcore::Document_reader_options *options);
 
 }  // namespace mysqlsh
 

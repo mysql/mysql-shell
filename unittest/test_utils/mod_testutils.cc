@@ -173,6 +173,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("cpfile", &Testutils::cp_file, "source", "target");
   expose("rmfile", &Testutils::rm_file, "target");
   expose("touch", &Testutils::touch, "file");
+  expose("createFile", &Testutils::create_file, "path", "content");
   expose("enableExtensible", &Testutils::enable_extensible);
 
   std::string local_mp_path =
@@ -706,11 +707,15 @@ void Testutils::fail(const std::string &context) {
     text = shcore::str_replace(text, "</red>", "\x1b[0m");
     text = shcore::str_replace(text, "<yellow>", "\x1b[33m");
     text = shcore::str_replace(text, "</yellow>", "\x1b[0m");
+    text = shcore::str_replace(text, "<b>", "\x1b[1m");
+    text = shcore::str_replace(text, "</b>", "\x1b[0m");
   } else {
     text = shcore::str_replace(text, "<red>", "");
     text = shcore::str_replace(text, "</red>", "");
     text = shcore::str_replace(text, "<yellow>", "");
     text = shcore::str_replace(text, "</yellow>", "");
+    text = shcore::str_replace(text, "<b>", "");
+    text = shcore::str_replace(text, "</b>", "");
   }
 #ifdef ENABLE_SESSION_RECORDING
   throw std::logic_error("method not available");
@@ -1827,6 +1832,25 @@ void Testutils::make_empty_file(const std::string &path) {
   auto directory = shcore::path::dirname(path);
   shcore::create_directory(directory, true);
   shcore::create_file(path, "");
+}
+
+//!< @name File Operations
+///@{
+/**
+ * Create file specified by path with the specified content.
+ * Create parent directories needed by path if they do not already exists.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::createFile(String path, String content);
+#elif DOXYGEN_PY
+None Testutils::create_file(str path, str content);
+#endif
+///@}
+void Testutils::create_file(const std::string &path,
+                            const std::string &content) {
+  auto directory = shcore::path::dirname(path);
+  shcore::create_directory(directory, true);
+  shcore::create_file(path, content);
 }
 
 //!< @name File Operations

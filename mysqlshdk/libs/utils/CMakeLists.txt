@@ -39,6 +39,7 @@ set(utils_SOURCE
     utils_lexing.cc
     utils_buffered_input.cc
     utils_translate.cc
+    document_parser.cc
     trandom.cc
     nullable_options.cc
     base_tokenizer.cc

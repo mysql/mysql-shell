@@ -1017,23 +1017,6 @@ bool match_glob(const std::string &pattern, const std::string &s,
   return _match_glob(pat, str);
 }
 
-std::string fmttime(const char *fmt) {
-  time_t t = time(nullptr);
-  char buf[64];
-
-#ifdef WIN32
-  struct tm lt;
-  localtime_s(&lt, &t);
-  strftime(buf, sizeof(buf), fmt, &lt);
-#else
-  struct tm lt;
-  localtime_r(&t, &lt);
-  strftime(buf, sizeof(buf), fmt, &lt);
-#endif
-
-  return buf;
-}
-
 const char *get_long_version() {
   return "Ver " MYSH_FULL_VERSION " for " SYSTEM_TYPE " on " MACHINE_TYPE
          " - for MySQL " LIBMYSQL_VERSION " (" MYSQL_COMPILATION_COMMENT ")";

@@ -239,24 +239,6 @@ inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
   return p + 2;
 }
 
-/**
- * Function replace all occurrences of MongoDB's ObjectID JSON strict
- * representation, i.e. `{ "$oid": "<hex-string>" }` to `"<hex-string>"` in
- * `json_doc` string.
- *
- * Input:
- *   { "_id" : { "$oid": "51f0188846a64a1ed98fde7c" }, "a" : 1 }
- *   { "_id" : { "$oid": "520e61b0c6646578e3661b59" }, "a" : 1, "b" : 2 }
- *
- * Output:
- *   { "_id" :           "51f0188846a64a1ed98fde7c"  , "a" : 1 }
- *   { "_id" :           "520e61b0c6646578e3661b59"  , "a" : 1, "b" : 2 }
- *
- * @param json_doc JSON document string which you want to be stripped from
- * MongoDB ObejctID in JSON strict representation.
- */
-void strip_bson_object_id(std::string *json_doc);
-
 /** Class enabling iteration over characters in SQL string skipping comments and
  * quoted strings.
  *

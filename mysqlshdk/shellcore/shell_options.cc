@@ -727,6 +727,8 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
   } else if (strcmp("--import", full_opt) == 0) {
     storage.import_args.push_back(iterator->get());  // omit --import
 
+    // Gets the positional arguments for --import
+    // As they define the target dtabase object for the data
     while (iterator->valid()) {
       // We append --import arguments until next shell option in program
       // argument list, i.e. -* or --*. Single char '-' is a --import argument.
@@ -735,6 +737,49 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
         break;
       }
       storage.import_args.push_back(iterator->get());
+    }
+
+    if (storage.import_args[1] == "-") {
+      // STDIN import will be handled directly in main
+      // Here we store the import options
+      while (iterator->valid()) storage.import_opts.push_back(iterator->get());
+    } else {
+      // Non STDIN import is handled as a CLI API call
+      if (m_shell_cli_operation)
+        throw std::invalid_argument(
+            "MySQL Shell can handle only one operation at a time");
+      m_shell_cli_operation =
+          shcore::make_unique<shcore::Shell_cli_operation>();
+      m_shell_cli_operation->set_object_name("util");
+      m_shell_cli_operation->set_method_name("importJson");
+
+      // Parses the positional arguments to set them on the CLI operation
+      switch (storage.import_args.size()) {
+        case 4: {
+          const std::string &target = storage.import_args.at(2);
+          const std::string &column = storage.import_args.at(3);
+          m_shell_cli_operation->add_option("--table=" + target);
+          m_shell_cli_operation->add_option("--tableColumn=" + column);
+          break;
+        }
+        case 3: {
+          const std::string &target = storage.import_args.at(2);
+          m_shell_cli_operation->add_option("--collection=" + target);
+          break;
+        }
+        case 2:
+          break;
+        default:
+          throw std::runtime_error(
+              "Usage: --import filename [collection] | [table [column]] "
+              "[options]");
+      }
+
+      // All of the options above are valid
+      const std::string &file = storage.import_args.at(1);
+      m_shell_cli_operation->add_argument(shcore::Value(file));
+
+      m_shell_cli_operation->parse(iterator);
     }
   } else {
     return false;

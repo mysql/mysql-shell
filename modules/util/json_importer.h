@@ -28,6 +28,7 @@
 #include <string>
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -200,12 +201,13 @@ class Json_importer {
    * @param path Path to JSON document. Empty path enables read from stdin.
    */
   void set_path(const std::string &path) { m_file_path = path; }
-  void load_from(bool strip_bson_objectid);
+  void load_from(const shcore::Document_reader_options &options);
 
   void print_stats();
 
  private:
-  void load_from(shcore::Buffered_input *input, bool strip_bson_objectid);
+  void load_from(shcore::Buffered_input *input,
+                 const shcore::Document_reader_options &options);
   void put(const std::string &item);
   void recv_response(bool block = false);
   void flush();

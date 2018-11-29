@@ -121,6 +121,7 @@ class Shell_options : public shcore::Options {
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
     std::vector<std::string> import_args;
+    std::vector<std::string> import_opts;
     std::string pager;
     Quiet_start quiet_start = Quiet_start::NOT_SET;
     bool show_column_type_info = false;

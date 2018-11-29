@@ -482,4 +482,34 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
   return establish_session(copy, prompt_for_password, prompt_in_loop);
 }
 
+void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
+                              shcore::Document_reader_options *options) {
+  unpacker->optional("convertBsonTypes", &(*options).convert_bson_types);
+
+  // Default value for convertBsonOid is the value of convertBsonTypes
+  options->convert_bson_id = options->convert_bson_types;
+
+  // convertBsonOid is independent, can be used even if convertBsonTypes is off
+  unpacker->optional("convertBsonOid", &(*options).convert_bson_id);
+
+  // convertBsonOid unlocks extractOidTime
+  if (options->convert_bson_id)
+    unpacker->optional("extractOidTime", &(*options).extract_oid_time);
+
+  // convertBsonTypes unlocks the rest of the options
+  if (options->convert_bson_types) {
+    unpacker->optional("ignoreDate", &(*options).ignore_date);
+    unpacker->optional("ignoreTimestamp", &(*options).ignore_timestamp);
+    unpacker->optional("ignoreBinary", &(*options).ignore_binary);
+    unpacker->optional("ignoreRegex", &(*options).ignore_regexp);
+
+    // ignoreRegex locks ignoreRegexOptions
+    if (!options->ignore_regexp)
+      unpacker->optional("ignoreRegexOptions",
+                         &(*options).ignore_regexp_options);
+
+    unpacker->optional("decimalAsDouble", &(*options).decimal_as_double);
+  }
+}
+
 }  // namespace mysqlsh

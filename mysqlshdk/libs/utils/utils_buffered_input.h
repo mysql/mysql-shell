@@ -31,24 +31,6 @@
 
 namespace shcore {
 
-class invalid_json : public std::invalid_argument {
- public:
-  invalid_json(const std::string &e, std::size_t offs)
-      : std::invalid_argument(e), m_offset(offs) {
-    m_msg += e;
-    m_msg += " at offset ";
-    m_msg += std::to_string(m_offset);
-  }
-
-  size_t offset() const { return m_offset; }
-
-  const char *what() const noexcept override { return m_msg.c_str(); }
-
- private:
-  size_t m_offset;    //< Byte offset from file beginning
-  std::string m_msg;  //< Exception message
-};
-
 /**
  * Forward read only buffered input.
  */
@@ -78,6 +60,8 @@ class Buffered_input {
     return *m_pos;
   }
 
+  void seek(byte *pos) { m_pos = pos > m_end ? m_end : pos; }
+
   byte get() {
     byte c = peek();
     ++m_pos;
@@ -86,6 +70,8 @@ class Buffered_input {
   }
 
   size_t offset() { return m_bytes_processed; }
+  byte *pos() const { return m_pos; }
+  byte *end() const { return m_end; }
 
   void skip_whitespaces() {
     while (::isspace(peek())) {
@@ -108,21 +94,6 @@ class Buffered_input {
   byte *m_end = m_buffer;
   size_t m_bytes_processed = 0;
 };
-
-/**
- * Find the end of the JSON document in the given buffered input, assuming
- * syntax is correct.
- *
- * This function assumes the input contains valid JSON data and will not perform
- * any validation except for balancing of {} and [] and strings.
- *
- * The purpose is to split buffers containing many JSON documents, which will
- * be processed/parsed later on by an actual JSON parser.
- *
- * @param input Input with JSON document.
- * @return
- */
-std::string span_one_maybe_json(shcore::Buffered_input *input);
 
 }  // namespace shcore
 

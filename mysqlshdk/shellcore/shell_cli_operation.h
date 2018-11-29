@@ -50,6 +50,13 @@ class Shell_cli_operation {
   void register_provider(const std::string &name, Provider provider);
   void remove_provider(const std::string &name);
 
+  void set_object_name(const std::string &name);
+  void set_method_name(const std::string &name);
+  void add_argument(const shcore::Value &argument);
+  void add_option(const std::string &option_definition);
+  static void add_option(Value::Map_type_ref target_map,
+                         const std::string &option_definition);
+
   void parse(Options::Cmdline_iterator *cmdline_iterator);
 
   bool empty() { return m_object_name.empty(); }

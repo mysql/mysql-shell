@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/textui/term_vt100.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -217,9 +218,9 @@ std::string Prompt_manager::do_apply_vars(
     } else {
       std::string lvar = shcore::str_lower(var);
       if (var == "time") {
-        ret.append(shcore::fmttime("%T"));
+        ret.append(mysqlshdk::utils::fmttime("%T"));
       } else if (var == "date") {
-        ret.append(shcore::fmttime("%F"));
+        ret.append(mysqlshdk::utils::fmttime("%F"));
       } else if (shcore::str_beginswith(var, "env:")) {
         const char *v = getenv(var.substr(4).c_str());
         if (v) {

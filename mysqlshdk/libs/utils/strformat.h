@@ -54,7 +54,10 @@ std::string format_throughput_items(const std::string &item_name_singular,
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds);
 
-std::string fmttime(const char *fmt);
+enum class Time_type { LOCAL, GMT };
+
+std::string fmttime(const char *fmt, Time_type type = Time_type::LOCAL,
+                    time_t *time_ptr = nullptr);
 
 }  // namespace utils
 }  // namespace mysqlshdk

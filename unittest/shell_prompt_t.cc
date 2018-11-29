@@ -27,6 +27,7 @@
 #include "mysqlsh/prompt_manager.h"
 #include "mysqlsh/prompt_renderer.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -1048,7 +1049,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   char badpro[] = "MYSQLSH_PROMPT_THEME=allvars.json";
   putenv(badpro);
 
-  using shcore::fmttime;
+  using mysqlshdk::utils::fmttime;
   int rc;
   std::string uri = _user + "@" + _host;
 
