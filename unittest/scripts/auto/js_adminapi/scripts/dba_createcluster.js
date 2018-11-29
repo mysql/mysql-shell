@@ -42,6 +42,12 @@ function print_gr_failover_consistency() {
     print(row[0] + "\n");
 }
 
+function print_gr_expel_timeout() {
+    var result = session.runSql('SELECT @@GLOBAL.group_replication_member_expel_timeout');
+    var row = result.fetchOne();
+    print(row[0] + "\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -414,5 +420,69 @@ var c = dba.createCluster('test');
 print_persisted_variables_like(session, "group_replication_consistency");
 
 //@ WL#12067: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+// WL#12050 AdminAPI: Define the timeout for evicting previously active cluster members
+//
+// In 8.0.13, Group Replication introduced an option to allow defining
+// the timeout for evicting previously active nodes.  In order to support
+// defining such option, the AdminAPI was extended by introducing a new
+// optional parameter, named 'expelTimeout', in the dba.createCluster()
+// function.
+//
+//@ WL#12050: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+shell.connect(__sandbox_uri1);
+
+//@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}
+var c = dba.createCluster('test', {expelTimeout: 100});
+
+//@ WL#12050: Create cluster errors using expelTimeout option {VER(>=8.0.13)}
+// TSF1_3, TSF1_4, TSF1_6
+var c = dba.createCluster('test', {expelTimeout:""});
+
+var c = dba.createCluster('test', {expelTimeout: "10a"});
+
+var c = dba.createCluster('test', {expelTimeout: 10.5});
+
+var c = dba.createCluster('test', {expelTimeout: true});
+
+var c = dba.createCluster('test', {expelTimeout: -1});
+
+var c = dba.createCluster('test', {expelTimeout: 3601});
+
+//@ WL#12050: TSF1_1 Create cluster using 12 as value for expelTimeout {VER(>=8.0.13)}
+var c = dba.createCluster('test', {expelTimeout: 12});
+
+//@ WL#12050: TSF1_1 Confirm group_replication_member_expel_timeout is set correctly (12) {VER(>=8.0.13)}
+print_gr_expel_timeout();
+
+//@<OUT> WL#12050: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.13)}
+print_persisted_variables_like(session, "group_replication_member_expel_timeout");
+
+//@ WL#12050: Dissolve cluster 1 {VER(>=8.0.13)}
+c.dissolve({force: true});
+
+// Verify that group_replication_member_expel_timeout is not persisted when not used
+// We need a clean instance for that because dissolve does not unset the previously set variables
+//@ WL#12050: TSF1_2 Initialize new instance {VER(>=8.0.13)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+shell.connect(__sandbox_uri1);
+
+//@ WL#12050: TSF1_2 Create cluster using no value for expelTimeout, confirm it has the default value {VER(>=8.0.13)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true});
+c.disconnect();
+
+//@ WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
+print_gr_expel_timeout();
+
+//@<OUT> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout was not persisted since no value was provided. {VER(>=8.0.13)}
+print_persisted_variables_like(session, "group_replication_member_expel_timeout");
+
+//@ WL#12050: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -395,7 +395,7 @@ shcore::Value ReplicaSet::add_instance(
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
   std::string ip_whitelist, instance_label, local_address, group_seeds,
       exit_state_action, failover_consistency;
-  mysqlshdk::utils::nullable<int64_t> member_weight;
+  mysqlshdk::utils::nullable<int64_t> member_weight, expel_timeout;
 
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
@@ -434,6 +434,7 @@ shcore::Value ReplicaSet::add_instance(
         .optional("exitStateAction", &exit_state_action)
         .optional_exact("memberWeight", &member_weight)
         .optional("failoverConsistency", &failover_consistency)
+        .optional_exact("expelTimeout", &expel_timeout)
         .end();
 
     // Validate SSL options for the cluster instance
@@ -631,7 +632,7 @@ shcore::Value ReplicaSet::add_instance(
   }
 
   // If this is not seed instance, then we should try to read the
-  // failoverConsistency value from a a cluster member
+  // failoverConsistency and expelTimeout values from a a cluster member
   if (!seed_instance) {
     auto conn_opt = session->get_connection_options();
     // loop though all members to check if there is any member that doesn't
@@ -673,6 +674,7 @@ shcore::Value ReplicaSet::add_instance(
             " primary.");
       }
     } else {
+      failover_consistency = "EVENTUAL";
       if (found_non_default) {
         // if we found any non default group_replication_consistency value, then
         // we use that value on the instance being added
@@ -686,6 +688,67 @@ shcore::Value ReplicaSet::add_instance(
               "not support this feature (version < 8.0.14). In single-primary "
               "mode, upon failover, the member with the lowest version will be"
               "the one elected and it doesn't support this option.");
+        }
+      }
+    }
+    // loop though all members to check if there is any member that doesn't
+    // have support for the group_replication_member_expel_timeout option
+    // (null value) or a member that doesn't have the default value. The default
+    // value 0 has the same behavior as members had before the option was
+    // introduced. As such, having the 0 value or having no support for the
+    // group_replication_member_expel_timeout is the same.
+    int64_t non_default_val = 0;
+    found_not_supported = false;
+    auto get_gr_expel_timeout_func =
+        [&non_default_val, &found_not_supported](
+            std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
+      mysqlshdk::mysql::Instance instance(session);
+      mysqlshdk::utils::nullable<std::int64_t> value;
+      value = instance.get_sysvar_int("group_replication_member_expel_timeout",
+                                      mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+      if (value.is_null())
+        found_not_supported = true;
+      else if (*value != 0)
+        non_default_val = *value;
+      // if we have found both a instance that doesnt have support for the
+      // option and an instance that doesn't have the default value, then we
+      // don't need to look at any other instance on the cluster.
+      return !(found_not_supported && non_default_val != 0);
+    };
+    execute_in_members({"'ONLINE'", "'RECOVERING'"}, conn_opt, {},
+                       get_gr_expel_timeout_func);
+    if (target_instance.get_version() < mysqlshdk::utils::Version(8, 0, 13)) {
+      if (non_default_val != 0) {
+        console->print_warning(
+            "The expelTimeout value of the cluster '" +
+            std::to_string(non_default_val) +
+            "' is not supported by the instance '" +
+            target_instance.get_connection_options().uri_endpoint() +
+            "' (version >= 8.0.13 is required). A member "
+            "that doesn't have support for the expelTimeout option has the "
+            "same behavior as a member with expelTimeout=0.");
+      }
+    } else {
+      int64_t default_expel_timeout = 0;
+      expel_timeout =
+          mysqlshdk::utils::nullable<int64_t>(default_expel_timeout);
+      if (non_default_val != 0) {
+        // if we found any non default group_replication_member_expel_timeout
+        // value, then we use that value on the instance being added
+        expel_timeout = non_default_val;
+        if (found_not_supported) {
+          console->print_warning(
+              "The instance '" +
+              target_instance.get_connection_options().uri_endpoint() +
+              "' inherited the '" + std::to_string(non_default_val) + +
+              "' consistency value from the cluster, however some instances on "
+              "the group do not support this feature (version < 8.0.13). There "
+              "is a possibility that the cluster member (killer node), "
+              "responsible for expelling the member suspected of having "
+              "failed, does not support the expelTimeout option. In "
+              "this case the behavior would be the same as if having "
+              "expelTimeout=0.");
         }
       }
     }
@@ -723,8 +786,9 @@ shcore::Value ReplicaSet::add_instance(
     // Call mysqlprovision to bootstrap the group using "start"
     success = do_join_replicaset(
         target_coptions, nullptr, replication_user, replication_user_password,
-        ssl_mode, ip_whitelist, member_weight, group_name, local_address,
-        group_seeds, exit_state_action, failover_consistency, skip_rpl_user);
+        ssl_mode, ip_whitelist, member_weight, expel_timeout, group_name,
+        local_address, group_seeds, exit_state_action, failover_consistency,
+        skip_rpl_user);
   } else {
     mysqlshdk::db::Connection_options peer(pick_seed_instance());
 
@@ -738,8 +802,9 @@ shcore::Value ReplicaSet::add_instance(
     // Call mysqlprovision to do the work
     success = do_join_replicaset(
         target_coptions, &peer, replication_user, replication_user_password,
-        ssl_mode, ip_whitelist, member_weight, group_name, local_address,
-        group_seeds, exit_state_action, failover_consistency, skip_rpl_user);
+        ssl_mode, ip_whitelist, member_weight, expel_timeout, group_name,
+        local_address, group_seeds, exit_state_action, failover_consistency,
+        skip_rpl_user);
   }
 
   if (success) {
@@ -787,6 +852,7 @@ bool ReplicaSet::do_join_replicaset(
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist,
     mysqlshdk::utils::nullable<int64_t> member_weight,
+    mysqlshdk::utils::nullable<int64_t> expel_timeout,
     const std::string &group_name, const std::string &local_address,
     const std::string &group_seeds, const std::string &exit_state_action,
     const std::string &failover_consistency, bool skip_rpl_user) {
@@ -806,12 +872,13 @@ bool ReplicaSet::do_join_replicaset(
         instance, repl_user, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, exit_state_action,
-        member_weight, failover_consistency, skip_rpl_user, &errors);
+        member_weight, expel_timeout, failover_consistency, skip_rpl_user,
+        &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
         local_address, group_seeds, exit_state_action, member_weight,
-        failover_consistency, skip_rpl_user, &errors);
+        expel_timeout, failover_consistency, skip_rpl_user, &errors);
   }
 
   if (exit_code == 0) {
@@ -1193,6 +1260,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
         replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds, "",
+        mysqlshdk::utils::nullable<int64_t>(),
         mysqlshdk::utils::nullable<int64_t>(), "", keep_repl_user, &errors);
 
     if (exit_code == 0) {
