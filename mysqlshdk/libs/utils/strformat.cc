@@ -138,19 +138,28 @@ std::string format_throughput_bytes(uint64_t bytes, double seconds) {
   return buffer + unit + "B/s";
 }
 
-std::string fmttime(const char *fmt) {
-  time_t t = time(nullptr);
+std::string fmttime(const char *fmt, Time_type type, time_t *time_ptr) {
+  time_t t;
   char buf[64];
 
+  if (time_ptr)
+    t = *time_ptr;
+  else
+    t = time(nullptr);
+
+  struct tm lt;
 #ifdef _WIN32
-  struct tm lt;
-  localtime_s(&lt, &t);
-  strftime(buf, sizeof(buf), fmt, &lt);
+  if (type == Time_type::LOCAL)
+    localtime_s(&lt, &t);
+  else
+    gmtime_s(&lt, &t);
 #else
-  struct tm lt;
-  localtime_r(&t, &lt);
-  strftime(buf, sizeof(buf), fmt, &lt);
+  if (type == Time_type::LOCAL)
+    localtime_r(&t, &lt);
+  else
+    gmtime_r(&t, &lt);
 #endif
+  strftime(buf, sizeof(buf), fmt, &lt);
 
   return buf;
 }

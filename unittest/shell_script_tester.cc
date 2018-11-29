@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/ishell_core.h"
 #include "src/mysqlsh/cmdline_shell.h"
@@ -1421,7 +1422,8 @@ void Shell_js_script_tester::set_defaults() {
 
   Shell_script_tester::set_defaults();
 
-  std::string code = "var __current_year = '" + shcore::fmttime("%Y") + "'";
+  std::string code =
+      "var __current_year = '" + mysqlshdk::utils::fmttime("%Y") + "'";
   exec_and_out_equals(code);
 
   code = "var __mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
@@ -1450,7 +1452,8 @@ void Shell_py_script_tester::set_defaults() {
 
   Shell_script_tester::set_defaults();
 
-  std::string code = "__current_year = '" + shcore::fmttime("%Y") + "'";
+  std::string code =
+      "__current_year = '" + mysqlshdk::utils::fmttime("%Y") + "'";
   exec_and_out_equals(code);
 
   code = "__mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";

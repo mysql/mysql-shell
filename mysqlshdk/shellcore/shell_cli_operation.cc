@@ -156,15 +156,57 @@ void Shell_cli_operation::remove_provider(const std::string &name) {
   if (it != m_providers.end()) m_providers.erase(it);
 }
 
-void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
-  if (!cmdline_iterator->valid())
-    throw Mapping_error("Empty operations are not allowed");
-  m_object_name = cmdline_iterator->get();
-  if (!cmdline_iterator->valid())
-    throw Mapping_error("No operation specified for object " + m_object_name);
+void Shell_cli_operation::set_object_name(const std::string &name) {
+  m_object_name = name;
+}
 
-  m_method_name_original = cmdline_iterator->get();
-  m_method_name = to_camel_case(m_method_name_original);
+void Shell_cli_operation::set_method_name(const std::string &name) {
+  m_method_name = name;
+  m_method_name_original = name;
+}
+
+void Shell_cli_operation::add_argument(const shcore::Value &argument) {
+  m_argument_list.push_back(argument);
+}
+
+void Shell_cli_operation::add_option(Value::Map_type_ref target_map,
+                                     const std::string &option_definition) {
+  std::string::size_type offset = option_definition.find('=');
+  // named argument without value means boolean with true value
+  if (offset == std::string::npos) {
+    target_map->emplace(to_camel_case(option_definition.substr(2)),
+                        Value::True());
+  } else {
+    std::string arg_name =
+        to_camel_case(option_definition.substr(2, offset - 2));
+    std::string val = option_definition.substr(offset + 1);
+    target_map->emplace(arg_name, val == "-" ? Value::Null() : Value(val));
+  }
+}
+
+void Shell_cli_operation::add_option(const std::string &option_definition) {
+  if (!m_argument_map) m_argument_map = std::make_shared<Value::Map_type>();
+
+  add_option(m_argument_map, option_definition);
+}
+
+void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
+  if (m_object_name.empty() && m_method_name_original.empty() &&
+      !cmdline_iterator->valid()) {
+    throw Mapping_error("Empty operations are not allowed");
+  }
+
+  // Object name is only read if not already provided
+  if (m_object_name.empty()) m_object_name = cmdline_iterator->get();
+
+  // Object name is only read if not already provided
+  if (m_method_name_original.empty()) {
+    if (!cmdline_iterator->valid())
+      throw Mapping_error("No operation specified for object " + m_object_name);
+
+    m_method_name_original = cmdline_iterator->get();
+    m_method_name = to_camel_case(m_method_name_original);
+  }
 
   Value::Map_type_ref local_map;
 
@@ -193,15 +235,7 @@ void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
         m_argument_map = std::make_shared<Value::Map_type>();
       Value::Map_type_ref target_map = local_map ? local_map : m_argument_map;
 
-      std::string::size_type offset = arg.find('=');
-      // named argument without value means boolean with true value
-      if (offset == std::string::npos) {
-        target_map->emplace(to_camel_case(arg.substr(2)), Value::True());
-      } else {
-        std::string arg_name = to_camel_case(arg.substr(2, offset - 2));
-        std::string val = arg.substr(offset + 1);
-        target_map->emplace(arg_name, val == "-" ? Value::Null() : Value(val));
-      }
+      add_option(target_map, arg);
     } else {
       if (local_map)
         throw Mapping_error(

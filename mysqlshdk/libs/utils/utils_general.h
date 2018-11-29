@@ -105,7 +105,6 @@ split_string_chars(const std::string &input, const std::string &separator_chars,
 
 bool SHCORE_PUBLIC match_glob(const std::string &pattern, const std::string &s,
                               bool case_sensitive = false);
-std::string SHCORE_PUBLIC fmttime(const char *fmt);
 
 std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
 std::string SHCORE_PUBLIC from_camel_case(const std::string &name);

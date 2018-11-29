@@ -34,6 +34,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -532,45 +533,98 @@ REGISTER_HELP(UTIL_IMPORTJSON_PARAM, "@param file Path to JSON documents file");
 REGISTER_HELP(UTIL_IMPORTJSON_PARAM1,
               "@param options Optional dictionary with import options");
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL, "Options dictionary:");
-
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL,
+              "This function reads standard JSON documents from a file, "
+              "however, it also supports converting BSON Data Types "
+              "represented using the MongoDB Extended Json (strict mode) into "
+              "MySQL values.");
 REGISTER_HELP(UTIL_IMPORTJSON_DETAIL1,
-              "@li schema: string - name of target schema.");
-
+              "The options dictionary supports the following options:");
 REGISTER_HELP(UTIL_IMPORTJSON_DETAIL2,
+              "@li schema: string - name of target schema.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL3,
               "@li collection: string - name of collection where the data will "
               "be imported.");
-
 REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL3,
+    UTIL_IMPORTJSON_DETAIL4,
     "@li table: string - name of table where the data will be imported.");
-
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL4,
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL5,
               "@li tableColumn: string (default: \"doc\") - name of column in "
               "target table where the imported JSON documents will be stored.");
-
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL5,
-              "@li convertBsonOid: bool (default: false) - enable BSON "
-              "ObjectId type conversion in strict representation of MongoDB "
-              "Extended JSON");
-
 REGISTER_HELP(UTIL_IMPORTJSON_DETAIL6,
+              "@li convertBsonTypes: bool (default: false) - enables the BSON "
+              "data type conversion.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL7,
+              "@li convertBsonOid: bool (default: the value of "
+              "convertBsonTypes) - enables conversion of the BSON ObjectId "
+              "values.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL8,
+              "@li extractOidTime: string (default: empty) - creates a new "
+              "field based on the ObjectID timestamp. Only valid if "
+              "convertBsonOid is enabled.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL9,
+              "The following options are valid only when convertBsonTypes is "
+              "enabled. They are all boolean flags. ignoreRegexOptions is "
+              "enabled by default, rest are disabled by default.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL10,
+              "@li ignoreDate: disables conversion of BSON Date values");
+REGISTER_HELP(
+    UTIL_IMPORTJSON_DETAIL11,
+    "@li ignoreTimestamp: disables conversion of BSON Timestamp values");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL12,
+              "@li ignoreRegex: disables conversion of BSON Regex values.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL15,
+              "@li ignoreRegexOptions: causes regex options to be ignored when "
+              "processing a Regex BSON value. This option is only valid if "
+              "ignoreRegex is disabled.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL13,
+              "@li ignoreBinary: disables conversion of BSON BinData values.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL14,
+              "@li decimalAsDouble: causes BSON Decimal values to be imported "
+              "as double values.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL16,
               "If the schema is not provided, an active schema on the global "
               "session, if set, will be used.");
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL7,
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL17,
               "The collection and the table options cannot be combined. If "
               "they are not provided, the basename of the file without "
               "extension will be used as target collection name.");
 
 REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL8,
+    UTIL_IMPORTJSON_DETAIL18,
     "If the target collection or table does not exist, they are created, "
     "otherwise the data is inserted into the existing collection or table.");
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL9,
-              "The tableColumn imply use of the table and cannot be combined "
-              "with the collection.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL19,
+              "The tableColumn implies the use of the table option and cannot "
+              "be combined "
+              "with the collection option.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL20, "<b>BSON Data Type Processing.</b>");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL21,
+              "If only convertBsonOid is enabled, no conversion will be done "
+              "on the rest of the BSON Data Types.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL22,
+              "To use extractOidTime, it should be set to a name which will "
+              "be used to insert an additional field into the main document. "
+              "The value of the new field will be the timestamp obtained from "
+              "the ObjectID value. Note that this will be done only for an "
+              "ObjectID value associated to the '_id' field of the main "
+              "document.");
+REGISTER_HELP(
+    UTIL_IMPORTJSON_DETAIL23,
+    "NumberLong and NumberInt values will be converted to integer values.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL24,
+              "NumberDecimal values are imported as strings, unless "
+              "decimalAsDouble is enabled.");
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL25,
+              "Regex values will be converted to strings containing the "
+              "regular expression. The regular expression options are ignored "
+              "unless ignoreRegexOptions is disabled. When ignoreRegexOptions "
+              "is disabled the regular expression will be converted to the "
+              "form: /@<regex@>/@<options@>.");
 
 REGISTER_HELP(UTIL_IMPORTJSON_THROWS, "Throws ArgumentError when:");
 REGISTER_HELP(UTIL_IMPORTJSON_THROWS1, "@li Option name is invalid");
@@ -604,6 +658,7 @@ REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
  * $(UTIL_IMPORTJSON_PARAM1)
  *
  * $(UTIL_IMPORTJSON_DETAIL)
+ *
  * $(UTIL_IMPORTJSON_DETAIL1)
  * $(UTIL_IMPORTJSON_DETAIL2)
  * $(UTIL_IMPORTJSON_DETAIL3)
@@ -612,7 +667,34 @@ REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
  * $(UTIL_IMPORTJSON_DETAIL6)
  * $(UTIL_IMPORTJSON_DETAIL7)
  * $(UTIL_IMPORTJSON_DETAIL8)
+ *
  * $(UTIL_IMPORTJSON_DETAIL9)
+ * $(UTIL_IMPORTJSON_DETAIL10)
+ * $(UTIL_IMPORTJSON_DETAIL11)
+ * $(UTIL_IMPORTJSON_DETAIL12)
+ * $(UTIL_IMPORTJSON_DETAIL13)
+ * $(UTIL_IMPORTJSON_DETAIL14)
+ * $(UTIL_IMPORTJSON_DETAIL15)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL16)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL17)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL18)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL19)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL20)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL21)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL22)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL23)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL24)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL25)
  *
  * $(UTIL_IMPORTJSON_THROWS)
  * $(UTIL_IMPORTJSON_THROWS1)
@@ -620,11 +702,14 @@ REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
  * $(UTIL_IMPORTJSON_THROWS3)
  * $(UTIL_IMPORTJSON_THROWS4)
  * $(UTIL_IMPORTJSON_THROWS5)
+ *
  * $(UTIL_IMPORTJSON_THROWS6)
  * $(UTIL_IMPORTJSON_THROWS7)
+ *
  * $(UTIL_IMPORTJSON_THROWS8)
  * $(UTIL_IMPORTJSON_THROWS9)
  * $(UTIL_IMPORTJSON_THROWS10)
+ *
  * $(UTIL_IMPORTJSON_THROWS11)
  * $(UTIL_IMPORTJSON_THROWS12)
  */
@@ -633,21 +718,30 @@ Undefined Util::importJson(String file, Dictionary options);
 #elif DOXYGEN_PY
 None Util::import_json(str file, dict options);
 #endif
+
 void Util::import_json(const std::string &file,
                        const shcore::Dictionary_t &options) {
   std::string schema;
   std::string collection;
   std::string table;
   std::string table_column;
-  bool convert_bson_id = false;
 
   shcore::Option_unpacker unpacker(options);
   unpacker.optional("schema", &schema);
   unpacker.optional("collection", &collection);
   unpacker.optional("table", &table);
   unpacker.optional("tableColumn", &table_column);
-  unpacker.optional("convertBsonOid", &convert_bson_id);
+
+  shcore::Document_reader_options roptions;
+  mysqlsh::unpack_json_import_flags(&unpacker, &roptions);
+
   unpacker.end();
+
+  if (!roptions.extract_oid_time.is_null() &&
+      (*roptions.extract_oid_time).empty()) {
+    throw shcore::Exception::runtime_error(
+        "Option 'extractOidTime' can not be empty.");
+  }
 
   auto shell_session = _shell_core.get_dev_session();
 
@@ -717,7 +811,7 @@ void Util::import_json(const std::string &file,
   });
 
   try {
-    importer.load_from(convert_bson_id);
+    importer.load_from(roptions);
   } catch (...) {
     importer.print_stats();
     throw;

@@ -110,7 +110,7 @@ EXPECT_THROWS(function() {
 /// imported successfully - DEV
 EXPECT_THROWS(function() {
   util.importJson(__import_data_path + '/sample_invalid.json', {schema : target_schema});
-}, "Util.importJson: Premature end of input stream at offset 2550");
+}, "Util.importJson: Unexpected character, expected field/value separator ':' at offset 1783");
 EXPECT_STDOUT_CONTAINS(
     "Importing from file \"" + __import_data_path + '/sample_invalid.json' +
     "\" to collection `wl10606`.`sample_invalid` in MySQL Server at");
@@ -428,7 +428,7 @@ var rc = testutil.callMysqlsh([
   xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
   'blubb_table'
 ]);
-EXPECT_EQ(0, rc);
+EXPECT_EQ(1, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
     '" to table `wl10606`.`blubb_table` in MySQL Server at');
@@ -457,8 +457,7 @@ var rc = testutil.callMysqlsh([
 
 EXPECT_EQ(1, rc);
 EXPECT_STDOUT_CONTAINS(
-    '\'' + target_schema +
-    '\'.\'blubb_table_view\' is a view. Target must be table or collection.');
+    'ERROR: Util.importJson: Table \'wl10606.blubb_table_view\' exists but is not a collection');
 
 //@<> E6 Missing connection options on cli returns error
 var rc = testutil.callMysqlsh(['--import', __import_data_path + '/sample.json', 'sample']);

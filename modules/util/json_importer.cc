@@ -35,12 +35,8 @@
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "shellcore/interrupt_handler.h"
-
-using mysqlshdk::utils::strip_bson_object_id;
-using shcore::span_one_maybe_json;
 
 namespace mysqlsh {
 
@@ -244,7 +240,7 @@ void Json_importer::print_stats() {
   }
 }
 
-void Json_importer::load_from(bool strip_bson_objectid) {
+void Json_importer::load_from(const shcore::Document_reader_options &options) {
   shcore::Buffered_input input{};
   m_stats.timer.stage_begin("Importing documents");
 
@@ -253,11 +249,11 @@ void Json_importer::load_from(bool strip_bson_objectid) {
     input.open(full_path);
   }
 
-  load_from(&input, strip_bson_objectid);
+  load_from(&input, options);
 }
 
 void Json_importer::load_from(shcore::Buffered_input *input,
-                              bool strip_bson_objectid) {
+                              const shcore::Document_reader_options &options) {
   m_stats.items_processed = 0;
   m_stats.bytes_processed = 0;
   m_packet_size_tracker.inserts_in_this_transaction = 0;
@@ -274,12 +270,10 @@ void Json_importer::load_from(shcore::Buffered_input *input,
     return false;
   });
 
-  while (!input->eof() && !cancel) {
-    std::string jd = span_one_maybe_json(input);
+  shcore::Json_reader reader(input, options);
 
-    if (strip_bson_objectid) {
-      strip_bson_object_id(&jd);
-    }
+  while (!reader.eof() && !cancel) {
+    std::string jd = reader.next();
 
     if (!jd.empty()) {
       // todo(kg): move jd string all the way to protobuf's

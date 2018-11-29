@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #endif
 #include "ext/linenoise-ng/include/linenoise.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -187,7 +188,7 @@ TEST(Cmdline_shell, help) {
 
   capture.clear();
   shell.print_banner();
-  std::string year = shcore::fmttime("%Y");
+  std::string year = mysqlshdk::utils::fmttime("%Y");
   std::string expected =
       "MySQL Shell " MYSH_FULL_VERSION "\n\nCopyright (c) 2016, " + year +
       ", Oracle and/or its "

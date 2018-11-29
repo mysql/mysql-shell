@@ -27,6 +27,7 @@
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -238,7 +239,8 @@ int execute_dba_command(std::shared_ptr<mysqlsh::Command_line_shell> shell,
 }
 
 int execute_import_command(mysqlsh::Command_line_shell *shell,
-                           const std::vector<std::string> &import_args) {
+                           const std::vector<std::string> &import_args,
+                           const std::vector<std::string> &import_opts) {
   auto shell_session = shell->shell_context()->get_dev_session();
 
   if (!shell_session) {
@@ -267,27 +269,16 @@ int execute_import_command(mysqlsh::Command_line_shell *shell,
   mysqlsh::Prepare_json_import prepare{xsession};
   const std::string &schema = shell_session->get_current_schema();
   prepare.schema(schema);
+  prepare.use_stdin();
 
   switch (import_args.size()) {
-    case 2: {
-      const std::string &file = import_args.at(1);
-      if (file.compare("-") == 0) {
-        mysqlsh::current_console()->raw_print(
-            "Target collection or table must be set if filename is a STDIN\n"
-            "Usage: --import filename [collection] | [table [column]]\n",
-            mysqlsh::Output_stream::STDERR);
-        return 1;
-      }
-      prepare.path(file);
-      break;
-    }
+    case 2:
+      mysqlsh::current_console()->raw_print(
+          "Target collection or table must be set if filename is a STDIN\n"
+          "Usage: --import filename [collection] | [table [column]]\n",
+          mysqlsh::Output_stream::STDERR);
+      return 1;
     case 3: {
-      const std::string &file = import_args.at(1);
-      if (file.compare("-") == 0) {
-        prepare.use_stdin();
-      } else {
-        prepare.path(file);
-      }
       const std::string &target_table = import_args.at(2);
       std::string type;
       try {
@@ -307,12 +298,6 @@ int execute_import_command(mysqlsh::Command_line_shell *shell,
       break;
     }
     case 4: {
-      const std::string &file = import_args.at(1);
-      if (file.compare("-") == 0) {
-        prepare.use_stdin();
-      } else {
-        prepare.path(file);
-      }
       prepare.table(import_args.at(2));
       prepare.column(import_args.at(3));
       break;
@@ -334,7 +319,17 @@ int execute_import_command(mysqlsh::Command_line_shell *shell,
   });
 
   try {
-    importer.load_from(false);
+    shcore::Document_reader_options roptions;
+
+    shcore::Dictionary_t options = shcore::make_dict();
+    for (auto &option : import_opts)
+      shcore::Shell_cli_operation::add_option(options, option);
+
+    shcore::Option_unpacker unpacker(options);
+    mysqlsh::unpack_json_import_flags(&unpacker, &roptions);
+    unpacker.end();
+
+    importer.load_from(roptions);
   } catch (...) {
     importer.print_stats();
     throw;
@@ -828,7 +823,8 @@ int main(int argc, char **argv) {
       } else if (!options.run_file.empty()) {
         ret_val = shell->process_file(options.run_file, options.script_argv);
       } else if (!options.import_args.empty()) {
-        ret_val = execute_import_command(shell.get(), options.import_args);
+        ret_val = execute_import_command(shell.get(), options.import_args,
+                                         options.import_opts);
       } else if (options.interactive) {
         shell->load_state(shcore::get_user_config_path());
 
