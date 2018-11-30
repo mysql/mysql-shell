@@ -1413,13 +1413,13 @@ void Shell_script_tester::set_defaults() {
 }
 
 void Shell_js_script_tester::set_defaults() {
-  Shell_script_tester::set_defaults();
-
   _interactive_shell->process_line("\\js");
 
   output_handler.wipe_all();
   _cout.str("");
   _cout.clear();
+
+  Shell_script_tester::set_defaults();
 
   std::string code = "var __current_year = '" + shcore::fmttime("%Y") + "'";
   exec_and_out_equals(code);
@@ -1442,13 +1442,13 @@ void Shell_js_script_tester::set_defaults() {
 }
 
 void Shell_py_script_tester::set_defaults() {
-  Shell_script_tester::set_defaults();
-
   _interactive_shell->process_line("\\py");
 
   output_handler.wipe_all();
   _cout.str("");
   _cout.clear();
+
+  Shell_script_tester::set_defaults();
 
   std::string code = "__current_year = '" + shcore::fmttime("%Y") + "'";
   exec_and_out_equals(code);
