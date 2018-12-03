@@ -1187,11 +1187,17 @@ void Mysql_shell::refresh_completion(bool force) {
 }
 
 bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
+  const auto last_option = [&args](std::size_t offset) {
+    std::string res(args[offset++]);
+    for (; offset < args.size(); offset++) res += " " + args[offset];
+    return res;
+  };
+
   try {
     if (args.size() < 2 || args.size() > 5) {
       print_diag(_shell->get_helper()->get_help("Shell Commands \\option"));
     } else if (args[1] == "-h" || args[1] == "--help") {
-      std::string filter = args.size() > 2 ? args[2] : "";
+      std::string filter = args.size() > 2 ? last_option(2) : "";
       auto help = get_options()->get_named_help(filter, 80, 1);
       if (help.empty())
         print_diag("No help found for filter: " + filter);
@@ -1208,11 +1214,11 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
     } else if (args[1] == "--unset") {
       if (args[2] == "--persist") {
         if (args.size() > 3)
-          get_options()->unset(args[3], true);
+          get_options()->unset(last_option(3), true);
         else
           print_diag("Unset requires option to be specified");
       } else {
-        get_options()->unset(args[2], false);
+        get_options()->unset(last_option(2), false);
       }
     } else {
       std::size_t args_start = 1;
@@ -1225,11 +1231,15 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       if (args.size() - args_start > 1) {
         std::string optname = args[args_start];
         std::string value =
-            args[args_start + 1] == "=" && args.size() == args_start + 3
-                ? args[args_start + 2]
-                : args[args_start + 1];
-        if (optname.back() == '=')
-          optname = optname.substr(0, optname.length() - 1);
+            args[args_start + 1] == "=" && args.size() >= args_start + 3
+                ? last_option(args_start + 2)
+                : last_option(args_start + 1);
+        const auto eq = optname.find('=');
+        if (eq != std::string::npos) {
+          if (eq + 1 < optname.size())
+            value = optname.substr(eq + 1) + ' ' + value;
+          optname = optname.substr(0, eq);
+        }
         if (value[0] == '=') value = value.substr(1);
         get_options()->set_and_notify(optname, value, persist);
       } else {

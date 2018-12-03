@@ -1830,7 +1830,6 @@ TEST_F(Interactive_shell_test, option_command) {
   }
   wipe_all();
 
-  // TODO(konrad): add test for exact help output
   execute("\\option -h " SHCORE_USE_WIZARDS);
   MY_EXPECT_STDOUT_CONTAINS(SHCORE_USE_WIZARDS);
   MY_EXPECT_STDOUT_NOT_CONTAINS(SHCORE_HISTIGNORE);
@@ -1906,6 +1905,37 @@ TEST_F(Interactive_shell_test, option_command) {
   execute("\\option " SHCORE_USE_WIZARDS " = false");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_FALSE(_options->wizards);
+  wipe_all();
+
+  EXPECT_EQ("", _options->pager);
+  execute("\\option " SHCORE_PAGER " = less -E");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("less -E", _options->pager);
+  wipe_all();
+
+  execute("\\option " SHCORE_PAGER " =more -E");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("more -E", _options->pager);
+  wipe_all();
+
+  execute("\\option " SHCORE_PAGER "= less -E");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("less -E", _options->pager);
+  wipe_all();
+
+  execute("\\option " SHCORE_PAGER "=more -E");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("more -E", _options->pager);
+  wipe_all();
+
+  execute("\\option " SHCORE_PAGER " less -E");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("less -E", _options->pager);
+  wipe_all();
+
+  execute("\\option --unset " SHCORE_PAGER);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("", _options->pager);
   wipe_all();
 
   reset_options(0, nullptr, false);
