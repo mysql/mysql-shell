@@ -276,6 +276,10 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
   // Check supported innodb_page_size (must be > 4k). See: BUG#27329079
   validate_innodb_page_size(instance);
 
+  // Check if performance_schema is enabled
+  // BUG#25867733
+  validate_performance_schema_enabled(*instance);
+
   log_info("Validating configuration of %s (mycnf = %s)",
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
@@ -374,6 +378,26 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
     }
   }
   return invalid_cfs_vec;
+}
+
+void validate_performance_schema_enabled(
+    const mysqlshdk::mysql::IInstance &instance) {
+  log_info("Checking if performance_schema is enabled on instance '%s'.",
+           instance.descr().c_str());
+  mysqlshdk::utils::nullable<bool> ps_enabled = instance.get_sysvar_bool(
+      "performance_schema", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  auto console = mysqlsh::current_console();
+
+  if (ps_enabled.is_null() || !*ps_enabled) {
+    console->print_error("Instance '" + instance.descr() +
+                         "' has the performance_schema "
+                         "disabled (performance_schema=OFF). Instances must "
+                         "have the performance_schema enabled to for InnoDB "
+                         "Cluster usage.");
+    throw shcore::Exception::runtime_error(
+        "performance_schema disabled on target instance.");
+  }
 }
 
 }  // namespace checks

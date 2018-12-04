@@ -130,3 +130,20 @@ session.close();
 
 //@ Remove the sandbox
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+// Regression test for BUG#25867733: CHECKINSTANCECONFIGURATION SUCCESS BUT CREATE CLUSTER FAILING IF PFS DISABLED
+//@ Deploy instances (setting performance_schema value).
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off"})
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on"})
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+//@ checkInstanceConfiguration error with performance_schema=off
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user:'root', password:'root'});
+
+// checkInstanceConfiguration no error with performance_schema=on
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port2, user:'root', password:'root'});
+
+//@ Remove the sandboxes
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
