@@ -2391,7 +2391,8 @@ TEST_F(Interactive_shell_test, inline_commands) {
 
 // This tests is added for Bug #28894826
 // EMPTY RESULTSET TABLES ARE PRINTED WHEN THERE ARE NO RESULTS TO DISPLAY
-TEST_F(Interactive_shell_test, not_empty_tables) {
+#ifdef HAVE_V8
+TEST_F(Interactive_shell_test, not_empty_tables_js) {
   execute("\\connect " + _mysql_uri);
   wipe_all();
   execute("session.runSql('select 0 from dual where 0')");
@@ -2400,7 +2401,7 @@ TEST_F(Interactive_shell_test, not_empty_tables) {
   execute("session.close()");
 }
 
-TEST_F(Interactive_shell_test, not_empty_collections) {
+TEST_F(Interactive_shell_test, not_empty_collections_js) {
   execute("\\connect " + _uri);
   wipe_all();
   execute("var schema = session.createSchema('empty_collection')");
@@ -2411,11 +2412,34 @@ TEST_F(Interactive_shell_test, not_empty_collections) {
   execute("session.dropSchema('empty_collection')");
   execute("session.close()");
 }
+#else
+TEST_F(Interactive_shell_test, not_empty_tables_py) {
+  execute("\\connect " + _mysql_uri);
+  wipe_all();
+  execute("session.run_sql('select 0 from dual where 0')");
+  EXPECT_TRUE(
+      shcore::str_beginswith(output_handler.std_out.c_str(), "Empty set"));
+  execute("session.close()");
+}
+
+TEST_F(Interactive_shell_test, not_empty_collections_py) {
+  execute("\\connect " + _uri);
+  wipe_all();
+  execute("schema = session.create_schema('empty_collection')");
+  execute("collection = schema.create_collection('empty')");
+  execute("collection.find()");
+  EXPECT_TRUE(
+      shcore::str_beginswith(output_handler.std_out.c_str(), "Empty set"));
+  execute("session.drop_schema('empty_collection')");
+  execute("session.close()");
+}
+#endif
 
 TEST_F(Interactive_shell_test, compression) {
   ASSERT_FALSE(_options->default_compress);
   const auto check_compression = [this](const char *status) {
     execute("show session status like 'compression';");
+    SCOPED_TRACE(output_handler.std_err.c_str());
     EXPECT_TRUE(output_handler.std_err.empty());
     MY_EXPECT_STDOUT_CONTAINS(status);
     wipe_all();
@@ -2434,8 +2458,11 @@ TEST_F(Interactive_shell_test, compression) {
   execute("\\option defaultCompress=true");
   execute("\\connect " + _mysql_uri);
   check_compression("ON");
-
+#ifdef HAVE_V8
   execute("\\js");
+#else
+  execute("\\py");
+#endif
   execute("shell.connect(\"" + _mysql_uri + "\");");
   execute("\\sql");
   check_compression("ON");

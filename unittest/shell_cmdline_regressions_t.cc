@@ -408,14 +408,27 @@ TEST_F(Command_line_test, bug26970629) {
   }
 }
 
-TEST_F(Command_line_test, bug28814112) {
+#ifdef HAVE_V8
+TEST_F(Command_line_test, bug28814112_js) {
   // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
   // SESSION
   int rc = execute({_mysqlsh, "-e", "shell.setCurrentSchema('mysql')", NULL});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.connect: An open session is required to perform this operation. "
+      "Shell.setCurrentSchema: An open session is required to perform this "
+      "operation. "
       "(RuntimeError)");
 }
+#else
+TEST_F(Command_line_test, bug28814112_py) {
+  // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
+  // SESSION
+  int rc = execute({_mysqlsh, "-e", "shell.set_current_schema('mysql')", NULL});
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Shell.set_current_schema: An open session is required to perform this "
+      "operation.");
+}
+#endif
 
 }  // namespace tests
