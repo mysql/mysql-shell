@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
@@ -51,8 +52,8 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
     Shell_core_test_wrapper::SetUp();
     Shell_application_log_tests::i = 0;
 
-    std::string log_path = shcore::get_user_config_path();
-    log_path += "mysqlsh.log";
+    const auto log_path =
+        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
     ngcommon::Logger::setup_instance(log_path.c_str(), false,
                                      ngcommon::Logger::LOG_ERROR);
     _logger = ngcommon::Logger::singleton();
