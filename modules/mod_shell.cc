@@ -611,7 +611,7 @@ shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
   try {
     set_current_schema(args.string_at(0));
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setCurrentSchema"));
 
   return new_schema;
 }
