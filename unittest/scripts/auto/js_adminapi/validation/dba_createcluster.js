@@ -298,3 +298,18 @@ group_replication_member_expel_timeout = 12
 
 //@ WL#12050: Finalization
 ||
+
+//@ BUG#25867733: Deploy instances (setting performance_schema value).
+||
+
+//@ BUG#25867733: createCluster error with performance_schema=off
+|ERROR: Instance 'localhost:<<<__mysql_sandbox_port1>>>' has the performance_schema disabled (performance_schema=OFF). Instances must have the performance_schema enabled to for InnoDB Cluster usage.|performance_schema disabled on target instance. (RuntimeError)
+
+//@ BUG#25867733: createCluster no error with performance_schema=on
+||
+
+//@ BUG#25867733: cluster.status() successful
+||
+
+//@ BUG#25867733: finalization
+||

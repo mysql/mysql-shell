@@ -52,6 +52,14 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
     bool *mycnf_change_needed, bool *sysvar_change_needed,
     shcore::Value *ret_val = nullptr);
 
+/**
+ * Validate that the target instance has the performance_schema enabled
+ *
+ * @param  instance target instance to validate
+ */
+void validate_performance_schema_enabled(
+    const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace checks
 }  // namespace dba
 }  // namespace mysqlsh

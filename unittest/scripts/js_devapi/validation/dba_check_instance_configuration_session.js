@@ -131,3 +131,15 @@
 
 //@ Remove the sandbox
 ||
+
+//@ Deploy instances (setting performance_schema value).
+||
+
+//@ checkInstanceConfiguration error with performance_schema=off
+|ERROR: Instance 'localhost:<<<__mysql_sandbox_port1>>>' has the performance_schema disabled (performance_schema=OFF). Instances must have the performance_schema enabled to for InnoDB Cluster usage.|performance_schema disabled on target instance. (RuntimeError)
+
+// checkInstanceConfiguration no error with performance_schema=on
+||
+
+//@ Remove the sandboxes
+||

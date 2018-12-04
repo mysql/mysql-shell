@@ -486,3 +486,26 @@ print_persisted_variables_like(session, "group_replication_member_expel_timeout"
 //@ WL#12050: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+// Regression test for BUG#25867733: CHECKINSTANCECONFIGURATION SUCCESS BUT CREATE CLUSTER FAILING IF PFS DISABLED
+//@ BUG#25867733: Deploy instances (setting performance_schema value).
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off"})
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on"})
+shell.connect(__sandbox_uri1);
+
+//@ BUG#25867733: createCluster error with performance_schema=off
+dba.createCluster("test_cluster");
+
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@ BUG#25867733: createCluster no error with performance_schema=on
+var c = dba.createCluster("test_cluster");
+
+//@ BUG#25867733: cluster.status() successful
+c.status();
+
+//@ BUG#25867733: finalization
+c.disconnect();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
