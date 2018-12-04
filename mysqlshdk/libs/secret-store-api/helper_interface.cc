@@ -85,6 +85,15 @@ std::string validate_url(const std::string &url) {
   return options.as_uri(mysqlshdk::db::uri::formats::user_transport());
 }
 
+void validate_secret(Secret_type type, const std::string &secret) {
+  if (Secret_type::PASSWORD == type) {
+    if (std::string::npos != secret.find_first_of("\r\n")) {
+      throw std::runtime_error{
+          "Unable to store password with a newline character"};
+    }
+  }
+}
+
 std::string to_string(Secret_type type) {
   switch (type) {
     case Secret_type::PASSWORD:
@@ -207,6 +216,8 @@ class Helper_interface::Helper_interface_impl {
 
   bool store(const Secret_spec &spec, const std::string &secret) noexcept {
     try {
+      validate_secret(spec.type, secret);
+
       std::string output;
       bool ret = m_invoker.store(to_string(spec, secret), &output);
 
