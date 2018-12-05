@@ -80,7 +80,15 @@ mysqlshdk::db::Connection_options get_connection_options(
       ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
   for (auto &option : *instance_def) {
-    if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
+    if (ret_val.compare(option.first, mysqlshdk::db::kHost) == 0) {
+      const auto &host = connection_map.string_at(option.first);
+
+      if (host.empty()) {
+        throw std::invalid_argument("Host value cannot be an empty string.");
+      }
+
+      ret_val.set(option.first, {host});
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
       ret_val.set_port(connection_map.int_at(option.first));
     } else if (ret_val.compare(option.first, mysqlshdk::db::kSocket) == 0) {
       const auto &sock = connection_map.string_at(option.first);

@@ -130,6 +130,23 @@ TEST_F(Command_line_connection_test, bug25268670) {
       "Shell.connect: Invalid values in connection options: invalid_option");
 }
 
+TEST_F(Command_line_connection_test, bug28899522) {
+  static constexpr auto expected =
+      "Shell.connect: Host value cannot be an empty string.";
+
+  execute(
+      {_mysqlsh, "-e", "shell.connect({'user':'root','host':''})", nullptr});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
+
+  wipe_out();
+
+  execute({_mysqlsh, "-e",
+           "shell.connect({'user':'root','host':'','password':''})", nullptr});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
+}
+
 // This example tests shows a case where the password will be prompted by the
 // Shell. The password is provided appart as a second parameter after the
 // list argument
