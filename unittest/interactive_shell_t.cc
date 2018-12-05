@@ -1619,7 +1619,7 @@ TEST_F(Interactive_shell_test, status_x) {
 }
 
 TEST_F(Interactive_shell_test, status_classic) {
-  execute("\\connect " + _mysql_uri + "?ssl-Mode=DISABLED");
+  execute("\\connect " + _mysql_uri + "?ssl-Mode=DISABLED&compression=1");
   wipe_all();
   execute("\\status");
 
@@ -1680,6 +1680,10 @@ TEST_F(Interactive_shell_test, status_classic) {
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_NE(line.find("Conn. characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_NE(line.find("Compression"), std::string::npos);
+  ASSERT_NE(line.find("Enabled"), std::string::npos);
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
@@ -2442,6 +2446,11 @@ TEST_F(Interactive_shell_test, compression) {
     SCOPED_TRACE(output_handler.std_err.c_str());
     EXPECT_TRUE(output_handler.std_err.empty());
     MY_EXPECT_STDOUT_CONTAINS(status);
+    execute("\\s");
+    if (strcmp(status, "ON") == 0)
+      MY_EXPECT_STDOUT_CONTAINS("Compression:                  Enabled");
+    else if (output_handler.std_out.find("Compression:") != std::string::npos)
+      MY_EXPECT_STDOUT_CONTAINS("Compression:                  Disabled");
     wipe_all();
   };
 

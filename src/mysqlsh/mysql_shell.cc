@@ -1027,6 +1027,11 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
               format.c_str(), "Conn. characterset: ",
               (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
+        if (status->has_key("COMPRESSION"))
+          println(shcore::str_format(
+              format.c_str(),
+              "Compression: ", (*status)["COMPRESSION"].descr(true).c_str()));
+
         if (status->has_key("UPTIME"))
           println(shcore::str_format(format.c_str(), "Uptime: ",
                                      (*status)["UPTIME"].descr(true).c_str()));

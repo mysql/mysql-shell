@@ -85,6 +85,9 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     if (_mysql) return mysql_get_proto_info(_mysql);
     return 0;
   }
+  bool is_compression_enabled() {
+    return _mysql ? _mysql->net.compress : false;
+  }
   const char *get_connection_info() {
     _prev_result.reset();
     if (_mysql) return mysql_get_host_info(_mysql);
@@ -196,6 +199,9 @@ class SHCORE_PUBLIC Session : public ISession,
   uint64_t get_connection_id() const override { return _impl->get_thread_id(); }
 
   virtual uint64_t get_protocol_info() { return _impl->get_protocol_info(); }
+  virtual bool is_compression_enabled() {
+    return _impl->is_compression_enabled();
+  }
 
   virtual const char *get_connection_info() {
     return _impl->get_connection_info();
