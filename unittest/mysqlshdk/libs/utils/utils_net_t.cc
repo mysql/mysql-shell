@@ -106,7 +106,7 @@ TEST(utils_net, is_ipv6) {
 // TODO(someone): For some reason this address is not resolved as IPv6 in
 // Solaris, failed finding out the reason, will let it as a TODO for further
 // investigation.
-#ifndef __SunOS
+#ifndef __sun
   EXPECT_TRUE(Net::is_ipv6("::FFFF:129.144.52.38"));
 #endif
 

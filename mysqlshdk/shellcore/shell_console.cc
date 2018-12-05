@@ -27,7 +27,7 @@
 #include <string>
 #include <utility>
 
-#ifdef __SunOS
+#ifdef __sun
 #include <sys/wait.h>
 #endif
 

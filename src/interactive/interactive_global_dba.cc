@@ -1009,7 +1009,7 @@ bool Global_dba::resolve_cnf_path(
     os = OperatingSystem::WINDOWS;
 #elif __APPLE__
     os = OperatingSystem::MACOS;
-#elif __SunOS
+#elif __sun
     os = OperatingSystem::SOLARIS;
 #else
     os = OperatingSystem::LINUX;

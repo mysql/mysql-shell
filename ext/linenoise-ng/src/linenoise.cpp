@@ -113,7 +113,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
-#ifdef __SunOS
+#ifdef __sun
 #include <sys/stat.h>
 #endif
 

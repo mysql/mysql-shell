@@ -397,7 +397,7 @@ TEST(utils_path, search_stdpath) {
   EXPECT_STRCASEEQ("C:\\windows\\system32\\cmd.exe",
                    search_stdpath("cmd").c_str());
   EXPECT_EQ("", search_stdpath("bogus path"));
-#elif defined(__SunOS)
+#elif defined(__sun)
   EXPECT_EQ("/usr/bin/bash", search_stdpath("bash"));
   EXPECT_EQ("", search_stdpath("bogus path"));
 #else
