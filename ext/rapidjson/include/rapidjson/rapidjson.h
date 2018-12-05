@@ -536,7 +536,7 @@ RAPIDJSON_NAMESPACE_END
 #define RAPIDJSON_HAS_CXX11_RVALUE_REFS 0
 #endif
 #elif (defined(RAPIDJSON_GNUC) && (RAPIDJSON_GNUC >= RAPIDJSON_VERSION_CODE(4,3,0)) && defined(__GXX_EXPERIMENTAL_CXX0X__)) || \
-      (defined(_MSC_VER) && _MSC_VER >= 1600) || (defined(__SunOS))
+      (defined(_MSC_VER) && _MSC_VER >= 1600) || (defined(__sun))
 
 #define RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
 #else
@@ -547,7 +547,7 @@ RAPIDJSON_NAMESPACE_END
 #ifndef RAPIDJSON_HAS_CXX11_NOEXCEPT
 #if defined(__clang__)
 #define RAPIDJSON_HAS_CXX11_NOEXCEPT __has_feature(cxx_noexcept)
-#elif (defined(RAPIDJSON_GNUC) && (RAPIDJSON_GNUC >= RAPIDJSON_VERSION_CODE(4,6,0)) && defined(__GXX_EXPERIMENTAL_CXX0X__)) || (defined(__SunOS))
+#elif (defined(RAPIDJSON_GNUC) && (RAPIDJSON_GNUC >= RAPIDJSON_VERSION_CODE(4,6,0)) && defined(__GXX_EXPERIMENTAL_CXX0X__)) || (defined(__sun))
 //    (defined(_MSC_VER) && _MSC_VER >= ????) // not yet supported
 #define RAPIDJSON_HAS_CXX11_NOEXCEPT 1
 #else
@@ -569,7 +569,7 @@ RAPIDJSON_NAMESPACE_END
 #if defined(__clang__)
 #define RAPIDJSON_HAS_CXX11_RANGE_FOR __has_feature(cxx_range_for)
 #elif (defined(RAPIDJSON_GNUC) && (RAPIDJSON_GNUC >= RAPIDJSON_VERSION_CODE(4,3,0)) && defined(__GXX_EXPERIMENTAL_CXX0X__)) || \
-      (defined(_MSC_VER) && _MSC_VER >= 1700) || (defined(__SunOS))
+      (defined(_MSC_VER) && _MSC_VER >= 1700) || (defined(__sun))
 #define RAPIDJSON_HAS_CXX11_RANGE_FOR 1
 #else
 #define RAPIDJSON_HAS_CXX11_RANGE_FOR 0

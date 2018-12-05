@@ -339,7 +339,7 @@ std::string errno_to_string(int err) {
 #ifdef _WIN32
 #define strerror_r(E, B, S) strerror_s(B, S, E)
 #endif
-#if defined(_WIN32) || defined(__SunOS)
+#if defined(_WIN32) || defined(__sun)
   char buf[256];
   if (!strerror_r(err, buf, sizeof(buf))) return std::string(buf);
   return "";
@@ -864,7 +864,7 @@ OperatingSystem get_os_type() {
   os = OperatingSystem::WINDOWS;
 #elif __APPLE__
   os = OperatingSystem::MACOS;
-#elif __SunOS
+#elif __sun
   os = OperatingSystem::SOLARIS;
 #elif __linux__
   os = OperatingSystem::LINUX;

@@ -573,7 +573,7 @@ TEST_F(Pager_script_test, WL10755_TS12_2) {
 #if defined(_WIN32)
       R"('invalid_command' is not recognized as an internal or external command,
 operable program or batch file.)";
-#elif defined(__SunOS)
+#elif defined(__sun)
       "sh: invalid_command: not found";  // output on Solaris
 #else
       "sh: 1: invalid_command: not found";  // output on Debian

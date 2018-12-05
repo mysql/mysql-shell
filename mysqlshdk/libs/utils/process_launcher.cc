@@ -54,9 +54,12 @@
 // openpty():
 #ifdef __FreeBSD__
 #include <libutil.h>
+#elif defined(__sun)
+// I_PUSH:
+#include <stropts.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
 #include <util.h>
-#elif !defined(WIN32) && !defined(__SunOS)
+#elif !defined(WIN32)
 #include <pty.h>
 #endif
 
@@ -96,14 +99,16 @@ int write_fd(int fd, const char *buf, size_t count) {
   return -1;
 }
 
-void change_controlling_terminal(int new_ctty) {
-  // detach from current controlling terminal (if there's one)
+void change_controlling_terminal(int new_ctty, const char *new_ctty_name) {
+  // open the current controlling terminal
   int fd = open("/dev/tty", O_RDWR | O_NOCTTY);
 
   if (fd >= 0) {
-    if (ioctl(fd, TIOCNOTTY, 0) < 0) {
-      report_error("ioctl(TIOCNOTTY)");
-    }
+    // detach from current controlling terminal
+    // this is not required, as setsid() will do this anyway, hence we ignore
+    // potential errors
+    // it's here as some older platforms may not work properly without this call
+    ioctl(fd, TIOCNOTTY, 0);
 
     ::close(fd);
   }
@@ -124,18 +129,13 @@ void change_controlling_terminal(int new_ctty) {
   }
 
   // make pseudo terminal the new controlling terminal
-  if (ioctl(new_ctty, TIOCSCTTY, 0) < 0) {
-    report_error("ioctl(TIOCSCTTY)");
-  }
-
-  char device_name[255];
-
-  if (ttyname_r(new_ctty, device_name, sizeof(device_name)) != 0) {
-    report_error("ttyname_r()");
-  }
+  // this is not required, as opening the terminal will do the same, hence
+  // we ignore potential errors
+  // it's here as some older platforms may not work properly without this call
+  ioctl(new_ctty, TIOCSCTTY, 0);
 
   // open tty, this will also set the controlling terminal
-  fd = open(device_name, O_RDONLY);
+  fd = open(new_ctty_name, O_RDONLY);
   if (fd < 0) {
     report_error("open() slave by name");
   } else {
@@ -175,6 +175,64 @@ void redirect_input_output(int fd_in[2], int fd_out[2], bool redirect_stderr) {
 
   fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
   fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
+}
+
+int open_pseudo_terminal(int *in_master, int *in_slave, char *in_name) {
+#ifdef __sun
+  int master = posix_openpt(O_RDWR | O_NOCTTY);
+
+  if (master < 0) {
+    report_error("posix_openpt()");
+    return -1;
+  }
+
+  const auto close_master = [master](const char *error) {
+    report_error(error);
+    close(master);
+  };
+
+  if (grantpt(master)) {
+    close_master("grantpt()");
+    return -1;
+  }
+
+  if (unlockpt(master)) {
+    close_master("unlockpt()");
+    return -1;
+  }
+
+  char *slave_name = ptsname(master);
+
+  if (nullptr == slave_name) {
+    close_master("ptsname()");
+    return -1;
+  }
+
+  int slave = open(slave_name, O_RDWR | O_NOCTTY);
+
+  if (slave < 0) {
+    close_master("open(slave_name)");
+    return -1;
+  }
+
+  if (ioctl(slave, I_PUSH, "ptem") < 0 || ioctl(slave, I_PUSH, "ldterm") < 0 ||
+      ioctl(slave, I_PUSH, "ttcompat") < 0) {
+    close(slave);
+    close_master("ioctl(I_PUSH)");
+    return -1;
+  }
+
+  *in_master = master;
+  *in_slave = slave;
+
+  if (in_name != nullptr) {
+    strcpy(in_name, slave_name);
+  }
+
+  return 0;
+#else
+  return openpty(in_master, in_slave, in_name, nullptr, nullptr);
+#endif
 }
 
 #endif
@@ -530,17 +588,18 @@ void Process::start() {
   }
 
   int slave_device = 0;
+  char slave_device_name[512];
 
   if (m_use_pseudo_tty) {
     // create pseudo terminal which is going to be used as controlling terminal
     // of the new process
-    if (openpty(&m_master_device, &slave_device, nullptr, nullptr, nullptr) <
-        0) {
+    if (open_pseudo_terminal(&m_master_device, &slave_device,
+                             slave_device_name) < 0) {
       ::close(fd_in[0]);
       ::close(fd_in[1]);
       ::close(fd_out[0]);
       ::close(fd_out[1]);
-      report_error("openpty()");
+      report_error("open_pseudo_terminal()");
     }
   }
 
@@ -562,7 +621,7 @@ void Process::start() {
 
     try {
       if (m_use_pseudo_tty) {
-        change_controlling_terminal(slave_device);
+        change_controlling_terminal(slave_device, slave_device_name);
 
         // close the file descriptors, they're not needed anymore
         ::close(m_master_device);
@@ -702,19 +761,19 @@ std::string Process::read_from_terminal() {
 
   return output;
 #else   // ! __APPLE__
-  fd_set fd_in;
+  fd_set input;
   char buffer[512];
   struct timeval timeout;
   int64_t retry_count = 0;
 
   do {
     timeout.tv_sec = 0;
-    timeout.tv_usec = 100 * 1000;
+    timeout.tv_usec = 500 * 1000;  // 500ms
 
-    FD_ZERO(&fd_in);
-    FD_SET(m_master_device, &fd_in);
+    FD_ZERO(&input);
+    FD_SET(m_master_device, &input);
 
-    int ret = ::select(m_master_device + 1, &fd_in, nullptr, nullptr, &timeout);
+    int ret = ::select(m_master_device + 1, &input, nullptr, nullptr, &timeout);
 
     if (ret == -1) {
       report_error(nullptr);

@@ -23,7 +23,7 @@
 
 #include "mysqlshdk/libs/textui/term_vt100.h"
 
-#ifdef __SunOS
+#ifdef __sun
 #include <sys/termios.h>
 #include <termios.h>
 #endif

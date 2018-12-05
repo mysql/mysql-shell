@@ -25,7 +25,7 @@
 #include "mysqlshdk/libs/db/mysqlx/result.h"
 #include "mysqlshdk/libs/db/mysqlx/row.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#ifdef __SunOS
+#ifdef __sun
 #include <limits.h>
 #endif
 

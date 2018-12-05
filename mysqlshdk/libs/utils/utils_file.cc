@@ -55,7 +55,7 @@
 #include <limits.h>
 #include <mach-o/dyld.h>
 #else
-#ifdef __SunOS
+#ifdef __sun
 #include <limits.h>
 #else
 #include <linux/limits.h>
@@ -208,7 +208,7 @@ std::string get_binary_path() {
         "get_binary_folder: _NSGetExecutablePath failed.\n");
 
 #else
-#ifdef __SunOS
+#ifdef __sun
   char cwd[PATH_MAX]{'\0'};
 
   const char *path = getexecname();
