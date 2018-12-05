@@ -629,6 +629,12 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       (*status)["PROTOCOL_VERSION"] =
           shcore::Value(std::string("classic ") +
                         std::to_string(_session->get_protocol_info()));
+
+      if (_session->is_compression_enabled())
+        (*status)["COMPRESSION"] = shcore::Value(std::string("Enabled"));
+      else
+        (*status)["COMPRESSION"] = shcore::Value(std::string("Disabled"));
+
       (*status)["CONNECTION"] = shcore::Value(_session->get_connection_info());
       //(*status)["INSERT_ID"] = shcore::Value(???);
     }
