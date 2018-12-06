@@ -135,30 +135,6 @@ void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
   datadir = row->get_string(1);
 }
 
-void get_gtid_state_variables(
-    std::shared_ptr<mysqlshdk::db::ISession> connection, std::string &executed,
-    std::string &purged) {
-  // Retrieves the
-  std::string query(
-      "show global variables where Variable_name in ('gtid_purged', "
-      "'gtid_executed')");
-
-  // Any error will bubble up right away
-  auto result = connection->query(query);
-
-  auto row = result->fetch_one();
-
-  if (row->get_string(0) == "gtid_executed") {
-    executed = row->get_string(1);
-    row = result->fetch_one();
-    purged = row->get_string(1);
-  } else {
-    purged = row->get_string(1);
-    row = result->fetch_one();
-    executed = row->get_string(1);
-  }
-}
-
 SlaveReplicationState get_slave_replication_state(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &slave_executed) {

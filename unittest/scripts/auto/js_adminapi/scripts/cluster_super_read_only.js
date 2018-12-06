@@ -19,9 +19,6 @@ cluster.rejoinInstance(__sandbox_uri1);
 //@ dissolve
 cluster.dissolve();
 
-//@ checkInstanceState (OK)
-cluster.checkInstanceState(__sandbox_uri1);
-
 //@ rescan
 cluster.rescan();
 

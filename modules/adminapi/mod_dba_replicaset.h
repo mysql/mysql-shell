@@ -72,7 +72,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value get_member(const std::string &prop) const override;
 
   void set_id(uint64_t id) { _id = id; }
-  uint64_t get_id() { return _id; }
+  uint64_t get_id() const { return _id; }
 
   void set_name(std::string name) { _name = name; }
   const std::string &get_name() const { return _name; }
@@ -161,13 +161,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       bool overwrite_seed = false, const std::string &group_name = "",
       bool skip_instance_check = false, bool skip_rpl_user = false);
 
-  shcore::Value check_instance_state(const shcore::Argument_list &args);
+  shcore::Value check_instance_state(const Connection_options &instance_def);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
                                 const shcore::Value::Map_type_ref &options);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
-  shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);

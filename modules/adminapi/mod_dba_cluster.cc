@@ -116,8 +116,12 @@ void Cluster::init() {
   add_method("describe", std::bind(&Cluster::describe, this, _1));
   add_method("status", std::bind(&Cluster::status, this, _1));
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
-  add_varargs_method("checkInstanceState",
-                     std::bind(&Cluster::check_instance_state, this, _1));
+
+  expose<shcore::Value, const std::string &, Cluster>(
+      "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
+  expose<shcore::Value, const shcore::Dictionary_t &, Cluster>(
+      "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
+
   expose("rescan", &Cluster::rescan, "?options");
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
@@ -1716,32 +1720,34 @@ void Cluster::set_attribute(const std::string &attribute,
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF,
-              "Verifies the instance gtid state in relation with the cluster.");
+              "Verifies the instance gtid state in relation to the cluster.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM,
               "@param instance An instance definition.");
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_PARAM1,
-    "@param password Optional string with the password for the connection.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS,
               "ArgumentError in the following scenarios:");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS1,
-              "@li If the instance parameter is empty.");
+              "@li If the 'instance' parameter is empty.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2,
-              "@li If the instance definition is invalid.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS3,
-              "@li If the instance definition is a "
-              "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
-              "@li If the instance definition cannot be used "
-              "for Group Replication.");
+              "@li If the 'instance' parameter is invalid.");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_THROWS3,
+    "@li If the 'instance' definition is a connection dictionary but empty.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS5,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
               "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS5,
+              "@li If the 'instance' is unreachable/offline.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS6,
-              "@li If the instance accounts are invalid.");
+              "@li If the 'instance' is a cluster member.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS7,
-              "@li If the instance is offline.");
+              "@li If the 'instance' belongs to a Group Replication group that "
+              "is not managed as an InnoDB cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS8,
+              "@li If the 'instance' is a standalone instance but is part of a "
+              "different InnoDB Cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS9,
+              "@li If the 'instance' has an unknown state.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_RETURNS,
               "@returns resultset A JSON object with the status.");
@@ -1759,37 +1765,32 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2,
               "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
-              "The password may be contained on the instance definition, "
-              "however, it can be overwritten "
-              "if it is specified as a second parameter.");
-
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
               "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
               "@li state: the state of the instance");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL6,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
               "@li reason: the reason for the state reported");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL7,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL6,
               "The state of the instance can be one of the following:");
 REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL8,
+    CLUSTER_CHECKINSTANCESTATE_DETAIL7,
     "@li ok: if the instance transaction state is valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8,
               "@li error: if the instance "
               "transaction state is not "
               "valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
               "The reason for the state reported can be one of the following:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10,
               "@li new: if the instance doesn’t have any transactions");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11,
               "@li recoverable:  if the instance executed GTIDs are not "
               "conflicting with the executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
               "@li diverged: if the instance executed GTIDs diverged with the "
               "executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
               "@li lost_transactions: if the instance has more executed GTIDs "
               "than the executed GTIDs of the cluster instances");
 
@@ -1797,7 +1798,6 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_PARAM)
- * $(CLUSTER_CHECKINSTANCESTATE_PARAM1)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS)
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS1)
@@ -1807,6 +1807,8 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS5)
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS6)
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS7)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS8)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS9)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_RETURNS)
  *
@@ -1830,34 +1832,32 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL11)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL12)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL13)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL14)
  */
 #if DOXYGEN_JS
 Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}
 #elif DOXYGEN_PY
 None Cluster::check_instance_state(InstanceDef instance, str password) {}
 #endif
-shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
-  // Throw an error if the cluster has already been dissolved
+
+shcore::Value Cluster::check_instance_state(
+    const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
+  check_preconditions("checkInstanceState");
 
-  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-  shcore::Value ret_val;
-  // Verifies the transaction state of the instance ins relation to the cluster
-  try {
-    check_preconditions("checkInstanceState");
+  return _default_replica_set->check_instance_state(instance_def);
+}
 
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+shcore::Value Cluster::check_instance_state(const std::string &instance_def) {
+  return check_instance_state(get_connection_options(instance_def));
+}
 
-    ret_val = get_default_replicaset()->retrieve_instance_state(args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("checkInstanceState"));
-
-  return ret_val;
+shcore::Value Cluster::check_instance_state(
+    const shcore::Dictionary_t &instance_def) {
+  return check_instance_state(get_connection_options(instance_def));
 }
 
 REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);

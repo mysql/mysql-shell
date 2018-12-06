@@ -14,12 +14,6 @@ Cluster.rejoinInstance: Cannot rejoin instance 'localhost:<<<__mysql_sandbox_por
 //@<ERR> dissolve
 Cluster.dissolve: This function is not available through a session to a read only instance (RuntimeError)
 
-//@<OUT> checkInstanceState (OK)
-{
-    "reason": "recoverable",
-    "state": "ok"
-}
-
 //@<ERR> rescan
 Cluster.rescan: This function is not available through a session to a read only instance (RuntimeError)
 

@@ -48,9 +48,6 @@ void Interactive_dba_cluster::init() {
              std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1),
              "data");
   add_varargs_method(
-      "checkInstanceState",
-      std::bind(&Interactive_dba_cluster::check_instance_state, this, _1));
-  add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of, this,
                 _1));
@@ -260,66 +257,6 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
   println("The instance '" + instance_def.as_uri(only_transport()) +
           ""
           "' was successfully rejoined on the cluster.");
-  println();
-
-  return ret_val;
-}
-
-shcore::Value Interactive_dba_cluster::check_instance_state(
-    const shcore::Argument_list &args) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("checkInstanceState");
-
-  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
-
-  mysqlshdk::db::Connection_options instance_def;
-  shcore::Argument_list target_args;
-
-  try {
-    check_preconditions("checkInstanceState");
-
-    instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-
-    instance_def.set_default_connection_data();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("checkInstanceState"));
-
-  println("Analyzing the instance replication state...");
-
-  auto instance_map = mysqlsh::get_connection_map(instance_def);
-  shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_map));
-  shcore::Value ret_val = call_target("checkInstanceState", new_args);
-
-  auto result = ret_val.as_map();
-
-  println();
-
-  if (result->get_string("state") == "ok") {
-    println("The instance '" + instance_def.as_uri(user_transport()) +
-            "' is valid for "
-            "the cluster.");
-
-    if (result->get_string("reason") == "new")
-      println("The instance is new to Group Replication.");
-    else
-      println("The instance is fully recoverable.");
-  } else {
-    println("The instance '" + instance_def.as_uri(user_transport()) +
-            "' is invalid for "
-            "the cluster.");
-
-    if (result->get_string("reason") == "diverged")
-      println(
-          "The instance contains additional transactions in relation to "
-          "the cluster.");
-    else
-      println(
-          "There are transactions in the cluster that can't be recovered "
-          "on the instance.");
-  }
   println();
 
   return ret_val;
