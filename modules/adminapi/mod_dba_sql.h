@@ -39,9 +39,6 @@ GRInstanceType get_gr_instance_type(
     std::shared_ptr<mysqlshdk::db::ISession> connection);
 void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
                           int &port, std::string &datadir);
-void get_gtid_state_variables(
-    std::shared_ptr<mysqlshdk::db::ISession> connection, std::string &executed,
-    std::string &purged);
 SlaveReplicationState get_slave_replication_state(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &slave_executed);

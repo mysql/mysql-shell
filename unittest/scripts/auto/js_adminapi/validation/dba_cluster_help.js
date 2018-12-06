@@ -21,8 +21,8 @@ FUNCTIONS
       addInstance(instance[, options])
             Adds an Instance to the cluster.
 
-      checkInstanceState(instance[, password])
-            Verifies the instance gtid state in relation with the cluster.
+      checkInstanceState(instance)
+            Verifies the instance gtid state in relation to the cluster.
 
       describe()
             Describe the structure of the cluster.
@@ -213,15 +213,14 @@ EXCEPTIONS
 
 //@<OUT> Check Instance State
 NAME
-      checkInstanceState - Verifies the instance gtid state in relation with
-                           the cluster.
+      checkInstanceState - Verifies the instance gtid state in relation to the
+                           cluster.
 
 SYNTAX
-      <Cluster>.checkInstanceState(instance[, password])
+      <Cluster>.checkInstanceState(instance)
 
 WHERE
       instance: An instance definition.
-      password: String with the password for the connection.
 
 RETURNS
        resultset A JSON object with the status.
@@ -235,9 +234,6 @@ DESCRIPTION
       For additional information on connection data use \? connection.
 
       Only TCP/IP connections are allowed for this function.
-
-      The password may be contained on the instance definition, however, it can
-      be overwritten if it is specified as a second parameter.
 
       The returned JSON object contains the following attributes:
 
@@ -262,15 +258,19 @@ DESCRIPTION
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-      - If the instance definition cannot be used for Group Replication.
+      - If the 'instance' parameter is empty.
+      - If the 'instance' parameter is invalid.
+      - If the 'instance' definition is a connection dictionary but empty.
 
       RuntimeError in the following scenarios:
 
-      - If the instance accounts are invalid.
-      - If the instance is offline.
+      - If the 'instance' is unreachable/offline.
+      - If the 'instance' is a cluster member.
+      - If the 'instance' belongs to a Group Replication group that is not
+        managed as an InnoDB cluster.
+      - If the 'instance' is a standalone instance but is part of a different
+        InnoDB Cluster.
+      - If the 'instance' has an unknown state.
 
 //@<OUT> Describe
 NAME

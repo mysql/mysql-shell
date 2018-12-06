@@ -632,11 +632,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_rejoin_instance) {
   validate_interactive("dba_cluster_rejoin_instance.js");
 }
 
-TEST_F(Shell_js_dba_tests, dba_cluster_check_instance_state) {
-  reset_replayable_shell();
-  validate_interactive("dba_cluster_check_instance_state.js");
-}
-
 TEST_F(Shell_js_dba_tests, dba_drop_metadata_interactive) {
   _options->interactive = true;
   reset_replayable_shell();

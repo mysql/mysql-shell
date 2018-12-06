@@ -55,7 +55,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 #if DOXYGEN_JS
   String name;  //!< $(CLUSTER_GETNAME_BRIEF)
   Undefined addInstance(InstanceDef instance, Dictionary options);
-  Dictionary checkInstanceState(InstanceDef instance, String password);
+  Dictionary checkInstanceState(InstanceDef instance);
   String describe();
   Undefined disconnect();
   Undefined dissolve(Dictionary options);
@@ -75,7 +75,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
-  dict check_instance_state(InstanceDef instance, str password);
+  dict check_instance_state(InstanceDef instance);
   str describe();
   None disconnect();
   None dissolve(dict options);
@@ -170,7 +170,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value describe(const shcore::Argument_list &args);
   shcore::Value status(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
-  shcore::Value check_instance_state(const shcore::Argument_list &args);
+  shcore::Value check_instance_state(const std::string &instance_def);
+  shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);
   void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
@@ -261,6 +262,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void set_instance_option(const Connection_options &instance_def,
                            const std::string &option,
                            const shcore::Value &value);
+  shcore::Value check_instance_state(const Connection_options &instance_def);
 };
 
 }  // namespace dba

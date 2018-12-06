@@ -73,7 +73,8 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/replicaset_options.cc"
       "adminapi/dba/cluster_set_option.cc"
       "adminapi/dba/replicaset_set_option.cc"
-      "adminapi/dba/replicaset_set_instance_option.cc")
+      "adminapi/dba/replicaset_set_instance_option.cc"
+      "adminapi/dba/replicaset_check_instance_state.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

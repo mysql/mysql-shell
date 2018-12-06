@@ -35,6 +35,7 @@
 #include "mod_dba_replicaset.h"
 #include "modules/adminapi/dba/dissolve.h"
 #include "modules/adminapi/dba/remove_instance.h"
+#include "modules/adminapi/dba/replicaset_check_instance_state.h"
 #include "modules/adminapi/dba/replicaset_rescan.h"
 #include "modules/adminapi/dba/replicaset_set_instance_option.h"
 #include "modules/adminapi/dba/replicaset_set_primary_instance.h"
@@ -1694,78 +1695,20 @@ mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() {
 }
 
 shcore::Value ReplicaSet::check_instance_state(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
+    const Connection_options &instance_def) {
+  // Create the Replicaset_check_instance_state object and execute it.
+  Replicaset_check_instance_state op_check_instance_state(*this, instance_def);
 
-  // Verifies the transaction state of the instance ins relation to the cluster
-  try {
-    ret_val = retrieve_instance_state(args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_check_instance_state]() { op_check_instance_state.finish(); });
 
-  return ret_val;
-}
+  // Prepare the Replicaset_check_instance_state command execution
+  // (validations).
+  op_check_instance_state.prepare();
 
-shcore::Value ReplicaSet::retrieve_instance_state(
-    const shcore::Argument_list &args) {
-  auto instance_def =
-      mysqlsh::get_connection_options(args, PasswordFormat::STRING);
-
-  validate_connection_options(instance_def);
-
-  if (!instance_def.has_port())
-    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
-
-  auto instance_session = establish_mysql_session(
-      instance_def, current_shell_options()->get().wizards);
-
-  // We will work with the session saved on the metadata which points to the
-  // cluster Assuming it is the R/W instance
-  auto master_session = _metadata_storage->get_session();
-
-  // We have to retrieve these variables to do the actual state validation
-  std::string master_gtid_executed;
-  std::string master_gtid_purged;
-  std::string instance_gtid_executed;
-  std::string instance_gtid_purged;
-
-  get_gtid_state_variables(master_session, master_gtid_executed,
-                           master_gtid_purged);
-  get_gtid_state_variables(instance_session, instance_gtid_executed,
-                           instance_gtid_purged);
-
-  // Now we perform the validation
-  SlaveReplicationState state =
-      get_slave_replication_state(master_session, instance_gtid_executed);
-
-  std::string reason;
-  std::string status;
-  switch (state) {
-    case SlaveReplicationState::Diverged:
-      status = "error";
-      reason = "diverged";
-      break;
-    case SlaveReplicationState::Irrecoverable:
-      status = "error";
-      reason = "lost_transactions";
-      break;
-    case SlaveReplicationState::Recoverable:
-      status = "ok";
-      reason = "recoverable";
-      break;
-    case SlaveReplicationState::New:
-      status = "ok";
-      reason = "new";
-      break;
-  }
-
-  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
-
-  (*ret_val)["state"] = shcore::Value(status);
-  (*ret_val)["reason"] = shcore::Value(reason);
-
-  return shcore::Value(ret_val);
+  // Execute Replicaset_check_instance_state operations.
+  return op_check_instance_state.execute();
 }
 
 void ReplicaSet::add_instance_metadata(
