@@ -73,6 +73,7 @@ struct Help_topic {
   Help_topic *m_parent;
   Help_topic_refs m_childs;
   Help_registry *m_help;
+  bool m_enabled;
 
   Help_topic *get_category();
 
@@ -90,6 +91,8 @@ struct Help_topic {
   bool is_api_object() const;
   bool is_member() const;
 
+  void set_enabled(bool enabled) { m_enabled = enabled; }
+  bool is_enabled() const { return m_enabled; }
   bool is_enabled(IShell_core::Mode mode) const;
   std::string get_name(IShell_core::Mode mode) const;
   std::string get_base_name() const;

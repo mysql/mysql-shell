@@ -222,7 +222,7 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
                                           const std::string &parent_id,
                                           Mode_mask mode) {
   size_t topic_count = m_topics.size();
-  m_topics[topic_count] = {name, name, type, tag, nullptr, {}, this};
+  m_topics[topic_count] = {name, name, type, tag, nullptr, {}, this, true};
   Help_topic *new_topic = &m_topics[topic_count];
 
   std::string splitter;
@@ -624,7 +624,7 @@ Help_topic *Help_registry::get_topic(const std::string &id,
     if (!allow_unexisting)
       throw std::logic_error("Unable to find topic '" + id + "'");
   } else {
-    auto topics = m_keywords[id];
+    auto &topics = m_keywords[id];
 
     if (topics.size() > 1)
       throw std::logic_error("Non unique topic found as '" + id + "'");
@@ -646,9 +646,11 @@ bool Help_registry::is_enabled(const Help_topic *topic,
                                IShell_core::Mode mode) const {
   bool ret_val = false;
   try {
-    auto topics = m_keywords.at(topic->get_id(true, mode));
-    auto mask = topics.at(const_cast<Help_topic *>(topic));
-    ret_val = mask.is_set(mode);
+    if (topic->is_enabled()) {
+      auto topics = m_keywords.at(topic->get_id(true, mode));
+      auto mask = topics.at(const_cast<Help_topic *>(topic));
+      ret_val = mask.is_set(mode);
+    }
   } catch (...) {
     log_error("Help_registry::is_enabled: using an unregistered topic '%s'.",
               topic->m_id.c_str());
