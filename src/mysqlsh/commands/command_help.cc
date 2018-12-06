@@ -163,7 +163,9 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                   shcore::Topic_type::SQL,
                                   name,
                                   sql,
-                                  {}});
+                                  {},
+                                  shcore::Help_registry::get(),
+                                  true});
             entry = result->fetch_one();
           }
           // If found a specific topi we are overloading the tag field to
@@ -176,7 +178,9 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                 shcore::Topic_type::SQL,
                                 entry->get_string(desc_col),
                                 sql,
-                                {}});
+                                {},
+                                shcore::Help_registry::get(),
+                                true});
         }
       }
     }

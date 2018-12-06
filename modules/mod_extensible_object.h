@@ -42,6 +42,7 @@ class Extensible_object
       public shcore::Cpp_object_bridge {
  public:
   Extensible_object(const std::string &name, const std::string &qualified_name);
+  virtual ~Extensible_object();
   virtual std::string class_name() const { return m_name; }
   virtual bool operator==(const Object_bridge &other) const;
 
@@ -154,6 +155,18 @@ class Extensible_object
       const std::string &name_chain);
 
   /**
+   * Utility function to ease the registration of help data for this object.
+   *
+   * @param brief A brief description of the object.
+   * @param details A list defining the details for the object.
+   *
+   * Each help entry in details is registered and follows the same rules as
+   * the REGISTER_HELP macro.
+   */
+  void register_object_help(const std::string &brief,
+                            const std::vector<std::string> &details);
+
+  /**
    * Utility function to ease the registration of help data for a function
    * from C++.
    *
@@ -161,7 +174,7 @@ class Extensible_object
    *
    * @param parent The parent topic for the function topic.
    * @param name The name of the function.
-   * @param brief A brief descriptio nof the function.
+   * @param brief A brief description of the function.
    * @param params A list defining the parameters for the function.
    * @param details A list defining the help details for the function.
    *
@@ -175,10 +188,12 @@ class Extensible_object
    * Each entry help entry in params and details is registered and follows
    * the same rules as the REGISTER_HELP macro.
    */
-  void register_function_help(const std::string &parent,
-                              const std::string &name, const std::string &brief,
+  void register_function_help(const std::string &name, const std::string &brief,
                               const std::vector<std::string> &params,
                               const std::vector<std::string> &details);
+
+ protected:
+  void enable_help(bool enable);
 
  private:
   std::string m_name;
@@ -195,8 +210,7 @@ class Extensible_object
   std::shared_ptr<Extensible_object> search_object(
       std::vector<std::string> *name_chain);
 
-  void register_function_help(const std::string &parent,
-                              const std::string &name,
+  void register_function_help(const std::string &name,
                               const shcore::Dictionary_t &function);
 
   void register_param_help_brief(const shcore::Dictionary_t &param,

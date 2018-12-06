@@ -36,6 +36,7 @@ Extensible_object::Extensible_object(const std::string &name,
                                      const std::string &qualified_name)
     : m_name(name), m_qualified_name(qualified_name) {}
 
+Extensible_object::~Extensible_object() { enable_help(false); }
 bool Extensible_object::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
@@ -74,23 +75,7 @@ void Extensible_object::register_object(const std::string &name,
   m_children.emplace(name, std::make_shared<Extensible_object>(name, qname));
   add_property(name + "|" + name);
 
-  auto help = shcore::Help_registry::get()->get_topic(qname, true);
-
-  if (!help) {
-    // Registers the new object on the shell help system
-    shcore::Help_registry::get()->add_help_topic(
-        name, shcore::Topic_type::OBJECT, name, m_qualified_name,
-        shcore::IShell_core::all_scripting_modes());
-
-    // Now registers the brief and description help data if provided
-    if (!brief.empty())
-      shcore::Help_registry::get()->add_help(name, "BRIEF", brief);
-
-    shcore::Help_registry::get()->add_help(name, "DETAIL", details);
-  } else {
-    mysqlsh::current_console()->print_warning("Help for " + qname +
-                                              " already exists.");
-  }
+  m_children[name]->register_object_help(brief, details);
 }
 
 void Extensible_object::register_function(
@@ -126,7 +111,7 @@ void Extensible_object::register_function(
 
   expose(name, function, std::move(parameters));
 
-  register_function_help(m_name, name, definition);
+  register_function_help(name, definition);
 }
 
 std::shared_ptr<Extensible_object> Extensible_object::search_object(
@@ -281,85 +266,123 @@ shcore::Parameter Extensible_object::parse_parameter(
 
   return param;
 }
-
-void Extensible_object::register_function_help(
-    const std::string &parent, const std::string &name,
-    const std::string &brief, const std::vector<std::string> &params,
-    const std::vector<std::string> &details) {
+void Extensible_object::register_object_help(
+    const std::string &brief, const std::vector<std::string> &details) {
   auto help = shcore::Help_registry::get();
 
-  // Defines the modes where the help will be available
-  auto mask = shcore::IShell_core::all_scripting_modes();
+  // Attempts getting the fully quialified object
+  shcore::Help_topic *topic = help->get_topic(m_qualified_name, true);
 
-  // Creates the help topi for the function
-  help->add_help_topic(name, shcore::Topic_type::FUNCTION, name, parent, mask);
+  if (topic) {
+    mysqlsh::current_console()->print_warning("Help for " + m_qualified_name +
+                                              " already exists.");
+    enable_help(true);
+  } else {
+    // Defines the modes where the help will be available
+    auto mask = shcore::IShell_core::all_scripting_modes();
 
-  // Rest of the help is registered using the JS name
-  auto names = shcore::str_split(name, "|");
+    auto tokens = shcore::str_split(m_qualified_name, ".");
+    tokens.erase(tokens.end() - 1);
+    auto parent = shcore::str_join(tokens, ".");
 
-  // Now registers the function brief, parameters and details
-  auto prefix = shcore::str_upper(parent + "_" + names[0]);
-  help->add_help(prefix, "BRIEF", brief);
-  help->add_help(prefix, "PARAM", params);
-  help->add_help(prefix, "DETAIL", details);
+    // Creates the help topic for the object
+    help->add_help_topic(m_name, shcore::Topic_type::OBJECT, m_name, parent,
+                         mask);
+
+    // Now registers the object brief, parameters and details
+    auto prefix = shcore::str_upper(m_name);
+    help->add_help(prefix, "BRIEF", brief);
+    help->add_help(prefix, "DETAIL", details);
+  }
 }
 
 void Extensible_object::register_function_help(
-    const std::string &parent, const std::string &name,
-    const shcore::Dictionary_t &function) {
+    const std::string &name, const std::string &brief,
+    const std::vector<std::string> &params,
+    const std::vector<std::string> &details) {
   auto help = shcore::Help_registry::get();
 
-  // Defines the modes where the help will be available
-  auto mask = shcore::IShell_core::all_scripting_modes();
+  auto names = shcore::str_split(name, "|");
+
+  shcore::Help_topic *topic =
+      help->get_topic(m_qualified_name + "." + names[0], true);
+
+  if (!topic) {
+    // Defines the modes where the help will be available
+    auto mask = shcore::IShell_core::all_scripting_modes();
+
+    // Creates the help topic for the function
+    help->add_help_topic(name, shcore::Topic_type::FUNCTION, name,
+                         m_qualified_name, mask);
+
+    // Now registers the function brief, parameters and details
+    auto prefix = shcore::str_upper(m_name + "_" + names[0]);
+    help->add_help(prefix, "BRIEF", brief);
+    help->add_help(prefix, "PARAM", params);
+    help->add_help(prefix, "DETAIL", details);
+  }
+}
+
+void Extensible_object::register_function_help(
+    const std::string &name, const shcore::Dictionary_t &function) {
+  auto help = shcore::Help_registry::get();
 
   // The help is registered using the base name as tag
   auto names = shcore::str_split(name, "|");
 
-  help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0], parent,
-                       mask);
+  shcore::Help_topic *topic =
+      help->get_topic(m_qualified_name + "." + names[0], true);
 
-  // Now registers the brief abd description help data if provided
-  std::string help_prefix = shcore::str_upper(parent + "_" + names[0]);
-  shcore::Option_unpacker unpacker(function);
-  std::string brief;
-  unpacker.optional("brief", &brief);
-  if (!brief.empty()) help->add_help(help_prefix, "BRIEF", brief);
+  if (!topic) {
+    // Defines the modes where the help will be available
+    auto mask = shcore::IShell_core::all_scripting_modes();
 
-  size_t detail_count = 0;
-  size_t param_count = 0;
+    help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
+                         m_qualified_name, mask);
 
-  // Param details are inserted at the end of the function details by defaule.
-  // If @PARAMDETAILS entry is found on the function details, the parameter
-  // details wil be inserted right there.
-  std::vector<std::string> details;
-  shcore::Array_t parameters;
-  unpacker.optional("details", &details);
-  unpacker.optional("parameters", &parameters);
-  bool param_details = true;
-  for (const auto &detail : details) {
-    if (!detail.empty()) {
-      if (detail == "@PARAMDETAILS") {
-        if (parameters) {
-          for (const auto &param : *parameters) {
-            register_param_help_detail(param.as_map(), help_prefix,
-                                       &detail_count, true);
+    // Now registers the brief abd description help data if provided
+    std::string help_prefix = shcore::str_upper(m_name + "_" + names[0]);
+    shcore::Option_unpacker unpacker(function);
+    std::string brief;
+    unpacker.optional("brief", &brief);
+    if (!brief.empty()) help->add_help(help_prefix, "BRIEF", brief);
+
+    size_t detail_count = 0;
+    size_t param_count = 0;
+
+    // Param details are inserted at the end of the function details by defaule.
+    // If @PARAMDETAILS entry is found on the function details, the parameter
+    // details wil be inserted right there.
+    std::vector<std::string> details;
+    shcore::Array_t parameters;
+    unpacker.optional("details", &details);
+    unpacker.optional("parameters", &parameters);
+    bool param_details = true;
+    for (const auto &detail : details) {
+      if (!detail.empty()) {
+        if (detail == "@PARAMDETAILS") {
+          if (parameters) {
+            for (const auto &param : *parameters) {
+              register_param_help_detail(param.as_map(), help_prefix,
+                                         &detail_count, true);
+            }
           }
+          param_details = false;
+        } else {
+          help->add_help(help_prefix, "DETAIL", &detail_count, {detail});
         }
-        param_details = false;
-      } else {
-        help->add_help(help_prefix, "DETAIL", &detail_count, {detail});
       }
     }
-  }
 
-  if (parameters) {
-    for (const auto &param : *parameters) {
-      register_param_help_brief(param.as_map(), help_prefix, &param_count,
-                                true);
+    if (parameters) {
+      for (const auto &param : *parameters) {
+        register_param_help_brief(param.as_map(), help_prefix, &param_count,
+                                  true);
 
-      if (param_details)
-        register_param_help_detail(param.as_map(), help_prefix, &detail_count,
-                                   true);
+        if (param_details)
+          register_param_help_detail(param.as_map(), help_prefix, &detail_count,
+                                     true);
+      }
     }
   }
 }
@@ -448,6 +471,16 @@ void Extensible_object::register_param_help_detail(
       for (const auto &option : *options)
         register_param_help_detail(option.as_map(), prefix, sequence, false);
     }
+  }
+}
+
+void Extensible_object::enable_help(bool enable) {
+  auto topic = shcore::Help_registry::get()->get_topic(m_qualified_name, true);
+
+  if (topic && topic->is_enabled() != enable) {
+    topic->set_enabled(enable);
+
+    for (auto &child : m_children) child.second->enable_help(enable);
   }
 }
 
