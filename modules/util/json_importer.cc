@@ -80,7 +80,7 @@ void Prepare_json_import::validate() {
                                            "\" does not exist.");
     }
 
-    if (!shcore::is_file(full_path)) {
+    if (!shcore::is_file(full_path) && !shcore::is_fifo(full_path)) {
       throw shcore::Exception::logic_error("Path \"" + full_path +
                                            "\" is not a file.");
     }

@@ -339,7 +339,7 @@ bool file_exists(const std::string &filename) {
 }
 
 bool is_file(const char *path) {
-#ifdef WIN32
+#ifdef _WIN32
   DWORD dwAttrib = GetFileAttributesA(path);
   return dwAttrib != INVALID_FILE_ATTRIBUTES &&
          !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
@@ -351,6 +351,19 @@ bool is_file(const char *path) {
 }
 
 bool is_file(const std::string &path) { return is_file(path.c_str()); }
+
+bool is_fifo(const char *path) {
+#ifdef _WIN32
+  // There is no FIFO files on windows in linux meaning
+  return false;
+#else
+  struct stat st;
+  if (::stat(path, &st) < 0) return false;
+  return S_ISFIFO(st.st_mode);
+#endif
+}
+
+bool is_fifo(const std::string &path) { return is_fifo(path.c_str()); }
 
 size_t file_size(const char *path) {
   struct stat fstat;

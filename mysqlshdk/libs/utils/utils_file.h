@@ -43,11 +43,21 @@ std::string SHCORE_PUBLIC get_mp_path();
  * Tells if path is a regular file.
  *
  * @param path Path
- * @return true is path is a regular file.
- *         false is path is not a regular file.
+ * @return true if path is a regular file.
+ *         false if path is not a regular file.
  */
 bool SHCORE_PUBLIC is_file(const char *path);
 bool SHCORE_PUBLIC is_file(const std::string &path);
+
+/**
+ * Tells if path is a FIFO file.
+ *
+ * @param path Path to the file
+ * @return true if a path is a FIFO file.
+ *         false if path is not a FIFO file.
+ */
+bool is_fifo(const char *path);
+bool is_fifo(const std::string &path);
 
 /**
  * Retrieves the size of the specified file under path, in bytes.
