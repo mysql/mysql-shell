@@ -380,7 +380,8 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
 
   // If there are orphans associated to the new topic, they are properly
   // registered
-  if (m_orphans.find(topic->m_help_tag) != m_orphans.end()) {
+  if (!topic->is_member() &&
+      m_orphans.find(topic->m_help_tag) != m_orphans.end()) {
     auto orphans = m_orphans[topic->m_help_tag];
     m_orphans.erase(topic->m_help_tag);
 
