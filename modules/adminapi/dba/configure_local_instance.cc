@@ -42,12 +42,13 @@ namespace mysqlsh {
 namespace dba {
 
 Configure_local_instance::Configure_local_instance(
-    mysqlshdk::mysql::IInstance *target_instance, const std::string &mycnf_path,
-    const std::string &output_mycnf_path, const std::string &cluster_admin,
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    const std::string &mycnf_path, const std::string &output_mycnf_path,
+    const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
     mysqlshdk::utils::nullable<bool> restart)
-    : Configure_instance(target_instance, mycnf_path, output_mycnf_path,
+    : Configure_instance(instance_cnx_opts, mycnf_path, output_mycnf_path,
                          cluster_admin, cluster_admin_password, clear_read_only,
                          interactive, restart) {}
 
@@ -58,6 +59,21 @@ Configure_local_instance::~Configure_local_instance() {}
  * the command execution
  */
 void Configure_local_instance::prepare() {
+  // Establish a session to the target instance
+  {
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+    session = mysqlshdk::db::mysql::Session::create();
+    session->connect(m_instance_cnx_opts);
+    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance->cache_global_sysvars();
+
+    m_local_target = mysqlshdk::utils::Net::is_local_address(
+        m_target_instance->get_connection_options().get_host());
+
+    // Set the current user/host
+    m_target_instance->get_current_user(&m_current_user, &m_current_host);
+  }
+
   // Check if we are dealing with a sandbox instance
   std::string cnf_path;
   m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);

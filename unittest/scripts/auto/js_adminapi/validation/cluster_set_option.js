@@ -29,7 +29,15 @@ Successfully set the value of 'clusterName' to 'newName' in the Cluster: 'cluste
 //@<OUT> WL#11465: Verify clusterName changed correctly
 newName
 
-//@<OUT> WL#11465: setOption memberWeight
+//@<OUT> WL#11465: setOption memberWeight {VER(>=8.0.0)}
+Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
+
+Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
+
+//@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
@@ -46,7 +54,15 @@ Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
 Cluster.setOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
 
-//@<OUT> WL#11465: setOption exitStateAction
+//@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
+Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet members ...
+
+Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.
+
+//@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet members ...
 
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.

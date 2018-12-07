@@ -1656,21 +1656,19 @@ shcore::Value Dba::check_instance_configuration(
   check_preconditions(instance_session, "checkInstanceConfiguration");
 
   try {
-    // Create the Instance object with the established session
-    mysqlshdk::mysql::Instance target_instance(instance_session);
+    // Get the Connection_options
+    Connection_options coptions = instance_session->get_connection_options();
 
-    target_instance.cache_global_sysvars();
+    // Close the session
+    instance_session->close();
 
     // Call the API
-    std::unique_ptr<Check_instance> op_check_instance(new Check_instance(
-        &target_instance, mycnf_path, _provisioning_interface));
+    std::unique_ptr<Check_instance> op_check_instance(
+        new Check_instance(coptions, mycnf_path, _provisioning_interface));
 
     op_check_instance->prepare();
     ret_val = shcore::Value(op_check_instance->execute());
     op_check_instance->finish();
-
-    // Close the session
-    target_instance.close_session();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("checkInstanceConfiguration"));
@@ -2305,28 +2303,26 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
                       local ? "configureLocalInstance" : "configureInstance");
 
   {
-    // Create the Instance object with the established session
-    mysqlshdk::mysql::Instance target_instance(instance_session);
+    // Get the Connection_options
+    Connection_options coptions = instance_session->get_connection_options();
 
-    target_instance.cache_global_sysvars();
+    // Close the session
+    instance_session->close();
 
     // Call the API
     std::unique_ptr<Configure_instance> op_configure_instance;
     if (local)
       op_configure_instance.reset(new Configure_local_instance(
-          &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
+          coptions, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart));
     else
       op_configure_instance.reset(new Configure_instance(
-          &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
+          coptions, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart));
 
     op_configure_instance->prepare();
     ret_val = shcore::Value(op_configure_instance->execute());
     op_configure_instance->finish();
-
-    // Close the session
-    target_instance.close_session();
   }
 
   return ret_val;

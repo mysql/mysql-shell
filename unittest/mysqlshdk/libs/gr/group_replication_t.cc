@@ -536,10 +536,11 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled) {
   }
   // Create config object (only with a server handler).
   mysqlshdk::config::Config cfg;
-  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
-                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                      new mysqlshdk::config::Config_server_handler(
-                          instance, Var_qualifier::GLOBAL)));
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+              instance, Var_qualifier::GLOBAL)));
 
   // should have 1 issue, since binary log is disabled.
   std::vector<Invalid_config> res;
@@ -641,10 +642,11 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   }
   // Create config object (only with a server handler).
   mysqlshdk::config::Config cfg;
-  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
-                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                      new mysqlshdk::config::Config_server_handler(
-                          instance, Var_qualifier::GLOBAL)));
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+              instance, Var_qualifier::GLOBAL)));
 
   // should have no issues, since binary log is enabled.
   std::vector<Invalid_config> res;
@@ -758,10 +760,11 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
 
   // Create config object (only with a server handler).
   mysqlshdk::config::Config cfg;
-  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
-                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                      new mysqlshdk::config::Config_server_handler(
-                          instance, Var_qualifier::GLOBAL)));
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+              instance, Var_qualifier::GLOBAL)));
   std::vector<Invalid_config> res;
   // If server_version >= 8.0.3 and the server_id is the default compiled
   // value, there should be an issue reported.
@@ -872,10 +875,11 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
 
   // Create config object (only with a server handler).
   mysqlshdk::config::Config cfg;
-  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
-                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                      new mysqlshdk::config::Config_server_handler(
-                          instance, Var_qualifier::GLOBAL)));
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+              instance, Var_qualifier::GLOBAL)));
 
   // change the dynamic variables so there are no server issues
   instance->set_sysvar("binlog_format", static_cast<std::string>("ROW"),
@@ -1127,10 +1131,11 @@ TEST_F(Group_replication_test, update_auto_increment) {
   // Create config objects with 3 server handlers.
   mysqlshdk::config::Config cfg_global;
   for (int i = 0; i < 3; i++) {
-    cfg_global.add_handler("instance_" + std::to_string(i),
-                           std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                               new mysqlshdk::config::Config_server_handler(
-                                   &instance, Var_qualifier::GLOBAL)));
+    cfg_global.add_handler(
+        "instance_" + std::to_string(i),
+        std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+            shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+                &instance, Var_qualifier::GLOBAL)));
   }
 
   // Set auto-increment for single-primary (3 instances).
@@ -1146,10 +1151,11 @@ TEST_F(Group_replication_test, update_auto_increment) {
   // Create config objects with 10 server handlers with PERSIST support.
   mysqlshdk::config::Config cfg_persist;
   for (int i = 0; i < 10; i++) {
-    cfg_persist.add_handler("instance_" + std::to_string(i),
-                            std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                                new mysqlshdk::config::Config_server_handler(
-                                    &instance, Var_qualifier::PERSIST)));
+    cfg_persist.add_handler(
+        "instance_" + std::to_string(i),
+        std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+            shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+                &instance, Var_qualifier::PERSIST)));
   }
 
   // Set auto-increment for single-primary (10 instances with PERSIST support).

@@ -21,11 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/replicaset/switch_to_single_primary_mode.h"
+
 #include <string>
 #include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/adminapi/replicaset/switch_to_single_primary_mode.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -59,9 +60,6 @@ void Switch_to_single_primary_mode::prepare() {
 
     ensure_target_instance_belongs_to_replicaset(target_instance_address);
   }
-
-  // Set the internal configuration object.
-  prepare_config_object();
 }
 
 shcore::Value Switch_to_single_primary_mode::execute() {

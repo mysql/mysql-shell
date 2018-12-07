@@ -40,7 +40,13 @@ Successfully set the value of 'label' to 'newLabel' in the 'default' ReplicaSet 
 //@<OUT> WL#11465: Verify label changed correctly
 newLabel
 
-//@<OUT> WL#11465: setInstanceOption memberWeight
+//@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}
+Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
+
+Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+
+//@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
@@ -51,7 +57,13 @@ Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
 Cluster.setInstanceOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
 
-//@<OUT> WL#11465: setInstanceOption exitStateAction
+//@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
+Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
+
+Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+
+//@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.

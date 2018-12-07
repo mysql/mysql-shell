@@ -21,13 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/dba/check_instance.h"
+
 #include <memory>
 
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/dba/check_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -44,17 +45,17 @@ namespace dba {
 // ref to IConsole. It should also perform basic validation of
 // parameters if there's any need.
 Check_instance::Check_instance(
-    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
     const std::string &verify_mycnf_path,
     std::shared_ptr<ProvisioningInterface> provisioning_interface, bool silent)
-    : m_target_instance(target_instance),
-      m_provisioning_interface(provisioning_interface),
+    : m_instance_cnx_opts(instance_cnx_opts),
       m_mycnf_path(verify_mycnf_path),
+      m_provisioning_interface(provisioning_interface),
       m_silent(silent) {
   assert(provisioning_interface);
 }
 
-Check_instance::~Check_instance() {}
+Check_instance::~Check_instance() { delete m_target_instance; }
 
 bool Check_instance::check_instance_address() {
   // Sanity check for the instance address
@@ -133,9 +134,18 @@ bool Check_instance::check_configuration() {
  * the command execution
  */
 void Check_instance::prepare() {
-  std::string target = m_target_instance->descr();
-
   auto console = mysqlsh::current_console();
+
+  // Establish a session to the target instance
+  {
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+    session = mysqlshdk::db::mysql::Session::create();
+    session->connect(m_instance_cnx_opts);
+    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance->cache_global_sysvars();
+  }
+
+  std::string target = m_target_instance->descr();
 
   if (!m_silent) {
     bool local_target = mysqlshdk::utils::Net::is_local_address(
@@ -209,7 +219,12 @@ void Check_instance::rollback() {
   // nothing to rollback
 }
 
-void Check_instance::finish() {}
+void Check_instance::finish() {
+  // Close the instance session at the end if available.
+  if (m_target_instance) {
+    m_target_instance->close_session();
+  }
+}
 
 void Check_instance::prepare_config_object() {
   m_cfg = shcore::make_unique<mysqlshdk::config::Config>();

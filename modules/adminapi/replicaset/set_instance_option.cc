@@ -34,9 +34,11 @@ namespace dba {
 Set_instance_option::Set_instance_option(
     const ReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const std::string &option, const std::string &value)
+    const shcore::NamingStyle naming_style, const std::string &option,
+    const std::string &value)
     : m_replicaset(replicaset),
       m_instance_cnx_opts(instance_cnx_opts),
+      m_naming_style(naming_style),
       m_option(option),
       m_value_str(value) {
   m_target_instance_address =
@@ -46,9 +48,11 @@ Set_instance_option::Set_instance_option(
 Set_instance_option::Set_instance_option(
     const ReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const std::string &option, int64_t value)
+    const shcore::NamingStyle naming_style, const std::string &option,
+    int64_t value)
     : m_replicaset(replicaset),
       m_instance_cnx_opts(instance_cnx_opts),
+      m_naming_style(naming_style),
       m_option(option),
       m_value_int(value) {
   m_target_instance_address =
@@ -160,19 +164,46 @@ void Set_instance_option::prepare_config_object() {
   auto console = mysqlsh::current_console();
   m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
 
-  bool is_set_persist_supported =
-      !m_target_instance->is_set_persist_supported().is_null() &&
-      *m_target_instance->is_set_persist_supported();
+  // Determine if SET PERSIST is supported.
+  mysqlshdk::utils::nullable<bool> support_set_persist =
+      m_target_instance->is_set_persist_supported();
+  mysqlshdk::mysql::Var_qualifier set_type =
+      mysqlshdk::mysql::Var_qualifier::GLOBAL;
+  if (!support_set_persist.is_null() && *support_set_persist) {
+    set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
+  }
 
   // Create server configuration handler depending on SET PERSIST support.
   std::unique_ptr<mysqlshdk::config::IConfig_handler> config_handler =
       shcore::make_unique<mysqlshdk::config::Config_server_handler>(
-          m_target_instance.get(),
-          is_set_persist_supported ? mysqlshdk::mysql::Var_qualifier::PERSIST
-                                   : mysqlshdk::mysql::Var_qualifier::GLOBAL);
+          m_target_instance.get(), set_type);
 
   // Add the server configuration to the configuration object
   m_cfg->add_handler(m_target_instance_address, std::move(config_handler));
+
+  // Print a warning if SET PERSIST is not supported, for users to execute
+  // dba.configureLocalInstance().
+  if (support_set_persist.is_null()) {
+    console->print_warning(
+        "The settings cannot be persisted remotely on instance "
+        "'" +
+        m_target_instance_address + "' because MySQL version " +
+        m_target_instance->get_version().get_base() +
+        " does not support the SET PERSIST command "
+        "(MySQL version >= 8.0.11 required). Please execute the <Dba>." +
+        get_member_name("configureLocalInstance", m_naming_style) +
+        "() command locally to persist these changes.");
+  } else if (!*support_set_persist) {
+    console->print_warning(
+        "The settings cannot be persisted remotely on instance "
+        "'" +
+        m_target_instance_address +
+        "' because 'persisted-globals-load' is set "
+        "to 'OFF' and persisted configurations will not be loaded upon "
+        "reboot. Please execute the <Dba>." +
+        get_member_name("configureLocalInstance", m_naming_style) +
+        "() command locally to persist these changes.");
+  }
 }
 
 void Set_instance_option::prepare() {
@@ -219,7 +250,7 @@ void Set_instance_option::prepare() {
     ensure_option_supported_target_member();
   }
 
-  // Set the internal configuration object.
+  // Create the internal configuration object.
   prepare_config_object();
 }
 

@@ -120,15 +120,6 @@ class Topology_configuration_command : public Command_interface {
    */
   void print_replicaset_members_role_changes();
 
-  /**
-   * Prepare the internal mysqlshdk::config::Config object to use.
-   *
-   * Initialize the mysqlshdk::config::Config object adding the proper
-   * configuration handlers based on the target instance settings (e.g., server
-   * version) and operation input parameters.
-   */
-  void prepare_config_object();
-
  private:
   std::vector<mysqlshdk::gr::Member> m_initial_members_info;
   std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>> m_cluster_instances;

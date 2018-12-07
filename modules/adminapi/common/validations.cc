@@ -21,10 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/common/validations.h"
+
 #include <string>
 
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -40,7 +41,7 @@ void ensure_instance_configuration_valid(
   console->println("Validating instance at " + target_instance->descr() +
                    "...");
 
-  Check_instance check(target_instance, "", mp, true);
+  Check_instance check(target_instance->get_connection_options(), "", mp, true);
   check.prepare();
   shcore::Value result = check.execute();
   check.finish();

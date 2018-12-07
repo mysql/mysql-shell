@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -108,6 +109,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::vector<Instance_definition> get_instances_from_metadata() const;
 
   std::vector<Instance_info> get_instances() const;
+
+  std::unique_ptr<mysqlshdk::config::Config> create_config_object() const;
 
   void execute_in_members(
       const std::vector<std::string> &states,
@@ -259,6 +262,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &ip_whitelist,
       mysqlshdk::utils::nullable<int64_t> member_weight,
       mysqlshdk::utils::nullable<int64_t> expel_timeout,
+      mysqlshdk::utils::nullable<uint64_t> replicaset_count,
       const std::string &group_name = "", const std::string &local_address = "",
       const std::string &group_seeds = "",
       const std::string &exit_state_action = "",

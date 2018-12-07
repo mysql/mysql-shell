@@ -40,7 +40,7 @@ namespace dba {
 class Configure_local_instance : public Configure_instance {
  public:
   Configure_local_instance(
-      mysqlshdk::mysql::IInstance *target_instance,
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
       const std::string &mycnf_path, const std::string &output_mycnf_path,
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,

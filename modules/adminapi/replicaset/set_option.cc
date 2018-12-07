@@ -51,30 +51,6 @@ Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
 
 Set_option::~Set_option() {}
 
-void Set_option::prepare_config_object() {
-  auto console = mysqlsh::current_console();
-  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
-
-  for (const auto &instance : m_cluster_instances) {
-    // Add server configuration handler depending on SET PERSIST support.
-    std::string instance_address = instance->descr();
-
-    bool is_set_persist_supported =
-        !instance->is_set_persist_supported().is_null() &&
-        *instance->is_set_persist_supported();
-
-    // Create server configuration handler depending on SET PERSIST support.
-    std::unique_ptr<mysqlshdk::config::IConfig_handler> config_handler =
-        shcore::make_unique<mysqlshdk::config::Config_server_handler>(
-            instance.get(), is_set_persist_supported
-                                ? mysqlshdk::mysql::Var_qualifier::PERSIST
-                                : mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-    // Add the server configuration to the configuration object
-    m_cfg->add_handler(instance_address, std::move(config_handler));
-  }
-}
-
 void Set_option::ensure_option_valid() {
   /* - Validate if the option is valid, being the accepted values:
    *     - exitStateAction
@@ -205,8 +181,8 @@ void Set_option::prepare() {
   // NOTE: clusterName does not require this validation
   ensure_option_supported_all_members_replicaset();
 
-  // Set the internal configuration object.
-  prepare_config_object();
+  // Get the ReplicaSet Config Object
+  m_cfg = m_replicaset.create_config_object();
 }
 
 shcore::Value Set_option::execute() {

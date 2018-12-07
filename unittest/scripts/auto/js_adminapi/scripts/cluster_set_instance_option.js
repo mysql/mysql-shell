@@ -122,7 +122,10 @@ shell.connect(__sandbox_uri2);
 var __address2 = localhost + ":" + __mysql_sandbox_port2;
 print_metadata_instance_label(session, __address2);
 
-//@<OUT> WL#11465: setInstanceOption memberWeight
+//@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}
+cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
+
+//@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 
 session.close();
@@ -133,7 +136,10 @@ print_member_weight_variable(session);
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT");
 
-//@<OUT> WL#11465: setInstanceOption exitStateAction
+//@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
+cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
+
+//@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
 
 session.close();

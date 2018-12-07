@@ -2264,6 +2264,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                        Must must be an integer value containing the time in
                        seconds to wait before the killer node expels members
                        suspected of having failed from the group.
+        replicaset_count: The number of members on the replicaset. Used to
+                          calculate the auto_increment value
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -2299,6 +2301,7 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_FAILOVER_CONSISTENCY: options.get("failover_consistency", None),
         GR_EXPEL_TIMEOUT: options.get("expel_timeout", None)
     }
+    replicaset_count = options.get("replicaset_count", None)
 
     # Validate Group Name
     validate_group_name(gr_config_vars[GR_GROUP_NAME])
@@ -2341,8 +2344,14 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         # If in multi-primary mode, we need to ensure that the offset value
         # is smaller than auto_increment_increment (which defaults to 7)
         if server_id:
-            gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % 7
-            gr_config_vars[AUTO_INCREMENT_INCREMENT] = 7
+            if replicaset_count is not None:
+                replicaset_count = int(replicaset_count)
+                if replicaset_count + 1 > 7:
+                    gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % (replicaset_count + 1)
+                    gr_config_vars[AUTO_INCREMENT_INCREMENT] = replicaset_count + 1
+                else:
+                    gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % 7
+                    gr_config_vars[AUTO_INCREMENT_INCREMENT] = 7
     else:
         # GR plugin will override auto_increment params to values that are
         # suitable for multi-primary, even when in single-primary, except

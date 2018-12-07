@@ -31,6 +31,7 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {

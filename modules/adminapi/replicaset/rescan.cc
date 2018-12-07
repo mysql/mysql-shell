@@ -42,15 +42,14 @@ Rescan::Rescan(
     bool auto_add_instances, bool auto_remove_instances,
     const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
     const std::vector<mysqlshdk::db::Connection_options> &remove_instances_list,
-    ReplicaSet *replicaset, const shcore::NamingStyle &naming_style)
+    ReplicaSet *replicaset)
     : m_interactive(interactive),
       m_update_topology_mode(update_topology_mode),
       m_auto_add_instances(auto_add_instances),
       m_auto_remove_instances(auto_remove_instances),
       m_add_instances_list(std::move(add_instances_list)),
       m_remove_instances_list(std::move(remove_instances_list)),
-      m_replicaset(replicaset),
-      m_naming_style(naming_style) {
+      m_replicaset(replicaset) {
   assert(replicaset);
   assert((auto_add_instances && add_instances_list.empty()) ||
          !auto_add_instances);
@@ -258,125 +257,20 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   return replicaset_map;
 }
 
-void Rescan::update_auto_increment_setting(
-    mysqlshdk::gr::Topology_mode topology_mode) {
-  auto console = mysqlsh::current_console();
-  mysqlshdk::config::Config cfg;
-  std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>> available_instances;
-
-  // Get all cluster instances, including state information to update
-  // auto-increment values.
-  std::vector<Instance_definition> instance_defs =
-      m_replicaset->get_cluster()
-          ->get_metadata_storage()
-          ->get_replicaset_instances(m_replicaset->get_id(), true);
-
-  for (const auto &instance_def : instance_defs) {
-    // Use the GR state hold by instance_def.state (but convert it to a proper
-    // mysqlshdk::gr::Member_state to be handled properly).
-    mysqlshdk::gr::Member_state state =
-        mysqlshdk::gr::to_member_state(instance_def.state);
-
-    if (state == mysqlshdk::gr::Member_state::ONLINE ||
-        state == mysqlshdk::gr::Member_state::RECOVERING) {
-      // Set login credentials to connect to instance.
-      // NOTE: It is assumed that the same login credentials can be used to
-      //       connect to all cluster instances.
-      Connection_options instance_cnx_opts =
-          shcore::get_connection_options(instance_def.endpoint, false);
-      instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                                   ->get_group_session()
-                                                   ->get_connection_options());
-
-      // Try to connect to instance.
-      log_debug("Connecting to instance '%s'", instance_def.endpoint.c_str());
-      std::shared_ptr<mysqlshdk::db::ISession> session;
-      try {
-        session = mysqlshdk::db::mysql::Session::create();
-        session->connect(instance_cnx_opts);
-        log_debug("Successfully connected to instance");
-      } catch (const std::exception &err) {
-        log_debug("Failed to connect to instance: %s", err.what());
-        console->print_error(
-            "Unable to connect to instance '" + instance_def.endpoint +
-            "'. Please, verify connection credentials and make sure the "
-            "instance is available.");
-
-        throw shcore::Exception::runtime_error(err.what());
-      }
-
-      available_instances.emplace_back(new mysqlshdk::mysql::Instance(session));
-
-      // Determine if SET PERSIST is supported.
-      mysqlshdk::utils::nullable<bool> support_set_persist =
-          available_instances.back()->is_set_persist_supported();
-      mysqlshdk::mysql::Var_qualifier set_type =
-          mysqlshdk::mysql::Var_qualifier::GLOBAL;
-      if (!support_set_persist.is_null() && *support_set_persist) {
-        set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
-      }
-
-      // Add configuration handler for server.
-      cfg.add_handler(instance_def.endpoint,
-                      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                          new mysqlshdk::config::Config_server_handler(
-                              available_instances.back().get(), set_type)));
-
-      // Print a warning if SET PERSIST is not supported, for users to execute
-      // dba.configureLocalInstance().
-      if (support_set_persist.is_null()) {
-        console->print_warning(
-            "Auto-increment settings cannot be persisted remotely on instance "
-            "'" +
-            instance_def.endpoint + "' because MySQL version " +
-            available_instances.back()->get_version().get_base() +
-            " does not support the SET PERSIST command "
-            "(MySQL version >= 8.0.11 required). Please execute the <Dba>." +
-            get_member_name("configureLocalInstance", m_naming_style) +
-            " command locally to persist these changes.");
-      } else if (!*support_set_persist) {
-        console->print_warning(
-            "Auto-increment settings cannot be persisted remotely on instance "
-            "'" +
-            instance_def.endpoint +
-            "' because 'persisted-globals-load' is set "
-            "to 'OFF' and persisted configurations will not be loaded upon "
-            "reboot. Please execute the <Dba>." +
-            get_member_name("configureLocalInstance", m_naming_style) +
-            " command locally to persist these changes.");
-      }
-    } else {
-      // Issue an error if the instance is not active.
-      console->print_error(
-          "Auto-increment settings cannot be updated for instance '" +
-          instance_def.endpoint + "' because it is on a '" +
-          mysqlshdk::gr::to_string(state) +
-          "' state. Please bring the instance back ONLINE and try to rescan "
-          "the cluster again.");
-
-      throw shcore::Exception::runtime_error(
-          "The instance '" + instance_def.endpoint + "' is '" +
-          mysqlshdk::gr::to_string(state) + "'");
-    }
-  }
-
-  // Update auto-increment settings on all servers.
-  mysqlshdk::gr::update_auto_increment(&cfg, topology_mode);
-  cfg.apply();
-
-  // Close the session for all used instances.
-  for (auto &instance : available_instances) {
-    instance->close_session();
-  }
-}
-
 void Rescan::update_topology_mode(
     const mysqlshdk::gr::Topology_mode &topology_mode) {
   auto console = mysqlsh::current_console();
   console->println("Updating topology mode in the cluster metadata...");
 
   // Update auto-increment settings.
-  update_auto_increment_setting(topology_mode);
+
+  // Get the ReplicaSet Config Object
+  auto cfg = m_replicaset->create_config_object();
+
+  // Call update_auto_increment to do the job in all instances
+  mysqlshdk::gr::update_auto_increment(cfg.get(), topology_mode);
+
+  cfg->apply();
 
   // Update topology mode in metadata.
   m_replicaset->get_cluster()

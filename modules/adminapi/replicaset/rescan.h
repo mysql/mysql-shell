@@ -44,7 +44,7 @@ class Rescan : public Command_interface {
       const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
       const std::vector<mysqlshdk::db::Connection_options>
           &remove_instances_list,
-      ReplicaSet *replicaset, const shcore::NamingStyle &naming_style);
+      ReplicaSet *replicaset);
 
   /**
    * Prepare the rescan command for execution.
@@ -94,7 +94,6 @@ class Rescan : public Command_interface {
   std::vector<mysqlshdk::db::Connection_options> m_add_instances_list;
   std::vector<mysqlshdk::db::Connection_options> m_remove_instances_list;
   ReplicaSet *m_replicaset = nullptr;
-  const shcore::NamingStyle m_naming_style;
 
   /**
    * Validate existence of duplicates for the addInstances and removeInstances
@@ -148,15 +147,6 @@ class Rescan : public Command_interface {
       std::shared_ptr<shcore::Value::Array_type> found_instances, bool auto_opt,
       std::vector<mysqlshdk::db::Connection_options> *instances_list_opt,
       bool to_add);
-
-  /**
-   * Update the auto-increment setting on all replicaset instances.
-   *
-   * @param topology_mode mysqlshdk::gr::Topology_mode used to determine how the
-   *                      auto-increment setting need to be set.
-   */
-  void update_auto_increment_setting(
-      mysqlshdk::gr::Topology_mode topology_mode);
 
   /**
    * Update the topology mode in the metadata.

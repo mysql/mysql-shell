@@ -23,11 +23,15 @@
 
 #include "modules/adminapi/replicaset/remove_instance.h"
 
+#include <vector>
+
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 

@@ -67,7 +67,7 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 ||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing. (ArgumentError)
 ||Cluster.rescan: Invalid value '{"port": 3301}' for 'addInstances' option: Missing values in connection options: host (ArgumentError)
 ||Cluster.rescan: Invalid value '{"user": "root"}' for 'addInstances' option: Missing values in connection options: host (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": ""}' for 'addInstances' option: host cannot be empty. (ArgumentError)
+||Cluster.rescan: Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for addInstances.
 ||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
@@ -116,7 +116,7 @@ WARNING: The following instances were not added to the medatada because they are
 ||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing. (ArgumentError)
 ||Cluster.rescan: Invalid value '{"port": 3301}' for 'removeInstances' option: Missing values in connection options: host (ArgumentError)
 ||Cluster.rescan: Invalid value '{"user": "root"}' for 'removeInstances' option: Missing values in connection options: host (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": ""}' for 'removeInstances' option: host cannot be empty. (ArgumentError)
+||Cluster.rescan: Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for removeInstances.
 ||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
@@ -1168,9 +1168,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Single-Primary'.
 Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
 Topology mode was successfully updated to 'Single-Primary' in the cluster metadata.
 
 
@@ -1280,9 +1280,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Multi-Primary'.
 Would you like to update it in the cluster metadata? [Y/n]: Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
 Topology mode was successfully updated to 'Multi-Primary' in the cluster metadata.
 
 //@<OUT> WL10644 - TSF4_3: Check topology mode in MD after rescan().

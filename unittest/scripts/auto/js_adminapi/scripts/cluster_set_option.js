@@ -114,7 +114,10 @@ cluster.setOption("clusterName", "newName");
 //@<OUT> WL#11465: Verify clusterName changed correctly
 print_metadata_clusters_cluster_name(session);
 
-//@<OUT> WL#11465: setOption memberWeight
+//@<OUT> WL#11465: setOption memberWeight {VER(>=8.0.0)}
+cluster.setOption("memberWeight", 25);
+
+//@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setOption("memberWeight", 25);
 
 //@<OUT> WL#11465: Verify memberWeight changed correctly in instance 1
@@ -134,11 +137,14 @@ session.close();
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
 cluster.setOption("exitStateAction", "ABORT");
 
-//@<OUT> WL#11465: setOption exitStateAction
+//@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
 cluster.setOption("exitStateAction", "ABORT_SERVER");
 
-shell.connect(__sandbox_uri1);
+//@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+cluster.setOption("exitStateAction", "ABORT_SERVER");
+
 //@<OUT> WL#11465: Verify exitStateAction changed correctly in instance 1
+shell.connect(__sandbox_uri1);
 print_exit_state_action_variable(session);
 session.close();
 

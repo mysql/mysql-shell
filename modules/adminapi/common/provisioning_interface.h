@@ -68,6 +68,7 @@ class ProvisioningInterface {
       const mysqlshdk::utils::nullable<int64_t> &member_weight,
       const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
       const std::string &failover_consistency, bool skip_rpl_user,
+      const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
       shcore::Value::Array_type_ref *errors);
   int join_replicaset(
       const mysqlshdk::db::Connection_options &instance,
@@ -79,6 +80,7 @@ class ProvisioningInterface {
       const mysqlshdk::utils::nullable<int64_t> &member_weight,
       const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
       const std::string &failover_consistency, bool skip_rpl_user,
+      const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
       shcore::Value::Array_type_ref *errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }

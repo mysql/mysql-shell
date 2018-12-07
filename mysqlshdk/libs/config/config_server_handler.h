@@ -50,13 +50,36 @@ class Config_server_handler : public IConfig_handler {
   /**
    * Constructor
    *
-   * @param instance shared pointer with the target Instance (server) to be
+   * NOTE: This constructor receives a raw pointer, thus the ownership of the
+   * pointer is not taken by Config_server_handler
+   *
+   * @param instance raw pointer with the target Instance (server) to be
    *        handled.
    * @param var_qualifier type of variable qualifier to be used for the gets and
    * sets
    */
   explicit Config_server_handler(mysql::IInstance *instance,
                                  const mysql::Var_qualifier &var_qualifier);
+
+  /**
+   * Constructor
+   *
+   * NOTE: This constructor receives a unique pointer, thus the ownership of the
+   * pointer is taken by Config_server_handler. It will be released and its
+   * internal session closed as soon as the object goes out of scope
+   *
+   * @param instance unique pointer with the target Instance (server) to be
+   *        handled.
+   * @param var_qualifier type of variable qualifier to be used for the gets and
+   * sets
+   */
+  explicit Config_server_handler(std::unique_ptr<mysql::IInstance> instance,
+                                 const mysql::Var_qualifier &var_qualifier);
+
+  /**
+   * Destructor
+   */
+  ~Config_server_handler();
 
   /**
    * Get the boolean value for the specified server configuration (system
@@ -357,6 +380,7 @@ class Config_server_handler : public IConfig_handler {
   }
 
   mysql::IInstance *m_instance;
+  std::unique_ptr<mysql::IInstance> m_instance_unique_ptr;
   mysql::Var_qualifier m_var_qualifier;
   mysql::Var_qualifier m_get_scope;
 

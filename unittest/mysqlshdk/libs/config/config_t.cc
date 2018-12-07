@@ -76,24 +76,24 @@ TEST_F(Config_test, config_handlers) {
   EXPECT_FALSE(cfg.has_handler("server_session"));
 
   // Test adding handlers
-  bool res = cfg.add_handler(
-      "server_global",
-      std::unique_ptr<IConfig_handler>(
-          new Config_server_handler(&instance, Var_qualifier::GLOBAL)));
+  bool res = cfg.add_handler("server_global",
+                             std::unique_ptr<IConfig_handler>(
+                                 shcore::make_unique<Config_server_handler>(
+                                     &instance, Var_qualifier::GLOBAL)));
   EXPECT_TRUE(res);
   EXPECT_TRUE(cfg.has_handler("server_global"));
-  res = cfg.add_handler(
-      "server_session",
-      std::unique_ptr<IConfig_handler>(
-          new Config_server_handler(&instance, Var_qualifier::SESSION)));
+  res = cfg.add_handler("server_session",
+                        std::unique_ptr<IConfig_handler>(
+                            shcore::make_unique<Config_server_handler>(
+                                &instance, Var_qualifier::SESSION)));
   EXPECT_TRUE(res);
   EXPECT_TRUE(cfg.has_handler("server_session"));
 
   // Handler with the same name is not added (already exists).
-  res = cfg.add_handler(
-      "server_global",
-      std::unique_ptr<IConfig_handler>(
-          new Config_server_handler(&instance, Var_qualifier::PERSIST)));
+  res = cfg.add_handler("server_global",
+                        std::unique_ptr<IConfig_handler>(
+                            shcore::make_unique<Config_server_handler>(
+                                &instance, Var_qualifier::PERSIST)));
   EXPECT_FALSE(res);
   EXPECT_TRUE(cfg.has_handler("server_global"));
 
@@ -133,8 +133,9 @@ TEST_F(Config_test, config_handlers) {
 
   // Add "server_global" handler back.
   cfg.add_handler("server_global",
-                  std::unique_ptr<IConfig_handler>(new Config_server_handler(
-                      &instance, Var_qualifier::GLOBAL)));
+                  std::unique_ptr<IConfig_handler>(
+                      shcore::make_unique<Config_server_handler>(
+                          &instance, Var_qualifier::GLOBAL)));
 
   // Test list of handler names.
   std::vector<std::string> handlers = cfg.list_handler_names();
@@ -153,10 +154,10 @@ TEST_F(Config_test, config_interface) {
 
   // Add server handler for global variables (used as default handler).
   mysqlshdk::mysql::Instance instance(m_session);
-  bool res = cfg.add_handler(
-      "server_global",
-      std::unique_ptr<IConfig_handler>(
-          new Config_server_handler(&instance, Var_qualifier::GLOBAL)));
+  bool res = cfg.add_handler("server_global",
+                             std::unique_ptr<IConfig_handler>(
+                                 shcore::make_unique<Config_server_handler>(
+                                     &instance, Var_qualifier::GLOBAL)));
   EXPECT_TRUE(res);
   // create empty config file
   create_file(m_cfg_path, "");

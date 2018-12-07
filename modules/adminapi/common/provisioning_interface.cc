@@ -446,6 +446,7 @@ int ProvisioningInterface::start_replicaset(
     const mysqlshdk::utils::nullable<int64_t> &member_weight,
     const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
     const std::string &failover_consistency, bool skip_rpl_user,
+    const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
@@ -495,6 +496,10 @@ int ProvisioningInterface::start_replicaset(
     kwargs["expel_timeout"] = shcore::Value(*expel_timeout);
   }
 
+  if (!replicaset_count.is_null()) {
+    kwargs["replicaset_count"] = shcore::Value(*replicaset_count);
+  }
+
   return execute_mysqlprovision("start-replicaset", args, kwargs, errors,
                                 _verbose);
 }
@@ -508,6 +513,7 @@ int ProvisioningInterface::join_replicaset(
     const mysqlshdk::utils::nullable<int64_t> &member_weight,
     const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
     const std::string &failover_consistency, bool skip_rpl_user,
+    const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
@@ -558,6 +564,10 @@ int ProvisioningInterface::join_replicaset(
   }
   if (!expel_timeout.is_null()) {
     kwargs["expel_timeout"] = shcore::Value(*expel_timeout);
+  }
+
+  if (!replicaset_count.is_null()) {
+    kwargs["replicaset_count"] = shcore::Value(*replicaset_count);
   }
 
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,

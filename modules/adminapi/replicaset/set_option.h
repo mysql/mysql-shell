@@ -80,14 +80,13 @@ class Set_option : public Command_interface {
  private:
   const ReplicaSet &m_replicaset;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_cluster_session_instance;
-  // Configuration object (to read and set instance configurations).
-  std::unique_ptr<mysqlshdk::config::Config> m_cfg;
   std::string m_option;
   mysqlshdk::utils::nullable<std::string> m_value_str;
   mysqlshdk::utils::nullable<int64_t> m_value_int;
   std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>> m_cluster_instances;
+  // Configuration object (to read and set instance configurations).
+  std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
-  void prepare_config_object();
   void ensure_option_valid();
   void ensure_all_members_replicaset_online();
   void ensure_option_supported_all_members_replicaset();

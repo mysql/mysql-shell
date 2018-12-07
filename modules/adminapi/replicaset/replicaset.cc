@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/replicaset/replicaset.h"
+
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -38,7 +40,6 @@
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/replicaset/check_instance_state.h"
 #include "modules/adminapi/replicaset/remove_instance.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/adminapi/replicaset/rescan.h"
 #include "modules/adminapi/replicaset/set_instance_option.h"
 #include "modules/adminapi/replicaset/set_primary_instance.h"
@@ -49,6 +50,7 @@
 #include "modules/mod_shell.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -203,11 +205,11 @@ void ReplicaSet::set_instance_option(const Connection_options &instance_def,
   if (value.type == shcore::String) {
     std::string value_str = value.as_string();
     op_set_instance_option = shcore::make_unique<Set_instance_option>(
-        *this, instance_def, option, value_str);
+        *this, instance_def, this->naming_style, option, value_str);
   } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
     int64_t value_int = value.as_int();
     op_set_instance_option = shcore::make_unique<Set_instance_option>(
-        *this, instance_def, option, value_int);
+        *this, instance_def, this->naming_style, option, value_int);
   } else {
     throw shcore::Exception::argument_error(
         "Argument #2 is expected to be a string or an Integer.");
@@ -328,7 +330,7 @@ static void update_group_replication_group_seeds(
           "reboot since 'persisted-globals-load' is set "
           "to 'OFF'. Please use the <Dba>." +
           get_member_name("configureLocalInstance", naming_style) +
-          " command locally to persist the changes or set "
+          "() command locally to persist the changes or set "
           "'persisted-globals-load' to 'ON' on the configuration file.";
       console->print_warning(warn_msg);
     }
@@ -346,7 +348,76 @@ static void update_group_replication_group_seeds(
         " does not support the SET PERSIST command "
         "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
         get_member_name("configureLocalInstance", naming_style) +
-        " command locally to persist the changes.";
+        "() command locally to persist the changes.";
+    console->print_warning(warn_msg);
+  }
+}
+
+/**
+ * Auxiliary function to update the auto_increment_% variables in a replicaset
+ * member
+ *
+ * NOTE: only necessary for multi-primary replicasets
+ */
+static void update_auto_increment_settings_multi_primary(
+    uint64_t group_size, std::shared_ptr<mysqlshdk::db::ISession> session,
+    const shcore::NamingStyle naming_style) {
+  // create an instance object for the provided session
+  auto instance = mysqlshdk::mysql::Instance(session);
+  std::string address =
+      session->get_connection_options().as_uri(only_transport());
+
+  // Set auto-increment for multi-primary topology:
+  // - auto_increment_increment = n;
+  // - auto_increment_offset = 1 + server_id % n;
+  // where n is the size of the GR group if > 7, otherwise n = 7.
+  // NOTE: We are assuming that there is only one handler for each instance.
+  int64_t server_id = *instance.get_sysvar_int(
+      "server_id", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  int64_t n = (group_size > 7) ? group_size : 7;
+
+  int64_t offset = 1 + server_id % n;
+
+  auto console = mysqlsh::current_console();
+
+  // Update group_replication_group_seeds variable
+  // If server version >= 8.0.11 use set persist, otherwise use set global
+  // and warn users that they should use configureLocalInstance to persist
+  // the value of the variables
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
+    bool persist_load = *instance.get_sysvar_bool(
+        "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    if (!persist_load) {
+      std::string warn_msg =
+          "On instance '" + address +
+          "' the persisted cluster configuration will not be loaded upon "
+          "reboot since 'persisted-globals-load' is set "
+          "to 'OFF'. Please use the <Dba>." +
+          get_member_name("configureLocalInstance", naming_style) +
+          "() command locally to persist the changes or set "
+          "'persisted-globals-load' to 'ON' on the configuration file.";
+      console->print_warning(warn_msg);
+    }
+    instance.set_sysvar("auto_increment_increment", n,
+                        mysqlshdk::mysql::Var_qualifier::PERSIST);
+    instance.set_sysvar("auto_increment_offset", offset,
+                        mysqlshdk::mysql::Var_qualifier::PERSIST);
+
+  } else {
+    instance.set_sysvar("auto_increment_increment", n,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    instance.set_sysvar("auto_increment_offset", offset,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+    std::string warn_msg =
+        "On instance '" + address +
+        "' auto_increment settings cannot be persisted since MySQL version " +
+        instance.get_version().get_base() +
+        " does not support the SET PERSIST command "
+        "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
+        get_member_name("configureLocalInstance", naming_style) +
+        "() command locally to persist the changes.";
     console->print_warning(warn_msg);
   }
 }
@@ -819,6 +890,10 @@ shcore::Value ReplicaSet::add_instance(
              std::to_string(*member_weight).c_str());
   }
 
+  // Get the current number of replicaSet members
+  uint64_t replicaset_count =
+      _metadata_storage->get_replicaset_count(this->get_id());
+
   // Call MP
   if (seed_instance) {
     if (!group_name.empty()) {
@@ -826,9 +901,10 @@ shcore::Value ReplicaSet::add_instance(
     }
 
     // Call mysqlprovision to bootstrap the group using "start"
+
     success = do_join_replicaset(
         target_coptions, nullptr, replication_user, replication_user_password,
-        ssl_mode, ip_whitelist, member_weight, expel_timeout, group_name,
+        ssl_mode, ip_whitelist, member_weight, expel_timeout, 0, group_name,
         local_address, group_seeds, exit_state_action, failover_consistency,
         skip_rpl_user);
   } else {
@@ -844,9 +920,9 @@ shcore::Value ReplicaSet::add_instance(
     // Call mysqlprovision to do the work
     success = do_join_replicaset(
         target_coptions, &peer, replication_user, replication_user_password,
-        ssl_mode, ip_whitelist, member_weight, expel_timeout, group_name,
-        local_address, group_seeds, exit_state_action, failover_consistency,
-        skip_rpl_user);
+        ssl_mode, ip_whitelist, member_weight, expel_timeout, replicaset_count,
+        group_name, local_address, group_seeds, exit_state_action,
+        failover_consistency, skip_rpl_user);
   }
 
   if (success) {
@@ -883,6 +959,45 @@ shcore::Value ReplicaSet::add_instance(
           return true;
         });
     log_debug("Instance add finished");
+
+    // Increase the replicaset_count counter
+    replicaset_count++;
+
+    // Auto-increment values must be updated according to:
+    //
+    // Set auto-increment for single-primary topology:
+    // - auto_increment_increment = 1
+    // - auto_increment_offset = 2
+    //
+    // Set auto-increment for multi-primary topology:
+    // - auto_increment_increment = n;
+    // - auto_increment_offset = 1 + server_id % n;
+    // where n is the size of the GR group if > 7, otherwise n = 7.
+    //
+    // We must update the auto-increment values in add_instance for 2
+    // scenarios
+    //   - Multi-primary Replicaset
+    //   - Replicaset that has 7 or more members after the add_instance
+    //     operation
+    //
+    // NOTE: in the other scenarios, the Add_instance operation is in charge of
+    // updating auto-increment accordingly
+
+    // Get the topology mode of the replicaSet
+    mysqlshdk::gr::Topology_mode topology_mode =
+        _metadata_storage->get_replicaset_topology_mode(this->get_id());
+
+    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
+        replicaset_count > 7) {
+      execute_in_members(
+          {"'ONLINE'", "'RECOVERING'"}, target_coptions, ignore_instances_vec,
+          [replicaset_count,
+           this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
+            update_auto_increment_settings_multi_primary(
+                replicaset_count, session, this->naming_style);
+            return true;
+          });
+    }
   }
 
   return ret_val;
@@ -895,6 +1010,7 @@ bool ReplicaSet::do_join_replicaset(
     const std::string &ip_whitelist,
     mysqlshdk::utils::nullable<int64_t> member_weight,
     mysqlshdk::utils::nullable<int64_t> expel_timeout,
+    mysqlshdk::utils::nullable<uint64_t> replicaset_count,
     const std::string &group_name, const std::string &local_address,
     const std::string &group_seeds, const std::string &exit_state_action,
     const std::string &failover_consistency, bool skip_rpl_user) {
@@ -915,12 +1031,13 @@ bool ReplicaSet::do_join_replicaset(
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, exit_state_action,
         member_weight, expel_timeout, failover_consistency, skip_rpl_user,
-        &errors);
+        replicaset_count, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
         local_address, group_seeds, exit_state_action, member_weight,
-        expel_timeout, failover_consistency, skip_rpl_user, &errors);
+        expel_timeout, failover_consistency, skip_rpl_user, replicaset_count,
+        &errors);
   }
 
   if (exit_code == 0) {
@@ -1299,11 +1416,16 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
+    // on the rejoin operation there is no need adjust the the number of
+    // members on the replicaset
+    mysqlshdk::utils::nullable<uint64_t> replicaset_count =
+        mysqlshdk::utils::nullable<uint64_t>();
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
         replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds, "",
         mysqlshdk::utils::nullable<int64_t>(),
-        mysqlshdk::utils::nullable<int64_t>(), "", keep_repl_user, &errors);
+        mysqlshdk::utils::nullable<int64_t>(), "", keep_repl_user,
+        replicaset_count, &errors);
 
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
@@ -1445,6 +1567,51 @@ void ReplicaSet::update_group_members_for_removed_member(
     log_debug("Removing replication user on instance");
   }
   remove_replication_users(instance, remove_rpl_user_on_group);
+
+  // Update the auto-increment values
+  {
+    // Auto-increment values must be updated according to:
+    //
+    // Set auto-increment for single-primary topology:
+    // - auto_increment_increment = 1
+    // - auto_increment_offset = 2
+    //
+    // Set auto-increment for multi-primary topology:
+    // - auto_increment_increment = n;
+    // - auto_increment_offset = 1 + server_id % n;
+    // where n is the size of the GR group if > 7, otherwise n = 7.
+    //
+    // We must update the auto-increment values in Remove_instance for 2
+    // scenarios
+    //   - Multi-primary Replicaset
+    //   - Replicaset that had more 7 or more members before the Remove_instance
+    //     operation
+    //
+    // NOTE: in the other scenarios, the Add_instance operation is in charge of
+    // updating auto-increment accordingly
+
+    mysqlshdk::gr::Topology_mode topology_mode =
+        get_cluster()->get_metadata_storage()->get_replicaset_topology_mode(
+            get_id());
+
+    // Get the current number of members of the Replicaset
+    uint64_t replicaset_count =
+        get_cluster()->get_metadata_storage()->get_replicaset_count(get_id());
+
+    bool update_auto_inc = (replicaset_count + 1) > 7 ? true : false;
+
+    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
+        update_auto_inc) {
+      // Get the ReplicaSet Config Object
+      auto cfg = create_config_object();
+
+      // Call update_auto_increment to do the job in all instances
+      mysqlshdk::gr::update_auto_increment(
+          cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+
+      cfg->apply();
+    }
+  }
 }
 
 void ReplicaSet::remove_replication_users(
@@ -1641,7 +1808,7 @@ void ReplicaSet::rescan(const shcore::Dictionary_t &options) {
     // Create the rescan command and execute it.
     Rescan op_rescan(interactive, update_topology_mode, auto_add_instance,
                      auto_remove_instance, add_instances_list,
-                     remove_instances_list, this, this->naming_style);
+                     remove_instances_list, this);
 
     // Always execute finish when leaving "try catch".
     auto finally =
@@ -2327,6 +2494,110 @@ std::vector<Instance_definition> ReplicaSet::get_instances_from_metadata()
 std::vector<ReplicaSet::Instance_info> ReplicaSet::get_instances() const {
   return _metadata_storage->get_new_metadata()->get_replicaset_instances(
       get_id());
+}
+
+std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object()
+    const {
+  auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
+
+  auto console = mysqlsh::current_console();
+
+  // Get all cluster instances, including state information to update
+  // auto-increment values.
+  std::vector<Instance_definition> instance_defs =
+      _metadata_storage->get_replicaset_instances(get_id(), true);
+
+  for (const auto &instance_def : instance_defs) {
+    // Use the GR state hold by instance_def.state (but convert it to a proper
+    // mysqlshdk::gr::Member_state to be handled properly).
+    mysqlshdk::gr::Member_state state =
+        mysqlshdk::gr::to_member_state(instance_def.state);
+
+    if (state == mysqlshdk::gr::Member_state::ONLINE ||
+        state == mysqlshdk::gr::Member_state::RECOVERING) {
+      // Set login credentials to connect to instance.
+      // NOTE: It is assumed that the same login credentials can be used to
+      //       connect to all cluster instances.
+      Connection_options instance_cnx_opts =
+          shcore::get_connection_options(instance_def.endpoint, false);
+      instance_cnx_opts.set_login_options_from(
+          get_cluster()->get_group_session()->get_connection_options());
+
+      // Try to connect to instance.
+      log_debug("Connecting to instance '%s'", instance_def.endpoint.c_str());
+      std::shared_ptr<mysqlshdk::db::ISession> session;
+      try {
+        session = mysqlshdk::db::mysql::Session::create();
+        session->connect(instance_cnx_opts);
+        log_debug("Successfully connected to instance");
+      } catch (const std::exception &err) {
+        log_debug("Failed to connect to instance: %s", err.what());
+        console->print_error(
+            "Unable to connect to instance '" + instance_def.endpoint +
+            "'. Please, verify connection credentials and make sure the "
+            "instance is available.");
+
+        throw shcore::Exception::runtime_error(err.what());
+      }
+
+      auto instance = mysqlshdk::mysql::Instance(session);
+
+      // Determine if SET PERSIST is supported.
+      mysqlshdk::utils::nullable<bool> support_set_persist =
+          instance.is_set_persist_supported();
+      mysqlshdk::mysql::Var_qualifier set_type =
+          mysqlshdk::mysql::Var_qualifier::GLOBAL;
+      if (!support_set_persist.is_null() && *support_set_persist) {
+        set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
+      }
+
+      // Add configuration handler for server.
+      cfg->add_handler(
+          instance_def.endpoint,
+          std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+              shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+                  shcore::make_unique<mysqlshdk::mysql::Instance>(instance),
+                  set_type)));
+
+      // Print a warning if SET PERSIST is not supported, for users to execute
+      // dba.configureLocalInstance().
+      if (support_set_persist.is_null()) {
+        console->print_warning(
+            "The settings cannot be persisted remotely on instance "
+            "'" +
+            instance_def.endpoint + "' because MySQL version " +
+            instance.get_version().get_base() +
+            " does not support the SET PERSIST command "
+            "(MySQL version >= 8.0.11 required). Please execute the <Dba>." +
+            get_member_name("configureLocalInstance", this->naming_style) +
+            "() command locally to persist these changes.");
+      } else if (!*support_set_persist) {
+        console->print_warning(
+            "The settings cannot be persisted remotely on instance "
+            "'" +
+            instance_def.endpoint +
+            "' because 'persisted-globals-load' is set "
+            "to 'OFF' and persisted configurations will not be loaded upon "
+            "reboot. Please execute the <Dba>." +
+            get_member_name("configureLocalInstance", this->naming_style) +
+            "() command locally to persist these changes.");
+      }
+    } else {
+      // Issue an error if the instance is not active.
+      console->print_error(
+          "The settings cannot be updated for instance '" +
+          instance_def.endpoint + "' because it is on a '" +
+          mysqlshdk::gr::to_string(state) +
+          "' state. Please bring the instance back ONLINE and try to rescan "
+          "the cluster again.");
+
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance_def.endpoint + "' is '" +
+          mysqlshdk::gr::to_string(state) + "'");
+    }
+  }
+
+  return cfg;
 }
 
 /** Iterates through all the cluster members in a given state calling the given

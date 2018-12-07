@@ -43,7 +43,7 @@ namespace dba {
 class Configure_instance : public Command_interface {
  public:
   Configure_instance(
-      mysqlshdk::mysql::IInstance *target_instance,
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
       const std::string &mycnf_path, const std::string &output_mycnf_path,
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
@@ -88,6 +88,8 @@ class Configure_instance : public Command_interface {
   void restore_super_read_only();
 
  protected:
+  const mysqlshdk::db::Connection_options m_instance_cnx_opts;
+  const bool m_interactive;
   // The following may change from user-interaction
   std::string m_mycnf_path;
   std::string m_output_mycnf_path;
@@ -95,7 +97,6 @@ class Configure_instance : public Command_interface {
   mysqlshdk::utils::nullable<std::string> m_cluster_admin_password;
   std::string m_current_user;
   std::string m_current_host;
-  const bool m_interactive;
   bool m_local_target = false;
   mysqlshdk::utils::nullable<bool> m_clear_read_only;
   mysqlshdk::utils::nullable<bool> m_restart;
@@ -122,7 +123,7 @@ class Configure_instance : public Command_interface {
   std::vector<mysqlshdk::gr::Invalid_config> m_invalid_cfgs;
 
   // Target instance to configure.
-  mysqlshdk::mysql::IInstance *m_target_instance;
+  mysqlshdk::mysql::IInstance *m_target_instance = nullptr;
 };
 
 }  // namespace dba

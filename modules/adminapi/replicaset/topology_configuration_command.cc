@@ -21,11 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/replicaset/topology_configuration_command.h"
+
 #include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/replicaset/topology_configuration_command.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -298,27 +299,6 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
   }
 }
 
-void Topology_configuration_command::prepare_config_object() {
-  auto console = mysqlsh::current_console();
-  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
-
-  for (const auto &instance : m_cluster_instances) {
-    // Add server configuration handler depending on SET PERSIST support.
-    std::string instance_address = instance->get_connection_options().as_uri(
-        mysqlshdk::db::uri::formats::only_transport());
-
-    m_cfg->add_handler(
-        instance_address,
-        std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-            new mysqlshdk::config::Config_server_handler(
-                instance.get(),
-                (!instance->is_set_persist_supported().is_null() &&
-                 *instance->is_set_persist_supported())
-                    ? mysqlshdk::mysql::Var_qualifier::PERSIST
-                    : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
-  }
-}
-
 void Topology_configuration_command::prepare() {
   // Verify if the instance of the current cluster session has a version
   // >= 8.0.13
@@ -338,6 +318,9 @@ void Topology_configuration_command::prepare() {
   // Initialize the members_info status at this moment
   m_initial_members_info =
       mysqlshdk::gr::get_members(*m_cluster_session_instance);
+
+  // Get the ReplicaSet Config Object
+  m_cfg = m_replicaset->create_config_object();
 }
 
 shcore::Value Topology_configuration_command::execute() {

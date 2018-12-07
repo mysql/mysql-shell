@@ -21,12 +21,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/replicaset/switch_to_multi_primary_mode.h"
+
 #include <string>
 #include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/replicaset/switch_to_multi_primary_mode.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -44,9 +45,6 @@ Switch_to_multi_primary_mode::~Switch_to_multi_primary_mode() {}
 void Switch_to_multi_primary_mode::prepare() {
   // Do the base class validations
   Topology_configuration_command::prepare();
-
-  // Set the internal configuration object.
-  prepare_config_object();
 }
 
 shcore::Value Switch_to_multi_primary_mode::execute() {

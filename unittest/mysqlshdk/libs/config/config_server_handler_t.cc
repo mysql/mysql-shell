@@ -474,13 +474,13 @@ TEST_F(Config_server_handler_test, errors) {
   cfg_h.set("not-exist-bool", nullable<bool>(true));
   EXPECT_THROW_LIKE(cfg_h.apply(), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-bool'");
-  cfg_h = Config_server_handler(&instance, Var_qualifier::GLOBAL);
-  cfg_h.set("not-exist-int", nullable<int64_t>(1234));
-  EXPECT_THROW_LIKE(cfg_h.apply(), mysqlshdk::db::Error,
+  Config_server_handler cfg_h2(&instance, Var_qualifier::GLOBAL);
+  cfg_h2.set("not-exist-int", nullable<int64_t>(1234));
+  EXPECT_THROW_LIKE(cfg_h2.apply(), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-int'");
-  cfg_h = Config_server_handler(&instance, Var_qualifier::GLOBAL);
-  cfg_h.set("not-exist-string", nullable<std::string>("mystr"));
-  EXPECT_THROW_LIKE(cfg_h.apply(), mysqlshdk::db::Error,
+  Config_server_handler cfg_h3(&instance, Var_qualifier::GLOBAL);
+  cfg_h3.set("not-exist-string", nullable<std::string>("mystr"));
+  EXPECT_THROW_LIKE(cfg_h3.apply(), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-string'");
 }
 
@@ -507,12 +507,12 @@ TEST_F(Config_server_handler_test, apply) {
                     "<-> ON.");
 
   // Enable gtid_mode following the allowed steps order.
-  cfg_h = Config_server_handler(&instance, Var_qualifier::GLOBAL);
-  cfg_h.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
-  cfg_h.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
-  cfg_h.set("enforce_gtid_consistency", nullable<std::string>("ON"));
-  cfg_h.set("gtid_mode", nullable<std::string>("ON"));
-  cfg_h.apply();
+  Config_server_handler cfg_h2(&instance, Var_qualifier::GLOBAL);
+  cfg_h2.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
+  cfg_h2.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
+  cfg_h2.set("enforce_gtid_consistency", nullable<std::string>("ON"));
+  cfg_h2.set("gtid_mode", nullable<std::string>("ON"));
+  cfg_h2.apply();
 
   nullable<std::string> gtid_mode =
       instance.get_sysvar_string("gtid_mode", Var_qualifier::GLOBAL);
@@ -520,22 +520,22 @@ TEST_F(Config_server_handler_test, apply) {
   EXPECT_STREQ("ON", (*gtid_mode).c_str());
 
   // Error if the wrong order is used.
-  cfg_h.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
-  cfg_h.set("enforce_gtid_consistency", nullable<std::string>("OFF"));
-  cfg_h.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
-  cfg_h.set("gtid_mode", nullable<std::string>("OFF"));
-  EXPECT_THROW_LIKE(cfg_h.apply(), mysqlshdk::db::Error,
+  cfg_h2.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
+  cfg_h2.set("enforce_gtid_consistency", nullable<std::string>("OFF"));
+  cfg_h2.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
+  cfg_h2.set("gtid_mode", nullable<std::string>("OFF"));
+  EXPECT_THROW_LIKE(cfg_h2.apply(), mysqlshdk::db::Error,
                     "The value of @@GLOBAL.GTID_MODE can only be changed one "
                     "step at a time: OFF <-> OFF_PERMISSIVE <-> ON_PERMISSIVE "
                     "<-> ON.");
 
   // Disable gtid_mode (back to OFF) following the allowed steps order.
-  cfg_h = Config_server_handler(&instance, Var_qualifier::GLOBAL);
-  cfg_h.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
-  cfg_h.set("enforce_gtid_consistency", nullable<std::string>("OFF"));
-  cfg_h.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
-  cfg_h.set("gtid_mode", nullable<std::string>("OFF"));
-  cfg_h.apply();
+  Config_server_handler cfg_h3(&instance, Var_qualifier::GLOBAL);
+  cfg_h3.set("gtid_mode", nullable<std::string>("ON_PERMISSIVE"));
+  cfg_h3.set("enforce_gtid_consistency", nullable<std::string>("OFF"));
+  cfg_h3.set("gtid_mode", nullable<std::string>("OFF_PERMISSIVE"));
+  cfg_h3.set("gtid_mode", nullable<std::string>("OFF"));
+  cfg_h3.apply();
 
   gtid_mode = instance.get_sysvar_string("gtid_mode", Var_qualifier::GLOBAL);
   EXPECT_FALSE(gtid_mode.is_null());

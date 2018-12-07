@@ -37,6 +37,27 @@ Config_server_handler::Config_server_handler(
   }
 }
 
+Config_server_handler::Config_server_handler(
+    std::unique_ptr<mysql::IInstance> instance,
+    const mysql::Var_qualifier &var_qualifier)
+    : m_instance(instance.get()),
+      m_instance_unique_ptr(std::move(instance)),
+      m_var_qualifier(var_qualifier) {
+  assert(m_instance);
+  if (var_qualifier == mysql::Var_qualifier::SESSION) {
+    m_get_scope = mysql::Var_qualifier::SESSION;
+  } else {
+    m_get_scope = mysql::Var_qualifier::GLOBAL;
+  }
+}
+
+Config_server_handler::~Config_server_handler() {
+  // Check if the unique_ptr attribute was set and if so, close the session
+  if (m_instance_unique_ptr) {
+    m_instance_unique_ptr->get_session()->close();
+  }
+}
+
 utils::nullable<bool> Config_server_handler::value_to_nullable_bool(
     const shcore::Value &value) {
   if (value.type == shcore::Value_type::Null) {

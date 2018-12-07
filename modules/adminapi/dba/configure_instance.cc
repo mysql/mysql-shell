@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/dba/configure_instance.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -29,7 +31,6 @@
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -48,29 +49,22 @@ namespace mysqlsh {
 namespace dba {
 
 Configure_instance::Configure_instance(
-    mysqlshdk::mysql::IInstance *target_instance, const std::string &mycnf_path,
-    const std::string &output_mycnf_path, const std::string &cluster_admin,
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    const std::string &mycnf_path, const std::string &output_mycnf_path,
+    const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
     mysqlshdk::utils::nullable<bool> restart)
-    : m_mycnf_path(mycnf_path),
+    : m_instance_cnx_opts(instance_cnx_opts),
+      m_interactive(interactive),
+      m_mycnf_path(mycnf_path),
       m_output_mycnf_path(output_mycnf_path),
       m_cluster_admin(cluster_admin),
       m_cluster_admin_password(cluster_admin_password),
-      m_interactive(interactive),
       m_clear_read_only(clear_read_only),
-      m_restart(restart),
-      m_target_instance(target_instance) {
-  assert(target_instance);
+      m_restart(restart) {}
 
-  m_local_target = mysqlshdk::utils::Net::is_local_address(
-      m_target_instance->get_connection_options().get_host());
-
-  // Set the current user/host
-  m_target_instance->get_current_user(&m_current_user, &m_current_host);
-}
-
-Configure_instance::~Configure_instance() {}
+Configure_instance::~Configure_instance() { delete m_target_instance; }
 
 /*
  * Validates the .cnf file path. If interactive is enabled and the file path
@@ -481,6 +475,21 @@ void Configure_instance::prepare_config_object() {
 void Configure_instance::prepare() {
   auto console = mysqlsh::current_console();
 
+  // Establish a session to the target instance if not already established
+  if (!m_target_instance) {
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+    session = mysqlshdk::db::mysql::Session::create();
+    session->connect(m_instance_cnx_opts);
+    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance->cache_global_sysvars();
+
+    m_local_target = mysqlshdk::utils::Net::is_local_address(
+        m_target_instance->get_connection_options().get_host());
+
+    // Set the current user/host
+    m_target_instance->get_current_user(&m_current_user, &m_current_host);
+  }
+
   if (!m_local_target) {
     console->print_info("Configuring MySQL instance at " +
                         m_target_instance->descr() +
@@ -687,7 +696,12 @@ void Configure_instance::restore_super_read_only() {
 
 void Configure_instance::rollback() {}
 
-void Configure_instance::finish() {}
+void Configure_instance::finish() {
+  // Close the instance session at the end if available.
+  if (m_target_instance) {
+    m_target_instance->close_session();
+  }
+}
 
 }  // namespace dba
 }  // namespace mysqlsh
