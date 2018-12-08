@@ -188,9 +188,8 @@ TEST(Cmdline_shell, help) {
 
   capture.clear();
   shell.print_banner();
-  std::string year = mysqlshdk::utils::fmttime("%Y");
   std::string expected =
-      "MySQL Shell " MYSH_FULL_VERSION "\n\nCopyright (c) 2016, " + year +
+      "MySQL Shell " MYSH_FULL_VERSION "\n\nCopyright (c) 2016, " PACKAGE_YEAR
       ", Oracle and/or its "
       "affiliates. All rights reserved.\nOracle is a registered trademark of "
       "Oracle Corporation and/or its affiliates.\nOther names may be "

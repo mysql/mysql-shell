@@ -1394,6 +1394,10 @@ void Shell_script_tester::validate_batch(const std::string &script) {
 }
 
 void Shell_script_tester::set_defaults() {
+  output_handler.wipe_all();
+  _cout.str("");
+  _cout.clear();
+
   Crud_test_wrapper::set_defaults();
 
   std::string test_mode;
@@ -1411,65 +1415,37 @@ void Shell_script_tester::set_defaults() {
   std::string code =
       get_variable_prefix() + "__test_execution_mode = '" + test_mode + "'";
   exec_and_out_equals(code);
-}
 
-void Shell_js_script_tester::set_defaults() {
-  _interactive_shell->process_line("\\js");
-
-  output_handler.wipe_all();
-  _cout.str("");
-  _cout.clear();
-
-  Shell_script_tester::set_defaults();
-
-  std::string code =
-      "var __current_year = '" + mysqlshdk::utils::fmttime("%Y") + "'";
+  code = get_variable_prefix() + "__package_year = '" PACKAGE_YEAR "'";
   exec_and_out_equals(code);
 
-  code = "var __mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
+  code = get_variable_prefix() + "__mysh_full_version = '" +
+         std::string(MYSH_FULL_VERSION) + "'";
   exec_and_out_equals(code);
 
-  code = "var __mysh_version = '" + std::string(MYSH_VERSION) + "'";
+  code = get_variable_prefix() + "__mysh_version = '" +
+         std::string(MYSH_VERSION) + "'";
   exec_and_out_equals(code);
 
-  code = "var __version = '" + _target_server_version.get_base() + "'";
+  code = get_variable_prefix() + "__version = '" +
+         _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
-  code = "var __version_num = " +
-         std::to_string(_target_server_version.get_major() * 10000 +
-                        _target_server_version.get_minor() * 100 +
-                        _target_server_version.get_patch()) +
-         ";";
-  exec_and_out_equals(code);
-}
-
-void Shell_py_script_tester::set_defaults() {
-  _interactive_shell->process_line("\\py");
-
-  output_handler.wipe_all();
-  _cout.str("");
-  _cout.clear();
-
-  Shell_script_tester::set_defaults();
-
-  std::string code =
-      "__current_year = '" + mysqlshdk::utils::fmttime("%Y") + "'";
-  exec_and_out_equals(code);
-
-  code = "__mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
-  exec_and_out_equals(code);
-
-  code = "__mysh_version = '" + std::string(MYSH_VERSION) + "'";
-  exec_and_out_equals(code);
-
-  code = "__version = '" + _target_server_version.get_base() + "'";
-  exec_and_out_equals(code);
-
-  code = "__version_num = " +
+  code = get_variable_prefix() + "__version_num = " +
          std::to_string(_target_server_version.get_major() * 10000 +
                         _target_server_version.get_minor() * 100 +
                         _target_server_version.get_patch());
   exec_and_out_equals(code);
+}
+
+void Shell_js_script_tester::set_defaults() {
+  _interactive_shell->process_line("\\js");
+  Shell_script_tester::set_defaults();
+}
+
+void Shell_py_script_tester::set_defaults() {
+  _interactive_shell->process_line("\\py");
+  Shell_script_tester::set_defaults();
 }
 
 void Shell_script_tester::execute_setup() {

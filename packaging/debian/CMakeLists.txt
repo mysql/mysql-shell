@@ -38,7 +38,7 @@ include(../../version.cmake)
 set(ONLY_PROTOBUF_VERSION 1)
 include(../../cmake/protobuf.cmake)
 
-set(YEAR      2018)  # FIXME automate somehow
+set(YEAR      2019)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)

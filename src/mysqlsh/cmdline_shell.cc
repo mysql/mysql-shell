@@ -747,7 +747,8 @@ void Command_line_shell::print_banner() {
   welcome_msg += MYSH_FULL_VERSION;
   welcome_msg += "\n\n";
   welcome_msg +=
-      "Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights "
+      "Copyright (c) 2016, " PACKAGE_YEAR
+      ", Oracle and/or its affiliates. All rights "
       "reserved.\n"
       "Oracle is a registered trademark of Oracle Corporation and/or its "
       "affiliates.\nOther names may be trademarks of their respective "
@@ -763,7 +764,9 @@ void Command_line_shell::print_cmd_line_helper() {
   help_msg += MYSH_FULL_VERSION;
   println(help_msg);
   println("");
-  println("Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.");
+  // Splitting line in two so the git hook does not complain
+  println("Copyright (c) 2016, " PACKAGE_YEAR ", "
+          "Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
