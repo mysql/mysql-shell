@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <limits>
 #ifdef _WIN32
 #include <io.h>
@@ -537,6 +538,26 @@ void Json_document_parser::parse_bson_integer(Bson_type type) {
   m_document->append(number);
 }
 
+bool Json_document_parser::valid_timestamp(double json_number) {
+  struct tm local_time_struct;
+  time_t tstamp = static_cast<time_t>(json_number);
+
+  // Converts the time_t version of the original number to
+  // a tm struct
+
+#ifdef _WIN32
+  localtime_s(&local_time_struct, &tstamp);
+#else
+  localtime_r(&tstamp, &local_time_struct);
+#endif
+
+  // Now gets the time_t value from that struct
+  time_t local_tstamp = mktime(&local_time_struct);
+
+  // If final value matches the original value, then it's a valid date
+  return json_number == local_tstamp;
+}
+
 /**
  * Processes BSON Timestamp Document
  */
@@ -560,24 +581,19 @@ void Json_document_parser::parse_bson_timestamp() {
                  {'}'}},
                 "processing extended JSON for $timestamp");
 
-  time_t tstamp = 0;
-  if (tstamp_n < std::numeric_limits<uint32_t>::min() ||
-      tstamp_n > std::numeric_limits<uint32_t>::max()) {
-    throw_invalid_json("a 32 bit unsigned integer",
-                       "processing extended JSON for $timestamp",
-                       m_source->offset());
+  if (!valid_timestamp(tstamp_n)) {
+    throw invalid_json(
+        "Invalid timestamp value found processing extended JSON for "
+        "$timestamp.",
+        m_source->offset());
   } else {
-    // This will truncate the decimal part of the double
-    // But we are ok with that given the data should not come
-    // like that anyway, we just validate it to be in the valid
-    // range.
-    tstamp = static_cast<uint32_t>(tstamp_n);
-  }
+    time_t tstamp = static_cast<time_t>(tstamp_n);
 
-  m_document->append("\"" +
-                     mysqlshdk::utils::fmttime(
-                         "%F %T", mysqlshdk::utils::Time_type::GMT, &tstamp) +
-                     "\"");
+    m_document->append("\"" +
+                       mysqlshdk::utils::fmttime(
+                           "%F %T", mysqlshdk::utils::Time_type::GMT, &tstamp) +
+                       "\"");
+  }
 }
 
 /**

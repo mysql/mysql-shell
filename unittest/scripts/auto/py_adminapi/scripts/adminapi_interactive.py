@@ -12,6 +12,12 @@
 # 1. Test dba.check_instance_configuration() for an instance not ready for cluster usage
 # 2. Test dba.check_instance_configuration() for an instance ready for cluster usage
 
+# This test will only be executed when required, i.e. when recording or when there's
+# no JavaScript, reason is that it only tests the AdminAPI, when there's JavaScript
+# it is thoroughly tested by JS tests
+
+#@ {not (__have_javascript and __test_execution_mode == "replay")}
+
 #@ Initialization
 testutil.deploy_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname, 'binlog_checksum': 'CRC32', 'gtid_mode': 'OFF', 'server_id': '0'})
 testutil.snapshot_sandbox_conf(__mysql_sandbox_port1);

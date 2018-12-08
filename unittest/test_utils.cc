@@ -377,7 +377,12 @@ std::string Shell_core_test_wrapper::context_identifier() {
     ret_val.append(test_info->name());
   }
 
-  if (!_custom_context.empty()) ret_val.append(": " + _custom_context);
+  if (!_custom_context.empty()) {
+    if (ret_val.empty())
+      ret_val = _custom_context;
+    else
+      ret_val.append(": " + _custom_context);
+  }
 
   return ret_val;
 }

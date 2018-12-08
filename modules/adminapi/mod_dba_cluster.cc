@@ -1834,9 +1834,9 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL13)
  */
 #if DOXYGEN_JS
-Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}
+Undefined Cluster::checkInstanceState(InstanceDef instance) {}
 #elif DOXYGEN_PY
-None Cluster::check_instance_state(InstanceDef instance, str password) {}
+None Cluster::check_instance_state(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::check_instance_state(

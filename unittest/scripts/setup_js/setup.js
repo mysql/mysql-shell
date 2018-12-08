@@ -56,14 +56,14 @@ function EXPECT_EQ(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
-    var context = "<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }
 
 function EXPECT_CONTAINS(expected, actual) {
   if (actual.indexOf(expected) < 0) {
-    var context = "<red>Tested text doesn't contain expected text:</red>\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested text doesn't contain expected text:</red>\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
     testutil.fail(context);
   }
 }
@@ -73,7 +73,7 @@ function EXPECT_ARRAY_CONTAINS(expected, actual) {
     if (expected === actual[i]) return;
   }
 
-  var context = "<red>Tested array doesn't contain expected value:</red>\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Expected:</yellow> " + expected;
+  var context = "<b>Context:</b> " + __test_context + "\n<red>Tested array doesn't contain expected value:</red>\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Expected:</yellow> " + expected;
   testutil.fail(context);
 }
 
@@ -81,14 +81,14 @@ function EXPECT_NE(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (expected == actual) {
-    var context = "<red>Tested values don't differ as expected:</red> "+note+"\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't differ as expected:</red> "+note+"\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
     testutil.fail(context);
   }
 }
 
 function EXPECT_NOT_CONTAINS(expected, actual) {
   if (actual.indexOf(expected) >= 0) {
-    var context = "<red>Tested text contains checked text, but it shouldn't:</red>\n\t<yellow>Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested text contains checked text, but it shouldn't:</red>\n\t<yellow>Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
     testutil.fail(context);
   }
 }
@@ -96,7 +96,7 @@ function EXPECT_NOT_CONTAINS(expected, actual) {
 function EXPECT_ARRAY_NOT_CONTAINS(expected, actual) {
   for (var i = 0; i < actual.length; ++i) {
     if (expected === actual[i]) {
-      var context = "<red>Tested array contains checked value, but it shouldn't:</red>\n\t<yellow>Array:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Checked Value:</yellow> " + expected;
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested array contains checked value, but it shouldn't:</red>\n\t<yellow>Array:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Checked Value:</yellow> " + expected;
       testutil.fail(context);
     }
   }
@@ -104,14 +104,14 @@ function EXPECT_ARRAY_NOT_CONTAINS(expected, actual) {
 
 function EXPECT_TRUE(value) {
   if (!value) {
-    var context = "<red>Tested value expected to be true but is false</red>";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be true but is false</red>";
     testutil.fail(context);
   }
 }
 
 function EXPECT_FALSE(value) {
   if (value) {
-    var context = "<red>Tested value expected to be false but is true</red>";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be false but is true</red>";
     testutil.fail(context);
   }
 }
@@ -119,10 +119,10 @@ function EXPECT_FALSE(value) {
 function EXPECT_THROWS(func, etext) {
   try {
     func();
-    testutil.fail("<red>Missing expected exception throw like " + etext + "</red>");
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
     if (err.message.indexOf(etext) < 0) {
-      testutil.fail("<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
   }
 }
@@ -131,7 +131,7 @@ function EXPECT_OUTPUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0 && err.indexOf(text) < 0) {
-    var context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }
@@ -140,7 +140,7 @@ function EXPECT_STDOUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0) {
-    var context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }
@@ -149,7 +149,7 @@ function EXPECT_STDERR_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (err.indexOf(text) < 0) {
-    var context = "<red>Missing error output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing error output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }
@@ -159,7 +159,7 @@ function EXPECT_SHELL_LOG_CONTAINS(text) {
   var match_list = testutil.grepFile(log_path, text);
   if (match_list.length === 0){
     var log_out = testutil.catFile(log_path);
-    var context = "<red>Missing log output:</red> " + text + "\n<yellow>Actual log output:</yellow> " + log_out;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing log output:</red> " + text + "\n<yellow>Actual log output:</yellow> " + log_out;
     testutil.fail(context);
   }
 }
@@ -169,7 +169,7 @@ function EXPECT_SHELL_LOG_NOT_CONTAINS(text) {
   var match_list = testutil.grepFile(log_path, text);
   if (match_list.length !== 0){
     var log_out = testutil.catFile(log_path);
-    var context = "<red>Unexpected log output:</red> " + text + "\n<yellow>Full log output:</yellow> " + log_out;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected log output:</red> " + text + "\n<yellow>Full log output:</yellow> " + log_out;
     testutil.fail(context);
   }
 }
@@ -182,14 +182,14 @@ function WIPE_SHELL_LOG() {
 function EXPECT_STDOUT_EMPTY() {
   var out = testutil.fetchCapturedStdout(false);
   if (out != "") {
-    testutil.fail("<red>Stdout expected to be empty but contains</red>: " + out);
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Stdout expected to be empty but contains</red>: " + out);
   }
 }
 
 function EXPECT_STDERR_EMPTY() {
   var err = testutil.fetchCapturedStderr(false);
   if (err != "") {
-    testutil.fail("<red>Stderr expected to be empty but contains</red>: " + err);
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Stderr expected to be empty but contains</red>: " + err);
   }
 }
 
@@ -197,7 +197,7 @@ function EXPECT_OUTPUT_NOT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) >= 0 || err.indexOf(text) >= 0) {
-    var context = "<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }

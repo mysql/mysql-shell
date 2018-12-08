@@ -115,6 +115,7 @@ class Shell_script_tester : public Crud_test_wrapper {
  protected:
   virtual void set_defaults();
   virtual void reset_shell();
+  virtual void set_scripting_context();
 
   std::streambuf *_cout_backup;
   std::ostringstream _cout;
@@ -138,6 +139,8 @@ class Shell_script_tester : public Crud_test_wrapper {
   virtual std::string get_chunk_by_line_token() = 0;
   virtual std::string get_assumptions_token() = 0;
   virtual std::string get_variable_prefix() = 0;
+  virtual std::string get_current_mode_command();
+  virtual std::string get_switch_mode_command() = 0;
   virtual shcore::NamingStyle get_naming_style() = 0;
 
   std::string _extension;
@@ -197,6 +200,7 @@ class Shell_js_script_tester : public Shell_script_tester {
   virtual std::string get_chunk_by_line_token() { return "//@#"; }
   virtual std::string get_assumptions_token() { return "// Assumptions:"; }
   virtual std::string get_variable_prefix() { return "var "; }
+  virtual std::string get_switch_mode_command() { return "\\js"; }
   virtual shcore::NamingStyle get_naming_style() {
     return shcore::LowerCamelCase;
   }
@@ -215,6 +219,7 @@ class Shell_py_script_tester : public Shell_script_tester {
   virtual std::string get_chunk_by_line_token() { return "#@#"; }
   virtual std::string get_assumptions_token() { return "# Assumptions:"; }
   virtual std::string get_variable_prefix() { return ""; }
+  virtual std::string get_switch_mode_command() { return "\\py"; }
   virtual shcore::NamingStyle get_naming_style() {
     return shcore::LowerCaseUnderscores;
   }

@@ -6,13 +6,7 @@
 //@ run command before pager is enabled in JS mode
 |1111|
 
-//@ call enablePager()
-||
-
 //@ run command while pager is enabled in JS mode
-||
-
-//@ call disablePager()
 ||
 
 //@ run command after pager has been disabled in JS mode
@@ -24,13 +18,7 @@
 //@ run command before pager is enabled in Python mode
 |4444|
 
-//@ call enable_pager()
-||
-
 //@ run command while pager is enabled in Python mode
-||
-
-//@ call disable_pager()
 ||
 
 //@ run command after pager has been disabled in Python mode
