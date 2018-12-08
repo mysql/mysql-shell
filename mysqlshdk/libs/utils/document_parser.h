@@ -197,6 +197,7 @@ class Json_document_parser : public Document_parser {
   void parse_bson_integer(Bson_type type);
   void parse_bson_regex();
   void parse_bson_binary();
+  bool valid_timestamp(double json_number);
 
   void throw_premature_end();
   void throw_invalid_json(const std::string &missing,

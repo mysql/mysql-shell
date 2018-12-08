@@ -284,24 +284,22 @@ EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Unexpected data, expected to fin
 import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},"regExpression":{$regex:456,$options:"i"}})
 EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Unexpected data, expected to find a string processing extended JSON for $regex at offset 70");
 
-//@<> Importing same document but using +1.3e+10
-import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:+1.3e+10,i:1}}})
-EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Unexpected data, expected to find a 32 bit unsigned integer processing extended JSON for $timestamp at offset 97");
+//@<> Importing timestamp with value out of range
+import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},aTime:{$timestamp:{t:+1.3e+20,i:1}}})
+print_doc();
+EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Invalid timestamp value found processing extended JSON for $timestamp. at offset 99");
 
-//@<> Importing same document but using negative value
-import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:-1500,i:1}}})
-EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Unexpected data, expected to find a 32 bit unsigned integer processing extended JSON for $timestamp at offset 91");
-
-//@<> Importing document, time is 1 above allowed limit
-import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:4294967296,i:1}},negativeInteger:-450})
-EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Unexpected data, expected to find a 32 bit unsigned integer processing extended JSON for $timestamp at offset 96");
-
-//@<> Importing document, time is in the max allowed limit
-import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:4294967295,i:1}},negativeInteger:-450})
+//@<> Importing same document but epoch time
+import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},aTime:{$timestamp:{t:0,i:1}}})
 print_doc();
 delete_doc();
-EXPECT_STDOUT_CONTAINS('{"_id": "5c014aa8087579bdb2e6afef", "truncatedTime": "2106-02-07 06:28:15", "negativeInteger": -450}');
+EXPECT_STDOUT_CONTAINS('{"_id": "5c014aa8087579bdb2e6afef", "aTime": "1970-01-01 00:00:00"}');
 
+//@<> Importing same document but negative time
+import_doc({_id:{$oid:"5c014aa8087579bdb2e6afef"},aTime:{$timestamp:{t:-1,i:1}}})
+print_doc();
+delete_doc();
+EXPECT_STDOUT_CONTAINS('{"_id": "5c014aa8087579bdb2e6afef", "aTime": "1969-12-31 23:59:59"}');
 
 //@<> Importing document, with $oid conversion disabled
 var document = {_id:"01234567890123456789", objectId:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:4294967295,i:1}},negativeInteger:-450};

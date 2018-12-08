@@ -1045,6 +1045,9 @@ void Shell_script_tester::execute_script(const std::string &path,
 
         // Executes the file line by line
         if (enabled) {
+          _custom_context = "while executing chunk \"" + chunk.def->line +
+                            "\" at line " + std::to_string(chunk.def->linenum);
+          set_scripting_context();
           auto &code = chunk.code;
           std::string full_statement;
           for (size_t chunk_item = 0; chunk_item < code.size(); chunk_item++) {
@@ -1441,11 +1444,55 @@ void Shell_script_tester::set_defaults() {
 void Shell_js_script_tester::set_defaults() {
   _interactive_shell->process_line("\\js");
   Shell_script_tester::set_defaults();
+
+#ifdef HAVE_V8
+  exec_and_out_equals("var __have_javascript = true");
+#else
+  exec_and_out_equals("var __have_javascript = false");
+#endif
 }
 
 void Shell_py_script_tester::set_defaults() {
   _interactive_shell->process_line("\\py");
   Shell_script_tester::set_defaults();
+
+#ifdef HAVE_V8
+  exec_and_out_equals("__have_javascript = True");
+#else
+  exec_and_out_equals("__have_javascript = False");
+#endif
+}
+
+std::string Shell_script_tester::get_current_mode_command() {
+  switch (_interactive_shell->shell_context()->interactive_mode()) {
+    case shcore::IShell_core::Mode::SQL:
+      return "\\sql";
+    case shcore::IShell_core::Mode::JavaScript:
+      return "\\js";
+    case shcore::IShell_core::Mode::Python:
+      return "\\py";
+    case shcore::IShell_core::Mode::None:
+      return "";
+  }
+  return "";
+}
+
+void Shell_script_tester::set_scripting_context() {
+  std::string current = get_current_mode_command();
+  std::string required = get_switch_mode_command();
+
+  std::string context = context_identifier();
+  context = shcore::str_replace(context, "'", "\\'");
+  std::string code = get_variable_prefix() += "__test_context = '";
+  code += context + "';";
+
+  if (current != required) {
+    execute_internal(required);
+    execute_internal(code);
+    execute_internal(current);
+  } else {
+    execute_internal(code);
+  }
 }
 
 void Shell_script_tester::execute_setup() {

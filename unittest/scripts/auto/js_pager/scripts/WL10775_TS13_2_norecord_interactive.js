@@ -6,16 +6,12 @@ shell.options.pager = __pager.cmd + ' --append';
 //@ run command before pager is enabled in JS mode
 1111
 
-//@ call enablePager()
-shell.enablePager();
-
 //@ run command while pager is enabled in JS mode
+shell.enablePager();
 2222
 
-//@ call disablePager()
-shell.disablePager();
-
 //@ run command after pager has been disabled in JS mode
+shell.disablePager();
 3333
 
 //@ switch to Python mode
@@ -24,16 +20,12 @@ shell.disablePager();
 //@ run command before pager is enabled in Python mode
 4444
 
-//@ call enable_pager()
-shell.enable_pager();
-
 //@ run command while pager is enabled in Python mode
+shell.enable_pager();
 5555
 
-//@ call disable_pager()
-shell.disable_pager();
-
 //@ run command after pager has been disabled in Python mode
+shell.disable_pager();
 6666
 
 //@ switch back to JS mode

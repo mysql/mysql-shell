@@ -374,7 +374,7 @@ class Field_formatter {
       return append(tmp.data(), tmp.length());
     } else {
       auto data = row->get_as_string(index);
-      append(data.c_str(), data.size());
+      return append(data.c_str(), data.size());
     }
 
     return true;
