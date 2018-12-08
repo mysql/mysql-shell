@@ -35,7 +35,7 @@ VERSION = (2, 1, 0, '', 0)
 
 VERSION_STRING = "%s.%s.%s" % VERSION[0:3]
 
-COPYRIGHT_YEAR = "2016, 2018, "
+COPYRIGHT_YEAR = "2016, 2019, "
 
 COPYRIGHT_FULL = (
     "Copyright (c) %s Oracle and/or its affiliates. All rights reserved.\n\n"

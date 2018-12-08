@@ -1,7 +1,7 @@
 //@<OUT> Shell Help {__os_type != 'windows'}
 MySQL Shell <<<__mysh_full_version>>>
 
-Copyright (c) 2016, <<<__current_year>>>, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, <<<__package_year>>>, Oracle and/or its affiliates. All rights reserved.
 
 Oracle is a registered trademark of Oracle Corporation and/or its
 affiliates. Other names may be trademarks of their respective
@@ -152,11 +152,11 @@ $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
 $ mysqlsh -- util check-for-server-upgrade root@localhost --output-format=JSON
 $ mysqlsh mysqlx://user@host/db --import ~/products.json shop
-	
+
 //@<OUT> Shell Help {__os_type == 'windows'}
 MySQL Shell <<<__mysh_full_version>>>
 
-Copyright (c) 2016, <<<__current_year>>>, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, <<<__package_year>>>, Oracle and/or its affiliates. All rights reserved.
 
 Oracle is a registered trademark of Oracle Corporation and/or its
 affiliates. Other names may be trademarks of their respective

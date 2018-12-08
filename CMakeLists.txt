@@ -114,6 +114,12 @@ set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
 )
 
+### Configuring package year
+### This can't be automated because we require generating
+### packages to be released in January by the end of the year.
+set(PACKAGE_YEAR 2019)
+add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
+
 ###
 ### Initial configuration
 ###

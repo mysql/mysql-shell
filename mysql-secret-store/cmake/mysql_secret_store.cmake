@@ -22,7 +22,7 @@
 set(client_input_file "${CMAKE_SOURCE_DIR}/mysql-secret-store/cmake/client.cc.in")
 
 function(add_helper_executable)
-  add_definitions("-DMYSH_HELPER_COPYRIGHT=\"Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.\"")
+  add_definitions("-DMYSH_HELPER_COPYRIGHT=\"Copyright (c) 2018, ${PACKAGE_YEAR}, Oracle and/or its affiliates. All rights reserved.\"")
 
   configure_file(${client_input_file} client.cc)
 

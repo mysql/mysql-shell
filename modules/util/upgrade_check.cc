@@ -110,7 +110,8 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
   shcore::Translation_writer writer(filename);
 
   const char *oracle_copyright =
-      "Copyright (c) 2018, Oracle and/or its affiliates. All rights "
+      "Copyright (c) 2017, " PACKAGE_YEAR
+      ", Oracle and/or its affiliates. All rights "
       "reserved.\n\n"
       "This program is free software; you can redistribute it and/or modify\n"
       "it under the terms of the GNU General Public License, version 2.0,\n"
