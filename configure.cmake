@@ -244,6 +244,7 @@ CHECK_INCLUDE_FILES (sys/wait.h HAVE_SYS_WAIT_H)
 CHECK_INCLUDE_FILES (sys/param.h HAVE_SYS_PARAM_H) # Used by NDB/libevent
 CHECK_INCLUDE_FILES (fnmatch.h HAVE_FNMATCH_H)
 CHECK_INCLUDE_FILES (sys/un.h HAVE_SYS_UN_H)
+CHECK_INCLUDE_FILES (bsd/string.h HAVE_BSD_STRING_H)
 
 #
 # Tests for functions
@@ -293,6 +294,8 @@ CHECK_FUNCTION_EXISTS (ntohll HAVE_HTONLL)
 
 CHECK_FUNCTION_EXISTS (clock_gettime DNS_USE_CPU_CLOCK_FOR_ID)
 CHECK_FUNCTION_EXISTS (epoll_create HAVE_EPOLL)
+CHECK_FUNCTION_EXISTS (memset_s HAVE_MEMSET_S)
+CHECK_FUNCTION_EXISTS (explicit_bzero HAVE_EXPLICIT_BZERO)
 # Temperarily  Quote event port out as we encounter error in port_getn
 # on solaris x86
 # CHECK_FUNCTION_EXISTS (port_create HAVE_EVENT_PORTS)

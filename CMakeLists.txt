@@ -278,6 +278,13 @@ SET(INSTALL_SHAREDIR "share/mysqlsh")
 ## Configure style system detection(generation of config.h)
 ##
 INCLUDE(configure.cmake)
+
+## The following definition is required to have memset_s
+## available on the platforms that implement it
+IF (HAVE_MEMSET_S)
+  ADD_DEFINITIONS(-D__STDC_WANT_LIB_EXT1__=1)
+ENDIF()
+
 # This is used for the version_compile_machine variable.
 SET(MYSQL_MACHINE_TYPE ${CMAKE_SYSTEM_PROCESSOR})
 IF(CMAKE_SYSTEM_PROCESSOR MATCHES "i386" AND CMAKE_SIZEOF_VOID_P MATCHES 8)
