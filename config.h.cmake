@@ -1,4 +1,4 @@
-/* Copyright (c) 2009, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2009, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -68,6 +68,7 @@
 #cmakedefine HAVE_SYS_UN_H 1
 #cmakedefine HAVE_VIS_H 1
 #cmakedefine HAVE_SASL_SASL_H 1
+#cmakedefine HAVE_BSD_STRING_H 1
 
 /* Functions */
 #cmakedefine HAVE_ALIGNED_MALLOC 1
@@ -121,6 +122,9 @@
 #cmakedefine HAVE_TIMERCLEAR 1
 #cmakedefine HAVE_TIMERCMP 1
 #cmakedefine HAVE_TIMERISSET 1
+#cmakedefine HAVE_MEMSET_S 1
+#cmakedefine HAVE_EXPLICIT_BZERO 1
+
 
 /* WL2373 */
 #cmakedefine HAVE_SYS_TIME_H 1

@@ -32,6 +32,19 @@
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
 #endif
+
+#if defined HAVE_EXPLICIT_BZERO
+#if defined HAVE_BSD_STRING_H
+#include <bsd/string.h>
+#else
+#include <strings.h>
+#endif
+#elif defined HAVE_MEMSET_S
+#include <string.h>
+extern "C" {
+errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
+}
+#endif
 #endif
 
 #include <cctype>
@@ -1020,6 +1033,23 @@ bool match_glob(const std::string &pattern, const std::string &s,
 const char *get_long_version() {
   return "Ver " MYSH_FULL_VERSION " for " SYSTEM_TYPE " on " MACHINE_TYPE
          " - for MySQL " LIBMYSQL_VERSION " (" MYSQL_COMPILATION_COMMENT ")";
+}
+
+void clear_buffer(char *buffer, size_t size) {
+#ifdef _WIN32
+  SecureZeroMemory(buffer, size);
+#else
+#if defined HAVE_EXPLICIT_BZERO
+  explicit_bzero(buffer, size);
+#elif defined HAVE_MEMSET_S
+  memset_s(buffer, size, '\0', size);
+#else
+  volatile char *p = buffer;
+  while (size--) {
+    *p++ = '\0';
+  }
+#endif
+#endif
 }
 
 #ifdef _WIN32

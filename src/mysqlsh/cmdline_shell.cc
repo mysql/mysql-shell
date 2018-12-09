@@ -638,6 +638,10 @@ shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
       return shcore::Prompt_result::CTRL_D;
   }
   *ret = tmp;
+
+  // BUG#28915716: Cleans up the memory containing the password
+  shcore::clear_buffer(tmp, ret->size());
+
   free(tmp);
   return shcore::Prompt_result::Ok;
 }

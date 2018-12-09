@@ -302,8 +302,8 @@ delete_doc();
 EXPECT_STDOUT_CONTAINS('{"_id": "5c014aa8087579bdb2e6afef", "aTime": "1969-12-31 23:59:59"}');
 
 //@<> Importing document, with $oid conversion disabled
-var document = {_id:"01234567890123456789", objectId:{$oid:"5c014aa8087579bdb2e6afef"},truncatedTime:{$timestamp:{t:4294967295,i:1}},negativeInteger:-450};
+var document = {_id:"01234567890123456789", objectId:{$oid:"5c014aa8087579bdb2e6afef"},negativeInteger:-450};
 import_doc(document, ["--convertBsonTypes", "--convertBsonOid=false"])
 print_doc();
 delete_doc();
-EXPECT_STDOUT_CONTAINS('{"_id": "01234567890123456789", "objectId": {"$oid": "5c014aa8087579bdb2e6afef"}, "truncatedTime": "2106-02-07 06:28:15", "negativeInteger": -450}');
+EXPECT_STDOUT_CONTAINS('{"_id": "01234567890123456789", "objectId": {"$oid": "5c014aa8087579bdb2e6afef"}, "negativeInteger": -450}');

@@ -41,6 +41,7 @@
 #include <cstring>
 
 #include "mysqlsh/get_password.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -128,10 +129,14 @@ char *mysh_get_tty_password(const char *opt_message) {
 
   _cputs("\n");
 
-  if (tmp != k_end_of_text)
-    return strdup(to);
-  else
-    return nullptr;
+  char *ret_val = nullptr;
+  if (tmp != k_end_of_text) {
+    ret_val = strdup(to);
+    // BUG#28915716: Cleans up the memory containing the password
+    shcore::clear_buffer(to, k_password_length);
+  }
+
+  return ret_val;
 }
 
 #else  // !_WIN32
@@ -287,7 +292,7 @@ char *mysh_get_tty_password(const char *opt_message) {
   // copy the password to buff and clear original (static) buffer
   strncpy(buff, passbuff, sizeof(buff) - 1);
 #ifdef _PASSWORD_LEN
-  memset(passbuff, 0, _PASSWORD_LEN);
+  shcore::clear_buffer(passbuff, _PASSWORD_LEN);
 #endif  // _PASSWORD_LEN
 #else   // ! HAVE_GETPASS
   Prompt_password prompt{message};
@@ -296,7 +301,9 @@ char *mysh_get_tty_password(const char *opt_message) {
     return nullptr;
   }
 #endif
-  return strdup(buff);
+  char *ret_val = strdup(buff);
+  shcore::clear_buffer(buff, k_password_length);
+  return ret_val;
 }
 
 #endif  // !_WIN32
