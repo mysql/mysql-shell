@@ -22,8 +22,8 @@
  */
 
 #include <string>
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"

@@ -31,8 +31,8 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_replicaset.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
@@ -111,7 +111,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   uint64_t get_id() const { return _id; }
   void set_id(uint64_t id) { _id = id; }
 
-  std::shared_ptr<ReplicaSet> get_default_replicaset() {
+  std::shared_ptr<ReplicaSet> get_default_replicaset() const {
     return _default_replica_set;
   }
 
@@ -123,10 +123,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const std::string &name, bool multi_primary,
       const std::string &group_name, bool is_adopted);
 
-  std::string get_name() { return _name; }
-  std::string get_description() { return _description; }
+  std::string get_name() const { return _name; }
+  std::string get_description() const { return _description; }
   void assert_valid(const std::string &option_name) const;
-  void set_description(std::string description) { _description = description; }
+  void set_description(const std::string &description) {
+    _description = description;
+  }
 
   void set_name(const std::string &name) { _name = name; }
 
@@ -158,7 +160,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const std::string &replication_user, const std::string &replication_pwd,
       const std::string &group_name);
 
-  std::shared_ptr<mysqlshdk::db::ISession> get_group_session() {
+  std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
     return _group_session;
   }
 

@@ -26,8 +26,8 @@
 #include <vector>
 #include "db/mysql/session.h"
 #include "interactive_global_dba.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysql/instance.h"

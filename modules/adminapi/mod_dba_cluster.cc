@@ -21,8 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/mod_dba_cluster.h"
-
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -30,14 +28,15 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/dba/cluster_options.h"
-#include "modules/adminapi/dba/cluster_set_option.h"
-#include "modules/adminapi/dba/cluster_status.h"
-#include "modules/adminapi/dba/remove_instance.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_metadata_storage.h"
-#include "modules/adminapi/mod_dba_replicaset.h"
-#include "modules/adminapi/mod_dba_sql.h"
+#include "modules/adminapi/cluster/cluster_options.h"
+#include "modules/adminapi/cluster/cluster_set_option.h"
+#include "modules/adminapi/cluster/cluster_status.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/replicaset/remove_instance.h"
+#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -263,8 +262,6 @@ shcore::Value Cluster::add_seed_instance(
   shcore::Value ret_val;
 
   MetadataStorage::Transaction tx(_metadata_storage);
-  std::string default_replication_user =
-      "rpl_user";  // Default for V1.0 is rpl_user
   std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
 
   // Check if we have a Default ReplicaSet, if so it means we already added the
@@ -1214,7 +1211,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
                     state.source_state != ManagedInstance::OnlineRO);
 
     // Create the Cluster_status command and execute it.
-    Cluster_status op_status(this, extended, query_members);
+    Cluster_status op_status(*this, extended, query_members);
     // Always execute finish when leaving "try catch".
     auto finally =
         shcore::on_leave_scope([&op_status]() { op_status.finish(); });
@@ -1292,7 +1289,7 @@ shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
   Unpack_options(options).optional("all", &all).end();
 
   // Create the Cluster_options command and execute it.
-  Cluster_options op_option(this, all);
+  Cluster_options op_option(*this, all);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_option]() { op_option.finish(); });
   // Prepare the Cluster_options command execution (validations).

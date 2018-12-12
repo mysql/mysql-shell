@@ -29,10 +29,10 @@
 #include <utility>
 
 #include "interactive/interactive_dba_cluster.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
@@ -521,7 +521,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
     mysqlsh::dba::get_status_variable(dba_cluster->get_group_session(),
                                       "group_replication_primary_member",
-                                      master_uuid, false);
+                                      &master_uuid, false);
   }
 
   if (adopt_from_gr) {
@@ -968,7 +968,7 @@ bool Global_dba::resolve_cnf_path(
 
   // If the instance is a sandbox, we can obtain directly the path from
   // the datadir
-  mysqlsh::dba::get_port_and_datadir(session, port, datadir);
+  mysqlsh::dba::get_port_and_datadir(session, &port, &datadir);
   std::string path_separator = datadir.substr(datadir.size() - 1);
   auto path_elements = shcore::split_string(datadir, path_separator);
 
@@ -1323,8 +1323,8 @@ bool Global_dba::prompt_super_read_only(
   // Get the status of super_read_only in order to verify if we need to
   // prompt the user to disable it
   int super_read_only = 0;
-  mysqlsh::dba::get_server_variable(session, "super_read_only", super_read_only,
-                                    false);
+  mysqlsh::dba::get_server_variable(session, "super_read_only",
+                                    &super_read_only, false);
 
   if (super_read_only) {
     println("The MySQL instance at '" + active_session_address +

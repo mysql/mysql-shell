@@ -31,8 +31,8 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_common.h"
 #include "modules/interactive_object_wrapper.h"
 
 namespace shcore {

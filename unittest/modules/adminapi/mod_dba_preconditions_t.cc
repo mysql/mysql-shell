@@ -21,8 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/dba/preconditions.h"
-
+#include "modules/adminapi/common/preconditions.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"

@@ -25,12 +25,12 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "modules/adminapi/dba/provision.h"
-#include "modules/adminapi/dba/validations.h"
-#include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"

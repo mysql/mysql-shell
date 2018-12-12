@@ -25,7 +25,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include <memory>
 #include <string>
 #include <vector>
-#include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"

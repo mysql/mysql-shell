@@ -27,8 +27,8 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/mysql/instance.h"

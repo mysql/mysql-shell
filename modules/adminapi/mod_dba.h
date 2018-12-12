@@ -31,9 +31,9 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
@@ -81,7 +81,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   None stop_sandbox_instance(int port, dict options);
 #endif
 
-  Dba(shcore::IShell_core *owner);
+  explicit Dba(shcore::IShell_core *owner);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;

@@ -21,7 +21,7 @@
 
 #include "unittest/test_utils/admin_api_test.h"
 #include <fstream>
-#include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "test_utils/mocks/mysqlshdk/libs/db/mock_result.h"

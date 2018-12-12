@@ -36,13 +36,19 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/dba/validations.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "modules/adminapi/mod_dba_sql.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/dba/check_instance.h"
+#include "modules/adminapi/dba/configure_instance.h"
+#include "modules/adminapi/dba/configure_local_instance.h"
+#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+
 #include "scripting/object_factory.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
@@ -57,13 +63,6 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-
-#include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_metadata_storage.h"
-
-#include "modules/adminapi/dba/check_instance.h"
-#include "modules/adminapi/dba/configure_instance.h"
-#include "modules/adminapi/dba/configure_local_instance.h"
 
 /*
   Sessions used by AdminAPI
@@ -152,8 +151,6 @@ using std::placeholders::_1;
 
 namespace mysqlsh {
 namespace dba {
-
-using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 using mysqlshdk::db::uri::formats::only_transport;
@@ -371,7 +368,7 @@ void Dba::init() {
   _provisioning_interface.reset(new ProvisioningInterface(local_mp_path));
 }
 
-void Dba::set_member(const std::string &prop, Value value) {
+void Dba::set_member(const std::string &prop, shcore::Value value) {
   if (prop == "verbose") {
     try {
       int verbosity = value.as_int();
@@ -399,7 +396,7 @@ REGISTER_HELP_PROPERTY(verbose, dba);
 #if DOXYGEN_JS || DOXYGEN_PY
 Cluster Dba::verbose;
 #endif
-Value Dba::get_member(const std::string &prop) const {
+shcore::Value Dba::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "verbose") {
@@ -603,12 +600,13 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
   // TODO(alfredo) - suggest running dba.diagnose() in case it's a dead
   // cluster that needs reboot
-  bool connect_to_primary = true;
-  bool fallback_to_anything = true;
-  bool default_cluster = true;
   std::string cluster_name;
 
   try {
+    bool connect_to_primary = true;
+    bool fallback_to_anything = true;
+    bool default_cluster = true;
+
     check_function_preconditions("Dba.getCluster", get_active_shell_session());
 
     if (args.size() > 1) {
@@ -1046,7 +1044,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   }
 
   // Available options
-  Value ret_val;
+  shcore::Value ret_val;
   // SSL values are only set if available from args.
   std::string ssl_mode, group_name, local_address, group_seeds,
       exit_state_action;
@@ -1203,12 +1201,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
-      throw Exception::argument_error(
+      throw shcore::Exception::argument_error(
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
 
     if (adopt_from_gr && state.source_type != GRInstanceType::GroupReplication)
-      throw Exception::argument_error(
+      throw shcore::Exception::argument_error(
           "The adoptFromGR option is set to true, but there is no replication "
           "group to adopt");
 
@@ -1279,40 +1277,43 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       }
     }
 
-    Value::Map_type_ref options(new shcore::Value::Map_type);
+    shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list new_args;
 
     auto instance_def = group_session->get_connection_options();
 
     // Only set SSL option if available from createCluster options (not empty).
     // Do not set default values to avoid validation issues for addInstance.
-    if (!ssl_mode.empty()) (*options)["memberSslMode"] = Value(ssl_mode);
+    if (!ssl_mode.empty())
+      (*options)["memberSslMode"] = shcore::Value(ssl_mode);
 
     // Set IP whitelist
-    if (!ip_whitelist.empty()) (*options)["ipWhitelist"] = Value(ip_whitelist);
+    if (!ip_whitelist.empty())
+      (*options)["ipWhitelist"] = shcore::Value(ip_whitelist);
 
     // Set local address
     if (!local_address.empty())
-      (*options)["localAddress"] = Value(local_address);
+      (*options)["localAddress"] = shcore::Value(local_address);
 
     // Set group seeds
-    if (!group_seeds.empty()) (*options)["groupSeeds"] = Value(group_seeds);
+    if (!group_seeds.empty())
+      (*options)["groupSeeds"] = shcore::Value(group_seeds);
 
     // Set exitStateAction
     if (!exit_state_action.empty())
-      (*options)["exitStateAction"] = Value(exit_state_action);
+      (*options)["exitStateAction"] = shcore::Value(exit_state_action);
 
     // Set memberWeight
     if (!member_weight.is_null())
-      (*options)["memberWeight"] = Value(*member_weight);
+      (*options)["memberWeight"] = shcore::Value(*member_weight);
 
     // Set failoverConsistency
     if (!failover_consistency.is_null())
-      (*options)["failoverConsistency"] = Value(*failover_consistency);
+      (*options)["failoverConsistency"] = shcore::Value(*failover_consistency);
 
     // Set expelTimeout
     if (!expel_timeout.is_null())
-      (*options)["expelTimeout"] = Value(*expel_timeout);
+      (*options)["expelTimeout"] = shcore::Value(*expel_timeout);
 
     new_args.push_back(shcore::Value(options));
 
@@ -1336,7 +1337,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (adopt_from_gr) cluster->get_default_replicaset()->adopt_from_gr();
 
     // If it reaches here, it means there are no exceptions
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
+    ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     tx.commit();
     // We catch whatever to do final processing before bubbling up the exception
@@ -1455,7 +1456,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("dropMetadataSchema"))
 
-  return Value();
+  return shcore::Value();
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceConfiguration, dba);
@@ -1926,13 +1927,15 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
             std::string pwd;
             if (instance_def.has_password()) pwd = instance_def.get_password();
 
-            sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
+            shcore::sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?",
+                                          0);
             create_user << remote_root << pwd;
             create_user.done();
             session->execute(create_user);
           }
           {
-            sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
+            shcore::sqlstring grant(
+                "GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
             grant << remote_root;
             grant.done();
             session->execute(grant);
@@ -2820,7 +2823,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
-  Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
+  shcore::Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
 
@@ -2938,7 +2941,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // Schema
       if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
                                                instance_session_address))
-        throw Exception::runtime_error(
+        throw shcore::Exception::runtime_error(
             "The current session instance does not belong "
             "to the cluster: '" +
             cluster->get_name() + "'.");
@@ -2960,10 +2963,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
         if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
                                                  value))
-          throw Exception::runtime_error("The instance '" + value +
-                                         "' does not belong "
-                                         "to the cluster: '" +
-                                         cluster->get_name() + "'.");
+          throw shcore::Exception::runtime_error("The instance '" + value +
+                                                 "' does not belong "
+                                                 "to the cluster: '" +
+                                                 cluster->get_name() + "'.");
       }
 
       // Ensure that all of the instances specified on the 'rejoinInstances'
@@ -2983,10 +2986,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
         if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
                                                  value))
-          throw Exception::runtime_error("The instance '" + value +
-                                         "' does not belong "
-                                         "to the cluster: '" +
-                                         cluster->get_name() + "'.");
+          throw shcore::Exception::runtime_error("The instance '" + value +
+                                                 "' does not belong "
+                                                 "to the cluster: '" +
+                                                 cluster->get_name() + "'.");
       }
       // Get the all the instances and their status
       std::vector<std::pair<std::string, std::string>> instances_status =
@@ -3034,7 +3037,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
     // Check if the cluster is empty
     if (metadata->is_cluster_empty(cluster->get_id()))
-      throw Exception::runtime_error("The cluster has no instances in it.");
+      throw shcore::Exception::runtime_error(
+          "The cluster has no instances in it.");
 
     // 4. Verify the status of all instances of the cluster:
     // 4.1 None of the instances can belong to a GR Group
@@ -3069,7 +3073,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // the previous ssl mode must be preserved
       std::string gr_ssl_mode;
       get_server_variable(group_session, "global.group_replication_ssl_mode",
-                          gr_ssl_mode);
+                          &gr_ssl_mode);
       shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
       (*options)["memberSslMode"] = shcore::Value(gr_ssl_mode);
       new_args.push_back(shcore::Value(options));
@@ -3201,15 +3205,15 @@ static void validate_instance_belongs_to_cluster(
         err_msg += " Please use <Cluster>." + restore_function +
                    "() to restore from the quorum loss.";
       }
-      throw Exception::runtime_error(err_msg);
+      throw shcore::Exception::runtime_error(err_msg);
     }
 
     case GRInstanceType::GroupReplication:
-      throw Exception::runtime_error("The MySQL instance '" +
-                                     member_session_address +
-                                     "' belongs "
-                                     "GR group that is not managed as an "
-                                     "InnoDB cluster. ");
+      throw shcore::Exception::runtime_error(
+          "The MySQL instance '" + member_session_address +
+          "' belongs "
+          "GR group that is not managed as an "
+          "InnoDB cluster. ");
 
     case GRInstanceType::Standalone:
     case GRInstanceType::StandaloneWithMetadata:
@@ -3280,8 +3284,8 @@ void Dba::validate_instances_status_reboot_cluster(
                instance_address.c_str());
       session = get_session(connection_options);
     } catch (std::exception &e) {
-      throw Exception::runtime_error("Could not open connection to " +
-                                     instance_address + "");
+      throw shcore::Exception::runtime_error("Could not open connection to " +
+                                             instance_address + "");
     }
 
     log_info("Checking state of instance '%s'", instance_address.c_str());
@@ -3347,7 +3351,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   // Get @@GLOBAL.GTID_EXECUTED
   std::string gtid_executed_current;
   get_server_variable(instance_session, "GLOBAL.GTID_EXECUTED",
-                      gtid_executed_current);
+                      &gtid_executed_current);
 
   std::string msg = "The current session instance GLOBAL.GTID_EXECUTED is: " +
                     gtid_executed_current;
@@ -3382,14 +3386,15 @@ void Dba::validate_instances_gtid_reboot_cluster(
                instance_address.c_str());
       session = get_session(connection_options);
     } catch (std::exception &e) {
-      throw Exception::runtime_error("Could not open a connection to " +
-                                     instance_address + ": " + e.what() + ".");
+      throw shcore::Exception::runtime_error("Could not open a connection to " +
+                                             instance_address + ": " +
+                                             e.what() + ".");
     }
 
     std::string gtid_executed;
 
     // Get @@GLOBAL.GTID_EXECUTED
-    get_server_variable(session, "GLOBAL.GTID_EXECUTED", gtid_executed);
+    get_server_variable(session, "GLOBAL.GTID_EXECUTED", &gtid_executed);
 
     // Close the session
     session->close();
@@ -3414,7 +3419,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
   // Check if the most updated instance is not the current session instance
   if (!(most_updated_instance.first == active_session_address)) {
-    throw Exception::runtime_error(
+    throw shcore::Exception::runtime_error(
         "The active session instance isn't the most updated "
         "in comparison with the ONLINE instances of the Cluster's "
         "metadata. Please use the most up to date instance: '" +

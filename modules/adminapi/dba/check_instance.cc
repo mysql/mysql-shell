@@ -23,12 +23,11 @@
 
 #include <memory>
 
+#include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
-
-#include "modules/adminapi/dba/provision.h"
-#include "modules/adminapi/dba/validations.h"
-#include "modules/adminapi/instance_validations.h"
-#include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"

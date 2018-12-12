@@ -27,7 +27,7 @@
 #endif
 
 #include <algorithm>
-#include "modules/adminapi/mod_dba_sql.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"

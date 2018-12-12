@@ -27,9 +27,9 @@
 
 #include "modules/adminapi/dba/configure_local_instance.h"
 
-#include "modules/adminapi/dba/provision.h"
+#include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"

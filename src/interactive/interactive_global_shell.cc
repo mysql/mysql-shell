@@ -22,7 +22,6 @@
  */
 
 #include "interactive_global_shell.h"
-#include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "shellcore/base_session.h"

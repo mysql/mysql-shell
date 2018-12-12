@@ -1,0 +1,366 @@
+/*
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#ifndef MODULES_ADMINAPI_COMMON_COMMON_H_
+#define MODULES_ADMINAPI_COMMON_COMMON_H_
+
+#include <functional>
+#include <locale>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "modules/adminapi/common/preconditions.h"
+#include "modules/adminapi/common/provisioning_interface.h"
+#include "modules/mod_utils.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "scripting/lang_base.h"
+#include "scripting/types.h"
+
+namespace mysqlsh {
+namespace dba {
+
+class MetadataStorage;
+
+void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
+void SHCORE_PUBLIC validate_label(const std::string &lavel);
+
+// common keys for group replication configuration options
+constexpr const char kExitStateAction[] = "exitStateAction";
+constexpr const char kGrExitStateAction[] =
+    "group_replication_exit_state_action";
+constexpr const char kGroupSeeds[] = "groupSeeds";
+constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
+constexpr const char kIpWhitelist[] = "ipWhitelist";
+constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
+constexpr const char kLocalAddress[] = "localAddress";
+constexpr const char kGrLocalAddress[] = "group_replication_local_address";
+constexpr const char kMemberWeight[] = "memberWeight";
+constexpr const char kGrMemberWeight[] = "group_replication_member_weight";
+constexpr const char kExpelTimeout[] = "expelTimeout";
+constexpr const char kGrExpelTimeout[] =
+    "group_replication_member_expel_timeout";
+constexpr const char kFailoverConsistency[] = "failoverConsistency";
+constexpr const char kGrFailoverConsistency[] = "group_replication_consistency";
+constexpr const char kGroupName[] = "groupName";
+constexpr const char kGrGroupName[] = "group_replication_group_name";
+constexpr const char kMemberSslMode[] = "memberSslMode";
+constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
+constexpr const char kClusterName[] = "clusterName";
+
+// Group Replication configuration option availability regarding MySQL Server
+// version
+struct Option_availability {
+  std::string option_variable;
+  mysqlshdk::utils::Version support_in_80;
+  mysqlshdk::utils::Version support_in_57;
+};
+
+/**
+ * Map of the supported global ReplicaSet configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability> k_global_supported_options{
+    {kExitStateAction,
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+      mysqlshdk::utils::Version("5.7.24")}},
+    {kMemberWeight,
+     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+      mysqlshdk::utils::Version("5.7.20")}},
+    {kFailoverConsistency,
+     {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
+    {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}}};
+
+/**
+ * Map of the global ReplicaSet configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, std::string> k_global_options{
+    {kGroupName, kGrGroupName}, {kMemberSslMode, kGrMemberSslMode}};
+
+/**
+ * Map of the instance configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, std::string> k_instance_options{
+    {kExitStateAction, kGrExitStateAction},
+    {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},
+    {kLocalAddress, kGrLocalAddress},
+    {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},
+    {kFailoverConsistency, kGrFailoverConsistency}};
+
+/**
+ * Map of the supported global ReplicaSet configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability>
+    k_global_replicaset_supported_options{
+        {kExitStateAction,
+         {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+          mysqlshdk::utils::Version("5.7.24")}},
+        {kMemberWeight,
+         {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+          mysqlshdk::utils::Version("5.7.20")}},
+        {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
+        {kFailoverConsistency,
+         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}}};
+
+/**
+ * Map of the supported global Cluster configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability>
+    k_global_cluster_supported_options{{kClusterName, {""}}};
+
+/**
+ * Map of the supported instance configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability> k_instance_supported_options{
+    {kExitStateAction,
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+      mysqlshdk::utils::Version("5.7.24")}},
+    {kMemberWeight,
+     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+      mysqlshdk::utils::Version("5.7.20")}}};
+
+struct Instance_definition {
+  int host_id;
+  int replicaset_id;
+  std::string uuid;
+  std::string label;
+  std::string role;
+  std::string state;
+  std::string endpoint;
+  std::string xendpoint;
+  std::string grendpoint;
+
+  bool operator==(const Instance_definition &other) const = delete;
+};
+
+namespace ReplicaSetStatus {
+enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, UNKNOWN };
+
+std::string describe(Status state);
+};  // namespace ReplicaSetStatus
+
+enum class ConfigureInstanceAction {
+  UPDATE_SERVER_AND_CONFIG_DYNAMIC,  // "server_update+config_update" - no
+                                     // restart
+  UPDATE_SERVER_AND_CONFIG_STATIC,   // "config_update+restart" - restart
+  UPDATE_CONFIG,                     // "config_update" - no restart
+  UPDATE_SERVER_DYNAMIC,             // "server_update" - no restart
+  UPDATE_SERVER_STATIC,              // "restart" - restart
+  UNDEFINED
+};
+
+std::string get_mysqlprovision_error_string(
+    const shcore::Value::Array_type_ref &errors);
+
+extern const char *kMemberSSLModeAuto;
+extern const char *kMemberSSLModeRequired;
+extern const char *kMemberSSLModeDisabled;
+extern const std::set<std::string> kMemberSSLModeValues;
+
+void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
+
+/**
+ * Converts an ipWhitelist to a list of addresses using the netmask notation
+ *
+ * @param ip_whitelist The vector of strings containing the ipWhitelist to
+ * convert
+ *
+ * @return A vector of strings containing the ipWhitelist converted to netmask
+ * notation
+ */
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::vector<std::string> &ip_whitelist);
+
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::string &ip_whitelist);
+
+/**
+ * Check if a group_replication setting is supported on the target
+ * instance
+ *
+ * @param session object which represents the session to the instance
+ * @param option the name of the option as defined in the AdminAPI.
+ * @return Boolean indicating if the target instance supports the option.
+ *
+ */
+bool is_group_replication_option_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &option);
+
+/**
+ * Validates the ipWhitelist option
+ *
+ * Checks if the given ipWhitelist is valid for use in the AdminAPI.
+ *
+ * @param ip_whitelist The ipWhitelist to validate
+ * @param hostnames_supported boolean value to indicate whether hostnames are
+ * supported or not in the ipWhitelist. (supported since version 8.0.4)
+ *
+ * @throws argument_error if the ipWhitelist is empty
+ * @throws argument_error if the subnet in CIDR notation is not valid
+ * @throws argument_error if the address section is not an IPv4 address
+ * @throws argument_error if the address is IPv6
+ * @throws argument_error if hostnames_supported is true but the address does
+ * not resolve to a valid IPv4 address
+ * @throws argument error if hostnames_supports is false and the address it nos
+ * a valid IPv4 address
+ */
+void validate_ip_whitelist_option(const std::string &ip_whitelist,
+                                  bool hostnames_supported = false);
+
+void validate_local_address_option(const shcore::Value::Map_type_ref &options);
+void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
+void validate_group_name_option(const shcore::Value::Map_type_ref &options);
+void validate_exit_state_action_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
+void validate_failover_consistency_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::string> &failover_consistency);
+void validate_expel_timeout_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout);
+void validate_member_weight_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
+void validate_replication_filters(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
+std::pair<int, int> find_cluster_admin_accounts(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &admin_user, std::vector<std::string> *out_hosts);
+bool validate_cluster_admin_user_privileges(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &admin_user, const std::string &admin_host,
+    std::string *validation_error);
+void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+                               const std::string &username,
+                               const std::string &password);
+std::string SHCORE_PUBLIC
+resolve_cluster_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
+                         const std::string &member_ssl_mode);
+std::string SHCORE_PUBLIC
+resolve_instance_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
+                          std::shared_ptr<mysqlshdk::db::ISession> psession,
+                          const std::string &member_ssl_mode);
+std::vector<std::string> get_instances_gr(
+    const std::shared_ptr<MetadataStorage> &metadata);
+std::vector<std::string> get_instances_md(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::vector<NewInstanceInfo> get_newly_discovered_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::vector<MissingInstanceInfo> get_unavailable_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::string SHCORE_PUBLIC
+get_gr_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session);
+bool SHCORE_PUBLIC
+validate_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session,
+                               const std::string &group_name);
+bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
+                              bool clear_read_only);
+bool validate_instance_rejoinable(
+    std::shared_ptr<mysqlshdk::db::ISession> instance_session,
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+void validate_host_ip(const std::string &hostname);
+bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
+                std::string *cnfPath = nullptr);
+std::string get_canonical_instance_address(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
+
+// AdminAPI interactive handling specific methods
+std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance);
+std::string prompt_new_account_password();
+int prompt_menu(const std::vector<std::string> &options, int defopt);
+bool check_admin_account_access_restrictions(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
+    const std::string &host);
+bool prompt_create_usable_admin_account(const std::string &user,
+                                        const std::string &host,
+                                        std::string *out_create_account);
+bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
+                            bool throw_on_error = false);
+void dump_table(const std::vector<std::string> &column_names,
+                const std::vector<std::string> &column_labels,
+                shcore::Value::Array_type_ref documents);
+ConfigureInstanceAction get_configure_instance_action(
+    const shcore::Value::Map_type &opt_map);
+void print_validation_results(const shcore::Value::Map_type_ref &result,
+                              bool print_note = false);
+
+/**
+ * Validates the connection options.
+ *
+ * Checks if the given connection options are valid for use with AdminAPI.
+ *
+ * @param options Connection options to validate.
+ * @param factory Factory function used to create the exception,
+ *                shcore::Exception::argument_error by default.
+ *
+ * @throws shcore::Exception created by the 'factory' function if connection
+ *                           options are not valid.
+ */
+void validate_connection_options(
+    const Connection_options &options,
+    std::function<shcore::Exception(const std::string &)> factory =
+        shcore::Exception::argument_error);
+
+inline void translate_cluster_exception(std::string operation) {
+  if (!operation.empty()) operation.append(": ");
+  try {
+    throw;
+  } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+    throw shcore::Exception::runtime_error(operation + e.format());
+  } catch (shcore::Exception &e) {
+    auto error = e.error();
+    (*error)["message"] = shcore::Value(operation + e.what());
+    throw shcore::Exception(error);
+  } catch (mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+  } catch (std::runtime_error &e) {
+    throw shcore::Exception::runtime_error(operation + e.what());
+  } catch (std::logic_error &e) {
+    throw shcore::Exception::logic_error(operation + e.what());
+  } catch (...) {
+    throw;
+  }
+}
+
+#define CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(operation)  \
+  catch (...) {                                           \
+    mysqlsh::dba::translate_cluster_exception(operation); \
+    throw;                                                \
+  }
+
+}  // namespace dba
+}  // namespace mysqlsh
+
+#endif  // MODULES_ADMINAPI_COMMON_COMMON_H_

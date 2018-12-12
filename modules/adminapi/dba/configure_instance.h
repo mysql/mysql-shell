@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"

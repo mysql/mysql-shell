@@ -30,7 +30,7 @@
 #include <memory>
 #include <string>
 
-#include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/interactive_object_wrapper.h"
 
 namespace shcore {

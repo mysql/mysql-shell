@@ -28,9 +28,9 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/preconditions.h"
+#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "modules/adminapi/dba/preconditions.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "scripting/lang_base.h"
 

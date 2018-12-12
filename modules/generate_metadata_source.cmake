@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -21,7 +21,7 @@
 
 
 # Loads the metadata-model.sql file
-file(READ "adminapi/metadata-model.sql" MD_MODEL_SQL)
+file(READ "adminapi/common/metadata-model.sql" MD_MODEL_SQL)
 
 # Strips the copyright + comments from it
 string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
@@ -58,7 +58,7 @@ string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlX
 
 
 # Creates the target file containing the code ready for processing
-configure_file("${CMAKE_SOURCE_DIR}/modules/adminapi/metadata-model_definitions.h.in"
-                  "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
+configure_file("${CMAKE_SOURCE_DIR}/modules/adminapi/common/metadata-model_definitions.h.in"
+                  "${CMAKE_BINARY_DIR}/modules/adminapi/common/metadata-model_definitions.h")
 
 

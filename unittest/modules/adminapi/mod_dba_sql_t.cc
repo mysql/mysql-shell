@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 #include <tuple>
-#include "modules/adminapi/mod_dba_sql.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/admin_api_test.h"

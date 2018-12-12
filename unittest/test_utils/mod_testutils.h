@@ -28,7 +28,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_extensible_object.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types_cpp.h"
