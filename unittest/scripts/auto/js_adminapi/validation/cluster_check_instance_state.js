@@ -45,7 +45,7 @@ The instance contains additional transactions in relation to the cluster.
     "state": "error"
 }
 
-//@ Destroy instance 2
+//@ Destroy cluster2
 ||
 
 //@ Deploy instance 2

@@ -58,8 +58,8 @@ session.close();
 //@<OUT> checkInstanceState: state: error, reason: diverged
 cluster.checkInstanceState(__sandbox_uri2);
 
-//@ Destroy instance 2
-testutil.destroySandbox(__mysql_sandbox_port2);
+//@ Destroy cluster2
+scene2.destroy();
 
 //@ Deploy instance 2
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
@@ -113,5 +113,6 @@ session.close();
 cluster.checkInstanceState(__sandbox_uri2);
 
 //@ Finalization
+testutil.destroySandbox(__mysql_sandbox_port2);
 cluster.disconnect();
 scene.destroy();
