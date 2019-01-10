@@ -196,7 +196,7 @@ The following are the main help categories:
  - SQL Syntax     Entry point to retrieve syntax help on SQL statements.
 
 Use \? \help for additional details.
-Switching to JavaScript mode...
+Switching to Python mode...
 
 #@<OUT> Help on Admin API Category
 MySQL InnoDB cluster provides a complete high availability solution for MySQL.
@@ -284,12 +284,12 @@ The X DevAPI is a collection of functions and classes contained on the mysqlx
 module which is automatically loaded when the shell starts.
 
 To work on a MySQL Server with the X DevAPI, start by creating a session using:
-mysqlx.getSession(...).
+mysqlx.get_session(...).
 
 For more details about the mysqlx module use: \? mysqlx
 
 For more details about how to create a session with the X DevAPI use: \?
-mysqlx.getSession
+mysqlx.get_session
 
 #@<OUT> Help on unknown topic
 No help items found matching 'unknown'
@@ -314,18 +314,22 @@ Found several entries matching *sandbox*
 
 The following topics were found at the AdminAPI category:
 
-- dba.deleteSandboxInstance
-- dba.deploySandboxInstance
-- dba.killSandboxInstance
-- dba.startSandboxInstance
-- dba.stopSandboxInstance
+- dba.delete_sandbox_instance
+- dba.deploy_sandbox_instance
+- dba.kill_sandbox_instance
+- dba.start_sandbox_instance
+- dba.stop_sandbox_instance
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? dba.deleteSandboxInstance
+e.g.: \? dba.delete_sandbox_instance
 
 #@<OUT> Help for SQL, with classic session, multiple matches
 Found several entries matching select
+
+The following topics were found at the SQL Syntax category:
+
+- SQL Syntax/SELECT
 
 The following topics were found at the X DevAPI category:
 
@@ -334,30 +338,24 @@ The following topics were found at the X DevAPI category:
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? mysqlx.Table.select
+e.g.: \? SQL Syntax/SELECT
 
-#@<ERR> Help for SQL, with classic session, multiple matches
-ReferenceError: __mysqluripwd is not defined
+#@ Switching to SQL mode, same test gives results
+|Syntax:|
+|SELECT is used to retrieve rows selected from one or more tables|
+|The most commonly used clauses of SELECT statements are these:|
 
-#@<OUT> Switching to SQL mode, same test gives results
-Switching to SQL mode... Commands end with ;
-No help items found matching 'select'
+#@ Switching back to Python, help for SQL Syntax
+|The following topics were found at the SQL Syntax category:|
+|- Account Management|
+|For help on a specific topic use: \? <topic>|
+|e.g.: \? Account Management|
 
-#@<OUT> Switching back to JS, help for SQL Syntax
-Switching to JavaScript mode...
-SQL help requires the Shell to be connected to a MySQL server.
-
-
-#@<ERR> Switching back to JS, help for SQL Syntax
-TypeError: Cannot read property 'close' of null
-
-#@<OUT> Help for SQL Syntax, with x session
-SQL help requires the Shell to be connected to a MySQL server.
-
-
-#@<ERR> Help for SQL Syntax, with x session
-ReferenceError: __uripwd is not defined
-TypeError: Cannot read property 'close' of null
+#@ Help for SQL Syntax, with x session
+|The following topics were found at the SQL Syntax category:|
+|- Account Management|
+|For help on a specific topic use: \? <topic>|
+|e.g.: \? Account Management|
 
 #@<OUT> Help for SQL Syntax, no connection
 SQL help requires the Shell to be connected to a MySQL server.

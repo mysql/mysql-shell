@@ -10,7 +10,7 @@
 
 #@ Help Contents in SQL mode
 \? contents
-\js
+\py
 
 #@ Help on Admin API Category
 \? adminapi
@@ -41,8 +41,8 @@ shell.connect(__mysqluripwd)
 \sql
 \? select
 
-#@ Switching back to JS, help for SQL Syntax
-\js
+#@ Switching back to Python, help for SQL Syntax
+\py
 \? SQL Syntax
 session.close()
 
