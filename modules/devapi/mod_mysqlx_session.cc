@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -126,7 +126,7 @@ shcore::Value Session::_is_open(const shcore::Argument_list &args) {
 }
 
 Session::Session(std::shared_ptr<mysqlshdk::db::mysqlx::Session> session)
-    : _case_sensitive_table_names(false), m_allow_prepared_statements(true) {
+    : _case_sensitive_table_names(false) {
   init();
 
   // TODO(alfredo) maybe can remove _connection_options ivar

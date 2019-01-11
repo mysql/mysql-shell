@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -162,8 +162,8 @@ void redirect_fd(int from, int to) {
 
 void redirect_input_output(int fd_in[2], int fd_out[2], bool redirect_stderr) {
   // connect pipes to stdin, stdout and stderr
-  ::close(fd_out[0]);
-  ::close(fd_in[1]);
+  if (fd_out[0] >= 0) ::close(fd_out[0]);
+  if (fd_in[1] >= 0) ::close(fd_in[1]);
 
   redirect_fd(fd_out[1], STDOUT_FILENO);
 
@@ -187,8 +187,8 @@ int open_pseudo_terminal(int *in_master, int *in_slave, char *in_name) {
   }
 
   const auto close_master = [master](const char *error) {
-    report_error(error);
     close(master);
+    report_error(error);
   };
 
   if (grantpt(master)) {
@@ -587,7 +587,7 @@ void Process::start() {
     report_error("pipe(fd_out)");
   }
 
-  int slave_device = 0;
+  int slave_device = -1;
   char slave_device_name[512];
 
   if (m_use_pseudo_tty) {
@@ -609,8 +609,10 @@ void Process::start() {
     ::close(fd_in[1]);
     ::close(fd_out[0]);
     ::close(fd_out[1]);
-    ::close(m_master_device);
-    ::close(slave_device);
+    if (m_use_pseudo_tty) {
+      ::close(m_master_device);
+      ::close(slave_device);
+    }
     report_error("fork()");
   }
 
