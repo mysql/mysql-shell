@@ -6,7 +6,7 @@ group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -27,7 +27,7 @@ group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -37,13 +37,13 @@ group_replication_start_on_boot = ON
     "clusterName": "C",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -52,7 +52,7 @@ group_replication_start_on_boot = ON
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR1-TS-01 TEARDOWN {VER(>=8.0.12)}
@@ -69,7 +69,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname_ip>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'C' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
@@ -119,7 +119,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname_ip>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'ClusterName' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
@@ -144,7 +144,7 @@ group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -166,7 +166,7 @@ group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -180,8 +180,8 @@ group_replication_start_on_boot = ON
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -190,7 +190,7 @@ group_replication_start_on_boot = ON
         },
         "topologyMode": "Multi-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR1-TS-7 TEARDOWN {VER(>=8.0.12)}
@@ -204,8 +204,8 @@ true
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -221,20 +221,20 @@ true
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -243,7 +243,7 @@ true
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-1 start instance 1 {VER(>=8.0.12)}
@@ -255,20 +255,20 @@ true
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -277,7 +277,7 @@ true
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-1 TEARDOWN {VER(>=8.0.12)}
@@ -297,7 +297,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname_ip>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' the persisted cluster configuration will not be loaded upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
@@ -308,20 +308,20 @@ ONLINE
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -330,7 +330,7 @@ ONLINE
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
@@ -346,7 +346,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__local_address_2>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -355,7 +355,7 @@ group_replication_start_on_boot = ON
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__local_address_2>>>
 group_replication_member_expel_timeout = 0
@@ -425,11 +425,11 @@ Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname_ip>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ FR2-TS-6 TEARDOWN {VER(<8.0.12)}
@@ -443,8 +443,8 @@ true
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -453,8 +453,8 @@ group_replication_start_on_boot = ON
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
@@ -470,15 +470,15 @@ group_replication_start_on_boot = ON
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -487,7 +487,7 @@ group_replication_start_on_boot = ON
         },
         "topologyMode": "Multi-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 ONLINE
 {
@@ -498,15 +498,15 @@ ONLINE
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -515,7 +515,7 @@ ONLINE
         },
         "topologyMode": "Multi-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-8 TEARDOWN {VER(>=8.0.12)}
@@ -529,8 +529,8 @@ true
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -544,8 +544,8 @@ group_replication_start_on_boot = ON
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -555,8 +555,8 @@ group_replication_start_on_boot = ON
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -566,8 +566,8 @@ group_replication_start_on_boot = ON
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -579,27 +579,27 @@ group_replication_start_on_boot = ON
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -608,7 +608,7 @@ group_replication_start_on_boot = ON
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 ONLINE
 ONLINE
@@ -616,27 +616,27 @@ ONLINE
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -645,7 +645,7 @@ ONLINE
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-9 TEARDOWN {VER(>=8.0.12)}
@@ -673,7 +673,7 @@ group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -690,8 +690,8 @@ true
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>,<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -709,8 +709,8 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -733,8 +733,8 @@ group_replication_start_on_boot = OFF
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -753,8 +753,8 @@ start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -762,20 +762,20 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -784,7 +784,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 

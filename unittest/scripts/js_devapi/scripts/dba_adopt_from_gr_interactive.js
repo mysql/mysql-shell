@@ -1,7 +1,7 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 function get_rpl_users() {
     var result = session.runSql(
@@ -36,8 +36,8 @@ shell.connect(__sandbox_uri2);
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
 session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'"+real_hostname+"' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+real_hostname+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname+"' WITH GRANT OPTION");
 session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
@@ -47,8 +47,8 @@ shell.connect(__sandbox_uri1);
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
 session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'"+real_hostname+"' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+real_hostname+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname+"' WITH GRANT OPTION");
 session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
@@ -79,7 +79,7 @@ session.close();
 // because when adopting from GR, the information in the
 // performance_schema.replication_group_members will have the hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 cluster.disconnect();
 
@@ -109,7 +109,7 @@ cluster.disconnect();
 // because when adopting from GR, the information in the
 // performance_schema.replication_group_members will have the hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Create cluster adopting from GR - answer 'no' to prompt
 var cluster = dba.createCluster('testCluster');
@@ -124,7 +124,7 @@ cluster.disconnect();
 // because when adopting from GR, the information in the
 // performance_schema.replication_group_members will have the hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@<OUT> Create cluster adopting from GR - use 'adoptFromGR' option
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
@@ -159,7 +159,7 @@ cluster.disconnect();
 // because when adopting from GR, the information in the
 // performance_schema.replication_group_members will have the hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@<OUT> Create cluster adopting from multi-primary GR - use 'adoptFromGR' option
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true, force: true});

@@ -7,9 +7,9 @@
 // cluster_session_mp, cluster_session_noquorum
 
 //@ Init
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("clus");

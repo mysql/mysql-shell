@@ -4,9 +4,9 @@
 const NUM_DATA_ROWS = 20;
 
 // Setup
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", "slave_preserve_commit_order":1});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", "slave_preserve_commit_order":1, report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster");
@@ -319,7 +319,7 @@ var stat = cluster.status();
 json_check(stat, extended_status_templ);
 
 var stat = cluster.status({queryMembers:true});
-EXPECT_EQ("RECOVERING", json_find_key(stat, "localhost:"+__mysql_sandbox_port2)["status"]);
+EXPECT_EQ("RECOVERING", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)["status"]);
 var allowed_missing = ["appliedCount", "checkedCount", "committedAllMembers", "conflictsDetectedCount", "inApplierQueueCount", "inQueueCount", "lastConflictFree", "proposedCount", "rollbackCount"];
 // currentlyQueueing only appears if the worker is currently processing a tx
 allowed_missing.push("currentlyQueueing");
@@ -338,7 +338,7 @@ EXPECT_FALSE(recovery);
 testutil.stopSandbox(__mysql_sandbox_port2);
 
 var stat = cluster.status({queryMembers:true});
-var loc = json_find_key(stat, "localhost:" + __mysql_sandbox_port2);
+var loc = json_find_key(stat, hostname+":" + __mysql_sandbox_port2);
 EXPECT_NE(undefined, loc["shellConnectError"]);
 
 //@<> F6- With parallel appliers 
@@ -347,7 +347,7 @@ cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 var stat = cluster.status({queryMembers:true});
-var tx = stat["defaultReplicaSet"]["topology"]["localhost:"+__mysql_sandbox_port3]["transactions"];
+var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];
 EXPECT_NE(undefined, tx["connection"]);
 EXPECT_NE(undefined, tx["coordinator"]);
 EXPECT_NE(undefined, tx["workers"]);
@@ -377,7 +377,7 @@ testutil.waitForConnectionErrorInRecovery(__mysql_sandbox_port2, 1045);
 var stat = cluster.status({queryMembers:true});
 println(stat);
 // TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
-var recovery = json_find_key(json_find_key(stat, "localhost:" + __mysql_sandbox_port2), "recovery");
+var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");
 EXPECT_EQ(1045, recovery["connection"]["lastErrno"]);
 EXPECT_NE(undefined, recovery["connection"]["lastError"]);
 EXPECT_NE(undefined, recovery["connection"]["lastErrorTimestamp"]);

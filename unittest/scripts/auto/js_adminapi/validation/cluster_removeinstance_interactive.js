@@ -27,20 +27,20 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -49,34 +49,36 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Remove instance failure due to wrong credentials
-ERROR: Unable to connect to instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>'. Please, verify connection credentials and make sure the instance is available.
+ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please, verify connection credentials and make sure the instance is available.
 
-//@<ERR> Remove instance failure due to wrong credentials
-Cluster.removeInstance: Access denied for user 'foo'@'localhost' (using password: YES) (RuntimeError)
+//@ Remove instance failure due to wrong credentials
+// NOTE: Do not use @<ERR> because it matches the whole line but result after
+// 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
+||Cluster.removeInstance: Access denied for user 'foo'
 
 //@<OUT> Cluster status after remove failed
 {
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -85,7 +87,7 @@ Cluster.removeInstance: Access denied for user 'foo'@'localhost' (using password
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Removing instance
@@ -94,8 +96,8 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -105,13 +107,13 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -120,7 +122,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Adding instance on port2 back (interactive use)
@@ -135,9 +137,9 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -147,8 +149,8 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
@@ -164,9 +166,9 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -176,8 +178,8 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
@@ -193,9 +195,9 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -205,8 +207,8 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
@@ -222,9 +224,9 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -237,8 +239,8 @@ being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
@@ -292,27 +294,27 @@ OFF
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -321,17 +323,17 @@ OFF
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
-|ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
 
 //@ Error removing stopped instance on port2 (no prompt if force is used)
-|ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
 
 //@ Error removing stopped instance on port2
-|ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
 
 //@ Remove stopped instance on port2 with force option
 ||
@@ -340,33 +342,33 @@ OFF
 false
 
 //@<OUT> Remove unreachable instance (interactive: false, force: false) - error
-ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false, force: false) - error
-Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: false, force: true) - success
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -375,7 +377,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully remo
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Remove instances post actions since remove when unreachable (ensure they do not rejoin cluster)
@@ -412,47 +414,47 @@ true
 ||
 
 //@<OUT> Remove unreachable instance (interactive: true, force: false) - error
-ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: true, force: false) - error
-Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: false) - error
-ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false) - error
-Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer NO) - error
-ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Remove unreachable instance (interactive: true, answer NO) - error
-Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer YES) - success
-ERROR: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> Remove unreachable instance (interactive: true, force: true) - success
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
 //@ Remove instance post actions (ensure they do not rejoin cluster)
 ||
@@ -495,8 +497,8 @@ start a new session to the Metadata Storage R/W instance.
 WARNING: An error occured when trying to catch up with cluster transactions and the instance might have been left in an inconsistent state that will lead to errors if it is reused.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -201,22 +202,24 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
  */
 bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
                            bool verbose) {
-  // Sanity check for the instance address
-  bool report_host_set = false;
-  std::string address = instance->get_cached_global_sysvar("report_host");
-  if (!address.empty()) {
-    log_debug("Target has report_host=%s", address.c_str());
-    report_host_set = true;
-  } else {
-    log_debug("Target has report_host=NULL");
-  }
-  if (address.empty()) {
-    address = *instance->get_cached_global_sysvar("hostname");
-  }
-  log_debug("Target has hostname=%s",
-            instance->get_cached_global_sysvar("hostname")->c_str());
-
   auto console = mysqlsh::current_console();
+
+  bool report_host_set;
+  std::string address;
+  try {
+    address = mysqlshdk::mysql::get_report_host(*instance, &report_host_set);
+    if (report_host_set) {
+      log_debug("Target has report_host=%s", address.c_str());
+    } else {
+      log_debug("Target has report_host=NULL");
+      log_debug("Target has hostname=%s", address.c_str());
+    }
+  } catch (const std::exception &err) {
+    console->print_error("Invalid 'report_host' value for instance '" +
+                         instance->descr() +
+                         "'. The value cannot be empty if defined.");
+    throw;
+  }
 
   console->println();
   console->print_info("This instance reports its own address as " +

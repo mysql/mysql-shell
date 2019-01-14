@@ -22,20 +22,20 @@ Cluster.rescan: This function is not available through a session to a read only 
     "clusterName": "cluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -44,7 +44,7 @@ Cluster.rescan: This function is not available through a session to a read only 
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@<OUT> describe (OK)
@@ -54,13 +54,13 @@ Cluster.rescan: This function is not available through a session to a read only 
         "name": "default",
         "topology": [
             {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "label": "localhost:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "label": "localhost:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ],

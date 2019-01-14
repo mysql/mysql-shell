@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -2041,6 +2042,46 @@ void validate_connection_options(
       throw_exception("unable to resolve the IPv4 address");
     }
   }
+}
+
+std::string get_report_host_address(
+    const mysqlshdk::db::Connection_options &cnx_opts,
+    const mysqlshdk::db::Connection_options &group_cnx_opts) {
+  // Set login credentials to connect to instance if needed.
+  // NOTE: It is assumed that the same login credentials can be used to
+  //       connect to all cluster instances.
+  auto target_cnx_opts = cnx_opts;
+  if (!target_cnx_opts.has_user()) {
+    target_cnx_opts.set_login_options_from(group_cnx_opts);
+  }
+
+  std::string instance_address =
+      target_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
+
+  // Connect to instance to try to get report_host value.
+  std::string md_address;
+  log_debug("Connecting to instance '%s' to determine report host.",
+            instance_address.c_str());
+  try {
+    std::shared_ptr<mysqlshdk::db::ISession> session =
+        mysqlshdk::db::mysql::Session::create();
+    session->connect(target_cnx_opts);
+    mysqlshdk::mysql::Instance target_instance(session);
+    log_debug("Successfully connected to instance");
+
+    // Get the instance report host value.
+    md_address = mysqlshdk::mysql::get_report_host(target_instance) + ":" +
+                 std::to_string(target_cnx_opts.get_port());
+
+    session->close();
+    log_debug("Closed connection to the instance '%s'.",
+              instance_address.c_str());
+  } catch (std::exception &err) {
+    log_debug("Failed to connect to instance '%s': %s",
+              instance_address.c_str(), err.what());
+  }
+
+  return (!md_address.empty()) ? md_address : instance_address;
 }
 
 }  // namespace dba

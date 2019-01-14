@@ -27,7 +27,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -64,7 +64,7 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "ABORT_SERVER",
@@ -101,7 +101,7 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port3>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -159,7 +159,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -196,7 +196,7 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "ABORT_SERVER",
@@ -233,7 +233,7 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port3>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -298,7 +298,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -503,7 +503,7 @@
                     "variable": "group_replication_unreachable_majority_timeout"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -708,7 +708,7 @@
                     "variable": "group_replication_unreachable_majority_timeout"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port3>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -935,7 +935,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -1094,7 +1094,7 @@
                     "variable": "group_replication_unreachable_majority_timeout"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -1253,7 +1253,7 @@
                     "variable": "group_replication_unreachable_majority_timeout"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port3>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -1436,7 +1436,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -1473,11 +1473,11 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on 'localhost' (111)"
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
             },
-            "localhost:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on 'localhost' (111)"
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
             }
         }
     }
@@ -1500,7 +1500,7 @@
             }
         ],
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": [
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
@@ -1537,11 +1537,11 @@
                     "variable": "group_replication_member_weight"
                 }
             ],
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on 'localhost' (111)"
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
             },
-            "localhost:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on 'localhost' (111)"
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
             }
         }
     }

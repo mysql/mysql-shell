@@ -1,11 +1,11 @@
 // Assumptions: smart deployment functions available
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 function print_gr_local_address() {
@@ -52,7 +52,7 @@ shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, us
 //@ Create cluster fails because port default GR local address port is already in use. {!__replaying && !__recording}
 var __busy_port = __mysql_sandbox_port1 * 10 + 1;
 var __valid_portx = (__mysql_sandbox_port1 * 10 + 9).toString();
-testutil.deploySandbox(__busy_port, "root", {"loose_mysqlx_port": __valid_portx});
+testutil.deploySandbox(__busy_port, "root", {"loose_mysqlx_port": __valid_portx, report_host: hostname});
 var cluster = dba.createCluster('test');
 // Free "busy" port before continuing with the test (otherwise it will fail).
 testutil.destroySandbox(__busy_port);
@@ -66,9 +66,12 @@ var c = dba.createCluster('test', {localAddress: ":"});
 var c = dba.createCluster('test', {localAddress: ""});
 // FR1-TS-1-8
 var c = dba.createCluster('test', {localAddress: ":123456"});
+
+//@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
 // FR1-TS-1-1
 // Note: this test will try to connect to the port in localAddress to see if
-// its free. Thus, the port must be busy even in replayed test runs.
+// its free. Since report_host is now used (instead of localhost) internally
+// this test cannot run in replay mode.
 var __local_address_1 = localhost + ":" + __port;
 var c = dba.createCluster('test', {localAddress: __local_address_1});
 
@@ -89,7 +92,7 @@ var c = dba.createCluster('test', {groupName: "abc"});
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 var valid_port = __mysql_sandbox_port1 + 20000;
 var __local_address_2 = ":" + valid_port;
-var __result_local_address_2 = localhost + __local_address_2;
+var __result_local_address_2 = hostname + __local_address_2;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_2});
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-1-2)
@@ -112,7 +115,7 @@ c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_port> for localAddress (FR1-TS-1-4)
 var __local_address_4 = "13579";
-var __result_local_address_4 = localhost + ":" + __local_address_4;
+var __result_local_address_4 = hostname + ":" + __local_address_4;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4});
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-1-4)
@@ -193,6 +196,10 @@ c.addInstance(add_instance_options, {localAddress: ":"});
 c.addInstance(add_instance_options, {localAddress: ""});
 // FR1-TS-2-8
 c.addInstance(add_instance_options, {localAddress: ":123456"});
+
+//@ Add instance errors using localAddress option on busy port {!__replaying && !__recording}
+// Note: Since report_host is now used (instead of localhost) internally
+// this test cannot run in replay mode.
 // FR1-TS-2-1
 c.addInstance(add_instance_options, {localAddress: __local_address_1});
 
@@ -209,7 +216,7 @@ c.addInstance(add_instance_options, {groupName: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaa
 //@ Add instance specifying :<valid_port> for localAddress (FR1-TS-2-2)
 var valid_port2 = __mysql_sandbox_port2 + 20000;
 var __local_address_add_2 = ":" + valid_port2;
-var __result_local_address_add_2 = localhost + __local_address_add_2;
+var __result_local_address_add_2 = hostname + __local_address_add_2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_2});
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-2)
@@ -242,7 +249,7 @@ c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_port> for localAddress (FR1-TS-2-4)
 var __local_address_add_4 = "12347";
-var __result_local_address_add_4 = localhost + ":" + __local_address_add_4;
+var __result_local_address_add_4 = hostname + ":" + __local_address_add_4;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-4)

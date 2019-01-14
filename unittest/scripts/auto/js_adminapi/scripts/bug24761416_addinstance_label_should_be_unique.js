@@ -1,7 +1,7 @@
 // deploy sandboxes
-testutil.deploySandbox(__mysql_sandbox_port1, 'root');
-testutil.deploySandbox(__mysql_sandbox_port2, 'root');
-testutil.deploySandbox(__mysql_sandbox_port3, 'root');
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
 
 // connect to first instance
 shell.connect(__sandbox_uri1);
@@ -10,7 +10,7 @@ shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster('c');
 
 //@ add second instance with label
-cluster.addInstance(__sandbox_uri2, {label: 'node1'});
+cluster.addInstance(__sandbox_uri2, {label: '1node1'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> check status (1)
@@ -20,7 +20,7 @@ cluster.status();
 dba.checkInstanceConfiguration(__sandbox_uri3);
 
 //@ add third instance with duplicated label
-cluster.addInstance(__sandbox_uri3, {label: 'node1'});
+cluster.addInstance(__sandbox_uri3, {label: '1node1'});
 
 //@<OUT> check status (2)
 cluster.status();
@@ -29,7 +29,7 @@ cluster.status();
 dba.checkInstanceConfiguration(__sandbox_uri3);
 
 //@ add third instance with unique label
-cluster.addInstance(__sandbox_uri3, {label: 'node2'});
+cluster.addInstance(__sandbox_uri3, {label: '1node2'});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> check status (3)

@@ -1,7 +1,7 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 

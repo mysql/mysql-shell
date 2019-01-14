@@ -69,8 +69,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -101,8 +100,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -147,11 +145,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+This instance reports its own address as <<<hostname>>>
 
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -177,11 +171,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+This instance reports its own address as <<<hostname>>>
 
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -240,8 +230,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 Assuming full account name 'dba_test'@'%' for dba_test
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
@@ -252,8 +241,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 Assuming full account name 'dba_test'@'%' for dba_test
 User 'dba_test'@'%' already exists and will not be created.
 

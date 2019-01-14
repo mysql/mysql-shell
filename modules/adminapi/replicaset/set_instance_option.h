@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,6 +88,7 @@ class Set_instance_option : public Command_interface {
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   const shcore::NamingStyle m_naming_style;
   std::string m_target_instance_address;
+  std::string m_address_in_metadata;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_target_instance;
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;

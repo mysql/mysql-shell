@@ -6,8 +6,8 @@ var __sandbox_xuri1 = "mysqlx://root:root@localhost:"+__mysql_sandbox_port1+"0";
 var __sandbox_xuri2 = "mysqlx://root:root@localhost:"+__mysql_sandbox_port2+"0";
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -55,8 +55,8 @@ EXPECT_EQ(0, rc);
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

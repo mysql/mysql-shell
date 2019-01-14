@@ -1,33 +1,29 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 var mysql = require('mysql');
 
 function setupInstance(connection, super_read_only) {
-	var tmpSession = mysql.getClassicSession(connection);
+    var tmpSession = mysql.getClassicSession(connection);
 
-	tmpSession.runSql('SET GLOBAL super_read_only = 0');
-	tmpSession.runSql('SET sql_log_bin=0');
-	tmpSession.runSql('CREATE USER \'root\'@\'%\' IDENTIFIED BY \'root\'');
-	tmpSession.runSql('GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION');
-	tmpSession.runSql('SET sql_log_bin=1');
-	if (super_read_only) {
-		tmpSession.runSql('set global super_read_only=ON');
-	}
+    tmpSession.runSql('SET GLOBAL super_read_only = 0');
+    if (super_read_only) {
+        tmpSession.runSql('set global super_read_only=ON');
+    }
 
-	tmpSession.close();
+    tmpSession.close();
 }
 
 function ensureSuperReadOnly(connection) {
-	var tmpSession = mysql.getClassicSession(connection);
-	tmpSession.runSql('set global super_read_only=ON');
-	tmpSession.close();
+    var tmpSession = mysql.getClassicSession(connection);
+    tmpSession.runSql('set global super_read_only=ON');
+    tmpSession.close();
 }
 
 var connection1 = {scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'};
@@ -40,13 +36,13 @@ setupInstance(connection3, false);
 
 //@<OUT> Configures the instance, answers 'yes' on the read only prompt
 //NOTE: super-read-only is only required to be disable if we create the clusterAdmin user
-var res = dba.configureInstance(connection1, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
+dba.configureInstance(connection1, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
 
 //@<OUT> Configures the instance, read only set, no prompt
-var res = dba.configureInstance(connection2, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd", clearReadOnly: true});
+dba.configureInstance(connection2, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd", clearReadOnly: true});
 
 //@<OUT> Configures the instance, no prompt
-var res = dba.configureInstance(connection3, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
+dba.configureInstance(connection3, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
 
 
 //@<> Connect
@@ -56,8 +52,8 @@ shell.connect(connection1);
 var cluster = dba.createCluster('sample');
 
 var local_address = session.runSql("SELECT @@group_replication_local_address").fetchOne()[0];
-if ("localhost:"+(__mysql_sandbox_port1*10+1) != local_address)
-	testutil.fail("group_replication_local_address has unexpected value " + local_address);
+if (hostname+":"+(__mysql_sandbox_port1*10+1) != local_address)
+    testutil.fail("group_replication_local_address has unexpected value " + local_address);
 
 //@<OUT> Adds a read only instance
 cluster.addInstance(connection2);
@@ -82,7 +78,6 @@ ensureSuperReadOnly(connection3);
 cluster.rejoinInstance(connection3);
 
 cluster.disconnect();
-session.close();
 
 // killSandboxInstance does not wait until the process is actually killed
 // before returning, so the function does not fit this use-case.
@@ -90,14 +85,17 @@ session.close();
 // anymore, but the x-protocol port may take a bit longer. As so, we must use
 // testutil.startSandbox() to make sure the instance is restarted.
 
-//@ Stop sandbox 1
-testutil.stopSandbox(__mysql_sandbox_port1);
-
 //@ Stop sandbox 2
 testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@ Stop sandbox 3
 testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
+session.close();
+
+//@ Stop sandbox 1
+testutil.stopSandbox(__mysql_sandbox_port1);
 
 //@ Start sandbox 1
 testutil.startSandbox(__mysql_sandbox_port1);

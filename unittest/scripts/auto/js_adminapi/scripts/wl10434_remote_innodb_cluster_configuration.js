@@ -6,8 +6,16 @@
 // configure the Instance and check that it works correctly
 
 //@ FR1_1 SETUP {VER(>=8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -34,8 +42,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Should raise Message to the user to run the command locally in the target instance
 
 //@ FR1.1_1 SETUP {VER(>=8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "skip_log_bin", "ON");
 testutil.removeFromSandboxConf(__mysql_sandbox_port1, "log_bin");
@@ -71,8 +87,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //Should succeed running the command locally in the target instance
 
 //@ FR2_2 SETUP {VER(>=8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "persisted-globals-load", "OFF");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
@@ -95,7 +119,15 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //FR3.1_1 - If the instance is local and the MySQL config file path can be detected automatically.
 
 //@ FR3.1_1 SETUP {VER(<8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
@@ -115,8 +147,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //FR3.2_1 - If the instance is local and the MySQL config file path is provided by the user as a parameter.
 
 //@ FR3.2_1 SETUP {VER(<8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -133,8 +173,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //FR3.3_1 - If the instance does not require configuration changes, regardless of whether the instance is local or remote.
 
 //@ FR3.3_1 SETUP {VER(<8.0.11)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 
 //@# FR3.3_1 - Configure local instance that does not require changes {VER(<8.0.11)}
 testutil.expectPrompt("Please select an option [1]: ", "3");
@@ -155,8 +203,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // FR5.3 - The final status of the operation.
 
 //@ FR5 SETUP {VER(>=8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -179,8 +235,14 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ FR7 SETUP {VER(>=8.0.11)}
 // Deploy a pre-configured sandbox since we're not testing configure itself
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+
 var cluster = dba.createCluster("C");
 cluster.disconnect();
 
@@ -195,8 +257,16 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Extra tests
 
 //@ ET SETUP
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);

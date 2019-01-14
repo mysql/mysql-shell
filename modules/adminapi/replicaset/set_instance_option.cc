@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -43,6 +44,7 @@ Set_instance_option::Set_instance_option(
       m_value_str(value) {
   m_target_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
+  m_address_in_metadata = m_target_instance_address;
 }
 
 Set_instance_option::Set_instance_option(
@@ -57,6 +59,7 @@ Set_instance_option::Set_instance_option(
       m_value_int(value) {
   m_target_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
+  m_address_in_metadata = m_target_instance_address;
 }
 
 Set_instance_option::~Set_instance_option() {}
@@ -102,7 +105,7 @@ void Set_instance_option::ensure_instance_belong_to_replicaset() {
       m_replicaset.get_cluster()
           ->get_metadata_storage()
           ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                      m_target_instance_address);
+                                      m_address_in_metadata);
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + m_target_instance_address +
@@ -121,6 +124,11 @@ void Set_instance_option::ensure_target_member_online() {
     session->connect(m_instance_cnx_opts);
     m_target_instance =
         shcore::make_unique<mysqlshdk::mysql::Instance>(session);
+
+    // Set the metadata address to use if instance is reachable.
+    m_address_in_metadata =
+        mysqlshdk::mysql::get_report_host(*m_target_instance) + ":" +
+        std::to_string(m_instance_cnx_opts.get_port());
     log_debug("Successfully connected to instance");
   } catch (std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
@@ -235,11 +243,11 @@ void Set_instance_option::prepare() {
       m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
   }
 
-  // Verify if the target instance belongs to the replicaset
-  ensure_instance_belong_to_replicaset();
-
   // Verify if the target cluster member is ONLINE
   ensure_target_member_online();
+
+  // Verify if the target instance belongs to the replicaset
+  ensure_instance_belong_to_replicaset();
 
   // Verify user privileges to execute operation;
   ensure_user_privileges(*m_target_instance);
@@ -257,11 +265,10 @@ void Set_instance_option::prepare() {
 shcore::Value Set_instance_option::execute() {
   auto console = mysqlsh::current_console();
 
-  std::string target_instance_label =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->get_instance(m_target_instance_address)
-          .label;
+  std::string target_instance_label = m_replicaset.get_cluster()
+                                          ->get_metadata_storage()
+                                          ->get_instance(m_address_in_metadata)
+                                          .label;
 
   console->print_info(
       "Setting the value of '" + m_option + "' to '" +

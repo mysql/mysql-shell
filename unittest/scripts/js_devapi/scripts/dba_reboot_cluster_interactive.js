@@ -92,7 +92,7 @@ cluster.disconnect();
 shell.connect(__sandbox_uri1);
 
 var instance2 = localhost + ':' + __mysql_sandbox_port2;
-var instance3 = localhost + ':' + __mysql_sandbox_port3;
+var instance3 = hostname + ':' + __mysql_sandbox_port3;
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance3]});
@@ -125,13 +125,6 @@ testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 // rebooted. We just need to add it back to the metadata.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
 testutil.expectPassword("Please provide the password for 'root@" + hostname + ":" + __mysql_sandbox_port3 + "': ", "root");
-// TODO Remove this user creation as soon as issue with cluster.rescan is fixed
-// Create root@% user since the rescan wizard will try to authenticate using the
-// hostname read from Group Replication as there is no metadata, i.e.
-// root@<hostname> but that user does not exist, so the cluster.rescan will fail
-var s3 = mysql.getSession("mysql://root:root@localhost:"+__mysql_sandbox_port3);
-create_root_from_anywhere(s3, true);
-s3.close();
 uri3 = hostname + ":"  + __mysql_sandbox_port3;
 cluster.rescan();
 

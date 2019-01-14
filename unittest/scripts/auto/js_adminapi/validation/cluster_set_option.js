@@ -7,7 +7,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Option 'foobar' not supported. (ArgumentError)
 
 //@ WL#11465: Error when executing setOption on a cluster with 1 or more members not ONLINE
-|ERROR: The instance 'localhost:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setOption: There is no quorum to perform the operation (RuntimeError)
@@ -35,9 +35,9 @@ Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
 
 //@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
@@ -60,9 +60,9 @@ Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet membe
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.
 
 //@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance 'localhost:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet members ...
 
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.

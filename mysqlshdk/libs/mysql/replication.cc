@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,6 +62,33 @@ int64_t generate_server_id() {
   std::mt19937 rnd_gen(rd_seed());
   std::uniform_int_distribution<int64_t> distribution(1, 4294967295);
   return distribution(rnd_gen);
+}
+
+std::string get_report_host(const mysqlshdk::mysql::IInstance &instance,
+                            bool *out_is_report_host_set) {
+  auto result = instance.get_session()->query("SELECT @@REPORT_HOST");
+  auto row = result->fetch_one();
+  if (!row->is_null(0)) {
+    if (out_is_report_host_set != nullptr) {
+      *out_is_report_host_set = true;
+    }
+    std::string res = row->get_string(0);
+    if (!res.empty()) {
+      return res;
+    } else {
+      // NOTE: The value for report_host can be set to an empty string which is
+      // invalid. If defined the report_host value should not be an empty
+      // string, otherwise it is used by replication as an empty string "".
+      throw std::runtime_error(
+          "The value for variable 'report_host' cannot be empty.");
+    }
+  } else {
+    if (out_is_report_host_set != nullptr) {
+      *out_is_report_host_set = false;
+    }
+    result = instance.get_session()->query("SELECT @@HOSTNAME");
+    return result->fetch_one()->get_string(0);
+  }
 }
 
 }  // namespace mysql

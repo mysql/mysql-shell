@@ -1,5 +1,5 @@
-testutil.deploy_sandbox(__mysql_sandbox_port1, 'root');
-testutil.snapshot_sandbox_conf(__mysql_sandbox_port1);
+testutil.deploy_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname})
+testutil.snapshot_sandbox_conf(__mysql_sandbox_port1)
 
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 

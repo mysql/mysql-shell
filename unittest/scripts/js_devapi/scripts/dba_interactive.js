@@ -3,24 +3,13 @@
 // validateMemer and validateNotMember are defined on the setup script
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 // ensure my.cnf file is saved/restored for replay in recording mode
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
-// Tests below are expecting root@% to already exit
-shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port2});
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
-session.runSql("SET SQL_LOG_BIN=1");
-
 shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
-session.runSql("SET SQL_LOG_BIN=1");
 
 //@ Session: validating members
 var members = dir(dba);

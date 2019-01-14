@@ -61,6 +61,7 @@
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -895,9 +896,10 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
               "The localAddress option accepts values in the format: "
               "'host:port' or 'host:' or ':port'. If the specified "
               "value does not include a colon (:) and it is numeric, then it "
-              "is assumed to be the port, otherwise it is considered to be "
-              "the host. When the host is not specified, the default value is "
-              "the host of the current active connection (session). When the "
+              "is assumed to be the port, otherwise it is considered to be the "
+              "host. When the host is not specified, the default value is the "
+              "value of the system variable 'report_host' if defined (i.e., "
+              "not 'NULL'), otherwise it is the hostname value. When the "
               "port is not specified, the default value is the port of the "
               "current active connection (session) * 10 + 1. In case the "
               "automatically determined default port value is invalid "
@@ -2947,10 +2949,16 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // Get the default replicaset
       default_replicaset = cluster->get_default_replicaset();
 
+      // Get get instance address in metadata.
+      mysqlshdk::mysql::Instance group_instance(group_session);
+      std::string group_md_address =
+          mysqlshdk::mysql::get_report_host(group_instance) + ":" +
+          std::to_string(current_session_options.get_port());
+
       // 2. Ensure that the current session instance exists on the Metadata
       // Schema
       if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                               instance_session_address))
+                                               group_md_address))
         throw shcore::Exception::runtime_error(
             "The current session instance does not belong "
             "to the cluster: '" +
@@ -2962,9 +2970,14 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         shcore::Argument_list args;
         args.push_back(shcore::Value(value));
 
+        std::string md_address = value;
         try {
           auto instance_def = mysqlsh::get_connection_options(
               args, mysqlsh::PasswordFormat::NONE);
+
+          // Get the instance metadata address (reported host).
+          md_address = mysqlsh::dba::get_report_host_address(
+              instance_def, current_session_options);
         } catch (std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
@@ -2972,7 +2985,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         }
 
         if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                 value))
+                                                 md_address))
           throw shcore::Exception::runtime_error("The instance '" + value +
                                                  "' does not belong "
                                                  "to the cluster: '" +
@@ -2985,9 +2998,14 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         shcore::Argument_list args;
         args.push_back(shcore::Value(value));
 
+        std::string md_address = value;
         try {
           auto instance_def = mysqlsh::get_connection_options(
               args, mysqlsh::PasswordFormat::NONE);
+
+          // Get the instance metadata address (reported host).
+          md_address = mysqlsh::dba::get_report_host_address(
+              instance_def, current_session_options);
         } catch (std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
@@ -2995,7 +3013,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         }
 
         if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                 value))
+                                                 md_address))
           throw shcore::Exception::runtime_error("The instance '" + value +
                                                  "' does not belong "
                                                  "to the cluster: '" +
@@ -3134,7 +3152,7 @@ Dba::get_replicaset_instances_status(
     std::shared_ptr<Cluster> cluster,
     const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
-  std::string active_session_address, instance_address, conn_status;
+  std::string instance_address, conn_status;
 
   // TODO(alfredo) This should be in the Cluster object
 
@@ -3147,8 +3165,11 @@ Dba::get_replicaset_instances_status(
   auto current_session_options =
       cluster->get_group_session()->get_connection_options();
 
-  // Get the current session instance address
-  active_session_address = current_session_options.as_uri(only_transport());
+  // Get the current session instance reported host address
+  mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
+  std::string active_session_md_address =
+      mysqlshdk::mysql::get_report_host(group_instance) + ":" +
+      std::to_string(current_session_options.get_port());
 
   if (options) {
     // Check if the password is specified on the options and if not prompt it
@@ -3162,7 +3183,7 @@ Dba::get_replicaset_instances_status(
     conn_status.clear();
 
     // Skip the current session instance
-    if (instance_address == active_session_address) {
+    if (instance_address == active_session_md_address) {
       continue;
     }
 

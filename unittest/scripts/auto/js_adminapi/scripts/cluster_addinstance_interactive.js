@@ -20,14 +20,14 @@
 // INTERACTIVE test
 
 //@ WL#12049: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#12049: Create cluster 1 {VER(>=5.7.24)}
-var c = dba.createCluster('test', {clearReadOnly: true})
+var c = dba.createCluster('test', {clearReadOnly: true});
 
 //@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
 // F1.2 - The exitStateAction option shall be a string value.
@@ -73,14 +73,14 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 //
 
 //@ WL#11032: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#11032: Create cluster 1 {VER(>=5.7.20)}
-var c = dba.createCluster('test', {clearReadOnly: true})
+var c = dba.createCluster('test', {clearReadOnly: true});
 
 //@ WL#11032: addInstance() errors using memberWeight option {VER(>=5.7.20)}
 // F1.2 - The memberWeight option shall be an integer value.

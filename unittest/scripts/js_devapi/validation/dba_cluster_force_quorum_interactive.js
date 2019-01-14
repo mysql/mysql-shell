@@ -6,13 +6,13 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -21,7 +21,7 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Add instance 2
@@ -53,27 +53,27 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "NO_QUORUM",
         "statusText": "Cluster has no quorum as visible from '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -82,7 +82,7 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster.forceQuorumUsingPartitionOf errors
@@ -95,7 +95,7 @@
 ||Cluster.forceQuorumUsingPartitionOf: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
 
 //@<OUT> Cluster.forceQuorumUsingPartitionOf success
-Restoring replicaset 'default' from loss of quorum, by using the partition composed of [<<<localhost>>>:<<<__mysql_sandbox_port1>>>]
+Restoring replicaset 'default' from loss of quorum, by using the partition composed of [<<<hostname>>>:<<<__mysql_sandbox_port1>>>]
 
 Restoring the InnoDB cluster ...
 
@@ -108,27 +108,27 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -137,7 +137,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Rejoin instance 2
@@ -151,27 +151,27 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -180,7 +180,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Finalization

@@ -7,7 +7,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
@@ -21,7 +21,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
@@ -42,8 +42,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
@@ -57,8 +56,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.

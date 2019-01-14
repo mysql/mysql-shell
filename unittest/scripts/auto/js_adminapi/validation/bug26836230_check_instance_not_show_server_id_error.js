@@ -41,9 +41,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                          |
@@ -62,9 +59,6 @@ Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
@@ -85,9 +79,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                             |
@@ -105,9 +96,6 @@ Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
@@ -131,9 +119,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
 
 //@<OUT> checkInstanceConfiguration no server_id in my.cnf (error). {VER(>=8.0.3)}
@@ -156,9 +141,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                          |
@@ -177,9 +159,6 @@ Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
@@ -202,9 +181,6 @@ Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
-
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 

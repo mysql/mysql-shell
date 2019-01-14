@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -45,9 +45,13 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   Shell_test_wrapper shell_env;
   shell_env.reset_replayable_shell(context);
 
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port1(), "root");
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port2(), "root");
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port3(), "root");
+  // Set report_host with the hostname for the deployed sandboxes.
+  shcore::Dictionary_t sandbox_opts = shcore::make_dict();
+  (*sandbox_opts)["report_host"] = shcore::Value(shell_env.hostname());
+
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port1(), "root", sandbox_opts);
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port2(), "root", sandbox_opts);
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port3(), "root", sandbox_opts);
 
   shell_env.execute(
       "shell.connect('root:root@localhost:" + shell_env.sb_str_port1() + "')");

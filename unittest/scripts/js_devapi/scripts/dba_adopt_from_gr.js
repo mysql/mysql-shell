@@ -1,8 +1,8 @@
 // Assumptions: smart deployment rountines available
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 function get_rpl_users() {
     var result = session.runSql(
@@ -32,21 +32,7 @@ function has_new_rpl_users(rows) {
     }
 }
 
-// by default, root account can connect only via localhost, create 'root'@'%'
-// so it's possible to connect via hostname
-shell.connect(__sandbox_uri2);
-
-session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
-session.runSql("SET sql_log_bin = 1");
-
 shell.connect(__sandbox_uri1);
-
-session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
-session.runSql("SET sql_log_bin = 1");
 
 //@ it's not possible to adopt from GR without existing group replication
 dba.createCluster('testCluster', {adoptFromGR: true});
@@ -76,11 +62,11 @@ cluster.status();
 session.close();
 cluster.disconnect();
 
-// Establish a session using the real hostname
+// Establish a session using the hostname (set for report_host)
 // because when adopting from GR, the information in the
 // performance_schema.replication_group_members will have the real hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Get data about existing replication users before createCluster with adoptFromGR.
 // Regression for BUG#28054500: replication users should be removed when adoptFromGR is used

@@ -1,9 +1,9 @@
 // Assumptions: smart deployment routines available
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -22,9 +22,10 @@ cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Check topology type
+var md_address1 = hostname + ":" + __mysql_sandbox_port1;
 var res = session.runSql("SELECT topology_type " +
     "FROM mysql_innodb_cluster_metadata.replicasets r, mysql_innodb_cluster_metadata.instances i " +
-    "WHERE r.replicaset_id = i.replicaset_id AND i.instance_name = '"+ uri1 +"'");
+    "WHERE r.replicaset_id = i.replicaset_id AND i.instance_name = '"+ md_address1 +"'");
 var row = res.fetchOne();
 print (row[0]);
 

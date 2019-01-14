@@ -6,13 +6,13 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -47,7 +47,7 @@ The instance cluster settings were successfully persisted.
 ||Dba.rebootClusterFromCompleteOutage: Invalid values in the options: invalidOpt
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.
+||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.
 
 //@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
 ||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
@@ -60,20 +60,20 @@ The instance cluster settings were successfully persisted.
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -50,6 +51,7 @@ Remove_instance::Remove_instance(
   assert(&instance_cnx_opts);
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
+  m_address_in_metadata = m_instance_address;
 }
 
 Remove_instance::~Remove_instance() { delete m_target_instance; }
@@ -57,10 +59,11 @@ Remove_instance::~Remove_instance() { delete m_target_instance; }
 void Remove_instance::ensure_instance_belong_to_replicaset() {
   // Check if the instance exists on the ReplicaSet
   log_debug("Checking if the instance belongs to the replicaset");
-  bool is_instance_on_md = m_replicaset.get_cluster()
-                               ->get_metadata_storage()
-                               ->is_instance_on_replicaset(
-                                   m_replicaset.get_id(), m_instance_address);
+  bool is_instance_on_md =
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->is_instance_on_replicaset(m_replicaset.get_id(),
+                                      m_address_in_metadata);
 
   if (!is_instance_on_md) {
     mysqlsh::current_console()->print_error(
@@ -105,13 +108,13 @@ Instance_definition Remove_instance::remove_instance_metadata() {
   log_debug("Saving instance definition");
   Instance_definition instance_def =
       m_replicaset.get_cluster()->get_metadata_storage()->get_instance(
-          m_instance_address);
+          m_address_in_metadata);
 
   log_debug("Removing instance from metadata");
   MetadataStorage::Transaction tx(
       m_replicaset.get_cluster()->get_metadata_storage());
   m_replicaset.get_cluster()->get_metadata_storage()->remove_instance(
-      m_instance_address);
+      m_address_in_metadata);
   tx.commit();
 
   return instance_def;
@@ -209,9 +212,6 @@ void Remove_instance::prepare() {
       m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
   }
 
-  // Ensure instance belong to replicaset.
-  ensure_instance_belong_to_replicaset();
-
   // Ensure instance is not the last in the replicaset.
   ensure_not_last_instance_in_replicaset();
 
@@ -253,6 +253,17 @@ void Remove_instance::prepare() {
       }
     }
   }
+
+  // Set the metadata address to use if instance is reachable, otherwise use
+  // the provided instance connection address.
+  if (m_target_instance) {
+    m_address_in_metadata =
+        mysqlshdk::mysql::get_report_host(*m_target_instance) + ":" +
+        std::to_string(m_instance_cnx_opts.get_port());
+  }
+
+  // Ensure instance belong to replicaset.
+  ensure_instance_belong_to_replicaset();
 
   // Validate user privileges to use the command (only if the instance is
   // available).

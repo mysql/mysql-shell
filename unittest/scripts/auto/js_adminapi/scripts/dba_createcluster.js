@@ -67,7 +67,7 @@ function print_gr_expel_timeout() {
 //
 
 //@ WL#12049: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -164,7 +164,7 @@ c.dissolve({force: true});
 //@ WL#12049: Initialize new instance
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -198,7 +198,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //
 
 //@ WL#11032: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -277,7 +277,7 @@ c.dissolve({force: true});
 //@ WL#11032: Initialize new instance
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -307,7 +307,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // dba.createCluster function.
 //
 //@ WL#12067: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -409,7 +409,7 @@ c.dissolve({force: true});
 //@ WL#12067: Initialize new instance {VER(>=8.0.14)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -432,7 +432,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // function.
 //
 //@ WL#12050: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}
@@ -469,7 +469,7 @@ c.dissolve({force: true});
 //@ WL#12050: TSF1_2 Initialize new instance {VER(>=8.0.13)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#12050: TSF1_2 Create cluster using no value for expelTimeout, confirm it has the default value {VER(>=8.0.13)}
@@ -489,8 +489,8 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 // Regression test for BUG#25867733: CHECKINSTANCECONFIGURATION SUCCESS BUT CREATE CLUSTER FAILING IF PFS DISABLED
 //@ BUG#25867733: Deploy instances (setting performance_schema value).
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off"})
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on"})
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off", report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on",report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ BUG#25867733: createCluster error with performance_schema=off

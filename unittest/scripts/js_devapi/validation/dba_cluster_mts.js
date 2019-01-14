@@ -6,8 +6,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -37,8 +36,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -63,8 +61,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -83,7 +80,6 @@ Please use the dba.configureInstance() command to repair these issues.
 
 
 //@ configure instance and update type and commit order with valid values.
-|WARNING: User 'root' can only connect from localhost.|
 |The instance 'localhost:<<<__mysql_sandbox_port3>>>' was configured for InnoDB cluster usage.|
 
 //@<OUT> check instance, no invalid values after configure.
@@ -91,8 +87,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected

@@ -41,7 +41,7 @@
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> No-op.
@@ -178,7 +178,7 @@ WARNING: The following instances were not removed from the medatada because they
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> addInstance should fail and suggest a rescan.
@@ -253,7 +253,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_2: Remove instances on port 2 and 3 from MD again.
@@ -276,7 +276,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_2: Rescan with addInstances:[incomplete_valid_list] and interactive:true.
@@ -343,7 +343,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_3: Remove instances on port 2 and 3 from MD again.
@@ -366,7 +366,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_3: Rescan with addInstances:[incomplete_valid_list] and interactive:false.
@@ -424,7 +424,7 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_4: Remove instances on port 2 from MD.
@@ -447,7 +447,7 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
@@ -514,7 +514,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
@@ -537,7 +537,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF2_5: Rescan with addInstances:"auto" and interactive:false.
@@ -604,7 +604,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
@@ -644,7 +644,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF3_1: Number of instances in the MD before rescan().
@@ -703,7 +703,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF3_2: Start instances and add them back to the cluster.
@@ -746,7 +746,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF3_2: Number of instances in the MD before rescan().
@@ -806,7 +806,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF3_3: Start instances and add them back to the cluster.
@@ -849,7 +849,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF3_3: Number of instances in the MD before rescan().
@@ -914,7 +914,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
@@ -957,7 +957,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF3_4: Number of instances in the MD before rescan().
@@ -1016,7 +1016,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF3_5: Start instances and add them back to the cluster.
@@ -1059,7 +1059,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF3_5: Number of instances in the MD before rescan().
@@ -1118,7 +1118,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644: Start instances and add them back to the cluster again.
@@ -1168,9 +1168,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Single-Primary'.
 Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
 Topology mode was successfully updated to 'Single-Primary' in the cluster metadata.
 
 
@@ -1211,7 +1211,7 @@ pm
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL10644 - TSF4_5: Check auto_increment settings after change to single-primary.
@@ -1255,7 +1255,7 @@ auto_increment_offset: 2
         },
         "topologyMode": "Multi-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
@@ -1280,9 +1280,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Multi-Primary'.
 Would you like to update it in the cluster metadata? [Y/n]: Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Auto-increment settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
 Topology mode was successfully updated to 'Multi-Primary' in the cluster metadata.
 
 //@<OUT> WL10644 - TSF4_3: Check topology mode in MD after rescan().

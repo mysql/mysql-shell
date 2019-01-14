@@ -1,10 +1,10 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMember and validateNotMember are defined on the setup script
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 // ensure my.cnf file is saved/restored for replay in recording mode
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 shell.connect("mysql://root:root@localhost:" + __mysql_sandbox_port1);

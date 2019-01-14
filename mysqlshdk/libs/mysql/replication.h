@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,8 @@
 #define MYSQLSHDK_LIBS_MYSQL_REPLICATION_H_
 
 #include <memory>
+#include <string>
+
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -92,6 +94,24 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
  */
 int64_t generate_server_id();
 
+/**
+ * Get the host name used for replication.
+ *
+ * In more details, this function returns the value for the variable
+ * 'report_host' if not empty, otherwise the value of the 'hostname' variable
+ * is returned.
+ *
+ * @param instance target instance to retrieve the report host value.
+ * @return string with the value used for 'report_host' if not empty, otherwise
+ *         the 'hostname' value.
+ *
+ * @throw std::runtime_error if a value is defined for report_host (not NULL)
+ *        and it is empty.
+ */
+std::string get_report_host(const mysqlshdk::mysql::IInstance &instance,
+                            bool *out_is_report_host_set = nullptr);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
+
 #endif  // MYSQLSHDK_LIBS_MYSQL_REPLICATION_H_

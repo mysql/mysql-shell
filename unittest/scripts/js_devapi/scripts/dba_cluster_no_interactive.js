@@ -1,9 +1,9 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 var singleSession = session;
@@ -65,7 +65,7 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 
 //@ Cluster: addInstance 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-Cluster.addInstance(__sandbox_uri2, {'label': 'second'});
+Cluster.addInstance(__sandbox_uri2, {'label': '2nd'});
 
 // Third instance will be added while the second is still on RECOVERY
 //@ Cluster: addInstance 3
@@ -132,7 +132,7 @@ shell.connect(__sandbox_uri2);
 var Cluster = dba.getCluster();
 
 // Add back uri3
-Cluster.addInstance(__sandbox_uri3, {'label': 'third_sandbox'});
+Cluster.addInstance(__sandbox_uri3, {'label': '3rd_sandbox'});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe on new master
@@ -142,7 +142,7 @@ Cluster.describe();
 Cluster.status();
 
 //@ Cluster: addInstance adding old master as read only
-Cluster.addInstance(__sandbox_uri1, {'label': 'first_sandbox'});
+Cluster.addInstance(__sandbox_uri1, {'label': '1st_sandbox'});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@<OUT> Cluster: describe on new master with slave

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -315,10 +315,15 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   assert(config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler));
 
   // Get group seeds information from metadata.
-  std::vector<std::string> seeds =
-      get_peer_seeds(instance.get_session(),
-                     instance.get_connection_options().as_uri(
-                         mysqlshdk::db::uri::formats::only_transport()));
+  // NOTE: Need to use the reported host to get the correct information from
+  //       the MetaData.
+  std::string reported_host = mysqlshdk::mysql::get_report_host(instance);
+  Connection_options cnx_opts = instance.get_connection_options();
+  cnx_opts.clear_host();  // Clear first to avoid error for being already set.
+  cnx_opts.set_host(reported_host);
+  std::vector<std::string> seeds = get_peer_seeds(
+      instance.get_session(),
+      cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
 
   // Get all GR configurations.
   log_debug("Get all group replication configurations.");

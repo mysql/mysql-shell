@@ -1,20 +1,13 @@
 // Assumptions: smart deployment rountines available
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-shell.connect(__sandbox_uri3);
-create_root_from_anywhere(session, true);
-
-shell.connect(__sandbox_uri2);
-create_root_from_anywhere(session, true);
-
 shell.connect(__sandbox_uri1);
-create_root_from_anywhere(session, true);
 
 //@ Dba: createCluster multiPrimary, ok
 var cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, clearReadOnly: true});

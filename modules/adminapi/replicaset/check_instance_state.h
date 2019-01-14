@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,6 +77,7 @@ class Check_instance_state : public Command_interface {
   const ReplicaSet &m_replicaset;
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_target_instance_address;
+  std::string m_address_in_metadata;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_target_instance;
 
   void ensure_instance_not_belong_to_replicaset();

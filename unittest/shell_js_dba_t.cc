@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,6 +140,15 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
              std::to_string(_mysql_sandbox_port2) + "';";
       exec_and_out_equals(code);
       code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
+             std::to_string(_mysql_sandbox_port3) + "';";
+      exec_and_out_equals(code);
+      code = "var __hostname_uri1 = 'mysql://root:root@" + hostname() + ":" +
+             std::to_string(_mysql_sandbox_port1) + "';";
+      exec_and_out_equals(code);
+      code = "var __hostname_uri2 = 'mysql://root:root@" + hostname() + ":" +
+             std::to_string(_mysql_sandbox_port2) + "';";
+      exec_and_out_equals(code);
+      code = "var __hostname_uri3 = 'mysql://root:root@" + hostname() + ":" +
              std::to_string(_mysql_sandbox_port3) + "';";
       exec_and_out_equals(code);
       code = "var uri1 = 'localhost:" + std::to_string(_mysql_sandbox_port1) +
@@ -387,6 +396,10 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
 
   output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
 
+  //@ Cluster: removeInstance errors
+  output_handler.prompts.push_back({"*", "no"});
+  output_handler.prompts.push_back({"*", "yes"});
+
   // @<OUT> Cluster: dissolve error: not empty
   output_handler.prompts.push_back({"*", "no"});
 
@@ -434,6 +447,10 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
 
   //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
   output_handler.prompts.push_back({"*", "yes"});
+
+  //@: Cluster: rejoinInstance errors
+  output_handler.passwords.push_back({"*", "root"});
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
   output_handler.passwords.push_back({"*", "root"});

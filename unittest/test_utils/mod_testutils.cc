@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,9 +111,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
     std::cerr << "testutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
-         "?options");
+         "?options", "?create_remote_root", true);
   expose("deployRawSandbox", &Testutils::deploy_raw_sandbox, "port", "rootpass",
-         "?options");
+         "?options", "?create_remote_root", true);
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
@@ -837,7 +837,8 @@ None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
 void Testutils::deploy_sandbox(int port, const std::string &rootpass,
-                               const shcore::Dictionary_t &opts) {
+                               const shcore::Dictionary_t &opts,
+                               bool create_remote_root) {
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
@@ -850,9 +851,11 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
+      handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
       deploy_sandbox_from_boilerplate(port, opts);
+      handle_remote_root_user(rootpass, port, create_remote_root);
     }
   }
 }
@@ -875,7 +878,8 @@ None Testutils::deploy_raw_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
 void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
-                                   const shcore::Dictionary_t &opts) {
+                                   const shcore::Dictionary_t &opts,
+                                   bool create_remote_root) {
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
@@ -888,10 +892,12 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
+      handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
       wait_sandbox_dead(port);
       deploy_sandbox_from_boilerplate(port, opts, true);
+      handle_remote_root_user(rootpass, port, create_remote_root);
     }
   }
 }
@@ -2007,6 +2013,45 @@ std::string Testutils::fetch_captured_stderr(bool eat_one) {
   return _fetch_stderr(eat_one);
 }
 
+void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
+                                        bool create_remote_root) const {
+  // Connect to sandbox using default root@localhost account.
+  auto session = mysqlshdk::db::mysql::Session::create();
+  auto options = mysqlshdk::db::Connection_options("root@localhost");
+  options.set_port(port);
+  options.set_password(rootpass);
+  session->connect(options);
+
+  // Create root user to allow access using other hostnames, otherwise only
+  // access through 'localhost' will be allowed leading to access denied
+  // errors if the reported replication host (from the metadata) is used.
+  // By default, create_remote_root = true.
+  if (create_remote_root) {
+    session->execute("SET sql_log_bin = 0");
+
+    std::string remote_root = "%";
+    shcore::sqlstring create_user(
+        "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
+    create_user << remote_root << rootpass;
+    create_user.done();
+    session->execute(create_user);
+
+    shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
+    grant << remote_root;
+    grant.done();
+    session->execute(grant);
+
+    session->execute("SET sql_log_bin = 1");
+  } else {
+    // Drop the user in case it already exists (copied from boilerplate).
+    session->execute("SET sql_log_bin = 0");
+    session->execute("DROP USER IF EXISTS 'root'@'%'");
+    session->execute("SET sql_log_bin = 1");
+  }
+
+  session->close();
+}
+
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                                             int port) {
   if (g_test_trace_scripts) std::cerr << "Preparing sandbox boilerplate...\n";
@@ -2052,6 +2097,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
     shcore::create_file(shcore::path::join_path(
                             _sandbox_dir, std::to_string(port), "version.txt"),
                         mysqlshdk::utils::Version(version).get_full());
+    session->close();
   }
 
   stop_sandbox(port);

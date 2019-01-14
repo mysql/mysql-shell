@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -153,9 +153,11 @@ class Testutils : public mysqlsh::Extensible_object {
  public:
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass,
-                      const shcore::Dictionary_t &opts = {});
+                      const shcore::Dictionary_t &opts = {},
+                      bool create_remote_root = true);
   void deploy_raw_sandbox(int port, const std::string &rootpass,
-                          const shcore::Dictionary_t &opts = {});
+                          const shcore::Dictionary_t &opts = {},
+                          bool create_remote_root = true);
   void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
@@ -274,6 +276,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   bool is_port_available_for_sandbox_to_bind(int port) const;
 
+  void handle_remote_root_user(const std::string &rootpass, int port,
+                               bool create_remote_root = true) const;
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
   bool deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,

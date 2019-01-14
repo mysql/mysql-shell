@@ -9,7 +9,7 @@ function print_persisted_variables(session) {
 // Connect to sandbox1
 //FR1 - On a successful dba.createCluster() call, the group replication sysvars must be updated and persisted at the seed instance.
 //@ FR1-TS-01 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
@@ -36,7 +36,7 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ FR1-TS-03 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "persisted-globals-load",
@@ -57,7 +57,15 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ FR1-TS-04/05 SETUP {VER(>=8.0.12)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 //answer to create a new root@% account
 testutil.expectPrompt("Please select an option [1]: ", "1");
 testutil.expectPrompt("Account Host:", "%");
@@ -84,7 +92,7 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ FR1-TS-06 SETUP {VER(<8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 
@@ -101,7 +109,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 
 //@ FR1-TS-7 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
@@ -128,8 +136,8 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //FR2 -On a successful .addInstance() call, the group replication sysvars must
 // be updated and persisted at the joining instance.
 //@FR2-TS-1 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 var s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
@@ -163,8 +171,8 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR2-TS-3 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.changeSandboxConf(__mysql_sandbox_port2, "persisted-globals-load",
@@ -189,8 +197,8 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR2-TS-4 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
@@ -213,7 +221,15 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR2-TS-5 SETUP {VER(>=8.0.12)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 //answer to create a new root@% account
 testutil.expectPrompt("Please select an option [1]: ", "1");
 testutil.expectPrompt("Account Host:", "%");
@@ -224,7 +240,15 @@ dba.configureLocalInstance(__sandbox_uri1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 
-testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
+
+// Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri2);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 //answer to create a new root@% account
 testutil.expectPrompt("Please select an option [1]: ", "1");
 testutil.expectPrompt("Account Host:", "%");
@@ -264,9 +288,9 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 //@ FR2-TS-6 SETUP {VER(<8.0.12)}
 WIPE_SHELL_LOG();
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
@@ -289,9 +313,9 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR2-TS-8 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
@@ -320,9 +344,9 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR2-TS-9 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 var s3 = mysql.getSession(__sandbox_uri3);
@@ -368,8 +392,8 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 //FR5 - On a successful .removeInstance() call, the group replication rejoin
 // sysvars must be cleared and persisted at the leaving instance
 //@ FR5-TS-1 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
@@ -392,9 +416,9 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR5-TS-4 SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 s3 = mysql.getSession(__sandbox_uri3);
@@ -424,9 +448,9 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@ FR5-Extra SETUP {VER(<8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
@@ -439,8 +463,8 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 WIPE_SHELL_LOG();
 cluster.removeInstance(__sandbox_uri2);
 // there should be a warning message for each of the members staying in the group
-var expected_msg1 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
-var expected_msg2 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port3 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
+var expected_msg1 = "Warning: On instance '" + hostname + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
+var expected_msg2 = "Warning: On instance '" + hostname + ":" + __mysql_sandbox_port3 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
 // and a warning for the member that was removed
 var expected_msg3 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
@@ -457,7 +481,7 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@ Check if Cluster dissolve will reset persisted variables SETUP {VER(>=8.0.12)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");

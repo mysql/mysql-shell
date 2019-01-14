@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -221,8 +221,10 @@ void serialize_result_metadata(rapidjson::Document *doc,
   doc->AddMember("columns", clist, doc->GetAllocator());
 }
 
-void push_field(rapidjson::Document *doc, rapidjson::Value *array,
-                const db::IRow *row, uint32_t i) {
+void push_field(
+    rapidjson::Document *doc, rapidjson::Value *array, const db::IRow *row,
+    uint32_t i,
+    const std::function<std::string(const std::string &value)> &hook) {
   rapidjson::Value value;
   if (row->is_null(i)) {
     value.SetNull();
@@ -258,15 +260,38 @@ void push_field(rapidjson::Document *doc, rapidjson::Value *array,
       case Type::DateTime:
       case Type::Enum:
       case Type::Set:
-        value.SetString(row->get_as_string(i).c_str(), doc->GetAllocator());
+        if (hook) {
+          value.SetString(hook(row->get_as_string(i)).c_str(),
+                          doc->GetAllocator());
+        } else {
+          value.SetString(row->get_as_string(i).c_str(), doc->GetAllocator());
+        }
         break;
     }
   }
   array->PushBack(value, doc->GetAllocator());
 }
 
-void serialize_result_rows(rapidjson::Document *doc,
-                           std::shared_ptr<db::IResult> result) {
+bool is_set_as_string(Type type) {
+  switch (type) {
+    case Type::String:
+    case Type::Bytes:
+    case Type::Geometry:
+    case Type::Json:
+    case Type::Date:
+    case Type::Time:
+    case Type::DateTime:
+    case Type::Enum:
+    case Type::Set:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void serialize_result_rows(
+    rapidjson::Document *doc, std::shared_ptr<db::IResult> result,
+    const std::function<std::string(const std::string &value)> &hook) {
   rapidjson::Value rlist;
   rlist.SetArray();
   const db::IRow *row = result->fetch_one();
@@ -274,7 +299,7 @@ void serialize_result_rows(rapidjson::Document *doc,
     rapidjson::Value fields;
     fields.SetArray();
     for (uint32_t i = 0; i < row->num_fields(); i++) {
-      push_field(doc, &fields, row, i);
+      push_field(doc, &fields, row, i, hook);
     }
     rlist.PushBack(fields, doc->GetAllocator());
     row = result->fetch_one();
@@ -282,7 +307,9 @@ void serialize_result_rows(rapidjson::Document *doc,
   doc->AddMember("rows", rlist, doc->GetAllocator());
 }
 
-void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
+void Trace_writer::serialize_result(
+    std::shared_ptr<db::IResult> result,
+    const std::function<std::string(const std::string &value)> &hook) {
   try {
     rapidjson::Document doc;
     doc.SetObject();
@@ -309,7 +336,7 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
     }
     if (result->has_resultset()) {
       serialize_result_metadata(&doc, result);
-      serialize_result_rows(&doc, result);
+      serialize_result_rows(&doc, result, hook);
     }
 
     rapidjson::StringBuffer buffer;

@@ -20,7 +20,7 @@
 // INTERACTIVE test
 
 //@ WL#12049: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -68,7 +68,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //
 
 //@ WL#11032: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -109,7 +109,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // dba.createCluster function.
 //
 //@ WL#12067: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -149,7 +149,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // function.
 //
 //@ WL#12050: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}

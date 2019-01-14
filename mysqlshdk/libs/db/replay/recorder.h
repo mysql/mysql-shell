@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,9 @@ extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_close_hook;
 extern std::function<std::string(const std::string &sql)>
     on_recorder_query_replace_hook;
+
+extern std::function<std::string(const std::string &value)>
+    on_recorder_result_value_replace_hook;
 
 class Recorder_mysql : public mysql::Session {
  public:

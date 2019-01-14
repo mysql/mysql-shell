@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -2571,3 +2571,25 @@ def get_gr_configs_from_instance(server):
     for variable_name, value in gr_vars:
         gr_configs[variable_name] = value
     return gr_configs
+
+
+def get_report_host(server):
+    """Get the host name used for replication.
+
+    :param server: target MySQL server to retrieve the report host value.
+    :type server: Server
+    :return: string with the value used for 'report_host' if not empty,
+             otherwise the 'hostname' value.
+    :rtype: str
+    :raise GadgetError: If a value is defined for report_host (not NULL) and
+                        it is empty.
+    """
+    host = server.select_variable('report_host')
+    # NOTE: Using shell connection NULL can be returned instead of None.
+    if host is None or host == 'NULL':
+        host = server.select_variable('hostname')
+    elif host == '':
+        raise GadgetError(
+            "The value for variable 'report_host' cannot be empty.")
+
+    return host

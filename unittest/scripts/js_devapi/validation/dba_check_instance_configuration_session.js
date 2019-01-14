@@ -7,6 +7,9 @@
 //@ First Sandbox
 ||
 
+//@ Deploy 2nd sandbox with invalid (empty) report_host value.
+||
+
 //@ Check Instance Configuration ok with a session
 ||
 
@@ -129,7 +132,36 @@
 //@ Drop user with role {VER(>=8.0.0)}
 ||
 
-//@ Remove the sandbox
+//@<OUT> Check instance must fail if report_host is defined but empty.
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
+
+//@<ERR> Check instance must fail if report_host is defined but empty.
+Dba.checkInstanceConfiguration: The value for variable 'report_host' cannot be empty. (RuntimeError)
+
+//@<OUT> Configure instance must fail if report_host is defined but empty.
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
+
+//@<ERR> Configure instance must fail if report_host is defined but empty.
+Dba.configureInstance: The value for variable 'report_host' cannot be empty. (RuntimeError)
+
+//@<OUT> Create cluster must fail if report_host is defined but empty.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port2>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
+
+//@<ERR> Create cluster must fail if report_host is defined but empty.
+Dba.createCluster: The value for variable 'report_host' cannot be empty. (RuntimeError)
+
+//@ Remove the sandboxes
 ||
 
 //@ Deploy instances (setting performance_schema value).
@@ -141,5 +173,5 @@
 // checkInstanceConfiguration no error with performance_schema=on
 ||
 
-//@ Remove the sandboxes
+//@ Remove the sandboxes (final)
 ||

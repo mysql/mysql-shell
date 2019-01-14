@@ -3,7 +3,7 @@
 
 
 //@ Make a cluster with a single node then stop GR to simulate a dead cluster
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port1);
 c = dba.createCluster("dev");
 

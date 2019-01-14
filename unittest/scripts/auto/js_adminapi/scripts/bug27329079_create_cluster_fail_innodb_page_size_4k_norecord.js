@@ -1,6 +1,9 @@
 // NOTE: Cannot be recorder (use testutil.deploySandbox()) because the
 // innodb_page_size must be set during initialization and cannot be changed
 // after that.
+if (real_host_is_loopback) {
+  testutil.skip("This test requires that the hostname does not resolve to loopback.");
+}
 
 var __sandbox_dir = testutil.getSandboxPath();
 
@@ -56,8 +59,8 @@ function cleanup_sandbox(port) {
 }
 
 //@ Deploy instances (with specific innodb_page_size).
-dba.deploySandboxInstance(__mysql_sandbox_port1, {mysqldOptions: ["innodb_page_size=4k"], password: 'root', sandboxDir:__sandbox_dir});
-dba.deploySandboxInstance(__mysql_sandbox_port2, {mysqldOptions: ["innodb_page_size=8k"], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port1, {mysqldOptions: ["innodb_page_size=4k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port2, {mysqldOptions: ["innodb_page_size=8k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
 
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 

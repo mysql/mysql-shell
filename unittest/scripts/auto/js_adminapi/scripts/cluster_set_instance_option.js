@@ -69,9 +69,15 @@ cluster.setInstanceOption(__sandbox_uri2, "memberWeight");
 cluster.setInstanceOption(__sandbox_uri2, "foobar", 1);
 cluster.setInstanceOption(null, "label", "newLabel");
 
+//@ WL#11465: F2.2.1.2 - Remove instance 2 from the cluster
+cluster.removeInstance(__sandbox_uri2);
+
 // F2.2.1.2 - The function shall not be allowed if the target 'instance' does not belong to the cluster.
 //@<ERR> WL#11465: Error when executing setInstanceOption for a target instance that does not belong to the cluster
-cluster.setInstanceOption("localhost:3350", "memberWeight", 25);
+cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
+
+//@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
+cluster.addInstance(__sandbox_uri2);
 
 // F2.2.1.1 - The function shall not be allowed if the cluster does not have quorum or the target 'instance' is not ONLINE.
 //@ WL#11465: Error when executing setInstanceOption when the target instance is not ONLINE
@@ -109,7 +115,7 @@ var cluster = scene.cluster
 cluster.setInstanceOption(__sandbox_uri2, "label", "-0_a");
 
 //@<ERR> WL#11465: setInstanceOption label with invalid value for label 2
-var __invalid_label = localhost + ":" + __mysql_sandbox_port1;
+var __invalid_label = hostname + ":" + __mysql_sandbox_port1;
 
 cluster.setInstanceOption(__sandbox_uri2, "label", __invalid_label);
 
@@ -119,7 +125,7 @@ cluster.setInstanceOption(__sandbox_uri2, "label", "newLabel");
 session.close();
 shell.connect(__sandbox_uri2);
 //@<OUT> WL#11465: Verify label changed correctly
-var __address2 = localhost + ":" + __mysql_sandbox_port2;
+var __address2 = hostname + ":" + __mysql_sandbox_port2;
 print_metadata_instance_label(session, __address2);
 
 //@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}

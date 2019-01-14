@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,6 +48,9 @@ std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
 std::function<std::string(const std::string &sql)>
     on_recorder_query_replace_hook;
 
+std::function<std::string(const std::string &value)>
+    on_recorder_result_value_replace_hook;
+
 Recorder_mysql::Recorder_mysql(int print_traces)
     : _print_traces(print_traces) {}
 
@@ -93,7 +96,7 @@ std::shared_ptr<IResult> Recorder_mysql::querys(const char *sql, size_t length,
 
     // Always buffer to make row serialization easier
     std::shared_ptr<IResult> result(super::querys(sql, length, true));
-    _trace->serialize_result(result);
+    _trace->serialize_result(result, on_recorder_result_value_replace_hook);
     std::dynamic_pointer_cast<mysql::Result>(result)->rewind();
     return result;
   } catch (db::Error &e) {
@@ -168,7 +171,7 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
     _trace->serialize_query(std::string(sql, length));
     // Always buffer to make row serialization easier
     std::shared_ptr<IResult> result(super::querys(sql, length, true));
-    _trace->serialize_result(result);
+    _trace->serialize_result(result, nullptr);
     std::dynamic_pointer_cast<mysqlx::Result>(result)->rewind();
     return result;
   } catch (db::Error &e) {

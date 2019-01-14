@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,8 +43,11 @@ class Dba_common_test : public Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
-    reset_replayable_shell();
+    reset_replayable_shell(
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
   }
+
+  virtual void TearDown() { Admin_api_test::TearDown(); }
 
  protected:
   static std::shared_ptr<mysqlshdk::db::ISession> create_session(
@@ -298,6 +301,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   execute("c = dba.create_cluster('sample', {'memberSslMode':'REQUIRED'})");
 #endif
   execute("c.disconnect()");
+  execute("session.close()");
 
   auto peer_session = create_session(_mysql_sandbox_port1);
   auto instance_session = create_session(_mysql_sandbox_port2);
@@ -430,6 +434,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   execute("c = dba.create_cluster('sample', {'memberSslMode':'DISABLED'})");
 #endif
   execute("c.disconnect()");
+  execute("session.close()");
 
   auto peer_session = create_session(_mysql_sandbox_port1);
   auto instance_session = create_session(_mysql_sandbox_port2);

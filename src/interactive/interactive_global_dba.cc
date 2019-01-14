@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -758,7 +758,11 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     std::vector<std::pair<std::string, std::string>> instances_status =
         get_replicaset_instances_status(cluster, options);
 
+    mysqlshdk::db::Connection_options group_cnx_opts =
+        group_session->get_connection_options();
+
     // Validate the rejoinInstances list if provided
+    std::vector<std::string> rejoin_instances_md_address;
     if (!confirm_rescan_rejoins) {
       rejoin_instances_ref = opt_map.array_at("rejoinInstances");
 
@@ -768,9 +772,13 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         shcore::Argument_list args;
         args.push_back(shcore::Value(instance));
 
+        std::string md_address = instance;
         try {
           auto instance_def = mysqlsh::get_connection_options(
               args, mysqlsh::PasswordFormat::NONE);
+
+          md_address = mysqlsh::dba::get_report_host_address(instance_def,
+                                                             group_cnx_opts);
         } catch (std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
@@ -780,8 +788,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
         auto it = std::find_if(
             instances_status.begin(), instances_status.end(),
-            [&instance](const std::pair<std::string, std::string> &p) {
-              return p.first == instance;
+            [&md_address](const std::pair<std::string, std::string> &p) {
+              return p.first == md_address;
             });
 
         if (it == instances_status.end()) {
@@ -790,10 +798,14 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
                                          "belong to the cluster or is the seed "
                                          "instance.");
         }
+
+        // Store reported host address to compare to metadata address.
+        rejoin_instances_md_address.push_back(md_address);
       }
     }
 
     // Validate the removeInstances list if provided
+    std::vector<std::string> remove_instances_md_address;
     if (!confirm_rescan_removes) {
       remove_instances_ref = opt_map.array_at("removeInstances");
 
@@ -803,9 +815,13 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         shcore::Argument_list args;
         args.push_back(shcore::Value(instance));
 
+        std::string md_address = instance;
         try {
           auto instance_def = mysqlsh::get_connection_options(
               args, mysqlsh::PasswordFormat::NONE);
+
+          md_address = mysqlsh::dba::get_report_host_address(instance_def,
+                                                             group_cnx_opts);
         } catch (std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
@@ -815,8 +831,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
         auto it = std::find_if(
             instances_status.begin(), instances_status.end(),
-            [&instance](const std::pair<std::string, std::string> &p) {
-              return p.first == instance;
+            [&md_address](const std::pair<std::string, std::string> &p) {
+              return p.first == md_address;
             });
 
         if (it == instances_status.end()) {
@@ -825,6 +841,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
                                          "belong to the cluster or is the seed "
                                          "instance.");
         }
+
+        // Store reported host address to compare to metadata address.
+        remove_instances_md_address.push_back(md_address);
       }
     }
 
@@ -849,12 +868,12 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         // If the instance is part of the remove_instances list we skip this
         // instance
         if (!confirm_rescan_removes) {
-          auto it = std::find_if(remove_instances_ref.get()->begin(),
-                                 remove_instances_ref.get()->end(),
-                                 [&instance_address](shcore::Value val) {
-                                   return val.get_string() == instance_address;
+          auto it = std::find_if(remove_instances_md_address.begin(),
+                                 remove_instances_md_address.end(),
+                                 [&instance_address](std::string val) {
+                                   return val == instance_address;
                                  });
-          if (it != remove_instances_ref.get()->end()) continue;
+          if (it != remove_instances_md_address.end()) continue;
         }
 
         println();
@@ -881,12 +900,12 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         // If the instance is part of the rejoin_instances list we skip this
         // instance
         if (!confirm_rescan_rejoins) {
-          auto it = std::find_if(rejoin_instances_ref.get()->begin(),
-                                 rejoin_instances_ref.get()->end(),
-                                 [&instance_address](shcore::Value val) {
-                                   return val.get_string() == instance_address;
+          auto it = std::find_if(rejoin_instances_md_address.begin(),
+                                 rejoin_instances_md_address.end(),
+                                 [&instance_address](std::string val) {
+                                   return val == instance_address;
                                  });
-          if (it != rejoin_instances_ref.get()->end()) continue;
+          if (it != rejoin_instances_md_address.end()) continue;
         }
         println();
         println("Could not open a connection to '" + instance_address + "': '" +

@@ -67,8 +67,8 @@ function print_persisted_variables_like(session, pattern) {
 //
 
 //@ WL#12049: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -125,8 +125,8 @@ c.dissolve({force: true});
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -167,8 +167,8 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 //
 
 //@ WL#11032: Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -221,8 +221,8 @@ c.dissolve({force: true});
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -262,8 +262,8 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // Test in single-primary mode
 
 //@ BUG#27084767: Initialize new instances
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -345,9 +345,9 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // Test in single-primary mode
 
 //@ BUG#27084767: Initialize new non-sandbox instance
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: sandbox_cnf1});
@@ -435,9 +435,9 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ BUG#27677227 cluster with x protocol disabled setup
 WIPE_SHELL_LOG();
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0"});
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0", report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 c = dba.createCluster('noxplugin');
@@ -475,8 +475,8 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 // dba.createCluster function.
 //
 //@ WL#12067: Initialization {VER(>=8.0.14)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 
@@ -525,8 +525,8 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // function.
 
 //@ WL#12050: Initialization {VER(>=8.0.13)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 

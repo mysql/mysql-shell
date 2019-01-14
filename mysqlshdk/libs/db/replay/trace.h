@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,9 @@ class Trace_writer {
 
   void serialize_connect_ok(const std::map<std::string, std::string> &info);
   void serialize_ok();
-  void serialize_result(std::shared_ptr<db::IResult> result);
+  void serialize_result(
+      std::shared_ptr<db::IResult> result,
+      const std::function<std::string(const std::string &value)> &hook);
   void serialize_error(const db::Error &e);
   void serialize_error(const std::runtime_error &e);
 
@@ -180,6 +182,8 @@ class Trace {
   int _print_traces = 0;
   bool _got_error = false;
 };
+
+bool is_set_as_string(Type type);
 
 }  // namespace replay
 }  // namespace db

@@ -9,20 +9,20 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -31,7 +31,7 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> cluster session closed: no longer error
@@ -39,20 +39,20 @@
     "clusterName": "dev",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -61,7 +61,7 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# disconnect the cluster object
@@ -69,59 +69,59 @@
 
 //@ SP - getCluster() on primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - getCluster() on secondary
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - getCluster() on primary with connectToPrimary: true
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - getCluster() on secondary with connectToPrimary: true
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - getCluster() on primary with connectToPrimary: false
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - getCluster() on secondary with connectToPrimary: false
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
 
 //@ SPX - getCluster() on session to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - getCluster() on session to secondary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - getCluster() on session to primary (no redirect)
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - getCluster() on session to secondary (no redirect)
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
 
 //@ SPX implicit - getCluster() on session to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - getCluster() on session to secondary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - getCluster() on session to primary (no redirect)
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - getCluster() on session to secondary (no redirect)
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
 
 //@ SP - Connect with no options and ensure it will connect to the specified member
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
@@ -135,7 +135,7 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://localhost:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |Session type:                 Classic|
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
@@ -144,7 +144,7 @@
 |InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
 
 //@ SP - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://localhost:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |Session type:                 Classic|
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 
@@ -171,7 +171,7 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
@@ -180,7 +180,7 @@
 |InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
 
 //@ SPX - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -207,7 +207,7 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
@@ -216,7 +216,7 @@
 |InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -230,13 +230,13 @@
 |InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
 
 //@ SP - Connect with --cluster 1
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster 2
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster py
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster on a non-cluster member + cmd (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
@@ -252,28 +252,28 @@
 
 //@ SP - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://localhost:<<<__mysql_sandbox_port1>>>)...|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://localhost:<<<__mysql_sandbox_port2>>>)...|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 2
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster 1
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster 2
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster py
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
@@ -281,28 +281,28 @@
 
 //@ SPX - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port1>>>0)...|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port2>>>0)...|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 2
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster 1
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster 2
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster py
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
@@ -310,19 +310,19 @@
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port1>>>0)...|
-|    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://localhost:<<<__mysql_sandbox_port2>>>0)...|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 2
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|"groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"|
+|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 
 //@ SP - Dissolve the single-primary cluster while still connected to a secondary

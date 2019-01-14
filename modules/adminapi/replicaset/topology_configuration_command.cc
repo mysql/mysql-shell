@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -58,7 +59,8 @@ void Topology_configuration_command::ensure_server_version() {
 
 void Topology_configuration_command::
     ensure_target_instance_belongs_to_replicaset(
-        const std::string &instance_address) {
+        const std::string &instance_address,
+        const std::string &metadata_address) {
   auto console = mysqlsh::current_console();
 
   // Check if the instance belongs to the ReplicaSet
@@ -67,7 +69,7 @@ void Topology_configuration_command::
   bool is_instance_on_md =
       m_replicaset->get_cluster()
           ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset->get_id(), instance_address);
+          ->is_instance_on_replicaset(m_replicaset->get_id(), metadata_address);
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + instance_address +

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -332,6 +332,24 @@ void validate_connection_options(
     const Connection_options &options,
     std::function<shcore::Exception(const std::string &)> factory =
         shcore::Exception::argument_error);
+
+/**
+ * Auxiliary function to get the reported host address (used in the Metadata).
+ *
+ * This function tries to connect to the instance to get the reported host
+ * information. If it fails to connect to the instance the connection address
+ * is used (returned).
+ *
+ * @param cnx_opts Connection options of the target instance.
+ * @param group_cnx_opts Connection options of the group session, used to set
+ *                       the login credentials if needed.
+ * @return the instance reported host address used in the metadata, or the
+ *         given instance connection address if not able to connect to the
+ *         instance.
+ */
+std::string get_report_host_address(
+    const mysqlshdk::db::Connection_options &cnx_opts,
+    const mysqlshdk::db::Connection_options &group_cnx_opts);
 
 inline void translate_cluster_exception(std::string operation) {
   if (!operation.empty()) operation.append(": ");

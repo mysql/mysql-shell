@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #ifndef MODULES_ADMINAPI_REPLICASET_SET_PRIMARY_INSTANCE_H_
 #define MODULES_ADMINAPI_REPLICASET_SET_PRIMARY_INSTANCE_H_
+
+#include <string>
 
 #include "modules/adminapi/replicaset/topology_configuration_command.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -74,6 +76,7 @@ class Set_primary_instance : public Topology_configuration_command {
 
  private:
   const mysqlshdk::db::Connection_options &m_instance_cnx_opts;
+  std::string m_address_in_md;
 
   /**
    * Verify if the cluster is in single-primary mode

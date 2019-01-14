@@ -9,6 +9,8 @@
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (RuntimeError)
+
+//@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__port>>>'. (RuntimeError)
 
 //@ Create cluster errors using groupSeeds option
@@ -99,6 +101,8 @@
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (RuntimeError)
+
+//@ Add instance errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__port>>>'. (RuntimeError)
 
 //@ Add instance errors using groupSeeds option

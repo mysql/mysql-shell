@@ -7,8 +7,16 @@ if (real_host_is_loopback) {
 }
 
 //@ deploy raw_sandbox, fix all issues and then disable log_bin (BUG#27305806) {VER(>=8.0.11)}
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+// Remove 'root'@'%' user to allow configureLocalInstance() to create it.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
 testutil.expectPrompt("Please select an option [1]: ", "1");
 testutil.expectPrompt("Account Host:", "%");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");

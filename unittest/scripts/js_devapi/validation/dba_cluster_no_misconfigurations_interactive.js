@@ -13,7 +13,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...

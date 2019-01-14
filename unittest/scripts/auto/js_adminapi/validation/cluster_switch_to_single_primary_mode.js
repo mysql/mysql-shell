@@ -10,7 +10,7 @@ Cluster.switchToSinglePrimaryMode: Operation not supported on target server vers
 ||Invalid connection options, no options provided. (ArgumentError)
 
 //@ WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with 1 or more members not ONLINE < 8.0.13 {VER(>=8.0.13)}
-|ERROR: The instance 'localhost:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
 Cluster.switchToSinglePrimaryMode: There is no quorum to perform the operation (RuntimeError)
@@ -21,9 +21,9 @@ Cluster.switchToSinglePrimaryMode: There is no quorum to perform the operation (
 //@<OUT> WL#12052: Switch to single-primary mode {VER(>=8.0.13)}
 Switching cluster 'cluster' to Single-Primary mode...
 
-Instance 'localhost:<<<__mysql_sandbox_port1>>>' remains PRIMARY.
-Instance 'localhost:<<<__mysql_sandbox_port2>>>' was switched from PRIMARY to SECONDARY.
-Instance 'localhost:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' remains PRIMARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was switched from PRIMARY to SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
 
 WARNING: Existing connections that expected a R/W connection must be disconnected, i.e. instances that became SECONDARY.
 
@@ -34,27 +34,27 @@ The cluster successfully switched to Single-Primary mode.
     "clusterName": "cluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port3>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -63,7 +63,7 @@ The cluster successfully switched to Single-Primary mode.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
@@ -84,9 +84,9 @@ pm
 //@<OUT> WL#12052: Switch a single-primary cluster to single-primary is a no-op {VER(>=8.0.13)}
 Switching cluster 'cluster' to Single-Primary mode...
 
-Instance 'localhost:<<<__mysql_sandbox_port1>>>' remains PRIMARY.
-Instance 'localhost:<<<__mysql_sandbox_port2>>>' remains SECONDARY.
-Instance 'localhost:<<<__mysql_sandbox_port3>>>' remains SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' remains PRIMARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' remains SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' remains SECONDARY.
 
 WARNING: Existing connections that expected a R/W connection must be disconnected, i.e. instances that became SECONDARY.
 
@@ -97,27 +97,27 @@ The cluster successfully switched to Single-Primary mode.
     "clusterName": "cluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port3>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -126,7 +126,7 @@ The cluster successfully switched to Single-Primary mode.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL#12052: Re-create the multi-primary cluster {VER(>=8.0.13)}
@@ -135,9 +135,9 @@ The cluster successfully switched to Single-Primary mode.
 //@<OUT> WL#12052: Switch to single-primary mode defining which shall be the primary {VER(>=8.0.13)}
 Switching cluster 'cluster' to Single-Primary mode...
 
-Instance 'localhost:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY to SECONDARY.
-Instance 'localhost:<<<__mysql_sandbox_port2>>>' remains PRIMARY.
-Instance 'localhost:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY to SECONDARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' remains PRIMARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
 
 WARNING: The cluster internal session is not the primary member anymore. For cluster management operations please obtain a fresh cluster handle using <Dba>.getCluster().
 
@@ -150,27 +150,27 @@ The cluster successfully switched to Single-Primary mode.
     "clusterName": "cluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "localhost:<<<__mysql_sandbox_port2>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
         "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port2>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "localhost:<<<__mysql_sandbox_port3>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -179,7 +179,7 @@ The cluster successfully switched to Single-Primary mode.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ WL#12052: Finalization

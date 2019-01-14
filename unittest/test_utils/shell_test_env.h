@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,14 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 
 // Environment variables only
 
+#include <algorithm>
 #include <list>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -83,18 +85,27 @@ namespace tests {
 class Override_row_string : public mysqlshdk::db::replay::Row_hook {
  public:
   Override_row_string(std::unique_ptr<mysqlshdk::db::IRow> source,
-                      uint32_t column, const std::string &value)
+                      const std::vector<uint32_t> columns,
+                      const std::vector<std::string> &values)
       : mysqlshdk::db::replay::Row_hook(std::move(source)),
-        _column(column),
-        _value(value) {}
+        m_columns(columns),
+        m_values(values) {
+    assert(m_columns.size() == m_values.size());
+  }
 
   std::string get_string(uint32_t index) const override {
-    if (index == _column) return _value;
+    // if (index == _column) return _value;
+    auto it = std::find(std::begin(m_columns), std::end(m_columns), index);
+    if (it != std::end(m_columns)) {
+      auto column_index = std::distance(std::begin(m_columns), it);
+      return m_values.at(column_index);
+    }
     return Row_hook::get_string(index);
   }
 
-  uint32_t _column;
-  std::string _value;
+ private:
+  std::vector<uint32_t> m_columns;
+  std::vector<std::string> m_values;
 };
 
 /**
@@ -119,6 +130,11 @@ class Shell_test_env : public ::testing::Test {
                         int sandbox_port3);
 
   std::string query_replace_hook(const std::string &sql);
+  std::string record_host_replace_hook(const std::string &value);
+  std::unique_ptr<mysqlshdk::db::IRow> set_replay_row_hook(
+      const mysqlshdk::db::Connection_options &target, const std::string &sql,
+      std::unique_ptr<mysqlshdk::db::IRow> source);
+  std::string replay_host_replace_hook(const std::string &value);
 
  protected:
   static std::string _host;  //!< localhost

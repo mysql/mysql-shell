@@ -10,6 +10,11 @@ dba.checkInstanceConfiguration();
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
+//@ Deploy 2nd sandbox with invalid (empty) report_host value.
+// Regression for BUG#28285389: TARGET MEMBER HOSTNAME SHOULD BE TAKEN FROM HOSTNAME OR REPORT_HOST SYSVARS
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": ""});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
 //@ Check Instance Configuration ok with a session
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user:'root', password:'root'});
 
@@ -23,7 +28,7 @@ session.runSql("SET sql_log_bin = 1");
 
 //@ Error: user has no privileges to run the checkInstanceConfiguration command (BUG#26609909)
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user: 'test_user', password:''});
-session.close()
+session.close();
 
 //@ Check instance configuration using a non existing user that authenticates as another user that does not have enough privileges (BUG#26979375)
 shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'test_user', password: ''});
@@ -36,11 +41,11 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 session.runSql("SET sql_log_bin = 0");
 session.runSql("GRANT SELECT on *.* TO 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
-session.close()
+session.close();
 
 shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'test_user', password: ''});
 dba.checkInstanceConfiguration({host: hostname, port: __mysql_sandbox_port1, user: 'test_user', password:''});
-session.close()
+session.close();
 
 // Drop user
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -128,14 +133,29 @@ session.runSql("DROP ROLE 'admin_role'@'localhost'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
-//@ Remove the sandbox
+//@ Check instance must fail if report_host is defined but empty.
+// Regression for BUG#28285389: TARGET MEMBER HOSTNAME SHOULD BE TAKEN FROM HOSTNAME OR REPORT_HOST SYSVARS
+shell.connect({host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+dba.checkInstanceConfiguration();
+
+//@ Configure instance must fail if report_host is defined but empty.
+// Regression for BUG#28285389: TARGET MEMBER HOSTNAME SHOULD BE TAKEN FROM HOSTNAME OR REPORT_HOST SYSVARS
+dba.configureInstance();
+
+//@ Create cluster must fail if report_host is defined but empty.
+// Regression for BUG#28285389: TARGET MEMBER HOSTNAME SHOULD BE TAKEN FROM HOSTNAME OR REPORT_HOST SYSVARS
+dba.createCluster('error');
+
+//@ Remove the sandboxes
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
 
 // Regression test for BUG#25867733: CHECKINSTANCECONFIGURATION SUCCESS BUT CREATE CLUSTER FAILING IF PFS DISABLED
 //@ Deploy instances (setting performance_schema value).
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off"})
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off"});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on"})
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on"});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 //@ checkInstanceConfiguration error with performance_schema=off
@@ -144,6 +164,6 @@ dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, us
 // checkInstanceConfiguration no error with performance_schema=on
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port2, user:'root', password:'root'});
 
-//@ Remove the sandboxes
+//@ Remove the sandboxes (final)
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

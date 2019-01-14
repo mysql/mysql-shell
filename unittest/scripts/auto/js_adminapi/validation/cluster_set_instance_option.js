@@ -11,8 +11,14 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Option 'foobar' not supported. (ArgumentError)
 ||Invalid connection options, no options provided. (ArgumentError)
 
+//@ WL#11465: F2.2.1.2 - Remove instance 2 from the cluster
+||
+
 //@<ERR> WL#11465: Error when executing setInstanceOption for a target instance that does not belong to the cluster
-Cluster.setInstanceOption: The instance 'localhost:3350' does not belong to the ReplicaSet: 'default'. (RuntimeError)
+Cluster.setInstanceOption: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' does not belong to the ReplicaSet: 'default'. (RuntimeError)
+
+//@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
+||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption when the target instance is not ONLINE
 Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port3>>>' is not ONLINE. (RuntimeError)
@@ -30,7 +36,7 @@ Cluster.setInstanceOption: There is no quorum to perform the operation (RuntimeE
 Cluster.setInstanceOption: The label can only start with an alphanumeric or the '_' character. (ArgumentError)
 
 //@<ERR> WL#11465: setInstanceOption label with invalid value for label 2
-Cluster.setInstanceOption: An instance with label 'localhost:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster (ArgumentError)
+Cluster.setInstanceOption: An instance with label '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster (ArgumentError)
 
 //@<OUT> WL#11465: setInstanceOption label
 Setting the value of 'label' to 'newLabel' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...

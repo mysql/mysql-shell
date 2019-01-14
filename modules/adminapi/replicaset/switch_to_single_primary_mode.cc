@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,12 @@ void Switch_to_single_primary_mode::prepare() {
 
     validate_connection_options(m_instance_cnx_opts);
 
-    ensure_target_instance_belongs_to_replicaset(target_instance_address);
+    m_address_in_md = mysqlsh::dba::get_report_host_address(
+        m_instance_cnx_opts, m_replicaset->get_cluster()
+                                 ->get_group_session()
+                                 ->get_connection_options());
+    ensure_target_instance_belongs_to_replicaset(target_instance_address,
+                                                 m_address_in_md);
   }
 }
 
@@ -78,8 +83,7 @@ shcore::Value Switch_to_single_primary_mode::execute() {
           m_replicaset->get_cluster()
               ->get_metadata_storage()
               ->get_new_metadata()
-              ->get_instance_uuid_by_address(m_instance_cnx_opts.as_uri(
-                  mysqlshdk::db::uri::formats::only_transport()));
+              ->get_instance_uuid_by_address(m_address_in_md);
 
       mysqlshdk::gr::switch_to_single_primary_mode(*m_cluster_session_instance,
                                                    target_instance_uuid);

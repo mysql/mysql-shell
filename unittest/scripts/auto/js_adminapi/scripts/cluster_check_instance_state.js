@@ -62,7 +62,7 @@ cluster.checkInstanceState(__sandbox_uri2);
 scene2.destroy();
 
 //@ Deploy instance 2
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 //@<OUT> checkInstanceState: state: ok, reason: new
 cluster.checkInstanceState(__sandbox_uri2);

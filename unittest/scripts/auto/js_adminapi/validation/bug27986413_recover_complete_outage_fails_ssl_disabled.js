@@ -9,27 +9,27 @@
     "clusterName": "C",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -38,7 +38,7 @@
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
@@ -72,27 +72,27 @@ The instance cluster settings were successfully persisted.
     "clusterName": "C",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -101,7 +101,7 @@ The instance cluster settings were successfully persisted.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Kill all cluster members again
@@ -118,27 +118,27 @@ The instance cluster settings were successfully persisted.
     "clusterName": "C",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
         "ssl": "DISABLED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -147,7 +147,7 @@ The instance cluster settings were successfully persisted.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 //@ Destroy sandboxes
 ||

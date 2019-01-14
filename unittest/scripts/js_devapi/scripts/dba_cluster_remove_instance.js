@@ -1,10 +1,10 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 function print_instances_count_for_gr() {
@@ -59,7 +59,7 @@ cluster.status();
 
 //@<> Remove instance failure due to wrong credentials
 // WL#11862 - FR1_2, FR2_2
-cluster.removeInstance({Host: "localhost", PORT: __mysql_sandbox_port2, User: "foo", PassWord: "bar"});
+cluster.removeInstance({Host: hostname, PORT: __mysql_sandbox_port2, User: "foo", PassWord: "bar"});
 
 //@<OUT> Cluster status after remove failed
 // WL#11862 - FR1_2
@@ -244,11 +244,11 @@ cluster.status();
 
 //@ Error removing stopped instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);
+cluster.removeInstance('root:root@' + hostname + ':' + __mysql_sandbox_port2);
 
 //@ Remove stopped instance on port2 with force option
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-cluster.removeInstance('root@localhost:' + __mysql_sandbox_port2, {force: true, PassWord: "root"});
+cluster.removeInstance('root@' + hostname + ':' + __mysql_sandbox_port2, {force: true, PassWord: "root"});
 
 //@<OUT> Confirm instance2 is not in cluster metadata
 // WL#11862 - FR5_3
@@ -256,11 +256,11 @@ host_exist_in_metadata_schema(__mysql_sandbox_port2);
 
 //@<> Remove unreachable instance (interactive: false, force: false) - error
 // WL#11862 - FR4_5
-cluster.removeInstance(__sandbox_uri3, {interactive: false, force: false});
+cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
 
 //@<> Remove unreachable instance (interactive: false, force: true) - success
 // WL#11862 - FR4_5
-cluster.removeInstance(__sandbox_uri3, {interactive: false, force: true});
+cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 cluster.status();
@@ -321,24 +321,24 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<> Remove unreachable instance (interactive: true, force: false) - error
 // WL#11862 - FR4_3
-cluster.removeInstance(__sandbox_uri2, {interactive: true, force: false});
+cluster.removeInstance(__hostname_uri2, {interactive: true, force: false});
 
 //@<> Remove unreachable instance (interactive: false) - error
 // WL#11862 - FR4_4
-cluster.removeInstance(__sandbox_uri3, {interactive: false});
+cluster.removeInstance(__hostname_uri3, {interactive: false});
 
 //@<> Remove unreachable instance (interactive: true, answer NO) - error
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
-cluster.removeInstance(__sandbox_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2, {interactive: true});
 
 //@<> Remove unreachable instance (interactive: true, answer YES) - success
 // WL#11862 - FR4_1
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "y");
-cluster.removeInstance(__sandbox_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2, {interactive: true});
 
 //@<> Remove unreachable instance (interactive: true, force: true) - success
 // WL#11862 - FR4_2
-cluster.removeInstance(__sandbox_uri3, {interactive: true, force: true});
+cluster.removeInstance(__hostname_uri3, {interactive: true, force: true});
 
 //@ Remove instance post actions (ensure they do not rejoin cluster)
 // NOTE: This is not enough for server version >= 8.0.11 because persisted variables take precedence.

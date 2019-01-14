@@ -1,5 +1,5 @@
 
-testutil.deploySandbox(__mysql_sandbox_port1, 'root');
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 //@ ConfigureLocalInstance should fail if there's no session nor parameters provided

@@ -1,26 +1,19 @@
 // Tests where a member with a different group_name is mixed with another cluster
 
 //@ Deploy 2 instances, 1 for base cluster and another for intruder
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri3);
 var cluster = dba.createCluster('outsider');
 session.close();
 
 shell.connect(__sandbox_uri1);
-session.runSql("set sql_log_bin=0");
-session.runSql("create user root@'%' identified by 'root'");
-session.runSql("grant all on *.* to root@'%'");
-session.runSql("set sql_log_bin=1");
 
 cluster.disconnect();
 var cluster = dba.createCluster('clus');
 
 var outsider = mysql.getSession(__sandbox_uri3);
-outsider.runSql("set sql_log_bin=0");
-outsider.runSql("create user root@'%' identified by 'root'");
-outsider.runSql("grant all on *.* to root@'%'");
 
 // Regression tests for BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE
 // GROUP_NAME INTO ACCOUNT
@@ -76,7 +69,7 @@ cluster.addInstance(__sandbox_uri3);
 //@ Preparation
 // Deploy another instance, add it to the cluster, then remove it and
 // create a cluster with it
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 cluster.addInstance(__sandbox_uri2);

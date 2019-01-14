@@ -4,11 +4,11 @@
 testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 function get_rpl_users() {
@@ -142,7 +142,7 @@ cluster.disconnect();
 shell.connect(__sandbox_uri1);
 
 var instance2 = localhost + ':' + __mysql_sandbox_port2;
-var instance3 = localhost + ':' + __mysql_sandbox_port3;
+var instance3 = hostname + ':' + __mysql_sandbox_port3;
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance3]});

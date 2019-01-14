@@ -20,11 +20,28 @@
 
 #@ Initialization
 testutil.deploy_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname, 'binlog_checksum': 'CRC32', 'gtid_mode': 'OFF', 'server_id': '0'})
-testutil.snapshot_sandbox_conf(__mysql_sandbox_port1);
+testutil.snapshot_sandbox_conf(__mysql_sandbox_port1)
 testutil.deploy_sandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname})
-testutil.snapshot_sandbox_conf(__mysql_sandbox_port2);
+testutil.snapshot_sandbox_conf(__mysql_sandbox_port2)
 testutil.deploy_sandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname})
-testutil.snapshot_sandbox_conf(__mysql_sandbox_port3);
+testutil.snapshot_sandbox_conf(__mysql_sandbox_port3)
+
+# Remove 'root'@'%' user to allow configureInstance() to create it.
+shell.connect(__sandbox_uri1)
+session.run_sql("SET sql_log_bin = 0")
+session.run_sql("DROP USER IF EXISTS 'root'@'%'")
+session.run_sql("SET sql_log_bin = 1")
+session.close()
+shell.connect(__sandbox_uri2)
+session.run_sql("SET sql_log_bin = 0")
+session.run_sql("DROP USER IF EXISTS 'root'@'%'")
+session.run_sql("SET sql_log_bin = 1")
+session.close()
+shell.connect(__sandbox_uri3)
+session.run_sql("SET sql_log_bin = 0")
+session.run_sql("DROP USER IF EXISTS 'root'@'%'")
+session.run_sql("SET sql_log_bin = 1")
+session.close()
 
 __sandbox1_cnf_path = testutil.get_sandbox_conf_path(__mysql_sandbox_port1)
 __sandbox2_cnf_path = testutil.get_sandbox_conf_path(__mysql_sandbox_port2)

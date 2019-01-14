@@ -1,5 +1,5 @@
 //@ Initialize
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
@@ -39,7 +39,6 @@ dba.dropMetadataSchema({});
 dba.rebootClusterFromCompleteOutage("");
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt
-create_root_from_anywhere(session, true);
 dba.createCluster("bla", {adoptFromGR:true});
 
 //@# Dba_preconditions_innodb, create_cluster_fails
@@ -53,7 +52,7 @@ dba.dropMetadataSchema({});
 //of the machine will be added to the metadata, instead of localhost, so we
 //must use that hostname on the session
 session.close();
-var uri = "mysql://root:root@"+ real_hostname + ":" + __mysql_sandbox_port1;
+var uri = "mysql://root:root@"+ hostname + ":" + __mysql_sandbox_port1;
 shell.connect(uri);
 dba.rebootClusterFromCompleteOutage("bla");
 

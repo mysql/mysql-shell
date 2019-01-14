@@ -111,7 +111,7 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 // the wildcard '%' for the host name value.
 
 //@<> F5 SETUP
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 var cluster = dba.createCluster("testCluster");

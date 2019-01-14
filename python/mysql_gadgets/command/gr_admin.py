@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,7 @@ from mysql_gadgets.common.group_replication import (
     get_gr_configs_from_instance,
     get_gr_local_address_from,
     get_gr_name_from_peer,
+    get_report_host,
     setup_gr_config,
     GR_IP_WHITELIST,
     GR_EXIT_STATE_ACTION,
@@ -461,7 +462,8 @@ def start(server_info, **kwargs):
                                   skip_backup=skip_backup,
                                   var_change_warning=True)
 
-        gr_host, local_port = resolve_gr_local_address(gr_host, server.host,
+        report_host = get_report_host(server)
+        gr_host, local_port = resolve_gr_local_address(gr_host, report_host,
                                                        server.port)
 
         # verify the group replication is not Disabled in the server.
@@ -945,7 +947,8 @@ def join(server_info, peer_server_info, **kwargs):
             health(server, **kwargs)
             raise GadgetError(_ERROR_ALREADY_A_MEMBER.format(server, JOIN))
 
-        gr_host, local_port = resolve_gr_local_address(gr_host, server.host,
+        report_host = get_report_host(server)
+        gr_host, local_port = resolve_gr_local_address(gr_host, report_host,
                                                        server.port)
 
         local_address = "{0}:{1}".format(gr_host, local_port)

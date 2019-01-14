@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,9 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "unittest/test_utils/shell_test_wrapper.h"
+
 #include <map>
 #include <memory>
 #include <vector>
+
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -279,6 +281,17 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
         &Shell_test_env::on_session_connect, this, std::placeholders::_1);
     mysqlshdk::db::replay::on_recorder_close_hook = std::bind(
         &Shell_test_env::on_session_close, this, std::placeholders::_1);*/
+
+    // Set up hook to replace hostname in results (row values).
+    auto recorder_result_value_replace_hook =
+        [this](const std::string &value) -> std::string {
+      if (value.find(_hostname) != std::string::npos) {
+        return shcore::str_replace(value, _hostname, "__HOSTNAME__");
+      }
+      return value;
+    };
+    mysqlshdk::db::replay::on_recorder_result_value_replace_hook =
+        std::bind(recorder_result_value_replace_hook, std::placeholders::_1);
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
@@ -421,8 +434,33 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
           datadir = shcore::str_replace(datadir, "/", "\\");
 #endif
           return std::unique_ptr<mysqlshdk::db::IRow>{
-              new tests::Override_row_string(std::move(source), datadir_column,
-                                             datadir)};
+              new tests::Override_row_string(
+                  std::move(source),
+                  std::vector<uint32_t>{(uint32_t)datadir_column},
+                  std::vector<std::string>{datadir})};
+        }
+
+        // Replace recorded hostname constants by the correct host information
+        // where the test are executed (replayed).
+        std::vector<uint32_t> replaced_columns;
+        std::vector<std::string> replaced_values;
+        uint32_t num_values = source->num_fields();
+        for (uint32_t i = 0; i < num_values; ++i) {
+          if (!source->is_null(i) &&
+              mysqlshdk::db::replay::is_set_as_string(source->get_type(i))) {
+            std::string value = source->get_string(i);
+            if (value.find("__HOSTNAME__") != std::string::npos) {
+              value = shcore::str_replace(value, "__HOSTNAME__", _hostname);
+              replaced_columns.push_back(i);
+              replaced_values.push_back(value);
+            }
+          }
+        }
+
+        if (!replaced_columns.empty()) {
+          return std::unique_ptr<mysqlshdk::db::IRow>{
+              new tests::Override_row_string(
+                  std::move(source), replaced_columns, replaced_values)};
         }
 #ifdef __sun
         return std::move(source);

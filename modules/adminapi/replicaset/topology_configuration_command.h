@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,7 +96,7 @@ class Topology_configuration_command : public Command_interface {
    * Verify if the instance belongs to the replicaset
    */
   void ensure_target_instance_belongs_to_replicaset(
-      const std::string &instance_address);
+      const std::string &instance_address, const std::string &metadata_address);
 
   /**
    * Verify if all replicaset members are ONLINE and initialize the internal

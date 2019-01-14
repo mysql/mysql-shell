@@ -1,18 +1,3 @@
-// This test needs to use _norecord because localhost cannot be used for
-// cluster instances, otherwise the hosname in the metadata will be different
-// from the one reported by Group Replication (never uses 'localhost', always
-// the instance hostname) and the validation performed by rescan() will fail.
-// This is a short-term solution.
-// The final (long-term) solution is to fix BUG#28285389 which will make the
-// hostname in the Metadata and GR match even when localhost is used, but it
-// will require new features for the tests traces framework to properly handle
-// hostname/IP addresses resolution (hostname/IP is different where tests are
-// recorded and executed). The use of _norecord can be removed after
-// implementing this final solution.
-
-// Only run this test in direct mode (disabled by default, i.e., using traces).
-//@ {__test_execution_mode=="direct"}
-
 function get_server_uuid(session) {
     var result = session.runSql("SELECT @@GLOBAL.server_uuid");
     var row = result.fetchOne();
@@ -56,12 +41,14 @@ function check_auto_increment_settings(uri) {
 }
 
 //@ Initialize.
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 var mycnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 var mycnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
 //@ Get needed Server_Ids and UUIDs.
@@ -127,7 +114,7 @@ cluster.rescan({addInstances: 123});
 cluster.rescan({addInstances: ["localhost:1111"]});
 
 //@<> WL10644 - TSF2_11: warning for already members in addInstances.
-var member_address = real_hostname + ":" + __mysql_sandbox_port1;
+var member_address = hostname + ":" + __mysql_sandbox_port1;
 cluster.rescan({addInstances: [member_address]});
 
 //@ WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
@@ -180,8 +167,8 @@ cluster.status();
 cluster.addInstance(__hostname_uri2);
 
 //@<> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
-var member_address2 = real_hostname + ":" + __mysql_sandbox_port2;
-var member_address3 = real_hostname + ":" + __mysql_sandbox_port3;
+var member_address2 = hostname + ":" + __mysql_sandbox_port2;
+var member_address3 = hostname + ":" + __mysql_sandbox_port3;
 cluster.rescan({addInstances: [member_address2, member_address3]});
 
 //@<> WL10644 - TSF2_1: Validate that the instances were added.
@@ -475,7 +462,7 @@ cluster.status();
 session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'pm'");
 
 //@<> WL10644 - TSF4_3: Topology mode in MD before rescan().
-get_metadata_topology_mode(2);
+get_metadata_topology_mode(1);
 
 //@ WL10644 - TSF4_6: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
@@ -487,7 +474,7 @@ testutil.expectPrompt("Would you like to update it in the cluster metadata? [Y/n
 cluster.rescan({interactive: true});
 
 //@<> WL10644 - TSF4_3: Check topology mode in MD after rescan().
-get_metadata_topology_mode(2);
+get_metadata_topology_mode(1);
 
 //@<> WL10644 - TSF4_6: Check auto_increment settings after change to multi-primary.
 offset1 = 1 + instance1_id % 7;
@@ -501,13 +488,13 @@ check_auto_increment_settings(__sandbox_uri3);
 session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'pm'");
 
 //@<> WL10644 - TSF4_4: Topology mode in MD before rescan().
-get_metadata_topology_mode(2);
+get_metadata_topology_mode(1);
 
 //@<> WL10644 - TSF4_4: Rescan with interactive:false and change needed.
 cluster.rescan({interactive: false});
 
 //@<> WL10644 - TSF4_4: Check topology mode in MD after rescan().
-get_metadata_topology_mode(2);
+get_metadata_topology_mode(1);
 
 //@ Finalize.
 cluster.disconnect();

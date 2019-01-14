@@ -1,6 +1,6 @@
 // Deploy instances (with the same server UUID).
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server-uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"server-uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server-uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"server-uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", report_host: hostname});
 
 //@ Create a cluster a cluster.
 shell.connect(__sandbox_uri1);

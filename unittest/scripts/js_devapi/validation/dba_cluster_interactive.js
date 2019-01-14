@@ -26,17 +26,22 @@
 //@ Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
-||Invalid connection options, expected either a URI or a Dictionary
+||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.addInstance: Invalid URI: empty.
+||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.addInstance: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.addInstance: Missing values in connection options: host
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
+||Cluster.addInstance: The label can not be empty.
+||Cluster.addInstance: The label can only start with an alphanumeric or the '_' character.
+||Cluster.addInstance: The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
+||Cluster.addInstance: The label can not be greater than 256 characters.
 
 //@ Cluster: addInstance with interaction, error
-||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
@@ -67,7 +72,7 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
@@ -99,8 +104,8 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: describe1
@@ -110,18 +115,18 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "name": "default",
         "topology": [
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -134,27 +139,27 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -171,7 +176,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: Argument auth-method is expected to be a string
-||Cluster.removeInstance: The instance 'localhost:33060' does not belong to the ReplicaSet: 'default'
+||Cluster.removeInstance: Unable to retreive status information for the instance 'localhost:33060'. The instance might no longer be part of the cluster.
 ||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 
 //@ Cluster: removeInstance
@@ -184,13 +189,13 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "name": "default",
         "topology": [
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -203,20 +208,20 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -236,13 +241,13 @@ The cluster still has the following registered ReplicaSets:
         "name": "default",
         "topology": [
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -295,7 +300,7 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
@@ -327,8 +332,8 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: status: success
@@ -336,28 +341,28 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "2nd_sandbox": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "3rd_sandbox": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
-                "role": "HA",
-                "status": "ONLINE"
-            },
-            "second_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},
-                "role": "HA",
-                "status": "ONLINE"
-            },
-            "third_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
@@ -380,8 +385,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
-||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
-||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
+||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
@@ -406,28 +411,28 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "2nd_sandbox": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "3rd_sandbox": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
-                "role": "HA",
-                "status": "ONLINE"
-            },
-            "second_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},
-                "role": "HA",
-                "status": "ONLINE"
-            },
-            "third_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
@@ -446,18 +451,18 @@ The cluster still has the following registered ReplicaSets:
         "name": "default",
         "topology": [
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "label": "second_sandbox",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "2nd_sandbox",
                 "role": "HA"
             },
             {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "third_sandbox",
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "3rd_sandbox",
                 "role": "HA"
             }
         ],
@@ -467,12 +472,12 @@ The cluster still has the following registered ReplicaSets:
 WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
-Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
-Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
-<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.

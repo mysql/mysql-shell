@@ -240,7 +240,7 @@ function StandaloneScenario(ports) {
 // ** Cluster based scenarios
 function ClusterScenario(ports, topology_mode="pm") {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root");
+    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
   }
 
   this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -691,8 +691,15 @@ shcore::Value ReplicaSet::add_instance(
   // Check instance server UUID (must be unique among the cluster members).
   validate_server_uuid(session);
 
-  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(
-      get_id(), target_coptions.uri_endpoint());
+  // Get the gr_address of the instance being added
+  std::string md_address;
+  {
+    auto added_instance = mysqlshdk::mysql::Instance(session);
+    md_address = mysqlshdk::mysql::get_report_host(added_instance) + ":" +
+                 std::to_string(target_coptions.get_port());
+  }
+  bool is_instance_on_md =
+      _metadata_storage->is_instance_on_replicaset(get_id(), md_address);
 
   log_debug("RS %s: Adding instance '%s' to replicaset%s",
             std::to_string(_id).c_str(), target_coptions.uri_endpoint().c_str(),
@@ -945,8 +952,7 @@ shcore::Value ReplicaSet::add_instance(
     // Update the group_replication_group_seeds of the members that
     // already belonged to the cluster and are either ONLINE or recovering
     // by adding the gr_local_address of the instance that was just added.
-    std::vector<std::string> ignore_instances_vec = {
-        target_coptions.uri_endpoint()};
+    std::vector<std::string> ignore_instances_vec = {md_address};
     Gr_seeds_change_type change_type = Gr_seeds_change_type::ADD;
 
     execute_in_members(
@@ -1243,16 +1249,6 @@ shcore::Value ReplicaSet::rejoin_instance(
 
   instance_def->set_default_connection_data();
 
-  // Check if the instance is part of the Metadata
-  if (!_metadata_storage->is_instance_on_replicaset(
-          get_id(), instance_def->uri_endpoint())) {
-    std::string message = "The instance '" + instance_def->uri_endpoint() +
-                          "' " + "does not belong to the ReplicaSet: '" +
-                          get_member("name").get_string() + "'.";
-
-    throw shcore::Exception::runtime_error(message);
-  }
-
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
   // Metadata (BUG #26159339)
@@ -1268,9 +1264,24 @@ shcore::Value ReplicaSet::rejoin_instance(
       session = establish_mysql_session(*instance_def,
                                         current_shell_options()->get().wizards);
     } catch (std::exception &e) {
-      log_error("Could not open connection to '%s': %s",
-                instance_def->uri_endpoint().c_str(), e.what());
-      throw;
+      std::string err_msg = "Could not open connection to '" +
+                            instance_def->uri_endpoint() + "': " + e.what();
+      throw shcore::Exception::runtime_error(err_msg);
+    }
+
+    // Get instance address in metadata.
+    mysqlshdk::mysql::Instance target_instance(session);
+    std::string md_address =
+        mysqlshdk::mysql::get_report_host(target_instance) + ":" +
+        std::to_string(instance_def->get_port());
+
+    // Check if the instance is part of the Metadata
+    if (!_metadata_storage->is_instance_on_replicaset(get_id(), md_address)) {
+      std::string message = "The instance '" + instance_def->uri_endpoint() +
+                            "' " + "does not belong to the ReplicaSet: '" +
+                            get_member("name").get_string() + "'.";
+
+      throw shcore::Exception::runtime_error(message);
     }
 
     // Validate ip whitelist option if used
@@ -1888,11 +1899,12 @@ void ReplicaSet::add_instance_metadata(
   std::string instance_address = instance_definition.as_uri(only_transport());
 
   std::string mysql_server_uuid;
-  std::string mysql_server_address;
+  std::string reported_host;
 
   log_debug("Connecting to '%s' to query for metadata information...",
             instance_address.c_str());
-  // get the server_uuid from the joining instance
+  // Get the required data from the joining instance to store in the metadata:
+  // - server UUID, reported_host,
   {
     int port = -1;
     std::shared_ptr<mysqlshdk::db::ISession> classic;
@@ -1929,6 +1941,7 @@ void ReplicaSet::add_instance_metadata(
       }
       throw shcore::Exception::runtime_error(ss.str());
     }
+
     {
       // Query UUID of the member and its public hostname
       auto result = classic->query("SELECT @@server_uuid");
@@ -1940,6 +1953,8 @@ void ReplicaSet::add_instance_metadata(
             "@@server_uuid could not be queried");
       }
     }
+
+    // Get the MySQL X port.
     try {
       auto result = classic->query("SELECT @@mysqlx_port");
       auto xport_row = result->fetch_one();
@@ -1951,24 +1966,32 @@ void ReplicaSet::add_instance_metadata(
           classic->get_connection_options().uri_endpoint().c_str());
     }
 
-    // Loads the local HR host data
+    // Get the local GR host data.
     get_server_variable(classic, "group_replication_local_address",
                         &local_gr_address, false);
 
-    // NOTE(rennox): This validation is completely weird, mysql_server_address
-    // has not been used so far...
-    if (!mysql_server_address.empty() && mysql_server_address != joiner_host) {
-      log_info("Normalized address of '%s' to '%s'", joiner_host.c_str(),
-               mysql_server_address.c_str());
+    // Get the reported host.
+    {
+      mysqlshdk::mysql::Instance target_instance(classic);
+      reported_host = mysqlshdk::mysql::get_report_host(target_instance);
+      target_instance.close_session();
 
-      instance_address = mysql_server_address + ":" + std::to_string(port);
-    } else {
-      mysql_server_address = joiner_host;
+      if (reported_host != joiner_host) {
+        log_info(
+            "Using reported host '%s' instead of '%s' to store in the "
+            "metadata.",
+            reported_host.c_str(), joiner_host.c_str());
+
+        // Update the instance_address with the reported host value to store
+        // in the metadata.
+        instance_address = reported_host + ":" + std::to_string(port);
+      }
     }
   }
+
   std::string instance_xaddress;
   if (xport != -1)
-    instance_xaddress = mysql_server_address + ":" + std::to_string(xport);
+    instance_xaddress = reported_host + ":" + std::to_string(xport);
 
   Instance_definition instance;
 
@@ -1980,16 +2003,13 @@ void ReplicaSet::add_instance_metadata(
 
   instance.label = label.empty() ? instance_address : label;
 
-  // update the metadata with the host
-  // NOTE(rennox): the old insert_host function was reading from the map
-  // the keys location and id_host (<--- no, is not a typo, id_host)
-  // where does those values come from????
-  uint32_t host_id = _metadata_storage->insert_host(joiner_host, "", "");
+  // Add the host to the metadata.
+  uint32_t host_id = _metadata_storage->insert_host(reported_host, "", "");
 
   instance.host_id = host_id;
   instance.replicaset_id = get_id();
 
-  // And the instance
+  // Add the instance to the metadata.
   _metadata_storage->insert_instance(instance);
 
   tx.commit();
@@ -2092,17 +2112,6 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   // TODO(miguel): test if the instance if part of the current cluster, for the
   // scenario of restoring a cluster quorum from another
 
-  // Check if the instance belongs to the ReplicaSet on the Metadata
-  if (!_metadata_storage->is_instance_on_replicaset(rset_id,
-                                                    instance_address)) {
-    std::string message = "The instance '" + instance_address + "'";
-
-    message.append(" does not belong to the ReplicaSet: '" +
-                   get_member("name").get_string() + "'.");
-
-    throw shcore::Exception::runtime_error(message);
-  }
-
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
   // Metadata (BUG #26159339)
@@ -2117,6 +2126,20 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
+    }
+
+    // Get instance address in metadata.
+    mysqlshdk::mysql::Instance target_instance(session);
+    std::string md_address =
+        mysqlshdk::mysql::get_report_host(target_instance) + ":" +
+        std::to_string(instance_def.get_port());
+
+    // Check if the instance belongs to the ReplicaSet on the Metadata
+    if (!_metadata_storage->is_instance_on_replicaset(rset_id, md_address)) {
+      std::string message = "The instance '" + instance_address + "'";
+      message.append(" does not belong to the ReplicaSet: '" +
+                     get_member("name").get_string() + "'.");
+      throw shcore::Exception::runtime_error(message);
     }
 
     if (!validate_replicaset_group_name(session, get_group_name())) {
@@ -2378,19 +2401,12 @@ void ReplicaSet::remove_instances(
     const std::vector<std::string> &remove_instances) {
   if (!remove_instances.empty()) {
     for (auto instance : remove_instances) {
-      // verify if the instance is on the metadata
-      if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
-        shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+      // NOTE: Verification if the instance is on the metadata was already
+      // performed by the caller Dba::reboot_cluster_from_complete_outage().
+      shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
 
-        auto connection_options =
-            shcore::get_connection_options(instance, false);
-        remove_instance_metadata(connection_options);
-      } else {
-        std::string message = "The instance '" + instance + "'";
-        message.append(" does not belong to the ReplicaSet: '" +
-                       get_member("name").get_string() + "'.");
-        throw shcore::Exception::runtime_error(message);
-      }
+      auto connection_options = shcore::get_connection_options(instance, false);
+      remove_instance_metadata(connection_options);
     }
   }
 }
@@ -2411,31 +2427,23 @@ void ReplicaSet::rejoin_instances(
     }
 
     for (auto instance : rejoin_instances) {
-      // verify if the instance is on the metadata
-      if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
-        auto connection_options =
-            shcore::get_connection_options(instance, false);
+      // NOTE: Verification if the instance is on the metadata was already
+      // performed by the caller Dba::reboot_cluster_from_complete_outage().
+      auto connection_options = shcore::get_connection_options(instance, false);
 
-        connection_options.set_user(instance_data.get_user());
-        connection_options.set_password(instance_data.get_password());
+      connection_options.set_user(instance_data.get_user());
+      connection_options.set_password(instance_data.get_password());
 
-        // If rejoinInstance fails we don't want to stop the execution of the
-        // function, but to log the error.
-        try {
-          std::string msg = "Rejoining the instance '" + instance +
-                            "' to the "
-                            "cluster's default replicaset.";
-          log_warning("%s", msg.c_str());
-          rejoin_instance(&connection_options, shcore::Value::Map_type_ref());
-        } catch (shcore::Exception &e) {
-          log_error("Failed to rejoin instance: %s", e.what());
-        }
-      } else {
-        std::string msg =
-            "The instance '" + instance +
-            "' does not "
-            "belong to the cluster. Skipping rejoin to the Cluster.";
-        throw shcore::Exception::runtime_error(msg);
+      // If rejoinInstance fails we don't want to stop the execution of the
+      // function, but to log the error.
+      try {
+        std::string msg = "Rejoining the instance '" + instance +
+                          "' to the "
+                          "cluster's default replicaset.";
+        log_warning("%s", msg.c_str());
+        rejoin_instance(&connection_options, shcore::Value::Map_type_ref());
+      } catch (shcore::Exception &e) {
+        log_error("Failed to rejoin instance: %s", e.what());
       }
     }
   }

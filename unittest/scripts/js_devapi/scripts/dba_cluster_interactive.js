@@ -3,11 +3,11 @@
 // validateMemer and validateNotMember are defined on the setup script
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
@@ -121,12 +121,12 @@ Cluster.dissolve({force: 'sample'});
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
-Cluster.addInstance(__sandbox_uri2, {'label': 'second_sandbox'});
+Cluster.addInstance(__sandbox_uri2, {'label': '2nd_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
-Cluster.addInstance(__sandbox_uri3, {'label': 'third_sandbox'});
+Cluster.addInstance(__sandbox_uri3, {'label': '3rd_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

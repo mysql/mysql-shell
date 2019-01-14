@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,6 +96,7 @@ class Remove_instance : public Command_interface {
 
   std::string m_instance_address;
   mysqlshdk::mysql::Instance *m_target_instance = nullptr;
+  std::string m_address_in_metadata;
 
   /**
    * Verify if the instance belongs to the replicaset, otherwise it cannot be

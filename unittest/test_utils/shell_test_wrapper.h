@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,7 @@ class Shell_test_wrapper {
   const std::shared_ptr<tests::Testutils> &utils() { return _testutil; }
 
   int port() { return _mysql_port_number; }
+  std::string hostname() { return _hostname; }
   int sb_port1() { return _mysql_sandbox_nport1; }
   int sb_port2() { return _mysql_sandbox_nport2; }
   int sb_port3() { return _mysql_sandbox_nport3; }

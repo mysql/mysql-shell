@@ -1,11 +1,13 @@
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
 // --- Create Cluster Tests ---
 var mysql = require('mysql');
 shell.connect(__sandbox_uri1);
+// Drop root@% user to require read-only to be disabled to create it.
+session.runSql("DROP USER IF EXISTS 'root'@'%'");
 session.runSql("create user bla@localhost");
 session.runSql("set global super_read_only=1");
 var s = mysql.getSession("bla:@localhost:" + __mysql_sandbox_port1);

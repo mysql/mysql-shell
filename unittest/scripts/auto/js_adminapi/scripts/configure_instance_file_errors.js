@@ -114,7 +114,7 @@ function setup_scenario(flags) {
 
 // Init
 
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var alt_mycnf_path = "mytmp.cnf";

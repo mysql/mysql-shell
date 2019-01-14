@@ -60,7 +60,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
@@ -77,7 +77,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
@@ -95,8 +95,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -111,8 +110,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -128,8 +126,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -160,8 +157,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -254,8 +250,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Co
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -282,8 +277,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Co
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -314,8 +308,7 @@ Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': C
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 WARNING: User 'mydba' can only connect from localhost.
 If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
@@ -337,8 +330,7 @@ Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': C
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
-Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+This instance reports its own address as <<<hostname>>>
 
 WARNING: User 'mydba' can only connect from localhost.
 If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.

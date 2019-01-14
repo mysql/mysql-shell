@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,8 @@ class Dba_sql_test : public Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
-    reset_replayable_shell();
+    reset_replayable_shell(
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
   }
 
   static void SetUpTestCase() {
@@ -216,17 +217,17 @@ TEST_F(Dba_sql_test, get_peer_seeds_md_in_synch) {
   // Test with metadata GR addresses not in gr_group_seed variable:
   // group_replication_group_seeds
   // -----------------------------
-  // localhost:port1, localhost:port2
+  // hostname:port1, hostname:port2
 
   // JSON_UNQUOTE(addresses->'$.grLocal')
   // ------------------------------------
-  // localhost:port2
+  // hostname:port2
   auto session = create_session(_mysql_sandbox_port1);
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+        session, hostname() + ":" + std::to_string(_mysql_sandbox_port1));
     std::vector<std::string> result = {
-        "localhost:" + std::to_string(_mysql_sandbox_port2) + "1"};
+        hostname() + ":" + std::to_string(_mysql_sandbox_port2) + "1"};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -240,12 +241,12 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // Test with metadata GR addresses in gr_group_seed variable:
   // group_replication_group_seeds
   // -----------------------------
-  // localhost:port1,localhost:port2,localhost:port3
+  // hostname:port1,hostname:port2,localhost:port3
 
   // JSON_UNQUOTE(addresses->'$.grLocal')
   // ------------------------------------
-  // localhost:port2
-  // localhost:port3
+  // hostname:port2
+  // hostname:port3
   auto session = create_session(_mysql_sandbox_port1);
 
   // Insert a fake record for the third instance on the metadata
@@ -266,9 +267,9 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
 
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+        session, hostname() + ":" + std::to_string(_mysql_sandbox_port1));
     std::vector<std::string> result = {
-        "localhost:" + std::to_string(_mysql_sandbox_port2) + "1",
+        hostname() + ":" + std::to_string(_mysql_sandbox_port2) + "1",
         "localhost:" + std::to_string(_mysql_sandbox_port3) + "1"};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
