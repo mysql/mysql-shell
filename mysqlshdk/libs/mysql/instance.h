@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -121,6 +121,18 @@ class IInstance {
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
+
+  virtual void suppress_binary_log(bool) = 0;
+};
+
+struct Suppress_binary_log {
+  explicit Suppress_binary_log(IInstance *inst) : m_instance(inst) {
+    m_instance->suppress_binary_log(true);
+  }
+
+  ~Suppress_binary_log() { m_instance->suppress_binary_log(false); }
+
+  IInstance *m_instance;
 };
 
 /**
@@ -214,11 +226,14 @@ class Instance : public IInstance {
    */
   utils::nullable<bool> is_set_persist_supported() const override;
 
+  void suppress_binary_log(bool flag) override;
+
  private:
   std::shared_ptr<db::ISession> _session;
   mutable mysqlshdk::utils::Version _version;
   mutable std::string m_version_compile_os;
   std::map<std::string, utils::nullable<std::string>> _global_sysvars;
+  int m_sql_binlog_suppress_count = 0;
 
   const std::string &get_version_compile_os() const;
   std::string get_plugin_library_extension() const;

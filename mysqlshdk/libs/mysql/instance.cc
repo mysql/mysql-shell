@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -682,6 +682,20 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
     return utils::nullable<bool>(*persist_global);
   } else {
     return utils::nullable<bool>();
+  }
+}
+
+void Instance::suppress_binary_log(bool flag) {
+  if (flag) {
+    if (m_sql_binlog_suppress_count == 0)
+      _session->execute("SET SESSION sql_log_bin=0");
+    m_sql_binlog_suppress_count++;
+  } else {
+    if (m_sql_binlog_suppress_count <= 0)
+      throw std::logic_error("mismatched call to suppress_binary_log()");
+    m_sql_binlog_suppress_count--;
+    if (m_sql_binlog_suppress_count == 0)
+      _session->execute("SET SESSION sql_log_bin=0");
   }
 }
 

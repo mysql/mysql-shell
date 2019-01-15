@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -19,46 +19,76 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+# Goes through each metadata model SQL file and turn it into a raw
+# string const declaration.
 
-# Loads the metadata-model.sql file
-file(READ "adminapi/common/metadata-model.sql" MD_MODEL_SQL)
+file(GLOB schema_files "${CMAKE_CURRENT_SOURCE_DIR}/adminapi/common/metadata/metadata-model*.sql")
+file(GLOB upgrade_files "${CMAKE_CURRENT_SOURCE_DIR}/adminapi/common/metadata/upgrade*.sql")
+
+# This will sort alphabetically, so it will stop working when version numbers
+# start having 2 digits
+list(SORT schema_files)
+list(GET schema_files -1 schema_file)
+
+# Loads the latest metadata-model.sql file
+file(READ ${schema_file} SQL_DATA)
 
 # Strips the copyright + comments from it
-string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
-string(SUBSTRING "${MD_MODEL_SQL}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
-string(REPLACE "${COPYRIGHT_TEXT}" "" MD_MODEL_SQL_STRIPPED "${MD_MODEL_SQL}")
+string(FIND "${SQL_DATA}" "CREATE DATABASE" COPYRIGHT_END)
+string(SUBSTRING "${SQL_DATA}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+string(REPLACE "${COPYRIGHT_TEXT}" "" SQL_DATA "${SQL_DATA}")
 
-# Updates format to be a C++ multiline definition
-string(REPLACE "\\" "\\\\" MD_MODEL_SQL_PREPARED "${MD_MODEL_SQL_STRIPPED}")
-string(REPLACE "\n" "\\n\"\n\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_PREPARED}")
+# Updates format to be a C++ raw string definition
+get_filename_component(varname "${schema_file}" NAME)
+string(REPLACE "metadata-model-" "k_md_model_schema_" varname ${varname})
+string(REPLACE ".sql" "" varname ${varname})
+string(REPLACE "." "_" varname ${varname})
+set(METADATA_MODEL_DATA "R\"*(${SQL_DATA})*\"")
 
-# Escape the " characters in "manual"
-string(REPLACE "\"manual\"" "\\\"manual\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+message(STATUS "Metadata schema file: ${schema_file}")
+string(REGEX MATCH " schema_version [^;]+ AS SELECT ([0-9]+), ([0-9]+), ([0-9]+)" METADATA_MODEL_VERSION "${SQL_DATA}")
+set(METADATA_MODEL_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+message(STATUS "Metadata Version (interface): ${METADATA_MODEL_VERSION}")
+string(REGEX MATCH " internal_version [^;]+ AS SELECT ([0-9]+), ([0-9]+), ([0-9]+)" METADATA_MODEL_INTERNAL_VERSION "${SQL_DATA}")
+if(CMAKE_MATCH_1)
+  set(METADATA_MODEL_INTERNAL_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+else()
+  set(METADATA_MODEL_INTERNAL_VERSION ${METADATA_MODEL_VERSION})
+endif()
+message(STATUS "Metadata Version (internal): ${METADATA_MODEL_INTERNAL_VERSION}")
 
-# Escape the " characters in "ssh"
-string(REPLACE "\"ssh\"" "\\\"ssh\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Make list of upgrade scripts
+foreach(fn ${upgrade_files})
+  # Loads the upgrade.sql file
+  file(READ ${fn} SQL_DATA)
 
-# Escape the " characters in "254616cc-fb47-11e5-aac5"
-string(REPLACE "\"254616cc-fb47-11e5-aac5\"" "\\\"254616cc-fb47-11e5-aac5\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+  # Strips the copyright + comments from it
+  string(FIND "${SQL_DATA}" "--" COPYRIGHT_END)
+  string(SUBSTRING "${SQL_DATA}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+  string(REPLACE "${COPYRIGHT_TEXT}" "" SQL_DATA "${SQL_DATA}")
 
-# Escape the " characters in "mysql://host.foo.com:3306"
-string(REPLACE "\"mysql://host.foo.com:3306\"" "\\\"mysql://host.foo.com:3306\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+  # Extract source and target versions
+  string(REGEX MATCH "-- Source: ([0-9.]*)" SOURCE_VERSION "${SQL_DATA}")
+  if(NOT SOURCE_VERSION)
+    message(ERROR "-- Source: line missing in ${fn}")
+  else()
+    set(SOURCE_VERSION ${CMAKE_MATCH_1})
+  endif()
+  string(REGEX MATCH "-- Target: ([0-9.]*)" TARGET_VERSION "${SQL_DATA}")
+  if(NOT TARGET_VERSION)
+    message(ERROR "-- Target: line missing in ${fn}")
+  else()
+    set(TARGET_VERSION ${CMAKE_MATCH_1})
+  endif()
 
-# Escape the " characters in "mysqlx://host.foo.com:33060"
-string(REPLACE "\"mysqlx://host.foo.com:33060\"" "\\\"mysqlx://host.foo.com:33060\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+  # Updates format to be a C++ raw string definition
+  set(SQL_DATA_FIXED "{Version(\"${SOURCE_VERSION}\"), Version(\"${TARGET_VERSION}\"), R\"*(${SQL_DATA})*\"},\n")
 
-# Escape the " characters in "mysql://localhost:/tmp/mysql.sock"
-string(REPLACE "\"mysql://localhost:/tmp/mysql.sock\"" "\\\"mysql://localhost:/tmp/mysql.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
-
-# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
-string(REPLACE "\"mysqlx://localhost:/tmp/mysqlx.sock\"" "\\\"mysqlx://localhost:/tmp/mysqlx.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
-
-# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
-string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlXcom://host.foo.com:49213?channelName=<..>\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+  # Append to the list
+  set(METADATA_MODEL_UPGRADE_DATA "${METADATA_MODEL_UPGRADE_DATA}\n${SQL_DATA_FIXED}")
+endforeach()
 
 
 # Creates the target file containing the code ready for processing
-configure_file("${CMAKE_SOURCE_DIR}/modules/adminapi/common/metadata-model_definitions.h.in"
-                  "${CMAKE_BINARY_DIR}/modules/adminapi/common/metadata-model_definitions.h")
-
-
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/adminapi/common/metadata-model_definitions.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/adminapi/common/metadata-model_definitions.h")

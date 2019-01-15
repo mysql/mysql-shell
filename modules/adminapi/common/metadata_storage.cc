@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,6 @@
 #include <random>
 
 #include "db/mysqlx/mysqlxclient_clean.h"
-#include "modules/adminapi/common/metadata-model_definitions.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
@@ -120,55 +119,9 @@ void MetadataStorage::rollback() {
   if (_tx_deep == 0) _session->execute("rollback");
 }
 
-bool MetadataStorage::metadata_schema_exists() {
-  bool ret_val = false;
-  std::string schema = "mysql_innodb_cluster_metadata";
-
-  if (_session && _session->is_open()) {
-    std::string statement = shcore::sqlstring("show databases like ?", 0)
-                            << schema;
-
-    auto result = _session->query(statement);
-
-    auto row = result->fetch_one();
-
-    if (row && row->get_string(0) == schema) ret_val = true;
-  } else {
-    throw shcore::Exception::logic_error("An active session is required.");
-  }
-
-  return ret_val;
-}
-
-void MetadataStorage::create_metadata_schema() {
-  if (!metadata_schema_exists()) {
-    std::string query = shcore::md_model_sql;
-
-    size_t pos = 0;
-    std::string token, delimiter = ";\n";
-
-    while ((pos = query.find(delimiter)) != std::string::npos) {
-      token = query.substr(0, pos);
-
-      execute_sql(token);
-
-      query.erase(0, pos + delimiter.length());
-    }
-  } else {
-    // Check the Schema version and update the schema accordingly
-  }
-}
-
-void MetadataStorage::drop_metadata_schema() {
-  execute_sql("DROP SCHEMA mysql_innodb_cluster_metadata");
-}
-
 uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name) {
   uint64_t cluster_id = 0;
   shcore::sqlstring query;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   // Get the Cluster ID
   query = shcore::sqlstring(
@@ -187,9 +140,6 @@ uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name) {
 uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id) {
   uint64_t cluster_id = 0;
   shcore::sqlstring query;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   // Get the Cluster ID
   query = shcore::sqlstring(
@@ -218,9 +168,6 @@ bool MetadataStorage::cluster_exists(const std::string &cluster_name) {
 }
 
 void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
-
   // Check if the Cluster has some description
   shcore::sqlstring query(
       "INSERT INTO mysql_innodb_cluster_metadata.clusters "
@@ -394,9 +341,6 @@ void MetadataStorage::remove_instance(const std::string &instance_address) {
 void MetadataStorage::drop_cluster(const std::string &cluster_name) {
   shcore::sqlstring query;
 
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
-
   // Check if the Cluster exists
   if (!cluster_exists(cluster_name)) {
     throw shcore::Exception::logic_error("The cluster with the name '" +
@@ -474,9 +418,6 @@ bool MetadataStorage::cluster_has_default_replicaset_only(
     const std::string &cluster_name) {
   shcore::sqlstring query;
 
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
-
   // Get the Cluster ID
   uint64_t cluster_id = get_cluster_id(cluster_name);
 
@@ -524,9 +465,6 @@ void MetadataStorage::drop_replicaset(uint64_t rs_id) {
   shcore::sqlstring query;
   bool default_rs = false;
   std::string rs_name;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   Transaction tx(shared_from_this());
 
@@ -585,9 +523,6 @@ void MetadataStorage::drop_replicaset(uint64_t rs_id) {
 void MetadataStorage::disable_replicaset(uint64_t rs_id) {
   shcore::sqlstring query;
 
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
-
   // Set active as False
   query = shcore::sqlstring(
       "UPDATE mysql_innodb_cluster_metadata.replicasets SET active = ?"
@@ -601,9 +536,6 @@ void MetadataStorage::disable_replicaset(uint64_t rs_id) {
 
 bool MetadataStorage::is_replicaset_active(uint64_t rs_id) {
   shcore::sqlstring query;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   query = shcore::sqlstring(
       "SELECT active FROM mysql_innodb_cluster_metadata.replicasets WHERE "
@@ -644,9 +576,6 @@ void MetadataStorage::set_replicaset_group_name(
 void MetadataStorage::set_cluster_name(const std::string &cluster_name,
                                        const std::string &new_cluster_name) {
   shcore::sqlstring query;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   // Check if the Cluster exists
   if (!cluster_exists(cluster_name)) {
@@ -767,20 +696,6 @@ void MetadataStorage::load_cluster(const std::string &cluster_name,
   }
 }
 
-bool MetadataStorage::has_default_cluster() {
-  bool ret_val = false;
-
-  if (metadata_schema_exists()) {
-    auto result = execute_sql(
-        "SELECT cluster_id from mysql_innodb_cluster_metadata.clusters "
-        "WHERE attributes->'$.default' = true");
-
-    auto row = result->fetch_one();
-    if (row) ret_val = true;
-  }
-  return ret_val;
-}
-
 bool MetadataStorage::is_replicaset_empty(uint64_t rs_id) {
   shcore::sqlstring query;
 
@@ -870,9 +785,6 @@ void MetadataStorage::set_instance_label(uint64_t rs_id,
                                          const std::string &new_label) {
   shcore::sqlstring query;
 
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
-
   // Check if the label exists
   if (is_instance_label_unique(rs_id, label)) {
     throw shcore::Exception::logic_error("The instance with the label '" +
@@ -896,9 +808,6 @@ void MetadataStorage::set_instance_label(uint64_t rs_id,
 
 std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   std::string seed_address, query;
-
-  if (!metadata_schema_exists())
-    throw shcore::Exception::metadata_error("Metadata Schema does not exist.");
 
   // Get the Cluster instanceAdminUser
 

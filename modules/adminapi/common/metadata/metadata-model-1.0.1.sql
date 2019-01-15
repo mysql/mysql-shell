@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,8 +98,8 @@ CREATE TABLE replicasets (
   /*
     Specifies the type of topology of a replicaset.
   */
-   -- TODO(nelson): update the values to sm and mp respectively on the next
-   -- version bump.
+  -- TODO(nelson): update the values to sm and mp respectively on the next
+  -- version bump.
   `topology_type` ENUM('pm', 'mm') NOT NULL DEFAULT 'pm',
   /*
     A replicaset can be assigned a name and this can be used to refer to it.

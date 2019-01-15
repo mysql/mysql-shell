@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,9 +65,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   explicit MetadataStorage(std::shared_ptr<mysqlshdk::db::ISession> session);
   virtual ~MetadataStorage();
 
-  bool metadata_schema_exists();
-  virtual void create_metadata_schema();
-  void drop_metadata_schema();
   uint64_t get_cluster_id(const std::string &cluster_name);
   uint64_t get_cluster_id(uint64_t rs_id);
   virtual bool cluster_exists(const std::string &cluster_name);
@@ -91,7 +88,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual void load_cluster(const std::string &cluster_name,
                             std::shared_ptr<Cluster> cluster);
   virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
-  bool has_default_cluster();
 
   bool is_replicaset_empty(uint64_t rs_id);
   virtual bool is_instance_on_replicaset(uint64_t rs_id,

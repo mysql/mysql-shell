@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
@@ -1235,9 +1236,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // Check replication filters before creating the Metadata.
     validate_replication_filters(group_session);
 
-    // First we need to create the Metadata Schema, or update it if already
-    // exists
-    metadata->create_metadata_schema();
+    // First we need to create the Metadata Schema
+    prepare_metadata_schema(&target_instance);
 
     // BUG#28054500: Do not create new users, not needed, when creating a
     // cluster with adoptFromGR.
@@ -1358,6 +1358,20 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+void Dba::prepare_metadata_schema(mysqlshdk::mysql::Instance *metadata_target) {
+  // Ensure that the metadata schema is ready for creating a new cluster in it
+  // If the metadata schema does not exist, we create it
+  // If the metadata schema already exists:
+  // - clear it of old data
+  // - ensure it has the right version
+  // We ensure both by always dropping the old schema and re-creating it from
+  // scratch.
+
+  metadata::uninstall(metadata_target->get_session());
+
+  metadata::install(metadata_target->get_session());
+}
+
 REGISTER_HELP_FUNCTION(dropMetadataSchema, dba);
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM,
@@ -1447,7 +1461,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
       // instance in an incorrect state
       validate_super_read_only(group_session, clear_read_only);
 
-      metadata->drop_metadata_schema();
+      metadata::uninstall(metadata->get_session());
     } else {
       throw shcore::Exception::runtime_error(
           "No operation executed, use the 'force' option");
