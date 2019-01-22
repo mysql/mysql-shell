@@ -119,6 +119,12 @@ else()
   list(APPEND DEB_BUILD_DEPS "openssl")
 endif()
 
+if(WITH_CURL)
+  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_CURL=${WITH_CURL}")
+else()
+  list(APPEND DEB_BUILD_DEPS "libcurl4-openssl-dev | libcurl-dev")
+endif()
+
 if(MYSQLCLIENT_STATIC_LINKING OR ENV{MYSQLCLIENT_STATIC_LINKING})
   list(APPEND EXTRA_CMAKE_OPTS "-DMYSQLCLIENT_STATIC_LINKING=ON")
 endif()

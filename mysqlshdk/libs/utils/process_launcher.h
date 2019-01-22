@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -70,11 +70,7 @@ class Process {
       close();
     }
 
-#ifdef __APPLE__
-    if (m_use_pseudo_tty) {
-      stop_reader_thread();
-    }
-#endif  // __APPLE__
+    stop_reader_threads();
   }
 
 #ifdef _WIN32
@@ -205,6 +201,16 @@ class Process {
    */
   void set_environment(const std::vector<std::string> &env);
 
+  /**
+   * Output of the child process is going to be read in a background thread.
+   * Makes all read operations non-blocking. This is useful when we don't care
+   * about child's output, but need to drain it in order to avoid hangups, i.e.
+   * on Windows.
+   *
+   * @throws std::logic_error if child process is already running
+   */
+  void enable_reader_thread();
+
  private:
   /** Closes child process */
   void close();
@@ -214,6 +220,12 @@ class Process {
   bool is_write_allowed() const;
 
   void ensure_write_is_allowed() const;
+
+  void do_start();
+
+  void start_reader_threads();
+
+  void stop_reader_threads();
 
   const char *const *argv;
   bool is_alive;
@@ -240,31 +252,15 @@ class Process {
 
   std::string m_input_file;
 
-#ifdef __APPLE__
-  void start_reader_thread() {
-    if (!m_reader_thread) {
-      m_reader_thread.reset(new std::thread{[this]() {
-        static constexpr size_t k_buffer_size = 512;
-        char buffer[k_buffer_size];
-        int n = 0;
-        while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
-          std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
-          m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
-        }
-      }});
-    }
-  }
-
-  void stop_reader_thread() {
-    if (m_reader_thread) {
-      m_reader_thread->join();
-      m_reader_thread.reset(nullptr);
-    }
-  }
-
+  bool m_use_reader_thread = false;
   std::unique_ptr<std::thread> m_reader_thread;
   std::mutex m_read_buffer_mutex;
   std::deque<char> m_read_buffer;
+
+#ifdef __APPLE__
+  std::unique_ptr<std::thread> m_terminal_reader_thread;
+  std::mutex m_terminal_buffer_mutex;
+  std::deque<char> m_terminal_buffer;
 #endif  // __APPLE__
 };
 

@@ -140,6 +140,9 @@ INCLUDE(msvc)
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
 
+include(curl)
+MYSQL_CHECK_CURL()
+
 if(HAVE_PYTHON)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)

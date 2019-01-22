@@ -327,7 +327,7 @@ void Process::redirect_file_to_stdin(const std::string &input_file) {
 
 #ifdef WIN32
 
-void Process::start() {
+void Process::do_start() {
   SECURITY_ATTRIBUTES saAttr;
 
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -387,10 +387,8 @@ void Process::start() {
                            &pi);  // lpProcessInformation
   if (!bSuccess) {
     report_error(NULL);
-  } else {
-    is_alive = true;
-    _wait_pending = true;
   }
+
   CloseHandle(child_out_wr);
   CloseHandle(child_in_rd);
 
@@ -570,7 +568,7 @@ void Process::set_environment(const std::vector<std::string> &env) {
 
 #else  // !WIN32
 
-void Process::start() {
+void Process::do_start() {
   assert(!is_alive);
 
   if (is_write_allowed()) {
@@ -660,16 +658,7 @@ void Process::start() {
 
     if (m_use_pseudo_tty) {
       ::close(slave_device);
-
-#ifdef __APPLE__
-      // need to drain output from controlling terminal, otherwise launched
-      // process will hang on exit
-      start_reader_thread();
-#endif  // __APPLE__
     }
-
-    is_alive = true;
-    _wait_pending = true;
   }
 }
 
@@ -744,8 +733,8 @@ std::string Process::read_from_terminal() {
 
   while (!has_output) {
     {
-      std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
-      has_output = !m_read_buffer.empty();
+      std::lock_guard<std::mutex> lock{m_terminal_buffer_mutex};
+      has_output = !m_terminal_buffer.empty();
     }
 
     if (!has_output) {
@@ -756,9 +745,9 @@ std::string Process::read_from_terminal() {
   std::string output;
 
   {
-    std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
-    output = {m_read_buffer.begin(), m_read_buffer.end()};
-    m_read_buffer.clear();
+    std::lock_guard<std::mutex> lock{m_terminal_buffer_mutex};
+    output = {m_terminal_buffer.begin(), m_terminal_buffer.end()};
+    m_terminal_buffer.clear();
   }
 
   return output;
@@ -851,7 +840,21 @@ void Process::set_environment(const std::vector<std::string> &env) {
 
 void Process::kill() { close(); }
 
-int Process::read(char *buf, size_t count) { return do_read(buf, count); }
+int Process::read(char *buf, size_t count) {
+  if (m_reader_thread) {
+    std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
+    count = std::min(m_read_buffer.size(), count);
+
+    if (count > 0) {
+      std::copy(m_read_buffer.begin(), m_read_buffer.begin() + count, buf);
+      m_read_buffer.erase(m_read_buffer.begin(), m_read_buffer.begin() + count);
+    }
+
+    return static_cast<int>(count);
+  } else {
+    return do_read(buf, count);
+  }
+}
 
 std::string Process::read_line(bool *eof) {
   std::string s;
@@ -875,6 +878,73 @@ std::string Process::read_all() {
   }
 
   return s;
+}
+
+void Process::enable_reader_thread() {
+  if (is_alive) {
+    throw std::logic_error(
+        "This method needs to be called before starting "
+        "the child process.");
+  }
+
+  m_use_reader_thread = true;
+}
+
+void Process::start_reader_threads() {
+  if (m_use_reader_thread && !m_reader_thread) {
+    // Read process output in a background thread, this makes all read
+    // operations non-blocking. This may be required i.e. on Windows, where we
+    // use anonymous pipes to transfer output from child processes. If output is
+    // not read, pipe's buffer will become full and child process will hang.
+    m_reader_thread = shcore::make_unique<std::thread>([this]() {
+      try {
+        char c;
+        while (do_read(&c, 1) > 0) {
+          std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
+          m_read_buffer.push_back(c);
+        }
+      } catch (...) {
+      }
+    });
+  }
+
+#ifdef __APPLE__
+  // need to drain output from controlling terminal, otherwise launched
+  // process will hang on exit
+  if (m_use_pseudo_tty && !m_terminal_reader_thread) {
+    m_terminal_reader_thread = shcore::make_unique<std::thread>([this]() {
+      static constexpr size_t k_buffer_size = 512;
+      char buffer[k_buffer_size];
+      int n = 0;
+      while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
+        std::lock_guard<std::mutex> lock{m_terminal_buffer_mutex};
+        m_terminal_buffer.insert(m_terminal_buffer.end(), buffer, buffer + n);
+      }
+    });
+  }
+#endif  // __APPLE__
+}
+
+void Process::stop_reader_threads() {
+  if (m_reader_thread) {
+    m_reader_thread->join();
+    m_reader_thread.reset(nullptr);
+  }
+
+#ifdef __APPLE__
+  if (m_terminal_reader_thread) {
+    m_terminal_reader_thread->join();
+    m_terminal_reader_thread.reset(nullptr);
+  }
+#endif  // __APPLE__
+}
+
+void Process::start() {
+  do_start();
+  start_reader_threads();
+
+  is_alive = true;
+  _wait_pending = true;
 }
 
 }  // namespace shcore

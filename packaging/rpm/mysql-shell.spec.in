@@ -45,6 +45,7 @@ BuildRequires:  python-devel
 %if 0%{!?static}
 BuildRequires:  mysql-devel
 BuildRequires:  openssl-devel
+BuildRequires:  libcurl-devel
 #BuildRequires:  v8-devel
 #BuildRequires:  v8-python
 %endif

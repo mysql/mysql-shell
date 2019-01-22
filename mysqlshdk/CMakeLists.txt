@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,7 @@ ADD_SUBDIRECTORY(libs/textui)
 ADD_SUBDIRECTORY(libs/innodbcluster)
 ADD_SUBDIRECTORY(libs/config)
 ADD_SUBDIRECTORY(libs/secret-store-api)
+ADD_SUBDIRECTORY(libs/rest)
 SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 
 add_subdirectory(scripting)
@@ -61,6 +62,7 @@ merge_libraries(mysqlshdk-static STATIC
     config
     innodbcluster
     mysql-secret-store-api
+    rest
     textui
     scripting
     shellcore NOINSTALL)
