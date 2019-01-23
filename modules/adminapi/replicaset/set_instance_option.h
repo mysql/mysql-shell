@@ -100,7 +100,6 @@ class Set_instance_option : public Command_interface {
   void ensure_instance_belong_to_replicaset();
   void ensure_target_member_online();
   void ensure_option_supported_target_member();
-  void prepare_config_object();
 };
 }  // namespace dba
 }  // namespace mysqlsh

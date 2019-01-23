@@ -1083,16 +1083,15 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 }
 
 TEST(mod_dba_common, validate_ipwhitelist_option) {
-  bool hostnames_supported = false;
-  std::string ip_whitelist;
+  using mysqlsh::dba::Group_replication_options;
 
-  hostnames_supported = true;
+  Group_replication_options options;
+  // NOTE: hostnames_supported = true if version >= 8.0.4, otherwise false.
 
   // Error if the ipWhitelist is empty.
-  ip_whitelist = "";
+  options.ip_whitelist = "";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1101,10 +1100,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if the ipWhitelist string is empty (only whitespace).
-  ip_whitelist = " ";
+  options.ip_whitelist = " ";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1113,10 +1111,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  ip_whitelist = "192.168.1.1/0";
+  options.ip_whitelist = "192.168.1.1/0";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1127,10 +1124,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  ip_whitelist = "192.168.1.1/33";
+  options.ip_whitelist = "192.168.1.1/33";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1141,10 +1137,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  ip_whitelist = "1/33";
+  options.ip_whitelist = "1/33";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1156,10 +1151,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
   // And a list of values is used
-  ip_whitelist = "192.168.1.1/0,192.168.1.1/33";
+  options.ip_whitelist = "192.168.1.1/0,192.168.1.1/33";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1170,10 +1164,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if ipWhitelist is an IPv6 address
-  ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+  options.ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1184,32 +1177,35 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
         e.what());
   }
 
-  // Error if ipWhitelist is not a valid IPv4 address
-  ip_whitelist = "256.255.255.255";
+  // Error if ipWhitelist is not a valid IPv4 address (not supported, < 8.0.4)
+  options.ip_whitelist = "256.255.255.255";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 3));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    if (!hostnames_supported) {
-      EXPECT_STREQ(
-          "Invalid value for ipWhitelist '256.255.255.255': string value is "
-          "not a valid IPv4 address.",
-          e.what());
-    } else {
-      EXPECT_STREQ(
-          "Invalid value for ipWhitelist '256.255.255.255': address does not "
-          "resolve to a valid IPv4 address.",
-          e.what());
-    }
+    EXPECT_STREQ(
+        "Invalid value for ipWhitelist '256.255.255.255': string value is "
+        "not a valid IPv4 address.",
+        e.what());
+  }
+
+  // Error if ipWhitelist is not a valid IPv4 address (supported, >= 8.0.4)
+  try {
+    options.check_option_values(Version(8, 0, 4));
+    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    ADD_FAILURE();
+  } catch (const shcore::Exception &e) {
+    EXPECT_STREQ(
+        "Invalid value for ipWhitelist '256.255.255.255': address does not "
+        "resolve to a valid IPv4 address.",
+        e.what());
   }
 
   // Error if ipWhitelist is not a valid IPv4 address
-  ip_whitelist = "256.255.255.255/16";
+  options.ip_whitelist = "256.255.255.255/16";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1220,9 +1216,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname is used and server version < 8.0.4
-  ip_whitelist = "localhost";
+  options.ip_whitelist = "localhost";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist, false);
+    options.check_option_values(Version(8, 0, 3));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1232,9 +1228,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
         e.what());
   }
 
-  ip_whitelist = "1invalid_hostname0";
+  options.ip_whitelist = "1invalid_hostname0";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist, true);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1245,10 +1241,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname with cidr
-  ip_whitelist = "localhost/8";
+  options.ip_whitelist = "localhost/8";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1259,10 +1254,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname with cidr
-  ip_whitelist = "bogus/8";
+  options.ip_whitelist = "bogus/8";
   try {
-    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                               hostnames_supported);
+    options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1273,24 +1267,21 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // No error if the ipWhitelist is a valid IPv4 address
-  ip_whitelist = "192.168.1.1";
-  EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
-      ip_whitelist, hostnames_supported));
+  options.ip_whitelist = "192.168.1.1";
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
 
   // No error if the ipWhitelist is a valid IPv4 address with a valid CIDR value
-  ip_whitelist = "192.168.1.1/15";
-  EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
-      ip_whitelist, hostnames_supported));
+  options.ip_whitelist = "192.168.1.1/15";
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
 
   // No error if the ipWhitelist consist of several valid IPv4 addresses with a
   // valid CIDR value
   // NOTE: if the server version is > 8.0.4, hostnames are allowed too so we
   // must test it
-  EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
-      "192.168.1.1/15,192.169.1.1/1, localhost", true));
-
-  EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
-      "192.168.1.1/15,192.169.1.1/1", false));
+  options.ip_whitelist = "192.168.1.1/15,192.169.1.1/1, localhost";
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
+  options.ip_whitelist = "192.168.1.1/15,192.169.1.1/1";
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 3)));
 }
 
 TEST(mod_dba_common, validate_exit_state_action_supported) {

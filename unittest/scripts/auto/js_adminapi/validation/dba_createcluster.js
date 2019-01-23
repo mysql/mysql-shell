@@ -289,7 +289,7 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Option 'autoRejoinTries' UInteger expected, but Integer value is out of range (TypeError)
+||Dba.createCluster: Argument 'autoRejoinTries' is expected to be an unsigned int (TypeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
 ||ERROR: Error starting cluster: Invalid value for autoRejoinTries, can't be set to the value of '2017'

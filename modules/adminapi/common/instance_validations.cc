@@ -28,7 +28,9 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -404,6 +406,87 @@ void validate_performance_schema_enabled(
                          "Cluster usage.");
     throw shcore::Exception::runtime_error(
         "performance_schema disabled on target instance.");
+  }
+}
+
+void ensure_instance_not_belong_to_replicaset(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlsh::dba::ReplicaSet &replicaset) {
+  GRInstanceType type =
+      mysqlsh::dba::get_gr_instance_type(instance.get_session());
+
+  if (type != GRInstanceType::Standalone &&
+      type != GRInstanceType::StandaloneWithMetadata) {
+    // Retrieves the new instance UUID
+    mysqlshdk::utils::nullable<std::string> uuid = instance.get_sysvar_string(
+        "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+    // Verifies if the instance is part of the cluster replication group
+    auto cluster_session = replicaset.get_cluster()->get_group_session();
+
+    // Verifies if this UUID is part of the current replication group
+    if (is_server_on_replication_group(cluster_session, *uuid)) {
+      if (type == GRInstanceType::InnoDBCluster) {
+        log_debug("Instance '%s' already managed by InnoDB cluster",
+                  instance.descr().c_str());
+        throw shcore::Exception::runtime_error(
+            "The instance '" + instance.descr() +
+            "' is already part of this InnoDB cluster");
+      } else {
+        current_console()->print_error(
+            "Instance '" + instance.descr() +
+            "' is part of the Group Replication group but is not in the "
+            "metadata. Please use <Cluster>.rescan() to update the metadata.");
+        throw shcore::Exception::runtime_error("Metadata inconsistent");
+      }
+    } else {
+      if (type == GRInstanceType::InnoDBCluster) {
+        // Check if instance is running auto-rejoin and warn user.
+        if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance)) {
+          throw shcore::Exception::runtime_error(
+              "The instance '" + instance.descr() +
+              "' is currently attempting to rejoin the cluster. Use <cluster>."
+              "rejoinInstance() if you want to to override the auto-rejoin "
+              "process.");
+        } else {
+          throw shcore::Exception::runtime_error(
+              "The instance '" + instance.descr() +
+              "' is already part of another InnoDB cluster");
+        }
+      } else {
+        throw shcore::Exception::runtime_error(
+            "The instance '" + instance.descr() +
+            "' is already part of another Replication Group");
+      }
+    }
+  }
+}
+
+void ensure_instance_not_belong_to_metadata(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &address_in_metadata,
+    const mysqlsh::dba::ReplicaSet &replicaset) {
+  auto console = mysqlsh::current_console();
+
+  // Check if the instance exists on the ReplicaSet
+  log_debug("Checking if the instance belongs to the replicaset");
+  bool is_instance_on_md =
+      replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->is_instance_on_replicaset(replicaset.get_id(), address_in_metadata);
+
+  if (is_instance_on_md) {
+    // Check if instance is running auto-rejoin
+    bool is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
+
+    std::string err_msg = "The instance '" + instance.descr() +
+                          "' already belongs to the ReplicaSet: '" +
+                          replicaset.get_member("name").get_string() + "'";
+    if (is_rejoining)
+      err_msg += " and is currently trying to auto-rejoin.";
+    else
+      err_msg += ".";
+    throw shcore::Exception::runtime_error(err_msg);
   }
 }
 

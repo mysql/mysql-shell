@@ -162,52 +162,6 @@ void Set_instance_option::ensure_option_supported_target_member() {
   }
 }
 
-void Set_instance_option::prepare_config_object() {
-  auto console = mysqlsh::current_console();
-  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
-
-  // Determine if SET PERSIST is supported.
-  mysqlshdk::utils::nullable<bool> support_set_persist =
-      m_target_instance->is_set_persist_supported();
-  mysqlshdk::mysql::Var_qualifier set_type =
-      mysqlshdk::mysql::Var_qualifier::GLOBAL;
-  if (!support_set_persist.is_null() && *support_set_persist) {
-    set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
-  }
-
-  // Create server configuration handler depending on SET PERSIST support.
-  std::unique_ptr<mysqlshdk::config::IConfig_handler> config_handler =
-      shcore::make_unique<mysqlshdk::config::Config_server_handler>(
-          m_target_instance.get(), set_type);
-
-  // Add the server configuration to the configuration object
-  m_cfg->add_handler(m_target_instance_address, std::move(config_handler));
-
-  // Print a warning if SET PERSIST is not supported, for users to execute
-  // dba.configureLocalInstance().
-  if (support_set_persist.is_null()) {
-    console->print_warning(
-        "The settings cannot be persisted remotely on instance "
-        "'" +
-        m_target_instance_address + "' because MySQL version " +
-        m_target_instance->get_version().get_base() +
-        " does not support the SET PERSIST command "
-        "(MySQL version >= 8.0.11 required). Please execute the <Dba>." +
-        get_member_name("configureLocalInstance", m_naming_style) +
-        "() command locally to persist these changes.");
-  } else if (!*support_set_persist) {
-    console->print_warning(
-        "The settings cannot be persisted remotely on instance "
-        "'" +
-        m_target_instance_address +
-        "' because 'persisted-globals-load' is set "
-        "to 'OFF' and persisted configurations will not be loaded upon "
-        "reboot. Please execute the <Dba>." +
-        get_member_name("configureLocalInstance", m_naming_style) +
-        "() command locally to persist these changes.");
-  }
-}
-
 void Set_instance_option::prepare() {
   // Validate if the option is valid
   ensure_option_valid();
@@ -253,7 +207,8 @@ void Set_instance_option::prepare() {
   }
 
   // Create the internal configuration object.
-  prepare_config_object();
+  m_cfg = mysqlsh::dba::create_server_config(
+      m_target_instance.get(), m_target_instance_address, m_naming_style);
 
   if (m_option == kAutoRejoinTries && !m_value_int.is_null() &&
       *m_value_int != 0) {

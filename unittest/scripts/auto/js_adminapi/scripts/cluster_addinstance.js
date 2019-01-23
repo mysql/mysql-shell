@@ -398,6 +398,30 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
 
+// BUG28056944: cannot add instance after removing its metadata
+//@ BUG28056944 deploy sandboxes.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@ BUG28056944 create cluster.
+shell.connect(__hostname_uri1);
+var c = dba.createCluster('test_cluster');
+c.addInstance(__hostname_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@<> BUG28056944 remove instance with wrong password and force = true.
+var wrong_pwd_uri = "root:wrongpawd@" + hostname + ":" + __mysql_sandbox_port2;
+c.removeInstance(wrong_pwd_uri, {force: true});
+
+//@<> BUG28056944 Error adding instance already in group but not in Metadata.
+c.addInstance(__hostname_uri2);
+
+//@ BUG28056944 clean-up.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
 // WL#12067 AdminAPI: Define failover consistency
 //
 // In 8.0.14, Group Replication introduces an option to specify the failover

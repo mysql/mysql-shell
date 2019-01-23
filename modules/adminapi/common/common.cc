@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
@@ -47,7 +48,10 @@
 namespace mysqlsh {
 namespace dba {
 
-static const char kSandboxDatadir[] = "sandboxdata";
+namespace {
+constexpr const char kSandboxDatadir[] = "sandboxdata";
+constexpr uint16_t k_max_port = 65535;
+}  // namespace
 
 namespace ReplicaSetStatus {
 std::string describe(Status state) {
@@ -708,17 +712,25 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     shcore::sqlstring query;
 
     // from 8.0.3, member_version is available
+    // NOTE: the ORDER BY is required to avoid results from being listed in a
+    //       non-deterministic way (resulting in test issues for some
+    //       platforms in direct mode).
+    //       MEMBER_ID is used assuming that UUIDs of version 1 are always used
+    //       but if this changes the different columns need to be used to sort
+    //       the results.
     if (version >= mysqlshdk::utils::Version(8, 0, 3)) {
       query = shcore::sqlstring(
           "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT, MEMBER_VERSION "
           "FROM performance_schema.replication_group_members "
-          "WHERE MEMBER_ID = ?",
+          "WHERE MEMBER_ID = ? "
+          "ORDER BY MEMBER_ID",
           0);
     } else {
       query = shcore::sqlstring(
           "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT "
           "FROM performance_schema.replication_group_members "
-          "WHERE MEMBER_ID = ?",
+          "WHERE MEMBER_ID = ? "
+          "ORDER BY MEMBER_ID",
           0);
     }
 
@@ -1825,6 +1837,163 @@ std::string get_report_host_address(
   }
 
   return (!md_address.empty()) ? md_address : instance_address;
+}
+
+std::unique_ptr<mysqlshdk::config::Config> create_server_config(
+    mysqlshdk::mysql::IInstance *instance, std::string srv_cfg_handler_name,
+    const shcore::NamingStyle &naming_style) {
+  auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
+
+  // Get the capabilities to use set persist by the server.
+  mysqlshdk::utils::nullable<bool> can_set_persist =
+      instance->is_set_persist_supported();
+
+  // Add server configuration handler depending on SET PERSIST support.
+  cfg->add_handler(
+      srv_cfg_handler_name,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+              instance, (!can_set_persist.is_null() && *can_set_persist)
+                            ? mysqlshdk::mysql::Var_qualifier::PERSIST
+                            : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
+
+  if (can_set_persist.is_null()) {
+    auto console = mysqlsh::current_console();
+
+    std::string warn_msg =
+        "Instance '" + instance->descr() +
+        "' cannot persist Group Replication configuration since MySQL "
+        "version " +
+        instance->get_version().get_base() +
+        " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
+        "required). Please use the <Dba>." +
+        get_member_name("configureLocalInstance", naming_style) +
+        "() command locally to persist the changes.";
+    console->print_warning(warn_msg);
+  } else if (*can_set_persist == false) {
+    auto console = mysqlsh::current_console();
+
+    std::string warn_msg =
+        "Instance '" + instance->descr() +
+        "' will not load the persisted cluster configuration upon reboot since "
+        "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>." +
+        get_member_name("configureLocalInstance", naming_style) +
+        "() command locally to persist the changes or set "
+        "'persisted-globals-load' to 'ON' on the configuration file.";
+    console->print_warning(warn_msg);
+  }
+
+  return cfg;
+}
+
+std::string resolve_gr_local_address(
+    const mysqlshdk::utils::nullable<std::string> &local_address,
+    const std::string &report_host, int port) {
+  assert(!report_host.empty());  // First we need to get the report host.
+
+  std::string local_host, str_local_port;
+  int local_port;
+
+  if (local_address.is_null() || local_address->empty()) {
+    // No local address specified, use instance host and port * 10 + 1.
+    local_host = report_host;
+    local_port = port * 10 + 1;
+  } else if (local_address->front() == '[' && local_address->back() == ']') {
+    // It is an IPV6 address (no port specified), since it is surrounded by [].
+    // NOTE: Must handle this situation first to avoid splitting IPv6 addresses
+    //      in the middle next.
+    local_host = *local_address;
+    local_port = port * 10 + 1;
+  } else {
+    // Parse the given address host:port (both parts are optional).
+    // Note: Get the last ':' in case a IPv6 address is used, e.g. [::1]:123.
+    size_t pos = local_address->find_last_of(":");
+    if (pos != std::string::npos) {
+      // Local address with ':' separating host and port.
+      local_host = local_address->substr(0, pos);
+      str_local_port = local_address->substr(pos + 1, local_address->length());
+
+      // No host part, use instance report host.
+      if (local_host.empty()) {
+        local_host = report_host;
+      }
+
+      // No port part, then use instance port * 10 +1.
+      if (str_local_port.empty()) {
+        local_port = port * 10 + 1;
+      } else {
+        // Convert port string value to int
+        try {
+          local_port = std::stoi(str_local_port);
+        } catch (const std::exception &) {
+          // Error if the port cannot be converted to an integer (not valid).
+          throw shcore::Exception::argument_error(
+              "Invalid port '" + str_local_port +
+              "' for localAddress option. The port must be an integer between "
+              "1 and 65535.");
+        }
+
+        // The specified port must have a valid range.
+        if (local_port <= 0 || local_port > k_max_port) {
+          throw shcore::Exception::argument_error(
+              "Invalid port '" + str_local_port +
+              "' for localAddress option. The port must be an integer between "
+              "1 and 65535.");
+        }
+      }
+    } else {
+      // No separator found ':'.
+      // First, if the value only has digits assume it is a port.
+      if (std::all_of(local_address->cbegin(), local_address->cend(),
+                      ::isdigit)) {
+        local_port = std::stoi(*local_address);
+        local_host = report_host;
+
+        // The specified port must have a valid range.
+        if (local_port <= 0 || local_port > k_max_port) {
+          throw shcore::Exception::argument_error(
+              "Invalid port '" + str_local_port +
+              "' for localAddress option. The port must be an integer between "
+              "1 and 65535.");
+        }
+      } else {
+        // Otherwise, assume only the host part was provided.
+        local_host = *local_address;
+        local_port = port * 10 + 1;
+      }
+    }
+  }
+
+  // Check the port value, if out of range then issue an error.
+  // NOTE: This error may only be issued if the port was automatically assigned
+  //       based on instance port (when specified by the user an error is
+  //       raised before reach this part of the code).
+  if (local_port <= 0 || local_port > k_max_port) {
+    throw shcore::Exception::argument_error(
+        "Invalid port '" + std::to_string(local_port) +
+        "' used by default for localAddress option. The port must be an "
+        "integer between 1 and 65535.");
+  }
+
+  // Verify if the port is already in use.
+  bool port_busy = false;
+  try {
+    port_busy =
+        mysqlshdk::utils::Net::is_port_listening(local_host, local_port);
+  } catch (...) {
+    // Ignore any error while checking if the port is busy, let GR try later and
+    // possibly fail (e.g., if a wrong host is used).
+  }
+  if (port_busy) {
+    throw std::runtime_error(
+        "The port '" + std::to_string(local_port) +
+        "' for localAddress option is already in use. Specify an "
+        "available port to be used with localAddress option or free port '" +
+        std::to_string(local_port) + "'.");
+  }
+
+  // Return the final local address value to use for GR.
+  return local_host + ":" + std::to_string(local_port);
 }
 
 }  // namespace dba

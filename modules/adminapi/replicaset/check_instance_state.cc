@@ -22,6 +22,8 @@
  */
 
 #include "modules/adminapi/replicaset/check_instance_state.h"
+
+#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -40,33 +42,6 @@ Check_instance_state::Check_instance_state(
 }
 
 Check_instance_state::~Check_instance_state() {}
-
-void Check_instance_state::ensure_instance_not_belong_to_replicaset() {
-  auto console = mysqlsh::current_console();
-
-  // Check if the instance exists on the ReplicaSet
-  log_debug("Checking if the instance belongs to the replicaset");
-  bool is_instance_on_md =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                      m_address_in_metadata);
-
-  if (is_instance_on_md) {
-    // Check if instance is running auto-rejoin
-    bool is_rejoining =
-        mysqlshdk::gr::is_running_gr_auto_rejoin(*m_target_instance);
-
-    std::string err_msg = "The instance '" + m_target_instance_address +
-                          "' already belongs to the ReplicaSet: '" +
-                          m_replicaset.get_member("name").get_string() + "'";
-    if (is_rejoining)
-      err_msg += " and is currently trying to auto-rejoin.";
-    else
-      err_msg += ".";
-    throw shcore::Exception::runtime_error(err_msg);
-  }
-}
 
 /**
  * Ensure target instance is reachable.
@@ -259,8 +234,9 @@ void Check_instance_state::prepare() {
   // Verify if the target instance is reachable
   ensure_target_instance_reachable();
 
-  // Ensure the target instance does not belong to the replicaset
-  ensure_instance_not_belong_to_replicaset();
+  // Ensure the target instance does not belong to the metadata.
+  mysqlsh::dba::checks::ensure_instance_not_belong_to_metadata(
+      *m_target_instance, m_address_in_metadata, m_replicaset);
 
   // Ensure the target instance has a valid GR state
   ensure_instance_valid_gr_state();

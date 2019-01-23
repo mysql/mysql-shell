@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
@@ -210,27 +211,6 @@ bool is_group_replication_option_supported(
     const std::map<std::string, Option_availability> &options_map =
         k_global_replicaset_supported_options);
 
-/**
- * Validates the ipWhitelist option
- *
- * Checks if the given ipWhitelist is valid for use in the AdminAPI.
- *
- * @param ip_whitelist The ipWhitelist to validate
- * @param hostnames_supported boolean value to indicate whether hostnames are
- * supported or not in the ipWhitelist. (supported since version 8.0.4)
- *
- * @throws argument_error if the ipWhitelist is empty
- * @throws argument_error if the subnet in CIDR notation is not valid
- * @throws argument_error if the address section is not an IPv4 address
- * @throws argument_error if the address is IPv6
- * @throws argument_error if hostnames_supported is true but the address does
- * not resolve to a valid IPv4 address
- * @throws argument error if hostnames_supports is false and the address it nos
- * a valid IPv4 address
- */
-void validate_ip_whitelist_option(const std::string &ip_whitelist,
-                                  bool hostnames_supported = false);
-
 void validate_replication_filters(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 std::pair<int, int> find_cluster_admin_accounts(
@@ -327,6 +307,36 @@ void validate_connection_options(
 std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &cnx_opts,
     const mysqlshdk::db::Connection_options &group_cnx_opts);
+
+std::unique_ptr<mysqlshdk::config::Config> create_server_config(
+    mysqlshdk::mysql::IInstance *instance, std::string srv_cfg_handler_name,
+    const shcore::NamingStyle &naming_style);
+
+/**
+ * Resolves Group Replication local address.
+ *
+ * If the host part is not specified for the local_address then use the instance
+ * report host (used by GR and the Metadata).
+ * If the port part is not specified for the local_address then use the instance
+ * connection port value * 10 + 1.
+ *
+ * The port cannot be greater than 65535. If it is when determined automatically
+ * using the formula "<port> * 10 + 1" then a random port number will be
+ * generated. If an invalid port value is specified (by the user) in the
+ * local_address then an error is issued.
+ *
+ * @param local_address Nullable string with the input local address value to
+ *                      resolve.
+ * @param report_host String with the report host value of the instance (host
+ *                    used by GR and the Metadata).
+ * @param port integer with port used to connect to the instance.
+ *
+ * @throw std::runtime_error if the port specified by the user is invalid or if
+ *        it is already being used.
+ */
+std::string resolve_gr_local_address(
+    const mysqlshdk::utils::nullable<std::string> &local_address,
+    const std::string &report_host, int port);
 
 inline void translate_cluster_exception(std::string operation) {
   if (!operation.empty()) operation.append(": ");

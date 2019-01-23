@@ -47,6 +47,7 @@ Cluster.addInstance();
 Cluster.addInstance(5,6,7,1);
 Cluster.addInstance(5, 5);
 Cluster.addInstance('', 5);
+Cluster.addInstance("");
 Cluster.addInstance({user:"sample", weird:1},{});
 Cluster.addInstance({user:"sample"});
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", "auth-method":56, memberSslMode: "foo", ipWhitelist: " "});

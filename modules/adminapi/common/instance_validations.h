@@ -27,6 +27,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -59,6 +61,15 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
  */
 void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance);
+
+void ensure_instance_not_belong_to_replicaset(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlsh::dba::ReplicaSet &replicaset);
+
+void ensure_instance_not_belong_to_metadata(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &address_in_metadata,
+    const mysqlsh::dba::ReplicaSet &replicaset);
 
 }  // namespace checks
 }  // namespace dba

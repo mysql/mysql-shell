@@ -23,8 +23,10 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/replicaset/add_instance.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mod_shell.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "unittest/test_utils/admin_api_test.h"
@@ -148,13 +150,21 @@ TEST_F(Dba_replicaset_test, bug28219398) {
 
   try {
     {
-      auto session = mysqlshdk::db::mysql::Session::create();
-      session->connect(connection_options);
-      mysqlshdk::mysql::Instance instance(session);
+      // Create the add_instance command and execute it.
+      mysqlsh::dba::Add_instance op_add_instance(
+          connection_options, *m_cluster->get_default_replicaset(),
+          shcore::NamingStyle::LowerCamelCase, {}, {}, replication_user,
+          replication_pwd, false, true, false);
 
-      m_cluster->get_default_replicaset()->add_instance(
-          {}, &instance, {}, replication_user, replication_pwd, false, true,
-          false);
+      // Always execute finish when leaving scope.
+      auto finally = shcore::on_leave_scope(
+          [&op_add_instance]() { op_add_instance.finish(); });
+
+      // Prepare the add_instance command execution (validations).
+      op_add_instance.prepare();
+
+      // Execute add_instance operations.
+      op_add_instance.execute();
     }
 
     // Set the Shell global session

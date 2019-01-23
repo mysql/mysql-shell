@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,8 @@
  */
 
 #include "mysqlshdk/libs/config/config_server_handler.h"
+
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlshdk {
 namespace config {
@@ -117,18 +119,19 @@ void Config_server_handler::set(const std::string &name,
 
 void Config_server_handler::apply() {
   for (const auto &var_tuple : m_change_sequence) {
+    std::string var_name = std::get<0>(var_tuple);
     if (std::get<1>(var_tuple).type == shcore::Value_type::Bool) {
-      m_instance->set_sysvar(std::get<0>(var_tuple),
-                             *value_to_nullable_bool(std::get<1>(var_tuple)),
-                             std::get<2>(var_tuple));
+      bool value = *value_to_nullable_bool(std::get<1>(var_tuple));
+      log_debug("Set '%s'=%s", var_name.c_str(), (value) ? "true" : "false");
+      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
     } else if (std::get<1>(var_tuple).type == shcore::Value_type::Integer) {
-      m_instance->set_sysvar(std::get<0>(var_tuple),
-                             *value_to_nullable_int(std::get<1>(var_tuple)),
-                             std::get<2>(var_tuple));
+      int64_t value = *value_to_nullable_int(std::get<1>(var_tuple));
+      log_debug("Set '%s'=%s", var_name.c_str(), std::to_string(value).c_str());
+      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
     } else {
-      m_instance->set_sysvar(std::get<0>(var_tuple),
-                             *value_to_nullable_string(std::get<1>(var_tuple)),
-                             std::get<2>(var_tuple));
+      std::string value = *value_to_nullable_string(std::get<1>(var_tuple));
+      log_debug("Set '%s'='%s'", var_name.c_str(), value.c_str());
+      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
     }
 
     // Sleep after setting the variable if delay is defined (> 0).

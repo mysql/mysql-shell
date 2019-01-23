@@ -7,9 +7,9 @@
 //@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of ':'
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of 'AB'
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of '10'
+||Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Add instance using a valid exitStateAction 1 {VER(>=5.7.24)}
 ||
@@ -130,6 +130,32 @@
 //@ BUG#27677227 cluster with x protocol disabled cleanup
 ||
 
+//@ BUG28056944 deploy sandboxes.
+||
+
+//@ BUG28056944 create cluster.
+||
+
+//@<OUT> BUG28056944 remove instance with wrong password and force = true.
+ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please, verify connection credentials and make sure the instance is available.
+NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+
+The instance will be removed from the InnoDB cluster. Depending on the instance
+being the Seed or not, the Metadata session might become invalid. If so, please
+start a new session to the Metadata Storage R/W instance.
+
+
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+
+//@<OUT> BUG28056944 Error adding instance already in group but not in Metadata.
+ERROR: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is part of the Group Replication group but is not in the metadata. Please use <Cluster>.rescan() to update the metadata.
+
+//@<ERR> BUG28056944 Error adding instance already in group but not in Metadata.
+Cluster.addInstance: Metadata inconsistent (RuntimeError)
+
+//@ BUG28056944 clean-up.
+||
+
 //@ WL#12067: Initialization {VER(>=8.0.14)}
 ||
 
@@ -164,10 +190,10 @@
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Option 'autoRejoinTries' UInteger expected, but Integer value is out of range (TypeError)
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-5' (RuntimeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
-||Error joining instance to cluster: Invalid value for autoRejoinTries, can't be set to the value of '2017'
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
 
 //@ WL#12066: TSF1_1, TSF6_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
@@ -179,13 +205,6 @@
 ||
 
 //@<OUT> AddInstance async replication error
-Validating instance at <<<localhost>>>:<<<__mysql_sandbox_port2>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>
-
-Instance configuration is suitable.
 ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
 
 //@<ERR> AddInstance async replication error

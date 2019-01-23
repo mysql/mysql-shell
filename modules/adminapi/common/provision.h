@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -111,6 +112,46 @@ bool configure_instance(
  */
 void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
                                mysqlshdk::config::Config *config);
+
+/**
+ * Join the instance to the replicaset (Group Replication group).
+ *
+ * To join instances and to obtain any required information from the replicaset,
+ * a peer instance (group session) is used as contact node of the Group
+ * Replication (GR) group. In more detail, the following steps are executed:
+ * - Get needed information (GR configurations) from peer instance;
+ * - Set Group Replication configurations;
+ * - Set the Group Replication recovery user (using CHANGE MASTER);
+ * - Start Group Replication;
+ *
+ * NOTE: Metadata is NOT changed by this function, it only starts MySQL
+ *       Group Replication (replicaset), updating any necessary variables
+ *       on the instance itself.
+ *       Any variables changes are persisted (using SET PERSIST) if
+ *       supported by the used server version.
+ *
+ * @param instance target Instance object to join the replicaset.
+ * @param peer_instance Instance object of the member used as contact node
+ *                      to join.
+ * @param rpl_user string with the GR recovery user name. Note: If no user
+ *                 is provided (empty string) then the set of the recovery
+ *                 user (CHANGE MASTER) will be skipped.
+ * @param rpl_user_pwd string with the GR recovery user password.
+ * @param gr_opts Group_replication_options structure with the GR options
+ *                to set for the instance (i.e., ssl_mode, local_address,
+ *                group_seeds, ip_whitelist, member_weight, expel_timeout,
+ *                exit_state_action, and failover_consistency) when defined.
+ * @param replicaset_size integer with the size of the replicaset (before adding
+ *                        the instance).
+ * @param config Config object for the target instance to join the replicaset.
+ */
+void join_replicaset(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::IInstance &peer_instance,
+    const std::string &rpl_user, const std::string &rpl_user_pwd,
+    const Group_replication_options &gr_opts,
+    const mysqlshdk::utils::nullable<uint64_t> &replicaset_size,
+    mysqlshdk::config::Config *config);
 
 }  // namespace dba
 }  // namespace mysqlsh

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,14 +34,12 @@ namespace mysqlsh {
 namespace dba {
 
 void ensure_instance_configuration_valid(
-    mysqlshdk::mysql::IInstance *target_instance,
-    std::shared_ptr<ProvisioningInterface> mp) {
+    const mysqlshdk::mysql::IInstance &target_instance) {
   auto console = mysqlsh::current_console();
 
-  console->println("Validating instance at " + target_instance->descr() +
-                   "...");
+  console->println("Validating instance at " + target_instance.descr() + "...");
 
-  Check_instance check(target_instance->get_connection_options(), "", mp, true);
+  Check_instance check(target_instance.get_connection_options(), "", true);
   check.prepare();
   shcore::Value result = check.execute();
   check.finish();

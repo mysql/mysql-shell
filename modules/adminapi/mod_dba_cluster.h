@@ -166,7 +166,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   }
 
  public:
-  shcore::Value add_instance(const shcore::Argument_list &args);
+  void add_instance(const std::string &instance_def,
+                    const shcore::Dictionary_t &options);
+  void add_instance(const shcore::Dictionary_t &instance_def,
+                    const shcore::Dictionary_t &options);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value get_replicaset(const shcore::Argument_list &args);
@@ -267,6 +270,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                            const std::string &option,
                            const shcore::Value &value);
   shcore::Value check_instance_state(const Connection_options &instance_def);
+  void add_instance(const Connection_options &instance_def,
+                    const shcore::Dictionary_t &options);
 };
 
 }  // namespace dba

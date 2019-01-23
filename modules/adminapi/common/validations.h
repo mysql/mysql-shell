@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,8 +45,7 @@ class ProvisioningInterface;
  * Throws an exception if checks fail.
  */
 void ensure_instance_configuration_valid(
-    mysqlshdk::mysql::IInstance *target_instance,
-    std::shared_ptr<ProvisioningInterface> mp);
+    const mysqlshdk::mysql::IInstance &target_instance);
 
 /**
  * Validates the permissions of the user running the operation.

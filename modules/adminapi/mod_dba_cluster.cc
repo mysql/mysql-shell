@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/replicaset/add_instance.h"
 #include "modules/adminapi/replicaset/remove_instance.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mysqlxtest_utils.h"
@@ -107,8 +108,11 @@ bool Cluster::operator==(const Object_bridge &other) const {
 
 void Cluster::init() {
   add_property("name", "getName");
-  add_method("addInstance", std::bind(&Cluster::add_instance, this, _1),
-             "data");
+  expose<void, const std::string &, const shcore::Dictionary_t &, Cluster>(
+      "addInstance", &Cluster::add_instance, "instanceDef", "?options");
+  expose<void, const shcore::Dictionary_t &, const shcore::Dictionary_t &,
+         Cluster>("addInstance", &Cluster::add_instance, "instanceDef",
+                  "?options");
   add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1),
              "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1),
@@ -252,9 +256,22 @@ shcore::Value Cluster::add_seed_instance(
   if (!is_adopted) {
     // Add the Instance to the Default ReplicaSet passing already created
     // replication user and the group_name (if provided)
-    ret_val = _default_replica_set->add_instance({}, target_instance,
-                                                 gr_options, replication_user,
-                                                 replication_pwd, true, true);
+    {
+      // Create the add_instance command and execute it.
+      Add_instance op_add_instance(
+          target_instance, *_default_replica_set, this->naming_style,
+          gr_options, {}, replication_user, replication_pwd, true, true, false);
+
+      // Always execute finish when leaving scope.
+      auto finally = shcore::on_leave_scope(
+          [&op_add_instance]() { op_add_instance.finish(); });
+
+      // Prepare the add_instance command execution (validations).
+      op_add_instance.prepare();
+
+      // Execute add_instance operations.
+      op_add_instance.execute();
+    }
   }
   std::string group_replication_group_name =
       get_gr_replicaset_group_name(_group_session);
@@ -337,7 +354,7 @@ default value is the value of the system variable 'report_host' if defined
 (i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
 specified, the default value is the port of the target instance * 10 + 1. In
 case the automatically determined default port value is invalid (> 65535) then
-a random value in the range [10000, 65535] is used.
+an error is thrown.
 
 The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
@@ -392,34 +409,31 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
-shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
+void Cluster::add_instance(const Connection_options &instance_def,
+                           const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
-  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
+  check_preconditions("addInstance");
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  validate_connection_options(instance_def);
 
   // Add the Instance to the Default ReplicaSet
-  shcore::Value ret_val;
-  try {
-    check_preconditions("addInstance");
+  _default_replica_set->add_instance(instance_def, options);
+}
 
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+void Cluster::add_instance(const std::string &instance_def,
+                           const shcore::Dictionary_t &options) {
+  add_instance(get_connection_options(instance_def), options);
+}
 
-    auto connection_options =
-        mysqlsh::get_connection_options(args, PasswordFormat::OPTIONS);
-
-    validate_connection_options(connection_options);
-
-    shcore::Dictionary_t rest;
-    if (args.size() == 2) rest = args.at(1).as_map();
-
-    ret_val = _default_replica_set->add_instance_(connection_options, rest);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
-
-  return ret_val;
+void Cluster::add_instance(const shcore::Dictionary_t &instance_def,
+                           const shcore::Dictionary_t &options) {
+  add_instance(get_connection_options(instance_def), options);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);

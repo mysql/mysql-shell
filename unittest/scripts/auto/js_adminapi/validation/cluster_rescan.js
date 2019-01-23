@@ -182,8 +182,7 @@ WARNING: The following instances were not removed from the metadata because they
 }
 
 //@<OUT> addInstance should fail and suggest a rescan.
-Instance configuration is suitable.
-ERROR: Instance <<<hostname>>>:<<<__mysql_sandbox_port2>>> is part of the GR group but is not in the metadata. Please use <Cluster>.rescan() to update the metadata.
+ERROR: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is part of the Group Replication group but is not in the metadata. Please use <Cluster>.rescan() to update the metadata.
 
 //@<ERR> addInstance should fail and suggest a rescan.
 Cluster.addInstance: Metadata inconsistent (RuntimeError)
@@ -1168,9 +1167,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Single-Primary'.
 Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Topology mode was successfully updated to 'Single-Primary' in the cluster metadata.
 
 
@@ -1280,9 +1279,9 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 
 The topology mode of the ReplicaSet changed to 'Multi-Primary'.
 Would you like to update it in the cluster metadata? [Y/n]: Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port1+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port2+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: The settings cannot be persisted remotely on instance '"+hostname+":"+__mysql_sandbox_port3+"' because MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Topology mode was successfully updated to 'Multi-Primary' in the cluster metadata.
 
 //@<OUT> WL10644 - TSF4_3: Check topology mode in MD after rescan().

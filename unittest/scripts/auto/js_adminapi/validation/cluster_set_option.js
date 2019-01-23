@@ -35,9 +35,9 @@ Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
 
 //@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
@@ -51,9 +51,9 @@ Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet membe
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.
 
 //@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
-WARNING: The settings cannot be persisted remotely on instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' because MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please execute the <Dba>.configureLocalInstance() command locally to persist these changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet members ...
 
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,8 +43,6 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
 
   void init();
 
-  shcore::Value add_seed_instance(const shcore::Argument_list &args);
-  shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);

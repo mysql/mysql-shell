@@ -67,6 +67,7 @@ file(GLOB api_module_SOURCES
       "adminapi/cluster/dissolve.cc"
       "adminapi/cluster/cluster_options.cc"
       "adminapi/cluster/cluster_set_option.cc"
+      "adminapi/replicaset/add_instance.cc"
       "adminapi/replicaset/replicaset_describe.cc"
       "adminapi/replicaset/replicaset_status.cc"
       "adminapi/replicaset/replicaset.cc"

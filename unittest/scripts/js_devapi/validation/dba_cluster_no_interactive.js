@@ -23,7 +23,8 @@
 //@# Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
-||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
+||Cluster.addInstance: Argument #1 is expected to be a string
+||Cluster.addInstance: Argument #2 is expected to be a map
 ||Cluster.addInstance: Invalid URI: empty.
 ||Cluster.addInstance: Invalid and missing values in connection options (invalid: weird), (missing: host)
 ||Cluster.addInstance: Missing values in connection options: host

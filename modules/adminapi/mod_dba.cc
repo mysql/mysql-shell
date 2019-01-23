@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/mod_dba.h"
+
 #include <mysqld_error.h>
 #include <algorithm>
 #include <memory>
@@ -30,7 +32,6 @@
 #ifndef WIN32
 #include <sys/un.h>
 #endif
-#include "modules/adminapi/mod_dba.h"
 
 #include <iterator>
 #include <utility>
@@ -46,6 +47,7 @@
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/replicaset/add_instance.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -836,7 +838,7 @@ default value is the value of the system variable 'report_host' if defined
 (i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
 specified, the default value is the port of the current active connection
 (session) * 10 + 1. In case the automatically determined default port value is
-invalid (> 65535) then a random value in the range [10000, 65535] is used.
+invalid (> 65535) then an error is thrown.
 
 The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
@@ -1011,8 +1013,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Check instance configuration and state, like dba.checkInstance
       // but skip if we're adopting, since in that case the target is obviously
       // already configured
-      ensure_instance_configuration_valid(&target_instance,
-                                          get_provisioning_interface());
+      ensure_instance_configuration_valid(target_instance);
     }
 
     console->println("Creating InnoDB cluster '" + cluster_name + "' on '" +
@@ -1532,7 +1533,7 @@ shcore::Value Dba::check_instance_configuration(
 
     // Call the API
     std::unique_ptr<Check_instance> op_check_instance(
-        new Check_instance(coptions, mycnf_path, _provisioning_interface));
+        new Check_instance(coptions, mycnf_path));
 
     op_check_instance->prepare();
     ret_val = shcore::Value(op_check_instance->execute());
@@ -2591,8 +2592,22 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // existing recovery users should be reused. Therefore the boolean to
       // skip replication users is set to true and the respective replication
       // user credentials left empty.
-      default_replicaset->add_instance({}, &target_instance, gr_options, "", "",
-                                       true, true, true);
+      {
+        // Create the add_instance command and execute it.
+        Add_instance op_add_instance(&target_instance, *default_replicaset,
+                                     this->naming_style, gr_options, {}, "", "",
+                                     true, true, true);
+
+        // Always execute finish when leaving scope.
+        auto finally = shcore::on_leave_scope(
+            [&op_add_instance]() { op_add_instance.finish(); });
+
+        // Prepare the add_instance command execution (validations).
+        op_add_instance.prepare();
+
+        // Execute add_instance operations.
+        op_add_instance.execute();
+      }
     }
 
     // 7. Update the Metadata Schema information

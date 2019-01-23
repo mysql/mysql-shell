@@ -39,9 +39,7 @@ namespace dba {
 class Check_instance : public Command_interface {
  public:
   Check_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
-                 const std::string &verify_mycnf_path,
-                 std::shared_ptr<ProvisioningInterface> provisioning_interface,
-                 bool silent = false);
+                 const std::string &verify_mycnf_path, bool silent = false);
   ~Check_instance();
 
   void prepare() override;
@@ -68,7 +66,6 @@ class Check_instance : public Command_interface {
   const mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_mycnf_path;
   mysqlshdk::mysql::IInstance *m_target_instance;
-  std::shared_ptr<ProvisioningInterface> m_provisioning_interface;
   bool m_is_valid = false;
   mysqlshdk::utils::nullable<bool> m_can_set_persist;
   shcore::Value m_ret_val;

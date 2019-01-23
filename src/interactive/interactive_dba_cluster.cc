@@ -41,9 +41,6 @@ using namespace shcore;
 using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
 void Interactive_dba_cluster::init() {
-  add_method("addInstance",
-             std::bind(&Interactive_dba_cluster::add_instance, this, _1),
-             "data");
   add_method("rejoinInstance",
              std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1),
              "data");
@@ -65,110 +62,6 @@ void Interactive_dba_cluster::assert_valid(
   ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
   cluster->assert_valid(function_name);
-}
-
-shcore::Value Interactive_dba_cluster::add_seed_instance(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  std::string function;
-  std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-
-  auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-
-  if (cluster) {
-    // Throw an error if the cluster has already been dissolved
-    assert_valid("addInstance");
-    object = cluster->get_default_replicaset();
-  }
-  if (object) {
-    if (confirm("The default ReplicaSet is already initialized. \
-                Do you want to add a new instance?") ==
-        mysqlsh::Prompt_answer::YES)
-      function = "addInstance";
-  } else {
-    function = "addSeedInstance";
-  }
-
-  if (!function.empty()) {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    auto instance_map = mysqlsh::get_connection_map(instance_def);
-
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(instance_map));
-
-    if (args.size() == 2) new_args.push_back(args[1]);
-
-    ret_val = call_target(function, new_args);
-  }
-
-  return ret_val;
-}
-
-shcore::Value Interactive_dba_cluster::add_instance(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  std::string function;
-
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("addInstance");
-
-  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
-
-  shcore::Value::Map_type_ref instance_map;
-  mysqlshdk::db::Connection_options instance_def;
-
-  try {
-    check_preconditions("addInstance");
-
-    std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-    if (cluster) object = cluster->get_default_replicaset();
-
-    if (!object) {
-      if (confirm("The default ReplicaSet is not initialized. Do you want to \
-                  initialize it adding a seed instance?") ==
-          mysqlsh::Prompt_answer::YES)
-        function = "addSeedInstance";
-    } else {
-      function = "addInstance";
-    }
-
-    if (!function.empty()) {
-      std::string message =
-          "A new instance will be added to the InnoDB cluster. "
-          "Depending on the amount of\n"
-          "data on the cluster this might take from a few seconds to "
-          "several hours.\n\n";
-
-      print(message);
-
-      instance_def = mysqlsh::get_connection_options(
-          args, mysqlsh::PasswordFormat::OPTIONS);
-
-      instance_def.set_default_connection_data();
-
-      instance_map = mysqlsh::get_connection_map(instance_def);
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
-
-  shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_map));
-
-  if (args.size() > 1) new_args.push_back(args[1]);
-
-  println("Adding instance to the cluster ...");
-  println();
-  ret_val = call_target(function, new_args);
-
-  println("The instance '" + instance_def.as_uri(user_transport()) +
-          ""
-          "' was successfully added to the cluster.");
-  println();
-
-  return ret_val;
 }
 
 shcore::Value Interactive_dba_cluster::rejoin_instance(

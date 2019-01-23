@@ -7,9 +7,9 @@
 //@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of ':'
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of 'AB'
-||Error joining instance to cluster: Invalid value for exitStateAction, can't be set to the value of '10'
+||Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Add instance using a valid exitStateAction 1 {VER(>=5.7.24)}
 ||

@@ -80,6 +80,15 @@ cluster.rejoinInstance(connection3);
 cluster.disconnect();
 session.close();
 
+//@ persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
+var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+
+
 // killSandboxInstance does not wait until the process is actually killed
 // before returning, so the function does not fit this use-case.
 // OTOH stopSandboxInstance waits until the MySQL classic port is not listening

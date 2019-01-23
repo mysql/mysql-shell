@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/uuid_gen.h"
@@ -599,7 +600,7 @@ bool is_protocol_upgrade_required(
  *         if it is already installed and ACTIVE (false).
  */
 bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
-                    mysqlshdk::config::Config *config) {
+                    mysqlshdk::config::Config *config, bool disable_read_only) {
   // Get GR plugin state.
   utils::nullable<std::string> plugin_state =
       instance.get_plugin_status(kPluginName);
@@ -607,8 +608,26 @@ bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
   // Install the GR plugin if no state info is available (not installed).
   bool res = false;
   if (plugin_state.is_null()) {
+    // Disable read_only if requested.
+    utils::nullable<bool> read_only;
+    if (disable_read_only) {
+      read_only = instance.get_sysvar_bool(
+          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+      if (!read_only.is_null() && *read_only) {
+        instance.set_sysvar("super_read_only", false,
+                            mysqlshdk::mysql::Var_qualifier::GLOBAL);
+      }
+    }
+
+    // Install the GR plugin.
     instance.install_plugin(kPluginName);
     res = true;
+
+    // Re-enable read_only if needed.
+    if (!read_only.is_null() && *read_only) {
+      instance.set_sysvar("super_read_only", *read_only,
+                          mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    }
 
     // Check the GR plugin state after installation;
     plugin_state = instance.get_plugin_status(kPluginName);
@@ -632,12 +651,29 @@ bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
                                 utils::nullable<std::string>("ON"));
 
       try {
+        // Disable read_only if requested.
+        utils::nullable<bool> read_only;
+        if (disable_read_only) {
+          read_only = instance.get_sysvar_bool(
+              "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+          if (!read_only.is_null() && *read_only) {
+            instance.set_sysvar("super_read_only", false,
+                                mysqlshdk::mysql::Var_qualifier::GLOBAL);
+          }
+        }
+
         // Uninstall the GR plugin so it can be installed again after being
         // enabled on the option file.
         instance.uninstall_plugin(kPluginName);
 
         // Reinstall the GR plugin.
         instance.install_plugin(kPluginName);
+
+        // Re-enable read_only if needed.
+        if (!read_only.is_null() && *read_only) {
+          instance.set_sysvar("super_read_only", *read_only,
+                              mysqlshdk::mysql::Var_qualifier::GLOBAL);
+        }
 
         // Check the GR plugin state after the attempting to activate it;
         plugin_state = instance.get_plugin_status(kPluginName);
@@ -726,7 +762,9 @@ std::map<std::string, utils::nullable<std::string>> get_all_configurations(
 }
 
 /**
- * Execute the CHANGE MASTER statement to configure Group Replication.
+ * Change the recovery user credentials for Group Replication.
+ *
+ * NOTE: Execute the CHANGE MASTER statement to configure the GR recovery user.
  *
  * @param instance session object to connect to the target instance.
  * @param rpl_user string with the username that will be used for replication.
@@ -734,11 +772,27 @@ std::map<std::string, utils::nullable<std::string>> get_all_configurations(
  *                       privileges.
  * @param rpl_pwd string with the password for the replication user.
  */
-void do_change_master(const mysqlshdk::mysql::IInstance & /*instance*/,
-                      const std::string & /*rpl_user*/,
-                      const std::string & /*rpl_pwd*/) {
-  // TODO(pjesus)
-  assert(0);
+void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &rpl_user,
+                                 const std::string &rpl_pwd) {
+  std::string change_master_stmt_fmt =
+      "CHANGE MASTER TO MASTER_USER = /*(*/ ? /*)*/, "
+      "MASTER_PASSWORD = /*(*/ ? /*)*/ "
+      "FOR CHANNEL 'group_replication_recovery'";
+  shcore::sqlstring change_master_stmt =
+      shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
+  change_master_stmt << rpl_user;
+  change_master_stmt << rpl_pwd;
+  change_master_stmt.done();
+
+  try {
+    auto session = instance.get_session();
+    session->execute(change_master_stmt);
+  } catch (std::exception &err) {
+    throw std::runtime_error{
+        "Cannot set Group Replication recovery user to '" + rpl_user +
+        "'. Error executing CHANGE MASTER statement: " + err.what()};
+  }
 }
 
 /**
@@ -1270,7 +1324,8 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
 }
 
 void update_auto_increment(mysqlshdk::config::Config *config,
-                           const Topology_mode &topology_mode) {
+                           const Topology_mode &topology_mode,
+                           uint64_t group_size) {
   assert(config != nullptr);
 
   if (topology_mode == Topology_mode::SINGLE_PRIMARY) {
@@ -1286,8 +1341,11 @@ void update_auto_increment(mysqlshdk::config::Config *config,
     // where n is the size of the GR group if > 7, otherwise n = 7.
     // NOTE: We are assuming that there is only one handler for each instance.
     std::vector<std::string> handler_names = config->list_handler_names();
-    int64_t group_size = handler_names.size();
-    int64_t n = (group_size > 7) ? group_size : 7;
+    int64_t size = group_size;
+    if (group_size == 0) {
+      size = handler_names.size();
+    }
+    int64_t n = (size > 7) ? size : 7;
     config->set("auto_increment_increment", utils::nullable<int64_t>{n});
 
     // Each instance has a different server_id therefore each handler is set
@@ -1299,6 +1357,60 @@ void update_auto_increment(mysqlshdk::config::Config *config,
       config->set("auto_increment_offset", utils::nullable<int64_t>{offset},
                   handler_name);
     }
+  }
+}
+
+void update_group_seeds(mysqlshdk::config::Config *config,
+                        const std::string &gr_address,
+                        Gr_seeds_change_type change_type) {
+  std::vector<std::string> handler_names = config->list_handler_names();
+
+  // Each instance might have a different group_seed value thus each handler is
+  // set individually.
+  for (std::string handler_name : handler_names) {
+    utils::nullable<std::string> gr_group_seeds_new_value;
+
+    // Get the current group_seeds value.
+    mysqlshdk::utils::nullable<std::string> gr_group_seeds =
+        config->get_string("group_replication_group_seeds", handler_name);
+    auto gr_group_seeds_vector = shcore::split_string(*gr_group_seeds, ",");
+
+    // Determine the new value for the group_seeds.
+    switch (change_type) {
+      case Gr_seeds_change_type::ADD:
+        // Add the gr_address to the current group_seeds value.
+        if (!gr_group_seeds->empty()) {
+          // if the group_seeds value is not empty, add the gr_address to it.
+          // if it is not already there.
+          if (std::find(gr_group_seeds_vector.begin(),
+                        gr_group_seeds_vector.end(),
+                        gr_address) == gr_group_seeds_vector.end()) {
+            gr_group_seeds_vector.push_back(gr_address);
+          }
+          gr_group_seeds_new_value =
+              shcore::str_join(gr_group_seeds_vector, ",");
+        } else {
+          // If the instance had no group_seeds yet defined, just set it as the
+          // value the gr_address argument.
+          gr_group_seeds_new_value = gr_address;
+        }
+        break;
+      case Gr_seeds_change_type::REMOVE:
+        // Remove the gr_address from the current group_seeds value.
+        gr_group_seeds_vector.erase(
+            std::remove(gr_group_seeds_vector.begin(),
+                        gr_group_seeds_vector.end(), gr_address),
+            gr_group_seeds_vector.end());
+        gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
+        break;
+      case Gr_seeds_change_type::OVERRIDE:
+        // Override the group_seeds with the gr_address.
+        gr_group_seeds_new_value = gr_address;
+        break;
+    }
+
+    config->set("group_replication_group_seeds", gr_group_seeds_new_value,
+                handler_name);
   }
 }
 

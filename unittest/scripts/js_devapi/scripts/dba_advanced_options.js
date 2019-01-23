@@ -34,7 +34,7 @@ var c = dba.createCluster('test', {localAddress: ":123456"});
 // Note: this test will try to connect to the port in localAddress to see if
 // its free. Since report_host is now used (instead of localhost) internally
 // this test cannot run in replay mode.
-var __local_address_1 = localhost + ":" + __port;
+var __local_address_1 = __host + ":" + __mysql_port;
 var c = dba.createCluster('test', {localAddress: __local_address_1});
 
 //@ Create cluster errors using groupSeeds option
@@ -164,6 +164,7 @@ c.addInstance(add_instance_options, {localAddress: ":123456"});
 // Note: Since report_host is now used (instead of localhost) internally
 // this test cannot run in replay mode.
 // FR1-TS-2-1
+print(__local_address_1+"\n");
 c.addInstance(add_instance_options, {localAddress: __local_address_1});
 
 //@ Add instance errors using groupSeeds option

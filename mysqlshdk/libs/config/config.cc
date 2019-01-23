@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #include "mysqlshdk/libs/config/config.h"
 
 #include <utility>
+
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlshdk {
 namespace config {
@@ -62,6 +64,7 @@ void Config::set(const std::string &name,
 
 void Config::apply() {
   for (const auto &config_handler : m_config_handlers) {
+    log_debug("Apply config changes for %s.", config_handler.first.c_str());
     config_handler.second->apply();
   }
 }

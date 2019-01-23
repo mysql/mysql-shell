@@ -47,14 +47,10 @@ namespace dba {
 // parameters if there's any need.
 Check_instance::Check_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const std::string &verify_mycnf_path,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface, bool silent)
+    const std::string &verify_mycnf_path, bool silent)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_mycnf_path(verify_mycnf_path),
-      m_provisioning_interface(provisioning_interface),
-      m_silent(silent) {
-  assert(provisioning_interface);
-}
+      m_silent(silent) {}
 
 Check_instance::~Check_instance() { delete m_target_instance; }
 

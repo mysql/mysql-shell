@@ -35,9 +35,12 @@
 
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/replicaset/add_instance.h"
 #include "modules/adminapi/replicaset/check_instance_state.h"
 #include "modules/adminapi/replicaset/remove_instance.h"
 #include "modules/adminapi/replicaset/rescan.h"
@@ -72,17 +75,11 @@ using mysqlshdk::db::uri::formats::user_transport;
 char const *ReplicaSet::kTopologySinglePrimary = "pm";
 char const *ReplicaSet::kTopologyMultiPrimary = "mm";
 
-const char *kWarningDeprecateSslMode =
+const char *ReplicaSet::kWarningDeprecateSslMode =
     "Option 'memberSslMode' is deprecated for this operation and it will be "
     "removed in a future release. This option is not needed because the SSL "
     "mode is automatically obtained from the cluster. Please do not use it "
     "here.";
-
-enum class Gr_seeds_change_type {
-  ADD,
-  REMOVE,
-  OVERRIDE,
-};
 
 ReplicaSet::ReplicaSet(const std::string &name,
                        const std::string &topology_type,
@@ -266,173 +263,6 @@ void ReplicaSet::adopt_from_gr() {
 }
 
 /**
- * Auxiliary function to update the group_replication_group_seeds variable.
- *
- * @param gr_address address to override or add/remove from the
- * instance's group_replication_group_seeds variable
- * @param Change_type Type of change we want to do to the group_seeds
- * variable. If Add or Remove, we respectively add or remove the gr_address
- * value received as argument to the group_replication_group_seeds variable of
- * the instance whose session we got. If Override, we set the
- * group_replication_group_seeds with the value of gr_address received as
- * argument.
- * @param session to the instance whose group_replication_group_seeds variable
- * is to be changed.
- * @param naming_style Naming style being used, required for the logged
- * warning messages.
- */
-static void update_group_replication_group_seeds(
-    const std::string &gr_address, const Gr_seeds_change_type change_type,
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const shcore::NamingStyle naming_style) {
-  std::string gr_group_seeds_new_value;
-  std::string address =
-      session->get_connection_options().as_uri(only_transport());
-  // create an instance object for the provided session
-  auto instance = mysqlshdk::mysql::Instance(session);
-  auto gr_group_seeds = instance.get_sysvar_string(
-      "group_replication_group_seeds", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  auto gr_group_seeds_vector = shcore::split_string(*gr_group_seeds, ",");
-
-  switch (change_type) {
-    case Gr_seeds_change_type::ADD:
-      // get the group_replication_group_seeds value from the instance
-      if (!gr_group_seeds->empty()) {
-        // if the group_seeds value is not empty, add the gr_address to it.
-        // if it is not already there.
-        if (std::find(gr_group_seeds_vector.begin(),
-                      gr_group_seeds_vector.end(),
-                      gr_address) == gr_group_seeds_vector.end()) {
-          gr_group_seeds_vector.push_back(gr_address);
-        }
-        gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
-      } else {
-        // If the instance had no group_seeds yet defined, just set it as the
-        // value the gr_address argument.
-        gr_group_seeds_new_value = gr_address;
-      }
-      break;
-    case Gr_seeds_change_type::REMOVE:
-      gr_group_seeds_vector.erase(
-          std::remove(gr_group_seeds_vector.begin(),
-                      gr_group_seeds_vector.end(), gr_address),
-          gr_group_seeds_vector.end());
-      gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
-      break;
-    case Gr_seeds_change_type::OVERRIDE:
-      gr_group_seeds_new_value = gr_address;
-      break;
-  }
-
-  auto console = mysqlsh::current_console();
-
-  // Update group_replication_group_seeds variable
-  // If server version >= 8.0.11 use set persist, otherwise use set global
-  // and warn users that they should use configureLocalInstance to persist
-  // the value of the variables
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
-    bool persist_load = *instance.get_sysvar_bool(
-        "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    if (!persist_load) {
-      std::string warn_msg =
-          "On instance '" + address +
-          "' the persisted cluster configuration will not be loaded upon "
-          "reboot since 'persisted-globals-load' is set "
-          "to 'OFF'. Please use the <Dba>." +
-          get_member_name("configureLocalInstance", naming_style) +
-          "() command locally to persist the changes or set "
-          "'persisted-globals-load' to 'ON' on the configuration file.";
-      console->print_warning(warn_msg);
-    }
-    instance.set_sysvar("group_replication_group_seeds",
-                        gr_group_seeds_new_value,
-                        mysqlshdk::mysql::Var_qualifier::PERSIST);
-  } else {
-    instance.set_sysvar("group_replication_group_seeds",
-                        gr_group_seeds_new_value,
-                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    std::string warn_msg =
-        "On instance '" + address +
-        "' membership change cannot be persisted since MySQL version " +
-        instance.get_version().get_base() +
-        " does not support the SET PERSIST command "
-        "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
-        get_member_name("configureLocalInstance", naming_style) +
-        "() command locally to persist the changes.";
-    console->print_warning(warn_msg);
-  }
-}
-
-/**
- * Auxiliary function to update the auto_increment_% variables in a replicaset
- * member
- *
- * NOTE: only necessary for multi-primary replicasets
- */
-static void update_auto_increment_settings_multi_primary(
-    uint64_t group_size, std::shared_ptr<mysqlshdk::db::ISession> session,
-    const shcore::NamingStyle naming_style) {
-  // create an instance object for the provided session
-  auto instance = mysqlshdk::mysql::Instance(session);
-  std::string address =
-      session->get_connection_options().as_uri(only_transport());
-
-  // Set auto-increment for multi-primary topology:
-  // - auto_increment_increment = n;
-  // - auto_increment_offset = 1 + server_id % n;
-  // where n is the size of the GR group if > 7, otherwise n = 7.
-  // NOTE: We are assuming that there is only one handler for each instance.
-  int64_t server_id = *instance.get_sysvar_int(
-      "server_id", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-  int64_t n = (group_size > 7) ? group_size : 7;
-
-  int64_t offset = 1 + server_id % n;
-
-  auto console = mysqlsh::current_console();
-
-  // Update group_replication_group_seeds variable
-  // If server version >= 8.0.11 use set persist, otherwise use set global
-  // and warn users that they should use configureLocalInstance to persist
-  // the value of the variables
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
-    bool persist_load = *instance.get_sysvar_bool(
-        "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    if (!persist_load) {
-      std::string warn_msg =
-          "On instance '" + address +
-          "' the persisted cluster configuration will not be loaded upon "
-          "reboot since 'persisted-globals-load' is set "
-          "to 'OFF'. Please use the <Dba>." +
-          get_member_name("configureLocalInstance", naming_style) +
-          "() command locally to persist the changes or set "
-          "'persisted-globals-load' to 'ON' on the configuration file.";
-      console->print_warning(warn_msg);
-    }
-    instance.set_sysvar("auto_increment_increment", n,
-                        mysqlshdk::mysql::Var_qualifier::PERSIST);
-    instance.set_sysvar("auto_increment_offset", offset,
-                        mysqlshdk::mysql::Var_qualifier::PERSIST);
-
-  } else {
-    instance.set_sysvar("auto_increment_increment", n,
-                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    instance.set_sysvar("auto_increment_offset", offset,
-                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-    std::string warn_msg =
-        "On instance '" + address +
-        "' auto_increment settings cannot be persisted since MySQL version " +
-        instance.get_version().get_base() +
-        " does not support the SET PERSIST command "
-        "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
-        get_member_name("configureLocalInstance", naming_style) +
-        "() command locally to persist the changes.";
-    console->print_warning(warn_msg);
-  }
-}
-
-/**
  * Adds a Instance to the ReplicaSet
  * \param conn The Connection String or URI of the Instance to be added
  */
@@ -441,43 +271,32 @@ Undefined ReplicaSet::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::add_instance(InstanceDef instance, doptions) {}
 #endif
-shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
-
-  // Check if the ReplicaSet is empty
-  if (_metadata_storage->is_replicaset_empty(get_id()))
-    throw shcore::Exception::runtime_error(
-        "ReplicaSet not initialized. Please add the Seed Instance using: "
-        "addSeedInstance().");
-
-  // Add the Instance to the Default ReplicaSet
-  try {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    shcore::Dictionary_t rest;
-    if (args.size() == 2) rest = args.at(1).as_map();
-
-    ret_val = add_instance_(instance_def, rest);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
-
-  return ret_val;
-}
-
-shcore::Value ReplicaSet::add_instance_(
+void ReplicaSet::add_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Dictionary_t &options) {
   Group_replication_options gr_options(Group_replication_options::JOIN);
   mysqlshdk::utils::nullable<std::string> label;
+  std::string password;
 
+  // Get optional options.
   if (options) {
     // Retrieves optional options if exists
-    Unpack_options(options).unpack(&gr_options).optional("label", &label).end();
+    Unpack_options(options)
+        .unpack(&gr_options)
+        .optional("label", &label)
+        .optional_ci("password", &password)
+        .end();
   }
 
-  if (label) {
+  // Override password if provided in options dictionary.
+  auto target_coptions = mysqlshdk::db::Connection_options(
+      connection_options.as_uri(mysqlshdk::db::uri::formats::full()));
+  if (!password.empty()) {
+    target_coptions.set_password(password);
+  }
+
+  // Validate the label value.
+  if (!label.is_null()) {
     mysqlsh::dba::validate_label(*label);
 
     if (!_metadata_storage->is_instance_label_unique(get_id(), *label))
@@ -486,35 +305,27 @@ shcore::Value ReplicaSet::add_instance_(
           "' is already part of this InnoDB cluster");
   }
 
-  std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
-      connection_options, current_shell_options()->get().wizards)};
-  mysqlshdk::mysql::Instance target_instance(session);
-  target_instance.cache_global_sysvars();
+  // Add the Instance to the ReplicaSet
+  {
+    // Create the add_instance command and execute it.
+    Add_instance op_add_instance(target_coptions, *this, this->naming_style,
+                                 gr_options, label);
 
-  gr_options.check_option_values(target_instance.get_version());
+    // Always execute finish when leaving "try catch".
+    auto finally = shcore::on_leave_scope(
+        [&op_add_instance]() { op_add_instance.finish(); });
 
-  if (!gr_options.ssl_mode.is_null()) {
-    auto console = mysqlsh::current_console();
+    // Prepare the add_instance command execution (validations).
+    op_add_instance.prepare();
 
-    console->print_warning(kWarningDeprecateSslMode);
-    console->println();
+    // Execute add_instance operations.
+    op_add_instance.execute();
   }
-
-  if (!gr_options.auto_rejoin_tries.is_null() &&
-      *(gr_options.auto_rejoin_tries) != 0) {
-    auto console = mysqlsh::current_console();
-    console->print_warning(
-        "The member will only proceed according to its exitStateAction if "
-        "auto-rejoin fails (i.e. all retry attempts are exhausted).");
-    console->println();
-  }
-
-  return add_instance(label, &target_instance, gr_options);
 }
 
-void set_group_replication_member_options(
+void ReplicaSet::set_group_replication_member_options(
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &ssl_mode) {
+    const std::string &ssl_mode) const {
   if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 5) &&
       ssl_mode == dba::kMemberSSLModeDisabled) {
     // We need to install the GR plugin to have GR sysvars available
@@ -539,7 +350,7 @@ struct Option_info {
 void ReplicaSet::query_group_wide_option_values(
     mysqlshdk::mysql::IInstance *target_instance,
     mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
-    mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) {
+    mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) const {
   auto console = mysqlsh::current_console();
 
   Option_info<std::string> gr_consistency;
@@ -669,415 +480,21 @@ void ReplicaSet::query_group_wide_option_values(
   }
 }
 
-shcore::Value ReplicaSet::add_instance(
-    const mysqlshdk::utils::nullable<std::string> &instance_label,
-    mysqlshdk::mysql::IInstance *target_instance,
-    const Group_replication_options &opts,
-    const std::string &existing_replication_user,
-    const std::string &existing_replication_password, bool overwrite_seed,
-    bool skip_instance_check, bool skip_rpl_user) {
-  Group_replication_options gr_options(opts);
-
-  shcore::Value ret_val;
-
-  bool seed_instance = false;
-
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
-  // NOTE: This function is called from either the add_instance_ on this class
-  //       or the add_instance in Cluster class, hence this just throws
-  //       exceptions and the proper handling is done on the caller functions
-  //       (to append the called function name)
-
-  // Check if we're on a addSeedInstance or not
-  if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
-
-  // Check if we need to overwrite the seed instance
-  if (overwrite_seed) seed_instance = true;
-
-  auto console = mysqlsh::current_console();
-
-  if (gr_options.ssl_mode.is_null()) {
-    gr_options.ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
-  }
-
-  // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
-  // - exitStateAction default value must be READ_ONLY
-  // - exitStateAction default value should only be set if supported in
-  // the target instance
-  if ((gr_options.exit_state_action.is_null() ||
-       gr_options.exit_state_action->empty()) &&
-      is_group_replication_option_supported(target_instance->get_version(),
-                                            kExpelTimeout)) {
-    gr_options.exit_state_action = "READ_ONLY";
-  }
-
-  // Retrieves the instance definition
-  auto target_coptions = target_instance->get_connection_options();
-
-  // Check instance configuration and state, like dba.checkInstance
-  // But don't do it if it was already done by the caller
-  if (!skip_instance_check) {
-    ensure_instance_configuration_valid(target_instance,
-                                        cluster->get_provisioning_interface());
-  }
-
-  // Check replication filters before creating the Metadata.
-  validate_replication_filters(target_instance->get_session());
-
-  // Resolve the SSL Mode to use to configure the instance.
-  std::string new_ssl_mode;
-  std::string target;
-  if (seed_instance) {
-    new_ssl_mode = resolve_cluster_ssl_mode(target_instance->get_session(),
-                                            *gr_options.ssl_mode);
-    target = "cluster";
-  } else {
-    auto peer_session = _metadata_storage->get_session();
-    new_ssl_mode = resolve_instance_ssl_mode(
-        target_instance->get_session(), peer_session, *gr_options.ssl_mode);
-    target = "instance";
-  }
-
-  if (gr_options.ssl_mode.is_null() || new_ssl_mode != *gr_options.ssl_mode) {
-    gr_options.ssl_mode = new_ssl_mode;
-    log_warning("SSL mode used to configure the %s: '%s'", target.c_str(),
-                gr_options.ssl_mode->c_str());
-  }
-
-  // TODO(alfredo) move these checks to a target instance preconditions check
-  GRInstanceType type = get_gr_instance_type(target_instance->get_session());
-
-  if (type != GRInstanceType::Standalone &&
-      type != GRInstanceType::StandaloneWithMetadata) {
-    // Retrieves the new instance UUID
-    std::string uuid;
-    get_server_variable(target_instance->get_session(), "server_uuid", &uuid);
-
-    // Verifies if the instance is part of the cluster replication group
-    auto cluster_session = cluster->get_group_session();
-
-    // Verifies if this UUID is part of the current replication group
-    if (is_server_on_replication_group(cluster_session, uuid)) {
-      if (type == GRInstanceType::InnoDBCluster) {
-        log_debug("Instance '%s' already managed by InnoDB cluster",
-                  target_coptions.uri_endpoint().c_str());
-        throw shcore::Exception::runtime_error(
-            "The instance '" + target_coptions.uri_endpoint() +
-            "' is already part of this InnoDB cluster");
-      } else {
-        current_console()->print_error(
-            "Instance " + target_coptions.uri_endpoint() +
-            " is part of the GR group but is not in the metadata. Please use "
-            "<Cluster>.rescan() to update the metadata.");
-        throw shcore::Exception::runtime_error("Metadata inconsistent");
-      }
-    } else {
-      if (type == GRInstanceType::InnoDBCluster) {
-        // check if instance is running auto-rejoin and warn user
-        if (mysqlshdk::gr::is_running_gr_auto_rejoin(*target_instance)) {
-          throw shcore::Exception::runtime_error(
-              "The instance '" + target_coptions.uri_endpoint() +
-              "' is currently attempting to rejoin the cluster. Use <cluster>."
-              "rejoinInstance() if you want to to override the auto-rejoin "
-              "process.");
-        } else {
-          throw shcore::Exception::runtime_error(
-              "The instance '" + target_coptions.uri_endpoint() +
-              "' is already part of another InnoDB cluster");
-        }
-      } else {
-        throw shcore::Exception::runtime_error(
-            "The instance '" + target_coptions.uri_endpoint() +
-            "' is already part of another Replication Group");
-      }
-    }
-  }
-
-  // Verify if the instance is running asynchronous (master-slave) replication
-  // NOTE: Only verify if this is being called from a addInstance() and not a
-  // createCluster() command.
-  if (!seed_instance) {
-    auto console = mysqlsh::current_console();
-
-    log_debug(
-        "Checking if instance '%s' is running asynchronous (master-slave) "
-        "replication.",
-        target_instance->descr().c_str());
-
-    if (mysqlshdk::mysql::is_async_replication_running(*target_instance)) {
-      console->print_error(
-          "Cannot add instance '" + target_instance->descr() +
-          "' to the cluster because it has asynchronous (master-slave) "
-          "replication configured and running. Please stop the slave threads "
-          "by executing the query: 'STOP SLAVE;'");
-
-      throw shcore::Exception::runtime_error(
-          "The instance '" + target_instance->descr() +
-          "' is running asynchronous (master-slave) replication.");
-    }
-  }
-
-  // Check instance server UUID (must be unique among the cluster members).
-  validate_server_uuid(target_instance->get_session());
-
-  // Get the gr_address of the instance being added
-  std::string md_address;
-
-  md_address = mysqlshdk::mysql::get_report_host(*target_instance) + ":" +
-               std::to_string(target_coptions.get_port());
-
-  bool is_instance_on_md =
-      _metadata_storage->is_instance_on_replicaset(get_id(), md_address);
-
-  log_debug("RS %s: Adding instance '%s' to replicaset%s",
-            std::to_string(_id).c_str(), target_coptions.uri_endpoint().c_str(),
-            is_instance_on_md ? " (already in MD)" : "");
-
-  bool success = false;
-
-  std::string replication_user(existing_replication_user);
-  std::string replication_user_password(existing_replication_password);
-
-  // Handle the replication user
-  if (seed_instance) {
-    // Creates the replication user ONLY if not already given and if
-    // skip_rpl_user was not set to true.
-    // directly at the instance
-    if (!skip_rpl_user && replication_user.empty()) {
-      mysqlshdk::gr::create_replication_random_user_pass(
-          *target_instance, &replication_user,
-          convert_ipwhitelist_to_netmask(gr_options.ip_whitelist.get_safe()),
-          &replication_user_password);
-
-      log_debug("Created replication user '%s'", replication_user.c_str());
-    }
-
-    log_info("Joining '%s' to group with user %s",
-             target_coptions.uri_endpoint().c_str(),
-             target_coptions.get_user().c_str());
-  } else {
-    mysqlshdk::db::Connection_options peer(pick_seed_instance());
-    std::shared_ptr<mysqlshdk::db::ISession> peer_session;
-    if (peer.uri_endpoint() !=
-        cluster->get_group_session()->get_connection_options().uri_endpoint()) {
-      peer_session =
-          establish_mysql_session(peer, current_shell_options()->get().wizards);
-    } else {
-      peer_session = cluster->get_group_session();
-    }
-
-    // Creates the replication user ONLY if not already given and if
-    // skip_rpl_user was not set to true.
-    // at the instance that will serve as the seed for this one
-    if (!skip_rpl_user && replication_user.empty()) {
-      mysqlshdk::gr::create_replication_random_user_pass(
-          mysqlshdk::mysql::Instance(peer_session), &replication_user,
-          convert_ipwhitelist_to_netmask(gr_options.ip_whitelist.get_safe()),
-          &replication_user_password);
-
-      log_debug("Created replication user '%s'", replication_user.c_str());
-    }
-  }
-
-  // If this is not seed instance, then we should try to read the
-  // consistency and expelTimeout values from a a cluster member
-  if (!seed_instance) {
-    query_group_wide_option_values(target_instance, &gr_options.consistency,
-                                   &gr_options.expel_timeout);
-  }
-
-  // Set the ssl mode
-  set_group_replication_member_options(target_instance->get_session(),
-                                       *gr_options.ssl_mode);
-
-  // Common informative logging
-  if (!gr_options.local_address.is_null()) {
-    log_info("Using Group Replication local address: %s",
-             gr_options.local_address->c_str());
-  }
-
-  if (!gr_options.group_seeds.is_null()) {
-    log_info("Using Group Replication group seeds: %s",
-             gr_options.group_seeds->c_str());
-  }
-
-  if (!gr_options.exit_state_action.is_null()) {
-    log_info("Using Group Replication exit state action: %s",
-             gr_options.exit_state_action->c_str());
-  }
-
-  if (!gr_options.member_weight.is_null()) {
-    log_info("Using Group Replication member weight: %s",
-             std::to_string(*gr_options.member_weight).c_str());
-  }
-
-  if (!gr_options.auto_rejoin_tries.is_null()) {
-    log_info("Using Group Replication rejoin retries: %s",
-             std::to_string(*gr_options.auto_rejoin_tries).c_str());
-  }
-
-  // Handling of GR protocol version
-  {
-    if (!seed_instance) {
-      mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
-
-      // Get the current protocol version in use in the group
-      try {
-        mysqlshdk::utils::Version gr_protocol_version =
-            mysqlshdk::gr::get_group_protocol_version(group_instance);
-
-        // If the target instance being added does not support the GR protocol
-        // version in use on the group (because it is an older version), the
-        // addInstance command must set the GR protocol of the cluster to the
-        // version of the target instance.
-        if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
-                                                          *target_instance)) {
-          mysqlshdk::gr::set_group_protocol_version(
-              group_instance, target_instance->get_version());
-        }
-      } catch (const shcore::Exception &error) {
-        // The UDF may fail with MySQL Error 1123 if any of the members is
-        // RECOVERING In such scenario, we must abort the upgrade protocol
-        // version process and warn the user
-        if (error.code() == ER_CANT_INITIALIZE_UDF) {
-          auto console = mysqlsh::current_console();
-          console->print_note(
-              "Unable to determine the Group Replication protocol version, "
-              "while verifying if a protocol downgrade is required: " +
-              std::string(error.what()) + ".");
-        } else {
-          throw;
-        }
-      }
-    }
-  }
-
-  // Get the current number of replicaSet members
-  uint64_t replicaset_count =
-      _metadata_storage->get_replicaset_count(this->get_id());
-
-  DBUG_EXECUTE_IF("dba_abort_join_group", { throw std::logic_error("debug"); });
-
-  // Call MP
-  if (seed_instance) {
-    if (!gr_options.group_name.is_null()) {
-      log_info("Using Group Replication group name: %s",
-               gr_options.group_name->c_str());
-    }
-
-    // Call mysqlprovision to bootstrap the group using "start"
-
-    success = do_join_replicaset(target_coptions, nullptr, replication_user,
-                                 replication_user_password, skip_rpl_user, 0,
-                                 gr_options);
-  } else {
-    mysqlshdk::db::Connection_options peer(pick_seed_instance());
-
-    // if no group_seeds value was provided by the user, then,
-    // before joining instance to cluster, get the values of the
-    // gr_local_address from all the active members of the cluster
-    if (gr_options.group_seeds.is_null() || gr_options.group_seeds->empty())
-      gr_options.group_seeds = get_cluster_group_seeds();
-
-    log_info("Joining '%s' to group using account %s to peer '%s'",
-             target_coptions.uri_endpoint().c_str(), peer.get_user().c_str(),
-             peer.uri_endpoint().c_str());
-    // Call mysqlprovision to do the work
-    success = do_join_replicaset(target_coptions, &peer, replication_user,
-                                 replication_user_password, skip_rpl_user,
-                                 replicaset_count, gr_options);
-  }
-
-  if (success) {
-    // If the instance is not on the Metadata, we must add it
-    if (!is_instance_on_md)
-      add_instance_metadata(target_coptions, instance_label.get_safe());
-
-    // Get the gr_address of the instance being added
-    std::string added_instance_gr_address = *target_instance->get_sysvar_string(
-        "group_replication_local_address",
-        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-    // Update the group_seeds of the instance that was just added
-    // If the groupSeeds option was used (not empty), we use
-    // that value, otherwise we use the value of all the
-    // group_replication_local_address of all the active instances
-    update_group_replication_group_seeds(
-        gr_options.group_seeds.get_safe(), Gr_seeds_change_type::OVERRIDE,
-        target_instance->get_session(), naming_style);
-    // Update the group_replication_group_seeds of the members that
-    // already belonged to the cluster and are either ONLINE or recovering
-    // by adding the gr_local_address of the instance that was just added.
-    std::vector<std::string> ignore_instances_vec = {md_address};
-    Gr_seeds_change_type change_type = Gr_seeds_change_type::ADD;
-
-    execute_in_members(
-        {"'ONLINE'", "'RECOVERING'"}, target_coptions, ignore_instances_vec,
-        [added_instance_gr_address, change_type,
-         this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
-          update_group_replication_group_seeds(added_instance_gr_address,
-                                               change_type, session,
-                                               this->naming_style);
-          return true;
-        });
-    log_debug("Instance add finished");
-
-    // Increase the replicaset_count counter
-    replicaset_count++;
-
-    // Auto-increment values must be updated according to:
-    //
-    // Set auto-increment for single-primary topology:
-    // - auto_increment_increment = 1
-    // - auto_increment_offset = 2
-    //
-    // Set auto-increment for multi-primary topology:
-    // - auto_increment_increment = n;
-    // - auto_increment_offset = 1 + server_id % n;
-    // where n is the size of the GR group if > 7, otherwise n = 7.
-    //
-    // We must update the auto-increment values in add_instance for 2
-    // scenarios
-    //   - Multi-primary Replicaset
-    //   - Replicaset that has 7 or more members after the add_instance
-    //     operation
-    //
-    // NOTE: in the other scenarios, the Add_instance operation is in charge of
-    // updating auto-increment accordingly
-
-    // Get the topology mode of the replicaSet
-    mysqlshdk::gr::Topology_mode topology_mode =
-        _metadata_storage->get_replicaset_topology_mode(this->get_id());
-
-    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
-        replicaset_count > 7) {
-      execute_in_members(
-          {"'ONLINE'", "'RECOVERING'"}, target_coptions, ignore_instances_vec,
-          [replicaset_count,
-           this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
-            update_auto_increment_settings_multi_primary(
-                replicaset_count, session, this->naming_style);
-            return true;
-          });
-    }
-  }
-
-  return ret_val;
-}
-
+// TODO(pjesus): remove this function and replace by direct call to MP
+//  replacement join_replicaset() and start_replicaset in
+//  modules/adminapi/common/provision.cc for the refactor of createCluster().
 bool ReplicaSet::do_join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
     const std::string &repl_user_password, bool skip_rpl_user,
-    mysqlshdk::utils::nullable<uint64_t> replicaset_count,
-    const Group_replication_options &gr_options) {
+    const mysqlshdk::utils::nullable<uint64_t> &replicaset_count,
+    const Group_replication_options &gr_options) const {
   shcore::Value ret_val;
   int exit_code = -1;
 
   bool is_seed_instance = peer ? false : true;
+  // Assert to make sure it can only be used for createCluster().
+  assert(is_seed_instance);
 
   shcore::Value::Array_type_ref errors, warnings;
 
@@ -1091,9 +508,8 @@ bool ReplicaSet::do_join_replicaset(
         _topology_type == kTopologyMultiPrimary, gr_options, skip_rpl_user,
         replicaset_count, &errors);
   } else {
-    exit_code = cluster->get_provisioning_interface()->join_replicaset(
-        instance, *peer, repl_user, repl_user_password, gr_options,
-        skip_rpl_user, replicaset_count, &errors);
+    throw std::logic_error(
+        "Cannot use do_join_replicaset() to add instances to a replicaset.");
   }
 
   if (exit_code == 0) {
@@ -1187,7 +603,7 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
  *         the replicaset.
  */
 std::string ReplicaSet::get_cluster_group_seeds(
-    std::shared_ptr<mysqlshdk::db::ISession> instance_session) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const {
   // Get connection option for the metadata.
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
@@ -1300,6 +716,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   // and if the gr plugin is active otherwise we may end up hanging the system
 
   // Validate 'group_replication_group_name'
+  std::string md_host;
   {
     try {
       log_info("Opening a new session to the rejoining instance %s",
@@ -1314,9 +731,9 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Get instance address in metadata.
     mysqlshdk::mysql::Instance target_instance(session);
+    md_host = mysqlshdk::mysql::get_report_host(target_instance);
     std::string md_address =
-        mysqlshdk::mysql::get_report_host(target_instance) + ":" +
-        std::to_string(instance_def->get_port());
+        md_host + ":" + std::to_string(instance_def->get_port());
 
     // Check if the instance is part of the Metadata
     if (!_metadata_storage->is_instance_on_replicaset(get_id(), md_address)) {
@@ -1448,7 +865,6 @@ shcore::Value ReplicaSet::rejoin_instance(
 
   // join Instance to cluster
   {
-    int exit_code;
     std::string replication_user, replication_user_pwd;
 
     // Check replication filters before creating the Metadata.
@@ -1498,14 +914,19 @@ shcore::Value ReplicaSet::rejoin_instance(
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
 
+    // Get the seed session connection data
+    // use mysqlprovision to rejoin the cluster.
+    // on the rejoin operation there is no need adjust the the number of
+    // members on the replicaset
+    // Get the target and peer instance.
+    auto peer_instance = mysqlshdk::mysql::Instance(seed_session);
+    auto target_instance = mysqlshdk::mysql::Instance(session);
+
     // Handling of GR protocol version
     {
-      mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
-      auto target_instance = mysqlshdk::mysql::Instance(session);
-
       // Get the current protocol version in use in the group
       mysqlshdk::utils::Version gr_protocol_version =
-          mysqlshdk::gr::get_group_protocol_version(group_instance);
+          mysqlshdk::gr::get_group_protocol_version(peer_instance);
 
       // If the target instance being rejoined does not support the GR protocol
       // version in use on the group (because it is an older version), the
@@ -1515,7 +936,7 @@ shcore::Value ReplicaSet::rejoin_instance(
         if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
                                                           target_instance)) {
           mysqlshdk::gr::set_group_protocol_version(
-              group_instance, target_instance.get_version());
+              peer_instance, target_instance.get_version());
         }
       } catch (const shcore::Exception &error) {
         // The UDF may fail with MySQL Error 1123 if any of the members is
@@ -1538,23 +959,27 @@ shcore::Value ReplicaSet::rejoin_instance(
       gr_options.read_option_values(target_instance);
     }
 
-    // Get the seed session connection data
-    // use mysqlprovision to rejoin the cluster.
-    // on the rejoin operation there is no need adjust the the number of
-    // members on the replicaset
-    mysqlshdk::utils::nullable<uint64_t> replicaset_count;
-    exit_code = cluster->get_provisioning_interface()->join_replicaset(
-        session->get_connection_options(), seed_instance_def, replication_user,
-        replication_user_pwd, gr_options, keep_repl_user, replicaset_count,
-        &errors);
+    // Resolve GR local address.
+    // NOTE: Must be done only after getting the report_host used by GR and for
+    //       the metadata;
+    gr_options.local_address = mysqlsh::dba::resolve_gr_local_address(
+        gr_options.local_address, md_host,
+        target_instance.get_connection_options().get_port());
 
-    if (exit_code == 0) {
-      log_info("The instance '%s' was successfully rejoined on the cluster.",
-               seed_instance.uri_endpoint().c_str());
-    } else {
-      throw shcore::Exception::runtime_error(
-          get_mysqlprovision_error_string(errors));
-    }
+    // Set a Config object for the target instance (required to configure GR).
+    std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(
+        &target_instance, mysqlshdk::config::k_dft_cfg_server_handler,
+        this->naming_style);
+
+    // (Re-)join the instance to the replicaset (setting up GR properly).
+    // NOTE: on the rejoin operation there is no need adjust the the number of
+    //       members on the replicaset
+    mysqlshdk::utils::nullable<uint64_t> replicaset_count;
+    mysqlsh::dba::join_replicaset(target_instance, peer_instance,
+                                  replication_user, replication_user_pwd,
+                                  gr_options, replicaset_count, cfg.get());
+    log_info("The instance '%s' was successfully rejoined on the cluster.",
+             seed_instance.uri_endpoint().c_str());
   }
   return ret_val;
 }
@@ -1660,25 +1085,16 @@ static void reenable_super_read_only(
 void ReplicaSet::update_group_members_for_removed_member(
     const std::string &local_gr_address,
     const mysqlshdk::mysql::Instance &instance, bool remove_rpl_user_on_group) {
+  // Get the ReplicaSet Config Object
+  auto cfg = create_config_object({}, true);
+
   // Iterate through all ONLINE and RECOVERING cluster members and update their
   // group_replication_group_seeds value by removing the gr_local_address
   // of the instance that was removed
-  std::vector<std::string> ignore_instances_vec;
-  Gr_seeds_change_type change_type = Gr_seeds_change_type::REMOVE;
-
-  // It is assumed that the same connection credentials can be used to all the
-  // instances in the cluster.
-  Connection_options instances_cnx_opts = instance.get_connection_options();
-
   log_debug("Updating group_replication_group_seeds of cluster members");
-  execute_in_members(
-      {"'ONLINE'", "'RECOVERING'"}, instances_cnx_opts, ignore_instances_vec,
-      [local_gr_address, change_type,
-       this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
-        update_group_replication_group_seeds(local_gr_address, change_type,
-                                             session, this->naming_style);
-        return true;
-      });
+  mysqlshdk::gr::update_group_seeds(
+      cfg.get(), local_gr_address, mysqlshdk::gr::Gr_seeds_change_type::REMOVE);
+  cfg->apply();
 
   // Remove the replication users on the instance and members if
   // remove_rpl_user_on_group = true.
@@ -1723,9 +1139,6 @@ void ReplicaSet::update_group_members_for_removed_member(
 
     if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
         update_auto_inc) {
-      // Get the ReplicaSet Config Object
-      auto cfg = create_config_object();
-
       // Call update_auto_increment to do the job in all instances
       mysqlshdk::gr::update_auto_increment(
           cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
@@ -1943,7 +1356,7 @@ void ReplicaSet::rescan(const shcore::Dictionary_t &options) {
   }
 }
 
-mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() {
+mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() const {
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
     throw shcore::Exception::runtime_error("Cluster object is no longer valid");
@@ -1995,7 +1408,7 @@ shcore::Value ReplicaSet::check_instance_state(
 
 void ReplicaSet::add_instance_metadata(
     const mysqlshdk::db::Connection_options &instance_definition,
-    const std::string &label) {
+    const std::string &label) const {
   log_debug("Adding instance to metadata");
 
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -2527,7 +1940,7 @@ void ReplicaSet::rejoin_instances(
  *                         UUID.
  */
 void ReplicaSet::validate_server_uuid(
-    std::shared_ptr<mysqlshdk::db::ISession> instance_session) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const {
   // Get the server_uuid of the target instance.
   auto instance = mysqlshdk::mysql::Instance(instance_session);
   std::string server_uuid = *instance.get_sysvar_string(
@@ -2571,8 +1984,8 @@ std::vector<ReplicaSet::Instance_info> ReplicaSet::get_instances() const {
       get_id());
 }
 
-std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object()
-    const {
+std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object(
+    std::vector<std::string> ignored_instances, bool skip_invalid_state) const {
   auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
 
   auto console = mysqlsh::current_console();
@@ -2583,6 +1996,11 @@ std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object()
       _metadata_storage->get_replicaset_instances(get_id(), true);
 
   for (const auto &instance_def : instance_defs) {
+    // If instance is on the list of instances to be ignored, skip it.
+    if (std::find(ignored_instances.begin(), ignored_instances.end(),
+                  instance_def.endpoint) != ignored_instances.end())
+      continue;
+
     // Use the GR state hold by instance_def.state (but convert it to a proper
     // mysqlshdk::gr::Member_state to be handled properly).
     mysqlshdk::gr::Member_state state =
@@ -2638,33 +2056,32 @@ std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object()
       // dba.configureLocalInstance().
       if (support_set_persist.is_null()) {
         console->print_warning(
-            "The settings cannot be persisted remotely on instance "
-            "'" +
-            instance_def.endpoint + "' because MySQL version " +
+            "Instance '" + instance_def.endpoint +
+            "' cannot persist configuration since MySQL version " +
             instance.get_version().get_base() +
-            " does not support the SET PERSIST command "
-            "(MySQL version >= 8.0.11 required). Please execute the <Dba>." +
+            " does not support the SET PERSIST command (MySQL version >= "
+            "8.0.11 required). Please use the <Dba>." +
             get_member_name("configureLocalInstance", this->naming_style) +
-            "() command locally to persist these changes.");
+            "() command locally to persist the changes.");
       } else if (!*support_set_persist) {
         console->print_warning(
-            "The settings cannot be persisted remotely on instance "
-            "'" +
-            instance_def.endpoint +
-            "' because 'persisted-globals-load' is set "
-            "to 'OFF' and persisted configurations will not be loaded upon "
-            "reboot. Please execute the <Dba>." +
+            "Instance '" + instance_def.endpoint +
+            "' will not load the persisted cluster configuration upon reboot "
+            "since 'persisted-globals-load' is set to 'OFF'. Please use the "
+            "<Dba>." +
             get_member_name("configureLocalInstance", this->naming_style) +
-            "() command locally to persist these changes.");
+            "() command locally to persist the changes or set "
+            "'persisted-globals-load' to 'ON' on the configuration file.");
       }
     } else {
+      // Ignore instance with an invalid state (i.e., do not issue an erro), if
+      // skip_invalid_state is true.
+      if (skip_invalid_state) continue;
+
       // Issue an error if the instance is not active.
-      console->print_error(
-          "The settings cannot be updated for instance '" +
-          instance_def.endpoint + "' because it is on a '" +
-          mysqlshdk::gr::to_string(state) +
-          "' state. Please bring the instance back ONLINE and try to rescan "
-          "the cluster again.");
+      console->print_error("The settings cannot be updated for instance '" +
+                           instance_def.endpoint + "' because it is on a '" +
+                           mysqlshdk::gr::to_string(state) + "' state.");
 
       throw shcore::Exception::runtime_error(
           "The instance '" + instance_def.endpoint + "' is '" +
@@ -2693,7 +2110,7 @@ void ReplicaSet::execute_in_members(
     const std::vector<std::string> &ignore_instances_vector,
     std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
         functor,
-    bool ignore_network_conn_errors) {
+    bool ignore_network_conn_errors) const {
   const int kNetworkConnRefused = 2003;
   std::shared_ptr<mysqlshdk::db::ISession> instance_session;
   // Note (nelson): should we handle the super_read_only behavior here or should

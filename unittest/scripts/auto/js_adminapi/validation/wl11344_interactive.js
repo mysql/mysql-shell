@@ -26,7 +26,7 @@ The cluster was successfully rebooted.
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
-group_replication_autorejoin_tries = 1
+group_replication_autorejoin_tries = 0
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -82,7 +82,7 @@ Instance configuration is suitable.
 Creating InnoDB cluster 'C' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' the persisted cluster configuration will not be loaded upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
+WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -133,7 +133,7 @@ Instance configuration is suitable.
 Creating InnoDB cluster 'ClusterName' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -174,7 +174,7 @@ The cluster was successfully rebooted.
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
-group_replication_autorejoin_tries = 1
+group_replication_autorejoin_tries = 0
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -308,11 +308,6 @@ true
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 true
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster ...
-
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -320,8 +315,13 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' the persisted cluster configuration will not be loaded upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
-The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 ONLINE
 {
@@ -440,11 +440,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster ...
-
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -452,9 +447,14 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-The instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ FR2-TS-6 TEARDOWN {VER(<8.0.12)}
 ||
@@ -788,8 +788,8 @@ start a new session to the Metadata Storage R/W instance.
 
 Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 

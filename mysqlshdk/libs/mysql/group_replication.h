@@ -112,6 +112,12 @@ enum class Config_type {
   CONFIG,
 };
 
+enum class Gr_seeds_change_type {
+  ADD,
+  REMOVE,
+  OVERRIDE,
+};
+
 typedef mysqlshdk::utils::Enum_set<Config_type, Config_type::CONFIG>
     Config_types;
 
@@ -240,12 +246,14 @@ std::map<std::string, utils::nullable<std::string>> get_all_configurations(
     const mysqlshdk::mysql::IInstance &instance);
 
 // Function to do a change master (set the GR recovery user)
-void do_change_master(const mysqlshdk::mysql::IInstance &instance,
-                      const std::string &rpl_user, const std::string &rpl_pwd);
+void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &rpl_user,
+                                 const std::string &rpl_pwd);
 
 // Functions to manage the GR plugin
 bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
-                    mysqlshdk::config::Config *config);
+                    mysqlshdk::config::Config *config,
+                    bool disable_read_only = false);
 bool uninstall_plugin(const mysqlshdk::mysql::IInstance &instance,
                       mysqlshdk::config::Config *config);
 void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
@@ -355,9 +363,33 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
  *               servers.
  * @param topology_mode target topology mode to determine how auto-increment
  *                      settings should be set.
+ * @param group_size Size of the group to consider when setting auto-increment
+ *                   values for multi-primary topologies. Only used if different
+ *                   from 0 (by default 0), otherwise the group size is
+ *                   determined based on the number of handlers in the Config
+ *                   object.
  */
 void update_auto_increment(mysqlshdk::config::Config *config,
-                           const Topology_mode &topology_mode);
+                           const Topology_mode &topology_mode,
+                           uint64_t group_size = 0);
+
+/**
+ * Update Group Replication group seeds on the group members.
+ *
+ * IMPORTANT NOTE: It is assumed that the Config object used as parameter
+ * contains one and only one configuration handler for each member in the GR
+ * group.
+ *
+ * @param config Config object used to set the GR group_seeds
+ *               on all servers.
+ * @param gr_address string with the input GR address used to update the current
+ *                   group_seeds value.
+ * @param change_type Enumeration with the type of change that will be
+ *                    performed to the group_seeds (ADD, REMOVE, or OVERRIDE).
+ */
+void update_group_seeds(mysqlshdk::config::Config *config,
+                        const std::string &gr_address,
+                        Gr_seeds_change_type change_type);
 
 /**
  * Configure which member of a single-primary replication group is the primary

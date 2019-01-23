@@ -55,6 +55,7 @@ Cluster.addInstance(5,6,7,1);
 Cluster.addInstance(5, 5);
 Cluster.addInstance('', 5);
 Cluster.addInstance( 5);
+Cluster.addInstance('');
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", "auth-method":56, memberSslMode: "foo", ipWhitelist: " "});
 Cluster.addInstance({port: __mysql_sandbox_port1});
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");

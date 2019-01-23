@@ -349,5 +349,186 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   config->apply();
 }
 
+void join_replicaset(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::IInstance &peer_instance,
+    const std::string &rpl_user, const std::string &rpl_user_pwd,
+    const Group_replication_options &gr_opts,
+    const mysqlshdk::utils::nullable<uint64_t> &replicaset_size,
+    mysqlshdk::config::Config *config) {
+  // An non-null Config is expected.
+  assert(config);
+
+  std::string gr_group_name;
+  bool single_primary_mode;
+  mysqlshdk::gr::Member_state peer_state;
+
+  // Get required information from the peer_instance (namely the group_name).
+  log_debug("Getting information from peer instance '%s'.",
+            peer_instance.descr().c_str());
+  if (!mysqlshdk::gr::get_group_information(peer_instance, &peer_state, nullptr,
+                                            &gr_group_name,
+                                            &single_primary_mode)) {
+    throw std::runtime_error{"Cannot join instance '" + instance.descr() +
+                             "'. Peer instance '" + peer_instance.descr() +
+                             "' is no longer a member of the ReplicaSet."};
+  }
+
+  // Confirm the peer_instance status, must be ONLINE.
+  if (peer_state != mysqlshdk::gr::Member_state::ONLINE) {
+    throw std::runtime_error(
+        "Cannot join instance '" + instance.descr() + "'. Peer instance '" +
+        peer_instance.descr() + "' state is currently '" +
+        mysqlshdk::gr::to_string(peer_state) +
+        "', but is expected to "
+        "be '" +
+        mysqlshdk::gr::to_string(mysqlshdk::gr::Member_state::ONLINE) + "'.");
+  }
+
+  if (!gr_opts.ssl_mode.is_null()) {
+    // Set required variable for GR recovery based on the SSL mode used.
+    if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 5) &&
+        *gr_opts.ssl_mode == dba::kMemberSSLModeDisabled) {
+      // This option required to connect using the new caching_sha256_password
+      // authentication method without SSL
+      log_debug("Enable 'group_replication_recovery_get_public_key'.");
+      config->set("group_replication_recovery_get_public_key",
+                  mysqlshdk::utils::nullable<bool>(true));
+    }
+
+    // SET the GR SSL variable according to the ssl_mode value (resolved by the
+    // caller).
+    if (*gr_opts.ssl_mode == dba::kMemberSSLModeRequired) {
+      config->set("group_replication_recovery_use_ssl",
+                  mysqlshdk::utils::nullable<bool>(true));
+      config->set("group_replication_ssl_mode",
+                  mysqlshdk::utils::nullable<std::string>("REQUIRED"));
+    } else if (*gr_opts.ssl_mode == dba::kMemberSSLModeDisabled) {
+      config->set("group_replication_recovery_use_ssl",
+                  mysqlshdk::utils::nullable<bool>(false));
+      config->set("group_replication_ssl_mode",
+                  mysqlshdk::utils::nullable<std::string>("DISABLED"));
+    }
+  }
+
+  // Set GR group name obtained from the peer instance.
+  config->set("group_replication_group_name",
+              mysqlshdk::utils::nullable<std::string>(gr_group_name));
+
+  // The local_address value is determined based on the given localAddress
+  // option (resolved by the caller).
+  config->set("group_replication_local_address", gr_opts.local_address);
+
+  // Set the GR primary mode (topology mode) obtained from the peer instance.
+  config->set("group_replication_single_primary_mode",
+              mysqlshdk::utils::nullable<bool>(single_primary_mode));
+
+  // The group_seeds value matches the one of the groupSeeds option if used
+  // (not empty), otherwise the value of all the group_replication_local_address
+  // of all the active instances (determined by the caller).
+  config->set("group_replication_group_seeds", gr_opts.group_seeds);
+
+  // Set GR IP whitelist (if provided).
+  if (!gr_opts.ip_whitelist.is_null()) {
+    config->set("group_replication_ip_whitelist", gr_opts.ip_whitelist);
+  }
+
+  // Set GR exit state action (if provided).
+  if (!gr_opts.exit_state_action.is_null()) {
+    // GR exit state action can be an index value, in this case convert it to
+    // an integer otherwise an SQL error will occur when using this value
+    // (because it will try to set an int as as string).
+    if (std::all_of(gr_opts.exit_state_action->cbegin(),
+                    gr_opts.exit_state_action->cend(), ::isdigit)) {
+      int64_t exit_state_action = std::stoll(*gr_opts.exit_state_action);
+      config->set("group_replication_exit_state_action",
+                  mysqlshdk::utils::nullable<int64_t>(exit_state_action));
+    } else {
+      config->set("group_replication_exit_state_action",
+                  gr_opts.exit_state_action);
+    }
+  }
+
+  // Set GR member weight (if provided).
+  if (!gr_opts.member_weight.is_null()) {
+    config->set("group_replication_member_weight", gr_opts.member_weight);
+  }
+
+  // Set GR (failover) consistency (if provided).
+  if (!gr_opts.consistency.is_null()) {
+    // GR consistency can be an index value, in this case convert it to
+    // an integer otherwise an SQL error will occur when using this value
+    // (because it will try to set an int as as string).
+    if (std::all_of(gr_opts.consistency->cbegin(), gr_opts.consistency->cend(),
+                    ::isdigit)) {
+      int64_t consistency = std::stoll(*gr_opts.consistency);
+      config->set("group_replication_consistency",
+                  mysqlshdk::utils::nullable<int64_t>(consistency));
+    } else {
+      config->set("group_replication_consistency", gr_opts.consistency);
+    }
+  }
+
+  // Set GR expel timeout (if provided).
+  if (!gr_opts.expel_timeout.is_null()) {
+    config->set("group_replication_member_expel_timeout",
+                gr_opts.expel_timeout);
+  }
+
+  // Set GR auto-rejoin tries (if provided).
+  if (!gr_opts.auto_rejoin_tries.is_null()) {
+    config->set("group_replication_autorejoin_tries",
+                gr_opts.auto_rejoin_tries);
+  }
+
+  // Enable GR start on boot.
+  config->set("group_replication_start_on_boot",
+              mysqlshdk::utils::nullable<bool>(true));
+
+  // Set auto-increment settings (depending on the topology type and size of
+  // the group) on the instance to add (assuming it will be successfully join).
+  if (!replicaset_size.is_null()) {
+    mysqlshdk::gr::Topology_mode topology_mode =
+        (single_primary_mode) ? mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY
+                              : mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+    log_debug(
+        "Setting auto-increment values for topology mode '%s' and group size "
+        "%s.",
+        mysqlshdk::gr::to_string(topology_mode).c_str(),
+        std::to_string(*replicaset_size + 1).c_str());
+    mysqlshdk::gr::update_auto_increment(config, topology_mode,
+                                         *replicaset_size + 1);
+  }
+
+  // Apply all configuration changes.
+  log_debug("Applying configuration change to instance '%s'.",
+            instance.descr().c_str());
+  config->apply();
+
+  // Set the GR replication (recovery) user if specified (not empty).
+  if (!rpl_user.empty()) {
+    log_debug("Setting Group Replication recovery user to '%s'.",
+              rpl_user.c_str());
+    mysqlshdk::gr::change_recovery_credentials(instance, rpl_user,
+                                               rpl_user_pwd);
+  }
+
+  // Start Group Replication (effectively join the replicaset).
+  try {
+    log_debug("Starting Group Replication to join group...");
+    mysqlshdk::gr::start_group_replication(instance, false);
+  } catch (const mysqlshdk::db::Error &err) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Unable to start Group Replication for instance '" + instance.descr() +
+        "'. Please check the MySQL server error log for more information.");
+    std::string error_msg = "Group Replication failed to start: ";
+    error_msg.append(err.format());
+    throw shcore::Exception::runtime_error(error_msg);
+  }
+  log_debug("Instance '%s' successfully joined the Group Replication group.",
+            instance.descr().c_str());
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

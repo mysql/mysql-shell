@@ -76,7 +76,7 @@ struct Group_replication_options {
   mysqlshdk::utils::nullable<std::string> consistency;
   mysqlshdk::utils::nullable<int64_t> member_weight;
   mysqlshdk::utils::nullable<int64_t> expel_timeout;
-  mysqlshdk::utils::nullable<uint64_t> auto_rejoin_tries;
+  mysqlshdk::utils::nullable<int64_t> auto_rejoin_tries;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);

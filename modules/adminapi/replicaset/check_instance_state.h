@@ -80,7 +80,6 @@ class Check_instance_state : public Command_interface {
   std::string m_address_in_metadata;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_target_instance;
 
-  void ensure_instance_not_belong_to_replicaset();
   void ensure_target_instance_reachable();
   void ensure_instance_valid_gr_state();
   shcore::Dictionary_t collect_instance_state();

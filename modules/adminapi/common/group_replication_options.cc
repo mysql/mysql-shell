@@ -222,6 +222,24 @@ void validate_group_seeds_option(std::string group_seeds) {
         "Invalid value for groupSeeds, string value cannot be empty.");
 }
 
+/**
+ * Validates the ipWhitelist option
+ *
+ * Checks if the given ipWhitelist is valid for use in the AdminAPI.
+ *
+ * @param ip_whitelist The ipWhitelist to validate
+ * @param hostnames_supported boolean value to indicate whether hostnames are
+ * supported or not in the ipWhitelist. (supported since version 8.0.4)
+ *
+ * @throws argument_error if the ipWhitelist is empty
+ * @throws argument_error if the subnet in CIDR notation is not valid
+ * @throws argument_error if the address section is not an IPv4 address
+ * @throws argument_error if the address is IPv6
+ * @throws argument_error if hostnames_supported is true but the address does
+ * not resolve to a valid IPv4 address
+ * @throws argument error if hostnames_supports is false and the address it nos
+ * a valid IPv4 address
+ */
 void validate_ip_whitelist_option(const std::string &ip_whitelist,
                                   bool hostnames_supported) {
   // Validate if the ipWhiteList value is not empty
@@ -333,9 +351,11 @@ void Group_replication_options::check_option_values(
     validate_group_name_option(*group_name);
   }
 
-  if (!ip_whitelist.is_null()) {
+  if (!ip_whitelist.is_null() &&
+      shcore::str_casecmp(*ip_whitelist, "AUTOMATIC") != 0) {
     // if the ipWhitelist option was provided, we know it is a valid value
     // since we've already done the validation above.
+    // Skip validation if default 'AUTOMATIC' is used.
     bool hostnames_supported = false;
 
     // Validate ip whitelist option
@@ -407,6 +427,9 @@ void Group_replication_options::read_option_values(
 
   if (group_seeds.is_null()) {
     group_seeds = instance.get_sysvar_string("group_replication_group_seeds");
+
+    // Set group_seeds to NULL if value read is empty (to be overridden).
+    if (!group_seeds.is_null() && group_seeds->empty()) group_seeds.reset();
   }
 
   if (ip_whitelist.is_null()) {

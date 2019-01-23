@@ -102,7 +102,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   void add_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_definition,
-      const std::string &label = "");
+      const std::string &label = "") const;
 
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
@@ -115,7 +115,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   std::vector<Instance_info> get_instances() const;
 
-  std::unique_ptr<mysqlshdk::config::Config> create_config_object() const;
+  std::unique_ptr<mysqlshdk::config::Config> create_config_object(
+      std::vector<std::string> ignored_instances = {},
+      bool skip_invalid_state = false) const;
 
   void execute_in_members(
       const std::vector<std::string> &states,
@@ -123,10 +125,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::vector<std::string> &ignore_instances_vector,
       std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
           functor,
-      bool ignore_network_conn_errors = true);
+      bool ignore_network_conn_errors = true) const;
 
   static char const *kTopologySinglePrimary;
   static char const *kTopologyMultiPrimary;
+  static const char *kWarningDeprecateSslMode;
 
 #if DOXYGEN_JS
   String getName();
@@ -162,21 +165,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None set_instance_option(InstanceDef instance, str option, str value);
 #endif
 
-  shcore::Value add_instance_(const shcore::Argument_list &args);
-
-  shcore::Value add_instance_(
-      const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Dictionary_t &options);
-
-  shcore::Value add_instance(
-      const mysqlshdk::utils::nullable<std::string> &instance_label,
-      mysqlshdk::mysql::IInstance *target_instance,
-      const Group_replication_options &gr_options,
-      const std::string &existing_replication_user = "",
-      const std::string &existing_replication_password = "",
-      bool overwrite_seed = false, bool skip_instance_check = false,
-      bool skip_rpl_user = false);
-
+  void add_instance(const mysqlshdk::db::Connection_options &connection_options,
+                    const shcore::Dictionary_t &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
@@ -249,7 +239,32 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
    * is used. In multi primary mode, the address of any available instance
    * is returned.
    */
-  mysqlshdk::db::Connection_options pick_seed_instance();
+  mysqlshdk::db::Connection_options pick_seed_instance() const;
+
+  bool do_join_replicaset(
+      const mysqlshdk::db::Connection_options &instance,
+      mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
+      const std::string &repl_user_password, bool skip_rpl_user,
+      const mysqlshdk::utils::nullable<uint64_t> &replicaset_count,
+      const Group_replication_options &gr_options) const;
+
+  void validate_server_uuid(
+      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const;
+
+  std::string get_cluster_group_seeds(
+      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session =
+          nullptr) const;
+
+  void query_group_wide_option_values(
+      mysqlshdk::mysql::IInstance *target_instance,
+      mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
+      mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) const;
+
+  // TODO(pjesus): remove after refactor of createCluster() to be done by MP
+  //               replacement.
+  void set_group_replication_member_options(
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const std::string &ssl_mode) const;
 
  private:
   // TODO(miguel) these should go to a GroupReplication file
@@ -265,25 +280,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   // TODO(miguel): add missing fields, rs_type, etc
 
  private:
-  bool do_join_replicaset(const mysqlshdk::db::Connection_options &instance,
-                          mysqlshdk::db::Connection_options *peer,
-                          const std::string &repl_user,
-                          const std::string &repl_user_password,
-                          bool skip_rpl_user,
-                          mysqlshdk::utils::nullable<uint64_t> replicaset_count,
-                          const Group_replication_options &gr_options);
-
-  void validate_server_uuid(
-      std::shared_ptr<mysqlshdk::db::ISession> instance_session);
-
-  void query_group_wide_option_values(
-      mysqlshdk::mysql::IInstance *target_instance,
-      mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
-      mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout);
-
-  std::string get_cluster_group_seeds(
-      std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
-
   std::weak_ptr<Cluster> _cluster;
 
   std::shared_ptr<MetadataStorage> _metadata_storage;
