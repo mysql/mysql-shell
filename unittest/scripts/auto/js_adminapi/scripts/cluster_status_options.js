@@ -171,7 +171,8 @@ const full_status_templ = {
         "statusText": "", 
         "topology": {
             "": {
-                "address": "", 
+                "address": "",
+                "autoRejoinRunning": false,
                 "memberId": "",
                 "mode": "", 
                 "readReplicas": {}, 

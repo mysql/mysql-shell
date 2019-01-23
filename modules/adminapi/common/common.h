@@ -72,6 +72,9 @@ constexpr const char kGrGroupName[] = "group_replication_group_name";
 constexpr const char kMemberSslMode[] = "memberSslMode";
 constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
 constexpr const char kClusterName[] = "clusterName";
+constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
+constexpr const char kGrAutoRejoinTries[] =
+    "group_replication_autorejoin_tries";
 
 // Group Replication configuration option availability regarding MySQL Server
 // version
@@ -80,21 +83,6 @@ struct Option_availability {
   mysqlshdk::utils::Version support_in_80;
   mysqlshdk::utils::Version support_in_57;
 };
-
-/**
- * Map of the supported global ReplicaSet configuration options in the AdminAPI
- * <sysvar, name>
- */
-const std::map<std::string, Option_availability> k_global_supported_options{
-    {kExitStateAction,
-     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
-      mysqlshdk::utils::Version("5.7.24")}},
-    {kMemberWeight,
-     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
-      mysqlshdk::utils::Version("5.7.20")}},
-    {kFailoverConsistency,
-     {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
-    {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}}};
 
 /**
  * Map of the global ReplicaSet configuration options of the AdminAPI
@@ -130,7 +118,9 @@ const std::map<std::string, Option_availability>
           mysqlshdk::utils::Version("5.7.20")}},
         {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
         {kFailoverConsistency,
-         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}}};
+         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
+        {kAutoRejoinTries,
+         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}}};
 
 /**
  * Map of the supported global Cluster configuration options in the AdminAPI
@@ -149,7 +139,9 @@ const std::map<std::string, Option_availability> k_instance_supported_options{
       mysqlshdk::utils::Version("5.7.24")}},
     {kMemberWeight,
      {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
-      mysqlshdk::utils::Version("5.7.20")}}};
+      mysqlshdk::utils::Version("5.7.20")}},
+    {kAutoRejoinTries,
+     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}}};
 
 struct Instance_definition {
   int host_id;
@@ -209,11 +201,14 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
  *
  * @param version MySQL version of the target instance
  * @param option the name of the option as defined in the AdminAPI.
+ * @param options_map the map with the Version restrictions for the options
  * @return Boolean indicating if the target instance supports the option.
  *
  */
 bool is_group_replication_option_supported(
-    const mysqlshdk::utils::Version &version, const std::string &option);
+    const mysqlshdk::utils::Version &version, const std::string &option,
+    const std::map<std::string, Option_availability> &options_map =
+        k_global_replicaset_supported_options);
 
 /**
  * Validates the ipWhitelist option

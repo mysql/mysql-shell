@@ -120,6 +120,8 @@ DESCRIPTION
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
+      - autoRejoinTries: integer value to define the number of times an
+        instance will attempt to rejoin the cluster after being expelled.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -184,6 +186,16 @@ DESCRIPTION
       to 100, automatically adjusting it if a lower/bigger value is provided.
       Group Replication uses a default value of 50 if no value is provided.
 
+      The value for autoRejoinTries is used to set the Group Replication system
+      variable 'group_replication_autorejoin_tries' and configure how many
+      times an instance will try to rejoin a Group Replication group after
+      being expelled. In scenarios where network glitches happen but recover
+      quickly, setting this option prevents users from having to manually add
+      the expelled node back to the group. The autoRejoinTries option accepts
+      positive integer values in the range [0, 2016].
+
+      The default value is 0.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -207,8 +219,9 @@ EXCEPTIONS
       - If the instance is not in bootstrapped state.
       - If the SSL mode specified is not compatible with the one used in the
         cluster.
-      - If the value for the localAddress, groupSeeds, exitStateAction, or
-        memberWeight options is not valid for Group Replication.
+      - If the value for the localAddress, groupSeeds, exitStateAction,
+        memberWeight or autoRejoinTries options is not valid for Group
+        Replication.
 
 //@<OUT> Check Instance State
 NAME
@@ -646,6 +659,8 @@ DESCRIPTION
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
+      - autoRejoinTries: integer value to define the number of times an
+        instance will attempt to rejoin the cluster after being expelled.
       - label a string identifier of the instance.
 
       The exitStateAction option supports the following values:
@@ -673,6 +688,16 @@ DESCRIPTION
       to 100, automatically adjusting it if a lower/bigger value is provided.
 
       Group Replication uses a default value of 50 if no value is provided.
+
+      The value for autoRejoinTries is used to set the Group Replication system
+      variable 'group_replication_autorejoin_tries' and configure how many
+      times an instance will try to rejoin a Group Replication group after
+      being expelled. In scenarios where network glitches happen but recover
+      quickly, setting this option prevents users from having to manually add
+      the expelled node back to the group. The autoRejoinTries option accepts
+      positive integer values in the range [0, 2016].
+
+      The default value is 0.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -729,6 +754,8 @@ DESCRIPTION
       - expelTimeout: integer value to define the time period in seconds that
         cluster members should wait for a non-responding member before evicting
         it from the cluster.
+      - autoRejoinTries: integer value to define the number of times an
+        instance will attempt to rejoin the cluster after being expelled.
 
       The value for the configuration option is used to set the Group
       Replication system variable that corresponds to it.
@@ -791,6 +818,16 @@ DESCRIPTION
       suspected of having failed. On slow networks, or when there are expected
       machine slowdowns, increase the value of this option. The expelTimeout
       option accepts positive integer values in the range [0, 3600].
+
+      The default value is 0.
+
+      The value for autoRejoinTries is used to set the Group Replication system
+      variable 'group_replication_autorejoin_tries' and configure how many
+      times an instance will try to rejoin a Group Replication group after
+      being expelled. In scenarios where network glitches happen but recover
+      quickly, setting this option prevents users from having to manually add
+      the expelled node back to the group. The autoRejoinTries option accepts
+      positive integer values in the range [0, 2016].
 
       The default value is 0.
 

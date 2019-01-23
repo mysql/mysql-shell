@@ -117,8 +117,10 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
 }
 
 bool is_group_replication_option_supported(
-    const mysqlshdk::utils::Version &version, const std::string &option) {
-  Option_availability opt_avail = k_global_supported_options.at(option);
+    const mysqlshdk::utils::Version &version, const std::string &option,
+    const std::map<std::string, Option_availability> &options_map) {
+  assert(options_map.find(option) != options_map.end());
+  Option_availability opt_avail = options_map.at(option);
   if (version.get_major() == 8) {
     // 8.0 server
     // if only the 5.7 version was provided to the Option_availability struct,

@@ -145,7 +145,6 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "?direct");
   expose("waitMemberTransactions", &Testutils::wait_member_transactions,
          "dest_port", "?source_port");
-
   expose("waitForConnectionErrorInRecovery",
          &Testutils::wait_for_connection_error_in_recovery, "port",
          "errorNumber", "?timeout");
@@ -1354,7 +1353,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
 
   mysqlshdk::config::Config_file cfg;
   if (file_exists) {
-    // Read the file, only if ti exists.
+    // Read the file, only if it exists.
     cfg.read(cfgfile_path);
   }
 
@@ -1449,8 +1448,8 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
  * This function is to be used with the members of a cluster.
  *
  * It will start a polling cycle verifying the member state, the cycle will end
- * when one of the expected states is reached or if the timeout of 60 seconds
- * occurs.
+ * when one of the expected states is reached or if the timeout of
+ * k_wait_member_timeout seconds occurs.
  */
 #if DOXYGEN_JS
 String Testutils::waitMemberState(Integer port, String[] states,

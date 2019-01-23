@@ -320,6 +320,17 @@ void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance);
 void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
                                    const std::string &uuid = "");
 
+/**
+ * Checks if the thread for the group-replication auto-rejoin procedure is
+ * currently running on the given instance.
+ *
+ * @param instance Instance to use to perform the check.
+ *
+ * @return a boolean value indicating if the instance is running auto-rejoin
+ * (true) or not (false).
+ */
+bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

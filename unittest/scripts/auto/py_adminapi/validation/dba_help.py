@@ -350,6 +350,8 @@ DESCRIPTION
       - expelTimeout: integer value to define the time period in seconds that
         cluster members should wait for a non-responding member before evicting
         it from the cluster.
+      - autoRejoinTries: integer value to define the number of times an
+        instance will attempt to rejoin the cluster after being expelled.
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
@@ -464,6 +466,16 @@ DESCRIPTION
 
       The default value is 0.
 
+      The value for autoRejoinTries is used to set the Group Replication system
+      variable 'group_replication_autorejoin_tries' and configure how many
+      times an instance will try to rejoin a Group Replication group after
+      being expelled. In scenarios where network glitches happen but recover
+      quickly, setting this option prevents users from having to manually add
+      the expelled node back to the group. The autoRejoinTries option accepts
+      positive integer values in the range [0, 2016].
+
+      The default value is 0.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -485,8 +497,8 @@ EXCEPTIONS
       RuntimeError in the following scenarios:
 
       - If the value for the groupName, localAddress, groupSeeds,
-        exitStateAction, memberWeight, failoverConsistency or expelTimeout
-        options is not valid for Group Replication.
+        exitStateAction, memberWeight, failoverConsistency, expelTimeout or
+        autoRejoinTries options is not valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
 
 #@<OUT> dba.delete_sandbox_instance

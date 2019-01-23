@@ -53,9 +53,17 @@ void Check_instance_state::ensure_instance_not_belong_to_replicaset() {
                                       m_address_in_metadata);
 
   if (is_instance_on_md) {
+    // Check if instance is running auto-rejoin
+    bool is_rejoining =
+        mysqlshdk::gr::is_running_gr_auto_rejoin(*m_target_instance);
+
     std::string err_msg = "The instance '" + m_target_instance_address +
                           "' already belongs to the ReplicaSet: '" +
-                          m_replicaset.get_member("name").get_string() + "'.";
+                          m_replicaset.get_member("name").get_string() + "'";
+    if (is_rejoining)
+      err_msg += " and is currently trying to auto-rejoin.";
+    else
+      err_msg += ".";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }

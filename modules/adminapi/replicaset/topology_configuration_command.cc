@@ -188,7 +188,7 @@ void Topology_configuration_command::update_topology_mode_metadata(
     const mysqlshdk::gr::Topology_mode &topology_mode) {
   auto console = mysqlsh::current_console();
 
-  log_debug("Updating Replicaset value of topology_type to %s in the Medatada.",
+  log_debug("Updating Replicaset value of topology_type to %s in the Metadata.",
             mysqlshdk::gr::to_string(topology_mode).c_str());
 
   // Since we're switching to single-primary mode, the active session may not

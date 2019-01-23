@@ -102,7 +102,7 @@ Result of the rescanning operation for the 'default' ReplicaSet:
     "unavailableInstances": []
 }
 
-WARNING: The following instances were not added to the medatada because they are already part of the replicaset: '<<<member_address>>>'. Please verify if the specified value for 'addInstances' option is correct.
+WARNING: The following instances were not added to the metadata because they are already part of the replicaset: '<<<member_address>>>'. Please verify if the specified value for 'addInstances' option is correct.
 
 //@ WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
 ||Cluster.rescan: The list for 'removeInstances' option cannot be empty. (ArgumentError)
@@ -151,7 +151,7 @@ Result of the rescanning operation for the 'default' ReplicaSet:
     "unavailableInstances": []
 }
 
-WARNING: The following instances were not removed from the medatada because they are already not part of the replicaset: 'localhost:1111'. Please verify if the specified value for 'removeInstances' option is correct.
+WARNING: The following instances were not removed from the metadata because they are already not part of the replicaset or are running auto-rejoin: 'localhost:1111'. Please verify if the specified value for 'removeInstances' option is correct.
 
 //@ WL10644: Duplicated values between addInstances and removeInstances.
 ||Cluster.rescan: The same instances cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3300, localhost:3301'. (ArgumentError)

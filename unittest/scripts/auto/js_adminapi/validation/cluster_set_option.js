@@ -104,5 +104,31 @@ Successfully set the value of 'expelTimeout' to '3500' in the 'default' ReplicaS
 //@<OUT> WL#11465: Verify expelTimeout changed correctly in instance 3 {VER(>=8.0.14)}
 3500
 
+//@<OUT> WL#12066: TSF6_1 setOption autoRejoinTries {VER(>=8.0.16)}
+WARNING: Each cluster member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).
+
+Setting the value of 'autoRejoinTries' to '2016' in all ReplicaSet members ...
+
+Successfully set the value of 'autoRejoinTries' to '2016' in the 'default' ReplicaSet.
+
+//@ WL#12066: TSF2_4 setOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+
+//@ WL#12066: TSF2_5 setOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+
+
+//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
+|2016|
+|group_replication_autorejoin_tries = 2016|
+
+//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
+|2016|
+|group_replication_autorejoin_tries = 2016|
+
+//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
+|2016|
+|group_replication_autorejoin_tries = 2016|
+
 //@ WL#11465: Finalization
 ||

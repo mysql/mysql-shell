@@ -86,22 +86,59 @@ void Rescan::validate_list_duplicates() const {
                    &remove_instances_set);
 
   // Find common instance in the two options.
-  std::vector<std::string> reapeated_instances;
+  std::vector<std::string> repeated_instances;
   std::set_intersection(add_instances_set.begin(), add_instances_set.end(),
                         remove_instances_set.begin(),
                         remove_instances_set.end(),
-                        std::back_inserter(reapeated_instances));
+                        std::back_inserter(repeated_instances));
 
   // The same instance cannot be included in both options.
-  if (!reapeated_instances.empty()) {
-    std::string plural = (reapeated_instances.size() > 1) ? "s" : "";
+  if (!repeated_instances.empty()) {
+    std::string plural = (repeated_instances.size() > 1) ? "s" : "";
     throw shcore::Exception::argument_error(
         "The same instance" + plural +
         " cannot be used in both 'addInstances' and 'removeInstances' options: "
         "'" +
-        shcore::str_join(reapeated_instances, ", ") + "'.");
+        shcore::str_join(repeated_instances, ", ") + "'.");
   }
 }
+
+void Rescan::ensure_unavailable_instances_not_auto_rejoining(
+    std::vector<MissingInstanceInfo> &unavailable_instances) const {
+  mysqlshdk::db::Connection_options group_conn_opt =
+      m_replicaset->get_cluster()
+          ->get_group_session()
+          ->get_connection_options();
+
+  auto console = mysqlsh::current_console();
+  auto it = unavailable_instances.begin();
+  while (it != unavailable_instances.end()) {
+    auto instance_conn_opt = mysqlshdk::db::Connection_options(it->host);
+    instance_conn_opt.set_login_options_from(group_conn_opt);
+    instance_conn_opt.set_ssl_connection_options_from(
+        group_conn_opt.get_ssl_options());
+    auto session = mysqlshdk::db::mysql::Session::create();
+    bool is_rejoining = false;
+    try {
+      session->connect(instance_conn_opt);
+      is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(
+          mysqlshdk::mysql::Instance(session));
+      session->close();
+    } catch (const std::exception &e) {
+      // if you cant connect to the instance then we assume it really is offline
+      // or unreachable and it is not auto-rejoining
+    }
+
+    if (is_rejoining) {
+      console->print_warning(
+          "The instance '" + instance_conn_opt.uri_endpoint() +
+          "' is MISSING but currently trying to auto-rejoin.");
+      it = unavailable_instances.erase(it);
+    } else {
+      ++it;
+    }
+  }
+};
 
 std::vector<std::string> Rescan::detect_invalid_members(
     const std::vector<mysqlshdk::db::Connection_options> &instances_list,
@@ -218,7 +255,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   // Creates the unavailableInstances array
   auto unavailable_instances = std::make_shared<shcore::Value::Array_type>();
-
+  ensure_unavailable_instances_not_auto_rejoining(unavailable_instances_list);
   for (auto &instance : unavailable_instances_list) {
     auto unavailable_instance = std::make_shared<shcore::Value::Map_type>();
     (*unavailable_instance)["member_id"] = shcore::Value(instance.id);
@@ -457,7 +494,7 @@ shcore::Value Rescan::execute() {
   }
   if (!not_used_add_instances.empty()) {
     console->print_warning(
-        "The following instances were not added to the medatada because they "
+        "The following instances were not added to the metadata because they "
         "are already part of the replicaset: '" +
         shcore::str_join(not_used_add_instances, ", ") +
         "'. Please verify if the specified value for 'addInstances' option is "
@@ -480,8 +517,9 @@ shcore::Value Rescan::execute() {
   }
   if (!not_used_remove_instances.empty()) {
     console->print_warning(
-        "The following instances were not removed from the medatada because "
-        "they are already not part of the replicaset: '" +
+        "The following instances were not removed from the metadata because "
+        "they are already not part of the replicaset or are running auto-rejoin"
+        ": '" +
         shcore::str_join(not_used_remove_instances, ", ") +
         "'. Please verify if the specified value for 'removeInstances' option "
         "is correct.");

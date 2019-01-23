@@ -234,3 +234,32 @@ auto_increment_offset = <<<__expected_auto_inc_offset>>>
 
 //@ WL#12050: Finalization {VER(>=8.0.13)}
 ||
+
+
+//@ WL#12066: Initialization {VER(>=8.0.16)}
+||
+
+//@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
+||Option 'autoRejoinTries' UInteger expected, but Integer value is out of range (TypeError)
+
+//@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
+||Error joining instance to cluster: Invalid value for autoRejoinTries, can't be set to the value of '2017'
+
+//@ WL#12066: TSF1_1, TSF6_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
+|WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
+
+//@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
+|2|
+|2016|
+|0|
+
+//@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
+|group_replication_autorejoin_tries = 2|
+|group_replication_autorejoin_tries = 2016|
+||
+
+//@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
+||
+
+//@ WL#12066: Finalization {VER(>=8.0.16)}
+||

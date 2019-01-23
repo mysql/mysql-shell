@@ -1193,6 +1193,25 @@ TEST(mod_dba_common, validate_failover_consistency_supported) {
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
 }
 
+TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
+  Group_replication_options options;
+  options.auto_rejoin_tries = 1;
+
+  // Error only if the target server version is < 8.0.16
+
+  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 19)),
+                    shcore::Exception,
+                    "Option 'autoRejoinTries' not supported on target server "
+                    "version:");
+
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 15)),
+                    shcore::Exception,
+                    "Option 'autoRejoinTries' not supported on target server "
+                    "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 16)));
+}
+
 TEST(mod_dba_common, validate_expel_timeout_supported) {
   Group_replication_options options;
   Version version(8, 0, 13);
@@ -1201,7 +1220,6 @@ TEST(mod_dba_common, validate_expel_timeout_supported) {
   auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
   auto invalid_timeout1 = mysqlshdk::utils::nullable<std::int64_t>(3601);
   auto invalid_timeout2 = mysqlshdk::utils::nullable<std::int64_t>(-1);
-
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
   options.expel_timeout = null_timeout;
@@ -1251,6 +1269,15 @@ TEST(mod_dba_common, is_group_replication_option_supported) {
       Version(5, 7, 23), mysqlsh::dba::kExitStateAction));
   EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
       Version(5, 7, 24), mysqlsh::dba::kExitStateAction));
+
+  // testing the result of autoRejoinRetries which is only supported on 8.0.16
+  // onwards (BUG#29246657)
+  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(8, 0, 11), mysqlsh::dba::kAutoRejoinTries));
+  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(8, 0, 16), mysqlsh::dba::kAutoRejoinTries));
+  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries));
 }
 
 TEST(mod_dba_common, validate_group_name_option) {

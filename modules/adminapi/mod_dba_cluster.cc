@@ -294,6 +294,7 @@ one.
 action.
 @li memberWeight: integer value with a percentage weight for automatic primary
 election on failover.
+${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -356,6 +357,8 @@ values. Group Replication limits the value range from 0 to 100, automatically
 adjusting it if a lower/bigger value is provided. Group Replication uses a
 default value of 50 if no value is provided.
 
+${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
 @li If the Metadata update operation failed.
@@ -375,8 +378,8 @@ exitStateAction options is empty.
 @li If the instance is not in bootstrapped state.
 @li If the SSL mode specified is not compatible with the one used in the
 cluster.
-@li If the value for the localAddress, groupSeeds, exitStateAction, or
-memberWeight options is not valid for Group Replication.
+@li If the value for the localAddress, groupSeeds, exitStateAction,
+memberWeight or autoRejoinTries options is not valid for Group Replication.
 )*");
 
 /**
@@ -1330,7 +1333,7 @@ Elects a specific cluster member as the new primary.
 @returns Nothing.
 
 This function forces the election of a new primary, overriding any
-election process. 
+election process.
 
 The instance definition is the connection data for the instance.
 
@@ -1414,6 +1417,7 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
+${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
 The value for the configuration option is used to set the Group Replication
 system variable that corresponds to it.
@@ -1429,6 +1433,8 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}
 
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
+
+${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 @throw ArgumentError in the following scenarios:
 @li If the 'option' parameter is empty.
@@ -1521,6 +1527,7 @@ The value parameter is the value that the configuration option shall get.
 The accepted values for the configuration option are:
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
+${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 @li label a string identifier of the instance.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
@@ -1528,6 +1535,8 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 @throw ArgumentError in the following scenarios:
 @li If the 'instance' parameter is empty.

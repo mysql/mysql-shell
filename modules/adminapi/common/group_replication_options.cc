@@ -117,7 +117,7 @@ void validate_exit_state_action_supported(
  * Validate if the failoverConsistency option is supported the target instance
  * version. The actual value is validated by the GR plugin.
  *
- * @param session object which represents the session to the instance
+ * @param version version of the target instance
  * @throw RuntimeError if the value is not supported on the target instance
  * @throw argument_error if the value provided is empty
  */
@@ -164,6 +164,25 @@ void validate_expel_timeout_supported(
           "version: '" +
           version.get_full() + "'");
     }
+  }
+}
+
+/**
+ * Validate the value specified for the autoRejoinTries option is supported on
+ * the target instance version. The actual value is validated by the GR plugin.
+ *
+ * @param version version of the target instance
+ * @throw RuntimeError if the value is not supported on the target instance
+ */
+void validate_auto_rejoin_tries_supported(
+    const mysqlshdk::utils::Version &version) {
+  // The rejoinRetries option shall only be allowed if the target MySQL
+  // server version is >= 8.0.16.
+  if (!is_group_replication_option_supported(version, kAutoRejoinTries)) {
+    throw shcore::Exception::runtime_error(
+        "Option 'autoRejoinTries' not supported on target server "
+        "version: '" +
+        version.get_full() + "'");
   }
 }
 
@@ -291,7 +310,9 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
           .optional_exact("memberWeight", &member_weight)
           .optional("failoverConsistency", &failover_consistency)
           .optional_exact("expelTimeout", &expel_timeout)
-          .optional("groupName", &group_name);
+          .optional("groupName", &group_name)
+          .optional(kAutoRejoinTries, &auto_rejoin_tries);
+
       break;
 
     case JOIN:
@@ -302,7 +323,9 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
           .optional("exitStateAction", &exit_state_action)
           .optional_exact("memberWeight", &member_weight)
           .optional("failoverConsistency", &failover_consistency)
-          .optional_exact("expelTimeout", &expel_timeout);
+          .optional_exact("expelTimeout", &expel_timeout)
+          .optional(kAutoRejoinTries, &auto_rejoin_tries);
+
       break;
 
     case REJOIN:
@@ -373,6 +396,11 @@ void Group_replication_options::check_option_values(
     // Validate if the expelTimeout option is supported on the target
     // instance and if it is within the valid range [0, 3600].
     validate_expel_timeout_supported(version, expel_timeout);
+  }
+
+  if (!auto_rejoin_tries.is_null()) {
+    // Validate if the auto_rejoin_tries option is supported on the target
+    validate_auto_rejoin_tries_supported(version);
   }
 }
 

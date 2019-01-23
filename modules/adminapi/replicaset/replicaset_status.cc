@@ -541,7 +541,6 @@ void Replicaset_status::feed_member_info(shcore::Dictionary_t dict,
   if (!m_extended.is_null() && *m_extended) {
     (*dict)["memberId"] = shcore::Value(member.uuid);
   }
-
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
   if (member.state != mysqlshdk::gr::Member_state::ONLINE) {
     (*dict)["mode"] = shcore::Value("n/a");
@@ -598,6 +597,8 @@ shcore::Dictionary_t Replicaset_status::get_topology(
         collect_local_status(
             member, instance,
             minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
+        (*member)["autoRejoinRunning"] =
+            shcore::Value(mysqlshdk::gr::is_running_gr_auto_rejoin(instance));
       } else {
         (*member)["shellConnectError"] =
             shcore::Value(m_member_connect_errors[inst.classic_endpoint]);

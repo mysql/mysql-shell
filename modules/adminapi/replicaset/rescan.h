@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,10 +102,22 @@ class Rescan : public Command_interface {
   void validate_list_duplicates() const;
 
   /**
+   * Goes through the list of unavailable instances, and checks if they are
+   * running auto-rejoin. If they are print a warning to let the user know and
+   * remove the instance from the list. Also, if they are auto-rejoining,
+   * remove them from the list received as parameter.
+   * @param unavailable_instances vector with the unavailable instances.
+   *        Any instances found on the vector that are doing auto-rejoin will be
+   *        removed.
+   */
+  void ensure_unavailable_instances_not_auto_rejoining(
+      std::vector<MissingInstanceInfo> &unavailable_instances) const;
+
+  /**
    * Detect instance not in the desired state (active or not).
    *
    * @param instances_list target list of instances to check.
-   * @param is_active boolean indicating the type of chek to perform: if it is
+   * @param is_active boolean indicating the type of check to perform: if it is
    *                  active (true) or not (false).
    * @return a list of strings with the instances that do not match the active
    *         state.

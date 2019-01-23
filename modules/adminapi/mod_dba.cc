@@ -188,12 +188,16 @@ REGISTER_HELP(CLUSTER_OPT_EXPEL_TIMEOUT,
               "@li expelTimeout: integer value to define the time period in "
               "seconds that cluster members should wait for a non-responding "
               "member before evicting it from the cluster.");
+REGISTER_HELP(
+    CLUSTER_OPT_AUTO_REJOIN_TRIES,
+    "@li autoRejoinTries: integer value to define the number of times an "
+    "instance will attempt to rejoin the cluster after being expelled.");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL, R"*(
 The exitStateAction option supports the following values:
-@li ABORT_SERVER: if used, the instance shuts itself down if 
+@li ABORT_SERVER: if used, the instance shuts itself down if
 it leaves the cluster unintentionally.
-@li READ_ONLY: if used, the instance switches itself to 
+@li READ_ONLY: if used, the instance switches itself to
 super-read-only mode if it leaves the cluster unintentionally.
 
 If exitStateAction is not specified READ_ONLY will be used by default.
@@ -207,7 +211,7 @@ error. When set to ABORT_SERVER, the instance shuts itself
 down, and when set to READ_ONLY the server switches itself to
 super-read-only mode. The exitStateAction option accepts
 case-insensitive string values, being the accepted values:
-ABORT_SERVER (or 1) and READ_ONLY (or 0). 
+ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
 The default value is READ_ONLY.
 )*");
@@ -217,7 +221,7 @@ The value for memberWeight is used to set the Group Replication
 system variable 'group_replication_member_weight'. The
 memberWeight option accepts integer values. Group Replication
 limits the value range from 0 to 100, automatically adjusting
-it if a lower/bigger value is provided. 
+it if a lower/bigger value is provided.
 
 Group Replication uses a default value of 50 if no value is provided.
 )*");
@@ -258,7 +262,19 @@ configure how long Group Replication will wait before expelling
 from the group any members suspected of having failed. On slow
 networks, or when there are expected machine slowdowns,
 increase the value of this option. The expelTimeout option
-accepts positive integer values in the range [0, 3600]. 
+accepts positive integer values in the range [0, 3600].
+
+The default value is 0.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA, R"*(
+The value for autoRejoinTries is used to set the Group Replication system
+variable 'group_replication_autorejoin_tries' and configure how many
+times an instance will try to rejoin a Group Replication group after
+being expelled. In scenarios where network glitches happen but recover
+quickly, setting this option prevents users from having to manually add
+the expelled node back to the group. The autoRejoinTries option accepts
+positive integer values in the range [0, 2016].
 
 The default value is 0.
 )*");
@@ -546,11 +562,11 @@ Retrieves a cluster from the Metadata Store.
 
 If name is not specified or is null, the default cluster will be returned.
 
-If name is specified, and no cluster with the indicated name is found, an 
+If name is specified, and no cluster with the indicated name is found, an
 error will be raised.
 
-The options dictionary accepts the connectToPrimary option, 
-which defaults to true and indicates the shell to automatically 
+The options dictionary accepts the connectToPrimary option,
+which defaults to true and indicates the shell to automatically
 connect to the primary member of the cluster.
 
 @throw MetadataError in the following scenarios:
@@ -739,6 +755,7 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
+${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
 @attention The multiMaster option will be removed in a future release. Please
 use the multiPrimary option instead.
@@ -802,6 +819,8 @@ ${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}
 
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
+${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
 @li If the Metadata update operation failed.
@@ -819,8 +838,8 @@ exitStateAction or failoverConsistency options is empty.
 
 @throw RuntimeError in the following scenarios:
 @li If the value for the groupName, localAddress, groupSeeds, exitStateAction,
-memberWeight, failoverConsistency or expelTimeout options is not valid for
-Group Replication.
+memberWeight, failoverConsistency, expelTimeout or autoRejoinTries options is
+not valid for Group Replication.
 @li If the current connection cannot be used for Group Replication.
 )*");
 
@@ -829,6 +848,7 @@ Group Replication.
  *
  * $(DBA_CREATECLUSTER)
  */
+
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
@@ -1084,6 +1104,15 @@ void Dba::check_create_cluster_options(
   }
   if (options->has_key("multiPrimary")) {
     multi_primary = true;
+  }
+
+  if (opt_map.has_key("autoRejoinTries") &&
+      opt_map.uint_at("autoRejoinTries") != 0) {
+    std::string warn_msg =
+        "The member will only proceed according to its exitStateAction if "
+        "auto-rejoin fails (i.e. all retry attempts are exhausted).";
+    console->print_warning(warn_msg);
+    console->println();
   }
 
   if (check_state.source_type ==

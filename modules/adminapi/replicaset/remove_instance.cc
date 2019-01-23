@@ -304,16 +304,29 @@ shcore::Value Remove_instance::execute() {
       if (m_force.is_null() || *m_force == false) {
         // REVERT JOB: Remove instance from the MD (metadata).
         undo_remove_instance_metadata(instance_def);
-        console->print_error(
-            "The instance '" + m_instance_address +
-            "' was unable to catch up with cluster transactions. There might "
-            "be too many transactions to apply or some replication error. In "
-            "the former case, you can retry the operation (using a higher "
-            "timeout value by setting the global shell option "
-            "'dba.gtidWaitTimeout'). In the later case, analyze and fix any "
-            "replication error. You can also choose to skip this error using "
-            "the 'force: true' option, but it might leave the instance in an "
-            "inconsistent state and lead to errors if you want to reuse it.");
+        bool is_rejoining =
+            mysqlshdk::gr::is_running_gr_auto_rejoin(*m_target_instance);
+        if (is_rejoining)
+          console->print_error(
+              "The instance '" + m_instance_address +
+              "' was unable to catch up with cluster "
+              "transactions because auto-rejoin is in progress. It's possible "
+              "to use 'force' option to force the removal of it, but that can "
+              "leave the instance in an inconsistent state and lead to errors "
+              "if you want to reuse it later. It's recommended to wait for the "
+              "auto-rejoin process to terminate and retry the remove "
+              "operation.");
+        else
+          console->print_error(
+              "The instance '" + m_instance_address +
+              "' was unable to catch up with cluster transactions. There might "
+              "be too many transactions to apply or some replication error. In "
+              "the former case, you can retry the operation (using a higher "
+              "timeout value by setting the global shell option "
+              "'dba.gtidWaitTimeout'). In the later case, analyze and fix any "
+              "replication error. You can also choose to skip this error using "
+              "the 'force: true' option, but it might leave the instance in an "
+              "inconsistent state and lead to errors if you want to reuse it.");
         throw;
       } else {
         log_error(

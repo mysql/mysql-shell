@@ -16,6 +16,20 @@ function print_exit_state_action_variable(session) {
   print(row[1] + "\n");
 }
 
+function print_auto_rejoin_tries_variable(session) {
+  var res = session.runSql('SHOW VARIABLES like "group_replication_autorejoin_tries"')
+  var row = res.fetchOne();
+  print(row[1] + "\n");
+}
+
+function print_persisted_variables_like(session, pattern) {
+  var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
+  for (var i = 0; i < res.length; i++) {
+    print(res[i][0] + " = " + res[i][1] + "\n");
+  }
+  print("\n");
+}
+
 // WL#11465 AdminAPI: AdminAPI: change cluster member options
 //
 // Currently, it's not possible to change a previously configuration option
@@ -152,6 +166,35 @@ session.close();
 shell.connect(__sandbox_uri2);
 //@<OUT> WL#11465: exitStateAction label changed correctly
 print_exit_state_action_variable(session);
+session.close();
+
+//@<OUT> WL#12066: TSF6_1 setInstanceOption autoRejoinTries {VER(>=8.0.16)}
+cluster.setInstanceOption(__sandbox_uri1, "autoRejoinTries", 2016);
+cluster.setInstanceOption(__sandbox_uri2, "autoRejoinTries", 20);
+cluster.setInstanceOption(__sandbox_uri3, "autoRejoinTries", 0);
+
+//@ WL#12066: TSF3_4 setInstanceOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
+cluster.setInstanceOption(__sandbox_uri1, "autoRejoinTries", -1);
+
+//@ WL#12066: TSF3_5 setInstanceOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
+cluster.setInstanceOption(__sandbox_uri1, "autoRejoinTries", 2017);
+
+shell.connect(__sandbox_uri1);
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
+print_auto_rejoin_tries_variable(session);
+print_persisted_variables_like(session, "group_replication_autorejoin_tries");
+session.close();
+
+shell.connect(__sandbox_uri2);
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
+print_auto_rejoin_tries_variable(session);
+print_persisted_variables_like(session, "group_replication_autorejoin_tries");
+session.close();
+
+shell.connect(__sandbox_uri3);
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
+print_auto_rejoin_tries_variable(session);
+print_persisted_variables_like(session, "group_replication_autorejoin_tries");
 session.close();
 
 //@ WL#11465: Finalization

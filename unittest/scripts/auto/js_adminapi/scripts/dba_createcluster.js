@@ -48,6 +48,12 @@ function print_gr_expel_timeout() {
     print(row[0] + "\n");
 }
 
+function print_gr_auto_rejoin_tries(session) {
+    var result = session.runSql('SELECT @@GLOBAL.group_replication_autorejoin_tries');
+    var row = result.fetchOne();
+    print(row[0] + "\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -533,6 +539,54 @@ c.addInstance(__sandbox_uri1);
 
 //@ BUG#29246110: finalization
 c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// WL#12066 AdminAPI: option to define the number of auto-rejoins
+//
+// In 8.0.16, Group Replication introduced an option to allow setting the
+// number of auto-rejoin attempts an instance will do after being
+// expelled from the group.  In order to support defining such option,
+// the AdminAPI was extended by introducing a new optional parameter,
+// named 'autoRejoinTries', in the dba.createCluster(),
+// cluster.addInstance, cluster.setOption and cluster.setInstanceOption
+// functions.
+
+//@ WL#12066: Initialization {VER(>=8.0.16)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+var s1 = mysql.getSession(__sandbox_uri1);
+var s2 = mysql.getSession(__sandbox_uri2);
+shell.connect(__sandbox_uri1);
+
+// FR1 - A new option autoRejoinTries shall be added to the [dba.]createCluster() and [cluster.]addInstance() to allow users to set the Group Replication (GR) system variable group_replication_autorejoin_tries.
+
+//@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
+var c = dba.createCluster('test', {autoRejoinTries: -1});
+
+//@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
+var c = dba.createCluster('test', {autoRejoinTries: 2017});
+
+//@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
+var c = dba.createCluster('test', {autoRejoinTries: 2016});
+session.close();
+shell.connect(__sandbox_uri2);
+var c2 = dba.createCluster('test2');
+
+//@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
+print_gr_auto_rejoin_tries(s1);
+print_gr_auto_rejoin_tries(s2);
+
+//@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
+print_persisted_variables_like(s1, "group_replication_autorejoin_tries");
+print_persisted_variables_like(s2, "group_replication_autorejoin_tries");
+
+//@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
+c.dissolve({force: true});
+c2.dissolve({force: true});
+
+//@ WL#12066: Finalization {VER(>=8.0.16)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

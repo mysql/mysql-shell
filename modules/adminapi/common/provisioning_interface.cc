@@ -495,6 +495,9 @@ int ProvisioningInterface::start_replicaset(
   if (!replicaset_count.is_null()) {
     kwargs["replicaset_count"] = shcore::Value(*replicaset_count);
   }
+  if (!gr_options.auto_rejoin_tries.is_null()) {
+    kwargs["auto_rejoin_tries"] = shcore::Value(*gr_options.auto_rejoin_tries);
+  }
 
   return execute_mysqlprovision("start-replicaset", args, kwargs, errors,
                                 _verbose);
@@ -561,6 +564,9 @@ int ProvisioningInterface::join_replicaset(
 
   if (!replicaset_count.is_null()) {
     kwargs["replicaset_count"] = shcore::Value(*replicaset_count);
+  }
+  if (!gr_options.auto_rejoin_tries.is_null()) {
+    kwargs["auto_rejoin_tries"] = shcore::Value(*gr_options.auto_rejoin_tries);
   }
 
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,

@@ -501,6 +501,15 @@ shcore::Value ReplicaSet::add_instance_(
     console->println();
   }
 
+  if (!gr_options.auto_rejoin_tries.is_null() &&
+      *(gr_options.auto_rejoin_tries) != 0) {
+    auto console = mysqlsh::current_console();
+    console->print_warning(
+        "The member will only proceed according to its exitStateAction if "
+        "auto-rejoin fails (i.e. all retry attempts are exhausted).");
+    console->println();
+  }
+
   return add_instance(label, &target_instance, gr_options);
 }
 
@@ -795,14 +804,24 @@ shcore::Value ReplicaSet::add_instance(
         throw shcore::Exception::runtime_error("Metadata inconsistent");
       }
     } else {
-      if (type == GRInstanceType::InnoDBCluster)
-        throw shcore::Exception::runtime_error(
-            "The instance '" + target_coptions.uri_endpoint() +
-            "' is already part of another InnoDB cluster");
-      else
+      if (type == GRInstanceType::InnoDBCluster) {
+        // check if instance is running auto-rejoin and warn user
+        if (mysqlshdk::gr::is_running_gr_auto_rejoin(*target_instance)) {
+          throw shcore::Exception::runtime_error(
+              "The instance '" + target_coptions.uri_endpoint() +
+              "' is currently attempting to rejoin the cluster. Use <cluster>."
+              "rejoinInstance() if you want to to override the auto-rejoin "
+              "process.");
+        } else {
+          throw shcore::Exception::runtime_error(
+              "The instance '" + target_coptions.uri_endpoint() +
+              "' is already part of another InnoDB cluster");
+        }
+      } else {
         throw shcore::Exception::runtime_error(
             "The instance '" + target_coptions.uri_endpoint() +
             "' is already part of another Replication Group");
+      }
     }
   }
 
@@ -899,6 +918,11 @@ shcore::Value ReplicaSet::add_instance(
   if (!gr_options.member_weight.is_null()) {
     log_info("Using Group Replication member weight: %s",
              std::to_string(*gr_options.member_weight).c_str());
+  }
+
+  if (!gr_options.auto_rejoin_tries.is_null()) {
+    log_info("Using Group Replication rejoin retries: %s",
+             std::to_string(*gr_options.auto_rejoin_tries).c_str());
   }
 
   // Get the current number of replicaSet members
@@ -1350,7 +1374,19 @@ shcore::Value ReplicaSet::rejoin_instance(
       throw shcore::Exception::runtime_error(nice_error_msg);
     }
   }
-
+  {
+    // Check if instance was doing auto-rejoin and let the user know that the
+    // rejoin operation will override the auto-rejoin
+    auto instance = mysqlshdk::mysql::Instance(session);
+    bool is_running_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
+    if (is_running_rejoin) {
+      console->print_info(
+          "The instance '" + instance.get_connection_options().uri_endpoint() +
+          "' is running auto-rejoin process, however the rejoinInstance has "
+          "precedence and will override that process.");
+      console->println();
+    }
+  }
   // Get the up-to-date GR group seeds values (with the GR local address from
   // all currently active instances).
   gr_options.group_seeds = get_cluster_group_seeds(session);
@@ -1378,7 +1414,7 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
-             seed_instance.uri_endpoint().c_str());
+             session->get_connection_options().uri_endpoint().c_str());
     session->execute("STOP GROUP_REPLICATION");
 
     // F4. When a valid 'ipWhitelist' is used on the .rejoinInstance() command,

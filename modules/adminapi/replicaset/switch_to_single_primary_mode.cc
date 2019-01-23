@@ -110,7 +110,7 @@ shcore::Value Switch_to_single_primary_mode::execute() {
   {
     log_debug(
         "Updating Replicaset value of topology_type to Single-Primary in the "
-        "Medatada.");
+        "Metadata.");
 
     update_topology_mode_metadata(mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY);
 

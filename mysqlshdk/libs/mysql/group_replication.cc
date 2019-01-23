@@ -268,7 +268,10 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
     throw std::runtime_error("Target member appears to not be in a group");
   }
   if (row->get_string(2) != "ONLINE") {
-    throw std::runtime_error("Target member is in state " + row->get_string(2));
+    std::string err_msg = "Target member is in state " + row->get_string(2);
+    if (is_running_gr_auto_rejoin(instance))
+      err_msg += " (running auto-rejoin)";
+    throw std::runtime_error(err_msg);
   }
   int unreachable = row->get_int(0);
   int total = row->get_int(1);
@@ -339,8 +342,15 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
             "Query to replication_group_members from '%s' returned invalid "
             "data",
             instance.get_session()->get_connection_options().as_uri().c_str());
-        throw std::runtime_error(
-            "Instance does not seem to belong to any replication group");
+        if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance))
+          throw std::runtime_error(
+              "Instance '" + instance.get_connection_options().uri_endpoint() +
+              "' does not seem to belong to any replication group but "
+              "is currently running auto-rejoin.");
+        else
+          throw std::runtime_error(
+              "Instance '" + instance.get_connection_options().uri_endpoint() +
+              "' does not seem to belong to any replication group");
       }
       while (row) {
         Member member;
@@ -1218,6 +1228,29 @@ void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
+}
+
+bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
+  auto session = instance.get_session();
+  bool result = false;
+  if (session) {
+    try {
+      auto row =
+          session
+              ->query(
+                  "SELECT PROCESSLIST_STATE FROM performance_schema.threads "
+                  "WHERE NAME = 'thread/group_rpl/THD_autorejoin'")
+              ->fetch_one();
+      // if the query doesn't return empty, then auto-rejoin is running.
+      result = row != nullptr;
+    } catch (const std::exception &e) {
+      log_error("Error checking GR auto-rejoin procedure state: %s", e.what());
+      throw;
+    }
+  } else {
+    throw(std::runtime_error("Session no longer exists."));
+  }
+  return result;
 }
 
 }  // namespace gr

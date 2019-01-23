@@ -77,5 +77,38 @@ Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'defaul
 //@<OUT> WL#11465: exitStateAction label changed correctly
 ABORT_SERVER
 
+//@<OUT> WL#12066: TSF6_1 setInstanceOption autoRejoinTries {VER(>=8.0.16)}
+WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).
+
+Setting the value of 'autoRejoinTries' to '2016' in the instance: 'localhost:<<<__mysql_sandbox_port1>>>' ...
+
+Successfully set the value of 'autoRejoinTries' to '2016' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port1>>>'.
+WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).
+
+Setting the value of 'autoRejoinTries' to '20' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
+
+Successfully set the value of 'autoRejoinTries' to '20' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Setting the value of 'autoRejoinTries' to '0' in the instance: 'localhost:<<<__mysql_sandbox_port3>>>' ...
+
+Successfully set the value of 'autoRejoinTries' to '0' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port3>>>'.
+
+//@ WL#12066: TSF3_4 setInstanceOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+
+//@ WL#12066: TSF3_5 setInstanceOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
+|2016|
+|group_replication_autorejoin_tries = 2016|
+
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
+|20|
+|group_replication_autorejoin_tries = 20|
+
+//@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
+|0|
+|group_replication_autorejoin_tries = 0|
+
 //@ WL#11465: Finalization
 ||

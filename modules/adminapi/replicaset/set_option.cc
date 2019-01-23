@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -139,22 +139,15 @@ void Set_option::ensure_option_supported_all_members_replicaset() {
   log_debug("Checking if all members of the Replicaset support the option '%s'",
             m_option.c_str());
 
-  mysqlshdk::utils::Version support_in_80 =
-      k_global_replicaset_supported_options.at(m_option).support_in_80;
-  mysqlshdk::utils::Version support_in_57 =
-      k_global_replicaset_supported_options.at(m_option).support_in_57;
-
   for (const auto &instance : m_cluster_instances) {
     std::string instance_address = instance->descr();
 
     // Verify if the instance version is supported
-    mysqlshdk::utils::Version instance_version = instance->get_version();
+    bool is_supported = is_group_replication_option_supported(
+        instance->get_version(), m_option,
+        k_global_replicaset_supported_options);
 
-    if ((instance_version < mysqlshdk::utils::Version("8.0.0") &&
-         instance_version > mysqlshdk::utils::Version("5.7.0") &&
-         instance_version < support_in_57) ||
-        (instance_version > mysqlshdk::utils::Version("8.0.0") &&
-         instance_version < support_in_80)) {
+    if (!is_supported) {
       console->print_error(
           "The instance '" + instance_address + "' has the version " +
           instance->get_version().get_full() +
@@ -183,6 +176,17 @@ void Set_option::prepare() {
 
   // Get the ReplicaSet Config Object
   m_cfg = m_replicaset.create_config_object();
+
+  if (m_option == kAutoRejoinTries && !m_value_int.is_null() &&
+      *m_value_int != 0) {
+    auto console = mysqlsh::current_console();
+    std::string warn_msg =
+        "Each cluster member will only proceed according to its "
+        "exitStateAction if auto-rejoin fails (i.e. all retry attempts are "
+        "exhausted).";
+    console->print_warning(warn_msg);
+    console->println();
+  }
 }
 
 shcore::Value Set_option::execute() {

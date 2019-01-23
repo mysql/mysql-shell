@@ -97,6 +97,7 @@ GR_LOCAL_ADDRESS = "group_replication_local_address"
 GR_EXIT_STATE_ACTION = "group_replication_exit_state_action"
 GR_FAILOVER_CONSISTENCY = "group_replication_consistency"
 GR_EXPEL_TIMEOUT = "group_replication_member_expel_timeout"
+GR_AUTO_REJOIN_TRIES = "group_replication_autorejoin_tries"
 GR_MEMBER_WEIGHT = "group_replication_member_weight"
 GR_FORCE_MEMBERS = "group_replication_force_members"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
@@ -314,6 +315,7 @@ MYSQL_ER_PARSE_ERROR = 1064
 # MySQL variable invalid value
 MYSQL_ER_WRONG_VALUE_FOR_VAR = 1231
 
+
 def _format_table_results(dict_result, verbose=False):
     """Formats a table of the given dictionary results.
 
@@ -513,7 +515,6 @@ def validate_exit_state_action(server, exit_state_action, dry_run=False):
                          exit_state_action, dry_run)
 
 
-
 def validate_failover_consistency(server, failover_consistency, dry_run=False):
     """Validates the value of group_replication_consistency by attempting
     to set it and catch any error from GR.
@@ -535,13 +536,28 @@ def validate_expel_timeout(server, expel_timeout, dry_run=False):
 
     :param server:            A server with group replication plugin loaded
     :type server:             Server instance (mysql_gadgets.common.server).
-    :param expel_timeout:     The value of group_replication_consistency.
-    :type expel_timeout:      str
+    :param expel_timeout:     The value of group_replication_member_expel_timeout.
+    :type expel_timeout:      int
     :param dry_run:           If true no actions will affect the given server.
     :type dry_run:            bool.
     """
     validate_gr_variable(server, "expelTimeout", GR_EXPEL_TIMEOUT,
                          expel_timeout, dry_run)
+
+
+def validate_auto_rejoin_tries(server, auto_rejoin_tries, dry_run=False):
+    """Validates the value of group_replication autorejoin_tries by
+    attempting  to set it and catch any error from GR.
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param auto_rejoin_tries:    The value of group_replication_autorejoin_tries.
+    :type auto_rejoin_tries:     int
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    validate_gr_variable(server, "autoRejoinTries", GR_AUTO_REJOIN_TRIES,
+                         auto_rejoin_tries, dry_run)
 
 
 def validate_gr_variable(server, opt_name, gr_opt_name, value,
@@ -2264,6 +2280,10 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                        Must must be an integer value containing the time in
                        seconds to wait before the killer node expels members
                        suspected of having failed from the group.
+        auto_rejoin_tries: Group Replication autorejoin tries.
+                           Must be an integer value containing the
+                           number of times a member will try to
+                           rejoin a group after being expelled.
         replicaset_count: The number of members on the replicaset. Used to
                           calculate the auto_increment value
     :param options_parser: Option file parser used to read the values in the
@@ -2299,7 +2319,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_EXIT_STATE_ACTION: options.get("exit_state_action", None),
         GR_MEMBER_WEIGHT: options.get("member_weight", None),
         GR_FAILOVER_CONSISTENCY: options.get("failover_consistency", None),
-        GR_EXPEL_TIMEOUT: options.get("expel_timeout", None)
+        GR_EXPEL_TIMEOUT: options.get("expel_timeout", None),
+        GR_AUTO_REJOIN_TRIES: options.get("auto_rejoin_tries", None)
     }
     replicaset_count = options.get("replicaset_count", None)
 

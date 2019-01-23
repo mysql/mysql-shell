@@ -504,6 +504,30 @@ TEST_F(Group_replication_test, is_group_replication_delayed_starting) {
   EXPECT_FALSE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
 }
 
+TEST_F(Group_replication_test, is_running_gr_auto_rejoin) {
+  using mysqlshdk::db::Type;
+
+  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  mysqlshdk::mysql::Instance instance{mock_session};
+
+  mock_session
+      ->expect_query(
+          "SELECT PROCESSLIST_STATE FROM performance_schema.threads WHERE NAME "
+          "= 'thread/group_rpl/THD_autorejoin'")
+      .then_return({{"",
+                     {"PROCESSLIST_STATE"},
+                     {Type::String},
+                     {{"Undergoing auto-rejoin procedure"}}}});
+  EXPECT_TRUE(mysqlshdk::gr::is_running_gr_auto_rejoin(instance));
+
+  mock_session
+      ->expect_query(
+          "SELECT PROCESSLIST_STATE FROM performance_schema.threads WHERE NAME "
+          "= 'thread/group_rpl/THD_autorejoin'")
+      .then_return({{"", {"PROCESSLIST_STATE"}, {Type::String}, {}}});
+  EXPECT_FALSE(mysqlshdk::gr::is_running_gr_auto_rejoin(instance));
+}
+
 TEST_F(Group_replication_test, get_all_configurations) {
   std::map<std::string, mysqlshdk::utils::nullable<std::string>> res =
       mysqlshdk::gr::get_all_configurations(*instance);
