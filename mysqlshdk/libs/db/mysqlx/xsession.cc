@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -227,7 +227,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_mysql_option(
       xcl::XSession::Mysqlx_option::Authentication_method,
       std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
-#if LIBMYSQL_VERSION_ID > 80014
+#if LIBMYSQL_VERSION_ID > 80015
 #error Check whether libmysqlx already fixed error for caching_sha2_password
   // if libmysqlx already fixed the error, the code above to set auth
   // methods can be removed. If not, update the version check above to error out
