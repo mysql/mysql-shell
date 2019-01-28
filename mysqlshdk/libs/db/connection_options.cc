@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -317,8 +317,10 @@ bool Connection_options::has_value(const std::string &name) const {
     return _ssl_options.has_value(iname);
   else if (compare(iname, kPort) == 0)
     return !_port.is_null();
-  else
+  else if (_extra_options.has(iname))
     return _extra_options.has_value(iname);
+
+  return false;
 }
 
 int Connection_options::get_port() const {

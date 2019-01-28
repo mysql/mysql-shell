@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -215,24 +215,26 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
 
-  // In 8.0.4, trying to connect without SSL to a caching_sha2_password account
-  // will not work. The error message that's given is also confusing, because
-  // there's no hint the error is because of no SSL instead of wrong password
-  // So as a workaround, we force the PLAIN auth type to be always attempted
-  // at last, at least until libmysqlxclient is fixed to produce a specific
-  // error msg.
-  // In addition, in servers < 8.0.4 the plugin kicks the user after the frst
-  // authentication attempt, so it is required that MYSQL41 is used as the first
-  // authentication attempt in order the connection to suceed on those servers.
-  _mysql->set_mysql_option(
-      xcl::XSession::Mysqlx_option::Authentication_method,
-      std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
-#if LIBMYSQL_VERSION_ID > 80014
-#error Check whether libmysqlx already fixed error for caching_sha2_password
-  // if libmysqlx already fixed the error, the code above to set auth
-  // methods can be removed. If not, update the version check above to error out
-  // again on 8.0.14
-#endif
+  // If a specific authentication type was given, it is used
+  if (_connection_options.has(mysqlshdk::db::kAuthMethod)) {
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Authentication_method,
+        std::vector<std::string>{
+            _connection_options.get(mysqlshdk::db::kAuthMethod)});
+  } else {
+    // In 8.0.4, trying to connect without SSL to a caching_sha2_password
+    // account will not work. The error message that's given is also confusing,
+    // because there's no hint the error is because of no SSL instead of wrong
+    // password So as a workaround, we force the PLAIN auth type to be always
+    // attempted at last, at least until libmysqlxclient is fixed to produce a
+    // specific error msg. In addition, in servers < 8.0.4 the plugin kicks the
+    // user after the frst authentication attempt, so it is required that
+    // MYSQL41 is used as the first authentication attempt in order the
+    // connection to suceed on those servers.
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Authentication_method,
+        std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
+  }
 
   // Sets the connection timeout
   int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;

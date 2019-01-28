@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +74,11 @@ void Session_impl::connect(
         connection_options.get_extra_options().get_value(
             mysqlshdk::db::kServerPublicKeyPath);
     mysql_options(_mysql, MYSQL_SERVER_PUBLIC_KEY, server_public_key.c_str());
+  }
+
+  if (connection_options.has(mysqlshdk::db::kAuthMethod)) {
+    std::string auth = connection_options.get(mysqlshdk::db::kAuthMethod);
+    mysql_options(_mysql, MYSQL_DEFAULT_AUTH, auth.c_str());
   }
 
 #ifdef _WIN32
