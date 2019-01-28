@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -142,6 +142,13 @@ if(SHELL_DOCS_PATH)
 else()
   SET(DOX_OUTDIR "JS")
 endif()
+
+string(TIMESTAMP TODAY "%b %d, %Y")
+string(TIMESTAMP YEAR "%Y")
+
+# Creates the target footer file
+configure_file("${CMAKE_SOURCE_DIR}/footer.html.in"
+               "footer.html")
 
 # Creates the target file containing the code ready for processing
 configure_file("${CMAKE_SOURCE_DIR}/doxygen.cfg.in"
