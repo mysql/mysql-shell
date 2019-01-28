@@ -509,3 +509,30 @@ c.status();
 c.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+
+// Regression test for BUG#29246110: CREATECLUSTER() OR ADDINSTANCE() FAILS IN DEBIAN-BASED PLATFORMS WITH LOCALHOST
+//@ BUG#29246110: Deploy instances, setting non supported host: 127.0.1.1.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "127.0.1.1"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@ BUG#29246110: check instance error with non supported host.
+dba.checkInstanceConfiguration(__sandbox_uri1);
+
+//@ BUG#29246110: createCluster error with non supported host.
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster("error");
+session.close();
+
+//@ BUG#29246110: create cluster succeed with supported host.
+shell.connect(__sandbox_uri2);
+var c = dba.createCluster("test_cluster");
+
+//@ BUG#29246110: add instance error with non supported host.
+c.addInstance(__sandbox_uri1);
+
+//@ BUG#29246110: finalization
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

@@ -1284,32 +1284,6 @@ bool validate_instance_rejoinable(
 }
 
 /**
- * Validate the hostname IP.
- *
- * A hostname might be resolved to an IP value not supported by the Group
- * Replication Communication Service (GCS), like 127.0.1.1. This function
- * validates if the hostname is resolved to a supported IP address, throwing
- * an exception if not supported.
- *
- * @param hostname string with the hostname to check.
- *
- * @throws std::runtime_error if the hostname is resolved to a non supported
- *         IP address.
- */
-void validate_host_ip(const std::string &hostname) {
-  std::string seed_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
-  // IP address '127.0.1.1' is not supported by GCS leading to errors.
-  // NOTE: This IP is set by default in Debian platforms.
-  if (seed_ip == "127.0.1.1")
-    throw std::runtime_error(
-        "Cannot perform operation using a connection with a hostname that "
-        "resolves to '127.0.1.1', since it is not supported by the Group "
-        "Replication communication layer. Change your system settings and/or "
-        "connect to the instance using a hostname that resolves to a supported "
-        "IP address (not 127.0.1.1).");
-}
-
-/**
  * Checks if the target instance is a sandbox
  *
  * @param instance Object which represents the target instance

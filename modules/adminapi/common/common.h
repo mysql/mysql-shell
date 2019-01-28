@@ -290,7 +290,6 @@ bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
 bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-void validate_host_ip(const std::string &hostname);
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
 std::string get_canonical_instance_address(

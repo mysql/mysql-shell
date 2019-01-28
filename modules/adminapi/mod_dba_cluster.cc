@@ -592,9 +592,6 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
     validate_connection_options(connection_options);
 
-    // Validate if the connection host is resolved to a supported IP address.
-    validate_host_ip(connection_options.get_host());
-
     shcore::Argument_list rest;
     if (args.size() == 2) rest.push_back(args.at(1));
 

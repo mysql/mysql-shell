@@ -288,8 +288,11 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
 }
 
 TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  testutil->deploy_sandbox(_mysql_sandbox_port2, "root");
+  shcore::Dictionary_t sandbox_opts = shcore::make_dict();
+  (*sandbox_opts)["report_host"] = shcore::Value(hostname());
+
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_port2, "root", sandbox_opts);
   execute("shell.connect('root:root@localhost:" +
           std::to_string(_mysql_sandbox_port1) + "')");
 
@@ -421,8 +424,11 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 }
 
 TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  testutil->deploy_sandbox(_mysql_sandbox_port2, "root");
+  shcore::Dictionary_t sandbox_opts = shcore::make_dict();
+  (*sandbox_opts)["report_host"] = shcore::Value(hostname());
+
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_port2, "root", sandbox_opts);
   execute("shell.connect('root:root@localhost:" +
           std::to_string(_mysql_sandbox_port1) + "')");
 

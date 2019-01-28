@@ -1193,16 +1193,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       exit_state_action = "READ_ONLY";
     }
 
-    // TODO(alfredo) - this check might be redundant with the ones done
-    // by ensure_instance_configuration_valid()
-    // Validate if the connection host is resolved to a supported IP address.
-    // NOTE: Not needed when adopting an existing cluster.
-    if (!adopt_from_gr) {
-      Connection_options seed_cnx_opts =
-          group_session->get_connection_options();
-      validate_host_ip(seed_cnx_opts.get_host());
-    }
-
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
       throw shcore::Exception::argument_error(
           "Creating a cluster on an unmanaged replication group requires "

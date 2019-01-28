@@ -232,6 +232,24 @@ bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
         "system variable should be changed.");
   }
 
+  // Validate the IP of the hostname used for GR.
+  // IP address '127.0.1.1' is not supported by GCS leading to errors.
+  // NOTE: This IP is set by default in Debian platforms.
+  std::string seed_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(address);
+  if (seed_ip == "127.0.1.1") {
+    console->print_error(
+        "Cannot use host '" + address + "' for instance '" + instance->descr() +
+        "' because it resolves to an IP address (127.0.1.1) that does not "
+        "match a real network interface, thus it is not supported by the Group "
+        "Replication communication layer. Change your system settings and/or "
+        "set the MySQL server 'report_host' variable to a hostname that "
+        "resolves to a supported IP address.");
+
+    throw std::runtime_error("Invalid host/IP '" + address +
+                             "' resolves to '127.0.1.1' which is not "
+                             "supported by Group Replication.");
+  }
+
   if (!is_sandbox(*instance, nullptr)) {
     if (mysqlshdk::utils::Net::is_loopback(address)) {
       console->print_error(address + " resolves to a loopback address.");
