@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -826,7 +826,7 @@ int main(int argc, char **argv) {
         ret_val = execute_import_command(shell.get(), options.import_args,
                                          options.import_opts);
       } else if (options.interactive) {
-        shell->load_state(shcore::get_user_config_path());
+        shell->load_state();
 
         if (default_cluster) {
           show_cluster_info(shell, default_cluster);
@@ -834,7 +834,7 @@ int main(int argc, char **argv) {
 
         shell->command_loop();
 
-        shell->save_state(shcore::get_user_config_path());
+        shell->save_state();
 
         ret_val = 0;
       } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,13 +57,19 @@ class Command_line_shell : public Mysql_shell,
 
   std::string prompt() override;
 
-  void load_state(const std::string &statedir);
-  void save_state(const std::string &statedir);
+  void load_state(
+      shcore::Shell_core::Mode mode = shcore::Shell_core::Mode::None);
+  void save_state(
+      shcore::Shell_core::Mode mode = shcore::Shell_core::Mode::None);
 
   void load_prompt_theme(const std::string &path);
 
   void quiet_print();
   void restore_print();
+
+  bool switch_shell_mode(shcore::Shell_core::Mode mode,
+                         const std::vector<std::string> &args,
+                         bool initializing = false) override;
 
  private:
   void handle_interrupt();
@@ -74,6 +80,7 @@ class Command_line_shell : public Mysql_shell,
 
  private:
   History _history;
+  shcore::Shell_core::Mode m_previous_mode = shcore::Shell_core::Mode::None;
 
   bool cmd_process_file(const std::vector<std::string> &params) override;
 
@@ -98,6 +105,10 @@ class Command_line_shell : public Mysql_shell,
                                             std::string *ret);
   static shcore::Prompt_result deleg_password(void *self, const char *text,
                                               std::string *ret);
+
+  std::string history_file(
+      shcore::Shell_core::Mode mode = shcore::Shell_core::Mode::None);
+
   std::string query_variable(
       const std::string &var,
       mysqlsh::Prompt_manager::Dynamic_variable_type type);
@@ -137,6 +148,8 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_delete_range);
   FRIEND_TEST(Shell_history, history_numbering);
   FRIEND_TEST(Shell_history, never_filter_latest);
+  FRIEND_TEST(Shell_history, history_split_by_mode);
+  FRIEND_TEST(Shell_history, migrate_old_history);
   FRIEND_TEST(Shell_error_printing, print_error);
   FRIEND_TEST(Shell_error_printing, print_diag);
   friend class Test_debugger;

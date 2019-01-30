@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -338,8 +338,27 @@ void Command_line_shell::load_prompt_theme(const std::string &path) {
   }
 }
 
-void Command_line_shell::load_state(const std::string &statedir) {
-  std::string path = statedir + "/history";
+void Command_line_shell::load_state(shcore::Shell_core::Mode mode) {
+  std::string path = history_file(mode);
+
+  // Copy old history from before the split
+  if (!shcore::file_exists(path)) {
+    std::string old_hist_file = path.substr(0, path.rfind('.'));
+    if (shcore::file_exists(old_hist_file)) {
+      shcore::copy_file(old_hist_file,
+                        history_file(shcore::IShell_core::Mode::SQL));
+#ifdef HAVE_V8
+      shcore::copy_file(old_hist_file,
+                        history_file(shcore::IShell_core::Mode::JavaScript));
+#endif
+#ifdef HAVE_PYTHON
+      shcore::copy_file(old_hist_file,
+                        history_file(shcore::IShell_core::Mode::Python));
+#endif
+      shcore::delete_file(old_hist_file);
+    }
+  }
+
   if (!_history.load(path)) {
     print_diag(
         shcore::str_format("Could not load command history from %s: %s\n",
@@ -347,15 +366,24 @@ void Command_line_shell::load_state(const std::string &statedir) {
   }
 }
 
-void Command_line_shell::save_state(const std::string &statedir) {
+void Command_line_shell::save_state(shcore::Shell_core::Mode mode) {
   if (options().history_autosave) {
-    std::string path = statedir + "/history";
+    std::string path = history_file(mode);
     if (!_history.save(path)) {
       print_diag(
           shcore::str_format("Could not save command history to %s: %s\n",
                              path.c_str(), strerror(errno)));
     }
   }
+}
+
+bool Command_line_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
+                                           const std::vector<std::string> &args,
+                                           bool initializing) {
+  shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
+  bool ret = Mysql_shell::switch_shell_mode(mode, args, initializing);
+  if (old_mode != mode) m_previous_mode = old_mode;
+  return ret;
 }
 
 bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
@@ -368,7 +396,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
       print_diag("\\history clear does not take any parameters");
     }
   } else if (args[1] == "save") {
-    std::string path = shcore::get_user_config_path() + "/history";
+    std::string path = history_file();
     if (linenoiseHistorySave(path.c_str()) < 0) {
       print_diag(shcore::str_format("Could not save command history to %s: %s",
                                     path.c_str(), strerror(errno)));
@@ -646,6 +674,12 @@ shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
   return shcore::Prompt_result::Ok;
 }
 
+std::string Command_line_shell::history_file(shcore::Shell_core::Mode mode) {
+  return shcore::get_user_config_path() + "/history." +
+         to_string(mode == shcore::Shell_core::Mode::None ? interactive_mode()
+                                                          : mode);
+}
+
 void Command_line_shell::command_loop() {
   bool using_tty = false;
 #if defined(WIN32)
@@ -827,6 +861,11 @@ void Command_line_shell::handle_notification(
       // add but delete after the next command and
       // don't let it get saved to disk either
       _history.add_temporary(executed);
+    }
+    if (m_previous_mode != shcore::Shell_core::Mode::None) {
+      save_state(m_previous_mode);
+      load_state();
+      m_previous_mode = shcore::Shell_core::Mode::None;
     }
   } else if (name == SN_SHELL_OPTION_CHANGED) {
     const auto option = data->get_string("option");

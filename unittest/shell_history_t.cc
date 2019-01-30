@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,29 +158,23 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // SQL filter only applies to SQL mode
   shell.process_line(to_scripting);
   shell.process_line(print_stmt);
-  EXPECT_EQ(5, linenoiseHistorySize());
-  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
-  EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(3));
-  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(4));
+  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(0));
 
+#ifdef HAVE_V8
   shell.process_line("\\py");
   shell.process_line("print 'secret'");
-  EXPECT_EQ(7, linenoiseHistorySize());
-  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
-  EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(3));
-  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(4));
-  EXPECT_STREQ("\\py", linenoiseHistoryLine(5));
-  EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(6));
+  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(0));
+#endif
 
   // unset filter via shell options
   mysqlsh::Options opts(shell.get_options());
   opts.set_member("history.sql.ignorePattern", shcore::Value(""));
 
   shell.process_line("top secret;");
-  EXPECT_EQ(8, linenoiseHistorySize());
-  EXPECT_STREQ("top secret;", linenoiseHistoryLine(7));
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("top secret;", linenoiseHistoryLine(1));
 
   // TS_CV#6
   // shell.options["history.sql.ignorePattern"]=string:string:string:string with
@@ -190,6 +184,8 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line(to_scripting);
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';");
+  EXPECT_STREQ("shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';",
+               linenoiseHistoryLine(0));
   shell.process_line("\\sql");
   shell.process_line("select 'bga';");
   shell.process_line("select 'bge';");
@@ -198,13 +194,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("select 'bla';");
   shell.process_line("select '*bla*';");
   shell.process_line("select 'bgi';");
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(8));
-  EXPECT_STREQ("shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';",
-               linenoiseHistoryLine(9));
-  EXPECT_STREQ("\\sql", linenoiseHistoryLine(10));
-  EXPECT_STREQ("select 'bga';", linenoiseHistoryLine(11));
-  EXPECT_STREQ("select 'bge';", linenoiseHistoryLine(12));
-  EXPECT_STREQ("select 'bgi';", linenoiseHistoryLine(13));
+  EXPECT_STREQ("select 'bga';", linenoiseHistoryLine(0));
+  EXPECT_STREQ("select 'bge';", linenoiseHistoryLine(1));
+  EXPECT_STREQ("select 'bgi';", linenoiseHistoryLine(2));
 
   shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = 'set;';");
@@ -316,28 +308,28 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '?ELECT 1;'");
   shell.process_line("\\sql");
-  EXPECT_EQ(3, linenoiseHistorySize());
+  EXPECT_EQ(0, linenoiseHistorySize());
 
   shell.process_line("SELECT 1;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line("ELECT 1;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(to_scripting);
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '?? ??;:?\?'");
   shell.process_line("\\sql");
-  EXPECT_EQ(7, linenoiseHistorySize());
+  EXPECT_EQ(0, linenoiseHistorySize());
 
   shell.process_line("AA BB;");
-  EXPECT_EQ(8, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line("A;");
-  EXPECT_EQ(8, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(" A\n  ;");
-  EXPECT_EQ(8, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 }
 
 TEST_F(Shell_history, history_set_option) {
@@ -411,13 +403,13 @@ TEST_F(Shell_history, history_linenoise) {
   // TS_HM#1 only commands interactively typed by the user in the shell prompt
   // are saved to history file: ~/.mysqlsh/history file
 
-  shcore::delete_file(shcore::get_user_config_path() + "/history");
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(0, nullptr, _options_file));
+  const std::string hist_file = shell.history_file();
+  shcore::delete_file(hist_file);
 
   {
-    mysqlsh::Command_line_shell shell(
-        std::make_shared<Shell_options>(0, nullptr, _options_file));
-
-    EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+    EXPECT_NO_THROW(shell.load_state());
 
     EXPECT_EQ(0, linenoiseHistorySize());
     shell.process_line("print(1);");
@@ -437,15 +429,13 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_FALSE(opt.get_member("history.autoSave").as_bool());
 
     // check history autosave
-    shell.save_state(shcore::get_user_config_path());
-    EXPECT_FALSE(
-        shcore::file_exists(shcore::get_user_config_path() + "/history"));
+    shell.save_state();
+    EXPECT_FALSE(shcore::file_exists(hist_file));
 
     opt.set_member("history.autoSave", shcore::Value::True());
 
-    shell.save_state(shcore::get_user_config_path());
-    EXPECT_TRUE(
-        shcore::file_exists(shcore::get_user_config_path() + "/history"));
+    shell.save_state();
+    EXPECT_TRUE(shcore::file_exists(hist_file));
 
     // TS_CV#1 shell.options["history.maxSize"]=number sets the max number of
     // entries to store in the shell history file
@@ -532,7 +522,7 @@ TEST_F(Shell_history, history_linenoise) {
     shell.process_line("\\history");
     EXPECT_EQ("    1  \\history clear\n\n", capture);
     EXPECT_EQ(1, shell._history.size());
-    shell.load_state(shcore::get_user_config_path());
+    shell.load_state();
     EXPECT_EQ(1, shell._history.size());
     EXPECT_STREQ("print(3);", linenoiseHistoryLine(0));
 
@@ -561,10 +551,10 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_EQ("Command history file saved with 0 entries.\n\n", capture);
 
     std::string hdata;
-    shcore::load_text_file(shcore::get_user_config_path() + "/history", hdata);
+    shcore::load_text_file(hist_file, hdata);
     EXPECT_EQ("", hdata);
   }
-  shcore::delete_file(shcore::get_user_config_path() + "/history");
+  shcore::delete_file(hist_file);
 }
 
 TEST_F(Shell_history, check_help_shows_history) {
@@ -594,10 +584,9 @@ TEST_F(Shell_history, check_help_shows_history) {
 }
 
 TEST_F(Shell_history, history_autosave_int) {
-  shcore::delete_file(shcore::get_user_config_path() + "/history");
-
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
+  shcore::delete_file(shell.history_file());
 
   {
     mysqlsh::Options opt(shell.get_options());
@@ -637,7 +626,7 @@ TEST_F(Shell_history, check_history_source_js) {
   of << "print(2);\n";
   of.close();
 
-  EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+  EXPECT_NO_THROW(shell.load_state());
   EXPECT_EQ(0, linenoiseHistorySize());
 
   {
@@ -672,7 +661,7 @@ TEST_F(Shell_history, check_history_source_py) {
   of << "print 2;\n";
   of.close();
 
-  EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+  EXPECT_NO_THROW(shell.load_state());
   EXPECT_EQ(0, linenoiseHistorySize());
 
   {
@@ -699,7 +688,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
         std::make_shared<Shell_options>(0, nullptr, _options_file));
     shell._history.set_limit(3);
 
-    EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+    EXPECT_NO_THROW(shell.load_state());
     EXPECT_EQ(0, shell._history.size());
 
     shell.process_line("// 1");
@@ -772,7 +761,7 @@ TEST_F(Shell_history, history_management) {
 
   shcore::create_file("test_file.js", "println('test1');\nprintln('test2');\n");
 
-  std::string histfile = shcore::get_user_config_path() + "/history";
+  std::string histfile = shell.history_file();
   shcore::delete_file(histfile);
 
   // TS_HM#2 History File does not add commands that are executed indirectly or
@@ -855,9 +844,9 @@ TEST_F(Shell_history, history_management) {
 
   auto base = "Could not save command history to";
 #ifdef _WIN32
-  auto specific = "history: Permission denied";
+  auto specific = histfile + ": Permission denied";
 #else
-  auto specific = "history: Is a directory";
+  auto specific = histfile + ": Is a directory";
 #endif
   auto base_found = capture.find(base) != std::string::npos;
   auto specific_found = capture.find(specific) != std::string::npos;
@@ -875,10 +864,10 @@ TEST_F(Shell_history, history_management) {
   EXPECT_EQ(0, chmod(histfile.c_str(), 0));
 
   capture.clear();
-  EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+  EXPECT_NO_THROW(shell.load_state());
 
   base = "Could not load command history from";
-  specific = "history: Permission denied";
+  specific = histfile + ": Permission denied";
   base_found = capture.find(base) != std::string::npos;
   specific_found = capture.find(specific) != std::string::npos;
 
@@ -1019,7 +1008,7 @@ TEST_F(Shell_history, history_source_history) {
   shell.process_line("dba");
   shell.process_line("\\history save");
 
-  std::string histfile = shcore::get_user_config_path() + "/history";
+  std::string histfile = shell.history_file();
   std::string line = "\\source " + histfile;
   shell.process_line(line);
   shell.process_line("\\history");
@@ -1033,6 +1022,7 @@ TEST_F(Shell_history, history_source_history) {
       "    4  " +
           line + "\n\n",
       capture);
+  shcore::delete_file(histfile);
 }
 
 TEST_F(Shell_history, history_del_range) {
@@ -1466,6 +1456,82 @@ TEST_F(Shell_history, never_filter_latest) {
   EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("select 2;", linenoiseHistoryLine(1));
+}
+
+TEST_F(Shell_history, history_split_by_mode) {
+  std::string sql_history_file;
+  std::string scripting_history_file;
+
+  {
+    char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+                    nullptr};
+    mysqlsh::Command_line_shell shell(
+        std::make_shared<Shell_options>(2, args, _options_file));
+
+    sql_history_file = shell.history_file();
+    EXPECT_EQ(0, linenoiseHistorySize());
+    shell.get_options()->set("history.autoSave", shcore::Value::True());
+
+    shell.process_line("select 1;\n");
+    EXPECT_EQ(1, linenoiseHistorySize());
+
+    shell.process_line(to_scripting);
+    scripting_history_file = shell.history_file();
+    EXPECT_EQ(0, linenoiseHistorySize());
+    shell.process_line("\\status\n");
+    EXPECT_EQ(1, linenoiseHistorySize());
+
+    shell.process_line("\\sql");
+    EXPECT_EQ(2, linenoiseHistorySize());
+    EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(1));
+
+    shell.process_line(to_scripting);
+    EXPECT_EQ(2, linenoiseHistorySize());
+    EXPECT_STREQ("\\sql", linenoiseHistoryLine(1));
+  }
+
+  shcore::delete_file(sql_history_file);
+  shcore::delete_file(scripting_history_file);
+}
+
+TEST_F(Shell_history, migrate_old_history) {
+  int history_size = 0;
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+                  nullptr};
+  {
+    mysqlsh::Command_line_shell shell(
+        std::make_shared<Shell_options>(2, args, _options_file));
+    EXPECT_FALSE(shcore::file_exists(shell.history_file()));
+    shell.process_line("select 1;\n");
+    history_size = linenoiseHistorySize();
+    shell.process_line("\\history save\n");
+    const auto hist_file = shell.history_file();
+    ASSERT_TRUE(shcore::file_exists(hist_file));
+    shcore::rename_file(hist_file, hist_file.substr(0, hist_file.rfind('.')));
+  }
+
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(2, args, _options_file));
+  shell.load_state();
+  EXPECT_EQ(history_size, linenoiseHistorySize());
+  EXPECT_TRUE(
+      shcore::file_exists(shell.history_file(shcore::IShell_core::Mode::SQL)));
+  shcore::delete_file(shell.history_file(shcore::IShell_core::Mode::SQL));
+#ifdef HAVE_V8
+  shell.process_line("\\js\n");
+  EXPECT_EQ(history_size, linenoiseHistorySize());
+  EXPECT_TRUE(shcore::file_exists(
+      shell.history_file(shcore::IShell_core::Mode::JavaScript)));
+  shcore::delete_file(
+      shell.history_file(shcore::IShell_core::Mode::JavaScript));
+#endif
+#ifdef HAVE_PYTHON
+  shell.process_line("\\py\n");
+  EXPECT_EQ(history_size, linenoiseHistorySize());
+  EXPECT_TRUE(shcore::file_exists(
+      shell.history_file(shcore::IShell_core::Mode::Python)));
+  shcore::delete_file(shell.history_file(shcore::IShell_core::Mode::Python));
+#endif
 }
 
 }  // namespace mysqlsh

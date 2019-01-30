@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,9 +78,9 @@ class SHCORE_PUBLIC Base_shell {
                          std::shared_ptr<shcore::Cpp_object_bridge> object,
                          shcore::IShell_core::Mode_mask modes =
                              shcore::IShell_core::Mode_mask::any());
-  bool switch_shell_mode(shcore::Shell_core::Mode mode,
-                         const std::vector<std::string> &args,
-                         bool initializing = false);
+  virtual bool switch_shell_mode(shcore::Shell_core::Mode mode,
+                                 const std::vector<std::string> &args,
+                                 bool initializing = false);
 
   shcore::completer::Completer *completer() { return &_completer; }
 
