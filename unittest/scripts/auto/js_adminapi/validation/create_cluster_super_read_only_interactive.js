@@ -18,15 +18,13 @@ Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 //@<OUT> create_cluster.read_only_no_prompts {VER(>=8.0.11)}
 Adding Seed Instance...
-
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@<OUT> create_cluster.read_only_no_prompts {VER(<8.0.11)}
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Adding Seed Instance...
-
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -35,7 +33,7 @@ one server failure.
 ||
 
 //@<OUT> create_cluster.read_only_no_flag_prompt_yes
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
 system variable set to protect it from inadvertent updates from applications.
@@ -54,7 +52,7 @@ Do you want to disable super_read_only and continue? [y/N]:
 ||
 
 //@<OUT> create_cluster.read_only_no_flag_prompt_no
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
 system variable set to protect it from inadvertent updates from applications.
@@ -67,7 +65,7 @@ You may want to kill these sessions to prevent them from performing unexpected u
 1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y/N]:
-Cancelled
+Dba.createCluster: Cancelled
 
 //@ prepare create_cluster.read_only_invalid_flag_value
 ||
@@ -92,15 +90,13 @@ Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 //@<OUT> create_cluster.read_only_flag_true {VER(>=8.0.11)}
 Adding Seed Instance...
-
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@<OUT> create_cluster.read_only_flag_true {VER(<8.0.11)}
-WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Adding Seed Instance...
-
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.

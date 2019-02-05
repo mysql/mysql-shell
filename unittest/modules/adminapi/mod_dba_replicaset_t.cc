@@ -147,9 +147,15 @@ TEST_F(Dba_replicaset_test, bug28219398) {
   connection_options.set_password("root");
 
   try {
-    m_cluster->get_default_replicaset()->add_instance(
-        connection_options, {}, replication_user, replication_pwd, false, "",
-        true, false);
+    {
+      auto session = mysqlshdk::db::mysql::Session::create();
+      session->connect(connection_options);
+      mysqlshdk::mysql::Instance instance(session);
+
+      m_cluster->get_default_replicaset()->add_instance(
+          {}, &instance, {}, replication_user, replication_pwd, false, true,
+          false);
+    }
 
     // Set the Shell global session
     execute("shell.connect('root:root@localhost:" +

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -116,7 +116,6 @@ shcore::Value Interactive_dba_cluster::add_instance(
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
-  shcore::Value::Map_type_ref options;
   shcore::Value::Map_type_ref instance_map;
   mysqlshdk::db::Connection_options instance_def;
 
@@ -148,30 +147,6 @@ shcore::Value Interactive_dba_cluster::add_instance(
       instance_def = mysqlsh::get_connection_options(
           args, mysqlsh::PasswordFormat::OPTIONS);
 
-      if (args.size() == 2) {
-        options = args.map_at(1);
-        shcore::Argument_map options_map(*options);
-
-        std::string ssl_mode, ip_whitelist, instance_label, local_address,
-            group_seeds, exit_state_action;
-
-        mysqlshdk::utils::nullable<int64_t> member_weight;
-
-        // Retrieves optional options if exists
-        mysqlsh::Unpack_options(options)
-            .optional("memberSslMode", &ssl_mode)
-            .optional("ipWhitelist", &ip_whitelist)
-            .optional("label", &instance_label)
-            .optional("localAddress", &local_address)
-            .optional("groupSeeds", &group_seeds)
-            .optional("exitStateAction", &exit_state_action)
-            .optional("memberWeight", &member_weight)
-            .end();
-
-        // Validate SSL options for the cluster instance
-        mysqlsh::dba::validate_ssl_instance_options(options);
-      }
-
       instance_def.set_default_connection_data();
 
       instance_map = mysqlsh::get_connection_map(instance_def);
@@ -182,7 +157,7 @@ shcore::Value Interactive_dba_cluster::add_instance(
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  if (options) new_args.push_back(args[1]);
+  if (args.size() > 1) new_args.push_back(args[1]);
 
   println("Adding instance to the cluster ...");
   println();
@@ -204,7 +179,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
-  shcore::Value::Map_type_ref instance_map, options;
+  shcore::Value::Map_type_ref instance_map;
   mysqlshdk::db::Connection_options instance_def;
 
   try {
@@ -212,17 +187,6 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
 
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    if (args.size() == 2) {
-      options = args.map_at(1);
-      shcore::Argument_map options_map(*options);
-      options_map.ensure_keys({},
-                              mysqlsh::dba::ReplicaSet::_rejoin_instance_opts,
-                              "instance definition");
-
-      // Validate SSL options for the cluster instance
-      mysqlsh::dba::validate_ssl_instance_options(options);
-    }
 
     std::string message =
         "Rejoining the instance to the InnoDB cluster. "
@@ -248,7 +212,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  if (options) new_args.push_back(args[1]);
+  if (args.size() > 1) new_args.push_back(args[1]);
 
   println("Rejoining instance to the cluster ...");
   println();

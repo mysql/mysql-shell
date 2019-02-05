@@ -52,6 +52,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/metadata_management_mysql.cc"
       "adminapi/common/provisioning_interface.cc"
       "adminapi/common/common.cc"
+      "adminapi/common/group_replication_options.cc"
       "adminapi/common/sql.cc"
       "adminapi/common/validations.cc"
       "adminapi/common/preconditions.cc"

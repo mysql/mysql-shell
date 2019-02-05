@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/mysql/mock_instance.h"
 #include "unittest/test_utils/shell_base_test.h"
 
 namespace testing {
@@ -521,36 +522,43 @@ TEST_F(Group_replication_test, get_all_configurations) {
   EXPECT_THAT(vars, Contains("auto_increment_offset"));
 }
 
-TEST_F(Group_replication_test, check_log_bin_compatibility_disabled) {
+TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
   using mysqlshdk::gr::Config_type;
   using mysqlshdk::gr::Config_types;
   using mysqlshdk::gr::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
   using mysqlshdk::utils::nullable;
 
-  nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
-  if (*log_bin) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: binary_log is enabled and "
-        "should be disabled.")
-  }
+  mysqlshdk::mysql::Mock_instance inst;
+
+  std::vector<Invalid_config> res;
+
+  // Test everything assuming 5.7, with binlog default OFF and no SET PERSIST
+  EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
+      .WillRepeatedly(Return(nullable<bool>(false)));
+  EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
+      .WillRepeatedly(Return(nullable<std::string>("OFF")));
+  EXPECT_CALL(inst, get_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 24)));
+
   // Create config object (only with a server handler).
   mysqlshdk::config::Config cfg;
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_server_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
-              instance, Var_qualifier::GLOBAL)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+                      &inst, Var_qualifier::GLOBAL));
 
-  // should have 1 issue, since binary log is disabled.
-  std::vector<Invalid_config> res;
-  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
-  ASSERT_EQ(1, res.size());
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+  // should have 2 issues in 5.7 and 1 in 8.0, since binary log is disabled.
   EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
-  EXPECT_STREQ(res.at(0).current_val.c_str(), "OFF");
-  EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
-  EXPECT_EQ(res.at(0).types, Config_type::SERVER);
-  EXPECT_EQ(res.at(0).restart, true);
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), "OFF");
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(1).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(1).restart, true);
 
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
@@ -561,29 +569,19 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled) {
 
   // Issues found on both server and option file (with no values set).
   res.clear();
-  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
-  // if server version is >=8.0.3 then the log_bin is enabled by default so
-  // there is no need to be the log_bin option on the file
-  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
-    ASSERT_EQ(1, res.size());
-    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
-    EXPECT_STREQ(res.at(0).current_val.c_str(), "OFF");
-    EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
-    EXPECT_EQ(res.at(0).types, Config_type::SERVER);
-    EXPECT_EQ(res.at(0).restart, true);
-  } else {
-    ASSERT_EQ(2, res.size());
-    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
-    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
-    EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
-    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(0).restart, false);
-    EXPECT_STREQ(res.at(1).var_name.c_str(), "log_bin");
-    EXPECT_STREQ(res.at(1).current_val.c_str(), "OFF");
-    EXPECT_STREQ(res.at(1).required_val.c_str(), "ON");
-    EXPECT_EQ(res.at(1).types, Config_type::SERVER);
-    EXPECT_EQ(res.at(1).restart, true);
-  }
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+
+  ASSERT_EQ(2, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), "OFF");
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(1).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(1).restart, true);
 
   // Set incompatible values on file, issues found.
   cfg.set("skip_log_bin", nullable<std::string>(),
@@ -593,36 +591,101 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled) {
   cfg.apply();
 
   res.clear();
-  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
-  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
-    ASSERT_EQ(3, res.size());
-    EXPECT_STREQ(res.at(0).var_name.c_str(), "disable_log_bin");
-    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_no_value);
-    EXPECT_STREQ(res.at(0).required_val.c_str(),
-                 mysqlshdk::gr::k_value_not_set);
-    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(0).restart, false);
-    EXPECT_STREQ(res.at(1).var_name.c_str(), "skip_log_bin");
-    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
-    EXPECT_STREQ(res.at(1).required_val.c_str(),
-                 mysqlshdk::gr::k_value_not_set);
-    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(1).restart, false);
-  } else {
-    ASSERT_EQ(4, res.size());
-    EXPECT_STREQ(res.at(1).var_name.c_str(), "disable_log_bin");
-    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
-    EXPECT_STREQ(res.at(1).required_val.c_str(),
-                 mysqlshdk::gr::k_value_not_set);
-    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(1).restart, false);
-    EXPECT_STREQ(res.at(2).var_name.c_str(), "skip_log_bin");
-    EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_no_value);
-    EXPECT_STREQ(res.at(2).required_val.c_str(),
-                 mysqlshdk::gr::k_value_not_set);
-    EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(2).restart, false);
-  }
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+
+  ASSERT_EQ(4, res.size());
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "disable_log_bin");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_STREQ(res.at(1).required_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(1).restart, false);
+  EXPECT_STREQ(res.at(2).var_name.c_str(), "skip_log_bin");
+  EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_STREQ(res.at(2).required_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(2).restart, false);
+
+  // Delete the config file.
+  shcore::delete_file(m_cfg_path, true);
+}
+
+TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
+  using mysqlshdk::gr::Config_type;
+  using mysqlshdk::gr::Config_types;
+  using mysqlshdk::gr::Invalid_config;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::nullable;
+
+  mysqlshdk::mysql::Mock_instance inst;
+
+  std::vector<Invalid_config> res;
+
+  // Test everything assuming 8.0, with binlog OFF but SET PERSISTable
+  EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
+      .WillRepeatedly(Return(nullable<bool>(false)));
+  EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
+      .WillRepeatedly(Return(nullable<std::string>("OFF")));
+  EXPECT_CALL(inst, get_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 3)));
+
+  // Create config object (only with a server handler).
+  mysqlshdk::config::Config cfg;
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+                      &inst, Var_qualifier::GLOBAL));
+
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), "OFF");
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(1).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(1).restart, true);
+
+  // Create an empty test option file and add the option file config handler.
+  create_file(m_cfg_path, "");
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // Issues found on both server and option file (with no values set).
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+
+  // if server version is >=8.0.3 then the log_bin is enabled by default so
+  // there is no need to be the log_bin option on the file
+  ASSERT_EQ(1, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "OFF");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(0).restart, true);
+
+  // Set incompatible values on file, issues found.
+  cfg.set("skip_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("disable_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(inst, cfg, &res);
+  ASSERT_EQ(3, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "disable_log_bin");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "skip_log_bin");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+  EXPECT_STREQ(res.at(1).required_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(1).restart, false);
 
   // Delete the config file.
   shcore::delete_file(m_cfg_path, true);

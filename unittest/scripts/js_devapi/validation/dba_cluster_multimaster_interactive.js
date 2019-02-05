@@ -11,7 +11,7 @@ before proceeding.
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
-Cancelled
+Dba.createCluster: Cancelled
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
@@ -34,8 +34,9 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
-<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
+Adding Seed Instance...
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -48,6 +49,7 @@ one server failure.
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
+WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
@@ -58,8 +60,6 @@ before proceeding.
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
-WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
-
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -68,8 +68,9 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
-<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
+Adding Seed Instance...
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -259,8 +260,9 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
-<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
+Adding Seed Instance...
+<<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.

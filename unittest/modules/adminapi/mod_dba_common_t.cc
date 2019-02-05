@@ -23,6 +23,7 @@
 
 #include <string>
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -37,9 +38,12 @@
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
-namespace tests {
+using mysqlshdk::utils::Version;
 
-class Dba_common_test : public Admin_api_test {
+namespace mysqlsh {
+namespace dba {
+
+class Dba_common_test : public tests::Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
@@ -902,14 +906,11 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
   testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
 
-TEST_F(Dba_common_test, validate_ipwhitelist_option) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
+TEST(mod_dba_common, validate_ipwhitelist_option) {
   bool hostnames_supported = false;
   std::string ip_whitelist;
 
-  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4))
-    hostnames_supported = true;
+  hostnames_supported = true;
 
   // Error if the ipWhitelist is empty.
   ip_whitelist = "";
@@ -1043,32 +1044,28 @@ TEST_F(Dba_common_test, validate_ipwhitelist_option) {
   }
 
   // Error if hostname is used and server version < 8.0.4
-  if (!hostnames_supported) {
-    ip_whitelist = "localhost";
-    try {
-      mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                                 hostnames_supported);
-      SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
-      ADD_FAILURE();
-    } catch (const shcore::Exception &e) {
-      EXPECT_STREQ(
-          "Invalid value for ipWhitelist 'localhost': string value is not a "
-          "valid IPv4 address.",
-          e.what());
-    }
-  } else {
-    ip_whitelist = "1invalid_hostname0";
-    try {
-      mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist,
-                                                 hostnames_supported);
-      SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
-      ADD_FAILURE();
-    } catch (const shcore::Exception &e) {
-      EXPECT_STREQ(
-          "Invalid value for ipWhitelist '1invalid_hostname0': address does "
-          "not resolve to a valid IPv4 address.",
-          e.what());
-    }
+  ip_whitelist = "localhost";
+  try {
+    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist, false);
+    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    ADD_FAILURE();
+  } catch (const shcore::Exception &e) {
+    EXPECT_STREQ(
+        "Invalid value for ipWhitelist 'localhost': string value is not a "
+        "valid IPv4 address.",
+        e.what());
+  }
+
+  ip_whitelist = "1invalid_hostname0";
+  try {
+    mysqlsh::dba::validate_ip_whitelist_option(ip_whitelist, true);
+    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    ADD_FAILURE();
+  } catch (const shcore::Exception &e) {
+    EXPECT_STREQ(
+        "Invalid value for ipWhitelist '1invalid_hostname0': address does "
+        "not resolve to a valid IPv4 address.",
+        e.what());
   }
 
   // Error if hostname with cidr
@@ -1113,112 +1110,93 @@ TEST_F(Dba_common_test, validate_ipwhitelist_option) {
   // valid CIDR value
   // NOTE: if the server version is > 8.0.4, hostnames are allowed too so we
   // must test it
-  if (hostnames_supported) {
-    ip_whitelist = "192.168.1.1/15,192.169.1.1/1, localhost";
-  } else {
-    ip_whitelist = "192.168.1.1/15,192.169.1.1/1";
-  }
   EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
-      ip_whitelist, hostnames_supported));
+      "192.168.1.1/15,192.169.1.1/1, localhost", true));
 
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  EXPECT_NO_THROW(mysqlsh::dba::validate_ip_whitelist_option(
+      "192.168.1.1/15,192.169.1.1/1", false));
 }
 
-TEST_F(Dba_common_test, validate_exit_state_action_supported) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
-  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-
-  auto version = session->get_server_version();
-
-  (*options)["exitStateAction"] = shcore::Value("1");
+TEST(mod_dba_common, validate_exit_state_action_supported) {
+  Group_replication_options options;
+  options.exit_state_action = "1";
 
   // Error only if the target server version is >= 5.7.24 if 5.0, or >= 8.0.12
   // if 8.0.
-  if (version < mysqlshdk::utils::Version(5, 7, 24) ||
-      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
-       version < mysqlshdk::utils::Version(8, 0, 12))) {
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_exit_state_action_supported(session),
-        shcore::Exception,
-        "Option 'memberWeight' not supported on target server "
-        "version:");
-  } else {
-    EXPECT_NO_THROW(
-        mysqlsh::dba::validate_exit_state_action_supported(session));
-  }
 
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 23)),
+                    shcore::Exception,
+                    "Option 'exitStateAction' not supported on target server "
+                    "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(5, 7, 24)));
+
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 11)),
+                    shcore::Exception,
+                    "Option 'exitStateAction' not supported on target server "
+                    "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 12)));
 }
 
-TEST_F(Dba_common_test, validate_member_weight_supported) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
-  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-
-  auto version = session->get_server_version();
-
-  (*options)["memberWeight"] = shcore::Value(1);
+TEST(mod_dba_common, validate_member_weight_supported) {
+  Group_replication_options options;
+  options.member_weight = 1;
 
   // Error only if the target server version is < 5.7.20 if 5.0, or < 8.0.11
   // if 8.0.
-  if (version < mysqlshdk::utils::Version(5, 7, 20) ||
-      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
-       version < mysqlshdk::utils::Version(8, 0, 11))) {
-    EXPECT_THROW_LIKE(mysqlsh::dba::validate_member_weight_supported(session),
-                      shcore::Exception,
-                      "Option 'memberWeight' not supported on target server "
-                      "version:");
-  } else {
-    EXPECT_NO_THROW(mysqlsh::dba::validate_member_weight_supported(session));
-  }
 
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 19)),
+                    shcore::Exception,
+                    "Option 'memberWeight' not supported on target server "
+                    "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(5, 7, 20)));
+
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 10)),
+                    shcore::Exception,
+                    "Option 'memberWeight' not supported on target server "
+                    "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 11)));
 }
 
-TEST_F(Dba_common_test, validate_failover_consistency_supported) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
-  auto version = session->get_server_version();
+TEST(mod_dba_common, validate_failover_consistency_supported) {
+  Group_replication_options options;
+  Version version(8, 0, 14);
+
   auto empty_fail_cons = mysqlshdk::utils::nullable<std::string>("  ");
   auto null_fail_cons = mysqlshdk::utils::nullable<std::string>();
   auto valid_fail_cons = mysqlshdk::utils::nullable<std::string>("1");
+
+  options.failover_consistency = null_fail_cons;
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
-  mysqlsh::dba::validate_failover_consistency_supported(session,
-                                                        null_fail_cons);
+  options.check_option_values(version);
+
+  options.failover_consistency = empty_fail_cons;
   // if an empty value was provided, an error should be thrown independently
   // of the server version
   EXPECT_THROW_LIKE(
-      mysqlsh::dba::validate_failover_consistency_supported(session,
-                                                            empty_fail_cons),
-      shcore::Exception,
+      options.check_option_values(version), shcore::Exception,
       "Invalid value for failoverConsistency, string value cannot be empty.");
+
   // if a valid value (non empty) was provided, an error should only be thrown
   // in case the option is not supported by the server version.
-  if (version < mysqlshdk::utils::Version(8, 0, 14)) {
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_failover_consistency_supported(session,
-                                                              valid_fail_cons),
-        std::runtime_error,
-        "Option 'failoverConsistency' not supported on target server "
-        "version:");
-  } else {
-    EXPECT_NO_THROW(mysqlsh::dba::validate_failover_consistency_supported(
-        session, valid_fail_cons));
-  }
+  options.failover_consistency = valid_fail_cons;
 
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 13)), std::runtime_error,
+      "Option 'failoverConsistency' not supported on target server "
+      "version:");
+
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
 }
 
-TEST_F(Dba_common_test, validate_expel_timeout_supported) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
-  auto version = session->get_server_version();
+TEST(mod_dba_common, validate_expel_timeout_supported) {
+  Group_replication_options options;
+  Version version(8, 0, 13);
+
   auto null_timeout = mysqlshdk::utils::nullable<int64_t>();
   auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
   auto invalid_timeout1 = mysqlshdk::utils::nullable<std::int64_t>(3601);
@@ -1226,69 +1204,117 @@ TEST_F(Dba_common_test, validate_expel_timeout_supported) {
 
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
-  mysqlsh::dba::validate_expel_timeout_supported(session, null_timeout);
+  options.expel_timeout = null_timeout;
+  options.check_option_values(version);
+
   // if a value non in the allowed range value was provided, an error should be
   // thrown independently of the server version
+  options.expel_timeout = invalid_timeout1;
   EXPECT_THROW_LIKE(
-      mysqlsh::dba::validate_expel_timeout_supported(session, invalid_timeout1),
-      shcore::Exception,
+      options.check_option_values(version), shcore::Exception,
       "Invalid value for expelTimeout, integer value must be in the range: "
       "[0, 3600]");
+
+  options.expel_timeout = invalid_timeout2;
   EXPECT_THROW_LIKE(
-      mysqlsh::dba::validate_expel_timeout_supported(session, invalid_timeout2),
-      shcore::Exception,
+      options.check_option_values(version), shcore::Exception,
       "Invalid value for expelTimeout, integer value must be in the range: "
       "[0, 3600]");
+
   // if a valid value was provided, an error should only be thrown
   // in case the option is not supported by the server version.
-  if (version < mysqlshdk::utils::Version(8, 0, 13)) {
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_expel_timeout_supported(session, valid_timeout),
-        std::runtime_error,
-        "Option 'expelTimeout' not supported on target server "
-        "version:");
-  } else {
-    EXPECT_NO_THROW(
-        mysqlsh::dba::validate_expel_timeout_supported(session, valid_timeout));
-  }
+  options.expel_timeout = valid_timeout;
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 12)),
+                    std::runtime_error,
+                    "Option 'expelTimeout' not supported on target server "
+                    "version:");
 
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  options.expel_timeout = valid_timeout;
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 13)));
 }
 
-TEST_F(Dba_common_test, is_group_replication_option_supported) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
-  auto version = session->get_server_version();
+TEST(mod_dba_common, is_group_replication_option_supported) {
   // if a non supported version is used, then we must throw an exception,
   // else just save the result for further testing
-  if ((version.get_major() == 5 && version.get_minor() == 7) ||
-      version.get_major() == 8) {
-    mysqlsh::dba::is_group_replication_option_supported(
-        session, mysqlsh::dba::kExitStateAction);
-  } else {
-    EXPECT_THROW_LIKE(mysqlsh::dba::is_group_replication_option_supported(
-                          session, mysqlsh::dba::kExitStateAction),
-                      std::runtime_error,
-                      "Unexpected version found for GR option support check:");
-  }
+  EXPECT_THROW_LIKE(mysqlsh::dba::is_group_replication_option_supported(
+                        Version(9, 0, 0), mysqlsh::dba::kExitStateAction),
+                    std::runtime_error,
+                    "Unexpected version found for GR option support check:");
+
   // testing the result of exit-state action case since it has requirements for
   // both 5.7 and the 8.0 MySQL versions.
-  if ((version < mysqlshdk::utils::Version(8, 0, 13) &&
-       version >= mysqlshdk::utils::Version(8, 0, 0)) ||
-      version < mysqlshdk::utils::Version(5, 7, 24)) {
-    EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
-        session, mysqlsh::dba::kExitStateAction));
-  } else if (version >= mysqlshdk::utils::Version(8, 0, 13) ||
-             (version < mysqlshdk::utils::Version(8, 0, 0) &&
-              version >= mysqlshdk::utils::Version(5, 7, 24))) {
-    EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
-        session, mysqlsh::dba::kExitStateAction));
-  }
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(8, 0, 11), mysqlsh::dba::kExitStateAction));
+  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(8, 0, 12), mysqlsh::dba::kExitStateAction));
+  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(5, 7, 23), mysqlsh::dba::kExitStateAction));
+  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
+      Version(5, 7, 24), mysqlsh::dba::kExitStateAction));
 }
-}  // namespace tests
+
+TEST(mod_dba_common, validate_group_name_option) {
+  Group_replication_options options;
+  Version version(8, 0, 14);
+
+  // Error if the groupName is empty.
+  options.group_name = "";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // Error if the groupName string is empty (only whitespace).
+  options.group_name = "  ";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // No error if the groupName is a non-empty string.
+  options.group_name = "myname";
+  EXPECT_NO_THROW(options.check_option_values(version));
+}
+
+TEST(mod_dba_common, validate_local_address_option) {
+  Group_replication_options options;
+  Version version(8, 0, 14);
+
+  // Error if the localAddress is empty.
+  options.local_address = "";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // Error if the localAddress string is empty (only whitespace).
+  options.local_address = "  ";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // Error if the localAddress has ':' and no host nor port part is specified.
+  options.local_address = " : ";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // No error if the localAddress is a non-empty string.
+  options.local_address = "myhost:1234";
+  EXPECT_NO_THROW(options.check_option_values(version));
+  options.local_address = "myhost:";
+  EXPECT_NO_THROW(options.check_option_values(version));
+  options.local_address = ":1234";
+  EXPECT_NO_THROW(options.check_option_values(version));
+  options.local_address = "myhost";
+  EXPECT_NO_THROW(options.check_option_values(version));
+  options.local_address = "1234";
+  EXPECT_NO_THROW(options.check_option_values(version));
+}
+
+TEST(mod_dba_common, validate_group_seeds_option) {
+  Group_replication_options options;
+  Version version(8, 0, 14);
+
+  // Error if the groupSeeds is empty.
+  options.group_seeds = "";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // Error if the groupSeeds string is empty (only whitespace).
+  options.group_seeds = "  ";
+  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+
+  // No error if the groupSeeds is a non-empty string.
+  options.group_seeds = "host1:1234,host2:4321";
+  EXPECT_NO_THROW(options.check_option_values(version));
+}
 
 TEST(mod_dba_common, validate_label) {
   std::string t{};
@@ -1371,69 +1397,5 @@ TEST(mod_dba_common, is_valid_identifier) {
       t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
 }
 
-TEST(mod_dba_common, validate_group_name_option) {
-  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-
-  // Error if the groupName is empty.
-  (*options)["groupName"] = shcore::Value("");
-  EXPECT_THROW(mysqlsh::dba::validate_group_name_option(options),
-               shcore::Exception);
-
-  // Error if the groupName string is empty (only whitespace).
-  (*options)["groupName"] = shcore::Value("  ");
-  EXPECT_THROW(mysqlsh::dba::validate_group_name_option(options),
-               shcore::Exception);
-
-  // No error if the groupName is a non-empty string.
-  (*options)["groupName"] = shcore::Value("myname");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_group_name_option(options));
-}
-
-TEST(mod_dba_common, validate_local_address_option) {
-  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-
-  // Error if the localAddress is empty.
-  (*options)["localAddress"] = shcore::Value("");
-  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
-               shcore::Exception);
-
-  // Error if the localAddress string is empty (only whitespace).
-  (*options)["localAddress"] = shcore::Value("  ");
-  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
-               shcore::Exception);
-
-  // Error if the localAddress has ':' and no host nor port part is specified.
-  (*options)["localAddress"] = shcore::Value(" : ");
-  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
-               shcore::Exception);
-
-  // No error if the localAddress is a non-empty string.
-  (*options)["localAddress"] = shcore::Value("myhost:1234");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
-  (*options)["localAddress"] = shcore::Value("myhost:");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
-  (*options)["localAddress"] = shcore::Value(":1234");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
-  (*options)["localAddress"] = shcore::Value("myhost");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
-  (*options)["localAddress"] = shcore::Value("1234");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
-}
-
-TEST(mod_dba_common, validate_group_seeds_option) {
-  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-
-  // Error if the groupSeeds is empty.
-  (*options)["groupSeeds"] = shcore::Value("");
-  EXPECT_THROW(mysqlsh::dba::validate_group_seeds_option(options),
-               shcore::Exception);
-
-  // Error if the groupSeeds string is empty (only whitespace).
-  (*options)["groupSeeds"] = shcore::Value("  ");
-  EXPECT_THROW(mysqlsh::dba::validate_group_seeds_option(options),
-               shcore::Exception);
-
-  // No error if the groupSeeds is a non-empty string.
-  (*options)["groupSeeds"] = shcore::Value("host1:1234,host2:4321");
-  EXPECT_NO_THROW(mysqlsh::dba::validate_group_seeds_option(options));
-}
+}  // namespace dba
+}  // namespace mysqlsh

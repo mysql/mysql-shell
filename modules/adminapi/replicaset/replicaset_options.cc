@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,7 +100,7 @@ shcore::Array_t Replicaset_options::collect_global_options() {
 
   for (const auto &cfg : k_global_options) {
     shcore::Dictionary_t option = shcore::make_dict();
-    std::string value = group_instance.get_sysvar_string(
+    std::string value = *group_instance.get_sysvar_string(
         cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
     (*option)["option"] = shcore::Value(cfg.first);

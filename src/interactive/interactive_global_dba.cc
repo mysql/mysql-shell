@@ -312,250 +312,29 @@ shcore::Value Global_dba::start_sandbox_instance(
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("createCluster").c_str());
-
-  mysqlsh::dba::Cluster_check_info state;
-  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-  std::shared_ptr<mysqlshdk::db::ISession> member_session;
-
   shcore::Value ret_val;
-  shcore::Value::Map_type_ref options;
-  std::string cluster_name;
-
-  bool adopt_from_gr = false;
-  bool clear_read_only = false;
-
-  try {
-    cluster_name = args.string_at(0);
-    bool multi_primary = false;
-    bool force = false;
-    bool prompt_read_only = true;
-    // Validate the cluster_name
-    mysqlsh::dba::validate_cluster_name(cluster_name);
-
-    if (args.size() > 1) {
-      // Handle the deprecation of multiMaster first
-
-      // Map with the options
-      options = args.map_at(1);
-
-      // Verification of invalid attributes on the instance creation options
-      shcore::Argument_map opt_map(*options);
-
-      if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
-        throw shcore::Exception::argument_error(
-            "Cannot use the multiMaster and multiPrimary options "
-            "simultaneously. The multiMaster option is deprecated, please use "
-            "the multiPrimary option instead.");
-
-      std::string ssl_mode, group_name, local_address, group_seeds,
-          exit_state_action, ip_whitelist, failover_consistency;
-
-      mysqlshdk::utils::nullable<int64_t> member_weight, expel_timeout;
-
-      // Retrieves optional options if exists
-      mysqlsh::Unpack_options(options)
-          .optional("multiPrimary", &multi_primary)
-          .optional("multiMaster", &multi_primary)
-          .optional("force", &force)
-          .optional("adoptFromGR", &adopt_from_gr)
-          .optional("memberSslMode", &ssl_mode)
-          .optional("clearReadOnly", &clear_read_only)
-          .optional("ipWhitelist", &ip_whitelist)
-          .optional("groupName", &group_name)
-          .optional("localAddress", &local_address)
-          .optional("groupSeeds", &group_seeds)
-          .optional("exitStateAction", &exit_state_action)
-          .optional("memberWeight", &member_weight)
-          .optional("failoverConsistency", &failover_consistency)
-          .optional_exact("expelTimeout", &expel_timeout)
-          .end();
-
-      // Validate SSL options for the cluster instance
-      mysqlsh::dba::validate_ssl_instance_options(options);
-
-      if (opt_map.has_key("clearReadOnly")) {
-        prompt_read_only = false;
-      }
-
-      if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiPrimary option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
-      }
-
-      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiMaster option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
-      }
-    } else {
-      options.reset(new shcore::Value::Map_type());
-    }
-
-    member_session = dba->connect_to_target_member();
-    try {
-      state = check_preconditions(member_session, "createCluster");
-    } catch (shcore::Exception &e) {
-      std::string error(e.what());
-      if (error.find("already in an InnoDB cluster") != std::string::npos) {
-        /*
-         * For V1.0 we only support one single Cluster.
-         * That one shall be the default Cluster.
-         * We must check if there's already a Default Cluster assigned,
-         * and if so thrown an exception.
-         * And we must check if there's already one Cluster on the MD and if so
-         * assign it to Default
-         */
-
-        std::string nice_error = get_function_name("createCluster") +
-                                 ": Unable "
-                                 "to create cluster. The instance '" +
-                                 member_session->uri(only_transport()) +
-                                 ""
-                                 "' already belongs to an InnoDB cluster. Use "
-                                 "<Dba>." +
-                                 get_function_name("getCluster", false) +
-                                 "() to access it.";
-
-        throw Exception::runtime_error(nice_error);
-      } else {
-        throw;
-      }
-    }
-
-    if (state.source_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
-        !adopt_from_gr) {
-      if (confirm(
-              "You are connected to an instance that belongs to an unmanaged "
-              "replication group.\nDo you want to setup an InnoDB cluster "
-              "based on this replication group?") ==
-          mysqlsh::Prompt_answer::YES) {
-        (*options)["adoptFromGR"] = shcore::Value(true);
-        adopt_from_gr = true;
-      } else {
-        throw Exception::argument_error(
-            "Creating a cluster on an unmanaged "
-            "replication group requires "
-            "adoptFromGR option to be true");
-      }
-    }
-
-    if (adopt_from_gr &&
-        state.source_type != mysqlsh::dba::GRInstanceType::GroupReplication)
-      throw Exception::argument_error(
-          "The adoptFromGR option is set to true, but there is no replication "
-          "group to adopt");
-
-    println(std::string{"A new InnoDB cluster will be created"} +
-            (adopt_from_gr ? " based on the existing replication group" : "") +
-            " on instance '" +
-            member_session->uri(
-                mysqlshdk::db::uri::formats::no_scheme_no_password()) +
-            "'.\n");
-
-    if (multi_primary && !force) {
-      println(
-          "The MySQL InnoDB cluster is going to be setup in advanced "
-          "Multi-Primary Mode.\n"
-          "Before continuing you have to confirm that you understand the "
-          "requirements and\n"
-          "limitations of Multi-Primary Mode. For more information see\n"
-          "https://dev.mysql.com/doc/refman/en/"
-          "group-replication-limitations.html\n"
-          "before proceeding.\n"
-          "\n");
-
-      println(
-          "I have read the MySQL InnoDB cluster manual and I understand the "
-          "requirements\n"
-          "and limitations of advanced Multi-Primary Mode.");
-      if (confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
-          mysqlsh::Prompt_answer::NO) {
-        println();
-        println("Cancelled");
-        return shcore::Value();
-      } else {
-        println();
-        (*options)["force"] = shcore::Value(true);
-      }
-    }
-
-    // Verify the status of super_read_only and ask the user if wants
-    // to disable it
-    // NOTE: this is left for last to avoid setting super_read_only to true
-    // and right before some execution failure of the command leaving the
-    // instance in an incorrect state
-    if (prompt_read_only) {
-      if (!prompt_super_read_only(member_session, options))
-        return shcore::Value();
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
-
-  assert(member_session);
-
-  shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(cluster_name));
-
-  if (options != NULL) new_args.push_back(shcore::Value(options));
 
   // This is an instance of the API cluster
-  auto raw_cluster = call_target("createCluster", new_args);
+  try {
+    auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
-  auto dba_cluster =
-      std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(raw_cluster.as_object());
-  auto default_replicaset = dba_cluster->get_default_replicaset();
+    auto style = dba->set_scoped_naming_style(naming_style);
+    auto raw_cluster = dba->create_cluster(args);
 
-  assert(default_replicaset);
+    auto dba_cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(
+        raw_cluster.as_object());
 
-  bool single_primary_mode = default_replicaset->get_topology_type() ==
-                             mysqlsh::dba::ReplicaSet::kTopologySinglePrimary;
-
-  std::string master_uuid;
-
-  if (single_primary_mode) {
-    println("Adding Seed Instance...");
-
-    mysqlsh::dba::get_status_variable(dba_cluster->get_group_session(),
-                                      "group_replication_primary_member",
-                                      &master_uuid, false);
+    // Returns an interactive wrapper of this instance
+    Interactive_dba_cluster *cluster =
+        new Interactive_dba_cluster(this->_shell_core);
+    cluster->set_target(dba_cluster);
+    ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+  } catch (shcore::Exception &e) {
+    if (!strstr(e.what(), "Cancelled")) throw;
+    // probably should just let it bubble up and be caught elsewhere
+    println(e.what());
+    return shcore::Value();
   }
-
-  if (adopt_from_gr) {
-    for (auto &instance : default_replicaset->get_instances_from_metadata()) {
-      if (instance.uuid != master_uuid) {
-        println("Adding Instance '" + instance.label + "'...");
-      }
-    }
-  }
-
-  println();
-
-  std::string message =
-      adopt_from_gr
-          ? "Cluster successfully created based on existing "
-            "replication group."
-          : "Cluster successfully created. Use Cluster." +
-                get_member_name("addInstance", naming_style) +
-                "() to add MySQL instances.\n"
-                "At least 3 instances are needed for the cluster to be "
-                "able to withstand up to\n"
-                "one server failure.";
-
-  println(message);
-  println();
-
-  // Returns an interactive wrapper of this instance
-  Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core);
-  cluster->set_target(dba_cluster);
-  ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-
-  member_session->close();
-
   return ret_val;
 }
 

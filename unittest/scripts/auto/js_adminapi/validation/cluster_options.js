@@ -1510,10 +1510,10 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
             }
         }
     }
@@ -1574,10 +1574,10 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' (111)"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
             }
         }
     }

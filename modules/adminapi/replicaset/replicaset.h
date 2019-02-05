@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -61,8 +62,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
              const std::string &group_name,
              std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
-
-  static std::set<std::string> _rejoin_instance_opts;
 
   std::string class_name() const override { return "ReplicaSet"; }
   std::string &append_descr(std::string &s_out, int indent = -1,
@@ -158,13 +157,19 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
-  shcore::Value add_instance(
+
+  shcore::Value add_instance_(
       const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Argument_list &args,
+      const shcore::Dictionary_t &options);
+
+  shcore::Value add_instance(
+      const mysqlshdk::utils::nullable<std::string> &instance_label,
+      mysqlshdk::mysql::IInstance *target_instance,
+      const Group_replication_options &gr_options,
       const std::string &existing_replication_user = "",
       const std::string &existing_replication_password = "",
-      bool overwrite_seed = false, const std::string &group_name = "",
-      bool skip_instance_check = false, bool skip_rpl_user = false);
+      bool overwrite_seed = false, bool skip_instance_check = false,
+      bool skip_rpl_user = false);
 
   shcore::Value check_instance_state(const Connection_options &instance_def);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
@@ -255,24 +260,24 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   // TODO(miguel): add missing fields, rs_type, etc
 
  private:
-  bool do_join_replicaset(
-      const mysqlshdk::db::Connection_options &instance,
-      mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
-      const std::string &repl_user_password, const std::string &ssl_mode,
-      const std::string &ip_whitelist,
-      mysqlshdk::utils::nullable<int64_t> member_weight,
-      mysqlshdk::utils::nullable<int64_t> expel_timeout,
-      mysqlshdk::utils::nullable<uint64_t> replicaset_count,
-      const std::string &group_name = "", const std::string &local_address = "",
-      const std::string &group_seeds = "",
-      const std::string &exit_state_action = "",
-      const std::string &failover_consistency = "", bool skip_rpl_user = false);
+  bool do_join_replicaset(const mysqlshdk::db::Connection_options &instance,
+                          mysqlshdk::db::Connection_options *peer,
+                          const std::string &repl_user,
+                          const std::string &repl_user_password,
+                          bool skip_rpl_user,
+                          mysqlshdk::utils::nullable<uint64_t> replicaset_count,
+                          const Group_replication_options &gr_options);
 
   void validate_instance_address(
       std::shared_ptr<mysqlshdk::db::ISession> session,
       const std::string &hostname, int port);
   void validate_server_uuid(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session);
+
+  void query_group_wide_option_values(
+      mysqlshdk::mysql::IInstance *target_instance,
+      mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
+      mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout);
 
   std::string get_cluster_group_seeds(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);

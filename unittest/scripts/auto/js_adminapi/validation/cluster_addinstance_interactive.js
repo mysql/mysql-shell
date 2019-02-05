@@ -30,7 +30,7 @@
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
-||Option 'memberWeight' Integer expected, but Float value is out of range (TypeError)
+||Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
 //@ WL#11032: Add instance using a valid memberWeight (integer) {VER(>=5.7.20)}
 ||

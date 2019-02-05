@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -292,14 +292,14 @@ void Configure_instance::create_admin_user() {
         log_info("Cloning current user account %s@%s as %s",
                  m_current_user.c_str(), m_current_host.c_str(),
                  m_cluster_admin.c_str());
-        mysqlshdk::mysql::clone_user(m_target_instance->get_session(),
-                                     m_current_user, m_current_host, admin_user,
-                                     admin_user_host, m_cluster_admin_password);
+        mysqlshdk::mysql::clone_user(
+            m_target_instance->get_session(), m_current_user, m_current_host,
+            admin_user, admin_user_host, *m_cluster_admin_password);
       } else {
         log_info("Creating new cluster admin account %s",
                  m_cluster_admin.c_str());
         create_cluster_admin_user(m_target_instance->get_session(),
-                                  m_cluster_admin, m_cluster_admin_password);
+                                  m_cluster_admin, *m_cluster_admin_password);
       }
     } catch (shcore::Exception &err) {
       std::string error_msg = "Error creating clusterAdmin account: '" +

@@ -8,7 +8,7 @@
 ||Invalid connection options, no options provided. (ArgumentError)
 
 //@ checkInstanceState: unreachable instance
-|ERROR: Failed to connect to instance: Can't connect to MySQL server on 'localhost' (111)|Cluster.checkInstanceState: The instance 'localhost:11111' is not reachable. (RuntimeError)
+|ERROR: Failed to connect to instance: Can't connect to MySQL server on 'localhost' |Cluster.checkInstanceState: The instance 'localhost:11111' is not reachable. (RuntimeError)
 
 //@<ERR> checkInstanceState: cluster member
 Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'. (RuntimeError)

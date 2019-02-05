@@ -183,6 +183,13 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
                                  const shcore::Argument_list &args);
 
   void prepare_metadata_schema(mysqlshdk::mysql::Instance *metadata_target);
+
+  void check_create_cluster_options(
+      bool interactive, const mysqlsh::dba::Cluster_check_info &check_state,
+      shcore::Dictionary_t options, bool *force, bool *adopt_from_gr);
+
+  bool prompt_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
+                              const shcore::Value::Map_type_ref &options);
 };
 }  // namespace dba
 }  // namespace mysqlsh

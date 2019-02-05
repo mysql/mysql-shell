@@ -187,9 +187,6 @@ std::string get_mysqlprovision_error_string(
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
-extern const std::set<std::string> kMemberSSLModeValues;
-
-void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 
 /**
  * Converts an ipWhitelist to a list of addresses using the netmask notation
@@ -210,14 +207,13 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
  * Check if a group_replication setting is supported on the target
  * instance
  *
- * @param session object which represents the session to the instance
+ * @param version MySQL version of the target instance
  * @param option the name of the option as defined in the AdminAPI.
  * @return Boolean indicating if the target instance supports the option.
  *
  */
 bool is_group_replication_option_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &option);
+    const mysqlshdk::utils::Version &version, const std::string &option);
 
 /**
  * Validates the ipWhitelist option
@@ -240,19 +236,6 @@ bool is_group_replication_option_supported(
 void validate_ip_whitelist_option(const std::string &ip_whitelist,
                                   bool hostnames_supported = false);
 
-void validate_local_address_option(const shcore::Value::Map_type_ref &options);
-void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
-void validate_group_name_option(const shcore::Value::Map_type_ref &options);
-void validate_exit_state_action_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
-void validate_failover_consistency_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const mysqlshdk::utils::nullable<std::string> &failover_consistency);
-void validate_expel_timeout_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout);
-void validate_member_weight_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_replication_filters(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 std::pair<int, int> find_cluster_admin_accounts(

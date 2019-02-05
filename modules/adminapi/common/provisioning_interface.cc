@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -439,13 +439,8 @@ int ProvisioningInterface::start_sandbox(
 int ProvisioningInterface::start_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     const std::string &repl_user, const std::string &repl_user_password,
-    bool multi_primary, const std::string &ssl_mode,
-    const std::string &ip_whitelist, const std::string &group_name,
-    const std::string &gr_local_address, const std::string &gr_group_seeds,
-    const std::string &gr_exit_state_action,
-    const mysqlshdk::utils::nullable<int64_t> &member_weight,
-    const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
-    const std::string &failover_consistency, bool skip_rpl_user,
+    bool multi_primary, const Group_replication_options &gr_options,
+    bool skip_rpl_user,
     const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
@@ -468,32 +463,33 @@ int ProvisioningInterface::start_replicaset(
   if (multi_primary) {
     kwargs["single_primary"] = shcore::Value("OFF");
   }
-  if (!ssl_mode.empty()) {
-    kwargs["ssl_mode"] = shcore::Value(ssl_mode);
+  if (!gr_options.ssl_mode.is_null()) {
+    kwargs["ssl_mode"] = shcore::Value(*gr_options.ssl_mode);
   }
-  if (!ip_whitelist.empty()) {
-    kwargs["ip_whitelist"] = shcore::Value(ip_whitelist);
+  if (!gr_options.ip_whitelist.is_null()) {
+    kwargs["ip_whitelist"] = shcore::Value(*gr_options.ip_whitelist);
   }
-  if (!group_name.empty()) {
-    kwargs["group_name"] = shcore::Value(group_name);
+  if (!gr_options.group_name.is_null()) {
+    kwargs["group_name"] = shcore::Value(*gr_options.group_name);
   }
-  if (!gr_local_address.empty()) {
-    kwargs["gr_address"] = shcore::Value(gr_local_address);
+  if (!gr_options.local_address.is_null()) {
+    kwargs["gr_address"] = shcore::Value(*gr_options.local_address);
   }
-  if (!gr_group_seeds.empty()) {
-    kwargs["group_seeds"] = shcore::Value(gr_group_seeds);
+  if (!gr_options.group_seeds.is_null()) {
+    kwargs["group_seeds"] = shcore::Value(*gr_options.group_seeds);
   }
-  if (!gr_exit_state_action.empty()) {
-    kwargs["exit_state_action"] = shcore::Value(gr_exit_state_action);
+  if (!gr_options.exit_state_action.is_null()) {
+    kwargs["exit_state_action"] = shcore::Value(*gr_options.exit_state_action);
   }
-  if (!member_weight.is_null()) {
-    kwargs["member_weight"] = shcore::Value(*member_weight);
+  if (!gr_options.member_weight.is_null()) {
+    kwargs["member_weight"] = shcore::Value(*gr_options.member_weight);
   }
-  if (!failover_consistency.empty()) {
-    kwargs["failover_consistency"] = shcore::Value(failover_consistency);
+  if (!gr_options.failover_consistency.is_null()) {
+    kwargs["failover_consistency"] =
+        shcore::Value(*gr_options.failover_consistency);
   }
-  if (!expel_timeout.is_null()) {
-    kwargs["expel_timeout"] = shcore::Value(*expel_timeout);
+  if (!gr_options.expel_timeout.is_null()) {
+    kwargs["expel_timeout"] = shcore::Value(*gr_options.expel_timeout);
   }
 
   if (!replicaset_count.is_null()) {
@@ -507,12 +503,8 @@ int ProvisioningInterface::start_replicaset(
 int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
-    const std::string &repl_user_password, const std::string &ssl_mode,
-    const std::string &ip_whitelist, const std::string &gr_local_address,
-    const std::string &gr_group_seeds, const std::string &gr_exit_state_action,
-    const mysqlshdk::utils::nullable<int64_t> &member_weight,
-    const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
-    const std::string &failover_consistency, bool skip_rpl_user,
+    const std::string &repl_user_password,
+    const Group_replication_options &gr_options, bool skip_rpl_user,
     const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
@@ -533,18 +525,18 @@ int ProvisioningInterface::join_replicaset(
     kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
     kwargs["replication_user"] = shcore::Value(repl_user);
   }
-  if (!ssl_mode.empty()) {
-    kwargs["ssl_mode"] = shcore::Value(ssl_mode);
+  if (!gr_options.ssl_mode.is_null()) {
+    kwargs["ssl_mode"] = shcore::Value(*gr_options.ssl_mode);
   }
-  if (!ip_whitelist.empty()) {
-    kwargs["ip_whitelist"] = shcore::Value(ip_whitelist);
+  if (!gr_options.ip_whitelist.is_null()) {
+    kwargs["ip_whitelist"] = shcore::Value(*gr_options.ip_whitelist);
   }
 
-  if (!gr_local_address.empty()) {
-    kwargs["gr_address"] = shcore::Value(gr_local_address);
+  if (!gr_options.local_address.is_null()) {
+    kwargs["gr_address"] = shcore::Value(*gr_options.local_address);
   }
-  if (!gr_group_seeds.empty()) {
-    kwargs["group_seeds"] = shcore::Value(gr_group_seeds);
+  if (!gr_options.group_seeds.is_null()) {
+    kwargs["group_seeds"] = shcore::Value(*gr_options.group_seeds);
   }
   if (skip_rpl_user) {
     kwargs["skip_rpl_user"] = shcore::Value::True();
@@ -553,17 +545,18 @@ int ProvisioningInterface::join_replicaset(
       mysqlshdk::utils::Net::is_local_address(instance.get_host())) {
     kwargs["target_is_local"] = shcore::Value::True();
   }
-  if (!gr_exit_state_action.empty()) {
-    kwargs["exit_state_action"] = shcore::Value(gr_exit_state_action);
+  if (!gr_options.exit_state_action.is_null()) {
+    kwargs["exit_state_action"] = shcore::Value(*gr_options.exit_state_action);
   }
-  if (!member_weight.is_null()) {
-    kwargs["member_weight"] = shcore::Value(*member_weight);
+  if (!gr_options.member_weight.is_null()) {
+    kwargs["member_weight"] = shcore::Value(*gr_options.member_weight);
   }
-  if (!failover_consistency.empty()) {
-    kwargs["failover_consistency"] = shcore::Value(failover_consistency);
+  if (!gr_options.failover_consistency.is_null()) {
+    kwargs["failover_consistency"] =
+        shcore::Value(*gr_options.failover_consistency);
   }
-  if (!expel_timeout.is_null()) {
-    kwargs["expel_timeout"] = shcore::Value(*expel_timeout);
+  if (!gr_options.expel_timeout.is_null()) {
+    kwargs["expel_timeout"] = shcore::Value(*gr_options.expel_timeout);
   }
 
   if (!replicaset_count.is_null()) {

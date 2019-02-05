@@ -164,7 +164,7 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session) {
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
   log_info("Validating InnoDB page size of instance '%s'.",
            instance->descr().c_str());
-  std::string page_size = instance->get_sysvar_string(
+  std::string page_size = *instance->get_sysvar_string(
       "innodb_page_size", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
   auto console = mysqlsh::current_console();

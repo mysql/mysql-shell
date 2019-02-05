@@ -22,6 +22,7 @@ session.runSql('STOP GROUP_REPLICATION');
 var result = session.runSql('SELECT @@group_replication_local_address');
 var row = result.fetchOne();
 var __seed_init_gr_seed = row[0];
+print(row[0] + "\n");
 session.runSql("SET GLOBAL group_replication_group_seeds = '"+__seed_init_gr_seed+"'");
 
 //@ Connect to another member and get the cluster.

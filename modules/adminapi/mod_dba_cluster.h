@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
@@ -154,11 +155,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
     _provisioning_interface = provisioning_interface;
   }
 
-  shcore::Value add_seed_instance(
-      const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Argument_list &args, bool multi_primary, bool is_adopted,
-      const std::string &replication_user, const std::string &replication_pwd,
-      const std::string &group_name);
+  shcore::Value add_seed_instance(mysqlshdk::mysql::IInstance *target_instance,
+                                  const Group_replication_options &gr_options,
+                                  bool multi_primary, bool is_adopted,
+                                  const std::string &replication_user,
+                                  const std::string &replication_pwd);
 
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
     return _group_session;
@@ -251,6 +252,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void init();
 
  private:
+  friend class Dba;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   void set_account_data(const std::string &account, const std::string &key,

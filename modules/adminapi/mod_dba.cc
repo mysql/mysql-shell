@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -799,6 +800,10 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3,
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4,
               "@li force: boolean, confirms that the multiPrimary option must "
               "be applied.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4_,
+              "@li interactive: boolean value used to disable the wizards in "
+              "the command execution, i.e. prompts are not provided to the "
+              "user and confirmation prompts are not shown.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5,
               "@li adoptFromGR: boolean value used "
               "to create the InnoDB cluster based "
@@ -953,6 +958,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL36, "${CLUSTER_OPT_EXPELTIMEOUT_EXTRA}");
  * $(DBA_CREATECLUSTER_DETAIL2)
  * $(DBA_CREATECLUSTER_DETAIL3)
  * $(DBA_CREATECLUSTER_DETAIL4)
+ * $(DBA_CREATECLUSTER_DETAIL4_)
  * $(DBA_CREATECLUSTER_DETAIL5)
  * $(DBA_CREATECLUSTER_DETAIL6)
  * $(DBA_CREATECLUSTER_DETAIL7)
@@ -1006,8 +1012,6 @@ Cluster Dba::create_cluster(str name, dict options) {}
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
-  Cluster_check_info state;
-
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<mysqlshdk::db::ISession> group_session;
 
@@ -1018,6 +1022,58 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   // outside the managed cluster, then this will have to be updated.
   connect_to_target_group({}, &metadata, &group_session, false);
 
+  mysqlshdk::mysql::Instance target_instance(group_session);
+  target_instance.cache_global_sysvars();
+
+  // Available options
+  shcore::Value ret_val;
+
+  Group_replication_options gr_options(Group_replication_options::CREATE);
+
+  std::string replication_user;
+  std::string replication_pwd;
+
+  auto console = mysqlsh::current_console();
+  bool adopt_from_gr = false;
+  bool multi_primary = false;  // Default single/primary master
+  bool force = false;
+  mysqlshdk::utils::nullable<bool> clear_read_only;
+  bool interactive = current_shell_options()->get().wizards;
+  std::string cluster_name;
+
+  shcore::Dictionary_t options;
+
+  try {
+    // Parse and check user options
+
+    cluster_name = args.string_at(0);
+
+    // Validate the cluster_name
+    mysqlsh::dba::validate_cluster_name(cluster_name);
+
+    if (args.size() > 1) {
+      // Map with the options
+      options = args.map_at(1);
+    } else {
+      options = shcore::make_dict();
+    }
+
+    Unpack_options(options)
+        .unpack(&gr_options)
+        .optional("multiPrimary", &multi_primary)
+        .optional("multiMaster", &multi_primary)
+        .optional("force", &force)
+        .optional("adoptFromGR", &adopt_from_gr)
+        .optional("clearReadOnly", &clear_read_only)
+        .optional("interactive", &interactive)
+        .end();
+
+    // Validate values given for GR options
+    gr_options.check_option_values(target_instance.get_version());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+
+  Cluster_check_info state;
   try {
     state = check_preconditions(group_session, "createCluster");
   } catch (shcore::Exception &e) {
@@ -1046,165 +1102,19 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         dberr.what(), dberr.code(), dberr.sqlstate());
   }
 
-  // Available options
-  shcore::Value ret_val;
-  // SSL values are only set if available from args.
-  std::string ssl_mode, group_name, local_address, group_seeds,
-      exit_state_action;
-  mysqlshdk::utils::nullable<std::string> failover_consistency;
-  mysqlshdk::utils::nullable<int64_t> member_weight, expel_timeout;
-
-  std::string replication_user;
-  std::string replication_pwd;
-  std::string ip_whitelist;
-
-  auto console = mysqlsh::current_console();
-
+  std::shared_ptr<Cluster> cluster;
   try {
-    bool multi_primary = false;  // Default single/primary master
-    bool adopt_from_gr = false;
-    bool force = false;
-    bool clear_read_only = false;
+    console->println(
+        std::string{"A new InnoDB cluster will be created"} +
+        (adopt_from_gr ? " based on the existing replication group" : "") +
+        " on instance '" +
+        group_session->uri(
+            mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+        "'.\n");
 
-    std::string cluster_name = args.string_at(0);
-
-    // Validate the cluster_name
-    mysqlsh::dba::validate_cluster_name(cluster_name);
-
-    if (args.size() > 1) {
-      // Handle the deprecation of multiMaster first
-
-      // Map with the options
-      shcore::Value::Map_type_ref options = args.map_at(1);
-
-      // Retrieves optional options if exists
-      Unpack_options(options)
-          .optional("multiPrimary", &multi_primary)
-          .optional("multiMaster", &multi_primary)
-          .optional("force", &force)
-          .optional("adoptFromGR", &adopt_from_gr)
-          .optional("memberSslMode", &ssl_mode)
-          .optional("clearReadOnly", &clear_read_only)
-          .optional("ipWhitelist", &ip_whitelist)
-          .optional("groupName", &group_name)
-          .optional("localAddress", &local_address)
-          .optional("groupSeeds", &group_seeds)
-          .optional("exitStateAction", &exit_state_action)
-          .optional_exact("memberWeight", &member_weight)
-          .optional("failoverConsistency", &failover_consistency)
-          .optional_exact("expelTimeout", &expel_timeout)
-          .end();
-
-      // Verification of invalid attributes on the instance creation options
-      shcore::Argument_map opt_map(*options);
-
-      if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
-        throw shcore::Exception::argument_error(
-            "Cannot use the multiMaster and multiPrimary options "
-            "simultaneously. The multiMaster option is deprecated, please use "
-            "the multiPrimary option instead.");
-
-      if (opt_map.has_key("multiMaster")) {
-        std::string warn_msg =
-            "The multiMaster option is deprecated. "
-            "Please use the multiPrimary option instead.";
-        console->print_warning(warn_msg);
-        console->println();
-      }
-
-      if (!ip_whitelist.empty()) {
-        // if the ipWhitelist option was provided, we know it is a valid value
-        // since we've already done the validation above.
-        bool hostnames_supported = false;
-
-        // Validate ip whitelist option
-        if (group_session->get_server_version() >=
-            mysqlshdk::utils::Version(8, 0, 4)) {
-          hostnames_supported = true;
-        }
-
-        validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
-      }
-
-      // Validate SSL options for the cluster instance
-      validate_ssl_instance_options(options);
-
-      // Validate group name option
-      validate_group_name_option(options);
-
-      // Validate local address option (group_replication_local_address)
-      validate_local_address_option(options);
-
-      // Validate group seeds option
-      validate_group_seeds_option(options);
-
-      // Validate if the exitStateAction option is supported on the target
-      // instance and if is not empty.
-      // The validation for the value set is handled at the group-replication
-      // level
-      if (options->has_key("exitStateAction")) {
-        if (shcore::str_strip(exit_state_action).empty())
-          throw shcore::Exception::argument_error(
-              "Invalid value for exitStateAction, string value cannot be "
-              "empty.");
-
-        validate_exit_state_action_supported(group_session);
-      }
-
-      // Validate if the memberWeight option is supported on the target
-      // instance and if it used in the optional parameters.
-      // The validation for the value set is handled at the group-replication
-      // level
-      if (!member_weight.is_null())
-        validate_member_weight_supported(group_session);
-
-      // Validate if the failoverConsistency option is supported on the target
-      // instance and if is not empty.
-      // The validation for the value set is handled at the group-replication
-      // level
-      validate_failover_consistency_supported(group_session,
-                                              failover_consistency);
-
-      // Validate if the expelTimeout option is supported on the target
-      // instance and if it is within the valid range [0, 3600].
-      validate_expel_timeout_supported(group_session, expel_timeout);
-
-      if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiPrimary option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
-      }
-
-      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiMaster option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
-      }
-    }
-
-    // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
-    // - exitStateAction default value must be READ_ONLY
-    // - exitStateAction default value should only be set if supported in
-    // the target instance
-    if (exit_state_action.empty() && is_group_replication_option_supported(
-                                         group_session, kExitStateAction)) {
-      exit_state_action = "READ_ONLY";
-    }
-
-    if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
-      throw shcore::Exception::argument_error(
-          "Creating a cluster on an unmanaged replication group requires "
-          "adoptFromGR option to be true");
-
-    if (adopt_from_gr && state.source_type != GRInstanceType::GroupReplication)
-      throw shcore::Exception::argument_error(
-          "The adoptFromGR option is set to true, but there is no replication "
-          "group to adopt");
-
-    mysqlshdk::mysql::Instance target_instance(group_session);
-    target_instance.cache_global_sysvars();
+    // Verification of invalid attributes on the instance creation options
+    check_create_cluster_options(interactive, state, options, &force,
+                                 &adopt_from_gr);
 
     if (!adopt_from_gr) {
       // Check instance configuration and state, like dba.checkInstance
@@ -1217,13 +1127,26 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     console->println("Creating InnoDB cluster '" + cluster_name + "' on '" +
                      group_session->uri(
                          mysqlshdk::db::uri::formats::no_scheme_no_password()) +
-                     "'...");
+                     "'...\n");
 
+    // Verify the status of super_read_only and ask the user if wants
+    // to disable it
+    // NOTE: this is left for last to avoid setting super_read_only to true
+    // and right before some execution failure of the command leaving the
+    // instance in an incorrect state
+    if (interactive && clear_read_only.is_null()) {
+      if (prompt_super_read_only(group_session, options)) {
+        clear_read_only = true;
+      } else {
+        throw shcore::cancelled("Cancelled");
+      }
+    }
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(group_session, clear_read_only);
+    validate_super_read_only(
+        group_session, clear_read_only.is_null() ? false : *clear_read_only);
 
     // Check replication filters before creating the Metadata.
     validate_replication_filters(group_session);
@@ -1237,15 +1160,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Creates the replication account to for the primary instance
       mysqlshdk::gr::create_replication_random_user_pass(
           target_instance, &replication_user,
-          convert_ipwhitelist_to_netmask(ip_whitelist), &replication_pwd);
+          convert_ipwhitelist_to_netmask(gr_options.ip_whitelist.get_safe()),
+          &replication_pwd);
 
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
 
     MetadataStorage::Transaction tx(metadata);
 
-    std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, group_session, metadata));
+    cluster.reset(new Cluster(cluster_name, group_session, metadata));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -1268,65 +1191,21 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         multi_primary = row->get_int(0) == 0;
       }
     }
-
-    shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
-    shcore::Argument_list new_args;
-
-    auto instance_def = group_session->get_connection_options();
-
-    // Only set SSL option if available from createCluster options (not empty).
-    // Do not set default values to avoid validation issues for addInstance.
-    if (!ssl_mode.empty())
-      (*options)["memberSslMode"] = shcore::Value(ssl_mode);
-
-    // Set IP whitelist
-    if (!ip_whitelist.empty())
-      (*options)["ipWhitelist"] = shcore::Value(ip_whitelist);
-
-    // Set local address
-    if (!local_address.empty())
-      (*options)["localAddress"] = shcore::Value(local_address);
-
-    // Set group seeds
-    if (!group_seeds.empty())
-      (*options)["groupSeeds"] = shcore::Value(group_seeds);
-
-    // Set exitStateAction
-    if (!exit_state_action.empty())
-      (*options)["exitStateAction"] = shcore::Value(exit_state_action);
-
-    // Set memberWeight
-    if (!member_weight.is_null())
-      (*options)["memberWeight"] = shcore::Value(*member_weight);
-
-    // Set failoverConsistency
-    if (!failover_consistency.is_null())
-      (*options)["failoverConsistency"] = shcore::Value(*failover_consistency);
-
-    // Set expelTimeout
-    if (!expel_timeout.is_null())
-      (*options)["expelTimeout"] = shcore::Value(*expel_timeout);
-
-    new_args.push_back(shcore::Value(options));
-
-    if (multi_primary && !force) {
-      throw shcore::Exception::argument_error(
-          "Use of multiPrimary mode is not recommended unless you understand "
-          "the limitations. Please use the 'force' option if you understand "
-          "and accept them.");
-    }
-    if (multi_primary) {
+    if (multi_primary && !adopt_from_gr) {
       log_info(
           "The MySQL InnoDB cluster is going to be setup in advanced "
           "Multi-Primary Mode. Consult its requirements and limitations in "
           "https://dev.mysql.com/doc/refman/en/"
           "group-replication-limitations.html");
     }
-    cluster->add_seed_instance(instance_def, new_args, multi_primary,
-                               adopt_from_gr, replication_user, replication_pwd,
-                               group_name);
+    console->println("Adding Seed Instance...");
+    cluster->add_seed_instance(&target_instance, gr_options, multi_primary,
+                               adopt_from_gr, replication_user,
+                               replication_pwd);
 
-    if (adopt_from_gr) cluster->get_default_replicaset()->adopt_from_gr();
+    if (adopt_from_gr) {
+      cluster->get_default_replicaset()->adopt_from_gr();
+    }
 
     // If it reaches here, it means there are no exceptions
     ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(cluster));
@@ -1347,7 +1226,184 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     throw;
   }
 
+  std::string message =
+      adopt_from_gr
+          ? "Cluster successfully created based on existing "
+            "replication group."
+          : "Cluster successfully created. Use Cluster." +
+                get_member_name("addInstance", naming_style) +
+                "() to add MySQL instances.\n"
+                "At least 3 instances are needed for the cluster to be "
+                "able to withstand up to\n"
+                "one server failure.";
+
+  console->println(message);
+  console->println();
+
   return ret_val;
+}
+
+void Dba::check_create_cluster_options(
+    bool interactive, const mysqlsh::dba::Cluster_check_info &check_state,
+    shcore::Dictionary_t options, bool *force, bool *adopt_from_gr) {
+  shcore::Argument_map opt_map(*options);
+  auto console = mysqlsh::current_console();
+  bool multi_primary = false;
+
+  if (options->has_key("multiMaster")) {
+    std::string warn_msg =
+        "The multiMaster option is deprecated. "
+        "Please use the multiPrimary option instead.";
+    console->print_warning(warn_msg);
+    multi_primary = true;
+  }
+  if (options->has_key("multiPrimary")) {
+    multi_primary = true;
+  }
+
+  if (check_state.source_type ==
+          mysqlsh::dba::GRInstanceType::GroupReplication &&
+      !*adopt_from_gr) {
+    if (interactive) {
+      if (console->confirm(
+              "You are connected to an instance that belongs to an unmanaged "
+              "replication group.\nDo you want to setup an InnoDB cluster "
+              "based on this replication group?",
+              mysqlsh::Prompt_answer::YES) == mysqlsh::Prompt_answer::YES) {
+        *adopt_from_gr = true;
+      }
+    }
+    if (!*adopt_from_gr)
+      throw shcore::Exception::argument_error(
+          "Creating a cluster on an unmanaged replication group requires "
+          "adoptFromGR option to be true");
+  }
+
+  if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
+    throw shcore::Exception::argument_error(
+        "Cannot use the multiMaster and multiPrimary options "
+        "simultaneously. The multiMaster option is deprecated, please use "
+        "the multiPrimary option instead.");
+
+  if (*adopt_from_gr && opt_map.has_key("memberSslMode")) {
+    throw shcore::Exception::argument_error(
+        "Cannot use memberSslMode option if adoptFromGR is set to true.");
+  }
+
+  if (*adopt_from_gr && opt_map.has_key("multiPrimary")) {
+    throw shcore::Exception::argument_error(
+        "Cannot use multiPrimary option if adoptFromGR is set to true."
+        " Using adoptFromGR mode will adopt the primary mode in use by the "
+        "Cluster.");
+  }
+
+  if (*adopt_from_gr && opt_map.has_key("multiMaster")) {
+    throw shcore::Exception::argument_error(
+        "Cannot use multiMaster option if adoptFromGR is set to true."
+        " Using adoptFromGR mode will adopt the primary mode in use by the "
+        "Cluster.");
+  }
+
+  if (*adopt_from_gr &&
+      check_state.source_type != GRInstanceType::GroupReplication)
+    throw shcore::Exception::argument_error(
+        "The adoptFromGR option is set to true, but there is no replication "
+        "group to adopt");
+
+  if (!*adopt_from_gr && multi_primary && !*force) {
+    if (interactive) {
+      console->println(
+          "The MySQL InnoDB cluster is going to be setup in advanced "
+          "Multi-Primary Mode.\n"
+          "Before continuing you have to confirm that you understand the "
+          "requirements and\n"
+          "limitations of Multi-Primary Mode. For more information see\n"
+          "https://dev.mysql.com/doc/refman/en/"
+          "group-replication-limitations.html\n"
+          "before proceeding.\n"
+          "\n");
+
+      console->println(
+          "I have read the MySQL InnoDB cluster manual and I understand the "
+          "requirements\n"
+          "and limitations of advanced Multi-Primary Mode.");
+      if (console->confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
+          mysqlsh::Prompt_answer::NO) {
+        console->println();
+        throw shcore::cancelled("Cancelled");
+      } else {
+        console->println();
+        *force = true;
+      }
+    } else {
+      throw shcore::Exception::argument_error(
+          "Use of multiPrimary mode is not recommended unless you understand "
+          "the limitations. Please use the 'force' option if you understand "
+          "and accept them.");
+    }
+  }
+}
+
+bool Dba::prompt_super_read_only(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const shcore::Value::Map_type_ref &options) {
+  auto console = mysqlsh::current_console();
+  auto options_session = session->get_connection_options();
+  auto active_session_address =
+      options_session.as_uri(mysqlshdk::db::uri::formats::only_transport());
+
+  // Get the status of super_read_only in order to verify if we need to
+  // prompt the user to disable it
+  int super_read_only = 0;
+  mysqlsh::dba::get_server_variable(session, "super_read_only",
+                                    &super_read_only, false);
+
+  if (super_read_only) {
+    console->println(
+        "The MySQL instance at '" + active_session_address +
+        "' "
+        "currently has the super_read_only \nsystem variable set to "
+        "protect it from inadvertent updates from applications. \n"
+        "You must first unset it to be able to perform any changes "
+        "to this instance. \n"
+        "For more information see: https://dev.mysql.com/doc/refman/"
+        "en/server-system-variables.html#sysvar_super_read_only.");
+    console->println();
+
+    // Get the list of open session to the instance
+    std::vector<std::pair<std::string, int>> open_sessions;
+    open_sessions = mysqlsh::dba::get_open_sessions(session);
+
+    if (!open_sessions.empty()) {
+      console->println(
+          "Note: there are open sessions to '" + active_session_address +
+          "'.\n"
+          "You may want to kill these sessions to prevent them from "
+          "performing unexpected updates: \n");
+
+      for (auto &value : open_sessions) {
+        std::string account = value.first;
+        int open_sessions = value.second;
+
+        console->println("" + std::to_string(open_sessions) +
+                         " open session(s) of "
+                         "'" +
+                         account + "'. \n");
+      }
+    }
+
+    if (console->confirm("Do you want to disable super_read_only and continue?",
+                         mysqlsh::Prompt_answer::NO) ==
+        mysqlsh::Prompt_answer::NO) {
+      console->println();
+      return false;
+    } else {
+      (*options)["clearReadOnly"] = shcore::Value(true);
+      console->println();
+      return true;
+    }
+  }
+  return true;
 }
 
 void Dba::prepare_metadata_schema(mysqlshdk::mysql::Instance *metadata_target) {
@@ -2820,6 +2876,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
       get_function_name("rebootClusterFromCompleteOutage"));
 
+  mysqlshdk::mysql::Instance target_instance(group_session);
+
   shcore::Value ret_val;
   std::string instance_session_address;
   shcore::Value::Map_type_ref options;
@@ -3079,31 +3137,27 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // instance in an incorrect state
       validate_super_read_only(group_session, clear_read_only);
 
-      shcore::Argument_list new_args;
+      Group_replication_options gr_options(Group_replication_options::NONE);
 
       // The current 'group_replication_group_name' must be kept otherwise
       // if instances are rejoined later the operation may fail because
       // a new group_name started being used.
       // This must be done before rejoining the instances due to the fixes for
       // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
-      std::string current_group_replication_group_name =
-          default_replicaset->get_group_name();
+      gr_options.group_name = default_replicaset->get_group_name();
       // the previous ssl mode must be preserved
       std::string gr_ssl_mode;
       get_server_variable(group_session, "global.group_replication_ssl_mode",
                           &gr_ssl_mode);
-      shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
-      (*options)["memberSslMode"] = shcore::Value(gr_ssl_mode);
-      new_args.push_back(shcore::Value(options));
+      gr_options.ssl_mode = gr_ssl_mode;
 
       // BUG#27344040: REBOOT CLUSTER SHOULD NOT CREATE NEW USER
       // No new replication user should be created when rebooting a cluster and
       // existing recovery users should be reused. Therefore the boolean to
       // skip replication users is set to true and the respective replication
       // user credentials left empty.
-      default_replicaset->add_instance(
-          current_session_options, new_args, "", "", true,
-          current_group_replication_group_name, true, true);
+      default_replicaset->add_instance({}, &target_instance, gr_options, "", "",
+                                       true, true, true);
     }
 
     // 7. Update the Metadata Schema information

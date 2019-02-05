@@ -117,7 +117,7 @@ utils::nullable<bool> Instance::get_sysvar_bool(
       get_system_variables({name}, scope);
 
   if (variables[name]) {
-    ret_val = sysvar_to_bool(name, variables[name]);
+    ret_val = sysvar_to_bool(name, *variables[name]);
   }
 
   return ret_val;
@@ -135,7 +135,7 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
   auto variables = get_system_variables({name}, scope);
 
   if (variables[name]) {
-    std::string value = variables[name];
+    std::string value = *variables[name];
 
     if (!value.empty()) {
       try {

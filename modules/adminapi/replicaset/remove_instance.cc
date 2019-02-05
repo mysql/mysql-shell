@@ -335,7 +335,7 @@ shcore::Value Remove_instance::execute() {
     try {
       // Get the group_replication_local address value of the instance we will
       // remove from the replicaset (to update remaining members after).
-      std::string local_gr_address = m_target_instance->get_sysvar_string(
+      std::string local_gr_address = *m_target_instance->get_sysvar_string(
           "group_replication_local_address",
           mysqlshdk::mysql::Var_qualifier::GLOBAL);
 

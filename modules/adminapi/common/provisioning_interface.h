@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
@@ -61,25 +62,15 @@ class ProvisioningInterface {
   int start_replicaset(
       const mysqlshdk::db::Connection_options &instance,
       const std::string &repl_user, const std::string &repl_user_password,
-      bool multi_primary, const std::string &ssl_mode,
-      const std::string &ip_whitelist, const std::string &group_name,
-      const std::string &gr_local_address, const std::string &gr_group_seeds,
-      const std::string &gr_exit_state_action,
-      const mysqlshdk::utils::nullable<int64_t> &member_weight,
-      const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
-      const std::string &failover_consistency, bool skip_rpl_user,
+      bool multi_primary, const Group_replication_options &gr_options,
+      bool skip_rpl_user,
       const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
       shcore::Value::Array_type_ref *errors);
   int join_replicaset(
       const mysqlshdk::db::Connection_options &instance,
       const mysqlshdk::db::Connection_options &peer,
       const std::string &repl_user, const std::string &repl_user_password,
-      const std::string &ssl_mode, const std::string &ip_whitelist,
-      const std::string &gr_local_address, const std::string &gr_group_seeds,
-      const std::string &gr_exit_state_action,
-      const mysqlshdk::utils::nullable<int64_t> &member_weight,
-      const mysqlshdk::utils::nullable<int64_t> &expel_timeout,
-      const std::string &failover_consistency, bool skip_rpl_user,
+      const Group_replication_options &gr_options, bool skip_rpl_user,
       const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
       shcore::Value::Array_type_ref *errors);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,7 +101,7 @@ void Prepare_json_import::guess_collection() {
   if (m_collection.is_null()) {
     auto name = target_name_from_path();
     if (!name.is_null()) {
-      this->collection(name);
+      this->collection(*name);
     }
   }
 }
@@ -110,7 +110,7 @@ void Prepare_json_import::guess_table() {
   if (m_table.is_null()) {
     auto name = target_name_from_path();
     if (!name.is_null()) {
-      this->table(name);
+      this->table(*name);
     }
   }
 }
@@ -162,10 +162,10 @@ Json_importer Prepare_json_import::build() {
   }
   if (m_put_to_collection) {
     this->create_default_collection(*m_collection);
-    importer.set_target_collection(m_schema, m_collection);
+    importer.set_target_collection(*m_schema, *m_collection);
   } else {
     this->create_default_table(*m_table, m_column);
-    importer.set_target_table(m_schema, m_table, m_column);
+    importer.set_target_table(*m_schema, *m_table, m_column);
   }
   return importer;
 }

@@ -96,36 +96,6 @@ std::string get_mysqlprovision_error_string(
   return shcore::str_join(str_errors, "\n");
 }
 
-const char *kMemberSSLModeAuto = "AUTO";
-const char *kMemberSSLModeRequired = "REQUIRED";
-const char *kMemberSSLModeDisabled = "DISABLED";
-const std::set<std::string> kMemberSSLModeValues = {
-    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired};
-
-void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
-  // Validate use of SSL options for the cluster instance and issue an
-  // exception if invalid.
-  shcore::Argument_map opt_map(*options);
-  if (opt_map.has_key("adoptFromGR")) {
-    bool adopt_from_gr = opt_map.bool_at("adoptFromGR");
-    if (adopt_from_gr && (opt_map.has_key("memberSslMode")))
-      throw shcore::Exception::argument_error(
-          "Cannot use memberSslMode option if adoptFromGR is set to true.");
-  }
-
-  if (opt_map.has_key("memberSslMode")) {
-    std::string ssl_mode = opt_map.string_at("memberSslMode");
-    ssl_mode = shcore::str_upper(ssl_mode);
-    if (kMemberSSLModeValues.count(ssl_mode) == 0) {
-      std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
-      throw shcore::Exception::argument_error(
-          "Invalid value for memberSslMode option. "
-          "Supported values: " +
-          valid_values + ".");
-    }
-  }
-}
-
 std::vector<std::string> convert_ipwhitelist_to_netmask(
     const std::vector<std::string> &ip_whitelist) {
   std::vector<std::string> ret;
@@ -147,9 +117,7 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
 }
 
 bool is_group_replication_option_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &option) {
-  auto version = session->get_server_version();
+    const mysqlshdk::utils::Version &version, const std::string &option) {
   Option_availability opt_avail = k_global_supported_options.at(option);
   if (version.get_major() == 8) {
     // 8.0 server
@@ -170,240 +138,6 @@ bool is_group_replication_option_supported(
     throw std::runtime_error(
         "Unexpected version found for GR option support check: '" +
         version.get_full() + "'.");
-  }
-}
-
-void validate_ip_whitelist_option(const std::string &ip_whitelist,
-                                  bool hostnames_supported) {
-  // Validate if the ipWhiteList value is not empty
-  if (shcore::str_strip(ip_whitelist).empty())
-    throw shcore::Exception::argument_error(
-        "Invalid value for ipWhitelist: string value cannot be empty.");
-
-  // Iterate over the ipWhitelist values
-  std::vector<std::string> ip_whitelist_list =
-      shcore::str_split(ip_whitelist, ",", -1);
-
-  for (std::string value : ip_whitelist_list) {
-    // Strip any blank chars from the ip_whitelist value
-    value = shcore::str_strip(value);
-    std::string full_value = value;
-
-    // Check if a subnet using CIDR notation was used and validate its value
-    // and separate the address
-    //
-    // CIDR notation is a compact representation of an IP address and its
-    // associated routing prefix. The notation is constructed from an IP
-    // address, a slash ('/') character, and a decimal number. The number is the
-    // count of leading 1 bits in the routing mask, traditionally called the
-    // network mask. The IP address is expressed according to the standards of
-    // IPv4 or IPv6.
-
-    int cidr = 0;
-    if (mysqlshdk::utils::Net::strip_cidr(&value, &cidr)) {
-      if ((cidr < 1) || (cidr > 32))
-        throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + full_value +
-            "': subnet value "
-            "in CIDR notation is not valid.");
-
-      // Check if value is an hostname: hostname/cidr is not allowed
-      if (!mysqlshdk::utils::Net::is_ipv4(value))
-        throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + full_value +
-            "': CIDR "
-            "notation can only be used with IPv4 addresses.");
-    }
-
-    // Check if the ipWhiteList option is IPv6
-    if (mysqlshdk::utils::Net::is_ipv6(value))
-      throw shcore::Exception::argument_error(
-          "Invalid value for ipWhitelist '" + value +
-          "': IPv6 not "
-          "supported.");
-
-    // Validate if the ipWhiteList option is IPv4
-    if (!mysqlshdk::utils::Net::is_ipv4(value)) {
-      // group_replication_ip_whitelist only support hostnames in server
-      // >= 8.0.4
-      if (hostnames_supported) {
-        try {
-          mysqlshdk::utils::Net::resolve_hostname_ipv4(value);
-        } catch (mysqlshdk::utils::net_error &error) {
-          throw shcore::Exception::argument_error(
-              "Invalid value for ipWhitelist '" + value +
-              "': address does "
-              "not resolve to a valid IPv4 address.");
-        }
-      } else {
-        throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + value +
-            "': string value is "
-            "not a valid IPv4 address.");
-      }
-    }
-  }
-}
-
-/**
- * Validate the value specified for the localAddress option.
- *
- * @param options Map type value with containing the specified options.
- * @throw ArgumentError if the value is empty or no host and port is specified
- *        (i.e., value is ":").
- */
-void validate_local_address_option(const shcore::Value::Map_type_ref &options) {
-  // Minimal validation is performed here, the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
-  // set the host and port when not specified).
-  shcore::Argument_map opt_map(*options);
-  if (opt_map.has_key("localAddress")) {
-    std::string local_address = opt_map.string_at("localAddress");
-    local_address = shcore::str_strip(local_address);
-    if (local_address.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for localAddress, string value cannot be empty.");
-    if (local_address.compare(":") == 0)
-      throw shcore::Exception::argument_error(
-          "Invalid value for localAddress. If ':' is specified then at least a "
-          "non-empty host or port must be specified: '<host>:<port>' or "
-          "'<host>:' or ':<port>'.");
-  }
-}
-
-/**
- * Validate the value specified for the groupSeeds option.
- *
- * @param options Map type value with containing the specified options.
- * @throw ArgumentError if the value is empty.
- */
-void validate_group_seeds_option(const shcore::Value::Map_type_ref &options) {
-  // Minimal validation is performed here the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
-  // set the group seeds when not specified)
-  shcore::Argument_map opt_map(*options);
-  if (opt_map.has_key("groupSeeds")) {
-    std::string group_seeds = opt_map.string_at("groupSeeds");
-    group_seeds = shcore::str_strip(group_seeds);
-    if (group_seeds.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for groupSeeds, string value cannot be empty.");
-  }
-}
-
-/**
- * Validate the value specified for the groupName option.
- *
- * @param options Map type value with containing the specified options.
- * @throw ArgumentError if the value is empty.
- */
-void validate_group_name_option(const shcore::Value::Map_type_ref &options) {
-  // Minimal validation is performed here, the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
-  // set the group name when not specified)
-  shcore::Argument_map opt_map(*options);
-  if (opt_map.has_key("groupName")) {
-    std::string group_name = opt_map.string_at("groupName");
-    group_name = shcore::str_strip(group_name);
-    if (group_name.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for groupName, string value cannot be empty.");
-  }
-}
-
-/**
- * Validate the value specified for the exitStateAction option is supported on
- * the target instance
- *
- * @param session object which represents the session to the instance
- * @throw RuntimeError if the value is not supported on the target instance
- */
-void validate_exit_state_action_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  auto version = session->get_server_version();
-
-  if (!is_group_replication_option_supported(session, kExitStateAction)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'exitStateAction' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
-  }
-}
-
-/**
- * Validate if the failoverConsistency option is supported the target instance
- * version. The actual value is validated by the GR plugin.
- *
- * @param session object which represents the session to the instance
- * @throw RuntimeError if the value is not supported on the target instance
- * @throw argument_error if the value provided is empty
- */
-void validate_failover_consistency_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const mysqlshdk::utils::nullable<std::string> &failover_consistency) {
-  if (!failover_consistency.is_null()) {
-    if (shcore::str_strip(*failover_consistency).empty()) {
-      throw shcore::Exception::argument_error(
-          "Invalid value for failoverConsistency, string value cannot be "
-          "empty.");
-    }
-    auto version = session->get_server_version();
-    if (!is_group_replication_option_supported(session, kFailoverConsistency)) {
-      throw std::runtime_error(
-          "Option 'failoverConsistency' not supported on target server "
-          "version: '" +
-          version.get_full() + "'");
-    }
-  }
-}
-
-/**
- * Validate if the expelTimeout option is supported in the target instance
- * version and within the accepted range. The actual value is validated by
- * the GR plugin.
- *
- * @param session object which represents the session to the instance
- * @param expel_timeout nullable object with the value of expelTimeout
- * @throw RuntimeError if the value is not supported on the target instance
- * @throw argument_error if the value provided not within the valid range.
- */
-void validate_expel_timeout_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout) {
-  if (!expel_timeout.is_null()) {
-    if ((*expel_timeout) < 0 || (*expel_timeout) > 3600) {
-      throw shcore::Exception::argument_error(
-          "Invalid value for expelTimeout, integer value must be in the range: "
-          "[0, 3600]");
-    }
-    auto version = session->get_server_version();
-    if (!is_group_replication_option_supported(session, kExpelTimeout)) {
-      throw std::runtime_error(
-          "Option 'expelTimeout' not supported on target server "
-          "version: '" +
-          version.get_full() + "'");
-    }
-  }
-}
-
-/**
- * Validate the value specified for the memberWeight option is supported on
- * the target instance
- *
- * @param options Map type value with containing the specified options.
- * @throw RuntimeError if the value is not supported on the target instance
- */
-void validate_member_weight_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  // The memberWeight option shall only be allowed if the target MySQL
-  // server version is >= 5.7.20 if 5.0, or >= 8.0.11 if 8.0.
-  auto version = session->get_server_version();
-
-  if (!is_group_replication_option_supported(session, kMemberWeight)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'memberWeight' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
   }
 }
 
@@ -968,7 +702,8 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     shcore::sqlstring query(
         "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT "
         "FROM performance_schema.replication_group_members "
-        "WHERE MEMBER_ID = ?",
+        "WHERE MEMBER_ID = ? "
+        "ORDER BY MEMBER_PORT",
         0);
     query << i;
     query.done();

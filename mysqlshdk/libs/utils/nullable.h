@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,9 +56,8 @@ class nullable {
 
   operator bool() const { return !_is_null; }
 
-  operator const C &() const {
-    if (_is_null) throw std::logic_error("Attempt to read null value");
-
+  const C &get_safe(const C &defval = C()) const {
+    if (_is_null) return defval;
     return _value;
   }
 
@@ -97,6 +96,7 @@ class nullable {
   C _value;
   bool _is_null;
 };
+
 }  // namespace utils
 
 using null_string = utils::nullable<std::string>;

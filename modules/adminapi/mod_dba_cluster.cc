@@ -223,42 +223,11 @@ void Cluster::assert_valid(const std::string &option_name) const {
   }
 }
 
-#if 0
-#if DOXYGEN_CPP
-/**
- * Use this function to add a Seed Instance to the Cluster object
- * \param args : A list of values to be used to add a Seed Instance to the Cluster.
- *
- * This function creates the Default ReplicaSet implicitly and adds the Instance to it
- * This function returns an empty Value.
- */
-#else
-/**
-* Adds a Seed Instance to the Cluster
-* \param conn The Connection String or URI of the Instance to be added
-*/
-#if DOXYGEN_JS
-Undefined addSeedInstance(
-    String conn, String root_password, String topology_type) {}
-#elif DOXYGEN_PY
-None add_seed_instance(str conn, str root_password, str topology_type) {}
-#endif
-/**
-* Adds a Seed Instance to the Cluster
-* \param doc The Document representing the Instance to be added
-*/
-#if DOXYGEN_JS
-Undefined addSeedInstance(Document doc) {}
-#elif DOXYGEN_PY
-None add_seed_instance(Document doc) {}
-#endif
-#endif
-#endif
 shcore::Value Cluster::add_seed_instance(
-    const mysqlshdk::db::Connection_options &connection_options,
-    const shcore::Argument_list &args, bool multi_primary, bool is_adopted,
-    const std::string &replication_user, const std::string &replication_pwd,
-    const std::string &group_name) {
+    mysqlshdk::mysql::IInstance *target_instance,
+    const Group_replication_options &gr_options, bool multi_primary,
+    bool is_adopted, const std::string &replication_user,
+    const std::string &replication_pwd) {
   shcore::Value ret_val;
 
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -280,9 +249,9 @@ shcore::Value Cluster::add_seed_instance(
   if (!is_adopted) {
     // Add the Instance to the Default ReplicaSet passing already created
     // replication user and the group_name (if provided)
-    ret_val = _default_replica_set->add_instance(
-        connection_options, args, replication_user, replication_pwd, true,
-        group_name, true);
+    ret_val = _default_replica_set->add_instance({}, target_instance,
+                                                 gr_options, replication_user,
+                                                 replication_pwd, true, true);
   }
   std::string group_replication_group_name =
       get_gr_replicaset_group_name(_group_session);
@@ -592,10 +561,10 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
     validate_connection_options(connection_options);
 
-    shcore::Argument_list rest;
-    if (args.size() == 2) rest.push_back(args.at(1));
+    shcore::Dictionary_t rest;
+    if (args.size() == 2) rest = args.at(1).as_map();
 
-    ret_val = _default_replica_set->add_instance(connection_options, rest);
+    ret_val = _default_replica_set->add_instance_(connection_options, rest);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
