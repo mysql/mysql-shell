@@ -8,23 +8,21 @@
 }
 
 //@<OUT> First execution is normal
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> Second execution prepares statement and executes it
@@ -53,23 +51,21 @@
 }
 
 //@<OUT> Second execution prepares statement and executes it
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> Third execution uses prepared statement
@@ -81,23 +77,21 @@
 }
 
 //@<OUT> Third execution uses prepared statement
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> fields() changes statement, back to normal execution
@@ -141,20 +135,18 @@
 }
 
 //@<OUT> fields() changes statement, back to normal execution
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after fields(), prepares statement and executes it
@@ -208,20 +200,18 @@
 
 
 //@<OUT> second execution after fields(), prepares statement and executes it
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> third execution after fields(), uses prepared statement
@@ -233,20 +223,18 @@
 }
 
 //@<OUT> third execution after fields(), uses prepared statement
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> sort() changes statement, back to normal execution
@@ -302,20 +290,18 @@
 }
 
 //@<OUT> sort() changes statement, back to normal execution
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after sort(), prepares statement and executes it
@@ -380,20 +366,18 @@
 }
 
 //@<OUT> second execution after sort(), prepares statement and executes it
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> third execution after sort(), uses prepared statement
@@ -405,20 +389,18 @@
 }
 
 //@<OUT> third execution after sort(), uses prepared statement
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> limit() changes statement, back to normal execution
@@ -479,16 +461,14 @@
 
 
 //@<OUT> limit() changes statement, back to normal execution
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after limit(), prepares statement and executes it
@@ -577,16 +557,14 @@
 }
 
 //@<OUT> second execution after limit(), prepares statement and executes it
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> third execution after limit(), uses prepared statement
@@ -612,16 +590,14 @@
 }
 
 //@<OUT> third execution after limit(), uses prepared statement
-[
-    {
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "age": 18,
-        "name": "george"
-    }
-]
+{
+    "age": 17,
+    "name": "james"
+}
+{
+    "age": 18,
+    "name": "george"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> offset() does not change the statement, uses prepared one
@@ -644,16 +620,14 @@
 }
 
 //@<OUT> offset() does not change the statement, uses prepared one
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> lockExclusive() changes statement, back to normal execution
@@ -715,16 +689,14 @@
 
 
 //@<OUT> lockExclusive() changes statement, back to normal execution
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after lockExclusive(), prepares statement and executes it
@@ -814,16 +786,14 @@
 }
 
 //@<OUT> second execution after lockExclusive(), prepares statement and executes it
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 
 
@@ -850,16 +820,14 @@
 }
 
 //@<OUT> third execution after lockExclusive(), uses prepared statement
-[
-    {
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "age": 18,
+    "name": "george"
+}
+{
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> creates statement to test lockShared()
@@ -872,23 +840,21 @@
 }
 
 //@<OUT> creates statement to test lockShared()
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> prepares statement to test lockShared()
@@ -914,23 +880,21 @@
 }
 
 //@<OUT> prepares statement to test lockShared()
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> lockShared() changes statement, back to normal execution
@@ -951,23 +915,21 @@
 }
 
 //@<OUT> lockShared() changes statement, back to normal execution
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after lockShared(), prepares statement and executes it
@@ -997,23 +959,21 @@
 }
 
 //@<OUT> second execution after lockShared(), prepares statement and executes it
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> third execution after lockShared(), uses prepared statement
@@ -1025,23 +985,21 @@
 }
 
 //@<OUT> third execution after lockShared(), uses prepared statement
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> creates statement with agregate function to test having()
@@ -1095,16 +1053,14 @@
 }
 
 //@<OUT> creates statement with agregate function to test having()
-[
-    {
-        "age": 18,
-        "count(age)": 2
-    },
-    {
-        "age": 17,
-        "count(age)": 1
-    }
-]
+{
+    "age": 18,
+    "count(age)": 2
+}
+{
+    "age": 17,
+    "count(age)": 1
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> prepares statement with agregate function to test having()
@@ -1171,16 +1127,14 @@
 }
 
 //@<OUT> prepares statement with agregate function to test having()
-[
-    {
-        "age": 18,
-        "count(age)": 2
-    },
-    {
-        "age": 17,
-        "count(age)": 1
-    }
-]
+{
+    "age": 18,
+    "count(age)": 2
+}
+{
+    "age": 17,
+    "count(age)": 1
+}
 2 documents in set ([[*]] sec)
 
 //@<PROTOCOL> having() changes statement, back to normal execution
@@ -1272,12 +1226,10 @@
 
 
 //@<OUT> having() changes statement, back to normal execution
-[
-    {
-        "age": 18,
-        "count(age)": 2
-    }
-]
+{
+    "age": 18,
+    "count(age)": 2
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> second execution after having(), prepares statement and executes it
@@ -1377,12 +1329,10 @@
 }
 
 //@<OUT> second execution after having(), prepares statement and executes it
-[
-    {
-        "age": 18,
-        "count(age)": 2
-    }
-]
+{
+    "age": 18,
+    "count(age)": 2
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> third execution after having(), uses prepared statement
@@ -1394,12 +1344,10 @@
 }
 
 //@<OUT> third execution after having(), uses prepared statement
-[
-    {
-        "age": 18,
-        "count(age)": 2
-    }
-]
+{
+    "age": 18,
+    "count(age)": 2
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> creates statement to test no changes when reusing bind(), limit() and offset()
@@ -1442,23 +1390,21 @@
 
 
 //@<OUT> creates statement to test no changes when reusing bind(), limit() and offset()
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> prepares statement to test no changes when reusing bind(), limit() and offset()
@@ -1536,23 +1482,21 @@
 }
 
 //@<OUT> prepares statement to test no changes when reusing bind(), limit() and offset()
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 
@@ -1588,13 +1532,11 @@
 }
 
 //@<OUT> Reusing statement with bind() using g%
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with bind() using j%
@@ -1632,13 +1574,11 @@
 ~>>>> SEND Mysqlx.Prepare.Prepare {
 
 //@<OUT> Reusing statement with bind() using j%
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with bind() using l%
@@ -1670,13 +1610,11 @@
 }
 
 //@<OUT> Reusing statement with bind() using l%
-[
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with new limit()
@@ -1711,13 +1649,11 @@
 }
 
 //@<OUT> Reusing statement with new limit()
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with new offset()
@@ -1752,13 +1688,11 @@
 }
 
 //@<OUT> Reusing statement with new offset()
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
 1 document in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with new limit() and offset()
@@ -1793,16 +1727,14 @@
 }
 
 //@<OUT> Reusing statement with new limit() and offset()
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)

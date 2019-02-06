@@ -2,7 +2,6 @@
 ||
 
 //@<OUT> X Table Format
-table
 +-------+
 | data  |
 +-------+
@@ -14,7 +13,6 @@ cd |
 
 
 //@<OUT> X Vertical Format
-vertical
 *************************** 1. row ***************************
 data: ab cd
 *************************** 2. row ***************************
@@ -25,15 +23,30 @@ cd
 
 
 //@<OUT> X Tabbed Format
-tabbed
 data
 ab\0cd
 ab\tcd
 ab\ncd
 
-
 //@<OUT> X Json Format
-json
+{
+    "data": "ab\u0000cd"
+}
+{
+    "data": "ab\tcd"
+}
+{
+    "data": "ab\ncd"
+}
+3 rows in set ([[*]] sec)
+
+//@<OUT> X Raw Json Format
+{"data":"ab\u0000cd"}
+{"data":"ab\tcd"}
+{"data":"ab\ncd"}
+3 rows in set ([[*]] sec)
+
+//@<OUT> X Json Wrapping
 {
     "hasData": true,
     "rows": [
@@ -47,7 +60,7 @@ json
             "data": "ab\ncd"
         }
     ],
-    "executionTime": "<<<result.executionTime>>>",
+    "executionTime": "[[*]] sec",
     "affectedRowCount": 0,
     "affectedItemsCount": 0,
     "warningCount": 0,
@@ -68,7 +81,6 @@ cd |
 +-------+
 
 //@<OUT> Classic Vertical Format
-vertical
 *************************** 1. row ***************************
 data: ab cd
 *************************** 2. row ***************************
@@ -78,14 +90,30 @@ data: ab
 cd
 
 //@<OUT> Classic Tabbed Format
-tabbed
 data
 ab\0cd
 ab\tcd
 ab\ncd
 
 //@<OUT> Classic Json Format
-json
+{
+    "data": "ab\u0000cd"
+}
+{
+    "data": "ab\tcd"
+}
+{
+    "data": "ab\ncd"
+}
+3 rows in set ([[*]] sec)
+
+//@<OUT> Classic Raw Json Format
+{"data":"ab\u0000cd"}
+{"data":"ab\tcd"}
+{"data":"ab\ncd"}
+3 rows in set ([[*]] sec)
+
+//@<OUT> Classic Json Wrapping
 {
     "hasData": true,
     "rows": [
@@ -99,7 +127,7 @@ json
             "data": "ab\ncd"
         }
     ],
-    "executionTime": "<<<result.executionTime>>>",
+    "executionTime": "[[*]] sec",
     "affectedRowCount": 0,
     "affectedItemsCount": 0,
     "warningCount": 0,
@@ -175,58 +203,56 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 
 
 //@<OUT> Pulling as collection in JSON format
-[
-    {
-        "_id": "1",
-        "name": "生活是美好的",
-        "year": 1997
-    },
-    {
-        "_id": "10",
-        "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾",
-        "year": 2004
-    },
-    {
-        "_id": "2",
-        "name": "辛德勒的名单",
-        "year": 1993
-    },
-    {
-        "_id": "3",
-        "name": "指環王",
-        "year": 2001
-    },
-    {
-        "_id": "4",
-        "name": "尋找尼莫",
-        "year": 2003
-    },
-    {
-        "_id": "5",
-        "name": "الجنة الآن",
-        "year": 2003
-    },
-    {
-        "_id": "6",
-        "name": "😁😍😠😭🙅🙉",
-        "year": 2004
-    },
-    {
-        "_id": "7",
-        "name": "✅✨✋✈❄❔➗",
-        "year": 2004
-    },
-    {
-        "_id": "8",
-        "name": "🚀🚑🚙🚬🚻🛀",
-        "year": 2004
-    },
-    {
-        "_id": "9",
-        "name": "🇯🇵🈳🆕🆒",
-        "year": 2004
-    }
-]
+{
+    "_id": "1",
+    "name": "生活是美好的",
+    "year": 1997
+}
+{
+    "_id": "10",
+    "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾",
+    "year": 2004
+}
+{
+    "_id": "2",
+    "name": "辛德勒的名单",
+    "year": 1993
+}
+{
+    "_id": "3",
+    "name": "指環王",
+    "year": 2001
+}
+{
+    "_id": "4",
+    "name": "尋找尼莫",
+    "year": 2003
+}
+{
+    "_id": "5",
+    "name": "الجنة الآن",
+    "year": 2003
+}
+{
+    "_id": "6",
+    "name": "😁😍😠😭🙅🙉",
+    "year": 2004
+}
+{
+    "_id": "7",
+    "name": "✅✨✋✈❄❔➗",
+    "year": 2004
+}
+{
+    "_id": "8",
+    "name": "🚀🚑🚙🚬🚻🛀",
+    "year": 2004
+}
+{
+    "_id": "9",
+    "name": "🇯🇵🈳🆕🆒",
+    "year": 2004
+}
 
 
 //@<OUT> pulling as table in table format {__os_type != "windows"}

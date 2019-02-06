@@ -8,28 +8,26 @@
 }
 
 #@<OUT> First execution is normal
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    },
-    {
-        "_id": "004",
-        "age": 21,
-        "name": "mark"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
+{
+    "_id": "004",
+    "age": 21,
+    "name": "mark"
+}
 4 documents in set ([[*]] sec)
 
 #@<PROTOCOL> Second execution attempts preparing statement, disables prepared statements on session, executes normal
@@ -63,28 +61,26 @@
 }
 
 #@<OUT> Second execution attempts preparing statement, disables prepared statements on session, executes normal
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    },
-    {
-        "_id": "004",
-        "age": 21,
-        "name": "mark"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
+{
+    "_id": "004",
+    "age": 21,
+    "name": "mark"
+}
 4 documents in set ([[*]] sec)
 
 #@<PROTOCOL> Third execution does normal execution
@@ -97,28 +93,26 @@
 }
 
 #@<OUT> Third execution does normal execution
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    },
-    {
-        "_id": "004",
-        "age": 21,
-        "name": "mark"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
+{
+    "_id": "004",
+    "age": 21,
+    "name": "mark"
+}
 4 documents in set ([[*]] sec)
 
 #@<PROTOCOL> remove() first call
@@ -157,23 +151,21 @@
 
 #@<OUT> remove() first call
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 #@<PROTOCOL> remove() second call, no prepare
@@ -212,18 +204,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> remove() second call, no prepare
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
 2 documents in set ([[*]] sec)
 
 #@<PROTOCOL> modify() first call
@@ -280,18 +270,16 @@ Query OK, 1 item affected ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
 Rows matched: 1  Changed: 1  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 20,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    }
-]
+{
+    "_id": "001",
+    "age": 20,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
 2 documents in set ([[*]] sec)
 
 #@<PROTOCOL> modify() second call, no prepare
@@ -348,18 +336,16 @@ Rows matched: 1  Changed: 1  Warnings: 0
 Query OK, 1 item affected ([[*]] sec)
 
 Rows matched: 1  Changed: 1  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 20,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 20,
-        "name": "james"
-    }
-]
+{
+    "_id": "001",
+    "age": 20,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 20,
+    "name": "james"
+}
 2 documents in set ([[*]] sec)
 
 #@<PROTOCOL> sql() first call

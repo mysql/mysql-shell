@@ -47,192 +47,190 @@
 ||
 
 //@<OUT> FR5-01 output
-[
-    {
-        "_id": "57506d62f57802807471dd22",
-        "name": "Hot Bakery Cafe",
-        "stars": 4,
-        "contact": {
-            "email": "HotBakeryCafe@example.net",
-            "phone": "264-555-0171",
-            "location": [
-                -73.96485799999999,
-                40.761899
-            ]
-        },
-        "categories": [
-            "Bakery",
-            "Cafe",
-            "Coffee",
-            "Dessert"
+{
+    "_id": "57506d62f57802807471dd22",
+    "name": "Hot Bakery Cafe",
+    "stars": 4,
+    "contact": {
+        "email": "HotBakeryCafe@example.net",
+        "phone": "264-555-0171",
+        "location": [
+            -73.96485799999999,
+            40.761899
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd28",
-        "name": "XYZ Bagels Restaurant",
-        "stars": 4,
-        "contact": {
-            "email": "XYZBagelsRestaurant@example.net",
-            "phone": "435-555-0190",
-            "location": [
-                -74.0707363,
-                40.59321569999999
-            ]
-        },
-        "categories": [
-            "Bagels",
-            "Sandwiches",
-            "Coffee"
+    "categories": [
+        "Bakery",
+        "Cafe",
+        "Coffee",
+        "Dessert"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd28",
+    "name": "XYZ Bagels Restaurant",
+    "stars": 4,
+    "contact": {
+        "email": "XYZBagelsRestaurant@example.net",
+        "phone": "435-555-0190",
+        "location": [
+            -74.0707363,
+            40.59321569999999
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd35",
-        "name": "XYZ Coffee Bar",
-        "stars": 5,
-        "contact": {
-            "email": "XYZCoffeeBar@example.net",
-            "phone": "644-555-0193",
-            "location": [
-                -74.0166091,
-                40.6284767
-            ]
-        },
-        "categories": [
-            "Coffee",
-            "Cafe",
-            "Bakery",
-            "Chocolates"
+    "categories": [
+        "Bagels",
+        "Sandwiches",
+        "Coffee"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd35",
+    "name": "XYZ Coffee Bar",
+    "stars": 5,
+    "contact": {
+        "email": "XYZCoffeeBar@example.net",
+        "phone": "644-555-0193",
+        "location": [
+            -74.0166091,
+            40.6284767
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd39",
-        "name": "Green Feast Pizzeria",
-        "stars": 2,
-        "contact": {
-            "email": "GreenFeastPizzeria@example.com",
-            "phone": "840-555-0102",
-            "location": [
-                -74.1220973,
-                40.6129407
-            ]
-        },
-        "categories": [
-            "Pizza",
-            "Italian"
+    "categories": [
+        "Coffee",
+        "Cafe",
+        "Bakery",
+        "Chocolates"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd39",
+    "name": "Green Feast Pizzeria",
+    "stars": 2,
+    "contact": {
+        "email": "GreenFeastPizzeria@example.com",
+        "phone": "840-555-0102",
+        "location": [
+            -74.1220973,
+            40.6129407
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd3a",
-        "name": "ZZZ Pasta Buffet",
-        "stars": 0,
-        "contact": {
-            "email": "ZZZPastaBuffet@example.com",
-            "phone": "769-555-0152",
-            "location": [
-                -73.9446421,
-                40.7253944
-            ]
-        },
-        "categories": [
-            "Pasta",
-            "Italian",
-            "Buffet",
-            "Cafeteria"
+    "categories": [
+        "Pizza",
+        "Italian"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd3a",
+    "name": "ZZZ Pasta Buffet",
+    "stars": 0,
+    "contact": {
+        "email": "ZZZPastaBuffet@example.com",
+        "phone": "769-555-0152",
+        "location": [
+            -73.9446421,
+            40.7253944
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd3b",
-        "name": "Blue Bagels Grill",
-        "stars": 3,
-        "contact": {
-            "email": "BlueBagelsGrill@example.com",
-            "phone": "786-555-0102",
-            "location": [
-                -73.92506,
-                40.8275556
-            ]
-        },
-        "categories": [
-            "Bagels",
-            "Cookies",
-            "Sandwiches"
+    "categories": [
+        "Pasta",
+        "Italian",
+        "Buffet",
+        "Cafeteria"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd3b",
+    "name": "Blue Bagels Grill",
+    "stars": 3,
+    "contact": {
+        "email": "BlueBagelsGrill@example.com",
+        "phone": "786-555-0102",
+        "location": [
+            -73.92506,
+            40.8275556
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd3d",
-        "name": "Sun Bakery Trattoria",
-        "stars": 4,
-        "contact": {
-            "email": "SunBakeryTrattoria@example.org",
-            "phone": "386-555-0189",
-            "location": [
-                -74.0056649,
-                40.7452371
-            ]
-        },
-        "categories": [
-            "Pizza",
-            "Pasta",
-            "Italian",
-            "Coffee",
-            "Sandwiches"
+    "categories": [
+        "Bagels",
+        "Cookies",
+        "Sandwiches"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd3d",
+    "name": "Sun Bakery Trattoria",
+    "stars": 4,
+    "contact": {
+        "email": "SunBakeryTrattoria@example.org",
+        "phone": "386-555-0189",
+        "location": [
+            -74.0056649,
+            40.7452371
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd41",
-        "name": "456 Steak Restaurant",
-        "stars": 0,
-        "contact": {
-            "email": "456SteakRestaurant@example.com",
-            "phone": "990-555-0165",
-            "location": [
-                -73.9365108,
-                40.8497077
-            ]
-        },
-        "categories": [
-            "Steak",
-            "Seafood"
+    "categories": [
+        "Pizza",
+        "Pasta",
+        "Italian",
+        "Coffee",
+        "Sandwiches"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd41",
+    "name": "456 Steak Restaurant",
+    "stars": 0,
+    "contact": {
+        "email": "456SteakRestaurant@example.com",
+        "phone": "990-555-0165",
+        "location": [
+            -73.9365108,
+            40.8497077
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd42",
-        "name": "456 Cookies Shop",
-        "stars": 4,
-        "contact": {
-            "email": "456CookiesShop@example.org",
-            "phone": "604-555-0149",
-            "location": [
-                -73.8850023,
-                40.7494272
-            ]
-        },
-        "categories": [
-            "Bakery",
-            "Cookies",
-            "Cake",
-            "Coffee"
+    "categories": [
+        "Steak",
+        "Seafood"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd42",
+    "name": "456 Cookies Shop",
+    "stars": 4,
+    "contact": {
+        "email": "456CookiesShop@example.org",
+        "phone": "604-555-0149",
+        "location": [
+            -73.8850023,
+            40.7494272
         ]
     },
-    {
-        "_id": "57506d62f57802807471dd44",
-        "name": "XYZ Steak Buffet",
-        "stars": 3,
-        "contact": {
-            "email": "XYZSteakBuffet@example.org",
-            "phone": "229-555-0197",
-            "location": [
-                -73.9799932,
-                40.7660886
-            ]
-        },
-        "categories": [
-            "Steak",
-            "Salad",
-            "Chinese"
+    "categories": [
+        "Bakery",
+        "Cookies",
+        "Cake",
+        "Coffee"
+    ]
+}
+{
+    "_id": "57506d62f57802807471dd44",
+    "name": "XYZ Steak Buffet",
+    "stars": 3,
+    "contact": {
+        "email": "XYZSteakBuffet@example.org",
+        "phone": "229-555-0197",
+        "location": [
+            -73.9799932,
+            40.7660886
         ]
-    }
-]
+    },
+    "categories": [
+        "Steak",
+        "Salad",
+        "Chinese"
+    ]
+}
 
 //@ FR5-02
 ||
@@ -253,31 +251,29 @@
 ||
 
 //@<OUT> FRB1-01 target collection correctness
-[
-    {
-        "_id": "55cb9c666c522cafdb053a1a",
-        "name": "Bedford",
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": [
+{
+    "_id": "55cb9c666c522cafdb053a1a",
+    "name": "Bedford",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
                 [
-                    [
-                        -73.94400504048726,
-                        40.70196179219718
-                    ],
-                    [
-                        -73.94220058705264,
-                        40.7008906674677{{46|5}}
-                    ],
-                    [
-                        -73.94193078816193,
-                        40.70072523469547
-                    ]
+                    -73.94400504048726,
+                    40.70196179219718
+                ],
+                [
+                    -73.94220058705264,
+                    40.7008906674677{{46|5}}
+                ],
+                [
+                    -73.94193078816193,
+                    40.70072523469547
                 ]
             ]
-        }
+        ]
     }
-]
+}
 
 
 //@<OUT> FRB1-01 target table correctness

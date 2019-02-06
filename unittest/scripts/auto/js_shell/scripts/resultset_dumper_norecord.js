@@ -20,9 +20,14 @@ session.sql('select * from resultset_dumper.bindata');
 
 //@ X Json Format
 shell.options.resultFormat = 'json';
-var result = session.sql('select * from resultset_dumper.bindata').execute();
-result
-shell.options.resultFormat = 'table';
+session.sql('select * from resultset_dumper.bindata');
+
+//@ X Raw Json Format
+shell.options.resultFormat = 'json/raw';
+session.sql('select * from resultset_dumper.bindata');
+
+//@ X Json Wrapping
+testutil.callMysqlsh([__uripwd, "--js", "--quiet-start=2", "-i", "--json", "-e", "session.sql('select * from resultset_dumper.bindata');"]);
 session.close();
 
 //@ Classic Table Format
@@ -40,8 +45,14 @@ session.runSql('select * from resultset_dumper.bindata');
 
 //@ Classic Json Format
 shell.options.resultFormat = 'json';
-var result = session.runSql('select * from resultset_dumper.bindata');
-result
+session.runSql('select * from resultset_dumper.bindata');
+
+//@ Classic Raw Json Format
+shell.options.resultFormat = 'json/raw';
+session.runSql('select * from resultset_dumper.bindata');
+
+//@ Classic Json Wrapping
+testutil.callMysqlsh([__mysqluripwd, "--js", "--quiet-start=2", "-i", "--json", "-e", "session.runSql('select * from resultset_dumper.bindata');"]);
 shell.options.resultFormat = 'table';
 session.runSql('drop schema resultset_dumper');
 session.close();

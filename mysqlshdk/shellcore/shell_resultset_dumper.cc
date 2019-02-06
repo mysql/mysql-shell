@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -530,7 +530,12 @@ Resultset_dumper_base::Resultset_dumper_base(
     mysqlshdk::db::IResult *target, std::unique_ptr<Resultset_printer> printer)
     : m_result(target), m_printer(std::move(printer)) {
   auto opts = mysqlsh::current_shell_options()->get();
-  m_format = opts.wrap_json == "off" ? opts.result_format : opts.wrap_json;
+
+  // Determines whether JSON Wrappin is enabled or not
+  m_wrap_json = opts.wrap_json;
+
+  // Determines the result format when JSON Wrapping is OFF
+  m_format = opts.result_format;
 }
 
 Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
@@ -550,7 +555,7 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
     return true;
   });
 
-  if (m_format.find("json") == 0)
+  if (m_wrap_json != "off")
     dump_json(item_label, is_doc_result);
   else
     do {
@@ -560,17 +565,14 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
         // traversec once for proper formatting and once for printing it
         if (m_buffer_data || m_format == "table") m_result->buffer();
 
-        if (is_doc_result)
-          count = dump_documents();
-        else {
-          // print rows from result, with stats etc
-          if (m_format == "vertical")
-            count = dump_vertical();
-          else if (m_format == "table")
-            count = dump_table();
-          else
-            count = dump_tabbed();
-        }
+        if (is_doc_result || m_format.find("json") != std::string::npos)
+          count = dump_documents(is_doc_result);
+        else if (m_format == "vertical")
+          count = dump_vertical();
+        else if (m_format == "table")
+          count = dump_table();
+        else
+          count = dump_tabbed();
 
         if (count)
           output =
@@ -611,30 +613,74 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
   if (m_buffer_data) m_result->rewind();
 }
 
-size_t Resultset_dumper_base::dump_documents() {
+/**
+ * This utility function creates a JSON document including all the fields in a
+ * given row and appends it to a JSON_dumper object.
+ */
+void dump_json_row(shcore::JSON_dumper *dumper,
+                   const std::vector<mysqlshdk::db::Column> &metadata,
+                   const mysqlshdk::db::IRow *row) {
+  dumper->start_object();
+
+  for (size_t col_index = 0; col_index < metadata.size(); col_index++) {
+    auto column = metadata[col_index];
+
+    dumper->append_string(column.get_column_label());
+    auto type = column.get_type();
+    if (row->is_null(col_index)) {
+      dumper->append_null();
+    } else if (mysqlshdk::db::is_string_type(type)) {
+      if (type == mysqlshdk::db::Type::Json) {
+        dumper->append_json(row->get_string(col_index));
+      } else if (type == mysqlshdk::db::Type::Bytes) {
+        auto data = row->get_string_data(col_index);
+        dumper->append_string(data.first, data.second);
+      } else {
+        auto data = row->get_as_string(col_index);
+        dumper->append_string(data.c_str(), data.length());
+      }
+    } else if (type == mysqlshdk::db::Type::Integer) {
+      dumper->append_int64(row->get_int(col_index));
+    } else if (type == mysqlshdk::db::Type::UInteger) {
+      dumper->append_uint64(row->get_uint(col_index));
+    } else if (type == mysqlshdk::db::Type::Float) {
+      dumper->append_float(row->get_float(col_index));
+    } else if (type == mysqlshdk::db::Type::Double) {
+      dumper->append_float(row->get_double(col_index));
+    } else if (type == mysqlshdk::db::Type::Decimal) {
+      dumper->append_float(row->get_float(col_index));
+    } else if (type == mysqlshdk::db::Type::Bit) {
+      dumper->append_int64(row->get_bit(col_index));
+    }
+  }
+  dumper->end_object();
+}
+
+/**
+ * Dumps a JSON document for each row/document contained on the result
+ * being processed.
+ */
+size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
   auto metadata = m_result->get_metadata();
   auto row = m_result->fetch_one();
   size_t row_count = 0;
 
   if (!row) return row_count;
 
-  // When dumping a collection, format should be json unless json/raw is
-  // specified
-  shcore::JSON_dumper dumper(m_format != "json/raw");
-
-  dumper.start_array();
-
   while (row) {
-    dumper.append_json(row->get_string(0));
+    shcore::JSON_dumper dumper(m_format != "json/raw");
+
+    if (is_doc_result)
+      dumper.append_json(row->get_string(0));
+    else
+      dump_json_row(&dumper, metadata, row);
+
+    m_printer->raw_print(dumper.str());
+    m_printer->raw_print("\n");
 
     row_count++;
     row = m_result->fetch_one();
   }
-
-  dumper.end_array();
-
-  m_printer->raw_print(dumper.str());
-  m_printer->raw_print("\n");
 
   return row_count;
 }
@@ -728,9 +774,20 @@ size_t Resultset_dumper_base::dump_vertical() {
   return row_index;
 }
 
+/**
+ * Creates a JSON Document including all the information in the result being
+ * processd, this includes:
+ *
+ * - Metadata
+ * - Rows
+ * - Statistics
+ * - Warnings
+ *
+ * This function is used when JSON Wrapping is turned ON
+ */
 size_t Resultset_dumper_base::dump_json(const std::string &item_label,
                                         bool is_doc_result) {
-  shcore::JSON_dumper dumper(m_format == "json");
+  shcore::JSON_dumper dumper(m_wrap_json == "json");
 
   dumper.start_object();
   dumper.append_string("hasData");
@@ -747,40 +804,7 @@ size_t Resultset_dumper_base::dump_json(const std::string &item_label,
       if (is_doc_result) {
         dumper.append_json(row->get_string(0));
       } else {
-        dumper.start_object();
-
-        for (size_t col_index = 0; col_index < metadata.size(); col_index++) {
-          auto column = metadata[col_index];
-
-          dumper.append_string(column.get_column_label());
-          auto type = column.get_type();
-          if (row->is_null(col_index)) {
-            dumper.append_null();
-          } else if (mysqlshdk::db::is_string_type(type)) {
-            if (type == mysqlshdk::db::Type::Json) {
-              dumper.append_json(row->get_string(col_index));
-            } else if (type == mysqlshdk::db::Type::Bytes) {
-              auto data = row->get_string_data(col_index);
-              dumper.append_string(data.first, data.second);
-            } else {
-              auto data = row->get_as_string(col_index);
-              dumper.append_string(data.c_str(), data.length());
-            }
-          } else if (type == mysqlshdk::db::Type::Integer) {
-            dumper.append_int64(row->get_int(col_index));
-          } else if (type == mysqlshdk::db::Type::UInteger) {
-            dumper.append_uint64(row->get_uint(col_index));
-          } else if (type == mysqlshdk::db::Type::Float) {
-            dumper.append_float(row->get_float(col_index));
-          } else if (type == mysqlshdk::db::Type::Double) {
-            dumper.append_float(row->get_double(col_index));
-          } else if (type == mysqlshdk::db::Type::Decimal) {
-            dumper.append_float(row->get_float(col_index));
-          } else if (type == mysqlshdk::db::Type::Bit) {
-            dumper.append_int64(row->get_bit(col_index));
-          }
-        }
-        dumper.end_object();
+        dump_json_row(&dumper, metadata, row);
       }
       row_count++;
       row = m_result->fetch_one();

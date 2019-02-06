@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,11 +105,12 @@ class Resultset_dumper_base {
   size_t dump_tabbed();
   size_t dump_table();
   size_t dump_vertical();
-  size_t dump_documents();
+  size_t dump_documents(bool is_doc_result);
   size_t dump_json(const std::string &item_label, bool is_doc_result);
   void dump_warnings();
 
   mysqlshdk::db::IResult *m_result;
+  std::string m_wrap_json;
   std::string m_format;
   bool m_cancelled = false;
   std::unique_ptr<Resultset_printer> m_printer;

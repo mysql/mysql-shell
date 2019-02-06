@@ -34,26 +34,24 @@
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -108,26 +106,24 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -142,26 +138,24 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -228,29 +222,27 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -323,29 +315,27 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -360,29 +350,27 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -458,26 +446,24 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -559,26 +545,24 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -593,26 +577,24 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A"
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A"
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A"
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A"
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -760,50 +742,48 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -957,50 +937,48 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1015,50 +993,48 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1228,53 +1204,51 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1450,53 +1424,51 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1511,53 +1483,51 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1745,56 +1715,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -1988,56 +1956,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -2052,56 +2018,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -2301,56 +2265,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -2556,56 +2518,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -2620,56 +2580,54 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 3 items affected ([[*]] sec)
 
 Rows matched: 3  Changed: 3  Warnings: 0
-[
-    {
-        "_id": "001",
-        "name": "george",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "name": "george",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 3 items affected ([[*]] sec)
 
@@ -2873,45 +2831,43 @@ Rows matched: 3  Changed: 3  Warnings: 0
 Query OK, 2 items affected ([[*]] sec)
 
 Rows matched: 2  Changed: 2  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 2 items affected ([[*]] sec)
 
@@ -3130,45 +3086,43 @@ Rows matched: 3  Changed: 2  Warnings: 0
 Query OK, 2 items affected ([[*]] sec)
 
 Rows matched: 2  Changed: 2  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 2 items affected ([[*]] sec)
 
@@ -3190,45 +3144,43 @@ Rows matched: 3  Changed: 2  Warnings: 0
 Query OK, 2 items affected ([[*]] sec)
 
 Rows matched: 2  Changed: 2  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "name": "james",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    },
-    {
-        "_id": "003",
-        "name": "luke",
-        "grade": 1,
-        "group": "A",
-        "grades": [
-            "A",
-            "A+",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G"
-        ]
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "name": "james",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
+{
+    "_id": "003",
+    "name": "luke",
+    "grade": 1,
+    "group": "A",
+    "grades": [
+        "A",
+        "A+",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+    ]
+}
 3 documents in set ([[*]] sec)
 Query OK, 2 items affected ([[*]] sec)
 
@@ -3292,23 +3244,21 @@ Rows matched: 3  Changed: 2  Warnings: 0
 Query OK, 1 item affected ([[*]] sec)
 
 Rows matched: 1  Changed: 1  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 19,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 18,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 19,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 18,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with bind() using j%
@@ -3394,23 +3344,21 @@ Rows matched: 1  Changed: 1  Warnings: 0
 Query OK, 1 item affected ([[*]] sec)
 
 Rows matched: 1  Changed: 1  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 19,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 19,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 19,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 19,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)
 
 //@<PROTOCOL> Reusing statement with new limit()
@@ -3438,21 +3386,19 @@ Rows matched: 1  Changed: 1  Warnings: 0
 Query OK, 2 items affected ([[*]] sec)
 
 Rows matched: 2  Changed: 0  Warnings: 0
-[
-    {
-        "_id": "001",
-        "age": 19,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 19,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 19,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 19,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 3 documents in set ([[*]] sec)

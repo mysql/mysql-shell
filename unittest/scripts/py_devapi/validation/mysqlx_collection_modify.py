@@ -201,365 +201,343 @@
 |name|
 
 #@<OUT> CollectionModify: Patch initial documents
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female"
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female"
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female"
-    }
-]
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female"
+}
 
 
 #@<OUT> CollectionModify: Patch adding fields to multiple documents (WL10856-FR1_1)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": "TBD",
-        "hobbies": []
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": "TBD",
-        "hobbies": []
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": "TBD",
-        "hobbies": []
-    }
-]
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": "TBD",
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": "TBD",
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": "TBD",
+    "hobbies": []
+}
 
 #@<OUT> CollectionModify: Patch updating field on multiple documents (WL10856-FR1_4)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "street": "TBD"
-        },
-        "hobbies": []
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "street": "TBD"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "street": "TBD"
-        },
-        "hobbies": []
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "street": "TBD"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "street": "TBD"
-        },
-        "hobbies": []
-    }
-]
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "street": "TBD"
+    },
+    "hobbies": []
+}
 
 #@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
-    }
-]
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "street": "Main"
+    },
+    "hobbies": []
+}
 
 #@<OUT> CollectionModify: Patch adding field on multiple nested documents (WL10856-FR1_2)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "Main"
-        },
-        "hobbies": []
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "Main"
-        },
-        "hobbies": []
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "Main"
-        },
-        "hobbies": []
-    }
-]
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "Main"
+    },
+    "hobbies": []
+}
 
 #@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "street": "Main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "street": "Main"
-        },
-        "hobbies": []
-    }
-]
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "street": "Main"
+    },
+    "hobbies": []
+}
 
 #@<OUT> CollectionModify: Patch removing field on multiple documents (WL10856-FR1_7)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "hobbies": []
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "hobbies": []
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "hobbies": []
-    }
-]
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "hobbies": []
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "hobbies": []
+}
 
 
 #@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {},
-        "hobbies": [],
-        "last_name": "doe"
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {},
-        "hobbies": [],
-        "last_name": "doe"
-    },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {},
-        "hobbies": [],
-        "last_name": "doe"
-    }
-]
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {},
+    "hobbies": [],
+    "last_name": "doe"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {},
+    "hobbies": [],
+    "last_name": "doe"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {},
+    "hobbies": [],
+    "last_name": "doe"
+}
 
 #@<OUT> CollectionModify: Patch adding field with multiple calls to patch on nested documents (WL10856-FR2.1_2)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "main"
-        },
-        "hobbies": [],
-        "last_name": "doe"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "main"
-        },
-        "hobbies": [],
-        "last_name": "doe"
+    "hobbies": [],
+    "last_name": "doe"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "main"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "main"
-        },
-        "hobbies": [],
-        "last_name": "doe"
-    }
-]
+    "hobbies": [],
+    "last_name": "doe"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "main"
+    },
+    "hobbies": [],
+    "last_name": "doe"
+}
 
 #@<OUT> CollectionModify: Patch updating fields with multiple calls to patch (WL10856-FR2.1_3, WL10856-FR2.1_4)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "riverside"
-        },
-        "hobbies": [],
-        "last_name": "houston"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "riverside"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "riverside"
-        },
-        "hobbies": [],
-        "last_name": "houston"
+    "hobbies": [],
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "riverside"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "number": 0,
-            "street": "riverside"
-        },
-        "hobbies": [],
-        "last_name": "houston"
-    }
-]
+    "hobbies": [],
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "number": 0,
+        "street": "riverside"
+    },
+    "hobbies": [],
+    "last_name": "houston"
+}
 
 #@<OUT> CollectionModify: Patch removing fields with multiple calls to patch (WL10856-FR2.1_5, WL10856-FR2.1_6)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside"
-        },
-        "last_name": "houston"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside"
-        },
-        "last_name": "houston"
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside"
-        },
-        "last_name": "houston"
-    }
-]
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside"
+    },
+    "last_name": "houston"
+}
 
 #@<OUT> CollectionModify: Patch adding field to multiple documents using expression (WL10856-ET_13)
 [
@@ -599,211 +577,201 @@
 ]
 
 #@<OUT> CollectionModify: Patch adding field to multiple nested documents using expression (WL10856-ET_14)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
-    }
-]
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
+    },
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
 
 #@<OUT> CollectionModify: Patch updating field to multiple documents using expression (WL10856-ET_15)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "Alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "Alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "Carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "Carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "Donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "ide"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
-    }
-]
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "Donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "ide"
+    },
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
 
 #@<OUT> CollectionModify: Patch updating field to multiple nested documents using expression (WL10856-ET_16)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "name": "Alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "name": "Alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "name": "Carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "name": "Carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "name": "Donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
-    }
-]
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "name": "Donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
+    },
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
 
 #@<OUT> CollectionModify: Patch including _id, ignores _id applies the rest (WL10856-ET_17)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "city": "Washington",
-        "name": "Alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "city": "Washington",
+    "name": "Alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "city": "Washington",
-        "name": "Carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "city": "Washington",
+    "name": "Carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "city": "Washington",
-        "name": "Donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston",
-        "last_update": "<<<last_update>>>"
-    }
-]
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "city": "Washington",
+    "name": "Donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
+    },
+    "last_name": "houston",
+    "last_update": "<<<last_update>>>"
+}
 
 
 #@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19)
 |Query OK, 0 items affected|
 
 #@<OUT> CollectionModify: Patch updating field with null value coming from an expression (WL10856-ET_20)
-[
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1249",
-        "age": 13,
-        "city": "Washington",
-        "name": "Alma",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston"
+{
+    "_id": "5C514FF38144957BE71111C04E0D1249",
+    "age": 13,
+    "city": "Washington",
+    "name": "Alma",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1250",
-        "age": 15,
-        "city": "Washington",
-        "name": "Carol",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston"
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1250",
+    "age": 15,
+    "city": "Washington",
+    "name": "Carol",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
     },
-    {
-        "_id": "5C514FF38144957BE71111C04E0D1251",
-        "age": 16,
-        "city": "Washington",
-        "name": "Donna",
-        "gender": "female",
-        "address": {
-            "street": "riverside",
-            "street_short": "riv"
-        },
-        "last_name": "houston"
-    }
-]
+    "last_name": "houston"
+}
+{
+    "_id": "5C514FF38144957BE71111C04E0D1251",
+    "age": 16,
+    "city": "Washington",
+    "name": "Donna",
+    "gender": "female",
+    "address": {
+        "street": "riverside",
+        "street_short": "riv"
+    },
+    "last_name": "houston"
+}
 
 #@ CollectionModify: Patch removing the _id field (WL10856-ET_25)
 |Query OK, 0 items affected|

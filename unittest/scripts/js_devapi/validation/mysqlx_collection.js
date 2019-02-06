@@ -55,47 +55,41 @@
 |Query OK, 1 item affected|
 
 //@<OUT> Verify added documents
-[
-    {
-        "_id": "document_001",
-        "name": "basic"
-    },
-    {
-        "_id": "document_002",
-        "name": "basic"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "basic"
+}
+{
+    "_id": "document_002",
+    "name": "basic"
+}
 
 //@ addOrReplaceOne: replacing an existing document
 |Query OK, 2 items affected|
 
 //@<OUT> addOrReplaceOne: Verify replaced document
-[
-    {
-        "_id": "document_001",
-        "name": "complex",
-        "state": "updated"
-    },
-    {
-        "_id": "document_002",
-        "name": "basic"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "complex",
+    "state": "updated"
+}
+{
+    "_id": "document_002",
+    "name": "basic"
+}
 
 //@ addOrReplaceOne: replacing an existing document, ignoring new _id
 |Query OK, 2 items affected|
 
 //@<OUT> addOrReplaceOne: Verify replaced document with ignored _id
-[
-    {
-        "_id": "document_001",
-        "name": "medium"
-    },
-    {
-        "_id": "document_002",
-        "name": "basic"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "medium"
+}
+{
+    "_id": "document_002",
+    "name": "basic"
+}
 
 //@ addOrReplaceOne: adding with key
 |Query OK, 1 item affected|
@@ -132,16 +126,14 @@
 
 //================= removeOne ======================
 //@<OUT> removeOne: initialization
-[
-    {
-        "_id": "document_001",
-        "name": "test"
-    },
-    {
-        "_id": "document_002",
-        "name": "test"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "test"
+}
+{
+    "_id": "document_002",
+    "name": "test"
+}
 
 
 //@ removeOne: parameter error conditions
@@ -155,12 +147,10 @@
 |Query OK, 0 items affected|
 
 //@<OUT> removeOne: final verification
-[
-    {
-        "_id": "document_002",
-        "name": "test"
-    }
-]
+{
+    "_id": "document_002",
+    "name": "test"
+}
 
 
 //@ removeOne: attempt on dropped collection
@@ -168,16 +158,14 @@
 
 //================= replaceOne ======================
 //@<OUT> replaceOne: initialization
-[
-    {
-        "_id": "document_001",
-        "name": "simple"
-    },
-    {
-        "_id": "document_002",
-        "name": "simple"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "simple"
+}
+{
+    "_id": "document_002",
+    "name": "simple"
+}
 
 //@ replaceOne parameter error conditions
 ||Collection.replaceOne: Invalid number of arguments, expected 2 but got 0
@@ -188,17 +176,15 @@
 |Query OK, 1 item affected|
 
 //@<OUT> replaceOne: Verify replaced document
-[
-    {
-        "_id": "document_001",
-        "name": "complex",
-        "state": "updated"
-    },
-    {
-        "_id": "document_002",
-        "name": "simple"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "complex",
+    "state": "updated"
+}
+{
+    "_id": "document_002",
+    "name": "simple"
+}
 
 //@ replaceOne: replacing unexisting document
 |Query OK, 0 items affected|
@@ -207,16 +193,14 @@
 |Query OK, 1 item affected|
 
 //@<OUT> replaceOne: Verify replaced document with ignored _id
-[
-    {
-        "_id": "document_001",
-        "name": "medium"
-    },
-    {
-        "_id": "document_002",
-        "name": "simple"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "medium"
+}
+{
+    "_id": "document_002",
+    "name": "simple"
+}
 
 
 //@ replaceOne: error replacing with key
@@ -226,17 +210,15 @@
 |Query OK, 1 item affected|
 
 //@<OUT> Verify replaced document with id and key
-[
-    {
-        "_id": "document_001",
-        "name": "medium",
-        "sample": true
-    },
-    {
-        "_id": "document_002",
-        "name": "simple"
-    }
-]
+{
+    "_id": "document_001",
+    "name": "medium",
+    "sample": true
+}
+{
+    "_id": "document_002",
+    "name": "simple"
+}
 
 //@ replaceOne: attempt on dropped collection
 ||Table 'js_shell_test.replace_one' doesn't exist

@@ -33,18 +33,16 @@
 
 #@<OUT> First execution is normal
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -96,18 +94,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Second execution prepares statement and executes it
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -118,18 +114,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Third execution uses prepared statement
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -187,18 +181,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> sort() changes statement, back to normal execution
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -262,18 +254,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> second execution after sort(), prepares statement and executes it
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -284,18 +274,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> third execution after set(), uses prepared statement
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -357,18 +345,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> limit() changes statement, back to normal execution
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -445,18 +431,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> second execution after limit(), prepares statement and executes it
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -474,18 +458,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> third execution after limit(), uses prepared statement
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -529,18 +511,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Prepares statement to test re-usability of bind() and limit()
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -609,18 +589,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Prepares and executes statement
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -647,18 +625,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Executes prepared statement with bind()
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "001",
-        "age": 18,
-        "name": "george"
-    },
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    }
-]
+{
+    "_id": "001",
+    "age": 18,
+    "name": "george"
+}
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -685,18 +661,16 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Executes prepared statement with limit(1)
 Query OK, 1 item affected ([[*]] sec)
-[
-    {
-        "_id": "002",
-        "age": 17,
-        "name": "james"
-    },
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "002",
+    "age": 17,
+    "name": "james"
+}
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 2 documents in set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 
@@ -723,12 +697,10 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Executes prepared statement with limit(2)
 Query OK, 2 items affected ([[*]] sec)
-[
-    {
-        "_id": "003",
-        "age": 18,
-        "name": "luke"
-    }
-]
+{
+    "_id": "003",
+    "age": 18,
+    "name": "luke"
+}
 1 document in set ([[*]] sec)
 
