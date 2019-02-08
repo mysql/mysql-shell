@@ -316,12 +316,20 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
+                },
+                {
+                    "value": "10485760",
+                    "variable": "group_replication_communication_max_message_size"
                 },
                 {
                     "value": "31536000",
@@ -423,6 +431,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "value": "1073741824",
+                    "variable": "group_replication_message_cache_size"
+                },
+                {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
@@ -521,12 +533,20 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
+                },
+                {
+                    "value": "10485760",
+                    "variable": "group_replication_communication_max_message_size"
                 },
                 {
                     "value": "31536000",
@@ -628,6 +648,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "value": "1073741824",
+                    "variable": "group_replication_message_cache_size"
+                },
+                {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
@@ -726,12 +750,20 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
+                },
+                {
+                    "value": "10485760",
+                    "variable": "group_replication_communication_max_message_size"
                 },
                 {
                     "value": "31536000",
@@ -831,6 +863,10 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "value": "1073741824",
+                    "variable": "group_replication_message_cache_size"
                 },
                 {
                     "value": "0",
