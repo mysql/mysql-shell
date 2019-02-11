@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -364,7 +364,7 @@ if(HAVE_V8)
       # restore original extensions
       SET(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
     endif()
-    if(NOT WIN32)
+    if(NOT WIN32 AND NOT APPLE)
       # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH entry instead of RPATH
       # this results in loader being unable to find v8_libbase, as it's a transitive dependency of v8 and v8_libplatform
       # disable new dtags on debug builds, so resultant executable is usable without LD_LIBRARY_PATH
