@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -305,7 +305,7 @@ ManagedInstance::State get_instance_state(
   row = result->fetch_one();
   if (!row) {
     throw shcore::Exception::runtime_error(
-        "Unable to retreive status information for the instance '" + address +
+        "Unable to retrieve status information for the instance '" + address +
         "'. The instance might no longer be part of the cluster.");
   }
   std::string instance_uuid = row->get_as_string(0);

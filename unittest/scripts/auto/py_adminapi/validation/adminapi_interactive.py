@@ -390,17 +390,17 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"
+                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"
+                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"
+                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         ],
         "topologyMode": "Single-Primary"
@@ -422,21 +422,21 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -465,14 +465,14 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -507,21 +507,21 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -559,21 +559,21 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -602,7 +602,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -616,7 +616,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "UNREACHABLE"
+                "status": "UNREACHABLE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -648,7 +648,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -691,21 +691,21 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -752,21 +752,21 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -801,14 +801,14 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
         "topologyMode": "Single-Primary"

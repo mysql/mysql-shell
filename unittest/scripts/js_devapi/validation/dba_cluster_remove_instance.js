@@ -31,14 +31,14 @@
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -69,14 +69,14 @@ ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -111,7 +111,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -298,7 +298,7 @@ OFF
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -360,7 +360,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully remov
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"

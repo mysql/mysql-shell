@@ -697,14 +697,29 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
                       instances_md_array.begin(), instances_md_array.end(),
                       std::inserter(new_members, new_members.begin()));
 
+  // Get the metadata session version to determine how do we obtain each member
+  // version
+  auto version = metadata->get_session()->get_server_version();
+
   std::vector<NewInstanceInfo> ret;
   for (auto i : new_members) {
-    shcore::sqlstring query(
-        "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT "
-        "FROM performance_schema.replication_group_members "
-        "WHERE MEMBER_ID = ? "
-        "ORDER BY MEMBER_PORT",
-        0);
+    shcore::sqlstring query;
+
+    // from 8.0.3, member_version is available
+    if (version >= mysqlshdk::utils::Version(8, 0, 3)) {
+      query = shcore::sqlstring(
+          "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT, MEMBER_VERSION "
+          "FROM performance_schema.replication_group_members "
+          "WHERE MEMBER_ID = ?",
+          0);
+    } else {
+      query = shcore::sqlstring(
+          "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT "
+          "FROM performance_schema.replication_group_members "
+          "WHERE MEMBER_ID = ?",
+          0);
+    }
+
     query << i;
     query.done();
 
@@ -715,6 +730,10 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     info.member_id = row->get_string(0);
     info.host = row->get_string(1);
     info.port = row->get_int(2);
+
+    if (version >= mysqlshdk::utils::Version(8, 0, 3)) {
+      info.version = row->get_string(3);
+    }
 
     ret.push_back(info);
   }

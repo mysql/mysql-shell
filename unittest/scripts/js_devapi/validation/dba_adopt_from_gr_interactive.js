@@ -48,14 +48,14 @@ false
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -94,14 +94,14 @@ Cluster successfully created based on existing replication group.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -133,14 +133,14 @@ Cluster successfully created based on existing replication group.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Multi-Primary"

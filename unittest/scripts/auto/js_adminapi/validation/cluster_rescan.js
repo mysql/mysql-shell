@@ -22,21 +22,21 @@
                 "mode": "R/W", 
                 "readReplicas": {}, 
                 "role": "HA", 
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }, 
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O", 
                 "readReplicas": {}, 
                 "role": "HA", 
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -173,7 +173,7 @@ WARNING: The following instances were not removed from the medatada because they
                 "mode": "R/W", 
                 "readReplicas": {}, 
                 "role": "HA", 
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -199,12 +199,12 @@ Result of the rescanning operation for the 'default' ReplicaSet:
         {
             "host": "<<<member_address2>>>",
             "member_id": "<<<instance2_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         },
         {
             "host": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
     "unavailableInstances": []
@@ -234,21 +234,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -271,7 +271,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -290,12 +290,12 @@ Result of the rescanning operation for the 'default' ReplicaSet:
         {
             "host": "<<<member_address2>>>",
             "member_id": "<<<instance2_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         },
         {
             "host": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
     "unavailableInstances": []
@@ -324,21 +324,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -361,7 +361,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -380,12 +380,12 @@ Result of the rescanning operation for the 'default' ReplicaSet:
         {
             "host": "<<<member_address2>>>",
             "member_id": "<<<instance2_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         },
         {
             "host": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
     "unavailableInstances": []
@@ -412,14 +412,14 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -442,7 +442,7 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -461,12 +461,12 @@ Result of the rescanning operation for the 'default' ReplicaSet:
         {
             "host": "<<<member_address2>>>",
             "member_id": "<<<instance2_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         },
         {
             "host": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
     "unavailableInstances": []
@@ -495,21 +495,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -532,7 +532,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -551,12 +551,12 @@ Result of the rescanning operation for the 'default' ReplicaSet:
         {
             "host": "<<<member_address2>>>",
             "member_id": "<<<instance2_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         },
         {
             "host": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>",
-            "name": null
+            "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
     "unavailableInstances": []
@@ -585,21 +585,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -625,7 +625,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
@@ -698,7 +698,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -727,7 +727,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -801,7 +801,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -830,7 +830,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -902,7 +902,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
@@ -938,7 +938,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -1011,7 +1011,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -1040,7 +1040,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -1113,7 +1113,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -1192,21 +1192,21 @@ pm
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -1236,21 +1236,21 @@ auto_increment_offset: 2
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Multi-Primary"

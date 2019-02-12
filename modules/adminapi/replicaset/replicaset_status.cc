@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #include <utility>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replicaset/replicaset_status.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
@@ -101,8 +103,21 @@ Replicaset_status::Replicaset_status(
 Replicaset_status::~Replicaset_status() {}
 
 void Replicaset_status::prepare() {
-  // Verify if the topology type changed and issue an error if needed.
-  m_replicaset.sanity_check();
+  // Save the reference of the cluster object
+  m_cluster = m_replicaset.get_cluster();
+
+  // Sanity checks
+  {
+    // Verify if the cluster is still registered in the Metadata
+    if (!m_cluster->get_metadata_storage()->cluster_exists(
+            m_cluster->get_name()))
+      throw shcore::Exception::runtime_error(
+          "The cluster '" + m_cluster->get_name() +
+          "' is no longer registered in the Metadata.");
+
+    // Verify if the topology type changed and issue an error if needed.
+    m_replicaset.sanity_check();
+  }
 
   m_instances = m_replicaset.get_instances();
 
@@ -112,7 +127,7 @@ void Replicaset_status::prepare() {
 }
 
 void Replicaset_status::connect_to_members() {
-  auto group_session = m_replicaset.get_cluster()->get_group_session();
+  auto group_session = m_cluster->get_group_session();
 
   mysqlshdk::db::Connection_options group_session_copts(
       group_session->get_connection_options());
@@ -224,7 +239,7 @@ const ReplicaSet::Instance_info *Replicaset_status::instance_with_uuid(
 
 Member_stats_map Replicaset_status::query_member_stats() {
   Member_stats_map stats;
-  auto group_session = m_replicaset.get_cluster()->get_group_session();
+  auto group_session = m_cluster->get_group_session();
 
   auto member_stats = group_session->query(
       "SELECT * FROM performance_schema.replication_group_member_stats");
@@ -507,6 +522,10 @@ void Replicaset_status::collect_local_status(
     (*dict)["transactions"] = shcore::Value(applier_node);
   if (!recovery_node->empty() && recovering)
     (*dict)["recovery"] = shcore::Value(recovery_node);
+
+  if (version < Version(8, 0, 2)) {
+    (*dict)["version"] = shcore::Value(version.get_full());
+  }
 }
 
 void Replicaset_status::feed_metadata_info(
@@ -531,6 +550,10 @@ void Replicaset_status::feed_member_info(shcore::Dictionary_t dict,
         member.role == mysqlshdk::gr::Member_role::PRIMARY && !m_no_quorum
             ? "R/W"
             : "R/O");
+  }
+
+  if (!member.version.empty()) {
+    (*dict)["version"] = shcore::Value(member.version);
   }
 }
 
@@ -617,7 +640,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_session = m_replicaset.get_cluster()->get_group_session();
+  auto group_session = m_cluster->get_group_session();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
@@ -693,6 +716,38 @@ shcore::Value Replicaset_status::execute() {
   shcore::Dictionary_t replicaset_dict;
 
   replicaset_dict = collect_replicaset_status();
+
+  // Check if the ReplicaSet group session is established to an instance with a
+  // state different than
+  //   - Online R/W
+  //   - Online R/O
+  //
+  // Possibly with the state:
+  //
+  //   - RECOVERING
+  //   - OFFLINE
+  //   - ERROR
+  //
+  // If that's the case, a warning must be added to the resulting JSON object
+  {
+    auto group_session = m_cluster->get_group_session();
+
+    auto state = get_replication_group_state(
+        group_session, get_gr_instance_type(group_session));
+
+    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
+                    state.source_state != ManagedInstance::OnlineRO);
+
+    if (warning) {
+      std::string warning =
+          "The cluster description may be inaccurate as it was generated from "
+          "an instance in ";
+      warning.append(ManagedInstance::describe(
+          static_cast<ManagedInstance::State>(state.source_state)));
+      warning.append(" state");
+      (*replicaset_dict)["warning"] = shcore::Value(warning);
+    }
+  }
 
   return shcore::Value(replicaset_dict);
 }

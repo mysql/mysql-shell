@@ -986,6 +986,18 @@ mysqlshdk::gr::Topology_mode MetadataStorage::get_replicaset_topology_mode(
   }
 }
 
+std::shared_ptr<mysqlshdk::db::ISession> MetadataStorage::get_session() const {
+  if (!_session) {
+    throw shcore::Exception::runtime_error(
+        "The metadata session does not exist.");
+  } else if (!_session->is_open()) {
+    throw shcore::Exception::runtime_error(
+        "The metadata session was closed. An open session is required.");
+  }
+
+  return _session;
+}
+
 void MetadataStorage::update_replicaset_topology_mode(
     uint64_t rs_id, const mysqlshdk::gr::Topology_mode &topology_mode) {
   // Convert topology mode to metadata value.

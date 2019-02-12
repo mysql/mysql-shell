@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -324,10 +324,11 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
                                 bool *out_single_primary_mode) {
   std::vector<Member> members;
 
-  // 8.0.2 added a member_role column
+  // 8.0.2 added member_role and member_version columns
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     std::shared_ptr<db::IResult> result(instance.get_session()->query(
-        "SELECT member_id, member_state, member_host, member_port, member_role,"
+        "SELECT member_id, member_state, member_host, member_port, "
+        "member_role, member_version, "
         "        @@group_replication_single_primary_mode"
         " FROM performance_schema.replication_group_members"));
     {
@@ -348,7 +349,8 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
         member.host = row->get_string(2);
         member.gr_port = row->get_int(3);
         member.role = to_member_role(row->get_string(4));
-        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(5);
+        member.version = row->get_string(5);
+        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(6);
         members.push_back(member);
 
         row = result->fetch_one();

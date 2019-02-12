@@ -16,7 +16,7 @@
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"

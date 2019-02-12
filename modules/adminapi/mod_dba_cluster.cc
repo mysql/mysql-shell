@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster/cluster_describe.h"
 #include "modules/adminapi/cluster/cluster_options.h"
 #include "modules/adminapi/cluster/cluster_set_option.h"
 #include "modules/adminapi/cluster/cluster_status.h"
@@ -112,8 +113,8 @@ void Cluster::init() {
              "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1),
              "data");
-  add_method("describe", std::bind(&Cluster::describe, this, _1));
-  add_method("status", std::bind(&Cluster::status, this, _1));
+  expose("describe", &Cluster::describe);
+  expose("status", &Cluster::status, "?options");
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
 
   expose<shcore::Value, const std::string &, Cluster>(
@@ -703,16 +704,20 @@ The defaultReplicaSet JSON object contains the following attributes:
 @li name: the ReplicaSet name
 @li topology: a list of dictionaries describing each instance belonging to the
 ReplicaSet.
+@li topologyMode: the InnoDB Cluster topology mode.
 
 Each instance dictionary contains the following attributes:
 
 @li address: the instance address in the form of host:port
 @li label: the instance name identifier
 @li role: the instance role
+@li version: the instance version (only available for instances >= 8.0.11)
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
+@throw RuntimeError in the following scenarios:
+@li If the InnoDB Cluster topology mode does not match the current Group Replication configuration.
+@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -726,48 +731,21 @@ String Cluster::describe() {}
 str Cluster::describe() {}
 #endif
 
-shcore::Value Cluster::describe(const shcore::Argument_list &args) {
+shcore::Value Cluster::describe(void) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("describe");
 
-  args.ensure_count(0, get_function_name("describe").c_str());
+  check_preconditions("describe");
 
-  shcore::Value ret_val;
-  try {
-    auto state = check_preconditions("describe");
-
-    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                    state.source_state != ManagedInstance::OnlineRO);
-
-    if (!_metadata_storage->cluster_exists(_name))
-      throw shcore::Exception::argument_error("The cluster '" + _name +
-                                              "' no longer exists.");
-
-    ret_val = shcore::Value::new_map();
-
-    auto description = ret_val.as_map();
-
-    (*description)["clusterName"] = shcore::Value(_name);
-
-    if (!_default_replica_set)
-      (*description)["defaultReplicaSet"] = shcore::Value::Null();
-    else
-      (*description)["defaultReplicaSet"] =
-          _default_replica_set->get_description();
-
-    if (warning) {
-      std::string warning =
-          "The instance description may be outdated since was generated from "
-          "an instance in ";
-      warning.append(ManagedInstance::describe(
-          static_cast<ManagedInstance::State>(state.source_state)));
-      warning.append(" state");
-      (*description)["warning"] = shcore::Value(warning);
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
-
-  return ret_val;
+  // Create the Cluster_describe command and execute it.
+  Cluster_describe op_describe(*this);
+  // Always execute finish when leaving "try catch".
+  auto finally =
+      shcore::on_leave_scope([&op_describe]() { op_describe.finish(); });
+  // Prepare the Cluster_describe command execution (validations).
+  op_describe.prepare();
+  // Execute Cluster_describe operations.
+  return op_describe.execute();
 }
 
 REGISTER_HELP_FUNCTION(status, Cluster);
@@ -789,7 +767,9 @@ for more detailed stats about the replication machinery.
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
+@throw RuntimeError in the following scenarios:
+@li If the InnoDB Cluster topology mode does not match the current Group Replication configuration.
+@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -803,53 +783,28 @@ String Cluster::status(Dictionary options) {}
 str Cluster::status(dict options) {}
 #endif
 
-shcore::Value Cluster::status(const shcore::Argument_list &args) {
+shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
-
-  args.ensure_count(0, 1, get_function_name("status").c_str());
+  check_preconditions("status");
 
   bool query_members = false;
   bool extended = false;
-  if (args.size() > 0) {
-    shcore::Value::Map_type_ref options = args.map_at(0);
 
-    Unpack_options(options)
-        .optional("extended", &extended)
-        .optional("queryMembers", &query_members)
-        .end();
-  }
+  // Retrieves optional options
+  Unpack_options(options)
+      .optional("extended", &extended)
+      .optional("queryMembers", &query_members)
+      .end();
 
-  shcore::Value ret_val;
-  try {
-    auto state = check_preconditions("status");
-
-    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                    state.source_state != ManagedInstance::OnlineRO);
-
-    // Create the Cluster_status command and execute it.
-    Cluster_status op_status(*this, extended, query_members);
-    // Always execute finish when leaving "try catch".
-    auto finally =
-        shcore::on_leave_scope([&op_status]() { op_status.finish(); });
-    // Prepare the Cluster_status command execution (validations).
-    op_status.prepare();
-    // Execute Cluster_status operations.
-    ret_val = op_status.execute();
-
-    if (warning) {
-      std::string warning =
-          "The instance status may be inaccurate as it was generated from an "
-          "instance in ";
-      warning.append(ManagedInstance::describe(
-          static_cast<ManagedInstance::State>(state.source_state)));
-      warning.append(" state");
-      (*ret_val.as_map())["warning"] = shcore::Value(warning);
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
-
-  return ret_val;
+  // Create the Cluster_status command and execute it.
+  Cluster_status op_status(*this, extended, query_members);
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope([&op_status]() { op_status.finish(); });
+  // Prepare the Cluster_status command execution (validations).
+  op_status.prepare();
+  // Execute Cluster_status operations.
+  return op_status.execute();
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);
@@ -1087,8 +1042,15 @@ shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
       _group_session->close();
       _group_session.reset();
     }
-    if (_metadata_storage->get_session()) {
-      _metadata_storage->get_session()->close();
+
+    // If _group_session is the same as the session from the metadata,
+    // then get_session would thrown an exception since the session is already
+    // closed
+    try {
+      if (_metadata_storage->get_session()) {
+        _metadata_storage->get_session()->close();
+      }
+    } catch (...) {
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disconnect"));

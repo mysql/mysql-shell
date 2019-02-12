@@ -80,7 +80,13 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void set_cluster(const std::shared_ptr<Cluster> &cluster) {
     _cluster = cluster;
   }
-  std::shared_ptr<Cluster> get_cluster() const { return _cluster.lock(); }
+
+  /**
+   * Get the cluster parent object.
+   *
+   * @return shared_ptr to Cluster parent object.
+   */
+  std::shared_ptr<Cluster> get_cluster() const;
 
   std::string get_topology_type() const { return _topology_type; }
 
@@ -249,7 +255,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   // TODO(miguel) these should go to a GroupReplication file
   friend Cluster;
 
-  shcore::Value get_description() const;
   void verify_topology_type_change() const;
 
  protected:

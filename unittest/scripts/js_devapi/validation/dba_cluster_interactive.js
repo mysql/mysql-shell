@@ -117,17 +117,17 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         ],
         "topologyMode": "Single-Primary"
@@ -149,21 +149,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -176,7 +176,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: Argument auth-method is expected to be a string
-||Cluster.removeInstance: Unable to retreive status information for the instance 'localhost:33060'. The instance might no longer be part of the cluster.
+||Cluster.removeInstance: Unable to retrieve status information for the instance 'localhost:33060'. The instance might no longer be part of the cluster.
 ||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 
 //@ Cluster: removeInstance
@@ -191,12 +191,12 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         ],
         "topologyMode": "Single-Primary"
@@ -218,14 +218,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -243,12 +243,12 @@ The cluster still has the following registered ReplicaSets:
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         ],
         "topologyMode": "Single-Primary"
@@ -351,21 +351,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "3rd_sandbox": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -421,21 +421,21 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "3rd_sandbox": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -453,17 +453,17 @@ The cluster still has the following registered ReplicaSets:
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "2nd_sandbox",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "3rd_sandbox",
-                "role": "HA"
+                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         ],
         "topologyMode": "Single-Primary"

@@ -295,18 +295,26 @@ DESCRIPTION
       - name: the ReplicaSet name
       - topology: a list of dictionaries describing each instance belonging to
         the ReplicaSet.
+      - topologyMode: the InnoDB Cluster topology mode.
 
       Each instance dictionary contains the following attributes:
 
       - address: the instance address in the form of host:port
       - label: the instance name identifier
       - role: the instance role
+      - version: the instance version (only available for instances >= 8.0.11)
 
 EXCEPTIONS
       MetadataError in the following scenarios:
 
       - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
+
+      RuntimeError in the following scenarios:
+
+      - If the InnoDB Cluster topology mode does not match the current Group
+        Replication configuration.
+      - If the InnoDB Cluster name is not registered in the Metadata.
+
 
 //@<OUT> Disconnect
 NAME
@@ -892,7 +900,12 @@ EXCEPTIONS
       MetadataError in the following scenarios:
 
       - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
+
+      RuntimeError in the following scenarios:
+
+      - If the InnoDB Cluster topology mode does not match the current Group
+        Replication configuration.
+      - If the InnoDB Cluster name is not registered in the Metadata.
 
 //@<OUT> setPrimaryInstance
 NAME

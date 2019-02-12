@@ -170,8 +170,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value get_replicaset(const shcore::Argument_list &args);
-  shcore::Value describe(const shcore::Argument_list &args);
-  shcore::Value status(const shcore::Argument_list &args);
+  shcore::Value describe(void);
+  shcore::Value status(const shcore::Dictionary_t &options);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const std::string &instance_def);
   shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -197,6 +197,11 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
         instance.host + ":" + std::to_string(instance.port);
 
     (*newly_discovered_instance)["host"] = shcore::Value(instance_address);
+
+    if (!instance.version.empty()) {
+      (*newly_discovered_instance)["version"] = shcore::Value(instance.version);
+    }
+
     newly_discovered_instances->push_back(
         shcore::Value(newly_discovered_instance));
   }

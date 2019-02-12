@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,7 @@ class Replicaset_status : public Command_interface {
   /**
    * Prepare the Replicaset_status command for execution.
    * Validates parameters and others, more specifically:
+   *   - Ensure the cluster is still registered in the metadata
    *   - Ensure the topology type didn't change as registered in the metadata
    *   - Gets the current members list
    *   - Connects to every ReplicaSet member and populates the internal
@@ -84,6 +85,7 @@ class Replicaset_status : public Command_interface {
 
  private:
   const ReplicaSet &m_replicaset;
+  std::shared_ptr<Cluster> m_cluster;
   mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
 
   std::vector<ReplicaSet::Instance_info> m_instances;

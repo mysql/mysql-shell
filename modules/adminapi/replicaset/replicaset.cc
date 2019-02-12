@@ -150,6 +150,17 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+std::shared_ptr<Cluster> ReplicaSet::get_cluster() const {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  if (!cluster) {
+    throw shcore::Exception::runtime_error(
+        "Cluster object is no longer valid.");
+  }
+
+  return cluster;
+}
+
 void ReplicaSet::sanity_check() const { verify_topology_type_change(); }
 
 /*
@@ -2324,45 +2335,6 @@ Cluster_check_info ReplicaSet::check_preconditions(
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
   return Cluster_check_info{};
-}
-
-shcore::Value ReplicaSet::get_description() const {
-  shcore::Value ret_val = shcore::Value::new_map();
-  auto description = ret_val.as_map();
-
-  // First we identify the master instance
-  auto instances = _metadata_storage->get_replicaset_instances(_id);
-
-  // Get the primary UUID value to determine GR mode:
-  // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      _metadata_storage->get_session(), nullptr);
-
-  std::string topology_mode =
-      !gr_primary_uuid.empty()
-          ? mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
-          : mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
-
-  (*description)["name"] = shcore::Value(_name);
-  (*description)["topologyMode"] = shcore::Value(topology_mode);
-  (*description)["topology"] = shcore::Value::new_array();
-
-  auto instance_list = description->get_array("topology");
-
-  for (const auto &value : instances) {
-    auto instance = shcore::Value::new_map();
-    auto instance_obj = instance.as_map();
-
-    (*instance_obj)["label"] = shcore::Value(value.label);
-    (*instance_obj)["address"] = shcore::Value(value.endpoint);
-    (*instance_obj)["role"] = shcore::Value(value.role);
-
-    instance_list->push_back(instance);
-  }
-
-  return ret_val;
 }
 
 void ReplicaSet::remove_instances(

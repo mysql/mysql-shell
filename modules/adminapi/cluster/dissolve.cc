@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,7 @@ void Dissolve::prompt_to_confirm_dissolve() const {
     // Show cluster description.
     console->println(
         "The cluster still has the following registered ReplicaSets:");
-    shcore::Value res = m_cluster->describe(shcore::Argument_list());
+    shcore::Value res = m_cluster->describe();
 
     // Pretty print description only if wrap_json is not json/raw.
     bool use_pretty_print =

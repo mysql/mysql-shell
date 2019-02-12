@@ -129,9 +129,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   mysqlshdk::gr::Topology_mode get_replicaset_topology_mode(uint64_t rs_id);
 
-  std::shared_ptr<mysqlshdk::db::ISession> get_session() const {
-    return _session;
-  }
+  /**
+   * Get the internal metadata session.
+   *
+   * @return shared_ptr to mysqlshdk::db::ISession object of the internal
+   * metadata session
+   */
+  std::shared_ptr<mysqlshdk::db::ISession> get_session() const;
 
   /**
    * Update the topology mode of the replicaset in the metadata.

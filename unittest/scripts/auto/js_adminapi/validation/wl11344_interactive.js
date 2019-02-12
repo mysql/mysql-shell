@@ -47,7 +47,8 @@ group_replication_start_on_boot = ON
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -185,7 +186,8 @@ group_replication_start_on_boot = ON
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Multi-Primary"
@@ -231,7 +233,8 @@ true
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -265,14 +268,16 @@ true
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -318,14 +323,16 @@ ONLINE
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -475,7 +482,8 @@ group_replication_start_on_boot = ON
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -503,14 +511,16 @@ ONLINE
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Multi-Primary"
@@ -589,7 +599,8 @@ group_replication_start_on_boot = ON
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -626,21 +637,24 @@ ONLINE
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
