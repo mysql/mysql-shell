@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -342,8 +342,10 @@ REGISTER_HELP(CMD_HELP_EXAMPLE3, "<b>\\?</b> *sandbox*");
 REGISTER_HELP(CMD_HELP_EXAMPLE3_DESC,
               "List the available functions for sandbox operations.");
 
-REGISTER_HELP(CMD_SQL_BRIEF, "Switches to SQL processing mode.");
-REGISTER_HELP(CMD_SQL_SYNTAX, "<b>\\sql</b>");
+REGISTER_HELP(CMD_SQL_BRIEF,
+              "Executes SQL statement or switches to SQL processing mode when "
+              "no statement is given.");
+REGISTER_HELP(CMD_SQL_SYNTAX, "<b>\\sql [statement]</b>");
 
 REGISTER_HELP(CMD_JS_BRIEF, "Switches to JavaScript processing mode.");
 REGISTER_HELP(CMD_JS_SYNTAX, "<b>\\js</b>");
@@ -550,12 +552,40 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\sql", "CMD_SQL",
       [this](const std::vector<std::string> &args) -> bool {
-        current_console()->disable_global_pager();
-        if (switch_shell_mode(shcore::Shell_core::Mode::SQL, args))
+        const auto command_pos =
+            args.empty() ? std::string::npos : args[0].find(' ');
+        std::string command =
+            command_pos != std::string::npos &&
+                    command_pos + 1 < args[0].length()
+                ? shcore::str_strip(args[0].substr(command_pos + 1))
+                : std::string();
+
+        if (!command.empty() && !_shell->get_dev_session()) {
+          print_diag("ERROR: Not connected.");
+          return true;
+        }
+
+        shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
+        if (command.empty()) current_console()->disable_global_pager();
+
+        if (switch_shell_mode(shcore::Shell_core::Mode::SQL, {},
+                              !command.empty(), command.empty()))
           refresh_completion();
+
+        if (!command.empty()) {
+          try {
+            auto sql = dynamic_cast<shcore::Shell_sql *>(
+                _shell->language_object(shcore::Shell_core::Mode::SQL));
+            assert(sql != nullptr);
+            sql->execute(command);
+          } catch (...) {
+          }
+          switch_shell_mode(old_mode, {}, true, false);
+        }
+
         return true;
       },
-      false, global_command);
+      false, global_command, false);
 #ifdef HAVE_V8
   SET_CUSTOM_SHELL_COMMAND(
       "\\js", "CMD_JS",

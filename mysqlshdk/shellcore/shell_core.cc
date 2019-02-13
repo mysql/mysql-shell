@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -456,7 +456,10 @@ bool Shell_command_handler::process(const std::string &command_line) {
     Command_registry::iterator item = _command_dict.find(command);
     if (item != _command_dict.end() && item->second->function) {
       // Parses the command
-      tokens = split_command_line(command_line);
+      if (item->second->auto_parse_arguments)
+        tokens = split_command_line(command_line);
+      else
+        tokens.resize(1);
 
       // Updates the first element to contain the whole command line
       tokens[0] = command_line;
@@ -489,8 +492,9 @@ void Shell_command_handler::add_command(const std::string &triggers,
                                         const std::string &help_tag,
                                         Shell_command_function function,
                                         bool case_sensitive_help,
-                                        Mode_mask mode) {
-  Shell_command command = {triggers, function};
+                                        Mode_mask mode,
+                                        bool auto_parse_arguments) {
+  Shell_command command = {triggers, function, auto_parse_arguments};
   _commands.push_back(command);
 
   std::vector<std::string> tokens;

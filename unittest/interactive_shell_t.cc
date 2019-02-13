@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -2485,6 +2485,58 @@ TEST_F(Interactive_shell_test, compression) {
       "X Protocol: Compression is not supported and will be ignored.");
   check_compression("OFF");
   execute("\\js");
+  wipe_all();
+}
+
+TEST_F(Interactive_shell_test, sql_command) {
+#ifdef HAVE_V8
+  execute("\\js");
+#else
+  execute("\\py");
+#endif
+  execute("\\sql show databases;");
+  MY_EXPECT_STDERR_CONTAINS("ERROR: Not connected.");
+  wipe_all();
+
+  execute("\\connect " + _uri);
+
+  execute("\\sql create database if not exists sqlcommandtest");
+  MY_EXPECT_STDOUT_CONTAINS("Query OK, 1 row affected");
+  wipe_all();
+
+  execute(
+      "\\sql create table if not exists `sqlcommandtest`.t1 (i integer, s "
+      "varchar(20));");
+  MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
+  wipe_all();
+
+  execute("\\use sqlcommandtest");
+  execute("\\sql insert into t1 values (0, \"foo\")");
+  MY_EXPECT_STDOUT_CONTAINS("Query OK, 1 row affected");
+  wipe_all();
+
+  execute("\\sql select * from t1 where s=\"foo\";");
+  MY_EXPECT_STDOUT_CONTAINS("1 row in set");
+  wipe_all();
+
+  execute("\\sql select d from t1;");
+  MY_EXPECT_STDERR_CONTAINS("Unknown column 'd' in 'field list'");
+  wipe_all();
+
+  execute("\\sql show tables");
+  MY_EXPECT_STDOUT_CONTAINS("1 row in set");
+  wipe_all();
+
+  execute("\\sql drop database sqlcommandtest;");
+  MY_EXPECT_STDOUT_CONTAINS("Query OK, 1 row affected");
+  wipe_all();
+
+  execute("\\sql show table");
+  MY_EXPECT_STDERR_CONTAINS("You have an error in your SQL syntax");
+  wipe_all();
+
+  execute("\\sql show databases; show tables;");
+  MY_EXPECT_STDERR_CONTAINS("You have an error in your SQL syntax");
   wipe_all();
 }
 

@@ -314,10 +314,11 @@ DESCRIPTION
 
 //@<OUT> SQL Command
 NAME
-      \sql - Switches to SQL processing mode.
+      \sql - Executes SQL statement or switches to SQL processing mode when no
+      statement is given.
 
 SYNTAX
-      \sql
+      \sql [statement]
 
 //@<OUT> Status Command
 NAME

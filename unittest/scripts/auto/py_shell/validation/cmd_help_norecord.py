@@ -59,7 +59,8 @@ The following shell commands are available:
  - \show               Executes the given report with provided options and
                        arguments.
  - \source     (\.)    Loads and executes a script from a file.
- - \sql                Switches to SQL processing mode.
+ - \sql                Executes SQL statement or switches to SQL processing
+                       mode when no statement is given.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
@@ -172,7 +173,8 @@ The following shell commands are available:
  - \show               Executes the given report with provided options and
                        arguments.
  - \source     (\.)    Loads and executes a script from a file.
- - \sql                Switches to SQL processing mode.
+ - \sql                Executes SQL statement or switches to SQL processing
+                       mode when no statement is given.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
@@ -251,7 +253,8 @@ The following shell commands are available:
  - \show               Executes the given report with provided options and
                        arguments.
  - \source     (\.)    Loads and executes a script from a file.
- - \sql                Switches to SQL processing mode.
+ - \sql                Executes SQL statement or switches to SQL processing
+                       mode when no statement is given.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.

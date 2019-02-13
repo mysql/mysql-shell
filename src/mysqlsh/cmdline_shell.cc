@@ -379,10 +379,19 @@ void Command_line_shell::save_state(shcore::Shell_core::Mode mode) {
 
 bool Command_line_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
                                            const std::vector<std::string> &args,
-                                           bool initializing) {
+                                           bool initializing,
+                                           bool prompt_variables_update) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool ret = Mysql_shell::switch_shell_mode(mode, args, initializing);
-  if (old_mode != mode) m_previous_mode = old_mode;
+
+  // if mode changed back to original one before statement got fully executed
+  // avoid history switch
+  if (m_previous_mode == interactive_mode())
+    m_previous_mode = shcore::Shell_core::Mode::None;
+  // if mode changed switch history after statement is executed
+  else if (old_mode != interactive_mode())
+    m_previous_mode = old_mode;
+
   return ret;
 }
 

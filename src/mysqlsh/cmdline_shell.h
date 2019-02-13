@@ -69,7 +69,8 @@ class Command_line_shell : public Mysql_shell,
 
   bool switch_shell_mode(shcore::Shell_core::Mode mode,
                          const std::vector<std::string> &args,
-                         bool initializing = false) override;
+                         bool initializing = false,
+                         bool prompt_variables_update = true) override;
 
  private:
   void handle_interrupt();

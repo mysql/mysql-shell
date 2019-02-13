@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,6 +263,20 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
                                           std::string(p, 2) + "'");
   // consume the command
   return std::make_pair(2, false);
+}
+
+void Shell_sql::execute(const std::string &sql) {
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  const auto s = _owner->get_dev_session();
+
+  if (s) {
+    session = s->get_core_session();
+  }
+
+  if (!s || !session || !session->is_open())
+    print_exception(shcore::Exception::logic_error("Not connected."));
+  else
+    process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session);
 }
 
 void Shell_sql::print_exception(const shcore::Exception &e) {

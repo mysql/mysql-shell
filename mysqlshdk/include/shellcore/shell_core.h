@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,8 +54,8 @@ using namespace std::placeholders;
 // function>, <case_sensitive_help>) Assumption:
 // - Caller class has a command handler defined as _shell_command_handler
 // - Bound function receives const std::vector<std::string>& params
-#define SET_CUSTOM_SHELL_COMMAND(name, help, function, case_sensitive, mode) \
-  command_handler()->add_command(name, help, function, case_sensitive, mode)
+#define SET_CUSTOM_SHELL_COMMAND(...) \
+  command_handler()->add_command(__VA_ARGS__)
 
 namespace shcore {
 class Object_registry;
@@ -71,6 +71,7 @@ typedef std::function<bool(const std::vector<std::string> &)>
 struct Shell_command {
   std::string triggers;
   Shell_command_function function;
+  bool auto_parse_arguments;
 };
 
 class SHCORE_PUBLIC Shell_command_handler {
@@ -90,7 +91,8 @@ class SHCORE_PUBLIC Shell_command_handler {
   void add_command(const std::string &triggers, const std::string &help_tag,
                    Shell_command_function function,
                    bool case_sensitive_help = false,
-                   Mode_mask mode = Mode_mask::all());
+                   Mode_mask mode = Mode_mask::all(),
+                   bool auto_parse_arguments = true);
   std::vector<std::string> get_command_names_matching(
       const std::string &prefix) const;
 };

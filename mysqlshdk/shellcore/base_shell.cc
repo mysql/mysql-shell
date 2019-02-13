@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -289,7 +289,8 @@ void Base_shell::update_prompt_variables() {
 
 bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
                                    const std::vector<std::string> & /*args*/,
-                                   bool initializing) {
+                                   bool initializing,
+                                   bool prompt_variables_update) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
 
@@ -358,7 +359,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
     }
   }
 
-  request_prompt_variables_update();
+  if (prompt_variables_update) request_prompt_variables_update();
 
   return lang_initialized;
 }
