@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -144,6 +144,18 @@ class Help_registry {
   std::string get_token(const std::string &help);
 
   /**
+   * Helper function to register multiple help entries for a topic at once.
+   * @param prefix The token prefix under which the text entry will be
+   * associated
+   * @param data The help data
+   * @param auto_brief If true, treats the 1st paragraph as the brief text.
+   * @param nosuffix If true, don't append the section specific suffix to the
+   * prefix when generating tag names.
+   */
+  void add_split_help(const std::string &prefix, const std::string &data,
+                      bool auto_brief, bool nosuffix);
+
+  /**
    * Helper function to register a single help entry.
    * @param token The token under which the text entry will be associated
    * @param data The help data
@@ -261,6 +273,30 @@ class Help_registry {
 struct Help_register {
   Help_register(const std::string &token, const std::string &data) {
     shcore::Help_registry::get()->add_help(token, data);
+  }
+};
+
+/**
+ * Helper structure to statically register help data after splitting into
+ * the tradditional broken down format from Help_register.
+ *
+ * Note: Might be possible to skip the splitting/re-joining and register
+ * the full text directly.
+ */
+struct Help_register_split {
+  Help_register_split(const std::string &prefix, const std::string &data,
+                      bool auto_brief, bool nosuffix) {
+    shcore::Help_registry::get()->add_split_help(prefix, data, auto_brief,
+                                                 nosuffix);
+  }
+};
+
+struct Help_register_topic_text {
+  Help_register_topic_text(const std::string &prefix, const std::string &data) {
+    // Adds _DETAIL# entries for the whole thing
+    shcore::Help_registry::get()->add_split_help(prefix, data, false, false);
+    // Add topl-level reference to the 1st _DETAIL entry
+    shcore::Help_registry::get()->add_help(prefix, "${" + prefix + "_DETAIL}");
   }
 };
 
@@ -533,5 +569,13 @@ class Help_manager {
   shcore::Help_topic_register property_##parent##name(     \
       #name, shcore::Topic_type::PROPERTY, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_TOPIC_TEXT(x, y) shcore::Help_register_topic_text x(#x, y)
+
+#define REGISTER_HELP_FUNCTION_TEXT(x, y) \
+  shcore::Help_register_split x##function(#x, y, true, false)
+
+#define REGISTER_HELP_DETAIL_TEXT(x, y) \
+  shcore::Help_register_split x##detail(#x, y, false, true)
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_

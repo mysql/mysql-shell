@@ -188,75 +188,80 @@ REGISTER_HELP(CLUSTER_OPT_EXPEL_TIMEOUT,
               "@li expelTimeout: integer value to define the time period in "
               "seconds that cluster members should wait for a non-responding "
               "member before evicting it from the cluster.");
-REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL,
-              "The exitStateAction option supports the following values:");
-REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL1,
-              "@li ABORT_SERVER: if used, the instance shuts itself down if "
-              "it leaves the cluster unintentionally.");
-REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL2,
-              "@li READ_ONLY: if used, the instance switches itself to "
-              "super-read-only mode if it leaves the cluster "
-              "unintentionally.");
-REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL3,
-              "If exitStateAction is not specified READ_ONLY will be used "
-              "by default.");
-REGISTER_HELP(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA,
-              "The value for exitStateAction is used to configure how Group "
-              "Replication behaves when a server instance leaves the group "
-              "unintentionally, for example after encountering an applier "
-              "error. When set to ABORT_SERVER, the instance shuts itself "
-              "down, and when set to READ_ONLY the server switches itself to "
-              "super-read-only mode. The exitStateAction option accepts "
-              "case-insensitive string values, being the accepted values: "
-              "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
-              "READ_ONLY.");
 
-REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA,
-              "The value for memberWeight is used to set the Group Replication "
-              "system variable 'group_replication_member_weight'. The "
-              "memberWeight option accepts integer values. Group Replication "
-              "limits the value range from 0 to 100, automatically adjusting "
-              "it if a lower/bigger value is provided. Group Replication uses "
-              "a default value of 50 if no value is provided.");
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL, R"*(
+The exitStateAction option supports the following values:
+@li ABORT_SERVER: if used, the instance shuts itself down if 
+it leaves the cluster unintentionally.
+@li READ_ONLY: if used, the instance switches itself to 
+super-read-only mode if it leaves the cluster unintentionally.
 
-REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL,
-              "The failoverConsistency option supports the following values:");
-REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL1,
-              "@li BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or "
-              "write) to the new primary will be put on hold until "
-              "after the backlog from the old primary is applied.");
-REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL2,
-              "@li EVENTUAL: if used, read queries to the new primary are "
-              "allowed even if the backlog isn't applied.");
-REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL3,
-              "If failoverConsistency is not specified, EVENTUAL will be used "
-              "by default.");
+If exitStateAction is not specified READ_ONLY will be used by default.
+)*");
 
-REGISTER_HELP(
-    CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA,
-    "The value for failoverConsistency is used to set the Group "
-    "Replication system variable 'group_replication_failover_consistency' and "
-    "configure how Group Replication behaves when a new primary instance is "
-    "elected. When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or "
-    "write) to the newly elected primary that is applying backlog from the "
-    "old primary, will be hold be hold before execution until the backlog "
-    "is applied. When set to EVENTUAL, read queries to the new primary are "
-    "allowed even if the backlog isn't applied but writes will fail (if the "
-    "backlog isn't applied) due to super-read-only mode being enabled. The "
-    "client may return old valued. The failoverConsistency option accepts "
-    "case-insensitive string values, being the accepted values: "
-    "BEFORE_ON_PRIMARY_FAILOVER (or 1) and EVENTUAL (or 0). The default value "
-    "is EVENTUAL.");
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA, R"*(
+The value for exitStateAction is used to configure how Group
+Replication behaves when a server instance leaves the group
+unintentionally, for example after encountering an applier
+error. When set to ABORT_SERVER, the instance shuts itself
+down, and when set to READ_ONLY the server switches itself to
+super-read-only mode. The exitStateAction option accepts
+case-insensitive string values, being the accepted values:
+ABORT_SERVER (or 1) and READ_ONLY (or 0). 
 
-REGISTER_HELP(CLUSTER_OPT_EXPELTIMEOUT_EXTRA,
-              "The value for expelTimeout is used to set the Group Replication "
-              "system variable 'group_replication_member_expel_timeout' and "
-              "configure how long Group Replication will wait before expelling "
-              "from the group any members suspected of having failed. On slow "
-              "networks, or when there are expected machine slowdowns, "
-              "increase the value of this option. The expelTimeout option "
-              "accepts positive integer values in the range [0, 3600]. The "
-              "default value is 0.");
+The default value is READ_ONLY.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA, R"*(
+The value for memberWeight is used to set the Group Replication
+system variable 'group_replication_member_weight'. The
+memberWeight option accepts integer values. Group Replication
+limits the value range from 0 to 100, automatically adjusting
+it if a lower/bigger value is provided. 
+
+Group Replication uses a default value of 50 if no value is provided.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL, R"*(
+The failoverConsistency option supports the following values:
+@li BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or
+write) to the new primary will be put on hold until
+after the backlog from the old primary is applied.
+@li EVENTUAL: if used, read queries to the new primary are
+allowed even if the backlog isn't applied.
+
+If failoverConsistency is not specified, EVENTUAL will be used
+by default.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA, R"*(
+The value for failoverConsistency is used to set the Group
+Replication system variable 'group_replication_failover_consistency' and
+configure how Group Replication behaves when a new primary instance is
+elected. When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or
+write) to the newly elected primary that is applying backlog from the
+old primary, will be hold be hold before execution until the backlog
+is applied. When set to EVENTUAL, read queries to the new primary are
+allowed even if the backlog isn't applied but writes will fail (if the
+backlog isn't applied) due to super-read-only mode being enabled. The
+client may return old valued. The failoverConsistency option accepts
+case-insensitive string values, being the accepted values:
+BEFORE_ON_PRIMARY_FAILOVER (or 1) and EVENTUAL (or 0).
+
+The default value is EVENTUAL.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA, R"*(
+The value for expelTimeout is used to set the Group Replication
+system variable 'group_replication_member_expel_timeout' and
+configure how long Group Replication will wait before expelling
+from the group any members suspected of having failed. On slow
+networks, or when there are expected machine slowdowns,
+increase the value of this option. The expelTimeout option
+accepts positive integer values in the range [0, 3600]. 
+
+The default value is 0.
+)*");
 
 // Documentation of the DBA Class
 REGISTER_HELP_TOPIC(AdminAPI, CATEGORY, adminapi, Contents, SCRIPTING);
@@ -530,69 +535,40 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
 
 // Documentation of the getCluster function
 REGISTER_HELP_FUNCTION(getCluster, dba);
-REGISTER_HELP(DBA_GETCLUSTER_BRIEF,
-              "Retrieves a cluster from the Metadata Store.");
-REGISTER_HELP(DBA_GETCLUSTER_PARAM,
-              "@param name Optional parameter to specify "
-              "the name of the cluster to be returned.");
-REGISTER_HELP(DBA_GETCLUSTER_PARAM1,
-              "@param options Optional dictionary with additional options.");
 
-REGISTER_HELP(DBA_GETCLUSTER_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS1, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS2,
-              "@li If the Metadata update operation failed.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_GETCLUSTER, R"*(
+Retrieves a cluster from the Metadata Store.
 
-REGISTER_HELP(DBA_GETCLUSTER_THROWS3,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS4, "@li If the Cluster name is empty.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS5, "@li If the Cluster name is invalid.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS6, "@li If the Cluster does not exist.");
+@param name Optional parameter to specify the name of the cluster to be returned.
+@param options Optional dictionary with additional options.
 
-REGISTER_HELP(DBA_GETCLUSTER_THROWS7,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS8,
-              "@li If the current connection cannot be "
-              "used for Group Replication.");
+@returns The cluster object identified by the given name or the default cluster.
 
-REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
-              "@returns The cluster object identified "
-              "by the given name or the default "
-              "cluster.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL,
-              "If name is not specified or is null, the default "
-              "cluster will be returned.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL1,
-              "If name is specified, and no cluster "
-              "with the indicated name is found, an "
-              "error will be raised.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL2,
-              "The options dictionary accepts the connectToPrimary option,"
-              "which defaults to true and indicates the shell to automatically "
-              "connect to the primary member of the cluster.");
+If name is not specified or is null, the default cluster will be returned.
+
+If name is specified, and no cluster with the indicated name is found, an 
+error will be raised.
+
+The options dictionary accepts the connectToPrimary option, 
+which defaults to true and indicates the shell to automatically 
+connect to the primary member of the cluster.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+
+@throw ArgumentError in the following scenarios:
+@li If the Cluster name is empty.
+@li If the Cluster name is invalid.
+@li If the Cluster does not exist.
+
+@throw RuntimeError in the following scenarios:
+@li If the current connection cannot be used for Group Replication.
+)*");
 /**
  * $(DBA_GETCLUSTER_BRIEF)
  *
- * $(DBA_GETCLUSTER_PARAM)
- * $(DBA_GETCLUSTER_PARAM1)
- *
- * $(DBA_GETCLUSTER_THROWS)
- * $(DBA_GETCLUSTER_THROWS1)
- * $(DBA_GETCLUSTER_THROWS2)
- * $(DBA_GETCLUSTER_THROWS3)
- * $(DBA_GETCLUSTER_THROWS4)
- * $(DBA_GETCLUSTER_THROWS5)
- * $(DBA_GETCLUSTER_THROWS6)
- * $(DBA_GETCLUSTER_THROWS7)
- * $(DBA_GETCLUSTER_THROWS8)
- *
- * $(DBA_GETCLUSTER_RETURNS)
- *
- * $(DBA_GETCLUSTER_DETAIL)
- *
- * $(DBA_GETCLUSTER_DETAIL1)
- * $(DBA_GETCLUSTER_DETAIL2)
+ * $(DBA_GETCLUSTER)
  */
 #if DOXYGEN_JS
 Cluster Dba::getCluster(String name, Dictionary options) {}
@@ -723,286 +699,135 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 }
 
 REGISTER_HELP_FUNCTION(createCluster, dba);
-REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
-REGISTER_HELP(DBA_CREATECLUSTER_PARAM,
-              "@param name The name of the cluster object to be created.");
-REGISTER_HELP(DBA_CREATECLUSTER_PARAM1,
-              "@param options Optional dictionary "
-              "with options that modify the behavior "
-              "of this function.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_CREATECLUSTER, R"*(
+Creates a MySQL InnoDB cluster.
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS1,
-              "@li If the Metadata is inaccessible.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS2,
-              "@li If the Metadata update operation failed.");
+@param name The name of the cluster object to be created.
+@param options Optional dictionary with options that modify the behavior of
+this function.
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS3,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS4, "@li If the Cluster name is empty.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS5,
-              "@li If the Cluster name is not valid.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS6,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS7,
-              "@li If adoptFromGR "
-              "is true and the memberSslMode option "
-              "is used.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS8,
-              "@li If the value "
-              "for the memberSslMode option is not "
-              "one of the allowed.");
+@returns The created cluster object.
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS9,
-              "@li If adoptFromGR "
-              "is true and the multiPrimary option is used.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS10,
-              "@li If the value for the ipWhitelist, "
-              "groupName, localAddress, groupSeeds, exitStateAction or "
-              "failoverConsistency options is empty.");
+Creates a MySQL InnoDB cluster taking as seed instance the active global
+session.
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS11,
-              "@li If the value for the expelTimeout is not in the range: "
-              "[0, 3600]");
+The options dictionary can contain the following values:
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS12,
-              "RuntimeError in the following scenarios:");
+@li multiMaster: boolean value used to define an InnoDB cluster with multiple
+writable instances.
+@li multiPrimary: boolean value used to define an InnoDB cluster with multiple
+writable instances.
+@li force: boolean, confirms that the multiPrimary option must be applied.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
+@li adoptFromGR: boolean value used to create the InnoDB cluster based on
+existing replication group.
+@li memberSslMode: SSL mode used to configure the members of the cluster.
+@li ipWhitelist: The list of hosts allowed to connect to the instance for group
+replication.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled.
+@li groupName: string value with the Group Replication group name UUID to be
+used instead of the automatically generated one.
+@li localAddress: string value with the Group Replication local address to be
+used instead of the automatically generated one.
+@li groupSeeds: string value with a comma-separated list of the Group
+Replication peer addresses to be used instead of the automatically generated
+one.
+${CLUSTER_OPT_EXIT_STATE_ACTION}
+${CLUSTER_OPT_MEMBER_WEIGHT}
+${CLUSTER_OPT_FAILOVER_CONSISTENCY}
+${CLUSTER_OPT_EXPEL_TIMEOUT}
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS13,
-              "@li If the value for the groupName, "
-              "localAddress, groupSeeds, exitStateAction, memberWeight, "
-              "failoverConsistency "
-              "or expelTimeout options is not valid for Group Replication.");
+@attention The multiMaster option will be removed in a future release. Please
+use the multiPrimary option instead.
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS14,
-              "@li If the current connection cannot be used "
-              "for Group Replication.");
+An InnoDB cluster may be setup in two ways:
 
-REGISTER_HELP(DBA_CREATECLUSTER_RETURNS,
-              "@returns The created cluster object.");
+@li Single Primary: One member of the cluster allows write operations while the
+rest are in read only mode.
+@li Multi Primary: All the members in the cluster support both read and write
+operations.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL,
-              "Creates a MySQL InnoDB cluster taking "
-              "as seed instance the active global "
-              "session.");
+By default this function create a Single Primary cluster, use the multiPrimary
+option set to true if a Multi Primary cluster is required.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1,
-              "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2,
-              "@li multiMaster: boolean value used "
-              "to define an InnoDB cluster with "
-              "multiple writable instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3,
-              "@li multiPrimary: boolean value used "
-              "to define an InnoDB cluster with "
-              "multiple writable instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4,
-              "@li force: boolean, confirms that the multiPrimary option must "
-              "be applied.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4_,
-              "@li interactive: boolean value used to disable the wizards in "
-              "the command execution, i.e. prompts are not provided to the "
-              "user and confirmation prompts are not shown.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5,
-              "@li adoptFromGR: boolean value used "
-              "to create the InnoDB cluster based "
-              "on existing replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6,
-              "@li memberSslMode: SSL mode used to "
-              "configure the members of the "
-              "cluster.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,
-              "@li ipWhitelist: The list of hosts "
-              "allowed to connect to the instance "
-              "for group replication.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,
-              "@li clearReadOnly: boolean value "
-              "used to confirm that super_read_only "
-              "must be disabled.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,
-              "@li groupName: string value with the Group Replication group "
-              "name UUID to be used instead of the automatically generated "
-              "one.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10,
-              "@li localAddress: string value with the Group Replication "
-              "local address to be used instead of the automatically "
-              "generated one.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
-              "@li groupSeeds: string value with a comma-separated list of "
-              "the Group Replication peer addresses to be used instead of the "
-              "automatically generated one.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "${CLUSTER_OPT_EXIT_STATE_ACTION}");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "${CLUSTER_OPT_MEMBER_WEIGHT}");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
-              "${CLUSTER_OPT_FAILOVER_CONSISTENCY}");
+The memberSslMode option supports the following values:
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "${CLUSTER_OPT_EXPEL_TIMEOUT}");
+@li REQUIRED: if used, SSL (encryption) will be enabled for the instances to
+communicate with other members of the cluster
+@li DISABLED: if used, SSL (encryption) will be disabled
+@li AUTO: if used, SSL (encryption) will be enabled if supported by the
+instance, otherwise disabled
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
-              "@attention The multiMaster option will be removed in a "
-              "future release. Please use the multiPrimary option instead.");
+If memberSslMode is not specified AUTO will be used by default.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
-              "An InnoDB cluster may be setup in two ways:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18,
-              "@li Single Primary: One member of the cluster allows write "
-              "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL19,
-              "@li Multi Primary: All the members "
-              "in the cluster support both read "
-              "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20,
-              "By default this function create a Single Primary cluster, use "
-              "the multiPrimary option set to true "
-              "if a Multi Primary cluster is required.");
+${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL21,
-              "The memberSslMode option supports the following values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
-              "@li REQUIRED: if used, SSL (encryption) will be enabled for the "
-              "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
-              "@li DISABLED: if used, SSL (encryption) will be disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
-              "@li AUTO: if used, SSL (encryption) "
-              "will be enabled if supported by the "
-              "instance, otherwise disabled");
-REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL25,
-    "If memberSslMode is not specified AUTO will be used by default.");
+${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
+The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
+notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
+AUTOMATIC, allowing addresses from the instance private network to be
+automatically set for the whitelist.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
-              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}");
+The groupName, localAddress, and groupSeeds are advanced options and their
+usage is discouraged since incorrect values can lead to Group Replication
+errors.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
-              "The ipWhitelist format is a comma separated list of IP "
-              "addresses or subnet CIDR "
-              "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "
-              "value is set to AUTOMATIC, allowing addresses "
-              "from the instance private network to be automatically set for "
-              "the whitelist.");
+The value for groupName is used to set the Group Replication system variable
+'group_replication_group_name'.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
-              "The groupName, localAddress, and groupSeeds are advanced "
-              "options and their usage is discouraged since incorrect values "
-              "can lead to Group Replication errors.");
+The value for localAddress is used to set the Group Replication system variable
+'group_replication_local_address'. The localAddress option accepts values in
+the format: 'host:port' or 'host:' or ':port'. If the specified value does not
+include a colon (:) and it is numeric, then it is assumed to be the port,
+otherwise it is considered to be the host. When the host is not specified, the
+default value is the value of the system variable 'report_host' if defined
+(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
+specified, the default value is the port of the current active connection
+(session) * 10 + 1. In case the automatically determined default port value is
+invalid (> 65535) then a random value in the range [10000, 65535] is used.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
-              "The value for groupName is used to set the Group Replication "
-              "system variable 'group_replication_group_name'.");
+The value for groupSeeds is used to set the Group Replication system variable
+'group_replication_group_seeds'. The groupSeeds option accepts a
+comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
-              "The value for localAddress is used to set the Group "
-              "Replication system variable 'group_replication_local_address'. "
-              "The localAddress option accepts values in the format: "
-              "'host:port' or 'host:' or ':port'. If the specified "
-              "value does not include a colon (:) and it is numeric, then it "
-              "is assumed to be the port, otherwise it is considered to be the "
-              "host. When the host is not specified, the default value is the "
-              "value of the system variable 'report_host' if defined (i.e., "
-              "not 'NULL'), otherwise it is the hostname value. When the "
-              "port is not specified, the default value is the port of the "
-              "current active connection (session) * 10 + 1. In case the "
-              "automatically determined default port value is invalid "
-              "(> 65535) then a random value in the range [10000, 65535] is "
-              "used.");
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
-              "The value for groupSeeds is used to set the Group Replication "
-              "system variable 'group_replication_group_seeds'. The "
-              "groupSeeds option accepts a comma-separated list of addresses "
-              "in the format: 'host1:port1,...,hostN:portN'.");
+${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
-              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
+${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL34,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
+${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL35,
-              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}");
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL36, "${CLUSTER_OPT_EXPELTIMEOUT_EXTRA}");
+@throw ArgumentError in the following scenarios:
+@li If the Cluster name is empty.
+@li If the Cluster name is not valid.
+@li If the options contain an invalid attribute.
+@li If adoptFromGR is true and the memberSslMode option is used.
+@li If the value for the memberSslMode option is not one of the allowed.
+@li If adoptFromGR is true and the multiPrimary option is used.
+@li If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
+exitStateAction or failoverConsistency options is empty.
+@li If the value for the expelTimeout is not in the range: [0, 3600]
+
+@throw RuntimeError in the following scenarios:
+@li If the value for the groupName, localAddress, groupSeeds, exitStateAction,
+memberWeight, failoverConsistency or expelTimeout options is not valid for
+Group Replication.
+@li If the current connection cannot be used for Group Replication.
+)*");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
  *
- * $(DBA_CREATECLUSTER_PARAM)
- * $(DBA_CREATECLUSTER_PARAM1)
- *
- * $(DBA_CREATECLUSTER_THROWS)
- * $(DBA_CREATECLUSTER_THROWS1)
- * $(DBA_CREATECLUSTER_THROWS2)
- * $(DBA_CREATECLUSTER_THROWS3)
- * $(DBA_CREATECLUSTER_THROWS4)
- * $(DBA_CREATECLUSTER_THROWS5)
- * $(DBA_CREATECLUSTER_THROWS6)
- * $(DBA_CREATECLUSTER_THROWS7)
- * $(DBA_CREATECLUSTER_THROWS8)
- * $(DBA_CREATECLUSTER_THROWS9)
- * $(DBA_CREATECLUSTER_THROWS10)
- * $(DBA_CREATECLUSTER_THROWS11)
- * $(DBA_CREATECLUSTER_THROWS12)
- * $(DBA_CREATECLUSTER_THROWS13)
- * $(DBA_CREATECLUSTER_THROWS14)
- *
- * $(DBA_CREATECLUSTER_RETURNS)
- *
- * $(DBA_CREATECLUSTER_DETAIL)
- *
- * $(DBA_CREATECLUSTER_DETAIL1)
- * $(DBA_CREATECLUSTER_DETAIL2)
- * $(DBA_CREATECLUSTER_DETAIL3)
- * $(DBA_CREATECLUSTER_DETAIL4)
- * $(DBA_CREATECLUSTER_DETAIL4_)
- * $(DBA_CREATECLUSTER_DETAIL5)
- * $(DBA_CREATECLUSTER_DETAIL6)
- * $(DBA_CREATECLUSTER_DETAIL7)
- * $(DBA_CREATECLUSTER_DETAIL8)
- * $(DBA_CREATECLUSTER_DETAIL9)
- * $(DBA_CREATECLUSTER_DETAIL10)
- * $(DBA_CREATECLUSTER_DETAIL11)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION)
- * $(CLUSTER_OPT_MEMBER_WEIGHT)
- * $(CLUSTER_OPT_FAILOVER_CONSISTENCY)
- * $(CLUSTER_OPT_EXPEL_TIMEOUT)
- *
- * $(DBA_CREATECLUSTER_DETAIL16)
- * $(DBA_CREATECLUSTER_DETAIL17)
- * $(DBA_CREATECLUSTER_DETAIL18)
- * $(DBA_CREATECLUSTER_DETAIL19)
- * $(DBA_CREATECLUSTER_DETAIL20)
- * $(DBA_CREATECLUSTER_DETAIL21)
- * $(DBA_CREATECLUSTER_DETAIL22)
- *
- * $(DBA_CREATECLUSTER_DETAIL22)
- * $(DBA_CREATECLUSTER_DETAIL23)
- * $(DBA_CREATECLUSTER_DETAIL24)
- * $(DBA_CREATECLUSTER_DETAIL25)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
- * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL)
- *
- * $(DBA_CREATECLUSTER_DETAIL28)
- *
- * $(DBA_CREATECLUSTER_DETAIL29)
- *
- * $(DBA_CREATECLUSTER_DETAIL30)
- *
- * $(DBA_CREATECLUSTER_DETAIL31)
- *
- * $(DBA_CREATECLUSTER_DETAIL32)
- *
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
- *
- * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
- *
- * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA)
- *
- * $(CLUSTER_OPT_EXPELTIMEOUT_EXTRA)
+ * $(DBA_CREATECLUSTER)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -1421,52 +1246,30 @@ void Dba::prepare_metadata_schema(mysqlshdk::mysql::Instance *metadata_target) {
 }
 
 REGISTER_HELP_FUNCTION(dropMetadataSchema, dba);
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM,
-              "@param options Dictionary "
-              "containing an option to confirm "
-              "the drop operation.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_DROPMETADATASCHEMA, R"*(
+Drops the Metadata Schema.
 
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS1,
-              "@li If the Metadata is inaccessible.");
+@param options Dictionary containing an option to confirm the drop operation.
 
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS2,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS3,
-              "@li If the current connection cannot be used "
-              "for Group Replication.");
+@returns Nothing.
 
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_RETURNS, "@returns Nothing.");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL,
-              "The options dictionary may contain the following options:");
-REGISTER_HELP(
-    DBA_DROPMETADATASCHEMA_DETAIL1,
-    "@li force: boolean, confirms that the drop operation must be executed.");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL2,
-              "@li clearReadOnly: boolean "
-              "value used to confirm that "
-              "super_read_only must be "
-              "disabled");
+The options dictionary may contain the following options:
+
+@li force: boolean, confirms that the drop operation must be executed.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+
+@throw RuntimeError in the following scenarios:
+@li If the current connection cannot be used for Group Replication.
+)*");
 
 /**
  * $(DBA_DROPMETADATASCHEMA_BRIEF)
  *
- * $(DBA_DROPMETADATASCHEMA_PARAM)
- *
- * $(DBA_DROPMETADATASCHEMA_THROWS)
- * $(DBA_DROPMETADATASCHEMA_THROWS1)
- * $(DBA_DROPMETADATASCHEMA_THROWS2)
- * $(DBA_DROPMETADATASCHEMA_THROWS3)
- *
- * $(DBA_DROPMETADATASCHEMA_RETURNS)
- *
- * $(DBA_DROPMETADATASCHEMA_PARAM)
- *
- * $(DBA_DROPMETADATASCHEMA_DETAIL)
- * $(DBA_DROPMETADATASCHEMA_DETAIL1)
- * $(DBA_DROPMETADATASCHEMA_DETAIL2)
+ * $(DBA_DROPMETADATASCHEMA)
  */
 #if DOXYGEN_JS
 Undefined Dba::dropMetadataSchema(Dictionary options) {}
@@ -1522,152 +1325,73 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceConfiguration, dba);
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF,
-              "Validates an instance for MySQL InnoDB Cluster usage.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM,
-              "@param instance An instance definition.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM1,
-              "@param options Optional data for the operation.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_CHECKINSTANCECONFIGURATION, R"*(
+Validates an instance for MySQL InnoDB Cluster usage.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS1,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS2,
-              "@li If the instance definition is invalid.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS3,
-              "@li If the instance definition is a "
-              "connection dictionary but empty.");
+@param instance An instance definition.
+@param options Optional data for the operation.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS4,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS5,
-              "@li If the instance accounts are invalid.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS6,
-              "@li If the instance is offline.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS7,
-              "@li If the instance is already part of a "
-              "Replication Group.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS8,
-              "@li If the instance is already part of an "
-              "InnoDB Cluster.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS9,
-              "@li If the given the instance cannot be used "
-              "for Group Replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_RETURNS,
-              "@returns A descriptive text of the operation result.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL,
-              "This function reviews the instance configuration to identify if "
-              "it is valid for usage with group replication. Use this to check "
-              "for possible configuration issues on MySQL instances before "
-              "creating a cluster with them or adding them to an existing "
-              "cluster.");
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+@returns A descriptive text of the operation result.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+This function reviews the instance configuration to identify if it is valid for
+usage with group replication. Use this to check for possible configuration
+issues on MySQL instances before creating a cluster with them or adding them to
+an existing cluster.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3,
-              "The options dictionary may contain the following options:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
-              "@li mycnfPath: Optional path to the MySQL configuration file "
-              "for the instance. Alias for verifyMyCnf");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
-              "@li verifyMyCnf: Optional path to the MySQL configuration file "
-              "for the instance. If this option is given, the configuration "
-              "file will be verified for the expected option values, in "
-              "addition to the global MySQL system variables.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
-              "@li password: The password to get connected to the instance.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
-              "@li interactive: boolean value used to disable the wizards in "
-              "the command execution, i.e. prompts are not provided to the "
-              "user and confirmation prompts are not shown.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
-              "The connection password may be contained on the instance "
-              "definition, however, it can be overwritten "
-              "if it is specified on the options.");
+The options dictionary may contain the following options:
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
-              "The returned descriptive text of the operation result indicates "
-              "whether the instance is valid for InnoDB Cluster usage or not. "
-              "If not, a table containing the following information is "
-              "presented:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10,
-              "@li Variable: the invalid configuration variable.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
-              "@li Current Value: the current value for the invalid "
-              "configuration variable.");
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
-    "@li Required Value: the required value for the configuration variable.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
-              "@li Note: the action to be taken.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
-              "The note can be one of the following:");
+@li mycnfPath: Optional path to the MySQL configuration file for the instance.
+Alias for verifyMyCnf
+@li verifyMyCnf: Optional path to the MySQL configuration file for the
+instance. If this option is given, the configuration file will be verified for
+the expected option values, in addition to the global MySQL system variables.
+@li password: The password to get connected to the instance.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
 
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
-    "@li Update the config file and update or restart the server variable.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
-              "@li Update the config file and restart the server.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
-              "@li Update the config file.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
-              "@li Update the server variable.");
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
-              "@li Restart the server.");
+The returned descriptive text of the operation result indicates whether the
+instance is valid for InnoDB Cluster usage or not. If not, a table containing
+the following information is presented:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+@li Note: the action to be taken.
+
+The note can be one of the following:
+
+@li Update the config file and update or restart the server variable.
+@li Update the config file and restart the server.
+@li Update the config file.
+@li Update the server variable.
+@li Restart the server.
+
+
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
+@li If the instance definition is a connection dictionary but empty.
+
+@throw RuntimeError in the following scenarios:
+@li If the instance accounts are invalid.
+@li If the instance is offline.
+@li If the instance is already part of a Replication Group.
+@li If the instance is already part of an InnoDB Cluster.
+@li If the given the instance cannot be used for Group Replication.
+)*");
 
 /**
  * $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
  *
- * $(DBA_CHECKINSTANCECONFIGURATION_PARAM)
- * $(DBA_CHECKINSTANCECONFIGURATION_PARAM1)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS1)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS2)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS3)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS4)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS7)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS8)
- * $(DBA_CHECKINSTANCECONFIGURATION_THROWS9)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
- *
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
- * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
+ * $(DBA_CHECKINSTANCECONFIGURATION)
  */
 #if DOXYGEN_JS
 JSON Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {
@@ -1842,109 +1566,53 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
 }
 
 REGISTER_HELP_FUNCTION(deploySandboxInstance, dba);
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF,
-              "Creates a new MySQL Server instance on localhost.");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_PARAM,
-    "@param port The port where the new instance will listen for connections.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1,
-              "@param options Optional dictionary with options affecting the "
-              "new deployed instance.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_DEPLOYSANDBOXINSTANCE, R"*(
+Creates a new MySQL Server instance on localhost.
 
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS1,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS2,
-              "@li If the root password is missing on the options.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS3,
-              "@li If the port value is < 1024 or > 65535.");
+@param port The port where the new instance will listen for connections.
+@param options Optional dictionary with options affecting the new deployed
+instance.
 
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS4,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS5,
-              "@li If SSL "
-              "support can be provided and "
-              "ignoreSslError: false.");
+@returns Nothing.
 
-// REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns The deployed
-// Instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns Nothing.");
+This function will deploy a new MySQL Server instance, the result may be
+affected by the provided options:
 
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_DETAIL,
-    "This function will deploy a new MySQL Server instance, the result may be "
-    "affected by the provided options: ");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1,
-              "@li portx: port where the "
-              "new instance will listen for "
-              "X Protocol connections.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2,
-              "@li sandboxDir: path where the new instance will be deployed.");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_DETAIL3,
-    "@li password: password for the MySQL root user on the new instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4,
-              "@li allowRootFrom: create remote root account, restricted to "
-              "the given address pattern (eg %).");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_DETAIL5,
-    "@li ignoreSslError: Ignore errors when adding SSL support for the new "
-    "instance, by default: true.");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_DETAIL6,
-    "If the portx option is not specified, it will be automatically calculated "
-    "as 10 times the value of the provided MySQL port.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7,
-              "The password option specifies the MySQL root "
-              "password on the new instance.");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_DETAIL8,
-    "The sandboxDir must be an existing folder where the new instance will be "
-    "deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9,
-              "  ~/mysql-sandboxes on Unix-like systems or "
-              "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10,
-              "SSL support is added by "
-              "default if not already available for the new instance, but if "
-              "it fails to be "
-              "added then the error is ignored. Set the ignoreSslError option "
-              "to false to ensure the new instance is "
-              "deployed with SSL support.");
+@li portx: port where the new instance will listen for X Protocol connections.
+@li sandboxDir: path where the new instance will be deployed.
+@li password: password for the MySQL root user on the new instance.
+@li allowRootFrom: create remote root account, restricted to the given address
+pattern (eg %).
+@li ignoreSslError: Ignore errors when adding SSL support for the new instance,
+by default: true.
+
+If the portx option is not specified, it will be automatically calculated as 10
+times the value of the provided MySQL port.
+
+The password option specifies the MySQL root password on the new instance.
+
+The sandboxDir must be an existing folder where the new instance will be
+deployed. If not specified the new instance will be deployed at:
+
+  ~/mysql-sandboxes on Unix-like systems
+or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
+
+SSL support is added by default if not already available for the new instance,
+but if it fails to be added then the error is ignored. Set the ignoreSslError
+option to false to ensure the new instance is deployed with SSL support.
+
+@throw ArgumentError in the following scenarios:
+@li If the options contain an invalid attribute.
+@li If the root password is missing on the options.
+@li If the port value is < 1024 or > 65535.
+@throw RuntimeError in the following scenarios:
+@li If SSL support can be provided and ignoreSslError: false.
+)*");
 
 /**
  * $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)
  *
- * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM)
- * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM1)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS)
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS1)
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS2)
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS3)
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS4)
- * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS5)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_RETURNS)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1)
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2)
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3)
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4)
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9)
- *
- * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10)
+ * $(DBA_DEPLOYSANDBOXINSTANCE)
  */
 #if DOXYGEN_JS
 Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
@@ -2017,57 +1685,37 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
 }
 
 REGISTER_HELP_FUNCTION(deleteSandboxInstance, dba);
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_BRIEF,
-              "Deletes an existing MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM,
-              "@param port The port of the instance to be deleted.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM1,
-              "@param options Optional dictionary with options that modify the "
-              "way this function is executed.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_DELETESANDBOXINSTANCE, R"*(
+Deletes an existing MySQL Server instance on localhost.
 
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS1,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS2,
-              "@li If the port value is < 1024 or > 65535.");
+@param port The port of the instance to be deleted.
+@param options Optional dictionary with options that modify the way this
+function is executed.
 
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL,
-              "This function will delete an existing MySQL Server instance on "
-              "the local host. The following options affect the result:");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL1,
-              "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL2,
-              "The sandboxDir must be the one where the MySQL instance was "
-              "deployed. If not specified it will use:");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL3,
-              "  ~/mysql-sandboxes on Unix-like systems or "
-              "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(
-    DBA_DELETESANDBOXINSTANCE_DETAIL4,
-    "If the instance is not located on the used path an error will occur.");
+This function will delete an existing MySQL Server instance on the local host.
+The following options affect the result:
+
+@li sandboxDir: path where the instance is located.
+
+The sandboxDir must be the one where the MySQL instance was deployed. If not
+specified it will use:
+
+  ~/mysql-sandboxes on Unix-like systems
+or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
+
+If the instance is not located on the used path an error will occur.
+
+@throw ArgumentError in the following scenarios:
+@li If the options contain an invalid attribute.
+@li If the port value is < 1024 or > 65535.
+)*");
 
 /**
  * $(DBA_DELETESANDBOXINSTANCE_BRIEF)
  *
- * $(DBA_DELETESANDBOXINSTANCE_PARAM)
- * $(DBA_DELETESANDBOXINSTANCE_PARAM1)
- *
- * $(DBA_DELETESANDBOXINSTANCE_THROWS)
- * $(DBA_DELETESANDBOXINSTANCE_THROWS1)
- * $(DBA_DELETESANDBOXINSTANCE_THROWS2)
- *
- * $(DBA_DELETESANDBOXINSTANCE_RETURNS)
- *
- * $(DBA_DELETESANDBOXINSTANCE_DETAIL)
- *
- * $(DBA_DELETESANDBOXINSTANCE_DETAIL1)
- * $(DBA_DELETESANDBOXINSTANCE_DETAIL2)
- * $(DBA_DELETESANDBOXINSTANCE_DETAIL3)
- *
- * $(DBA_DELETESANDBOXINSTANCE_DETAIL4)
+ * $(DBA_DELETESANDBOXINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
@@ -2089,58 +1737,36 @@ shcore::Value Dba::delete_sandbox_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_BRIEF,
-              "Kills a running MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM,
-              "@param port The port of the instance to be killed.");
-REGISTER_HELP(
-    DBA_KILLSANDBOXINSTANCE_PARAM1,
-    "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_KILLSANDBOXINSTANCE, R"*(
+Kills a running MySQL Server instance on localhost.
 
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS1,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS2,
-              "@li If the port value is < 1024 or > 65535.");
+@param port The port of the instance to be killed.
+@param options Optional dictionary with options affecting the result.
 
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(
-    DBA_KILLSANDBOXINSTANCE_DETAIL,
-    "This function will kill the process of a running MySQL Server instance "
-    "on the local host. The following options affect the result:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL1,
-              "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2,
-              "The sandboxDir must be the one where the MySQL instance was "
-              "deployed. If not specified it will use:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3,
-              "  ~/mysql-sandboxes on Unix-like systems or "
-              "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(
-    DBA_KILLSANDBOXINSTANCE_DETAIL4,
-    "If the instance is not located on the used path an error will occur.");
+This function will kill the process of a running MySQL Server instance on the
+local host. The following options affect the result:
+
+@li sandboxDir: path where the instance is located.
+
+The sandboxDir must be the one where the MySQL instance was deployed. If not
+specified it will use:
+
+  ~/mysql-sandboxes on Unix-like systems
+or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
+
+If the instance is not located on the used path an error will occur.
+
+@throw ArgumentError in the following scenarios:
+@li If the options contain an invalid attribute.
+@li If the port value is < 1024 or > 65535.
+)*");
 
 /**
  * $(DBA_KILLSANDBOXINSTANCE_BRIEF)
  *
- * $(DBA_KILLSANDBOXINSTANCE_PARAM)
- * $(DBA_KILLSANDBOXINSTANCE_PARAM1)
- *
- * $(DBA_KILLSANDBOXINSTANCE_THROWS)
- * $(DBA_KILLSANDBOXINSTANCE_THROWS1)
- * $(DBA_KILLSANDBOXINSTANCE_THROWS2)
- *
- * $(DBA_KILLSANDBOXINSTANCE_RETURNS)
- *
- * $(DBA_KILLSANDBOXINSTANCE_DETAIL)
- *
- * $(DBA_KILLSANDBOXINSTANCE_DETAIL1)
- * $(DBA_KILLSANDBOXINSTANCE_DETAIL2)
- * $(DBA_KILLSANDBOXINSTANCE_DETAIL3)
- *
- * $(DBA_KILLSANDBOXINSTANCE_DETAIL4)
+ * $(DBA_KILLSANDBOXINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
@@ -2162,66 +1788,38 @@ shcore::Value Dba::kill_sandbox_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_BRIEF,
-              "Stops a running MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM,
-              "@param port The port of the instance to be stopped.");
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_PARAM1,
-    "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_STOPSANDBOXINSTANCE, R"*(
+Stops a running MySQL Server instance on localhost.
 
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS1,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS2,
-              "@li If the root password is missing on the options.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS3,
-              "@li If the port value is < 1024 or > 65535.");
+@param port The port of the instance to be stopped.
+@param options Optional dictionary with options affecting the result.
 
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_DETAIL,
-    "This function will gracefully stop a running MySQL Server instance "
-    "on the local host. The following options affect the result:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1,
-              "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_DETAIL2,
-    "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3,
-              "The sandboxDir must be the one where the MySQL instance was "
-              "deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4,
-              "  ~/mysql-sandboxes on Unix-like systems or "
-              "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_DETAIL5,
-    "If the instance is not located on the used path an error will occur.");
+This function will gracefully stop a running MySQL Server instance on the local
+host. The following options affect the result:
+
+@li sandboxDir: path where the instance is located.
+@li password: password for the MySQL root user on the instance.
+
+The sandboxDir must be the one where the MySQL instance was deployed. If not
+specified it will use:
+
+  ~/mysql-sandboxes on Unix-like systems
+or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
+
+If the instance is not located on the used path an error will occur.
+
+@throw ArgumentError in the following scenarios:
+@li If the options contain an invalid attribute.
+@li If the root password is missing on the options.
+@li If the port value is < 1024 or > 65535.
+)*");
 
 /**
  * $(DBA_STOPSANDBOXINSTANCE_BRIEF)
  *
- * $(DBA_STOPSANDBOXINSTANCE_PARAM)
- * $(DBA_STOPSANDBOXINSTANCE_PARAM1)
- *
- * $(DBA_STOPSANDBOXINSTANCE_THROWS)
- * $(DBA_STOPSANDBOXINSTANCE_THROWS1)
- * $(DBA_STOPSANDBOXINSTANCE_THROWS2)
- * $(DBA_STOPSANDBOXINSTANCE_THROWS3)
- *
- * $(DBA_STOPSANDBOXINSTANCE_RETURNS)
- *
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL)
- *
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL1)
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL2)
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL3)
- *
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL4)
- *
- * $(DBA_STOPSANDBOXINSTANCE_DETAIL5)
+ * $(DBA_STOPSANDBOXINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
@@ -2243,59 +1841,36 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_BRIEF,
-              "Starts an existing MySQL Server instance on localhost.");
-REGISTER_HELP(
-    DBA_STARTSANDBOXINSTANCE_PARAM,
-    "@param port The port where the instance listens for MySQL connections.");
-REGISTER_HELP(
-    DBA_STARTSANDBOXINSTANCE_PARAM1,
-    "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_STARTSANDBOXINSTANCE, R"*(
+Starts an existing MySQL Server instance on localhost.
 
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS1,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS2,
-              "@li If the port value is < 1024 or > 65535.");
+@param port The port where the instance listens for MySQL connections.
+@param options Optional dictionary with options affecting the result.
 
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(
-    DBA_STARTSANDBOXINSTANCE_DETAIL,
-    "This function will start an existing MySQL Server instance on the local "
-    "host. The following options affect the result:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL1,
-              "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2,
-              "The sandboxDir must be the one where the MySQL instance was "
-              "deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3,
-              "  ~/mysql-sandboxes on Unix-like systems or "
-              "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(
-    DBA_STARTSANDBOXINSTANCE_DETAIL4,
-    "If the instance is not located on the used path an error will occur.");
+This function will start an existing MySQL Server instance on the local host.
+The following options affect the result:
+
+@li sandboxDir: path where the instance is located.
+
+The sandboxDir must be the one where the MySQL instance was deployed. If not
+specified it will use:
+
+  ~/mysql-sandboxes on Unix-like systems
+or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
+
+If the instance is not located on the used path an error will occur.
+
+@throw ArgumentError in the following scenarios:
+@li If the options contain an invalid attribute.
+@li If the port value is < 1024 or > 65535.
+)*");
 
 /**
  * $(DBA_STARTSANDBOXINSTANCE_BRIEF)
  *
- * $(DBA_STARTSANDBOXINSTANCE_PARAM)
- * $(DBA_STARTSANDBOXINSTANCE_PARAM1)
- *
- * $(DBA_STARTSANDBOXINSTANCE_THROWS)
- * $(DBA_STARTSANDBOXINSTANCE_THROWS1)
- * $(DBA_STARTSANDBOXINSTANCE_THROWS2)
- *
- * $(DBA_STARTSANDBOXINSTANCE_RETURNS)
- *
- * $(DBA_STARTSANDBOXINSTANCE_DETAIL)
- *
- * $(DBA_STARTSANDBOXINSTANCE_DETAIL1)
- * $(DBA_STARTSANDBOXINSTANCE_DETAIL2)
- * $(DBA_STARTSANDBOXINSTANCE_DETAIL3)
- *
- * $(DBA_STARTSANDBOXINSTANCE_DETAIL4)
+ * $(DBA_STARTSANDBOXINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}
@@ -2391,159 +1966,76 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
 }
 
 REGISTER_HELP_FUNCTION(configureLocalInstance, dba);
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_BRIEF,
-              "Validates and configures a local instance for MySQL InnoDB "
-              "Cluster usage.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM,
-              "@param instance An instance definition.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM1,
-              "@param options Optional Additional options for the operation.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS1,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS2,
-              "@li If the instance definition is invalid.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS3,
-              "@li If the instance definition is a "
-              "connection dictionary but empty.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS4,
-              "@li If the instance definition is a "
-              "connection dictionary but any option is invalid.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS5,
-              "@li If the instance definition is missing "
-              "the password.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS6,
-              "@li If the provided password is empty.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS7,
-              "@li If the configuration file path is "
-              "required but not provided or wrong.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS8,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS9,
-              "@li If the instance accounts are invalid.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS10,
-              "@li If the instance is offline.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS11,
-              "@li If the instance is already part of a "
-              "Replication Group.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS12,
-              "@li If the given instance cannot be used "
-              "for Group Replication.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGURELOCALINSTANCE, R"*(
+Validates and configures a local instance for MySQL InnoDB Cluster usage.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL,
-              "This function reviews the instance configuration to identify if "
-              "it is valid for usage in group replication and cluster. "
-              "An exception is thrown if not.");
+@param instance An instance definition.
+@param options Optional Additional options for the operation.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1,
-              "The instance definition is the connection data for the "
-              "instance.");
+@returns Nothing
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+This function reviews the instance configuration to identify if it is valid for
+usage in group replication and cluster. An exception is thrown if not.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3,
-              "The options dictionary may contain the following options:");
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL4,
-    "@li mycnfPath: The path to the MySQL configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5,
-              "@li outputMycnfPath: Alternative output path to write the MySQL "
-              "configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6,
-              "@li password: The password to be used on the connection.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7,
-              "@li clusterAdmin: The name of the InnoDB cluster administrator "
-              "user to be created. The supported format is the standard MySQL "
-              "account name format.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
-              "@li clusterAdminPassword: The password for the InnoDB cluster "
-              "administrator account.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
-              "@li clearReadOnly: boolean value used to confirm that "
-              "super_read_only must be disabled.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10,
-              "@li interactive: boolean value used to disable the wizards in "
-              "the command execution, i.e. prompts are not provided to the "
-              "user and confirmation prompts are not shown.");
+The options dictionary may contain the following options:
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11,
-              "If the outputMycnfPath option is used, only that file is "
-              "updated and mycnfPath is treated as read-only.");
+@li mycnfPath: The path to the MySQL configuration file of the instance.
+@li outputMycnfPath: Alternative output path to write the MySQL configuration
+file of the instance.
+@li password: The password to be used on the connection.
+@li clusterAdmin: The name of the InnoDB cluster administrator user to be
+created. The supported format is the standard MySQL account name format.
+@li clusterAdminPassword: The password for the InnoDB cluster administrator
+account.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
-              "The connection password may be contained on the instance "
-              "definition, however, it can be overwritten "
-              "if it is specified on the options.");
+If the outputMycnfPath option is used, only that file is updated and mycnfPath
+is treated as read-only.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
-              "The returned descriptive text of the operation result indicates "
-              "whether the instance was successfully configured for InnoDB "
-              "Cluster usage or if it was already valid for InnoDB Cluster "
-              "usage.");
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
-              "If the instance was not valid for InnoDB Cluster and "
-              "interaction is enabled, before configuring the instance a "
-              "prompt to confirm the changes is presented and a table with the "
-              "following information:");
+The returned descriptive text of the operation result indicates whether the
+instance was successfully configured for InnoDB Cluster usage or if it was
+already valid for InnoDB Cluster usage.
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15,
-              "@li Variable: the invalid configuration variable.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16,
-              "@li Current Value: the current value for the invalid "
-              "configuration variable.");
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL17,
-    "@li Required Value: the required value for the configuration variable.");
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
+@li If the instance definition is a connection dictionary but empty.
+@li If the instance definition is a connection dictionary but any option is
+invalid.
+@li If the instance definition is missing the password.
+@li If the provided password is empty.
+@li If the configuration file path is required but not provided or wrong.
+
+@throw RuntimeError in the following scenarios:
+@li If the instance accounts are invalid.
+@li If the instance is offline.
+@li If the instance is already part of a Replication Group.
+@li If the given instance cannot be used for Group Replication.
+)*");
+
 /**
  * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
  *
- * $(DBA_CONFIGURELOCALINSTANCE_PARAM)
- * $(DBA_CONFIGURELOCALINSTANCE_PARAM1)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS1)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS2)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS3)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS4)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS5)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS6)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS7)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS8)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS9)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS10)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS11)
- * $(DBA_CONFIGURELOCALINSTANCE_THROWS12)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_RETURNS)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
- *
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL10)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL11)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL12)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL13)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
- * $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
+ * $(DBA_CONFIGURELOCALINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::configureLocalInstance(InstanceDef instance,
@@ -2562,176 +2054,83 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_BRIEF,
-              "Validates and configures an instance for MySQL InnoDB Cluster "
-              "usage.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_PARAM,
-              "@param instance Optional An instance definition.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_PARAM1,
-              "@param options Optional Additional options for the operation.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_RETURNS,
-              "@returns A descriptive text of the operation result.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL,
-              "This function auto-configures the instance for InnoDB Cluster "
-              "usage."
-              "If the target instance already belongs to an InnoDB Cluster it "
-              "errors out.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL1,
-              "The instance definition is the connection data for the "
-              "instance.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL3,
-              "The options dictionary may contain the following options:");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL4,
-              "@li mycnfPath: The path to the MySQL configuration file of "
-              "the instance.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL5,
-              "@li outputMycnfPath: Alternative output path to write the MySQL "
-              "configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL6,
-              "@li password: The password to be used on the connection.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL7,
-              "@li clusterAdmin: The name of the InnoDB cluster administrator "
-              "user to be created. The supported format is the standard MySQL "
-              "account name format.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL8,
-              "@li clusterAdminPassword: The password for the InnoDB cluster "
-              "administrator account.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL9,
-              "@li clearReadOnly: boolean value used to confirm that "
-              "super_read_only must be disabled.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL10,
-              "@li interactive: boolean value used to disable the wizards in "
-              "the command execution, i.e. prompts are not provided to the "
-              "user and confirmation prompts are not shown.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL11,
-              "@li restart: boolean value used to indicate that a remote "
-              "restart of the target instance should be performed to finalize "
-              "the operation.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL12,
-              "If the outputMycnfPath option is used, only that file is "
-              "updated and mycnfPath is treated as read-only.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGUREINSTANCE, R"*(
+Validates and configures an instance for MySQL InnoDB Cluster usage.
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL13,
-              "The connection password may be contained on the instance "
-              "definition, however, it can be overwritten "
-              "if it is specified on the options.");
+@param instance Optional An instance definition.
+@param options Optional Additional options for the operation.
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL14,
-              "This function reviews the instance configuration to identify if "
-              "it is valid for usage in group replication and cluster. "
-              "An exception is thrown if not.");
+@returns A descriptive text of the operation result.
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL15,
-              "If the instance was not valid for InnoDB Cluster and "
-              "interaction is enabled, before configuring the instance a "
-              "prompt to confirm the changes is presented and a table with the "
-              "following information:");
+This function auto-configures the instance for InnoDB Cluster usage.If the
+target instance already belongs to an InnoDB Cluster it errors out.
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL16,
-              "@li Variable: the invalid configuration variable.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL17,
-              "@li Current Value: the current value for the invalid "
-              "configuration variable.");
-REGISTER_HELP(
-    DBA_CONFIGUREINSTANCE_DETAIL18,
-    "@li Required Value: the required value for the configuration variable.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(
-    DBA_CONFIGUREINSTANCE_DETAIL19,
-    "@li Required Value: the required value for the configuration variable.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS1,
-              "@li If 'interactive' is disabled and the "
-              "instance parameter is empty.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS2,
-              "@li If the instance definition is invalid.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS3,
-              "@li If the instance definition is a "
-              "connection dictionary but empty.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS4,
-              "@li If the instance definition is a "
-              "connection dictionary but any option is invalid.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS5,
-              "@li If 'interactive' mode is disabled and "
-              "the instance definition is missing the password.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS6,
-              "@li If 'interactive' mode is enabled and the "
-              "provided password is empty.");
+The options dictionary may contain the following options:
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS7,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS8,
-              "@li If the configuration file path is "
-              "required but not provided or wrong.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS9,
-              "@li If the instance accounts are invalid.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS10,
-              "@li If the instance is offline.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS11,
-              "@li If the instance is already part of a "
-              "Replication Group.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS12,
-              "@li If the instance is already part of an "
-              "InnoDB Cluster.");
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS13,
-              "@li If the given instance cannot be used "
-              "for Group Replication.");
+@li mycnfPath: The path to the MySQL configuration file of the instance.
+@li outputMycnfPath: Alternative output path to write the MySQL configuration
+file of the instance.
+@li password: The password to be used on the connection.
+@li clusterAdmin: The name of the InnoDB cluster administrator user to be
+created. The supported format is the standard MySQL account name format.
+@li clusterAdminPassword: The password for the InnoDB cluster administrator
+account.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled.
+
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
+
+@li restart: boolean value used to indicate that a remote restart of the target
+instance should be performed to finalize the operation.
+
+If the outputMycnfPath option is used, only that file is updated and mycnfPath
+is treated as read-only.
+
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+This function reviews the instance configuration to identify if it is valid for
+usage in group replication and cluster. An exception is thrown if not.
+
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+@li Required Value: the required value for the configuration variable.
+
+
+@throw ArgumentError in the following scenarios:
+@li If 'interactive' is disabled and the instance parameter is empty.
+@li If the instance definition is invalid.
+@li If the instance definition is a connection dictionary but empty.
+@li If the instance definition is a connection dictionary but any option is
+invalid.
+@li If 'interactive' mode is disabled and the instance definition is missing
+the password.
+@li If 'interactive' mode is enabled and the provided password is empty.
+
+@throw RuntimeError in the following scenarios:
+@li If the configuration file path is required but not provided or wrong.
+@li If the instance accounts are invalid.
+@li If the instance is offline.
+@li If the instance is already part of a Replication Group.
+@li If the instance is already part of an InnoDB Cluster.
+@li If the given instance cannot be used for Group Replication.
+)*");
 
 /**
  * $(DBA_CONFIGUREINSTANCE_BRIEF)
  *
- * $(DBA_CONFIGUREINSTANCE_PARAM)
- * $(DBA_CONFIGUREINSTANCE_PARAM1)
- *
- * $(DBA_CONFIGUREINSTANCE_RETURNS)
- *
- * $(DBA_CONFIGUREINSTANCE_DETAIL)
- *
- * $(DBA_CONFIGUREINSTANCE_DETAIL1)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
- *
- * $(DBA_CONFIGUREINSTANCE_DETAIL3)
- * $(DBA_CONFIGUREINSTANCE_DETAIL4)
- * $(DBA_CONFIGUREINSTANCE_DETAIL5)
- * $(DBA_CONFIGUREINSTANCE_DETAIL6)
- * $(DBA_CONFIGUREINSTANCE_DETAIL7)
- * $(DBA_CONFIGUREINSTANCE_DETAIL8)
- * $(DBA_CONFIGUREINSTANCE_DETAIL9)
- *
- * $(DBA_CONFIGUREINSTANCE_DETAIL10)
- *
- * $(DBA_CONFIGUREINSTANCE_DETAIL11)
- * $(DBA_CONFIGUREINSTANCE_DETAIL12)
- * $(DBA_CONFIGUREINSTANCE_DETAIL13)
- * $(DBA_CONFIGUREINSTANCE_DETAIL14)
- * $(DBA_CONFIGUREINSTANCE_DETAIL15)
- * $(DBA_CONFIGUREINSTANCE_DETAIL16)
- * $(DBA_CONFIGUREINSTANCE_DETAIL17)
- * $(DBA_CONFIGUREINSTANCE_DETAIL18)
- * $(DBA_CONFIGUREINSTANCE_DETAIL19)
- *
- * $(DBA_CONFIGUREINSTANCE_THROWS)
- * $(DBA_CONFIGUREINSTANCE_THROWS1)
- * $(DBA_CONFIGUREINSTANCE_THROWS2)
- * $(DBA_CONFIGUREINSTANCE_THROWS3)
- * $(DBA_CONFIGUREINSTANCE_THROWS4)
- * $(DBA_CONFIGUREINSTANCE_THROWS5)
- * $(DBA_CONFIGUREINSTANCE_THROWS6)
- * $(DBA_CONFIGUREINSTANCE_THROWS7)
- * $(DBA_CONFIGUREINSTANCE_THROWS8)
- * $(DBA_CONFIGUREINSTANCE_THROWS9)
- * $(DBA_CONFIGUREINSTANCE_THROWS10)
- * $(DBA_CONFIGUREINSTANCE_THROWS11)
- * $(DBA_CONFIGUREINSTANCE_THROWS12)
- * $(DBA_CONFIGUREINSTANCE_THROWS13)
+ * $(DBA_CONFIGUREINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Dba::configureInstance(InstanceDef instance, Dictionary options) {}
@@ -2760,96 +2159,51 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
 }
 
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF,
-              "Brings a cluster back ONLINE when all members are OFFLINE.");
-REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM,
-    "@param clusterName Optional The name of the cluster to be rebooted.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1,
-              "@param options Optional dictionary with options that modify the "
-              "behavior of this function.");
+REGISTER_HELP_FUNCTION_TEXT(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE, R"*(
+Brings a cluster back ONLINE when all members are OFFLINE.
 
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1,
-              "@li If the Metadata is inaccessible.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3,
-              "@li If the Cluster name is empty.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4,
-              "@li If the Cluster name is not valid.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5,
-              "@li If the options contain an invalid attribute.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS7,
-              "@li If the Cluster does not exist on the Metadata.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS8,
-              "@li If some instance of the Cluster belongs to "
-              "a Replication Group.");
+@param clusterName Optional The name of the cluster to be rebooted.
+@param options Optional dictionary with options that modify the behavior of
+this function.
 
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS,
-              "@returns The rebooted cluster object.");
+@returns The rebooted cluster object.
 
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL,
-              "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1,
-              "@li password: The password used for the instances sessions "
-              "required operations.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2,
-              "@li removeInstances: The list of instances to be removed from "
-              "the cluster.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3,
-              "@li rejoinInstances: The list of instances to be rejoined on "
-              "the cluster.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4,
-              "@li clearReadOnly: boolean value used to confirm that "
-              "super_read_only must be disabled");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5,
-              "This function reboots a cluster from complete outage. "
-              "It picks the instance the MySQL Shell is connected to as new "
-              "seed instance and recovers the cluster. "
-              "Optionally it also updates the cluster configuration based on "
-              "user provided options.");
-REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6,
-    "On success, the restored cluster object is returned by the function.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7,
-              "The current session must be connected to a former instance of "
-              "the cluster.");
-REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8,
-    "If name is not specified, the default cluster will be returned.");
+The options dictionary can contain the next values:
+
+@li password: The password used for the instances sessions required operations.
+@li removeInstances: The list of instances to be removed from the cluster.
+@li rejoinInstances: The list of instances to be rejoined on the cluster.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled
+
+This function reboots a cluster from complete outage. It picks the instance the
+MySQL Shell is connected to as new seed instance and recovers the cluster.
+Optionally it also updates the cluster configuration based on user provided
+options.
+
+On success, the restored cluster object is returned by the function.
+
+The current session must be connected to a former instance of the cluster.
+
+If name is not specified, the default cluster will be returned.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+
+@throw ArgumentError in the following scenarios:
+@li If the Cluster name is empty.
+@li If the Cluster name is not valid.
+@li If the options contain an invalid attribute.
+
+@throw RuntimeError in the following scenarios:
+@li If the Cluster does not exist on the Metadata.
+@li If some instance of the Cluster belongs to a Replication Group.
+)*");
 
 /**
  * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
  *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS7)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS8)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE)
  */
 #if DOXYGEN_JS
 Undefined Dba::rebootClusterFromCompleteOutage(String clusterName,

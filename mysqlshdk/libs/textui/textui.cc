@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,7 +94,8 @@ std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   // Some characters need to be specified using special doxygen format to
   // to prevent generating doxygen warnings.
   std::vector<std::pair<const char *, const char *>> replacements = {
-      {"@<", "<"}, {"@>", ">"}, {"&nbsp;", " "}, {"@li", "-"}, {"@%", "%"}};
+      {"@<", "<"},  {"@>", ">"}, {"&nbsp;", " "},
+      {"@li", "-"}, {"@%", "%"}, {"\\\\", "\\"}};
 
   for (const auto &rpl : replacements) {
     ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);

@@ -91,7 +91,7 @@ SYNTAX
       <Cluster>.addInstance(instance[, options])
 
 WHERE
-      instance: An instance definition.
+      instance: Connection options for the target instance to be added.
       options: Dictionary with options for the operation.
 
 RETURNS
@@ -99,8 +99,6 @@ RETURNS
 
 DESCRIPTION
       This function adds an Instance to the default replica set of the cluster.
-
-      The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
 
@@ -248,7 +246,7 @@ DESCRIPTION
 
       The reason for the state reported can be one of the following:
 
-      - new: if the instance doesn’t have any transactions
+      - new: if the instance doesn't have any transactions
       - recoverable:  if the instance executed GTIDs are not conflicting with
         the executed GTIDs of the cluster instances
       - diverged: if the instance executed GTIDs diverged with the executed
@@ -395,17 +393,6 @@ DESCRIPTION
 
       Only TCP/IP connections are allowed for this function.
 
-      The options dictionary may contain the following options:
-
-      - mycnfPath: The path of the MySQL configuration file for the instance.
-      - password: The password to get connected to the instance.
-      - clusterAdmin: The name of the InnoDB cluster administrator user.
-      - clusterAdminPassword: The password for the InnoDB cluster administrator
-        account.
-
-      The password may be contained on the instance definition, however, it can
-      be overwritten if it is specified on the options.
-
       Note that this operation is DANGEROUS as it can create a split-brain if
       incorrectly used and should be considered a last resort. Make absolutely
       sure that there are no partitions of this group that are still operating
@@ -466,7 +453,7 @@ RETURNS
        A JSON object describing the configuration options of the cluster.
 
 DESCRIPTION
-      This function lists the cluster configuration options for itsReplicaSets
+      This function lists the cluster configuration options for its ReplicaSets
       and Instances. The following options may be given to controlthe amount of
       information gathered and returned.
 
@@ -668,12 +655,15 @@ DESCRIPTION
       the instance shuts itself down, and when set to READ_ONLY the server
       switches itself to super-read-only mode. The exitStateAction option
       accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+
+      The default value is READ_ONLY.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option
       accepts integer values. Group Replication limits the value range from 0
       to 100, automatically adjusting it if a lower/bigger value is provided.
+
       Group Replication uses a default value of 50 if no value is provided.
 
 EXCEPTIONS
@@ -761,12 +751,15 @@ DESCRIPTION
       the instance shuts itself down, and when set to READ_ONLY the server
       switches itself to super-read-only mode. The exitStateAction option
       accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+
+      The default value is READ_ONLY.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option
       accepts integer values. Group Replication limits the value range from 0
       to 100, automatically adjusting it if a lower/bigger value is provided.
+
       Group Replication uses a default value of 50 if no value is provided.
 
       The value for failoverConsistency is used to set the Group Replication
@@ -780,15 +773,18 @@ DESCRIPTION
       due to super-read-only mode being enabled. The client may return old
       valued. The failoverConsistency option accepts case-insensitive string
       values, being the accepted values: BEFORE_ON_PRIMARY_FAILOVER (or 1) and
-      EVENTUAL (or 0). The default value is EVENTUAL.
+      EVENTUAL (or 0).
+
+      The default value is EVENTUAL.
 
       The value for expelTimeout is used to set the Group Replication system
       variable 'group_replication_member_expel_timeout' and configure how long
       Group Replication will wait before expelling from the group any members
       suspected of having failed. On slow networks, or when there are expected
       machine slowdowns, increase the value of this option. The expelTimeout
-      option accepts positive integer values in the range [0, 3600]. The
-      default value is 0.
+      option accepts positive integer values in the range [0, 3600].
+
+      The default value is 0.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -804,6 +800,7 @@ EXCEPTIONS
       - If the value passed in 'option' is not valid for Group Replication.
       - If the cluster has no visible quorum.
       - If any of the cluster members is not ONLINE.
+
 //@<OUT> Rescan
 NAME
       rescan - Rescans the cluster.
@@ -1001,5 +998,3 @@ EXCEPTIONS
       - If the cluster has no visible quorum.
       - If any of the cluster members is not ONLINE.
 
-//@ Finalization
-||

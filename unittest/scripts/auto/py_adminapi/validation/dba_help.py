@@ -229,6 +229,9 @@ WHERE
       instance: An instance definition.
       options: Additional options for the operation.
 
+RETURNS
+       Nothing
+
 DESCRIPTION
       This function reviews the instance configuration to identify if it is
       valid for usage in group replication and cluster. An exception is thrown
@@ -314,13 +317,16 @@ DESCRIPTION
       Creates a MySQL InnoDB cluster taking as seed instance the active global
       session.
 
-      The options dictionary can contain the next values:
+      The options dictionary can contain the following values:
 
       - multiMaster: boolean value used to define an InnoDB cluster with
         multiple writable instances.
       - multiPrimary: boolean value used to define an InnoDB cluster with
         multiple writable instances.
       - force: boolean, confirms that the multiPrimary option must be applied.
+      - interactive: boolean value used to disable the wizards in the command
+        execution, i.e. prompts are not provided to the user and confirmation
+        prompts are not shown.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
@@ -423,12 +429,15 @@ DESCRIPTION
       the instance shuts itself down, and when set to READ_ONLY the server
       switches itself to super-read-only mode. The exitStateAction option
       accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+
+      The default value is READ_ONLY.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option
       accepts integer values. Group Replication limits the value range from 0
       to 100, automatically adjusting it if a lower/bigger value is provided.
+
       Group Replication uses a default value of 50 if no value is provided.
 
       The value for failoverConsistency is used to set the Group Replication
@@ -442,15 +451,18 @@ DESCRIPTION
       due to super-read-only mode being enabled. The client may return old
       valued. The failoverConsistency option accepts case-insensitive string
       values, being the accepted values: BEFORE_ON_PRIMARY_FAILOVER (or 1) and
-      EVENTUAL (or 0). The default value is EVENTUAL.
+      EVENTUAL (or 0).
+
+      The default value is EVENTUAL.
 
       The value for expelTimeout is used to set the Group Replication system
       variable 'group_replication_member_expel_timeout' and configure how long
       Group Replication will wait before expelling from the group any members
       suspected of having failed. On slow networks, or when there are expected
       machine slowdowns, increase the value of this option. The expelTimeout
-      option accepts positive integer values in the range [0, 3600]. The
-      default value is 0.
+      option accepts positive integer values in the range [0, 3600].
+
+      The default value is 0.
 
 EXCEPTIONS
       MetadataError in the following scenarios:
@@ -619,9 +631,9 @@ DESCRIPTION
       If name is specified, and no cluster with the indicated name is found, an
       error will be raised.
 
-      The options dictionary accepts the connectToPrimary option,which defaults
-      to true and indicates the shell to automatically connect to the primary
-      member of the cluster.
+      The options dictionary accepts the connectToPrimary option, which
+      defaults to true and indicates the shell to automatically connect to the
+      primary member of the cluster.
 
 EXCEPTIONS
       MetadataError in the following scenarios:

@@ -156,15 +156,17 @@ void Cluster::init() {
 // Documentation of the getName function
 REGISTER_HELP_FUNCTION(getName, Cluster);
 REGISTER_HELP_PROPERTY(name, Cluster);
-REGISTER_HELP(CLUSTER_GETNAME_BRIEF, "Retrieves the name of the cluster.");
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "${CLUSTER_GETNAME_BRIEF}");
-REGISTER_HELP(CLUSTER_GETNAME_RETURNS, "@returns The name of the cluster.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_GETNAME, R"*(
+Retrieves the name of the cluster.
+
+@returns The name of the cluster.
+)*");
 
 /**
  * $(CLUSTER_GETNAME_BRIEF)
  *
- * $(CLUSTER_GETNAME_RETURNS)
- *
+ * $(CLUSTER_GETNAME)
  */
 #if DOXYGEN_JS
 String Cluster::getName() {}
@@ -263,278 +265,123 @@ shcore::Value Cluster::add_seed_instance(
 }
 
 REGISTER_HELP_FUNCTION(addInstance, Cluster);
-REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM,
-              "@param instance An instance "
-              "definition.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1,
-              "@param options Optional dictionary "
-              "with options for the operation.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ADDINSTANCE, R"*(
+Adds an Instance to the cluster.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS1,
-              "@li If the "
-              "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS2,
-              "@li If the "
-              "Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS3,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS4,
-              "@li If the "
-              "instance parameter is empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5,
-              "@li If the "
-              "instance definition is invalid.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6,
-              "@li If the "
-              "instance definition is a "
-              "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
-              "@li If the "
-              "value for the memberSslMode "
-              "option is not one of the "
-              "allowed: \"AUTO\", \"DISABLED\", "
-              "\"REQUIRED\".");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8,
-              "@li If the value for the ipWhitelist, "
-              "localAddress, groupSeeds, or exitStateAction options is empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS9,
-              "@li If the instance definition cannot be used "
-              "for Group Replication.");
+@param instance Connection options for the target instance to be added.
+@param options Optional dictionary with options for the operation.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS11,
-              "@li If the "
-              "instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS12,
-              "@li If the "
-              "instance is not in bootstrapped "
-              "state.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS13,
-              "@li If the SSL "
-              "mode specified is not compatible "
-              "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS14,
-              "@li If the value for the localAddress, "
-              "groupSeeds, exitStateAction, or memberWeight options is not "
-              "valid for Group "
-              "Replication.");
+@returns nothing
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_RETURNS, "@returns nothing");
+This function adds an Instance to the default replica set of the cluster.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL,
-              "This function adds an Instance to "
-              "the default replica set of the "
-              "cluster.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(
-    CLUSTER_ADDINSTANCE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+The options dictionary may contain the following attributes:
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+@li label: an identifier for the instance being added
+@li password: the instance connection password
+@li memberSslMode: SSL mode used on the instance
+@li ipWhitelist: The list of hosts allowed to connect to the instance for group
+replication
+@li localAddress: string value with the Group Replication local address to be
+used instead of the automatically generated one.
+@li groupSeeds: string value with a comma-separated list of the Group
+Replication peer addresses to be used instead of the automatically generated
+one.
+@li exitStateAction: string value indicating the group replication exit state
+action.
+@li memberWeight: integer value with a percentage weight for automatic primary
+election on failover.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3,
-              "The options dictionary may contain "
-              "the following attributes:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4,
-              "@li label: an identifier for the "
-              "instance being added");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5,
-              "@li password: the instance "
-              "connection password");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6,
-              "@li memberSslMode: SSL mode used "
-              "on the instance");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7,
-              "@li ipWhitelist: The list of "
-              "hosts allowed to connect to the "
-              "instance for group replication");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8,
-              "@li localAddress: string value with the Group Replication "
-              "local address to be used instead of the automatically "
-              "generated one.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9,
-              "@li groupSeeds: string value with a comma-separated list of "
-              "the Group Replication peer addresses to be used instead of the "
-              "automatically generated one.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
-              "@li exitStateAction: string value indicating the group "
-              "replication exit state action.");
+The password may be contained on the instance definition, however, it can be
+overwritten if it is specified on the options.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
-              "@li memberWeight: integer value with a percentage weight for "
-              "automatic primary election on failover.");
+@attention The memberSslMode option will be removed in a future release.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
-              "The password may be contained on "
-              "the instance definition, "
-              "however, it can be overwritten "
-              "if it is specified on the options.");
+The memberSslMode option supports the following values:
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
-              "@attention The memberSslMode option will be removed in a "
-              "future release.");
+@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
+communicate with other members of the cluster
+@li DISABLED: if used, SSL (encryption) will be disabled
+@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
+based on the cluster configuration
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
-              "The memberSslMode option supports "
-              "the following values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
-              "@li REQUIRED: if used, SSL "
-              "(encryption) will be enabled for "
-              "the instance to communicate with "
-              "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
-              "@li DISABLED: if used, SSL "
-              "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
-              "@li AUTO: if used, SSL (encryption)"
-              " will be automatically "
-              "enabled or disabled based on the "
-              "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
-              "If memberSslMode is not specified "
-              "AUTO will be used by default.");
+If memberSslMode is not specified AUTO will be used by default.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
-              "The exitStateAction option supports the following values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
-              "@li ABORT_SERVER: if used, the instance shuts itself down if "
-              "it leaves the cluster unintentionally.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
-              "@li READ_ONLY: if used, the instance switches itself to "
-              "super-read-only mode if it leaves the cluster "
-              "unintentionally.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
-              "If exitStateAction is not specified READ_ONLY will be used "
-              "by default.");
+The exitStateAction option supports the following values:
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
-              "The ipWhitelist format is a comma "
-              "separated list of IP "
-              "addresses or subnet CIDR "
-              "notation, for example: "
-              "192.168.1.0/24,10.0.0.1. "
-              "By default the "
-              "value is set to AUTOMATIC, "
-              "allowing addresses from the "
-              "instance private network to be "
-              "automatically set for "
-              "the whitelist.");
+@li ABORT_SERVER: if used, the instance shuts itself down if it leaves the
+cluster unintentionally.
+@li READ_ONLY: if used, the instance switches itself to super-read-only mode if
+it leaves the cluster unintentionally.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
-              "The localAddress and groupSeeds are advanced options and "
-              "their usage is discouraged since incorrect values can lead to "
-              "Group Replication errors.");
+If exitStateAction is not specified READ_ONLY will be used by default.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
-              "The value for localAddress is used to set the Group "
-              "Replication system variable 'group_replication_local_address'. "
-              "The localAddress option accepts values in the format: "
-              "'host:port' or 'host:' or ':port'. If the specified "
-              "value does not include a colon (:) and it is numeric, then it "
-              "is assumed to be the port, otherwise it is considered to be the "
-              "host. When the host is not specified, the default value is the "
-              "value of the system variable 'report_host' if defined (i.e., "
-              "not 'NULL'), otherwise it is the hostname value. When "
-              "the port is not specified, the default value is the port of "
-              "the target instance * 10 + 1. In case the automatically "
-              "determined default port value is invalid (> 65535) then a "
-              "random value in the range [10000, 65535] is used.");
+The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
+notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
+AUTOMATIC, allowing addresses from the instance private network to be
+automatically set for the whitelist.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
-              "The value for groupSeeds is used to set the Group Replication "
-              "system variable 'group_replication_group_seeds'. The "
-              "groupSeeds option accepts a comma-separated list of addresses "
-              "in the format: 'host1:port1,...,hostN:portN'.");
+The localAddress and groupSeeds are advanced options and their usage is
+discouraged since incorrect values can lead to Group Replication errors.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL27,
-              "The value for exitStateAction is used to configure how Group "
-              "Replication behaves when a server instance leaves the group "
-              "unintentionally, for example after encountering an applier "
-              "error. When set to ABORT_SERVER, the instance shuts itself "
-              "down, and when set to READ_ONLY the server switches itself to "
-              "super-read-only mode. The exitStateAction option accepts "
-              "case-insensitive string values, being the accepted values: "
-              "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
-              "READ_ONLY.");
+The value for localAddress is used to set the Group Replication system variable
+'group_replication_local_address'. The localAddress option accepts values in
+the format: 'host:port' or 'host:' or ':port'. If the specified value does not
+include a colon (:) and it is numeric, then it is assumed to be the port,
+otherwise it is considered to be the host. When the host is not specified, the
+default value is the value of the system variable 'report_host' if defined
+(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
+specified, the default value is the port of the target instance * 10 + 1. In
+case the automatically determined default port value is invalid (> 65535) then
+a random value in the range [10000, 65535] is used.
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL28,
-              "The value for memberWeight is used to set the Group Replication "
-              "system variable 'group_replication_member_weight'. The "
-              "memberWeight option accepts integer values. Group Replication "
-              "limits the value range from 0 to 100, automatically adjusting "
-              "it if a lower/bigger value is provided. Group Replication uses "
-              "a default value of 50 if no value is provided.");
+The value for groupSeeds is used to set the Group Replication system variable
+'group_replication_group_seeds'. The groupSeeds option accepts a
+comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
+
+The value for exitStateAction is used to configure how Group Replication
+behaves when a server instance leaves the group unintentionally, for example
+after encountering an applier error. When set to ABORT_SERVER, the instance
+shuts itself down, and when set to READ_ONLY the server switches itself to
+super-read-only mode. The exitStateAction option accepts case-insensitive
+string values, being the accepted values: ABORT_SERVER (or 1) and READ_ONLY (or
+0). The default value is READ_ONLY.
+
+The value for memberWeight is used to set the Group Replication system variable
+'group_replication_member_weight'. The memberWeight option accepts integer
+values. Group Replication limits the value range from 0 to 100, automatically
+adjusting it if a lower/bigger value is provided. Group Replication uses a
+default value of 50 if no value is provided.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
+@li If the instance definition is a connection dictionary but empty.
+@li If the value for the memberSslMode option is not one of the allowed:
+"AUTO", "DISABLED", "REQUIRED".
+@li If the value for the ipWhitelist, localAddress, groupSeeds, or
+exitStateAction options is empty.
+@li If the instance definition cannot be used for Group Replication.
+
+@throw RuntimeError in the following scenarios:
+@li If the instance accounts are invalid.
+@li If the instance is not in bootstrapped state.
+@li If the SSL mode specified is not compatible with the one used in the
+cluster.
+@li If the value for the localAddress, groupSeeds, exitStateAction, or
+memberWeight options is not valid for Group Replication.
+)*");
 
 /**
  * $(CLUSTER_ADDINSTANCE_BRIEF)
  *
- * $(CLUSTER_ADDINSTANCE_PARAM)
- * $(CLUSTER_ADDINSTANCE_PARAM1)
- *
- * $(CLUSTER_ADDINSTANCE_THROWS)
- * $(CLUSTER_ADDINSTANCE_THROWS1)
- * $(CLUSTER_ADDINSTANCE_THROWS2)
- * $(CLUSTER_ADDINSTANCE_THROWS3)
- * $(CLUSTER_ADDINSTANCE_THROWS4)
- * $(CLUSTER_ADDINSTANCE_THROWS5)
- * $(CLUSTER_ADDINSTANCE_THROWS6)
- * $(CLUSTER_ADDINSTANCE_THROWS7)
- * $(CLUSTER_ADDINSTANCE_THROWS8)
- * $(CLUSTER_ADDINSTANCE_THROWS9)
- * $(CLUSTER_ADDINSTANCE_THROWS10)
- * $(CLUSTER_ADDINSTANCE_THROWS11)
- * $(CLUSTER_ADDINSTANCE_THROWS12)
- * $(CLUSTER_ADDINSTANCE_THROWS13)
- * $(CLUSTER_ADDINSTANCE_THROWS14)
- *
- * $(CLUSTER_ADDINSTANCE_RETURNS)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL3)
- * $(CLUSTER_ADDINSTANCE_DETAIL4)
- * $(CLUSTER_ADDINSTANCE_DETAIL5)
- * $(CLUSTER_ADDINSTANCE_DETAIL6)
- * $(CLUSTER_ADDINSTANCE_DETAIL7)
- * $(CLUSTER_ADDINSTANCE_DETAIL8)
- * $(CLUSTER_ADDINSTANCE_DETAIL9)
- * $(CLUSTER_ADDINSTANCE_DETAIL10)
- * $(CLUSTER_ADDINSTANCE_DETAIL11)
- * $(CLUSTER_ADDINSTANCE_DETAIL12)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL13)
- * $(CLUSTER_ADDINSTANCE_DETAIL14)
- * $(CLUSTER_ADDINSTANCE_DETAIL15)
- * $(CLUSTER_ADDINSTANCE_DETAIL16)
- * $(CLUSTER_ADDINSTANCE_DETAIL17)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL18)
- * $(CLUSTER_ADDINSTANCE_DETAIL19)
- * $(CLUSTER_ADDINSTANCE_DETAIL20)
- * $(CLUSTER_ADDINSTANCE_DETAIL21)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL22)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL23)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL24)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL25)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL26)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL27)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL28)
+ * $(CLUSTER_ADDINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
@@ -572,171 +419,70 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
-REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF,
-              "Rejoins an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM,
-              "@param instance An instance "
-              "definition.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1,
-              "@param options Optional dictionary "
-              "with options for the operation.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REJOININSTANCE, R"*(
+Rejoins an Instance to the cluster.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS1,
-              "@li If the "
-              "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS2,
-              "@li If the "
-              "Metadata update operation failed.");
+@param instance An instance definition.
+@param options Optional dictionary with options for the operation.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
-              "@li If the "
-              "value for the memberSslMode "
-              "option is not one of the allowed: "
-              "\"AUTO\", \"DISABLED\", \"REQUIRED\".");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5,
-              "@li If the instance definition cannot be used "
-              "for Group Replication.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7,
-              "@li If the "
-              "instance does not exist.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS8,
-              "@li If the "
-              "instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS9,
-              "@li If the "
-              "instance is not in bootstrapped "
-              "state.");
+This function rejoins an Instance to the cluster.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS10,
-              "@li If the SSL "
-              "mode specified is not compatible "
-              "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS11,
-              "@li If the "
-              "instance is an active member "
-              "of the ReplicaSet.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_RETURNS, "@returns Nothing.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
-              "This function rejoins an Instance "
-              "to the cluster.");
+The options dictionary may contain the following attributes:
 
-REGISTER_HELP(
-    CLUSTER_REJOININSTANCE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+@li label: an identifier for the instance being added
+@li password: the instance connection password
+@li memberSslMode: SSL mode used on the instance
+@li ipWhitelist: The list of hosts allowed to connect to the instance for group
+replication
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+The password may be contained on the instance definition, however, it can be
+overwritten if it is specified on the options.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3,
-              "The options dictionary may "
-              "contain the following attributes:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4,
-              "@li label: an identifier for "
-              "the instance being added");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5,
-              "@li password: the instance "
-              "connection password");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6,
-              "@li memberSslMode: SSL mode used "
-              "on the instance");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7,
-              "@li ipWhitelist: The list of "
-              "hosts allowed to connect to the "
-              "instance for group replication");
+@attention The memberSslMode option will be removed in a future release.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
-              "The password may be contained "
-              "on the instance definition, "
-              "however, it can be overwritten "
-              "if it is specified on the options.");
+The memberSslMode option supports these values:
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
-              "@attention The memberSslMode option will be removed in a "
-              "future release.");
+@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
+communicate with other members of the cluster
+@li DISABLED: if used, SSL (encryption) will be disabled
+@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
+based on the cluster configuration
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
-              "The memberSslMode option supports "
-              "these values:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
-              "@li REQUIRED: if used, SSL "
-              "(encryption) will be enabled "
-              "for the instance to communicate "
-              "with other members of the cluster");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
-              "@li DISABLED: if used, SSL "
-              "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
-              "@li AUTO: if used, SSL "
-              "(encryption) will be automatically "
-              "enabled or disabled based on the cluster "
-              "configuration");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
-              "If memberSslMode is not specified "
-              "AUTO will be used by default.");
+If memberSslMode is not specified AUTO will be used by default.
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15,
-              "The ipWhitelist format is a "
-              "comma separated list of IP "
-              "addresses or subnet CIDR notation, "
-              "for example: 192.168.1.0/24,10.0.0.1. "
-              "By default the value is set to "
-              "AUTOMATIC, allowing addresses "
-              "from the instance private network "
-              "to be automatically set for the whitelist.");
+The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
+notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
+AUTOMATIC, allowing addresses from the instance private network to be
+automatically set for the whitelist.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+
+@throw ArgumentError in the following scenarios:
+@li If the value for the memberSslMode option is not one of the allowed:
+"AUTO", "DISABLED", "REQUIRED".
+@li If the instance definition cannot be used for Group Replication.
+
+@throw RuntimeError in the following scenarios:
+@li If the instance does not exist.
+@li If the instance accounts are invalid.
+@li If the instance is not in bootstrapped state.
+@li If the SSL mode specified is not compatible with the one used in the
+cluster.
+@li If the instance is an active member of the ReplicaSet.
+)*");
 
 /**
  * $(CLUSTER_REJOININSTANCE_BRIEF)
  *
- * $(CLUSTER_REJOININSTANCE_PARAM)
- * $(CLUSTER_REJOININSTANCE_PARAM1)
- *
- * $(CLUSTER_REJOININSTANCE_THROWS)
- * $(CLUSTER_REJOININSTANCE_THROWS1)
- * $(CLUSTER_REJOININSTANCE_THROWS2)
- * $(CLUSTER_REJOININSTANCE_THROWS3)
- * $(CLUSTER_REJOININSTANCE_THROWS4)
- * $(CLUSTER_REJOININSTANCE_THROWS5)
- * $(CLUSTER_REJOININSTANCE_THROWS6)
- * $(CLUSTER_REJOININSTANCE_THROWS7)
- * $(CLUSTER_REJOININSTANCE_THROWS8)
- * $(CLUSTER_REJOININSTANCE_THROWS9)
- * $(CLUSTER_REJOININSTANCE_THROWS10)
- * $(CLUSTER_REJOININSTANCE_THROWS11)
- *
- * $(CLUSTER_REJOININSTANCE_RETURNS)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL3)
- * $(CLUSTER_REJOININSTANCE_DETAIL4)
- * $(CLUSTER_REJOININSTANCE_DETAIL5)
- * $(CLUSTER_REJOININSTANCE_DETAIL6)
- * $(CLUSTER_REJOININSTANCE_DETAIL7)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL8)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL9)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL10)
- * $(CLUSTER_REJOININSTANCE_DETAIL11)
- * $(CLUSTER_REJOININSTANCE_DETAIL12)
- * $(CLUSTER_REJOININSTANCE_DETAIL13)
- * $(CLUSTER_REJOININSTANCE_DETAIL14)
- *
- * $(CLUSTER_REJOININSTANCE_DETAIL15)
+ * $(CLUSTER_REJOININSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
@@ -777,119 +523,60 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF,
-              "Removes an Instance from the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM,
-              "@param instance An instance definition.");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_PARAM1,
-    "@param options Optional dictionary with options for the operation.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REMOVEINSTANCE, R"*(
+Removes an Instance from the cluster.
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS1,
-              "@li If the "
-              "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS2,
-              "@li If the "
-              "Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS3,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5,
-              "@li If the instance definition is invalid.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS6,
-              "@li If the instance definition is a "
-              "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS7,
-              "@li If the instance definition cannot be used "
-              "for Group Replication.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS8,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS9,
-              "@li If the instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS10,
-              "@li If an error occurs when trying to remove "
-              "the instance "
-              "(e.g., instance is not reachable).");
+@param instance An instance definition.
+@param options Optional dictionary with options for the operation.
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
-              "This function removes an "
-              "Instance from the default "
-              "replicaSet of the cluster.");
+This function removes an Instance from the default replicaSet of the cluster.
 
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
-              "The options dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4,
-              "@li password: the instance connection password");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL5,
-    "@li force: boolean, indicating if the instance must be removed (even if "
-    "only from metadata) in case it cannot be reached. By default, set to "
-    "false.");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL6,
-    "@li interactive: boolean value used to disable/enable the wizards in the "
-    "command execution, i.e. prompts and confirmations will be provided or "
-    "not according to the value set. The default value is equal to MySQL Shell "
-    "wizard mode.");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL7,
-    "The password may be contained in the instance definition, however, it can "
-    "be overwritten if it is specified on the options.");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL8,
-    "The force option (set to true) must only be used to remove instances that "
-    "are permanently not available (no longer reachable) or never to be reused "
-    "again in a cluster. This allows to remove from the metadata an instance "
-    "than can no longer be recovered. Otherwise, the instance must be brought "
-    "back ONLINE and removed without the force option to avoid errors trying "
-    "to add it back to a cluster.");
+The options dictionary may contain the following attributes:
+
+@li password: the instance connection password
+@li force: boolean, indicating if the instance must be removed (even if only
+from metadata) in case it cannot be reached. By default, set to false.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+
+The password may be contained in the instance definition, however, it can be
+overwritten if it is specified on the options.
+
+The force option (set to true) must only be used to remove instances that are
+permanently not available (no longer reachable) or never to be reused again in
+a cluster. This allows to remove from the metadata an instance than can no
+longer be recovered. Otherwise, the instance must be brought back ONLINE and
+removed without the force option to avoid errors trying to add it back to a
+cluster.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
+@li If the instance definition is a connection dictionary but empty.
+@li If the instance definition cannot be used for Group Replication.
+
+@throw RuntimeError in the following scenarios:
+@li If the instance accounts are invalid.
+@li If an error occurs when trying to remove the instance (e.g., instance is
+not reachable).
+)*");
 
 /**
  * $(CLUSTER_REMOVEINSTANCE_BRIEF)
  *
- * $(CLUSTER_REMOVEINSTANCE_PARAM)
- * $(CLUSTER_REMOVEINSTANCE_PARAM1)
- *
- * $(CLUSTER_REMOVEINSTANCE_THROWS)
- * $(CLUSTER_REMOVEINSTANCE_THROWS1)
- * $(CLUSTER_REMOVEINSTANCE_THROWS2)
- * $(CLUSTER_REMOVEINSTANCE_THROWS3)
- * $(CLUSTER_REMOVEINSTANCE_THROWS4)
- * $(CLUSTER_REMOVEINSTANCE_THROWS5)
- * $(CLUSTER_REMOVEINSTANCE_THROWS6)
- * $(CLUSTER_REMOVEINSTANCE_THROWS7)
- * $(CLUSTER_REMOVEINSTANCE_THROWS8)
- * $(CLUSTER_REMOVEINSTANCE_THROWS9)
- * $(CLUSTER_REMOVEINSTANCE_THROWS10)
- *
- * $(CLUSTER_REMOVEINSTANCE_RETURNS)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL5)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL6)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL7)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL8)
+ * $(CLUSTER_REMOVEINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
@@ -998,61 +685,40 @@ std::shared_ptr<ReplicaSet> Cluster::create_default_replicaset(
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
-REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS2,
-              "@li If the Metadata update operation failed.");
-REGISTER_HELP(
-    CLUSTER_DESCRIBE_RETURNS,
-    "@returns A JSON object describing the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL,
-              "This function describes the structure of the cluster including "
-              "all its information, ReplicaSets and Instances.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL1,
-              "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL2, "@li clusterName: the cluster name");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL3,
-              "@li defaultReplicaSet: the default ReplicaSet object");
-REGISTER_HELP(
-    CLUSTER_DESCRIBE_DETAIL4,
-    "The defaultReplicaSet JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5, "@li name: the ReplicaSet name");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL6,
-              "@li topology: a list of dictionaries describing each instance "
-              "belonging to the ReplicaSet.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL7,
-              "Each instance dictionary contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL8,
-              "@li address: the instance address in the form of host:port");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL9,
-              "@li label: the instance name identifier");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_DESCRIBE, R"*(
+Describe the structure of the cluster.
+
+@returns A JSON object describing the structure of the cluster.
+
+This function describes the structure of the cluster including all its
+information, ReplicaSets and Instances.
+
+The returned JSON object contains the following attributes:
+
+@li clusterName: the cluster name
+@li defaultReplicaSet: the default ReplicaSet object
+
+The defaultReplicaSet JSON object contains the following attributes:
+
+@li name: the ReplicaSet name
+@li topology: a list of dictionaries describing each instance belonging to the
+ReplicaSet.
+
+Each instance dictionary contains the following attributes:
+
+@li address: the instance address in the form of host:port
+@li label: the instance name identifier
+@li role: the instance role
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+)*");
 
 /**
  * $(CLUSTER_DESCRIBE_BRIEF)
  *
- * $(CLUSTER_DESCRIBE_THROWS)
- * $(CLUSTER_DESCRIBE_THROWS1)
- * $(CLUSTER_DESCRIBE_THROWS2)
- *
- * $(CLUSTER_DESCRIBE_RETURNS)
- *
- * $(CLUSTER_DESCRIBE_DETAIL)
- *
- * $(CLUSTER_DESCRIBE_DETAIL1)
- * $(CLUSTER_DESCRIBE_DETAIL2)
- * $(CLUSTER_DESCRIBE_DETAIL3)
- *
- * $(CLUSTER_DESCRIBE_DETAIL4)
- * $(CLUSTER_DESCRIBE_DETAIL5)
- * $(CLUSTER_DESCRIBE_DETAIL6)
- *
- * $(CLUSTER_DESCRIBE_DETAIL7)
- * $(CLUSTER_DESCRIBE_DETAIL8)
- * $(CLUSTER_DESCRIBE_DETAIL9)
- * $(CLUSTER_DESCRIBE_DETAIL10)
+ * $(CLUSTER_DESCRIBE)
  */
 #if DOXYGEN_JS
 String Cluster::describe() {}
@@ -1105,47 +771,31 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(status, Cluster);
-REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
-REGISTER_HELP(CLUSTER_STATUS_PARAM,
-              "@param options Optional dictionary with options.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_STATUS, R"*(
+Describe the status of the cluster.
 
-REGISTER_HELP(CLUSTER_STATUS_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_STATUS_THROWS1, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_STATUS_THROWS2,
-              "@li If the Metadata update operation failed.");
+@param options Optional dictionary with options.
 
-REGISTER_HELP(CLUSTER_STATUS_RETURNS,
-              "@returns A JSON object describing the status of the cluster.");
+@returns A JSON object describing the status of the cluster.
 
-REGISTER_HELP(CLUSTER_STATUS_DETAIL,
-              "This function describes the status of the cluster including its "
-              "ReplicaSets and Instances. The following options may be given "
-              "to control the amount of information gathered and returned.");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL1,
-    "@li extended: if true, includes information about transactions processed "
-    "by connection and applier, as well as groupName and memberId values.");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL2,
-    "@li queryMembers: if true, connect to each Instance of the ReplicaSets to "
-    "query for more detailed stats about the replication machinery.");
+This function describes the status of the cluster including its ReplicaSets and
+Instances. The following options may be given to control the amount of
+information gathered and returned.
+
+@li extended: if true, includes information about transactions processed by
+connection and applier, as well as groupName and memberId values.
+@li queryMembers: if true, connect to each Instance of the ReplicaSets to query
+for more detailed stats about the replication machinery.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+)*");
 
 /**
  * $(CLUSTER_STATUS_BRIEF)
  *
- * $(CLUSTER_STATUS_PARAM)
- *
- * $(CLUSTER_STATUS_THROWS)
- * $(CLUSTER_STATUS_THROWS1)
- * $(CLUSTER_STATUS_THROWS2)
- *
- * $(CLUSTER_STATUS_RETURNS)
- *
- * $(CLUSTER_STATUS_DETAIL)
- *
- * $(CLUSTER_STATUS_DETAIL1)
- * $(CLUSTER_STATUS_DETAIL2)
+ * $(CLUSTER_STATUS)
  */
 #if DOXYGEN_JS
 String Cluster::status(Dictionary options) {}
@@ -1203,42 +853,28 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);
-REGISTER_HELP(CLUSTER_OPTIONS_BRIEF,
-              "Lists the cluster configuration options.");
-REGISTER_HELP(CLUSTER_OPTIONS_PARAM,
-              "@param options Optional Dictionary with options.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_OPTIONS, R"*(
+Lists the cluster configuration options.
 
-REGISTER_HELP(CLUSTER_OPTIONS_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_OPTIONS_THROWS1, "@li If the Metadata is inaccessible.");
+@param options Optional Dictionary with options.
 
-REGISTER_HELP(CLUSTER_OPTIONS_RETURNS,
-              "@returns A JSON object describing the configuration options of "
-              "the cluster.");
+@returns A JSON object describing the configuration options of the cluster.
 
-REGISTER_HELP(
-    CLUSTER_OPTIONS_DETAIL,
-    "This function lists the cluster configuration options for its"
-    "ReplicaSets and Instances. The following options may be given to control"
-    "the amount of information gathered and returned.");
-REGISTER_HELP(CLUSTER_OPTIONS_DETAIL1,
-              "@li all: if true, includes information about all "
-              "group_replication system variables.");
+This function lists the cluster configuration options for its ReplicaSets and
+Instances. The following options may be given to controlthe amount of
+information gathered and returned.
+
+@li all: if true, includes information about all group_replication system
+variables.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+)*");
 
 /**
  * $(CLUSTER_OPTIONS_BRIEF)
  *
- * $(CLUSTER_OPTIONS_PARAM)
- *
- * $(CLUSTER_OPTIONS_THROWS)
- * $(CLUSTER_OPTIONS_THROWS1)
- * $(CLUSTER_OPTIONS_THROWS2)
- *
- * $(CLUSTER_OPTIONS_RETURNS)
- *
- * $(CLUSTER_OPTIONS_DETAIL)
- *
- * $(CLUSTER_OPTIONS_DETAIL1)
+ * $(CLUSTER_OPTIONS)
  */
 #if DOXYGEN_JS
 String Cluster::options(Dictionary options) {}
@@ -1266,68 +902,47 @@ shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
-REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_DISSOLVE, R"*(
+Dissolves the cluster.
 
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS2,
-              "@li If the Metadata update operation failed.");
+@param options Optional parameter to specify if it should deactivate
+replication and unregister the ReplicaSets from the cluster.
 
-REGISTER_HELP(CLUSTER_DISSOLVE_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_DISSOLVE_PARAM,
-              "@param options Optional parameter to "
-              "specify if it should deactivate "
-              "replication and unregister the "
-              "ReplicaSets from the cluster.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL,
-              "This function disables replication on "
-              "the ReplicaSets, unregisters them and "
-              "the the cluster from the metadata.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2,
-              "The options dictionary may contain the following attributes:");
-REGISTER_HELP(
-    CLUSTER_DISSOLVE_DETAIL3,
-    "@li force: boolean value used to confirm that the dissolve operation must "
-    "be executed, even if some members of the cluster cannot be reached or the "
-    "timeout was reached when waiting for members to catch up with replication "
-    "changes. By default, set to false.");
-REGISTER_HELP(
-    CLUSTER_DISSOLVE_DETAIL4,
-    "@li interactive: boolean value used to disable/enable the wizards in the "
-    "command execution, i.e. prompts and confirmations will be provided or "
-    "not according to the value set. The default value is equal to MySQL Shell "
-    "wizard mode.");
-REGISTER_HELP(
-    CLUSTER_DISSOLVE_DETAIL5,
-    "The force option (set to true) must only be used to dissolve a cluster "
-    "with instances that are permanently not available (no longer reachable) "
-    "or never to be reused again in a cluster. This allows to dissolve a "
-    "cluster and remove it from the metadata, including instances than can no "
-    "longer be recovered. Otherwise, the instances must be brought back ONLINE "
-    "and the cluster dissolved without the force option to avoid errors trying "
-    "to reuse the instances and add them back to a cluster.");
+This function disables replication on the ReplicaSets, unregisters them and the
+the cluster from the metadata.
+
+It keeps all the user's data intact.
+
+The options dictionary may contain the following attributes:
+
+@li force: boolean value used to confirm that the dissolve operation must be
+executed, even if some members of the cluster cannot be reached or the timeout
+was reached when waiting for members to catch up with replication changes. By
+default, set to false.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+
+The force option (set to true) must only be used to dissolve a cluster with
+instances that are permanently not available (no longer reachable) or never to
+be reused again in a cluster. This allows to dissolve a cluster and remove it
+from the metadata, including instances than can no longer be recovered.
+Otherwise, the instances must be brought back ONLINE and the cluster dissolved
+without the force option to avoid errors trying to reuse the instances and add
+them back to a cluster.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+)*");
 
 /**
  * $(CLUSTER_DISSOLVE_BRIEF)
  *
- * $(CLUSTER_DISSOLVE_THROWS)
- * $(CLUSTER_DISSOLVE_THROWS1)
- * $(CLUSTER_DISSOLVE_THROWS2)
- *
- * $(CLUSTER_DISSOLVE_RETURNS)
- *
- * $(CLUSTER_DISSOLVE_PARAM)
- *
- * $(CLUSTER_DISSOLVE_DETAIL)
- * $(CLUSTER_DISSOLVE_DETAIL1)
- * $(CLUSTER_DISSOLVE_DETAIL2)
- * $(CLUSTER_DISSOLVE_DETAIL3)
- * $(CLUSTER_DISSOLVE_DETAIL4)
- *
- * $(CLUSTER_DISSOLVE_DETAIL5)
+ * $(CLUSTER_DISSOLVE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::dissolve(Dictionary options) {}
@@ -1367,105 +982,63 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
-REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_RESCAN, R"*(
+Rescans the cluster.
 
-REGISTER_HELP(CLUSTER_RESCAN_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(
-    CLUSTER_RESCAN_THROWS1,
-    "@li If the value for `addInstances` or `removeInstance` is empty.");
-REGISTER_HELP(
-    CLUSTER_RESCAN_THROWS2,
-    "@li If the value for `addInstances` or `removeInstance` is invalid.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS3,
-              "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS4, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS5,
-              "@li If the Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS6, "LogicError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS7, "@li If the cluster does not exist.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS8,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS9,
-              "@li If all the "
-              "ReplicaSet instances of any ReplicaSet "
-              "are offline.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS10,
-              "@li If an instance specified for `addInstances` is not an "
-              "active member of the replication group.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS11,
-              "@li If an instance specified for `removeInstances` is an active "
-              "member of the replication group.");
+@param options Optional Dictionary with options for the operation.
 
-REGISTER_HELP(
-    CLUSTER_RESCAN_PARAM,
-    "@param options Optional Dictionary with options for the operation.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_RESCAN_RETURNS, "@returns Nothing.");
+This function rescans the cluster for new and obsolete Group Replication
+members/instances, as well as changes in the used topology mode (i.e.,
+single-primary and multi-primary).
 
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
-              "This function rescans the cluster for new and obsolete Group "
-              "Replication members/instances, as well as changes in the used "
-              "topology mode (i.e., single-primary and multi-primary).");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL1,
-              "The options dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL2,
-              "@li addInstances: List with the connection data of the new "
-              "active instances to add to the metadata, or \"auto\" to "
-              "automatically add missing instances to the metadata.");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL3,
-              "@li interactive: boolean value used to disable/enable the "
-              "wizards in the command execution, i.e. prompts and "
-              "confirmations will be provided or not according to the value "
-              "set. The default value is equal to MySQL Shell wizard mode.");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL4,
-              "@li removeInstances: List with the connection data of the "
-              "obsolete instances to remove from the metadata, or \"auto\" to "
-              "automatically remove obsolete instances from the metadata.");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL5,
-              "@li updateTopologyMode: boolean value used to indicate if the "
-              "topology mode (single-primary or multi-primary) in the metadata "
-              "should be updated (true) or not (false) to match the one being "
-              "used by the cluster. By default, the metadata is not updated "
-              "(false).");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL6,
-              "The value for addInstances and removeInstances is used to "
-              "specify which instances to add or remove from the metadata, "
-              "respectively. Both options accept list connection data. In "
-              "addition, the \"auto\" value can be used for both options in "
-              "order to automatically add or remove the instances in the "
-              "metadata, without having to explicitly specify them.");
+The options dictionary may contain the following attributes:
+
+@li addInstances: List with the connection data of the new active instances to
+add to the metadata, or "auto" to automatically add missing instances to the
+metadata.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+@li removeInstances: List with the connection data of the obsolete instances to
+remove from the metadata, or "auto" to automatically remove obsolete instances
+from the metadata.
+@li updateTopologyMode: boolean value used to indicate if the topology mode
+(single-primary or multi-primary) in the metadata should be updated (true) or
+not (false) to match the one being used by the cluster. By default, the
+metadata is not updated (false).
+
+The value for addInstances and removeInstances is used to specify which
+instances to add or remove from the metadata, respectively. Both options accept
+list connection data. In addition, the "auto" value can be used for both
+options in order to automatically add or remove the instances in the metadata,
+without having to explicitly specify them.
+
+@throw ArgumentError in the following scenarios:
+@li If the value for `addInstances` or `removeInstance` is empty.
+@li If the value for `addInstances` or `removeInstance` is invalid.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@li If the Metadata update operation failed.
+
+@throw LogicError in the following scenarios:
+@li If the cluster does not exist.
+
+@throw RuntimeError in the following scenarios:
+@li If all the ReplicaSet instances of any ReplicaSet are offline.
+@li If an instance specified for `addInstances` is not an active member of the
+replication group.
+@li If an instance specified for `removeInstances` is an active member of the
+replication group.
+)*");
 
 /**
  * $(CLUSTER_RESCAN_BRIEF)
  *
- * $(CLUSTER_RESCAN_THROWS)
- * $(CLUSTER_RESCAN_THROWS1)
- * $(CLUSTER_RESCAN_THROWS2)
- * $(CLUSTER_RESCAN_THROWS3)
- * $(CLUSTER_RESCAN_THROWS4)
- * $(CLUSTER_RESCAN_THROWS5)
- * $(CLUSTER_RESCAN_THROWS6)
- * $(CLUSTER_RESCAN_THROWS7)
- * $(CLUSTER_RESCAN_THROWS8)
- * $(CLUSTER_RESCAN_THROWS9)
- * $(CLUSTER_RESCAN_THROWS10)
- * $(CLUSTER_RESCAN_THROWS11)
- *
- * $(CLUSTER_RESCAN_PARAM)
- *
- * $(CLUSTER_RESCAN_RETURNS)
- *
- * $(CLUSTER_RESCAN_DETAIL)
- *
- * $(CLUSTER_RESCAN_DETAIL1)
- *
- * $(CLUSTER_RESCAN_DETAIL2)
- * $(CLUSTER_RESCAN_DETAIL3)
- * $(CLUSTER_RESCAN_DETAIL4)
- * $(CLUSTER_RESCAN_DETAIL5)
- *
- * $(CLUSTER_RESCAN_DETAIL6)
+ * $(CLUSTER_RESCAN)
  */
 #if DOXYGEN_JS
 Undefined Cluster::rescan(Dictionary options) {}
@@ -1485,21 +1058,19 @@ void Cluster::rescan(const shcore::Dictionary_t &options) {
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
-REGISTER_HELP(CLUSTER_DISCONNECT_BRIEF,
-              "Disconnects all internal sessions used by the cluster object.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_DISCONNECT, R"*(
+Disconnects all internal sessions used by the cluster object.
 
-REGISTER_HELP(CLUSTER_DISCONNECT_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_DISCONNECT_DETAIL,
-              "Disconnects the internal MySQL sessions used by the cluster "
-              "to query for metadata and replication information.");
+Disconnects the internal MySQL sessions used by the cluster to query for
+metadata and replication information.
+)*");
 
 /**
  * $(CLUSTER_DISCONNECT_BRIEF)
  *
- * $(CLUSTER_DISCONNECT_RETURNS)
- *
- * $(CLUSTER_DISCONNECT_DETAIL)
+ * $(CLUSTER_DISCONNECT)
  */
 #if DOXYGEN_JS
 Undefined Cluster::disconnect() {}
@@ -1526,122 +1097,48 @@ shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(forceQuorumUsingPartitionOf, Cluster);
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF,
-              "Restores the cluster from quorum loss.");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM,
-    "@param instance An instance definition to derive the forced group from.");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1,
-    "@param password Optional string with the password for the connection.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FORCEQUORUMUSINGPARTITIONOF, R"*(
+Restores the cluster from quorum loss.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
-              "@li If the instance definition cannot be used "
-              "for Group Replication.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
-              "@li If the instance does not exist on the Metadata.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
-              "@li If the instance is not on the ONLINE state.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6,
-              "@li If the instance does is not an active "
-              "member of a replication group.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS7,
-              "@li If there are no ONLINE instances visible "
-              "from the given one.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS8,
-              "LogicError in the following scenarios:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS9,
-              "@li If the cluster does not exist.");
+@param instance An instance definition to derive the forced group from.
+@param password Optional string with the password for the connection.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
-              "This function restores the cluster's default replicaset back "
-              "into operational status from a loss of quorum scenario. "
-              "Such a scenario can occur if a group is partitioned or more "
-              "crashes than tolerable occur.");
+This function restores the cluster's default replicaset back into operational
+status from a loss of quorum scenario. Such a scenario can occur if a group is
+partitioned or more crashes than tolerable occur.
 
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
-              "The options dictionary may contain the following options:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4,
-              "@li mycnfPath: The path of the MySQL configuration file for the "
-              "instance.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5,
-              "@li password: The password to get connected to the instance.");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6,
-    "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7,
-              "@li clusterAdminPassword: The password for the InnoDB cluster "
-              "administrator account.");
+Note that this operation is DANGEROUS as it can create a split-brain if
+incorrectly used and should be considered a last resort. Make absolutely sure
+that there are no partitions of this group that are still operating somewhere
+in the network, but not accessible from your location.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8,
-              "The password may be contained on the instance definition, "
-              "however, it can be overwritten "
-              "if it is specified on the options.");
+When this function is used, all the members that are ONLINE from the point of
+view of the given instance definition will be added to the group.
 
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9,
-    "Note that this operation is DANGEROUS as it can create a "
-    "split-brain if incorrectly used and should be considered a last "
-    "resort. Make absolutely sure that there are no partitions of this group "
-    "that are still operating somewhere in the network, but not "
-    "accessible from your location.");
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition cannot be used for Group Replication.
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
-              "When this function is used, all the members that are ONLINE "
-              "from the point of view "
-              "of the given instance definition will be added to the group.");
+@throw RuntimeError in the following scenarios:
+@li If the instance does not exist on the Metadata.
+@li If the instance is not on the ONLINE state.
+@li If the instance does is not an active member of a replication group.
+@li If there are no ONLINE instances visible from the given one.
+
+@throw LogicError in the following scenarios:
+@li If the cluster does not exist.
+)*");
 
 /**
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF)
  *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS7)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS8)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS9)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF)
  */
 #if DOXYGEN_JS
 Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance,
@@ -1667,6 +1164,8 @@ shcore::Value Cluster::force_quorum_using_partition_of(
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
+    // TODO(alfredo) - unpack the arguments here insetad of at
+    // force_quorum_using_partition_of
     ret_val = _default_replica_set->force_quorum_using_partition_of(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
@@ -1683,119 +1182,59 @@ void Cluster::set_attribute(const std::string &attribute,
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF,
-              "Verifies the instance gtid state in relation to the cluster.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM,
-              "@param instance An instance definition.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_CHECKINSTANCESTATE, R"*(
+Verifies the instance gtid state in relation to the cluster.
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS1,
-              "@li If the 'instance' parameter is empty.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2,
-              "@li If the 'instance' parameter is invalid.");
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_THROWS3,
-    "@li If the 'instance' definition is a connection dictionary but empty.");
+@param instance An instance definition.
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS5,
-              "@li If the 'instance' is unreachable/offline.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS6,
-              "@li If the 'instance' is a cluster member.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS7,
-              "@li If the 'instance' belongs to a Group Replication group that "
-              "is not managed as an InnoDB cluster.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS8,
-              "@li If the 'instance' is a standalone instance but is part of a "
-              "different InnoDB Cluster.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS9,
-              "@li If the 'instance' has an unknown state.");
+@returns resultset A JSON object with the status.
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_RETURNS,
-              "@returns resultset A JSON object with the status.");
+Analyzes the instance executed GTIDs with the executed/purged GTIDs on the
+cluster to determine if the instance is valid for the cluster.
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
-              "Analyzes the instance executed GTIDs with the executed/purged "
-              "GTIDs on the cluster "
-              "to determine if the instance is valid for the cluster.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+The returned JSON object contains the following attributes:
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
-              "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
-              "@li state: the state of the instance");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
-              "@li reason: the reason for the state reported");
+@li state: the state of the instance
+@li reason: the reason for the state reported
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL6,
-              "The state of the instance can be one of the following:");
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL7,
-    "@li ok: if the instance transaction state is valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8,
-              "@li error: if the instance "
-              "transaction state is not "
-              "valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
-              "The reason for the state reported can be one of the following:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10,
-              "@li new: if the instance doesn’t have any transactions");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11,
-              "@li recoverable:  if the instance executed GTIDs are not "
-              "conflicting with the executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
-              "@li diverged: if the instance executed GTIDs diverged with the "
-              "executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
-              "@li lost_transactions: if the instance has more executed GTIDs "
-              "than the executed GTIDs of the cluster instances");
+The state of the instance can be one of the following:
+
+@li ok: if the instance transaction state is valid for the cluster
+@li error: if the instance transaction state is not valid for the cluster
+
+The reason for the state reported can be one of the following:
+
+@li new: if the instance doesn't have any transactions
+@li recoverable:  if the instance executed GTIDs are not conflicting with the
+executed GTIDs of the cluster instances
+@li diverged: if the instance executed GTIDs diverged with the executed GTIDs
+of the cluster instances
+@li lost_transactions: if the instance has more executed GTIDs than the
+executed GTIDs of the cluster instances
+
+@throw ArgumentError in the following scenarios:
+@li If the 'instance' parameter is empty.
+@li If the 'instance' parameter is invalid.
+@li If the 'instance' definition is a connection dictionary but empty.
+
+@throw RuntimeError in the following scenarios:
+@li If the 'instance' is unreachable/offline.
+@li If the 'instance' is a cluster member.
+@li If the 'instance' belongs to a Group Replication group that is not managed
+as an InnoDB cluster.
+@li If the 'instance' is a standalone instance but is part of a different
+InnoDB Cluster.
+@li If the 'instance' has an unknown state.
+)*");
 
 /**
  * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
  *
- * $(CLUSTER_CHECKINSTANCESTATE_PARAM)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS1)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS2)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS3)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS4)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS5)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS6)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS7)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS8)
- * $(CLUSTER_CHECKINSTANCESTATE_THROWS9)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_RETURNS)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL4)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL5)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL6)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL7)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL8)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL9)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL10)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL11)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL12)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL13)
+ * $(CLUSTER_CHECKINSTANCESTATE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::checkInstanceState(InstanceDef instance) {}
@@ -1825,75 +1264,42 @@ shcore::Value Cluster::check_instance_state(
 }
 
 REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF,
-              "Switches the cluster to single-primary mode.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SWITCHTOSINGLEPRIMARYMODE, R"*(
+Switches the cluster to single-primary mode.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2,
-              "@li If the instance definition is invalid.");
+@param instance Optional An instance definition.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4,
-              "@li If 'instance' does not refer to a cluster member.");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5,
-              "@li If any of the cluster members has a version < 8.0.13.");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6,
-              "@li If the cluster has no visible quorum.");
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7,
-              "@li If any of the cluster members is not ONLINE.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS, "@returns Nothing.");
+This function changes a cluster running in multi-primary mode to single-primary
+mode.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM,
-              "@param instance Optional An instance definition.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL,
-              "This function changes a cluster running in multi-primary mode "
-              "to single-primary mode.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(
-    CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+The instance definition is optional and is the identifier of the cluster member
+that shall become the new primary.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+If the instance definition is not provided, the new primary will be the
+instance with the highest member weight (and the lowest UUID in case of a tie
+on member weight).
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3,
-              "The instance definition is optional and is the identifier of "
-              "the cluster member that shall become the new primary.");
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
 
-REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4,
-              "If the instance definition is not provided, the new primary "
-              "will be the instance with the highest member weight (and the "
-              "lowest UUID in case of a tie on member weight).");
+@throw RuntimeError in the following scenarios:
+@li If 'instance' does not refer to a cluster member.
+@li If any of the cluster members has a version < 8.0.13.
+@li If the cluster has no visible quorum.
+@li If any of the cluster members is not ONLINE.
+)*");
 
 /**
  * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF)
  *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::switchToSinglePrimaryMode(InstanceDef instance) {}
@@ -1915,37 +1321,24 @@ void Cluster::switch_to_single_primary_mode(
 }
 
 REGISTER_HELP_FUNCTION(switchToMultiPrimaryMode, Cluster);
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_BRIEF,
-              "Switches the cluster to multi-primary mode.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SWITCHTOMULTIPRIMARYMODE, R"*(
+Switches the cluster to multi-primary mode.
 
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS1,
-              "@li If any of the cluster members has a version < 8.0.13.");
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS2,
-              "@li If the cluster has no visible quorum.");
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS3,
-              "@li If any of the cluster members is not ONLINE.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_RETURNS, "@returns Nothing.");
+This function changes a cluster running in single-primary mode to multi-primary
+mode.
 
-REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_DETAIL,
-              "This function changes a cluster running in single-primary mode "
-              "to multi-primary mode.");
+@throw RuntimeError in the following scenarios:
+@li If any of the cluster members has a version < 8.0.13.
+@li If the cluster has no visible quorum.
+@li If any of the cluster members is not ONLINE.
+)*");
 
 /**
  * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_BRIEF)
  *
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS)
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS1)
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS2)
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS3)
- *
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_RETURNS)
- *
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_PARAM)
- *
- * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_DETAIL)
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::switchToMultiPrimaryMode() {}
@@ -1967,72 +1360,39 @@ void Cluster::switch_to_multi_primary_mode(void) {
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryInstance, Cluster);
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_BRIEF,
-              "Elects a specific cluster member as the new primary.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETPRIMARYINSTANCE, R"*(
+Elects a specific cluster member as the new primary.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS1,
-              "@li If the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS2,
-              "@li If the instance definition is invalid.");
+@param instance An instance definition.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS3,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS4,
-              "@li If the cluster is in multi-primary mode.");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS5,
-              "@li If 'instance' does not refer to a cluster member.");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS6,
-              "@li If any of the cluster members has a version < 8.0.13.");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS7,
-              "@li If the cluster has no visible quorum.");
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS8,
-              "@li If any of the cluster members is not ONLINE.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_RETURNS, "@returns Nothing.");
+This function forces the election of a new primary, overriding any
+election process. 
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_PARAM,
-              "@param instance An instance definition.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL,
-              "This function forces the election of a new primary, overriding "
-              "any election process.");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-REGISTER_HELP(
-    CLUSTER_SETPRIMARYINSTANCE_DETAIL1,
-    "The instance definition is the connection data for the instance.");
+The instance definition is mandatory and is the identifier of the cluster
+member that shall become the new primary.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+@throw ArgumentError in the following scenarios:
+@li If the instance parameter is empty.
+@li If the instance definition is invalid.
 
-REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL3,
-              "The instance definition is mandatory and is the identifier of "
-              "the cluster member that shall become the new primary.");
+@throw RuntimeError in the following scenarios:
+@li If the cluster is in multi-primary mode.
+@li If 'instance' does not refer to a cluster member.
+@li If any of the cluster members has a version < 8.0.13.
+@li If the cluster has no visible quorum.
+@li If any of the cluster members is not ONLINE.
+)*");
 
 /**
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF)
+ * $(CLUSTER_SETPRIMARYINSTANCE_BRIEF)
  *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS8)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
+ * $(CLUSTER_SETPRIMARYINSTANCE)
  */
 #if DOXYGEN_JS
 Undefined Cluster::setPrimaryInstance(InstanceDef instance) {}
@@ -2070,105 +1430,61 @@ void Cluster::set_primary_instance(const shcore::Dictionary_t &instance_def) {
 }
 
 REGISTER_HELP_FUNCTION(setOption, Cluster);
-REGISTER_HELP(
-    CLUSTER_SETOPTION_BRIEF,
-    "Changes the value of a configuration option for the whole cluster.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETOPTION, R"*(
+Changes the value of a configuration option for the whole cluster.
 
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS1,
-              "@li If the 'option' parameter is empty.");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS2,
-              "@li If the 'value' parameter is empty.");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS3,
-              "@li If the 'option' parameter is invalid.");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS4,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS5,
-              "@li If any of the cluster members do not support the "
-              "configuration option passed in 'option'.");
-REGISTER_HELP(
-    CLUSTER_SETOPTION_THROWS6,
-    "@li If the value passed in 'option' is not valid for Group Replication.");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS7,
-              "@li If the cluster has no visible quorum.");
-REGISTER_HELP(CLUSTER_SETOPTION_THROWS8,
-              "@li If any of the cluster members is not ONLINE.");
+@param option The configuration option to be changed.
+@param value The value that the configuration option shall get.
 
-REGISTER_HELP(CLUSTER_SETOPTION_RETURNS, "@returns Nothing.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_SETOPTION_PARAM,
-              "@param option The configuration option to be changed.");
-REGISTER_HELP(
-    CLUSTER_SETOPTION_PARAM1,
-    "@param value The value that the configuration option shall get.");
+This function changes an InnoDB Cluster configuration option in all members of
+the cluster.
 
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL,
-              "This function changes an InnoDB Cluster configuration option in "
-              "all members of the cluster.");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL1,
-              "The 'option' parameter is the name of the configuration option "
-              "to be changed.");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL2,
-              "The value parameter is the value that the configuration option "
-              "shall get.");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL3,
-              "The accepted values for the configuration option are:");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL4,
-              "@li clusterName: string value to define the cluster name.");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL5, "${CLUSTER_OPT_EXIT_STATE_ACTION}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL6, "${CLUSTER_OPT_MEMBER_WEIGHT}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL7, "${CLUSTER_OPT_FAILOVER_CONSISTENCY}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL8, "${CLUSTER_OPT_EXPEL_TIMEOUT}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL9,
-              "The value for the configuration option is used to set the Group "
-              "Replication system variable that corresponds to it.");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL10,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL11,
-              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL12,
-              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL13,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL14,
-              "${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}");
-REGISTER_HELP(CLUSTER_SETOPTION_DETAIL15, "${CLUSTER_OPT_EXPELTIMEOUT_EXTRA}");
+The 'option' parameter is the name of the configuration option to be changed.
+
+The value parameter is the value that the configuration option shall get.
+
+The accepted values for the configuration option are:
+
+@li clusterName: string value to define the cluster name.
+${CLUSTER_OPT_EXIT_STATE_ACTION}
+${CLUSTER_OPT_MEMBER_WEIGHT}
+${CLUSTER_OPT_FAILOVER_CONSISTENCY}
+${CLUSTER_OPT_EXPEL_TIMEOUT}
+
+The value for the configuration option is used to set the Group Replication
+system variable that corresponds to it.
+
+${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
+
+${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}
+
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
+
+${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}
+
+${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
+
+@throw ArgumentError in the following scenarios:
+@li If the 'option' parameter is empty.
+@li If the 'value' parameter is empty.
+@li If the 'option' parameter is invalid.
+
+@throw RuntimeError in the following scenarios:
+@li If any of the cluster members do not support the configuration option
+passed in 'option'.
+@li If the value passed in 'option' is not valid for Group Replication.
+@li If the cluster has no visible quorum.
+@li If any of the cluster members is not ONLINE.
+)*");
 
 /**
  * $(CLUSTER_SETOPTION_BRIEF)
  *
- * $(CLUSTER_SETOPTION_THROWS)
- * $(CLUSTER_SETOPTION_THROWS1)
- * $(CLUSTER_SETOPTION_THROWS2)
- * $(CLUSTER_SETOPTION_THROWS3)
- * $(CLUSTER_SETOPTION_THROWS4)
- * $(CLUSTER_SETOPTION_THROWS5)
- * $(CLUSTER_SETOPTION_THROWS6)
- * $(CLUSTER_SETOPTION_THROWS7)
- * $(CLUSTER_SETOPTION_THROWS8)
- *
- * $(CLUSTER_SETOPTION_RETURNS)
- *
- * $(CLUSTER_SETOPTION_PARAM)
- * $(CLUSTER_SETOPTION_PARAM1)
- *
- * $(CLUSTER_SETOPTION_DETAIL)
- * $(CLUSTER_SETOPTION_DETAIL1)
- * $(CLUSTER_SETOPTION_DETAIL2)
- * $(CLUSTER_SETOPTION_DETAIL3)
- * $(CLUSTER_SETOPTION_DETAIL4)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION)
- * $(CLUSTER_OPT_MEMBER_WEIGHT)
- * $(CLUSTER_SETOPTION_DETAIL6)
- * $(CLUSTER_SETOPTION_DETAIL7)
- * $(CLUSTER_SETOPTION_DETAIL8)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
- * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL)
- * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
- * $(CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA)
- * $(CLUSTER_OPT_EXPELTIMEOUT_EXTRA)
+ * $(CLUSTER_SETOPTION)
  */
 #if DOXYGEN_JS
 Undefined Cluster::setOption(String option, String value) {}
@@ -2220,117 +1536,57 @@ void Cluster::set_option(const std::string &option,
 }
 
 REGISTER_HELP_FUNCTION(setInstanceOption, Cluster);
-REGISTER_HELP(
-    CLUSTER_SETINSTANCEOPTION_BRIEF,
-    "Changes the value of a configuration option in a Cluster member.");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETINSTANCEOPTION, R"*(
+Changes the value of a configuration option in a Cluster member.
 
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS,
-              "ArgumentError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS1,
-              "@li If the 'instance' parameter is empty.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS2,
-              "@li If the 'instance' parameter is invalid.");
-REGISTER_HELP(
-    CLUSTER_SETINSTANCEOPTION_THROWS3,
-    "@li If the 'instance' definition is a connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS4,
-              "@li If the 'option' parameter is empty.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS5,
-              "@li If the 'value' parameter is empty.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS6,
-              "@li If the 'option' parameter is invalid.");
+@param instance An instance definition.
+@param option The configuration option to be changed.
+@param value The value that the configuration option shall get.
 
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS7,
-              "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS8,
-              "@li If 'instance' does not refer to a cluster member.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS9,
-              "@li If the cluster has no visible quorum.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS10,
-              "@li If 'instance' is not ONLINE.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_THROWS11,
-              "@li If 'instance' does not support the configuration option "
-              "passed in 'option'.");
-REGISTER_HELP(
-    CLUSTER_SETINSTANCEOPTION_THROWS12,
-    "@li If the value passed in 'option' is not valid for Group Replication.");
+@returns Nothing.
 
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_RETURNS, "@returns Nothing.");
+This function changes an InnoDB Cluster configuration option in a member of the
+cluster.
 
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_PARAM,
-              "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_PARAM1,
-              "@param option The configuration option to be changed.");
-REGISTER_HELP(
-    CLUSTER_SETINSTANCEOPTION_PARAM2,
-    "@param value The value that the configuration option shall get.");
+The instance definition is the connection data for the instance.
 
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL,
-              "This function changes an InnoDB Cluster configuration option in "
-              "a member of the cluster.");
-REGISTER_HELP(
-    CLUSTER_SETINSTANCEOPTION_DETAIL1,
-    "The instance definition is the connection data for the instance.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL2,
-              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL3,
-              "The option parameter is the name of the configuration option to "
-              "be changed");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL4,
-              "The value parameter is the value that the configuration option "
-              "shall get.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL5,
-              "The accepted values for the configuration option are:");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL6,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION}");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL7,
-              "${CLUSTER_OPT_MEMBER_WEIGHT}");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL8,
-              "@li label a string identifier of the instance.");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL9,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL10,
-              "${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}");
-REGISTER_HELP(CLUSTER_SETINSTANCEOPTION_DETAIL11,
-              "${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}");
+${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+
+The option parameter is the name of the configuration option to be changed
+
+The value parameter is the value that the configuration option shall get.
+
+The accepted values for the configuration option are:
+${CLUSTER_OPT_EXIT_STATE_ACTION}
+${CLUSTER_OPT_MEMBER_WEIGHT}
+@li label a string identifier of the instance.
+
+${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
+
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
+
+${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+@throw ArgumentError in the following scenarios:
+@li If the 'instance' parameter is empty.
+@li If the 'instance' parameter is invalid.
+@li If the 'instance' definition is a connection dictionary but empty.
+@li If the 'option' parameter is empty.
+@li If the 'value' parameter is empty.
+@li If the 'option' parameter is invalid.
+
+@throw RuntimeError in the following scenarios:
+@li If 'instance' does not refer to a cluster member.
+@li If the cluster has no visible quorum.
+@li If 'instance' is not ONLINE.
+@li If 'instance' does not support the configuration option passed in 'option'.
+@li If the value passed in 'option' is not valid for Group Replication.
+)*");
 
 /**
  * $(CLUSTER_SETINSTANCEOPTION_BRIEF)
  *
- * $(CLUSTER_SETINSTANCEOPTION_THROWS)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS1)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS2)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS3)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS4)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS5)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS6)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS7)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS8)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS9)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS10)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS11)
- * $(CLUSTER_SETINSTANCEOPTION_THROWS12)
- *
- * $(CLUSTER_SETINSTANCEOPTION_RETURNS)
- *
- * $(CLUSTER_SETINSTANCEOPTION_PARAM)
- * $(CLUSTER_SETINSTANCEOPTION_PARAM1)
- * $(CLUSTER_SETINSTANCEOPTION_PARAM2)
- *
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL)
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL1)
- *
- * $(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1)
- *
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL3)
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL4)
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL5)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION)
- * $(CLUSTER_OPT_MEMBER_WEIGHT)
- * $(CLUSTER_SETINSTANCEOPTION_DETAIL8)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL)
- * $(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA)
- * $(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA)
+ * $(CLUSTER_SETINSTANCEOPTION)
  */
 #if DOXYGEN_JS
 Undefined Cluster::setInstanceOption(InstanceDef instance, String option,

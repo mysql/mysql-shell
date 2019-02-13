@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -310,9 +310,15 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC5, "${TOPIC_CONNECTION_DATA_DETAILS}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA, "${TOPIC_CONNECTION_DATA_BASIC}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA1, "${TOPIC_CONNECTION_MORE_INFO}");
 
+#ifdef DOXYGEN
+REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
+              "For additional information about MySQL connection options, "
+              "see @ref connection_options.");
+#else
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
               "For additional information on connection data use "
               "\\? connection.");
+#endif
 
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY,
               "${TOPIC_CONNECTION_MORE_INFO}");

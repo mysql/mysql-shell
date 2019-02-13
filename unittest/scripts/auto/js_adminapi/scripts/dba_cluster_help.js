@@ -1,11 +1,11 @@
 // Assumptions: smart deployment rountines available
-//@ Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
-//@<> create cluster
+// create cluster
 var cluster = dba.createCluster('dev');
 
 session.close()
@@ -132,6 +132,6 @@ cluster.help("switchToSinglePrimaryMode")
 \? cluster.switchToSinglePrimaryMode
 
 
-//@ Finalization
+//@<> Finalization
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

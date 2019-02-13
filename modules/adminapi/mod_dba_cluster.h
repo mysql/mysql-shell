@@ -216,7 +216,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   // new metadata object
   std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> metadata() const;
 
-  /**
+  /*
    * Synchronize transactions on target instance.
    *
    * Wait for all current cluster transactions to be applied on the specified

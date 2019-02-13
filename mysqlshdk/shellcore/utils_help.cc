@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -195,6 +195,102 @@ bool Help_registry::icomp(const std::string &lhs, const std::string &rhs) {
 Help_registry *Help_registry::get() {
   static Help_registry instance;
   return &instance;
+}
+
+void Help_registry::add_split_help(const std::string &prefix,
+                                   const std::string &data, bool auto_brief,
+                                   bool nosuffix) {
+  std::map<std::string, int> current_index;
+
+  auto token = [prefix, &current_index](const std::string &suffix) {
+    int index = current_index[suffix];
+    current_index[suffix] = index + 1;
+
+    if (index == 0)
+      return shcore::str_format("%s%s%s", prefix.c_str(),
+                                !suffix.empty() ? "_" : "", suffix.c_str());
+    else
+      return shcore::str_format("%s%s%s%i", prefix.c_str(),
+                                !suffix.empty() ? "_" : "", suffix.c_str(),
+                                index);
+  };
+
+  // Split the help text into multiple entries of the same prefix topic and
+  // then register them one by one.
+
+  std::vector<std::string> lines = shcore::str_split(data, "\n");
+  std::vector<std::string>::const_iterator line_iter = lines.begin();
+
+  auto get_line = [&lines, &line_iter](bool *eos) {
+    if (line_iter == lines.end()) {
+      *eos = true;
+      return std::string();
+    } else {
+      return shcore::str_rstrip(*line_iter++);
+    }
+  };
+
+  auto unget_line = [&lines, &line_iter]() {
+    if (line_iter > lines.begin()) --line_iter;
+  };
+
+  auto get_para = [&get_line, &unget_line](bool *eos) {
+    std::string line;
+    std::string para;
+
+    line = get_line(eos);
+    while (!*eos && line.empty()) line = get_line(eos);
+
+    para = line;
+    // now keep adding lines to the paragraph until one of:
+    // empty line, @ at bol, $ at bol
+    line = get_line(eos);
+    while (!*eos && !line.empty() && line[0] != '@' && line[0] != '$') {
+      para.append(" ").append(line);
+      line = get_line(eos);
+    }
+    unget_line();
+
+    return para;
+  };
+
+  bool eos = false;
+  std::string para;
+  if (auto_brief) add_help(token("BRIEF"), get_para(&eos));
+
+  // params and return
+  para = get_para(&eos);
+  while (!eos && !para.empty()) {
+    if (shcore::str_beginswith(para, "@param")) {
+      add_help(token("PARAM"), para);
+    } else if (shcore::str_beginswith(para, "@returns")) {
+      add_help(token("RETURNS"), para);
+    } else {
+      break;
+    }
+    para = get_para(&eos);
+  }
+
+  // main body
+  while (!eos && !para.empty()) {
+    if (shcore::str_beginswith(para, "@throw")) {
+      break;
+    }
+    if (nosuffix)
+      add_help(token(""), para);
+    else
+      add_help(token("DETAIL"), para);
+    para = get_para(&eos);
+  }
+
+  // everything after the 1st @throw assumed to be more throws
+  while (!eos && !para.empty()) {
+    if (shcore::str_beginswith(para, "@throw"))
+      add_help(token("THROWS"), para.substr(strlen("@throw ")));
+    else
+      add_help(token("THROWS"), para);
+    para = get_para(&eos);
+  }
 }
 
 void Help_registry::add_help(const std::string &token,
