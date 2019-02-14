@@ -19,6 +19,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+
+[group1]
+option = value
+
 [mysqld]
 option_to_delete_with_value = 20 # delete this
 option_to_delete_without_value  # this as well
@@ -64,3 +68,6 @@ carriage-return=\r
 backslash=\\
 space=\s
 not_esc_seq_char=\S
+
+[client]
+port = 3306

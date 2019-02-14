@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019,  Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,7 @@ Config_file_handler::Config_file_handler(const std::string &input_config_path,
     : m_input_config_path(input_config_path),
       m_output_config_path(output_cnf_path) {
   // read the config file
-  m_config_file.read(m_input_config_path, m_group);
+  m_config_file.read(m_input_config_path);
 }
 
 Config_file_handler::Config_file_handler(const std::string &output_cnf_path)
@@ -134,11 +134,11 @@ void Config_file_handler::set_now(const std::string &name,
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
-    config_file.read(m_input_config_path, m_group);
+    config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
     if (shcore::file_exists(m_output_config_path)) {
-      config_file.read(m_output_config_path, m_group);
+      config_file.read(m_output_config_path);
     }
   }
 
@@ -163,11 +163,11 @@ void Config_file_handler::set_now(const std::string &name,
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
-    config_file.read(m_input_config_path, m_group);
+    config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
     if (shcore::file_exists(m_output_config_path)) {
-      config_file.read(m_output_config_path, m_group);
+      config_file.read(m_output_config_path);
     }
   }
 
@@ -192,11 +192,11 @@ void Config_file_handler::set_now(const std::string &name,
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
-    config_file.read(m_input_config_path, m_group);
+    config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
     if (shcore::file_exists(m_output_config_path)) {
-      config_file.read(m_output_config_path, m_group);
+      config_file.read(m_output_config_path);
     }
   }
 

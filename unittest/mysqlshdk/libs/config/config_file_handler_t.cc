@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,13 +21,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <mysqlshdk/libs/config/config_file_handler.h>
+#include "mysqlshdk/libs/config/config_file.h"
+#include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
+using mysqlshdk::config::Config_file;
 using mysqlshdk::config::Config_file_handler;
 using mysqlshdk::utils::nullable;
 extern "C" const char *g_test_home;
@@ -311,6 +313,19 @@ TEST_F(Config_file_handler_test, test_apply) {
               *(cfg_handler.get_int("new_positive_int")));
     EXPECT_EQ((cfg_handler_cafter.get_string("null")).is_null(),
               (cfg_handler.get_string("null")).is_null());
+
+    // Check that the other sections were not deleted after the apply
+    // (BUG#29349014)
+    // Note that the mysqld section is already being tested above
+    Config_file cfg_file_cafter = Config_file();
+    cfg_file_cafter.read(res_cfg_path);
+    std::vector<std::string> groups = cfg_file_cafter.groups();
+    EXPECT_EQ(groups.size(), 3);
+    EXPECT_THAT(groups, UnorderedElementsAre("mysqld", "client", "group1"));
+    EXPECT_EQ(cfg_file_cafter.options("client").size(), 1);
+    EXPECT_EQ(cfg_file_cafter.get("client", "port"), "3306");
+    EXPECT_EQ(cfg_file_cafter.options("group1").size(), 1);
+    EXPECT_EQ(cfg_file_cafter.get("group1", "option"), "value");
 
     // Delete configuration file copy we created
     shcore::delete_file(res_cfg_path, true);
