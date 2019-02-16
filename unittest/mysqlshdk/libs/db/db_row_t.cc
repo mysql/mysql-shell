@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -87,7 +87,9 @@ TEST_F(Db_tests, row_getters_date) {
   } while (switch_proto());
 }
 
-TEST_F(Db_tests, row_getters_str) {
+// This test is splitted to two tests, because debug variable tracking
+// exceeded size limit and cause unnecesary compile unit recompilation.
+TEST_F(Db_tests, row_getters_str_part1) {
   do {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
     ASSERT_NO_THROW(session->connect(Connection_options(uri())));
@@ -191,7 +193,13 @@ TEST_F(Db_tests, row_getters_str) {
       }
       LAST_ROW();
     }
+  } while (switch_proto());
+}
 
+TEST_F(Db_tests, row_getters_str_part2) {
+  do {
+    SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
+    ASSERT_NO_THROW(session->connect(Connection_options(uri())));
     {
       TABLE_ROW("t_lob", 12);
 
