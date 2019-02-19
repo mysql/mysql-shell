@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/mysqlshdk/libs/db/db_common.h"
+#include "unittest/test_utils.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -197,10 +198,15 @@ TEST_F(Db_tests, auto_close) {
       auto mysql_session = make_session();
       EXPECT_NO_THROW(mysql_session->connect(connection_options));
 
-      result = session->query(
-          "select count(*) from performance_schema.threads where "
-          "PROCESSLIST_USER IS NOT NULL");
-      EXPECT_EQ(ocount + 1, result->fetch_one()->get_int(0));
+      EXPECT_BECOMES_TRUE(
+          3,
+          (ocount + 1) ==
+              session
+                  ->query(
+                      "select count(*) from performance_schema.threads where "
+                      "PROCESSLIST_USER IS NOT NULL")
+                  ->fetch_one_or_throw()
+                  ->get_int(0));
     }
 
     bool ok = false;

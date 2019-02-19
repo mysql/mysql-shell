@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include <utility>
 #include <vector>
 #include "gtest_clean.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "shellcore/base_session.h"
@@ -52,6 +53,7 @@
         ok = true;                                   \
         break;                                       \
       }                                              \
+      shcore::sleep_ms(100);                         \
     }                                                \
     if (!ok) FAIL() << "Timeout waiting for " #pred; \
   } while (0)
