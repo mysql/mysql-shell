@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,12 +36,14 @@
 namespace mysqlshdk {
 namespace config {
 
+enum class Case { SENSITIVE, INSENSITIVE };
+
 class Config_file {
  public:
   /**
    * Constructors
    */
-  Config_file() = default;
+  Config_file(Case group_case = Case::INSENSITIVE);
   Config_file(const Config_file &cnf_obj) = default;
 
   bool operator==(const Config_file &other) const {
@@ -211,9 +213,21 @@ class Config_file {
     }
   };
 
+  Case m_group_case;
+
+  typedef std::map<Option_key, mysqlshdk::utils::nullable<std::string>>
+      Option_map;
+  typedef bool (*compare_func)(const std::string &, const std::string &);
+  typedef std::map<std::string, Option_map, compare_func> container;
+
+  typedef container::const_iterator const_iterator;
+  typedef container::iterator iterator;
+
   // Map holding all options and respective values for all groups
-  std::map<std::string, std::map<Option_key, utils::nullable<std::string>>>
-      m_configmap;
+  container m_configmap;
+
+  static bool comp(const std::string &lhs, const std::string &rhs);
+  static bool icomp(const std::string &lhs, const std::string &rhs);
 
   /**
    * Auxiliary function to create an OptionKey to be used internally.
@@ -338,11 +352,9 @@ class Config_file {
    * @param group_prefix optional string with the prefix of the group to
    *        read.
    */
-  void read_recursive_aux(
-      const std::string &cnf_path, unsigned int recursive_depth,
-      std::map<std::string, std::map<Option_key, utils::nullable<std::string>>>
-          *out_map,
-      const std::string &group_prefix = "") const;
+  void read_recursive_aux(const std::string &cnf_path,
+                          unsigned int recursive_depth, container *out_map,
+                          const std::string &group_prefix = "") const;
 
   /**
    * Auxiliary function parse the path from the !include and !includedir

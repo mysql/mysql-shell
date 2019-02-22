@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,18 @@
 
 namespace mysqlshdk {
 namespace config {
+Config_file::Config_file(Case group_case)
+    : m_group_case(group_case),
+      m_configmap(m_group_case == Case::SENSITIVE ? Config_file::comp
+                                                  : Config_file::icomp) {}
+
+bool Config_file::comp(const std::string &lhs, const std::string &rhs) {
+  return lhs.compare(rhs) < 0;
+}
+
+bool Config_file::icomp(const std::string &lhs, const std::string &rhs) {
+  return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
+}
 
 Config_file::Option_key Config_file::convert_option_to_key(
     const std::string &option) const {
@@ -309,8 +321,7 @@ Config_file::parse_option_line(const std::string &line,
 
 void Config_file::read(const std::string &cnf_path,
                        const std::string &group_prefix) {
-  std::map<std::string, std::map<Option_key, utils::nullable<std::string>>>
-      configmap;
+  container configmap(m_group_case == Case::SENSITIVE ? comp : icomp);
   read_recursive_aux(cnf_path, 0, &configmap, group_prefix);
   // if no exception happned during the read of the files, then replace the
   // current configuration map with the new one.
@@ -380,8 +391,8 @@ void Config_file::write(const std::string &cnf_path) const {
           continue;
         } else if (!trimmed_line.empty() && trimmed_line[0] == '[') {
           // Parse group line
-          std::string new_group = shcore::str_lower(
-              parse_group_line(trimmed_line, linenum, file_path));
+          std::string new_group =
+              parse_group_line(trimmed_line, linenum, file_path);
 
           // Before switching the group, add all new options for that group.
           // NOTE: Only add new options in the main option file (not for the
@@ -543,25 +554,20 @@ std::vector<std::string> Config_file::groups() const {
 }
 
 bool Config_file::add_group(const std::string &group) {
-  std::string lowcase_group = shcore::str_lower(group);
   // Second value in the pair returned by emplace() indicates if the element
   // was successfully inserted (true) or not (false) because it already
   // exists.
-  auto res = m_configmap.emplace(
-      lowcase_group,
-      std::map<Option_key, mysqlshdk::utils::nullable<std::string>>());
+  auto res = m_configmap.emplace(group, Option_map());
   return res.second;
 }
 
 bool Config_file::has_group(const std::string &group) const {
-  std::string lgroup = shcore::str_lower(group);
-  return m_configmap.find(lgroup) != m_configmap.end();
+  return m_configmap.find(group) != m_configmap.end();
 }
 
 bool Config_file::remove_group(const std::string &group) {
   if (has_group(group)) {
-    std::string lgroup = shcore::str_lower(group);
-    m_configmap.erase(lgroup);
+    m_configmap.erase(group);
     return true;
   } else {
     return false;
@@ -573,8 +579,7 @@ std::vector<std::string> Config_file::options(const std::string &group) const {
     throw std::out_of_range("Group '" + group + "' does not exist.");
   } else {
     std::vector<std::string> res;
-    std::string lgroup = shcore::str_lower(group);
-    for (auto const &element : m_configmap.at(lgroup)) {
+    for (auto const &element : m_configmap.at(group)) {
       res.push_back(element.first.original_option);
     }
     return res;
@@ -584,9 +589,8 @@ std::vector<std::string> Config_file::options(const std::string &group) const {
 bool Config_file::has_option(const std::string &group,
                              const std::string &option) const {
   if (has_group(group)) {
-    std::string lgroup = shcore::str_lower(group);
     Option_key opt_key = convert_option_to_key(option);
-    return m_configmap.at(lgroup).find(opt_key) != m_configmap.at(lgroup).end();
+    return m_configmap.at(group).find(opt_key) != m_configmap.at(group).end();
   } else {
     return false;
   }
@@ -595,9 +599,8 @@ bool Config_file::has_option(const std::string &group,
 utils::nullable<std::string> Config_file::get(const std::string &group,
                                               const std::string &option) const {
   if (has_option(group, option)) {
-    std::string lgroup = shcore::str_lower(group);
     Option_key opt_key = convert_option_to_key(option);
-    return m_configmap.at(lgroup).at(opt_key);
+    return m_configmap.at(group).at(opt_key);
   } else {
     throw std::out_of_range("Option '" + option +
                             "' does not exist in group '" + group + "'.");
@@ -607,9 +610,8 @@ utils::nullable<std::string> Config_file::get(const std::string &group,
 void Config_file::set(const std::string &group, const std::string &option,
                       const utils::nullable<std::string> &value) {
   if (has_group(group)) {
-    std::string lgroup = shcore::str_lower(group);
     Option_key opt_key = convert_option_to_key(option);
-    m_configmap[lgroup][opt_key] = value;
+    m_configmap[group][opt_key] = value;
   } else {
     throw std::out_of_range("Group '" + group + "' does not exist.");
   }
@@ -619,9 +621,8 @@ bool Config_file::remove_option(const std::string &group,
                                 const std::string &option) {
   if (has_group(group)) {
     if (has_option(group, option)) {
-      std::string lsection = shcore::str_lower(group);
       Option_key opt_key = convert_option_to_key(option);
-      m_configmap[lsection].erase(opt_key);
+      m_configmap[group].erase(opt_key);
       return true;
     } else {
       return false;
@@ -633,12 +634,10 @@ bool Config_file::remove_option(const std::string &group,
 
 void Config_file::clear() { m_configmap.clear(); }
 
-void Config_file::read_recursive_aux(
-    const std::string &cnf_path, unsigned int recursive_depth,
-    std::map<std::string,
-             std::map<Config_file::Option_key, utils::nullable<std::string>>>
-        *out_map,
-    const std::string &group_prefix) const {
+void Config_file::read_recursive_aux(const std::string &cnf_path,
+                                     unsigned int recursive_depth,
+                                     container *out_map,
+                                     const std::string &group_prefix) const {
   // 10 is the max recursion supported on the server when parsing option files
   if (recursive_depth >= 10) {
     log_warning(
@@ -700,10 +699,7 @@ void Config_file::read_recursive_aux(
     // Handle line depending if it matches a group or option.
     if (trimmed_line[0] == '[') {
       // Group line, parse it and store empty map using group name as key
-      // Group names are case-insensitive (thus always store in lower
-      // case)
-      in_group =
-          shcore::str_lower(parse_group_line(trimmed_line, linenum, cnf_path));
+      in_group = parse_group_line(trimmed_line, linenum, cnf_path);
 
       // Create config map entry for group if it does not exist already.
       // If the group_prefix was provided, only add an entry if it matches.
@@ -712,10 +708,10 @@ void Config_file::read_recursive_aux(
       // group the last value read is used.
       if (out_map->find(in_group) == out_map->end() &&
           (group_prefix.empty() ||
-           shcore::str_beginswith(in_group, group_prefix))) {
-        out_map->emplace(
-            in_group,
-            std::map<Option_key, mysqlshdk::utils::nullable<std::string>>());
+           (m_group_case == Case::INSENSITIVE
+                ? shcore::str_ibeginswith(in_group, group_prefix)
+                : shcore::str_beginswith(in_group, group_prefix)))) {
+        out_map->emplace(in_group, Option_map());
       }
     } else {
       // Not a group, handle as an option, try to parse it and save it
@@ -729,9 +725,12 @@ void Config_file::read_recursive_aux(
                                  cnf_path + "': " + line + ".");
 
       if (group_prefix.empty() ||
-          shcore::str_beginswith(in_group, shcore::str_lower(group_prefix)))
-        (*out_map)[in_group][convert_option_to_key(std::get<0>(res))] =
-            std::get<1>(res);
+          (m_group_case == Case::INSENSITIVE
+               ? shcore::str_ibeginswith(in_group, group_prefix)
+               : shcore::str_beginswith(in_group, group_prefix))) {
+        auto key = convert_option_to_key(std::get<0>(res));
+        (*out_map)[in_group][key] = std::get<1>(res);
+      }
     }
   }
   input_file.close();

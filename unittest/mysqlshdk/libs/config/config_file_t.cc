@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -617,21 +617,19 @@ TEST_F(ConfigFileTest, test_write) {
   }
 }
 
-TEST_F(ConfigFileTest, test_groups) {
+TEST_F(ConfigFileTest, test_groups_case_insensitive) {
   // Test config file with no groups
   Config_file cfg = Config_file();
   EXPECT_FALSE(cfg.has_group("test_group"));
 
   // Add new group and verify it was added.
-  // NOTE: Group names are case insensitive (converted to lower case).
   EXPECT_TRUE(cfg.add_group("Test_Group"));
   EXPECT_TRUE(cfg.has_group("tesT_grouP"));
   std::vector<std::string> groups = cfg.groups();
   EXPECT_EQ(groups.size(), 1);
-  EXPECT_THAT(groups, UnorderedElementsAre("test_group"));
+  EXPECT_THAT(groups, UnorderedElementsAre("Test_Group"));
 
   // Adding a group with the same name does nothing (false returned).
-  // NOTE: Group names are case insensitive (converted to lower case).
   EXPECT_FALSE(cfg.add_group("TEST_group"));
   groups = cfg.groups();
   EXPECT_EQ(groups.size(), 1);
@@ -642,10 +640,46 @@ TEST_F(ConfigFileTest, test_groups) {
   EXPECT_EQ(groups.size(), 1);
 
   // Removing an existing group (true returned).
-  // NOTE: Group names are case insensitive (converted to lower case).
   EXPECT_TRUE(cfg.remove_group("test_GROUP"));
   groups = cfg.groups();
   EXPECT_EQ(groups.size(), 0);
+}
+
+TEST_F(ConfigFileTest, test_groups_case_sensitive) {
+  // Test config file with no groups
+  Config_file cfg = Config_file(mysqlshdk::config::Case::SENSITIVE);
+  EXPECT_FALSE(cfg.has_group("test_group"));
+
+  // Add new group and verify it was added.
+  EXPECT_TRUE(cfg.add_group("Test_Group"));
+  EXPECT_TRUE(cfg.has_group("Test_Group"));
+
+  EXPECT_FALSE(cfg.has_group("tesT_grouP"));
+  std::vector<std::string> groups = cfg.groups();
+  EXPECT_EQ(groups.size(), 1);
+  EXPECT_THAT(groups, UnorderedElementsAre("Test_Group"));
+
+  // Adding a group with the same name and different case.
+  EXPECT_TRUE(cfg.add_group("TEST_group"));
+  groups = cfg.groups();
+  EXPECT_EQ(groups.size(), 2);
+  EXPECT_THAT(groups, UnorderedElementsAre("Test_Group", "TEST_group"));
+
+  // Removing a non existing group (false returned).
+  EXPECT_FALSE(cfg.remove_group("not_exist"));
+  groups = cfg.groups();
+  EXPECT_EQ(groups.size(), 2);
+
+  // Removing an existing group (true returned).
+  EXPECT_TRUE(cfg.remove_group("TEST_group"));
+  groups = cfg.groups();
+  EXPECT_EQ(groups.size(), 1);
+
+  // Removing a non existing group (false returned).
+  EXPECT_FALSE(cfg.remove_group("TEST_group"));
+  groups = cfg.groups();
+  EXPECT_EQ(groups.size(), 1);
+  EXPECT_THAT(groups, UnorderedElementsAre("Test_Group"));
 }
 
 TEST_F(ConfigFileTest, test_options) {
