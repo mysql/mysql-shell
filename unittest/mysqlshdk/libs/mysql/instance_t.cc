@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -104,10 +104,10 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')")
       .then_return({{
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')",
           {"Variable_name", "Value"},
           {Type::String, Type::String},
@@ -132,9 +132,9 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('sql_warnings')")
-      .then_return({{"show SESSION variables where `variable_name` in"
+      .then_return({{"show GLOBAL variables where `variable_name` in"
                      " ('sql_warnings')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
@@ -183,10 +183,10 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')")
       .then_return({{
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')",
           {"Variable_name", "Value"},
           {Type::String, Type::String},
@@ -210,10 +210,10 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('server_uuid')")
       .then_return(
-          {{"show SESSION variables where `variable_name` in"
+          {{"show GLOBAL variables where `variable_name` in"
             " ('server_uuid')",
             {"Variable_name", "Value"},
             {Type::String, Type::String},
@@ -233,7 +233,7 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('server_id')")
       .then_return({{"show SESSION variables where `variable_name` in"
                      " ('server_id')",
@@ -286,10 +286,10 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')")
       .then_return({{
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('unexisting_variable')",
           {"Variable_name", "Value"},
           {Type::String, Type::String},
@@ -313,10 +313,10 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('server_uuid')")
       .then_return(
-          {{"show SESSION variables where `variable_name` in"
+          {{"show GLOBAL variables where `variable_name` in"
             " ('server_uuid')",
             {"Variable_name", "Value"},
             {Type::String, Type::String},
@@ -367,12 +367,12 @@ TEST_F(Instance_test, set_sysvar) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Test set string system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET SESSION `lc_messages` = 'fr_FR'"));
+  EXPECT_CALL(session, execute("SET GLOBAL `lc_messages` = 'fr_FR'"));
   instance.set_sysvar("lc_messages", (std::string) "fr_FR");
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in ('lc_messages')")
-      .then_return({{"show SESSION variables "
+          "show GLOBAL variables where `variable_name` in ('lc_messages')")
+      .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('lc_messages')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
@@ -410,13 +410,13 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_STREQ("es_MX", (*new_value).c_str());
 
   // Test set int system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET SESSION `lock_wait_timeout` = 86400"));
+  EXPECT_CALL(session, execute("SET GLOBAL `lock_wait_timeout` = 86400"));
   instance.set_sysvar("lock_wait_timeout", (int64_t)86400);
   session
       .expect_query(
-          "show SESSION variables "
+          "show GLOBAL variables "
           "where `variable_name` in ('lock_wait_timeout')")
-      .then_return({{"show SESSION variables "
+      .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('lock_wait_timeout')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
@@ -456,12 +456,12 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_EQ(43200, *new_i_value);
 
   // Test set bool system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET SESSION `sql_log_off` = 'ON'"));
+  EXPECT_CALL(session, execute("SET GLOBAL `sql_log_off` = 'ON'"));
   instance.set_sysvar("sql_log_off", true);
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in ('sql_log_off')")
-      .then_return({{"show SESSION variables "
+          "show GLOBAL variables where `variable_name` in ('sql_log_off')")
+      .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('sql_log_off')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
@@ -776,10 +776,10 @@ TEST_F(Instance_test, get_system_variables) {
 
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in"
+          "show GLOBAL variables where `variable_name` in"
           " ('server_id', 'server_uuid', 'unexisting_variable')")
       .then_return(
-          {{"show SESSION variables where `variable_name` in"
+          {{"show GLOBAL variables where `variable_name` in"
             " ('server_id', 'server_uuid', 'unexisting_variable')",
             {"Variable_name", "Value"},
             {Type::String, Type::String},
@@ -808,7 +808,7 @@ TEST_F(Instance_test, install_plugin_win) {
   // Install plugin on Windows
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in "
+          "show GLOBAL variables where `variable_name` in "
           "('version_compile_os')")
       .then_return({{"",
                      {"Variable_name", "Value"},
@@ -830,7 +830,7 @@ TEST_F(Instance_test, install_plugin_lin) {
   // Install plugin on Non-Windows
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in "
+          "show GLOBAL variables where `variable_name` in "
           "('version_compile_os')")
       .then_return({{"",
                      {"Variable_name", "Value"},
@@ -843,7 +843,7 @@ TEST_F(Instance_test, install_plugin_lin) {
   // Second install fails because plugin is already installed.
   session
       .expect_query(
-          "show SESSION variables where `variable_name` in "
+          "show GLOBAL variables where `variable_name` in "
           "('version_compile_os')")
       .then_return({{"",
                      {"Variable_name", "Value"},
@@ -1209,7 +1209,7 @@ TEST_F(Instance_test, get_system_variables_like) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Get system variable using a pattern, using default scope (i.e., SESSION).
-  session.expect_query("SHOW SESSION VARIABLES LIKE '%error_count%'")
+  session.expect_query("SHOW GLOBAL VARIABLES LIKE '%error_count%'")
       .then_return({{"",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},

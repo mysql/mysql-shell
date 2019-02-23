@@ -804,9 +804,8 @@ bool Testutils::is_tcp_port_listening(str host, int port);
 #endif
 ///@}
 bool Testutils::is_tcp_port_listening(const std::string &host, int port) {
-  std::string port_check_file = _sandbox_snapshot_dir + ".tcp_port_check_" +
-                                std::to_string(_tcp_port_check_serial++) +
-                                ".json";
+  std::string port_check_file = _sandbox_snapshot_dir + ".portchk_" +
+                                std::to_string(_tcp_port_check_serial++);
 
   switch (mysqlshdk::db::replay::g_replay_mode) {
     case mysqlshdk::db::replay::Mode::Replay: {
@@ -1248,6 +1247,10 @@ void Testutils::wait_sandbox_dead(int port) {
 #else
   while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
                                            "/mysqld.sock.lock")) {
+    shcore::sleep_ms(500);
+  }
+  while (mysqlshdk::utils::check_lock_file(
+      get_sandbox_datadir(port) + "/mysqlx.sock.lock", "X%zd")) {
     shcore::sleep_ms(500);
   }
 

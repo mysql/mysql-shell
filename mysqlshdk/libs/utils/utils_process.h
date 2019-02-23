@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,7 @@ namespace utils {
  * If it turns out this is also useful in Windows, the #ifndef should be removed
  * and implemented for Windows
  */
-bool check_lock_file(const std::string &path);
+bool check_lock_file(const std::string &path, const char *pid_format = "%zd");
 #endif
 
 }  // namespace utils

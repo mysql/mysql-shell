@@ -70,25 +70,25 @@ class IInstance {
 
   virtual utils::nullable<bool> get_sysvar_bool(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual utils::nullable<std::string> get_sysvar_string(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual utils::nullable<int64_t> get_sysvar_int(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual void set_sysvar(
       const std::string &name, const std::string &value,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual void set_sysvar(
       const std::string &name, const int64_t value,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual void set_sysvar(
       const std::string &name, const bool value,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual void set_sysvar_default(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual bool has_variable_compiled_value(const std::string &name) const = 0;
   virtual bool is_performance_schema_enabled() const = 0;
 
@@ -98,7 +98,7 @@ class IInstance {
   virtual std::map<std::string, utils::nullable<std::string>>
   get_system_variables_like(
       const std::string &pattern,
-      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
 
   virtual std::shared_ptr<db::ISession> get_session() const = 0;
   virtual void close_session() const = 0;
@@ -156,26 +156,26 @@ class Instance : public IInstance {
 
   utils::nullable<bool> get_sysvar_bool(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
   utils::nullable<std::string> get_sysvar_string(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
   utils::nullable<int64_t> get_sysvar_int(
       const std::string &name,
-      const Var_qualifier scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
 
   void set_sysvar(
       const std::string &name, const std::string &value,
-      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
   void set_sysvar(
       const std::string &name, const int64_t value,
-      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
   void set_sysvar(
       const std::string &name, const bool value,
-      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
   void set_sysvar_default(
       const std::string &name,
-      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
   bool has_variable_compiled_value(const std::string &name) const override;
   bool is_performance_schema_enabled() const override;
 
@@ -186,10 +186,10 @@ class Instance : public IInstance {
   void close_session() const override { _session->close(); }
   std::map<std::string, utils::nullable<std::string>> get_system_variables(
       const std::vector<std::string> &names,
-      const Var_qualifier scope = Var_qualifier::SESSION) const;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const;
   std::map<std::string, utils::nullable<std::string>> get_system_variables_like(
       const std::string &pattern,
-      const Var_qualifier scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(

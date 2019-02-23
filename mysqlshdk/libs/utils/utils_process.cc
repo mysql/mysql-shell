@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,13 +34,16 @@ namespace mysqlshdk {
 namespace utils {
 
 #ifndef _WIN32
-bool check_lock_file(const std::string &path) {
+bool check_lock_file(const std::string &path, const char *pid_format) {
   std::string data;
   if (!shcore::load_text_file(path, data)) {
     if (errno == ENOENT) return false;
     throw std::runtime_error(path + ": " + strerror(errno));
   }
-  int64_t pid = std::stoi(data);
+  size_t pid = 0;
+  if (sscanf(data.c_str(), pid_format, &pid) != 1) {
+    throw std::runtime_error("Unexpected format in lock file " + path);
+  }
   if (kill(pid, 0) < 0) {
     if (errno == ESRCH) {
       // invalid pid

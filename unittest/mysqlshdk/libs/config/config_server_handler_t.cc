@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -493,7 +493,7 @@ TEST_F(Config_server_handler_test, apply) {
 
   // Verify if the GTID_MODE is the one expected to run the test else skip test.
   nullable<std::string> init_gtid_mode =
-      instance.get_sysvar_string("gtid_mode");
+      instance.get_sysvar_string("gtid_mode", Var_qualifier::SESSION);
   if (*init_gtid_mode != "OFF") {
     SKIP_TEST("Test server must have GTID_MODE=OFF, current value: " +
               *init_gtid_mode);
