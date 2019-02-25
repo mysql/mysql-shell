@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,8 +93,8 @@ class Upgrade_check_output_formatter {
                           const std::string &target_version) = 0;
   virtual void check_results(const Upgrade_check &check,
                              const std::vector<Upgrade_issue> &results) = 0;
-  virtual void check_error(const Upgrade_check &check,
-                           const char *description) = 0;
+  virtual void check_error(const Upgrade_check &check, const char *description,
+                           bool runtime_error = true) = 0;
   virtual void manual_check(const Upgrade_check &check) = 0;
   virtual void summarize(int error, int warning, int notice,
                          const std::string &text) = 0;
@@ -134,12 +134,12 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     for (const auto &issue : results) print_paragraph(issue_formater(issue));
   }
 
-  void check_error(const Upgrade_check &check,
-                   const char *description) override {
+  void check_error(const Upgrade_check &check, const char *description,
+                   bool runtime_error = true) override {
     print_title(check.get_title());
     m_console->print("  ");
-    m_console->print_error(description);
-    m_console->println();
+    if (runtime_error) m_console->print_diag("Check failed: ");
+    m_console->println(description);
     print_doc_links(check.get_doc_link());
   }
 
@@ -255,16 +255,20 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_checks.PushBack(check_object, m_allocator);
   }
 
-  void check_error(const Upgrade_check &check,
-                   const char *description) override {
+  void check_error(const Upgrade_check &check, const char *description,
+                   bool runtime_error = true) override {
     rapidjson::Value check_object(rapidjson::kObjectType);
     rapidjson::Value id;
     check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
                            m_allocator);
     check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
                            m_allocator);
-    check_object.AddMember("status", rapidjson::StringRef("ERROR"),
-                           m_allocator);
+    if (runtime_error)
+      check_object.AddMember("status", rapidjson::StringRef("ERROR"),
+                             m_allocator);
+    else
+      check_object.AddMember(
+          "status", rapidjson::StringRef("CONFIGURATION_ERROR"), m_allocator);
 
     rapidjson::Value descr;
     descr.SetString(description, strlen(description), m_allocator);
@@ -352,16 +356,19 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL1,
               "Tool behaviour can be modified with following options:");
 
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL2,
-              "@li outputFormat - value can be either TEXT (default) or JSON.");
+              "@li configPath - full path to MySQL server configuration file.");
 
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL3,
+              "@li outputFormat - value can be either TEXT (default) or JSON.");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4,
               "@li targetVersion - version to which upgrade will be checked "
               "(default=" MYSH_VERSION ")");
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4,
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5,
               "@li password - password for connection.");
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5, "${TOPIC_CONNECTION_DATA}");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6, "${TOPIC_CONNECTION_DATA}");
 
 /**
  * \ingroup util
@@ -377,6 +384,8 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5, "${TOPIC_CONNECTION_DATA}");
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL1)
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL2)
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL3)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL4)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL5)
  *
  * \copydoc connection_options
  *
@@ -419,14 +428,18 @@ shcore::Value Util::check_for_server_upgrade(
           _shell_core.get_dev_session()->get_connection_options();
     }
 
+    Upgrade_check_options opts{"", MYSH_VERSION, ""};
     std::string output_format("TEXT");
-    std::string target_version(MYSH_VERSION);
+
     if (args.size() > 0 &&
         args[args.size() - 1].type == shcore::Value_type::Map) {
       auto dict = args.map_at(args.size() - 1);
       output_format = dict->get_string("outputFormat", output_format);
-      target_version = dict->get_string("targetVersion", target_version);
-      if (target_version == "8.0") target_version.assign(MYSH_VERSION);
+      opts.target_version =
+          dict->get_string("targetVersion", opts.target_version);
+      if (opts.target_version == "8.0")
+        opts.target_version.assign(MYSH_VERSION);
+      opts.config_path = dict->get_string("configPath", "");
     }
 
     auto print = Upgrade_check_output_formatter::get_formatter(output_format);
@@ -456,15 +469,15 @@ shcore::Value Util::check_for_server_upgrade(
     if (row == nullptr)
       throw std::runtime_error("Unable to get server version");
 
-    std::string current_version = row->get_string(0);
+    opts.server_version = row->get_string(0);
 
     print->check_info(connection_options.as_uri(
                           mysqlshdk::db::uri::formats::only_transport()),
-                      current_version + " - " + row->get_string(1),
-                      target_version);
+                      opts.server_version + " - " + row->get_string(1),
+                      opts.target_version);
 
-    auto checklist =
-        Upgrade_check::create_checklist(current_version, target_version);
+    auto checklist = Upgrade_check::create_checklist(opts.server_version,
+                                                     opts.target_version);
 
     const auto update_counts = [&errors, &warnings,
                                 &notices](Upgrade_issue::Level level) {
@@ -484,10 +497,11 @@ shcore::Value Util::check_for_server_upgrade(
     for (auto &check : checklist)
       if (check->is_runnable()) {
         try {
-          std::vector<Upgrade_issue> issues =
-              check->run(session, current_version);
+          std::vector<Upgrade_issue> issues = check->run(session, opts);
           for (const auto &issue : issues) update_counts(issue.level);
           print->check_results(*check, issues);
+        } catch (const Upgrade_check::CheckConfigurationError &e) {
+          print->check_error(*check, e.what(), false);
         } catch (const std::exception &e) {
           print->check_error(*check, e.what());
         }

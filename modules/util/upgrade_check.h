@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <forward_list>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -55,6 +56,12 @@ struct Upgrade_issue {
   std::string get_db_object() const;
 };
 
+struct Upgrade_check_options {
+  std::string server_version;
+  std::string target_version;
+  std::string config_path;
+};
+
 std::string to_string(const Upgrade_issue &problem);
 
 class Upgrade_check {
@@ -64,6 +71,12 @@ class Upgrade_check {
 
   using Collection = std::vector<
       std::pair<std::forward_list<mysqlshdk::utils::Version>, Creator>>;
+
+  class CheckConfigurationError : public std::runtime_error {
+   public:
+    explicit CheckConfigurationError(const char *what)
+        : std::runtime_error(what) {}
+  };
 
   static const mysqlshdk::utils::Version TRANSLATION_MODE;
   static const mysqlshdk::utils::Version ALL_VERSIONS;
@@ -104,7 +117,7 @@ class Upgrade_check {
 
   virtual std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &server_version) = 0;
+      const Upgrade_check_options &options) = 0;
 
  protected:
   virtual const char *get_description_internal() const { return nullptr; }
@@ -135,7 +148,13 @@ class Sql_upgrade_check : public Upgrade_check {
       const mysqlshdk::utils::Version &ver);
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
-  static std::unique_ptr<Sql_upgrade_check> get_removed_sys_log_vars_check();
+  static std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
+      const mysqlshdk::utils::Version &ver);
+  static std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
+      const mysqlshdk::utils::Version &ver,
+      const mysqlshdk::utils::Version &target);
+
+  static std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check();
   static std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
 
   Sql_upgrade_check(const char *name, const char *title,
@@ -150,14 +169,14 @@ class Sql_upgrade_check : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &server_version) override;
+      const Upgrade_check_options &options) override;
 
+ protected:
+  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   const char *get_description_internal() const override;
   const char *get_title_internal() const override;
   Upgrade_issue::Level get_level() const override { return m_level; }
 
- protected:
-  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   std::vector<std::string> m_queries;
   std::forward_list<std::string> m_set_up;
   std::forward_list<std::string> m_clean_up;
@@ -168,13 +187,46 @@ class Sql_upgrade_check : public Upgrade_check {
   const char *m_minimal_version;
 };
 
+/// This class enables checking server configuration file for defined/undefined
+/// system variables that have been removed, deprecated etc.
+class Config_check : public Upgrade_check {
+ public:
+  enum class Mode { FLAG_DEFINED, FLAG_UNDEFINED };
+
+  Config_check(const char *name, std::map<std::string, const char *> &&vars,
+               Mode mode = Mode::FLAG_DEFINED,
+               Upgrade_issue::Level level = Upgrade_issue::ERROR,
+               const char *problem_description = "is set and will be removed",
+               const char *title = "", const char *advice = "");
+
+  std::vector<Upgrade_issue> run(
+      std::shared_ptr<mysqlshdk::db::ISession> session,
+      const Upgrade_check_options &options) override;
+
+ protected:
+  const char *get_description_internal() const override {
+    return m_advice.empty() ? nullptr : m_advice.c_str();
+  }
+  const char *get_title_internal() const override {
+    return m_title.empty() ? nullptr : m_title.c_str();
+  }
+  Upgrade_issue::Level get_level() const override { return m_level; }
+
+  std::map<std::string, const char *> m_vars;
+  Mode m_mode;
+  const Upgrade_issue::Level m_level;
+  std::string m_problem_description;
+  std::string m_title;
+  std::string m_advice;
+};
+
 class Check_table_command : public Upgrade_check {
  public:
   Check_table_command();
 
   std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &) override;
+      const Upgrade_check_options &options) override;
 
   Upgrade_issue::Level get_level() const override {
     throw std::runtime_error("Unimplemented");
@@ -198,7 +250,7 @@ class Manual_check : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &server_version) override {
+      const Upgrade_check_options &options) override {
     throw std::runtime_error("Manual check not meant to be executed");
   }
 

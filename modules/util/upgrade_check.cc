@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
+#include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -78,12 +79,21 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
   Version src_version(src_ver);
   Version dst_version(dst_ver);
 
-  if (src_version < Version("5.7.0") || src_version >= Version(MYSH_VERSION)) {
+  if (src_version < Version("5.7.0"))
+    throw std::invalid_argument(
+        shcore::str_format("Detected MySQL server version is %s, but this tool "
+                           "requires server to be at least at version 5.7",
+                           src_version.get_base().c_str()));
+
+  if (src_version >= Version(MYSH_VERSION)) {
     Version current(MYSH_VERSION);
     Version prev(current.get_major(), current.get_minor(),
                  current.get_patch() - 1);
-    throw std::invalid_argument(
-        "This tool supports MySQL server versions 5.7 to " + prev.get_base());
+    throw std::invalid_argument(shcore::str_format(
+        "Detected MySQL server version is %s, but this tool "
+        "supports server versions up to %s. You must upgrade MySQL Shell to "
+        "the latest version to be able to check this server",
+        src_version.get_base().c_str(), prev.get_base().c_str()));
   }
 
   if (dst_version < Version("8.0") || dst_version > Version(MYSH_VERSION))
@@ -206,9 +216,9 @@ Sql_upgrade_check::Sql_upgrade_check(const char *name, const char *title,
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &server_version) {
+    const Upgrade_check_options &options) {
   if (m_minimal_version != nullptr &&
-      Version(server_version) < Version(m_minimal_version))
+      Version(options.server_version) < Version(m_minimal_version))
     throw std::runtime_error(shcore::str_format(
         "This check requires server to be at minimum at %s version",
         m_minimal_version));
@@ -848,17 +858,81 @@ bool UNUSED_VARIABLE(register_groupby_syntax_check) =
         std::bind(&Sql_upgrade_check::get_groupby_asc_syntax_check), "8.0.13");
 }
 
+Config_check::Config_check(const char *name,
+                           std::map<std::string, const char *> &&vars,
+                           Mode mode, Upgrade_issue::Level level,
+                           const char *problem_description, const char *title,
+                           const char *advice)
+    : Upgrade_check(name),
+      m_vars(std::move(vars)),
+      m_mode(mode),
+      m_level(level),
+      m_problem_description(problem_description),
+      m_title(title),
+      m_advice(Upgrade_issue::level_to_string(level)) {
+  if (advice && strlen(advice) > 0) m_advice = m_advice + ": " + advice;
+}
+
+std::vector<Upgrade_issue> Config_check::run(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const Upgrade_check_options &options) {
+  if (options.config_path.empty())
+    throw CheckConfigurationError(
+        "To run this check requires full path to MySQL server configuration "
+        "file to be specified at 'configPath' key of options dictionary");
+
+  mysqlshdk::config::Config_file cf;
+  cf.read(options.config_path);
+
+  std::vector<Upgrade_issue> res;
+  for (const auto &group : cf.groups()) {
+    for (const auto &option : cf.options(group)) {
+      const auto it = m_vars.find(option);
+      if (it == m_vars.end()) continue;
+      if (m_mode == Mode::FLAG_DEFINED) {
+        Upgrade_issue issue;
+        issue.schema = option;
+        issue.description = m_problem_description;
+        if (it->second != nullptr)
+          issue.description +=
+              shcore::str_format(", consider using %s instead", it->second);
+        issue.level = m_level;
+        res.push_back(issue);
+      }
+      m_vars.erase(it);
+    }
+  }
+
+  if (m_mode == Mode::FLAG_UNDEFINED) {
+    for (const auto &var : m_vars) {
+      Upgrade_issue issue;
+      issue.schema = var.first;
+      issue.description = m_problem_description;
+      if (var.second != nullptr) {
+        issue.description += " ";
+        issue.description += var.second;
+      }
+      issue.level = m_level;
+      res.push_back(issue);
+    }
+  }
+
+  return res;
+}
+
 class Removed_sys_var_check : public Sql_upgrade_check {
  public:
   Removed_sys_var_check(const char *name, const char *title,
                         std::map<std::string, const char *> &&removed_vars,
+                        const char *problem_description,
                         const char *advice =
                             "Following system variables that were detected "
                             "as being used will be removed",
                         Upgrade_issue::Level level = Upgrade_issue::ERROR,
                         const char *minimal_version = "8.0.11")
       : Sql_upgrade_check(name, title, {}, level, advice, minimal_version),
-        m_vars(removed_vars) {
+        m_vars(std::move(removed_vars)),
+        m_problem_description(problem_description) {
     assert(!m_vars.empty());
     std::stringstream ss;
     ss << "SELECT VARIABLE_NAME FROM performance_schema.variables_info WHERE "
@@ -873,7 +947,7 @@ class Removed_sys_var_check : public Sql_upgrade_check {
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue out;
     out.schema = row->get_as_string(0);
-    out.description = "is set and will be removed";
+    out.description = m_problem_description;
 
     const auto it = m_vars.find(out.schema);
     if (it != m_vars.end() && it->second != nullptr)
@@ -883,31 +957,167 @@ class Removed_sys_var_check : public Sql_upgrade_check {
   }
 
   const std::map<std::string, const char *> m_vars;
+  std::string m_problem_description;
 };
 
-std::unique_ptr<Sql_upgrade_check>
-Sql_upgrade_check::get_removed_sys_log_vars_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Removed_sys_var_check(
-      "removedSysLogVars",
+std::unique_ptr<Upgrade_check>
+Sql_upgrade_check::get_removed_sys_log_vars_check(
+    const mysqlshdk::utils::Version &ver) {
+  const char *name = "removedSysLogVars";
+  const char *title =
       "Removed system variables for error logging to the system log "
-      "configuration",
-      {{"log_syslog_facility", "syseventlog.facility"},
-       {"log_syslog_include_pid", "syseventlog.include_pid"},
-       {"log_syslog_tag", "syseventlog.tag"},
-       {"log_syslog", nullptr}},
+      "configuration";
+  const char *advice =
       "System variables related to logging using OS facilities (the Event Log "
       "on Windows, and syslog on Unix and Unix-like systems) have been "
       "removed. Where appropriate, the removed system variables were replaced "
       "with new system variables managed by the log_sink_syseventlog error log "
       "component. Installations that used the old system variable names must "
-      "update their configuration to use the new variable names."));
+      "update their configuration to use the new variable names.";
+  const char *problem_description = "is set and will be removed";
+  std::map<std::string, const char *> vars{
+      {"log_syslog_facility", "syseventlog.facility"},
+      {"log_syslog_include_pid", "syseventlog.include_pid"},
+      {"log_syslog_tag", "syseventlog.tag"},
+      {"log_syslog", nullptr}};
+
+  if (ver < mysqlshdk::utils::Version(8, 0, 0) &&
+      ver >= mysqlshdk::utils::Version(5, 7, 0))
+    return shcore::make_unique<Config_check>(
+        name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
+        Upgrade_issue::ERROR, problem_description, title, advice);
+
+  return shcore::make_unique<Removed_sys_var_check>(
+      name, title, std::move(vars), problem_description, advice,
+      Upgrade_issue::ERROR);
 }
 
 namespace {
 bool UNUSED_VARIABLE(register_removed_sys_log_vars_check) =
     Upgrade_check::register_check(
-        std::bind(&Sql_upgrade_check::get_removed_sys_log_vars_check),
+        std::bind(&Sql_upgrade_check::get_removed_sys_log_vars_check,
+                  std::placeholders::_1),
         "8.0.13");
+}
+
+std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
+    const mysqlshdk::utils::Version &ver,
+    const mysqlshdk::utils::Version &target) {
+  std::map<std::string, const char *> vars;
+  if (ver < mysqlshdk::utils::Version(8, 0, 11))
+    vars.insert(
+        {{"date_format", nullptr},
+         {"datetime_format", nullptr},
+         {"group_replication_allow_local_disjoint_gtids_join", nullptr},
+         {"have_crypt", nullptr},
+         {"ignore_builtin_innodb", nullptr},
+         {"ignore_db_dirs", nullptr},
+         {"innodb_checksums", "innodb_checksum_algorithm"},
+         {"innodb_disable_resize_buffer_pool_debug", nullptr},
+         {"innodb_file_format", nullptr},
+         {"innodb_file_format_check", nullptr},
+         {"innodb_file_format_max", nullptr},
+         {"innodb_large_prefix", nullptr},
+         {"innodb_locks_unsafe_for_binlog", nullptr},
+         {"innodb_stats_sample_pages", "innodb_stats_transient_sample_pages"},
+         {"innodb_support_xa", nullptr},
+         {"innodb_undo_logs", "innodb_rollback_segments"},
+         {"log_warnings", "log_error_verbosity"},
+         {"log_builtin_as_identified_by_password", nullptr},
+         {"log_error_filter_rules", nullptr},
+         {"max_tmp_tables", nullptr},
+         {"multi_range_count", nullptr},
+         {"old_passwords", nullptr},
+         {"query_cache_limit", nullptr},
+         {"query_cache_min_res_unit", nullptr},
+         {"query_cache_size", nullptr},
+         {"query_cache_type", nullptr},
+         {"query_cache_wlock_invalidate", nullptr},
+         {"secure_auth", nullptr},
+         {"show_compatibility_56", nullptr},
+         {"sync_frm", nullptr},
+         {"time_format", nullptr},
+         {"tx_isolation", "transaction_isolation"},
+         {"tx_read_only", "transaction_read_only"}});
+
+  if (ver < Version(8, 0, 13) && target >= Version(8, 0, 13))
+    vars.insert({{"metadata_locks_cache_size", nullptr},
+                 {"metadata_locks_hash_instances", nullptr}});
+
+  if (ver < Version(8, 0, 16) && target >= Version(8, 0, 16))
+    vars.insert({{"internal_tmp_disk_storage_engine", nullptr}});
+
+  const char *name = "removedSysVars";
+  const char *title = "Removed system variables";
+  const char *advice =
+      "Following system variables that were detected as being used will be "
+      "removed. Please update your system to not rely on them before the "
+      "upgrade.";
+
+  if (ver < Version(8, 0, 0))
+    return shcore::make_unique<Config_check>(
+        name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
+        Upgrade_issue::ERROR, "is set and will be removed", title, advice);
+  return shcore::make_unique<Removed_sys_var_check>(name, title,
+                                                    std::move(vars), advice);
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_removed_sys_vars_check,
+                  std::placeholders::_1, std::placeholders::_2),
+        "8.0.11", "8.0.13");
+}
+
+std::unique_ptr<Upgrade_check>
+Sql_upgrade_check::get_sys_vars_new_defaults_check() {
+  return shcore::make_unique<Config_check>(
+      "sysVarsNewDefaults",
+      std::map<std::string, const char *>{
+          {"character_set_server", "from latin1 to utf8mb4"},
+          {"collation_server", "from latin1_swedish_ci to utf8mb4_0900_ai_ci"},
+          {"explicit_defaults_for_timestamp", "from OFF to ON"},
+          {"optimizer_trace_max_mem_size", "from 16KB to 1MB"},
+          {"back_log", nullptr},
+          {"max_allowed_packet", "from 4194304 (4MB) to 67108864 (64MB)"},
+          {"max_error_count", "from 64 to 1024"},
+          {"event_scheduler", "from OFF to ON"},
+          {"table_open_cache", "from 2000 to 4000"},
+          {"log_error_verbosity", "from 3 (Notes) to 2 (Warning)"},
+          {"innodb_undo_tablespaces", "from 0 to 2"},
+          {"innodb_undo_log_truncate", "from OFF to ON"},
+          {"innodb_flush_method",
+           "from NULL to fsync (Unix), unbuffered (Windows)"},
+          {"innodb_autoinc_lock_mode",
+           "from 1 (consecutive) to 2 (interleaved)"},
+          {"innodb_flush_neighbors", "from 1 (enable) to 0 (disable)"},
+          {"innodb_max_dirty_pages_pct_lwm", "from_0 (%) to 10 (%)"},
+          {"innodb_max_dirty_pages_pct", "from 75 (%)  90 (%)"},
+          {"performance_schema_consumer_events_transactions_current",
+           "from OFF to ON"},
+          {"performance_schema_consumer_events_transactions_history",
+           "from OFF to ON"},
+          {"log_bin", "from OFF to ON"},
+          {"server_id", "from 0 to 1"},
+          {"log_slave_updates", "from OFF to ON"},
+          {"master_info_repository", "from FILE to TABLE"},
+          {"relay_log_info_repository", "from FILE to TABLE"},
+          {"transaction_write_set_extraction", "from OFF to XXHASH64"},
+          {"slave_rows_search_algorithms",
+           "from 'INDEX_SCAN, TABLE_SCAN' to 'INDEX_SCAN, HASH_SCAN'"}},
+      Config_check::Mode::FLAG_UNDEFINED, Upgrade_issue::WARNING,
+      "default value will change", "System variables with new default values",
+      "Following system variables that are not defined in your configuration "
+      "file will have new default values. Please review if you rely on their "
+      "current values and if so define them before performing upgrade.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_sys_vars_new_defaults_check),
+        "8.0.11");
 }
 
 std::unique_ptr<Sql_upgrade_check>
@@ -940,7 +1150,8 @@ Check_table_command::Check_table_command()
     : Upgrade_check("checkTableOutput") {}
 
 std::vector<Upgrade_issue> Check_table_command::run(
-    std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &) {
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const Upgrade_check_options &) {
   // Needed for warnings related to triggers
   session->execute("FLUSH TABLES;");
 

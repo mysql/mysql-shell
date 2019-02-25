@@ -1,4 +1,4 @@
-# Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -164,6 +164,27 @@ https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-s
 
 * removedSysLogVars.docLink
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
+
+* removedSysVars.title
+# Removed system variables
+
+* removedSysVars.description
+# Error: Following system variables that were detected as being used will be removed. Please update
+# your system to not rely on them before the upgrade.
+
+* removedSysVars.docLink
+https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-removed
+
+* sysVarsNewDefaults.title
+# System variables with new default values
+
+* sysVarsNewDefaults.description
+# Warning: Following system variables that are not defined in your configuration file will have new
+# default values. Please review if you rely on their current values and if so define them before
+# performing upgrade.
+
+* sysVarsNewDefaults.docLink
+https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
 
 * schemaInconsistencyCheck.title
 # Schema inconsistencies resulting from file removal or corruption

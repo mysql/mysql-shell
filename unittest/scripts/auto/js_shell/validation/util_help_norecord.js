@@ -39,6 +39,7 @@ DESCRIPTION
 
       Tool behaviour can be modified with following options:
 
+      - configPath - full path to MySQL server configuration file.
       - outputFormat - value can be either TEXT (default) or JSON.
       - targetVersion - version to which upgrade will be checked
         (default=<<<__mysh_version>>>)
