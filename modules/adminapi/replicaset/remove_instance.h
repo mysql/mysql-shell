@@ -96,7 +96,11 @@ class Remove_instance : public Command_interface {
 
   std::string m_instance_address;
   mysqlshdk::mysql::Instance *m_target_instance = nullptr;
+  std::unique_ptr<mysqlshdk::mysql::Instance>
+      m_target_instance_protocol_upgrade;
   std::string m_address_in_metadata;
+  bool m_upgrade_gr_protocol_version = false;
+  mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;
 
   /**
    * Verify if the instance belongs to the replicaset, otherwise it cannot be
@@ -154,6 +158,12 @@ class Remove_instance : public Command_interface {
    * not available.
    */
   void prompt_to_force_remove();
+
+  /**
+   * Auxiliar method to verify if an upgrade of the protocol will be required
+   * after removing the target instance
+   */
+  bool is_protocol_upgrade_required();
 };
 
 }  // namespace dba

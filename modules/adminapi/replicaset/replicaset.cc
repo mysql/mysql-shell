@@ -925,6 +925,42 @@ shcore::Value ReplicaSet::add_instance(
              std::to_string(*gr_options.auto_rejoin_tries).c_str());
   }
 
+  // Handling of GR protocol version
+  {
+    if (!seed_instance) {
+      mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
+
+      // Get the current protocol version in use in the group
+      try {
+        mysqlshdk::utils::Version gr_protocol_version =
+            mysqlshdk::gr::get_group_protocol_version(group_instance);
+
+        // If the target instance being added does not support the GR protocol
+        // version in use on the group (because it is an older version), the
+        // addInstance command must set the GR protocol of the cluster to the
+        // version of the target instance.
+        if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
+                                                          *target_instance)) {
+          mysqlshdk::gr::set_group_protocol_version(
+              group_instance, target_instance->get_version());
+        }
+      } catch (const shcore::Exception &error) {
+        // The UDF may fail with MySQL Error 1123 if any of the members is
+        // RECOVERING In such scenario, we must abort the upgrade protocol
+        // version process and warn the user
+        if (error.code() == ER_CANT_INITIALIZE_UDF) {
+          auto console = mysqlsh::current_console();
+          console->print_note(
+              "Unable to determine the Group Replication protocol version, "
+              "while verifying if a protocol downgrade is required: " +
+              std::string(error.what()) + ".");
+        } else {
+          throw;
+        }
+      }
+    }
+  }
+
   // Get the current number of replicaSet members
   uint64_t replicaset_count =
       _metadata_storage->get_replicaset_count(this->get_id());
@@ -1441,6 +1477,41 @@ shcore::Value ReplicaSet::rejoin_instance(
           &replication_user_pwd);
 
       log_debug("Created replication user '%s'", replication_user.c_str());
+    }
+
+    // Handling of GR protocol version
+    {
+      mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
+      auto target_instance = mysqlshdk::mysql::Instance(session);
+
+      // Get the current protocol version in use in the group
+      mysqlshdk::utils::Version gr_protocol_version =
+          mysqlshdk::gr::get_group_protocol_version(group_instance);
+
+      // If the target instance being rejoined does not support the GR protocol
+      // version in use on the group (because it is an older version), the
+      // rejoinInstance command must set the GR protocol of the cluster to the
+      // version of the target instance.
+      try {
+        if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
+                                                          target_instance)) {
+          mysqlshdk::gr::set_group_protocol_version(
+              group_instance, target_instance.get_version());
+        }
+      } catch (const shcore::Exception &error) {
+        // The UDF may fail with MySQL Error 1123 if any of the members is
+        // RECOVERING In such scenario, we must abort the upgrade protocol
+        // version process and warn the user
+        if (error.code() == ER_CANT_INITIALIZE_UDF) {
+          auto console = mysqlsh::current_console();
+          console->print_note(
+              "Unable to determine the Group Replication protocol version, "
+              "while verifying if a protocol upgrade would be possible: " +
+              std::string(error.what()) + ".");
+        } else {
+          throw;
+        }
+      }
     }
 
     // Get the seed session connection data

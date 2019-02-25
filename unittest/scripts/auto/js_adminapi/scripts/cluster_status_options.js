@@ -92,6 +92,7 @@ function json_check(json, template, allowed_missing, allowed_unexpected) {
 const extended_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
+        "GRProtocolVersion": "",
         "name": "", 
         "groupName": "",
         "primary": "",
@@ -128,6 +129,7 @@ const extended_status_templ_80 = {
 const extended_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
+        "GRProtocolVersion": "",
         "name": "", 
         "groupName": "",
         "primary": "",

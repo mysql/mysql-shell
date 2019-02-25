@@ -186,6 +186,93 @@ void Remove_instance::prompt_to_force_remove() {
   }
 }
 
+bool Remove_instance::is_protocol_upgrade_required() {
+  bool ret = false;
+
+  // Get the instance server_uuid
+  mysqlshdk::utils::nullable<std::string> server_uuid;
+  mysqlshdk::mysql::Instance group_session_instance(
+      m_replicaset.get_cluster()->get_group_session());
+
+  // Determine which session shall be used to determine if an upgrade is
+  // required and afterwards to perform the upgrade.
+  // If the target_instance is leaving the group and is the same as the group
+  // session, we must use another instance
+  if (m_target_instance) {
+    server_uuid = m_target_instance->get_sysvar_string(
+        "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  }
+
+  std::string group_session_uuid = *group_session_instance.get_sysvar_string(
+      "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  if (!server_uuid.is_null() && (*server_uuid == group_session_uuid)) {
+    auto metadata(mysqlshdk::innodbcluster::Metadata_mysql::create(
+        group_session_instance.get_session()));
+
+    // Find any online instance that is not the target instance
+    std::vector<ReplicaSet::Instance_info> replicaset_instances =
+        m_replicaset.get_instances();
+
+    const ReplicaSet::Instance_info *instance = nullptr;
+
+    for (const auto &i : replicaset_instances) {
+      if (i.uuid != *server_uuid) {
+        instance = &i;
+        break;
+      }
+    }
+
+    try {
+      mysqlshdk::db::Connection_options coptions(instance->classic_endpoint);
+
+      coptions.set_login_options_from(
+          group_session_instance.get_session()->get_connection_options());
+
+      log_info("Opening session to the member of InnoDB cluster at %s...",
+               coptions.as_uri().c_str());
+
+      std::shared_ptr<mysqlshdk::db::mysql::Session> session;
+      session = mysqlshdk::db::mysql::Session::create();
+      session->connect(coptions);
+
+      // Set the instance used for protocol upgrade to point to the newly
+      // established session
+      m_target_instance_protocol_upgrade =
+          shcore::make_unique<mysqlshdk::mysql::Instance>(session);
+    } catch (std::exception &e) {
+      throw shcore::Exception::runtime_error(
+          std::string("Unable to establish a session to the cluster member: ") +
+          e.what());
+    }
+  } else {
+    m_target_instance_protocol_upgrade =
+        shcore::make_unique<mysqlshdk::mysql::Instance>(
+            group_session_instance.get_session());
+  }
+
+  try {
+    ret = mysqlshdk::gr::is_protocol_upgrade_required(
+        *m_target_instance_protocol_upgrade, server_uuid,
+        &m_gr_protocol_version_to_upgrade);
+  } catch (const shcore::Exception &error) {
+    // The UDF may fail with MySQL Error 1123 if any of the members is
+    // RECOVERING In such scenario, we must abort the upgrade protocol version
+    // process and warn the user
+    if (error.code() == ER_CANT_INITIALIZE_UDF) {
+      auto console = mysqlsh::current_console();
+      console->print_note(
+          "Unable to determine the Group Replication protocol version, while "
+          "verifying if a protocol upgrade would be possible: " +
+          std::string(error.what()) + ".");
+    } else {
+      throw;
+    }
+  }
+
+  return ret;
+}
+
 void Remove_instance::prepare() {
   // Validate connection options.
   log_debug("Verifying connection options");
@@ -270,6 +357,11 @@ void Remove_instance::prepare() {
   if (m_target_instance) {
     ensure_user_privileges(*m_target_instance);
   }
+
+  // Handling of GR protocol version:
+  // Verify if an upgrade of the protocol will be required after removing the
+  // target instance
+  m_upgrade_gr_protocol_version = is_protocol_upgrade_required();
 }
 
 shcore::Value Remove_instance::execute() {
@@ -378,6 +470,13 @@ shcore::Value Remove_instance::execute() {
       }
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-replicaset error.
+    }
+
+    // Upgrade the prococol version if necessary
+    if (m_upgrade_gr_protocol_version) {
+      mysqlshdk::gr::set_group_protocol_version(
+          *m_target_instance_protocol_upgrade,
+          m_gr_protocol_version_to_upgrade);
     }
   }
 

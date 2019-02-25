@@ -218,6 +218,7 @@ var valid_port2 = __mysql_sandbox_port2 + 20000;
 var __local_address_add_2 = ":" + valid_port2;
 var __result_local_address_add_2 = hostname + __local_address_add_2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_2});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-2)
 session.close();
@@ -235,6 +236,7 @@ var __local_address_add_3 = localhost + ":";
 var result_port2 = __mysql_sandbox_port2 * 10 + 1;
 var __result_local_address_add_3 = __local_address_add_3 + result_port2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_3});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-3)
 session.close();
@@ -251,6 +253,7 @@ c.removeInstance(add_instance_options);
 var __local_address_add_4 = "12347";
 var __result_local_address_add_4 = hostname + ":" + __local_address_add_4;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-4)
 session.close();
@@ -267,6 +270,7 @@ c.removeInstance(add_instance_options);
 var __local_address_add_9 = localhost;
 var __result_local_address_add_9 = __local_address_add_9 + ":" + result_port2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_9});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-9)
 session.close();
@@ -283,6 +287,7 @@ c.removeInstance(add_instance_options);
 var __local_address_add_10 = localhost + ":12348";
 var __result_local_address_add_10 = __local_address_add_10;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_10});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-10)
 session.close();
@@ -297,6 +302,7 @@ c.removeInstance(add_instance_options);
 
 //@ Add instance specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-2-1)
 c.addInstance(add_instance_options, {groupSeeds: __group_seeds_1});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm group seeds is set correctly (FR2-TS-2-1)
 session.close();
@@ -311,6 +317,7 @@ c.removeInstance(add_instance_options);
 
 //@ Add instance specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-2-2)
 c.addInstance(add_instance_options, {groupSeeds: __group_seeds_2});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Confirm group seeds is set correctly (FR2-TS-2-2)
 session.close();

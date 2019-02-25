@@ -331,9 +331,8 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     std::shared_ptr<db::IResult> result(instance.get_session()->query(
         "SELECT member_id, member_state, member_host, member_port, "
-        "member_role, member_version, "
-        "        @@group_replication_single_primary_mode"
-        " FROM performance_schema.replication_group_members"));
+        "member_role, member_version, @@group_replication_single_primary_mode "
+        "FROM performance_schema.replication_group_members"));
     {
       const db::IRow *row = result->fetch_one();
       if (!row || row->get_string(4).empty()) {
@@ -461,6 +460,129 @@ std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
     return row->get_string(1);
   }
   throw std::logic_error("GR status query returned no rows");
+}
+
+mysqlshdk::utils::Version get_group_protocol_version(
+    const mysqlshdk::mysql::IInstance &instance) {
+  // MySQL versions in the domain [5.7.14, 8.0.15] map to GCS protocol version
+  // 1 (5.7.14) so we can return it immediately and avoid an error when
+  // executing the UDF to obtain the protocol version since the UDF is only
+  // available for versions >= 8.0.16
+  if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 16)) {
+    return mysqlshdk::utils::Version(5, 7, 14);
+  } else {
+    try {
+      static const char *get_gr_protocol_version =
+          "SELECT group_replication_get_communication_protocol()";
+
+      log_debug("Executing UDF: %s", get_gr_protocol_version);
+
+      auto session = instance.get_session();
+      auto resultset = session->query(get_gr_protocol_version);
+      auto row = resultset->fetch_one();
+
+      if (row) {
+        return (mysqlshdk::utils::Version(row->get_string(0)));
+      } else {
+        throw std::logic_error(
+            "No rows returned when querying the version of Group Replication "
+            "communication protocol.");
+      }
+    } catch (mysqlshdk::db::Error &error) {
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          error.what(), error.code(), error.sqlstate());
+    }
+  }
+}
+
+void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
+                                mysqlshdk::utils::Version version) {
+  std::string query;
+
+  shcore::sqlstring query_fmt(
+      "SELECT group_replication_set_communication_protocol(?)", 0);
+  query_fmt << version.get_full();
+  query_fmt.done();
+  query = query_fmt.str();
+
+  try {
+    log_debug("Executing UDF: %s", query.c_str());
+
+    instance.get_session()->query(query);
+  } catch (mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+  }
+}
+
+bool is_protocol_downgrade_required(
+    mysqlshdk::utils::Version current_group_version,
+    const mysqlshdk::mysql::IInstance &instance) {
+  if (current_group_version >= mysqlshdk::utils::Version(8, 0, 16)) {
+    if (instance.get_version() < current_group_version) {
+      log_debug(
+          "Group Replication protocol version downgrade required (to "
+          "instance version: %s)",
+          instance.get_version().get_full().c_str());
+      return true;
+    }
+  }
+  return false;
+}
+
+bool is_protocol_upgrade_required(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::nullable<std::string> server_uuid,
+    mysqlshdk::utils::Version *out_protocol_version) {
+  std::vector<Member> group_members = get_members(instance);
+
+  bool upgrade_required = false;
+
+  // Get the current protocol version in use by the group
+  mysqlshdk::utils::Version protocol_version_group =
+      get_group_protocol_version(instance);
+
+  // Check if any of the group_members has a version >= 8.0.16
+  for (const auto &member : group_members) {
+    // If version is not available, the instance is < 8.0, so an upgrade is not
+    // required.
+    if (member.version.empty()) {
+      return false;
+    }
+
+    // If the instance is leaving the cluster we must skip checking it against
+    // the cluster
+    if (!server_uuid.is_null() && (*server_uuid == member.uuid)) {
+      continue;
+    } else {
+      // If the instance is >= 8.0.16, then check if
+      // protocol version in use is lower than than the instance version If it
+      // is, the protocol version must be upgraded
+      mysqlshdk::utils::Version ver(member.version);
+
+      if (ver >= mysqlshdk::utils::Version(8, 0, 16) &&
+          protocol_version_group < ver) {
+        upgrade_required = true;
+
+        if (*out_protocol_version == mysqlshdk::utils::Version() ||
+            *out_protocol_version > ver) {
+          *out_protocol_version = ver;
+        }
+      } else {
+        return false;
+      }
+    }
+  }
+
+  if (upgrade_required) {
+    log_debug(
+        "Group Replication protocol version upgrade required (to "
+        "version: "
+        "%s)",
+        out_protocol_version->get_full().c_str());
+  }
+
+  return upgrade_required;
 }
 
 /**

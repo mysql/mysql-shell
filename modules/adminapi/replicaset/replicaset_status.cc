@@ -659,11 +659,23 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   (*ret)["name"] = shcore::Value(m_replicaset.get_name());
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
+  mysqlshdk::mysql::Instance group_instance(group_session);
+
   if (!m_extended.is_null() && *m_extended) {
     (*ret)["groupName"] = shcore::Value(m_replicaset.get_group_name());
-  }
 
-  mysqlshdk::mysql::Instance group_instance(group_session);
+    try {
+      (*ret)["GRProtocolVersion"] = shcore::Value(
+          mysqlshdk::gr::get_group_protocol_version(group_instance).get_full());
+    } catch (const shcore::Exception &error) {
+      // The UDF may fail with MySQL Error 1123 if any of the members is
+      // RECOVERING or the group does not have quorum In such scenario we cannot
+      // provide the "GRProtocolVersion" information
+      if (error.code() != ER_CANT_INITIALIZE_UDF) {
+        throw;
+      }
+    }
+  }
 
   auto ssl_mode = group_instance.get_sysvar_string(
       "group_replication_ssl_mode", mysqlshdk::mysql::Var_qualifier::GLOBAL);

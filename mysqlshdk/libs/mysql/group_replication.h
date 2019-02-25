@@ -166,6 +166,71 @@ std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
                                    bool *out_single_primary_mode);
 
 /**
+ * Gets the Group Replication protocol version.
+ *
+ * This function retrieves the Group Replication protocol version currently in
+ * use on the ReplicaSet
+ *
+ * @param instance Instance object that points to the server that will be used
+ * to retrieve the protocol version.
+ *
+ * @return a mysqlshdk::utils::Version object containing the Group Replication
+ * protocol version.
+ */
+mysqlshdk::utils::Version get_group_protocol_version(
+    const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Set the Group Replication protocol version.
+ *
+ * This function reconfigures the Group Replication protocol version currently
+ * in use on the ReplicaSet, in runtime
+ *
+ * @param instance Instance object that points to the server that will be used
+ * to reconfigure the protocol version.
+ * @param version mysqlshdk::utils::Version object the Group Replication
+ * protocol version to be set.
+ */
+void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
+                                mysqlshdk::utils::Version version);
+
+/**
+ * Verify if a Group Replication protocol version downgrade is required
+ *
+ * This function verifies if a Group Replication protocol version downgrade is
+ * required. This is necessary to verify if an instance that is joining a group
+ * does not support the GR protocol version in use on the group (because it is
+ * an older version) so the group protocol version must be downgraded
+ *
+ * @param version mysqlshdk::utils::Version object with the current GR protocol
+ * version in used in the group
+ * @param instance Instance object that points to the server that is joining the
+ * cluster.
+ */
+bool is_protocol_downgrade_required(
+    mysqlshdk::utils::Version current_group_version,
+    const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Verify if a Group Replication protocol version upgrade is required
+ *
+ * This function verifies if a Group Replication protocol version upgrade is
+ * required. This is necessary to verify if a group needs to upgrade its
+ * protocol version after the removal of the target instance.
+ *
+ * @param instance Instance object that points to the server that is leaving the
+ * cluster or a member of the cluster
+ * @param server_uuid nullable string containing the instance server_uuid to be
+ * skipped.
+ * @param out_protocol_version mysqlshdk::utils::Version object with the version
+ * value that the group should be upgraded to.
+ */
+bool is_protocol_upgrade_required(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::nullable<std::string> server_uuid,
+    mysqlshdk::utils::Version *out_protocol_version);
+
+/**
  *
  * @param instance
  * @return map with all the group_replication variables and respective values

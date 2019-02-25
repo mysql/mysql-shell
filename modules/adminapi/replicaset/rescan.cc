@@ -502,8 +502,10 @@ shcore::Value Rescan::execute() {
   }
 
   // Check if there are missing instances
+  std::shared_ptr<shcore::Value::Array_type> missing_instances;
+
   if (result->has_key("unavailableInstances")) {
-    auto missing_instances = result->get_array("unavailableInstances");
+    missing_instances = result->get_array("unavailableInstances");
 
     update_instances_list(missing_instances, m_auto_remove_instances,
                           &m_remove_instances_list, false);
@@ -550,6 +552,40 @@ shcore::Value Rescan::execute() {
           update_topology_mode(
               mysqlshdk::gr::to_topology_mode(new_topology_mode));
         }
+      }
+    }
+  }
+
+  // Handling of GR protocol version:
+  // Verify if an upgrade of the protocol is required
+  if (!missing_instances.get()->empty()) {
+    mysqlshdk::mysql::Instance cluster_session_instance(
+        m_replicaset->get_cluster()->get_group_session());
+
+    mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
+
+    // After removing instance, the remove command must set
+    // the GR protocol of the group to the lowest MySQL version on the group.
+    try {
+      if (mysqlshdk::gr::is_protocol_upgrade_required(
+              cluster_session_instance,
+              mysqlshdk::utils::nullable<std::string>(),
+              &gr_protocol_version_to_upgrade)) {
+        mysqlshdk::gr::set_group_protocol_version(
+            cluster_session_instance, gr_protocol_version_to_upgrade);
+      }
+    } catch (const shcore::Exception &error) {
+      // The UDF may fail with MySQL Error 1123 if any of the members is
+      // RECOVERING In such scenario, we must abort the upgrade protocol version
+      // process and warn the user
+      if (error.code() == ER_CANT_INITIALIZE_UDF) {
+        auto console = mysqlsh::current_console();
+        console->print_note(
+            "Unable to determine the Group Replication protocol version, while "
+            "verifying if a protocol upgrade would be possible: " +
+            std::string(error.what()) + ".");
+      } else {
+        throw;
       }
     }
   }
