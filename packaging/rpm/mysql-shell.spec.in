@@ -51,7 +51,11 @@ BuildRequires:  cmake
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
 %endif
+%if 0%{?rhel} >= 8
+BuildRequires:  python2-devel
+%else
 BuildRequires:  python-devel
+%endif
 %if 0%{!?static}
 BuildRequires:  mysql-devel
 BuildRequires:  openssl-devel
