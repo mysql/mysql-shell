@@ -416,3 +416,22 @@ cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2, true);
 testutil.destroySandbox(__mysql_sandbox_port3, true);
+
+// Regression for BUG29304183: removeInstance() command fails with LogicError
+//@ BUG29304183: deploy sandboxes with mysqlx disabled.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0", report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host: hostname});
+
+//@ BUG29304183: create cluster.
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('no_mysqlx');
+c.addInstance(__sandbox_uri2);
+
+//@ BUG29304183: removeInstance() should not fail if mysqlx is disabled.
+c.removeInstance(__sandbox_uri2);
+
+//@ BUG29304183: clean-up.
+session.close();
+c.disconnect();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

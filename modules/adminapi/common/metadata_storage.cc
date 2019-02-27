@@ -949,7 +949,9 @@ Instance_definition MetadataStorage::get_instance(
     ret_val.role = row->get_string(4);
     // weight = row->get_float(5);
     ret_val.endpoint = row->get_string(6);
-    ret_val.xendpoint = row->get_string(7);
+    // BUG29304183: removeInstance() command fails with LogicError
+    // Only get mysqlx address if defined.
+    if (!row->is_null(7)) ret_val.xendpoint = row->get_string(7);
     ret_val.grendpoint = row->get_string(8);
     // attributes = row->get_value(10).as_map();
     // version_token = row->get_int(11);

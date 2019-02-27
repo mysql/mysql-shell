@@ -501,3 +501,15 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
 
 //@ Finalization
 ||
+
+//@ BUG29304183: deploy sandboxes with mysqlx disabled.
+||
+
+//@ BUG29304183: create cluster.
+||
+
+//@ BUG29304183: removeInstance() should not fail if mysqlx is disabled.
+||
+
+//@ BUG29304183: clean-up.
+||
