@@ -1916,7 +1916,7 @@ class XShell_TestCases(unittest.TestCase):
                         '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila']
         x_cmds = [('\\sql\n', "mysql-sql>"),
-                  ("\\status\n", " sec\n\n\nmysql-sql>"),
+                  ("\\status\n", " sec" + os.linesep + os.linesep + os.linesep + "mysql-sql>"),
                   ("rollback release;\n", "mysql-sql>"),
                   ("\\status;\n", "mysql-sql>"),
                   ]
