@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -29,8 +29,6 @@ import threading
 import functools
 import unittest
 import json
-import xmlrunner
-#import re
 
 def timeout(timeout):
     def deco(func):
@@ -1885,7 +1883,7 @@ class XShell_TestCases(unittest.TestCase):
         '''Enable named parameters in python for mysqlx.getSession() and mysqlx.get_session()'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysqlx\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysqlx\n", "mysql-py>"),
                   ("session=mysqlx.get_session(host= '" + LOCALHOST.host + "', port=" + LOCALHOST.xprotocol_port + ", dbUser= '"
                    + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
                   ("session\n",
@@ -2234,5 +2232,66 @@ class XShell_TestCases(unittest.TestCase):
 
 # ----------------------------------------------------------------------
 
+class PB2TextTestResult(unittest.result.TestResult):
+    separator1 = '=' * 70
+    separator2 = '-' * 70
+
+    def __init__(self, stream, descriptions, verbosity):
+        super(PB2TextTestResult, self).__init__(stream, descriptions, verbosity)
+        self.stream = stream
+        self.showAll = verbosity > 1
+        self.dots = verbosity == 1
+        self.descriptions = descriptions
+
+    def getDescription(self, test):
+        doc_first_line = test.shortDescription()
+        if self.descriptions and doc_first_line:
+            return ' '.join((str(test), doc_first_line))
+        else:
+            return str(test)
+
+    def startTest(self, test):
+        super(PB2TextTestResult, self).startTest(test)
+        self.stream.writeln("[ RUN      ] " + self.getDescription(test))
+        self.stream.flush()
+
+    def addSuccess(self, test):
+        super(PB2TextTestResult, self).addSuccess(test)
+        self.stream.writeln("[       OK ] " + self.getDescription(test))
+
+    def addError(self, test, err):
+        super(PB2TextTestResult, self).addError(test, err)
+        # self.stream.write("[  ERROR   ] ")
+        self.stream.writeln("[  FAILED  ] " + self.getDescription(test))
+
+    def addFailure(self, test, err):
+        super(PB2TextTestResult, self).addFailure(test, err)
+        self.stream.writeln("[  FAILED  ] " + self.getDescription(test))
+
+    def addSkip(self, test, reason):
+        super(PB2TextTestResult, self).addSkip(test, reason)
+        self.stream.writeln("[  SKIPPED ] " + self.getDescription(test) + " {0!r}".format(reason))
+
+    def addExpectedFailure(self, test, err):
+        super(PB2TextTestResult, self).addExpectedFailure(test, err)
+        self.stream.writeln("expected failure")
+
+    def addUnexpectedSuccess(self, test):
+        super(PB2TextTestResult, self).addUnexpectedSuccess(test)
+        self.stream.writeln("unexpected success")
+
+    def printErrors(self):
+        self.stream.writeln()
+        self.printErrorList('ERROR', self.errors)
+        self.printErrorList('FAIL', self.failures)
+
+    def printErrorList(self, flavour, errors):
+        for test, err in errors:
+            self.stream.writeln(self.separator1)
+            self.stream.writeln("%s: %s" % (flavour,self.getDescription(test)))
+            self.stream.writeln(self.separator2)
+            self.stream.writeln("%s" % err)
+
 if __name__ == '__main__':
-  unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))
+    runner = unittest.TextTestRunner(resultclass=PB2TextTestResult, verbosity=2)
+    unittest. main(testRunner=runner)
