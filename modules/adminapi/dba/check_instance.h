@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ class Check_instance : public Command_interface {
   void finish() override;
 
  private:
-  bool check_instance_address();
+  void check_instance_address();
   bool check_schema_compatibility();
   bool check_configuration();
 

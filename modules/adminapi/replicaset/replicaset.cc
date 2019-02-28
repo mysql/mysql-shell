@@ -71,8 +71,6 @@ using mysqlshdk::db::uri::formats::user_transport;
 char const *ReplicaSet::kTopologySinglePrimary = "pm";
 char const *ReplicaSet::kTopologyMultiPrimary = "mm";
 
-static const char kSandboxDatadir[] = "sandboxdata";
-
 const char *kWarningDeprecateSslMode =
     "Option 'memberSslMode' is deprecated for this operation and it will be "
     "removed in a future release. This option is not needed because the SSL "
@@ -513,30 +511,6 @@ shcore::Value ReplicaSet::add_instance_(
   return add_instance(label, &target_instance, gr_options);
 }
 
-void ReplicaSet::validate_instance_address(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &hostname, int port) {
-  if (mysqlshdk::utils::Net::is_loopback(hostname)) {
-    // if the address is local (localhost or 127.0.0.1), we know it's local and
-    // so can be used with sandboxes only
-    std::string datadir =
-        session->query("SELECT @@datadir")->fetch_one()->get_as_string(0);
-    if (!datadir.empty() && (datadir[datadir.size() - 1] == '/' ||
-                             datadir[datadir.size() - 1] == '\\'))
-      datadir.pop_back();
-    if (datadir.length() < strlen(kSandboxDatadir) ||
-        datadir.compare(datadir.length() - strlen(kSandboxDatadir),
-                        strlen(kSandboxDatadir), kSandboxDatadir) != 0) {
-      log_info("'%s' is a local address but not in a sandbox (datadir %s)",
-               hostname.c_str(), datadir.c_str());
-      throw shcore::Exception::runtime_error(
-          "To add an instance to the cluster, please use a valid, non-local "
-          "hostname or IP. " +
-          hostname + " can only be used with sandbox MySQL instances.");
-    }
-  }
-}
-
 void set_group_replication_member_options(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &ssl_mode) {
@@ -740,11 +714,6 @@ shcore::Value ReplicaSet::add_instance(
 
   // Retrieves the instance definition
   auto target_coptions = target_instance->get_connection_options();
-
-  // Check whether the address being used is not in a known not-good case
-  validate_instance_address(target_instance->get_session(),
-                            target_coptions.get_host(),
-                            target_coptions.get_port());
 
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller

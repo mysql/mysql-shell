@@ -21,12 +21,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/common/instance_validations.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -198,9 +199,9 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
  *
  * @param  instance target instance with cached global sysvars
  * @param  verbose  if true, additional informational messages are shown
- * @return          true if the host name configuration is suitable
+ * @throw  an exception if the host name configuration is not suitable
  */
-bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
+void validate_host_address(mysqlshdk::mysql::IInstance *instance,
                            bool verbose) {
   auto console = mysqlsh::current_console();
 
@@ -249,21 +250,6 @@ bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
                              "' resolves to '127.0.1.1' which is not "
                              "supported by Group Replication.");
   }
-
-  if (!is_sandbox(*instance, nullptr)) {
-    if (mysqlshdk::utils::Net::is_loopback(address)) {
-      console->print_error(address + " resolves to a loopback address.");
-      console->println(
-          "Because that address will be used by other cluster members to "
-          "connect to it, it must resolve to an externally reachable address.");
-      console->println(
-          "This address was determined through the report_host or hostname "
-          "MySQL system variable.");
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**

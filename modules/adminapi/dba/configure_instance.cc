@@ -367,9 +367,7 @@ void Configure_instance::ensure_instance_address_usable() {
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  if (!checks::validate_host_address(m_target_instance, true)) {
-    throw shcore::Exception::runtime_error("Invalid address detected");
-  }
+  checks::validate_host_address(m_target_instance, true);
 }
 
 void Configure_instance::ensure_configuration_change_possible(

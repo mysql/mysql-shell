@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,7 @@ Check_instance::Check_instance(
 
 Check_instance::~Check_instance() { delete m_target_instance; }
 
-bool Check_instance::check_instance_address() {
+void Check_instance::check_instance_address() {
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
     // bug#26393614
@@ -67,7 +67,7 @@ bool Check_instance::check_instance_address() {
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  return checks::validate_host_address(m_target_instance, !m_silent);
+  checks::validate_host_address(m_target_instance, !m_silent);
 }
 
 bool Check_instance::check_schema_compatibility() {
@@ -177,7 +177,7 @@ void Check_instance::prepare() {
   try {
     ensure_user_privileges(*m_target_instance);
 
-    if (!check_instance_address()) m_is_valid = false;
+    check_instance_address();
 
     if (!check_schema_compatibility()) {
       bad_schema = true;
