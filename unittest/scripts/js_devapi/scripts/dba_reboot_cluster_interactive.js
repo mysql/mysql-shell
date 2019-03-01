@@ -9,6 +9,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 // Update __have_ssl and other with the real instance SSL support.
 // NOTE: Workaround BUG#25503817 to display the right ssl info for status()
@@ -133,6 +134,8 @@ cluster.rescan();
 // on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
 // automatically rejoin the cluster. We need to manually add it back.
 cluster.addInstance(__sandbox_uri3);
+var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

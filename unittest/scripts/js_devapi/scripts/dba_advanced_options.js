@@ -114,7 +114,7 @@ print_gr_local_address();
 c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_port> for localAddress (FR1-TS-1-4)
-var __local_address_4 = "13579";
+var __local_address_4 = (__mysql_sandbox_port2 * 10 + 1).toString();
 var __result_local_address_4 = hostname + ":" + __local_address_4;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4});
 
@@ -136,7 +136,8 @@ print_gr_local_address();
 c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_host>:<valid_port> for localAddress (FR1-TS-1-10)
-var __local_address_10 = localhost + ":12346";
+var __local_address_port_10 = (__mysql_sandbox_port2 * 10 + 1).toString();
+var __local_address_10 = localhost + ":" + __local_address_port_10;
 var __result_local_address_10 = __local_address_10;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_10});
 
@@ -250,7 +251,7 @@ var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_port> for localAddress (FR1-TS-2-4)
-var __local_address_add_4 = "12347";
+var __local_address_add_4 = (__mysql_sandbox_port3 * 10 + 1).toString();
 var __result_local_address_add_4 = hostname + ":" + __local_address_add_4;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -284,7 +285,7 @@ var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_host>:<valid_port> for localAddress (FR1-TS-2-10)
-var __local_address_add_10 = localhost + ":12348";
+var __local_address_add_10 = localhost + ":" + (__mysql_sandbox_port3 * 10 + 1).toString();
 var __result_local_address_add_10 = __local_address_add_10;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_10});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

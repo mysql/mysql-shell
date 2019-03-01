@@ -58,6 +58,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ FR1-TS-04/05 SETUP {VER(>=8.0.12)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 
 // Remove 'root'@'%' user to allow configureInstance() to create it.
 shell.connect(__sandbox_uri1);
@@ -78,7 +79,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__hostname_uri1);
 
-var __local_address_1 = "14679";
+var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 
 cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 //@ FR1-TS-04/05 {VER(>=8.0.12)}
@@ -90,6 +91,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbo
 cluster.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ FR1-TS-06 SETUP {VER(<8.0.12)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
@@ -241,6 +243,7 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 
 testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
 
 // Remove 'root'@'%' user to allow configureInstance() to create it.
 shell.connect(__sandbox_uri2);
@@ -264,7 +267,7 @@ s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__hostname_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
-var __local_address_3 = "16679";
+var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();
 cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 session.close();
 shell.connect(__hostname_uri2);
@@ -284,6 +287,7 @@ s1.close();
 s2.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@ FR2-TS-6 SETUP {VER(<8.0.12)}
 WIPE_SHELL_LOG();
