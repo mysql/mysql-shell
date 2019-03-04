@@ -85,7 +85,7 @@ NAME
       help - Provides help about this object and it's members
 
 SYNTAX
-      options.help([member])
+      shell.options.help([member])
 
 WHERE
       member: If specified, provides detailed information on the given member.
@@ -95,7 +95,7 @@ NAME
       set - Sets value of an option.
 
 SYNTAX
-      options.set(optionName, value)
+      shell.options.set(optionName, value)
 
 WHERE
       optionName: name of the option to set.
@@ -107,7 +107,7 @@ NAME
                    file.
 
 SYNTAX
-      options.setPersist(optionName, value)
+      shell.options.setPersist(optionName, value)
 
 WHERE
       optionName: name of the option to set.
@@ -118,7 +118,7 @@ NAME
       unset - Resets value of an option to default.
 
 SYNTAX
-      options.unset(optionName)
+      shell.options.unset(optionName)
 
 WHERE
       optionName: name of the option to reset.
@@ -129,7 +129,7 @@ NAME
                      the configuration file.
 
 SYNTAX
-      options.unsetPersist(optionName)
+      shell.options.unsetPersist(optionName)
 
 WHERE
       optionName: name of the option to reset.

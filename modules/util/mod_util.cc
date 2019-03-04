@@ -51,7 +51,7 @@
 
 namespace mysqlsh {
 
-REGISTER_HELP_OBJECT(util, shellapi);
+REGISTER_HELP_GLOBAL_OBJECT(util, shellapi);
 REGISTER_HELP(UTIL_GLOBAL_BRIEF,
               "Global object that groups miscellaneous tools like upgrade "
               "checker and JSON import.");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,6 +80,27 @@ class SHCORE_PUBLIC Report final {
            bool required = false);
 
     std::string short_name;
+
+    // TODO(rennox): Adding this temporary variable to achieve having a "brief"
+    // description of an option that includes the list of allowed values for
+    // the option. Thing is that such information is NOT part of he brief
+    // description of anything, as a brief description is a simple line
+    // describing WHAT the item is, rest is part of the details. But in command
+    // line args format more or less makes sense that it is shown there.
+    //
+    // This is being a problem here because of 2 main reasons:
+    // - Reports have their own handling of the help (probably because)
+    // - Shell commands have their own handling of the help
+    // - Shell options have their own handling of the help.
+    //
+    // The right solution is moving everything to the central help system and
+    // create a proper help formatter that handles options in both API format
+    // (as it exists already) and in command format (which now is implemented
+    // in the reports)
+    //
+    // In short: there's NO reason to have different help handlers, the central
+    // system should take care, that's why it was created.
+    std::string cmdline_brief;
   };
 
   using Options = std::vector<std::shared_ptr<Option>>;
@@ -296,6 +317,8 @@ class SHCORE_PUBLIC Shell_reports : public Extensible_object {
       shcore::Option_unpacker *unpacker) const override;
 
   std::unordered_map<std::string, std::unique_ptr<Report_options>> m_reports;
+
+  static std::set<std::string> s_report_option_types;
 };
 
 }  // namespace mysqlsh

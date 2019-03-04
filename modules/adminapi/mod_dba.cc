@@ -342,7 +342,7 @@ REGISTER_HELP(
     ADMINAPI_DETAIL10,
     "For more information about the <b>Cluster</b> class use: \\? Cluster");
 
-REGISTER_HELP_OBJECT(dba, adminapi);
+REGISTER_HELP_GLOBAL_OBJECT(dba, adminapi);
 REGISTER_HELP(DBA_BRIEF, "Global variable for InnoDB cluster management.");
 REGISTER_HELP(DBA_GLOBAL_BRIEF, "Used for InnoDB cluster administration.");
 REGISTER_HELP(

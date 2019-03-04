@@ -7,6 +7,15 @@ shell.help()
 #@ global help for Shell[USE:shell]
 \help Shell
 
+#@ shell.add_extension_object_member
+shell.help('add_extension_object_member')
+
+#@ global ? for add_extension_object_member[USE:shell.add_extension_object_member]
+\? Shell.add_extension_object_member
+
+#@ global help for add_extension_object_member[USE:shell.add_extension_object_member]
+\help Shell.add_extension_object_member
+
 #@ shell.connect
 shell.help('connect')
 
@@ -15,6 +24,15 @@ shell.help('connect')
 
 #@ global help for connect[USE:shell.connect]
 \help Shell.connect
+
+#@ shell.create_extension_object
+shell.help('create_extension_object')
+
+#@ global ? for create_extension_object[USE:shell.create_extension_object]
+\? Shell.create_extension_object
+
+#@ global help for create_extension_object[USE:shell.create_extension_object]
+\help Shell.create_extension_object
 
 #@ shell.delete_all_credentials
 shell.help('delete_all_credentials')
@@ -142,6 +160,15 @@ shell.help('reports')
 #@ global help for reports [USE:shell.reports]
 \help Shell.reports
 
+#@ shell.register_global
+shell.help('register_global')
+
+#@ global ? for register_global[USE:shell.register_global]
+\? Shell.register_global
+
+#@ global help for register_global[USE:shell.register_global]
+\help Shell.register_global
+
 #@ shell.register_report
 shell.help('register_report')
 
@@ -194,3 +221,6 @@ shell.help('store_credential')
 shell.connect(__mysqluripwd)
 \? connection
 session.close()
+
+#@ Help on extension objects
+\? extension objects

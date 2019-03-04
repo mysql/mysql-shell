@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -196,7 +196,7 @@ class Proxy_option : public Generic_option {
 
   Proxy_option(const char *environment_variable,
                std::vector<std::string> &&command_line_names, const char *help,
-               Handler handler = nullptr);
+               Handler handler = nullptr, const std::string &name = "");
 
   void set(const std::string &new_value, Source source) override;
 
@@ -365,9 +365,10 @@ class Options {
     Add_startup_option_helper &operator()(
         std::vector<std::string> &&command_line_names,
         const char *help,  // full help text
-        opts::Proxy_option::Handler handler = nullptr) {
+        opts::Proxy_option::Handler handler = nullptr,
+        const std::string &name = "") {
       parent.add_option(new opts::Proxy_option(
-          nullptr, std::move(command_line_names), help, handler));
+          nullptr, std::move(command_line_names), help, handler, name));
       return *this;
     }
 

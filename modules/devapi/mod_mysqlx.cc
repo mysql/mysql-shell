@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,7 +94,7 @@ REGISTER_HELP(MYSQLX_DETAIL4,
               "When running the shell in interactive mode, this module is "
               "automatically imported.");
 REGISTER_HELP(MYSQLX_OBJECTS_TITLE, "CONSTANTS");
-REGISTER_HELP_OBJECT(Type, mysqlx);
+REGISTER_HELP_CONSTANTS(Type, mysqlx);
 REGISTER_HELP(TYPE_BRIEF, "Data type constants.");
 REGISTER_HELP(TYPE_DETAIL,
               "The data type constants assigned to a Column object "
@@ -151,7 +151,7 @@ REGISTER_HELP(TYPE_ENUM_BRIEF, "An enumeration.");
 REGISTER_HELP_PROPERTY(GEOMETRY, Type);
 REGISTER_HELP(TYPE_GEOMETRY_BRIEF, "A geometry type.");
 
-REGISTER_HELP_OBJECT(LockContention, mysqlx);
+REGISTER_HELP_CONSTANTS(LockContention, mysqlx);
 REGISTER_HELP(LOCKCONTENTION_BRIEF, "Row locking mode constants.");
 REGISTER_HELP(LOCKCONTENTION_DETAIL,
               "These constants are used to indicate the locking mode to be "

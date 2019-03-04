@@ -18,7 +18,7 @@ var f1 = function(data) {
   println("JavaScript Function Definition: " + data);
 }
 
-testutil.registerFunction("testutil.sampleModuleJS", "stringFunction", f1,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "stringFunction", f1,
                           {
                             brief:"Brief description for stringFunction.",
                             details: ["Detailed description for stringFunction"],
@@ -54,7 +54,7 @@ var f2 = function(data) {
     println("No function data available");
 }
 
-testutil.registerFunction("testutil.sampleModuleJS", "dictFunction", f2,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "dictFunction", f2,
                           {
                             brief:"Brief definition for dictFunction.",
                             details: ["Detailed description for dictFunction"],
@@ -99,7 +99,7 @@ var f3 = function(data) {
   println ("Active Session:", data)
 }
 
-testutil.registerFunction("testutil.sampleModuleJS", "objectFunction1", f3,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "objectFunction1", f3,
                           {
                             brief:"Brief definition for objectFunction.",
                             details: ["Detailed description for objectFunction"],
@@ -135,7 +135,7 @@ var f4 = function(data) {
   println ("Active Session:", data)
 }
 
-testutil.registerFunction("testutil.sampleModuleJS", "objectFunction2", f4,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "objectFunction2", f4,
                           {
                             brief:"Brief definition for objectFunction.",
                             details: ["Detailed description for objectFunction"],
@@ -169,46 +169,45 @@ session.close()
 //@ Registration errors, function definition
 var f5 = function(whatever) {
 }
+shell.addExtensionObjectMember("object", "function", f5);
 
-testutil.registerFunction("testutil.unexistingModule", "function", f5,
-                          {
-                            brief:"Brief definition for function.",
-                            details: ["Detailed description for function"]
-                          });
+shell.addExtensionObjectMember(shell, "function", f5);
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, 25, f5);
+
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:"Brief definition for function.",
                             details: ["Detailed description for function"],
                             extra: "This will cause a failure"
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:5,
                             details: ["Detailed description for function"]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:"Brief definition for function.",
                             details: 45,
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:"Brief definition for function.",
                             details: ["Detailed description for function", 34],
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:"Brief definition for function.",
                             details: ["Detailed description for function"],
                             parameters:34
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             brief:"Brief definition for function.",
                             details: ["Detailed description for function"],
@@ -216,12 +215,12 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[{}]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -231,7 +230,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, integer parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -245,7 +244,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, float parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -259,7 +258,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, bool parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -273,7 +272,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, string parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -285,7 +284,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -295,7 +294,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -306,7 +305,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, object parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -317,7 +316,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -327,7 +326,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -338,7 +337,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                           });
 
 //@ Registration errors, dictionary parameters
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -350,7 +349,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -360,7 +359,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -370,7 +369,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -383,9 +382,9 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
 //@ Registration errors, invalid identifiers
 testutil.registerModule("testutil", "my module")
 
-testutil.registerFunction("testutil.sampleModuleJS", "my function", f5);
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "my function", f5);
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -394,7 +393,7 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
                             }]
                           });
 
-testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                           {
                             parameters:[
                             {
@@ -411,32 +410,4 @@ testutil.registerFunction("testutil.sampleModuleJS", "function", f5,
 var f6 = function(data) {
   println("Some random data: " + data);
 }
-
-//@ Function with custom names, registration error
-testutil.registerFunction("testutil.sampleModuleJS", "js_function|py_function|another", f6);
-
-//@ Function with custom names, registration ok
-testutil.registerFunction("testutil.sampleModuleJS", "js_function|py_function", f6,
-                          {
-                            brief:"Brief description for stringFunction.",
-                            details: ["Detailed description for stringFunction"],
-                            parameters:
-                            [
-                              {
-                                name: "data",
-                                type: "string",
-                                brief: "Brief description for string parameter.",
-                                details: ["Detailed description for string parameter."],
-                              }
-                            ]
-                          });
-
-//@ Function with custom names, help on module
-\? sampleModuleJS
-
-//@ Function with custom names, help on function
-\? sampleModuleJS.js_function
-
-//@ Function with custom names, usage
-testutil.sampleModuleJS.js_function("some data")
 

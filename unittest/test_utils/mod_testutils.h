@@ -250,12 +250,16 @@ class Testutils : public mysqlsh::Extensible_object {
   bool version_check(const std::string &v1, const std::string &op,
                      const std::string &v2);
 
-  void register_module(const std::string &parent, const std::string &name,
-                       shcore::Dictionary_t options);
-  void register_module_function(const std::string &parent,
-                                const std::string &name,
-                                const shcore::Function_base_ref &function,
-                                const shcore::Dictionary_t &definition);
+  /**
+   * This function is used as a demostration on how to use extensible objects
+   * which allow:
+   *
+   * - Help data registration into the help system for objects and members.
+   * - Creation of extendible objects from C++.
+   *
+   * This code has been let as a regression test for the extensible object
+   * class (including it's test at extendible_objects_norecord.py/js)
+   */
   void enable_extensible();
 
  private:

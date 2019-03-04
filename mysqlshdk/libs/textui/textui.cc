@@ -83,7 +83,9 @@ std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   size_t end = ret_val.find("@endcode", start);
   while (start != std::string::npos && end != std::string::npos) {
     std::string tmp_line = ret_val.substr(0, start);
-    tmp_line += ret_val.substr(start + 5, end - start - 5);
+    size_t skip = 5;  // The length of @code
+
+    tmp_line += ret_val.substr(start + skip, end - start - 5);
     tmp_line += ret_val.substr(end + 8);
 
     ret_val = tmp_line;
@@ -232,8 +234,9 @@ void postprocess_markup(std::vector<std::string> *lines,
  * extracted on string pre-processing.
  *
  * Trailing spaces ignored on @size: once a string is found, any subsequent
- * space is added to the end of the string no matter it exceeds the @size; this
- * is done to ensure all the returned lines start in non space characters.
+ * space is added to the end of the string no matter it exceeds the @size;
+ * this is done to ensure all the returned lines start in non space
+ * characters.
  *
  * It is expected that the caller trims trailing characters if needed, in such
  * case, if post_processing is done it must be done before trimming such
@@ -263,13 +266,13 @@ std::vector<std::string> get_sized_strings(const std::string &input,
       // If end was consumed a substring with the required length was found
       if (end > consumed) {
         // At this point end represents the position of the last character
-        // So be included on the substring, in the following line end represents
-        // string size so we add 1
+        // So be included on the substring, in the following line end
+        // represents string size so we add 1
         end++;
       } else {
         // If unable to find a string with the required length we need to
-        // advance so the only available string is selected no matter it exceeds
-        // the required size
+        // advance so the only available string is selected no matter it
+        // exceeds the required size
         size_t first_space = input.find_first_of(' ', consumed);
         end = input.find_first_not_of(' ', first_space);
       }
@@ -592,8 +595,19 @@ std::string format_markup_text(const std::vector<std::string> &lines,
 
       if (shcore::str_beginswith(line.c_str(), "@code") &&
           shcore::str_endswith(line.c_str(), "@endcode")) {
+        size_t code_len = 5;    // The length of @code
+        size_t encode_len = 8;  // The length of @endcode
+        size_t skip = code_len;
         // Handles Code Items
-        std::string code = line.substr(5, line.size() - 13);
+        if (line[code_len] == '{' && line[code_len + 1] == '.') {
+          size_t new_start = line.find("}");
+          if (new_start != std::string::npos) {
+            skip = new_start + 1;
+          }
+        }
+
+        std::string code = line.substr(skip, line.size() - (skip + encode_len));
+        code = shcore::str_strip(code, "\n");
         std::vector<std::string> code_lines = shcore::str_split(code, "\n");
         ret_val += format_markup_text(code_lines, width, left_padding, false);
       } else if (0 == line.find("@li ")) {

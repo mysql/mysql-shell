@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,117 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+
+REGISTER_HELP_TOPIC(Extension Objects, TOPIC, EXTENSION_OBJECTS, Contents,
+                    SCRIPTING);
+REGISTER_HELP_TOPIC_TEXT(EXTENSION_OBJECTS, R"*(
+The MySQL Shell allows for an extension of its base functionality by using 
+special objects called <b>Extension Objects</b>.
+
+Once an extension object has been created it is possible to attach different
+type of object members such as:
+
+@li Functions
+@li Properties
+@li Other extension objects
+
+Once an extension object has been fully defined it can be registered as a 
+regular <b>Global Object</b>. This way the object and its members will be
+available in the scripting languages the MySQL Shell supports, just as any other
+global object such as <b>shell</b>, <b>util</b>, etc.
+
+Extending the MySQL Shell with extension objects follows this pattern:
+
+@li Creation of a new extension object.
+@li Addition of members (properties, functions)
+@li Registration of the object
+
+Creation of a new extension object is done through the
+shell.<<<createExtensionObject>>> function.
+
+Members can be attached to the extension object by calling the
+shell.<<<addExtensionObjectMember>>> function.
+
+Registration of an extension object as a global object can be done by calling
+the shell.<<<registerGlobal>>> function.
+
+Alternatively, the extension object can be added as a member of another
+extension object by calling the shell.<<<addExtensionObjectMember>>> function.
+
+You can get more details on these functions by executing:
+
+@li \? <<<createExtensionObject>>>
+@li \? <<<addExtensionObjectMember>>>
+@li \? <<<registerGlobal>>>
+
+
+<b>Naming Convention</b>
+
+The core MySQL Shell APIs follow a specific naming convention for object 
+members. Extension objects should follow the same naming convention for 
+consistency reasons.
+
+@li JavaScript members use camelCaseNaming
+@li Python members use snake_case_naming
+
+To simplify this across languages, it is important to use camelCaseNaming when
+specifying the 'name' parameter of the shell.<<<addExtensionObjectMember>>>
+function.
+
+The MySQL Shell will then automatically handle the snake_case_naming for that 
+member when it is switched to Python mode.
+
+NOTE: the naming convention is only applicable for extension object members. 
+However, when a global object is registered, the name used to register that
+object will be exactly the same in both JavaScript and Python modes.
+
+<b>Example</b>:<br>
+
+@code{.py}
+# Sample python function to be added to an extension object
+def some_python_function():
+  print ("Hello world!")
+
+# The extension object is created
+obj = shell.create_extension_object()
+
+# The sample function is added as member
+# NOTE: The member name using camelCaseNaming
+shell.add_extension_object_member(obj, "mySampleFunction", some_python_function)
+
+# The extension object is registered
+shell.register_global("myCustomObject", obj)
+@endcode
+
+<b>Calling in JavaScript</b>:<br>
+@code{.js}
+// Member is available using camelCaseNaming
+mysql-js> myCustomObject.mySampleFunction()
+Hello World!
+mysql-js>
+@endcode
+
+<b>Calling in Python</b>:<br>
+@code{.py}
+# Member is available using snake_case_naming
+mysql-py> myCustomObject.my_sample_function()
+Hello World!
+mysql-py>
+@endcode
+
+<b>Automatic Loading of Extension Objects</b>
+
+The MySQL Shell startup logic scans for extension scripts at the following paths:
+
+@li Windows: @%AppData@%/MySQL/mysqlsh/init.d
+@li Others ~/.mysqlsh/init.d
+
+An extension script is either a JavaScript (*.js) or Python (*.py) file which
+will be automatically processed when the MySQL Shell starts.
+
+These scripts can be used to define extension objects so ther are available
+right away when the MySQL Shell starts.
+)*");
 
 namespace {
 
@@ -89,9 +200,35 @@ void Parameter_definition::validate_options() const {
   }
 }
 
+std::set<shcore::Value_type> Extensible_object::s_allowed_member_types = {
+    shcore::Function, shcore::Array,   shcore::Map,      shcore::Null,
+    shcore::Bool,     shcore::Integer, shcore::UInteger, shcore::Float,
+    shcore::String,   shcore::Object};
+
+std::set<std::string> Extensible_object::s_allowed_param_types = {
+    "string", "integer", "float", "bool", "object", "array", "dictionary"};
+
+std::map<std::string, shcore::Value_type> Extensible_object::s_type_mapping = {
+    {"string", shcore::String},  {"integer", shcore::Integer},
+    {"float", shcore::Float},    {"bool", shcore::Bool},
+    {"object", shcore::Object},  {"array", shcore::Array},
+    {"dictionary", shcore::Map}, {"function", shcore::Function},
+};
+
 Extensible_object::Extensible_object(const std::string &name,
                                      const std::string &qualified_name)
-    : m_name(name), m_qualified_name(qualified_name) {}
+    : m_name(name),
+      m_qualified_name(qualified_name),
+      m_registered(false),
+      m_detail_sequence(0) {}
+
+Extensible_object::Extensible_object(const std::string &name,
+                                     const std::string &qualified_name,
+                                     bool registered)
+    : m_name(name),
+      m_qualified_name(qualified_name),
+      m_registered(registered),
+      m_detail_sequence(0) {}
 
 Extensible_object::~Extensible_object() { disable_help(); }
 bool Extensible_object::operator==(const Object_bridge &other) const {
@@ -101,133 +238,328 @@ bool Extensible_object::operator==(const Object_bridge &other) const {
 shcore::Value Extensible_object::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
+  if (!is_registered())
+    throw shcore::Exception::runtime_error(
+        "Unable to access members in an unregistered extension object.");
+
   const auto &child = m_children.find(prop);
   if (child != m_children.end()) {
     return shcore::Value(
         std::dynamic_pointer_cast<Object_bridge>(child->second));
   } else {
-    ret_val = Cpp_object_bridge::get_member(prop);
+    const auto &property = m_members.find(prop);
+    if (property != m_members.end()) {
+      ret_val = property->second;
+    } else {
+      ret_val = Cpp_object_bridge::get_member(prop);
+    }
   }
 
   return ret_val;
 }
 
-void Extensible_object::register_object(const std::string &name,
-                                        const std::string &brief,
-                                        const std::vector<std::string> &details,
-                                        const std::string &type_label) {
+void Extensible_object::set_member(const std::string &prop,
+                                   shcore::Value value) {
+  if (!is_registered())
+    throw shcore::Exception::runtime_error(
+        "Unable to modify members in an unregistered extension object.");
+
+  const auto &property = m_members.find(prop);
+  if (property != m_members.end()) {
+    property->second = value;
+  } else {
+    Cpp_object_bridge::set_member(prop, value);
+  }
+}
+
+bool Extensible_object::has_member(const std::string &prop) const {
+  return has_method(prop) || m_members.find(prop) != m_members.end() ||
+         m_children.find(prop) != m_children.end();
+}
+
+shcore::Value Extensible_object::call(const std::string &name,
+                                      const shcore::Argument_list &args) {
+  if (!is_registered()) {
+    throw shcore::Exception::runtime_error(
+        "Unable to call functions in an unregistered extension object.");
+  }
+
+  return Cpp_object_bridge::call(name, args);
+}
+
+shcore::Value Extensible_object::call_advanced(
+    const std::string &name, const shcore::Argument_list &args) {
+  if (!is_registered()) {
+    throw shcore::Exception::runtime_error(
+        "Unable to call functions in an unregistered extension object.");
+  }
+
+  return Cpp_object_bridge::call_advanced(name, args);
+}
+
+void Extensible_object::register_member(
+    const std::string &name, const shcore::Value &value,
+    const shcore::Dictionary_t &definition) {
+  if (has_member(name)) {
+    throw shcore::Exception::argument_error("The object already has a '" +
+                                            name + "' member.");
+  }
+
+  if (s_allowed_member_types.find(value.type) == s_allowed_member_types.end()) {
+    throw shcore::Exception::argument_error("Unsupported member type.");
+  } else if (value.type == shcore::Object) {
+    auto object = value.as_object<Extensible_object>();
+    if (!object)
+      throw shcore::Exception::argument_error(
+          "Unsupported member type, object members need to be "
+          "ExtensionObjects.");
+
+    object->m_definition = parse_member_definition(definition);
+    object->m_definition->name = name;
+    register_object(object);
+  } else {
+    if (value.type == shcore::Function) {
+      auto fd = parse_function_definition(definition);
+      fd->name = name;
+      register_function(fd, value.as_function(), false);
+    } else {
+      auto md = parse_member_definition(definition);
+      md->name = name;
+      register_property(md, value, false);
+    }
+  }
+}
+
+void Extensible_object::set_registered(const std::string &name) {
+  // The caller must ensure this function is not called for a registered
+  // object
+  assert(!m_registered);
+
+  if (!m_registered) {
+    auto parent = m_parent.lock();
+    m_name = name.empty() ? m_definition->name : name;
+    m_registered = true;
+
+    if (parent)
+      m_qualified_name = parent->m_qualified_name + "." + m_name;
+    else
+      m_qualified_name = m_name;
+
+    // When parent is shellapi then it is a global object
+    register_help(m_definition, !parent);
+
+    for (const auto &mdef : m_property_definition) register_property_help(mdef);
+
+    for (const auto &fdef : m_function_definition) register_function_help(fdef);
+
+    for (auto &child : m_children) child.second->set_registered();
+  }
+}
+
+/**
+ * Registers an existing object definition on this object.
+ *
+ * A new topic will be created for the object on the shell help system.
+ *
+ * @param definition a Member definition instance
+ * @param object The object being registered.
+ *
+ * - The module name must be a valid identifier.
+ */
+void Extensible_object::register_object(
+    const std::shared_ptr<Extensible_object> &object) {
+  if (object.get() == this) {
+    throw shcore::Exception::argument_error(
+        "An extension object can not be member of itself.");
+  }
+  // The order of these validations matters, the first one
+  // tests for the object being part of another object
+  if (object->get_parent()) {
+    std::string error =
+        "The provided extension object is already registered as part of "
+        "another extension object";
+
+    if (object->is_registered())
+      error += " at: " + object->get_qualified_name();
+
+    error += ".";
+
+    throw shcore::Exception::argument_error(error);
+  }
+
+  // And this one tests for a registered object (global)
+  if (object->is_registered()) {
+    std::string error =
+        "The provided extension object is already registered as: " +
+        object->get_qualified_name() + ".";
+
+    throw shcore::Exception::argument_error(error);
+  }
+
+  object->m_parent = shared_from_this();
+
+  m_children.emplace(object->m_definition->name, object);
+
+  add_property(object->m_definition->name);
+
+  if (m_registered) object->set_registered();
+}
+
+std::shared_ptr<Extensible_object> Extensible_object::register_object(
+    const std::string &name, const std::string &brief,
+    const std::vector<std::string> &details, const std::string &type_label) {
+  std::shared_ptr<Extensible_object> object;
+
   if (!shcore::is_valid_identifier(name))
     throw shcore::Exception::argument_error(
         "The " + type_label + " name must be a valid identifier.");
 
-  if (m_children.find(name) != m_children.end()) {
-    auto error = shcore::str_format("The %s '%s' already exists at '%s'",
-                                    type_label.c_str(), name.c_str(),
-                                    m_qualified_name.c_str());
-    throw shcore::Exception::argument_error(error);
+  if (has_member(name)) {
+    throw shcore::Exception::argument_error("The object already has a '" +
+                                            name + "' member.");
   }
 
-  // Creates the new object as a member of this object
-  std::string qname = m_qualified_name + "." + name;
-  m_children.emplace(name, std::make_shared<Extensible_object>(name, qname));
-  add_property(name + "|" + name);
+  std::string qualified_name =
+      m_registered ? m_qualified_name + "." + name : "";
 
-  m_children[name]->register_object_help(brief, details);
+  object = std::make_shared<Extensible_object>(name, qualified_name);
+
+  object->m_definition =
+      std::make_shared<Member_definition>(name, brief, details);
+
+  register_object(object);
+
+  return object;
 }
 
-void Extensible_object::register_function(
-    const std::string &name, const shcore::Function_base_ref &function,
+std::shared_ptr<Member_definition> Extensible_object::parse_member_definition(
     const shcore::Dictionary_t &definition) {
-  Function_definition description;
+  auto def = std::make_shared<Member_definition>();
+
+  if (definition) {
+    shcore::Option_unpacker unpacker(definition);
+    unpacker.optional("brief", &def->brief);
+    unpacker.optional("details", &def->details);
+    unpacker.end("at member definition");
+  }
+
+  return def;
+}
+
+std::shared_ptr<Function_definition>
+Extensible_object::parse_function_definition(
+    const shcore::Dictionary_t &definition) {
+  auto def = std::make_shared<Function_definition>();
   shcore::Array_t params;
 
-  shcore::Option_unpacker unpacker(definition);
-  unpacker.optional("parameters", &params);
-  unpacker.optional("brief", &description.brief);
-  unpacker.optional("details", &description.details);
-  unpacker.end("at function definition");
+  if (definition) {
+    shcore::Option_unpacker unpacker(definition);
+    unpacker.optional("parameters", &params);
+    unpacker.optional("brief", &def->brief);
+    unpacker.optional("details", &def->details);
+    unpacker.end("at function definition");
+  }
 
   // Builds the parameter list
-  description.parameters = parse_parameters(params, {"parameter"}, true);
+  shcore::Parameter_context context{"", {{"parameter", {}}}};
+  def->parameters =
+      parse_parameters(params, &context, s_allowed_param_types, true);
 
-  register_function(name, function, description);
+  return def;
+}
+
+void Extensible_object::register_property(
+    const std::shared_ptr<Member_definition> &definition,
+    const shcore::Value &value, bool custom_names) {
+  validate_name(definition->name, "member", custom_names);
+
+  add_property(definition->name);
+
+  m_members[_properties.back().base_name()] = value;
+
+  if (is_registered())
+    register_property_help(definition);
+  else
+    m_property_definition.push_back(definition);
 }
 
 void Extensible_object::register_function(
-    const std::string &name, const shcore::Function_base_ref &function,
-    const Function_definition &definition) {
-  validate_function(name, definition.parameters);
+    const std::shared_ptr<Function_definition> &definition,
+    const shcore::Function_base_ref &function, bool custom_names) {
+  validate_name(definition->name, "function", custom_names);
 
-  expose(name, function, to_raw_signature(definition.parameters));
+  validate_function(definition);
 
-  register_function_help(name, definition);
+  expose(definition->name, function, to_raw_signature(definition->parameters));
+
+  if (is_registered())
+    register_function_help(definition);
+  else
+    m_function_definition.push_back(definition);
 }
 
-std::shared_ptr<Extensible_object> Extensible_object::search_object(
-    std::vector<std::string> *name_chain) {
-  assert(name_chain);
-  size_t length = name_chain->size();
-  assert(length);
-
-  if (name_chain->at(0) == m_name) {
-    if (length == 1) {
-      return shared_from_this();
-    } else {
-      if (m_children.find(name_chain->at(1)) != m_children.end()) {
-        name_chain->erase(name_chain->begin());
-        return m_children[name_chain->at(0)]->search_object(name_chain);
-      }
-    }
-  }
-
-  return nullptr;
-}
-
-std::shared_ptr<Extensible_object> Extensible_object::search_object(
-    const std::string &name_chain) {
-  auto tokens = shcore::str_split(name_chain, ".");
-  return search_object(&tokens);
-}
-
-shcore::Value_type Extensible_object::map_type(const std::string &value) {
-  if (value == "string") {
-    return shcore::Value_type::String;
-  } else if (value == "integer") {
-    return shcore::Value_type::Integer;
-  } else if (value == "float") {
-    return shcore::Value_type::Float;
-  } else if (value == "bool") {
-    return shcore::Value_type::Bool;
-  } else if (value == "object") {
-    return shcore::Value_type::Object;
-  } else if (value == "array") {
-    return shcore::Value_type::Array;
-  } else if (value == "dictionary") {
-    return shcore::Value_type::Map;
-  }
-
-  return shcore::Value_type::Undefined;
+shcore::Value_type Extensible_object::map_type(
+    const std::string &type, const std::set<std::string> &allowed_types) {
+  if (allowed_types.find(type) != allowed_types.end())
+    return s_type_mapping[type];
+  else
+    return shcore::Value_type::Undefined;
 }
 
 Function_definition::Parameters Extensible_object::parse_parameters(
-    const shcore::Array_t &data, const shcore::Parameter_context &context,
-    bool default_require) {
+    const shcore::Array_t &data, shcore::Parameter_context *context,
+    const std::set<std::string> &allowed_types, bool as_parameters) {
   Function_definition::Parameters parameters;
 
+  std::string optional_parameter;
+  std::vector<std::string> item_names;
   if (data) {
     for (size_t index = 0; index < data->size(); index++) {
       auto &item = data->at(index);
 
-      shcore::Parameter_context new_ctx = {context.str(),
-                                           static_cast<int>(index + 1)};
+      context->levels.back().position = static_cast<int>(index + 1);
+
       if (item.type == shcore::Value_type::Map) {
-        parameters.push_back(
-            parse_parameter(item.as_map(), new_ctx, default_require));
+        parameters.push_back(parse_parameter(item.as_map(), context,
+                                             allowed_types, as_parameters));
+
+        std::string item_name = parameters.back()->parameter->name;
+        auto item_index =
+            std::find_if(item_names.begin(), item_names.end(),
+                         [item_name](const std::string &existing) {
+                           return shcore::str_caseeq(item_name, existing);
+                         });
+
+        // Validates duplicates
+        std::string item_label = context->levels.back().name;
+        if (item_index != item_names.end()) {
+          std::string error =
+              item_label + " '" + item_name + "' is already defined.";
+          throw shcore::Exception::argument_error(error);
+        } else {
+          item_names.push_back(item_name);
+        }
+
+        // When parsing parameters as parameters there can't be required
+        // parameters after an optional parameter has been found
+        if (as_parameters) {
+          bool new_required = parameters.back()->is_required();
+          if (new_required && !optional_parameter.empty()) {
+            std::string error = item_label + " '" + item_name +
+                                "' can not be required after optional " +
+                                item_label + " '" + optional_parameter + "'";
+            throw shcore::Exception::argument_error(error);
+          } else if (optional_parameter.empty() && !new_required) {
+            optional_parameter = item_name;
+          }
+        }
       } else {
-        std::string error = "Invalid definition at " + new_ctx.str();
+        std::string error = "Invalid definition at " + context->str();
         throw shcore::Exception::argument_error(error);
       }
     }
+
+    context->levels.back().position = nullptr;
   }
 
   return parameters;
@@ -240,10 +572,13 @@ Extensible_object::start_parsing_parameter(const shcore::Dictionary_t &,
 }
 
 std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
-    const shcore::Dictionary_t &definition,
-    const shcore::Parameter_context &context, bool default_require) {
+    const shcore::Dictionary_t &definition, shcore::Parameter_context *context,
+    const std::set<std::string> &allowed_types, bool as_parameters) {
   std::string type;
-  bool required = default_require;
+
+  // By default, parameters are required, unless required=false is specified
+  // By default, options are not required, unless required=true is specified
+  bool required = as_parameters;
   shcore::Option_unpacker unpacker(definition);
 
   auto param_definition = start_parsing_parameter(definition, &unpacker);
@@ -255,7 +590,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   unpacker.optional("brief", &param_definition->brief);
   unpacker.optional("details", &param_definition->details);
 
-  param->set_type(map_type(type));
+  param->set_type(map_type(type, allowed_types));
 
   if (param->type() == shcore::Value_type::String) {
     std::vector<std::string> allowed;
@@ -265,15 +600,67 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   }
 
   if (param->type() == shcore::Value_type::Object) {
-    std::vector<std::string> allowed_classes;
+    std::string error;
+    mysqlshdk::utils::nullable<std::vector<std::string>> allowed_classes;
     unpacker.optional("classes", &allowed_classes);
 
-    std::string allowed;
+    mysqlshdk::utils::nullable<std::string> allowed;
     unpacker.optional("class", &allowed);
-    if (!allowed.empty()) allowed_classes.push_back(allowed);
 
-    param->validator<shcore::Object_validator>()->set_allowed(
-        std::move(allowed_classes));
+    if (!allowed.is_null()) {
+      if (allowed_classes.is_null())
+        allowed_classes = {*allowed};
+      else
+        allowed_classes->push_back(*allowed);
+    }
+
+    std::vector<std::string> callowed;
+    if (!allowed_classes.is_null()) {
+      if (allowed_classes->empty()) {
+        error = "An empty array is not valid for the classes option.";
+      } else {
+        callowed = *allowed_classes;
+        auto help = shcore::Help_registry::get();
+        std::set<std::string> classes;
+        std::vector<shcore::Topic_type> allowed_types = {
+            shcore::Topic_type::CLASS, shcore::Topic_type::GLOBAL_OBJECT,
+            shcore::Topic_type::OBJECT};
+
+        for (const auto type : allowed_types) {
+          auto topics = help->get_help_topics(type);
+          for (auto topic : topics) {
+            classes.insert(topic->get_base_name());
+          }
+        }
+
+        std::set<std::string> invalids;
+        for (auto &a_class : callowed) {
+          std::string trimmed = shcore::str_strip(a_class);
+
+          if (trimmed.empty()) {
+            invalids.insert("'" + a_class + "'");
+          } else if (classes.find(a_class) == classes.end()) {
+            invalids.insert(a_class);
+          }
+        }
+
+        if (!invalids.empty()) {
+          std::string custom = invalids.size() == 1
+                                   ? " is not recognized, it "
+                                   : "es are not recognized, they ";
+          error = "The following class" + custom +
+                  "can not be used on the validation of an object parameter: " +
+                  shcore::str_join(invalids, ", ") + ".";
+        }
+      }
+    }
+
+    if (!error.empty()) {
+      throw shcore::Exception::argument_error(error);
+    } else {
+      param->validator<shcore::Object_validator>()->set_allowed(
+          std::move(callowed));
+    }
   }
 
   shcore::Array_t options;
@@ -281,52 +668,115 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
     unpacker.required("options", &options);
 
   std::string current_ctx;
-  if (shcore::is_valid_identifier(param->name))
-    current_ctx = context.title + " '" + param->name + "'";
-  else
-    current_ctx = context.str();
+  auto ctx_name_backup = context->levels.back().name;
+  auto ctx_position_backup = context->levels.back().position;
 
+  if (shcore::is_valid_identifier(param->name)) {
+    context->levels.back().name = (type.empty() ? "" : type + " ") +
+                                  ctx_name_backup + " '" + param->name + "'";
+    context->levels.back().position = nullptr;
+  }
+
+  current_ctx = context->str();
   unpacker.end("at " + current_ctx);
+
+  context->levels.back().name = ctx_name_backup + " '" + param->name + "'";
+
+  if (param->type() == shcore::Value_type::Undefined) {
+    const auto error =
+        "Unsupported type used at " + context->str() +
+        ". Allowed types: " + shcore::str_join(allowed_types, ", ");
+    throw shcore::Exception::argument_error(error);
+  }
 
   if (param->type() == shcore::Value_type::Map) {
     if (options && !options->empty()) {
+      context->levels.push_back({"option", {}});
       param_definition->set_options(
-          parse_parameters(options, {current_ctx + " option"}, false));
+          parse_parameters(options, context, allowed_types, false));
+      context->levels.pop_back();
     }
   }
+
+  // Restores the context to it's original values
+  context->levels.back().name = ctx_name_backup;
+  context->levels.back().position = ctx_position_backup;
 
   param->flag =
       required ? shcore::Param_flag::Mandatory : shcore::Param_flag::Optional;
 
   return param_definition;
+}  // namespace mysqlsh
+
+void Extensible_object::register_help(
+    const std::shared_ptr<Member_definition> &def, bool is_global) {
+  if (is_registered())
+    register_help(def->brief, def->details, is_global);
+  else
+    m_definition = def;
 }
-void Extensible_object::register_object_help(
-    const std::string &brief, const std::vector<std::string> &details) {
+
+void Extensible_object::register_help(const std::string &brief,
+                                      const std::vector<std::string> &details,
+                                      bool is_global) {
+  if (is_registered()) {
+    auto help = shcore::Help_registry::get();
+
+    // Attempts getting the fully qualified object
+    shcore::Help_topic *topic = help->get_topic(m_qualified_name, true);
+
+    if (topic) {
+      mysqlsh::current_console()->print_warning("Help for " + m_qualified_name +
+                                                " already exists.");
+      enable_help();
+    } else {
+      // Defines the modes where the help will be available
+      auto mask = shcore::IShell_core::all_scripting_modes();
+
+      auto tokens = shcore::str_split(m_qualified_name, ".");
+      tokens.erase(tokens.end() - 1);
+      auto parent = shcore::str_join(tokens, ".");
+
+      // Creates the help topic for the object
+      auto type = is_global ? shcore::Topic_type::GLOBAL_OBJECT
+                            : shcore::Topic_type::OBJECT;
+      help->add_help_topic(m_name, type, m_name, parent, mask);
+
+      // Now registers the object brief, parameters and details
+      auto prefix = shcore::str_upper(m_name);
+
+      help->add_help(prefix, "BRIEF", brief);
+      help->add_help(prefix, "DETAIL", &m_detail_sequence, details);
+
+      if (is_global) help->add_help(prefix, "GLOBAL_BRIEF", brief);
+    }
+  } else {
+    m_definition.reset(new Member_definition("", brief, details));
+  }
+}
+
+void Extensible_object::register_property_help(
+    const std::shared_ptr<Member_definition> &def) {
   auto help = shcore::Help_registry::get();
 
-  // Attempts getting the fully qualified object
-  shcore::Help_topic *topic = help->get_topic(m_qualified_name, true);
+  // Defines the modes where the help will be available
+  auto mask = shcore::IShell_core::all_scripting_modes();
 
-  if (topic) {
-    mysqlsh::current_console()->print_warning("Help for " + m_qualified_name +
-                                              " already exists.");
-    enable_help();
-  } else {
-    // Defines the modes where the help will be available
-    auto mask = shcore::IShell_core::all_scripting_modes();
+  // Creates the help topic for the object
+  help->add_help_topic(def->name, shcore::Topic_type::PROPERTY, def->name,
+                       m_qualified_name, mask);
 
-    auto tokens = shcore::str_split(m_qualified_name, ".");
-    tokens.erase(tokens.end() - 1);
-    auto parent = shcore::str_join(tokens, ".");
+  // Now registers the object brief, parameters and details
+  auto object = shcore::str_upper(m_name);
+  auto prefix = object + "_" + shcore::str_upper(def->name);
+  if (!def->brief.empty()) {
+    help->add_help(prefix, "BRIEF", def->brief);
+  }
 
-    // Creates the help topic for the object
-    help->add_help_topic(m_name, shcore::Topic_type::OBJECT, m_name, parent,
-                         mask);
+  size_t member_sequence = 0;
 
-    // Now registers the object brief, parameters and details
-    auto prefix = shcore::str_upper(m_name);
-    help->add_help(prefix, "BRIEF", brief);
-    help->add_help(prefix, "DETAIL", details);
+  if (!def->details.empty()) {
+    help->add_help(prefix, "DETAIL", &member_sequence, def->details);
   }
 }
 
@@ -360,7 +810,7 @@ void Extensible_object::register_function_help(
 }
 
 void Extensible_object::register_function_help(
-    const std::string &name, const Function_definition &definition) {
+    const std::shared_ptr<Function_definition> &definition) {
   // Param details are inserted at the end of the function details by default.
   // If @PARAMDETAILS entry is found on the function details, the parameter
   // details wil be inserted right there.
@@ -369,10 +819,10 @@ void Extensible_object::register_function_help(
   std::vector<std::string> params;
   std::vector<std::string> details;
 
-  for (const auto &detail : definition.details) {
+  for (const auto &detail : definition->details) {
     if (!detail.empty()) {
       if (detail == "@PARAMDETAILS") {
-        for (const auto &param : definition.parameters) {
+        for (const auto &param : definition->parameters) {
           get_param_help_detail(*param, true, &params);
         }
 
@@ -383,7 +833,7 @@ void Extensible_object::register_function_help(
     }
   }
 
-  for (const auto &param : definition.parameters) {
+  for (const auto &param : definition->parameters) {
     get_param_help_brief(*param, true, &params);
 
     if (param_details) {
@@ -391,7 +841,7 @@ void Extensible_object::register_function_help(
     }
   }
 
-  register_function_help(name, definition.brief, params, details);
+  register_function_help(definition->name, definition->brief, params, details);
 }
 
 void Extensible_object::get_param_help_brief(
@@ -402,7 +852,10 @@ void Extensible_object::get_param_help_brief(
 
   param_help += param->name;
 
-  if (!param_definition.is_required()) param_help += " Optional";
+  if (as_parameter && !param_definition.is_required())
+    param_help += " Optional";
+  else if (!as_parameter && param_definition.is_required())
+    param_help += " (required)";
 
   param_help += " " + to_string(param->type()) + ".";
 
@@ -444,10 +897,9 @@ void Extensible_object::get_param_help_detail(
           param->validator<shcore::String_validator>()->allowed();
 
       if (!values.empty()) {
-        help_entry += " accepts the following values: ";
+        help_entry += " accepts the following values: " +
+                      shcore::str_join(values, ", ") + ".";
         details->emplace_back(std::move(help_entry));
-
-        for (const auto &value : values) details->emplace_back("@li " + value);
       }
 
       break;
@@ -474,41 +926,53 @@ void Extensible_object::get_param_help_detail(
   }
 }
 
-void Extensible_object::validate_function(
-    const std::string &name,
-    const Function_definition::Parameters &parameters) {
-  const auto names = shcore::str_split(name, "|");
+void Extensible_object::validate_name(const std::string &name,
+                                      const std::string &label,
+                                      bool custom_names) {
+  std::vector<std::string> names;
+  if (custom_names)
+    names = shcore::str_split(name, "|");
+  else
+    names = {name};
 
   if (names.size() > 2) {
     throw shcore::Exception::argument_error(
-        "Invalid function name. When using custom names only two names should "
+        "Invalid function name. When using custom names only two names "
+        "should "
         "be provided.");
   }
 
   for (const auto &cname : names) {
-    if (!shcore::is_valid_identifier(cname))
-      throw shcore::Exception::argument_error("The function name '" + cname +
-                                              "' is not a valid identifier.");
-  }
-
-  int index = 0;
-
-  for (const auto &param : parameters) {
-    validate_parameter(*param->parameter, {"parameter", ++index});
+    if (!shcore::is_valid_identifier(cname)) {
+      throw shcore::Exception::argument_error(
+          "The " + label + " name '" + cname + "' is not a valid identifier.");
+    }
   }
 }
 
-void Extensible_object::validate_parameter(
-    const shcore::Parameter &param, const shcore::Parameter_context &context) {
+void Extensible_object::validate_function(
+    const std::shared_ptr<Function_definition> &definition) {
+  int index = 0;
+  shcore::Parameter_context context{"", {{"", {}}}};
+  for (const auto &param : definition->parameters) {
+    context.levels[0].name = "parameter";
+    context.levels[0].position = ++index;
+    validate_parameter(*param->parameter, &context);
+  }
+}
+
+void Extensible_object::validate_parameter(const shcore::Parameter &param,
+                                           shcore::Parameter_context *context) {
   bool valid_identifier = shcore::is_valid_identifier(param.name);
 
   std::string current_ctx;
 
   if (valid_identifier) {
-    current_ctx = context.title + " '" + param.name + "'";
-  } else {
-    current_ctx = context.str();
+    context->levels.back().name += " '" + param.name + "'";
+    context->levels.back().position = nullptr;
   }
+
+  current_ctx = context->str();
 
   if (!valid_identifier) {
     const auto error =
@@ -528,14 +992,16 @@ void Extensible_object::validate_parameter(
         param.validator<shcore::Option_validator>()->allowed();
     // Options must be defined
     if (options.empty()) {
-      auto error =
-          shcore::str_format("Missing 'options' at %s.", current_ctx.c_str());
+      auto error = shcore::str_format("Missing option definitions at %s.",
+                                      current_ctx.c_str());
       throw shcore::Exception::argument_error(error);
     } else {
       int index = 0;
 
       for (const auto &option : options) {
-        validate_parameter(*option, {current_ctx + " option", ++index});
+        context->levels.push_back({"option", ++index});
+        validate_parameter(*option, context);
+        context->levels.pop_back();
       }
     }
   }

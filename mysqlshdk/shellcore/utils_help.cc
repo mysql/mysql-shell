@@ -91,17 +91,20 @@ bool icomp::operator()(const std::string &lhs, const std::string &rhs) const {
 
 bool Help_topic::is_api() const {
   return m_type == Topic_type::MODULE || m_type == Topic_type::CLASS ||
-         m_type == Topic_type::OBJECT || m_type == Topic_type::FUNCTION ||
-         m_type == Topic_type::PROPERTY;
+         m_type == Topic_type::CONSTANTS || m_type == Topic_type::OBJECT ||
+         m_type == Topic_type::GLOBAL_OBJECT ||
+         m_type == Topic_type::FUNCTION || m_type == Topic_type::PROPERTY;
 }
 
 bool Help_topic::is_api_object() const {
   return m_type == Topic_type::MODULE || m_type == Topic_type::CLASS ||
-         m_type == Topic_type::OBJECT;
+         m_type == Topic_type::CONSTANTS || m_type == Topic_type::OBJECT ||
+         m_type == Topic_type::GLOBAL_OBJECT;
 }
 
 bool Help_topic::is_member() const {
-  return m_type == Topic_type::FUNCTION || m_type == Topic_type::PROPERTY;
+  return m_type == Topic_type::FUNCTION || m_type == Topic_type::PROPERTY ||
+         m_type == Topic_type::OBJECT;
 }
 
 bool Help_topic::is_enabled(IShell_core::Mode mode) const {
@@ -109,7 +112,7 @@ bool Help_topic::is_enabled(IShell_core::Mode mode) const {
 }
 
 std::string Help_topic::get_name(IShell_core::Mode mode) const {
-  // Member topics may have different names bsaed on the scripting
+  // Member topics may have different names based on the scripting
   // mode
   if (is_member()) {
     auto names = shcore::str_split(m_name, "|");
@@ -147,29 +150,55 @@ Help_topic *Help_topic::get_category() {
   return category;
 }
 
-std::string Help_topic::get_id(bool fully_qualified,
-                               IShell_core::Mode mode) const {
-  std::string ret_val = m_id;
+void Help_topic::get_id_tokens(IShell_core::Mode mode,
+                               std::vector<std::string> *tokens,
+                               Topic_id_mode id_mode) const {
+  assert(tokens);
 
-  if (is_api()) {
-    // API Members require the last token to be formatted based on the current
-    // shell mode
-    if (is_member()) {
-      ret_val = m_id.substr(0, m_id.rfind(HELP_API_SPLITTER) + 1);
-      ret_val += get_name(mode);
-    }
-  } else {
-    if (fully_qualified) {
-      // Fully quialified excludes the first token "Contents"
-      ret_val = m_id.substr(m_id.find(HELP_TOPIC_SPLITTER) + 1);
+  if (m_parent) {
+    // With id_mode = FULL, every single parent is considered
+    if (id_mode == Topic_id_mode::FULL) {
+      m_parent->get_id_tokens(mode, tokens, id_mode);
     } else {
-      // Otherwise the name is returned
-      ret_val = m_name;
+      // When not in FULL mode, ids for API topics only consider the API
+      // Hierarchy, meaning both ROOT and Category parents are ignored
+      if (is_api()) {
+        if (m_parent->is_api()) {
+          m_parent->get_id_tokens(mode, tokens, id_mode);
+        }
+      } else {
+        // When not in FULL mode, non API topics automatically exclude ROOT
+        // But categories will be included if mode_id != EXCLUDE_CATEGORIES
+        if (m_parent->m_name != Help_registry::HELP_ROOT &&
+            id_mode != Topic_id_mode::EXCLUDE_CATEGORIES) {
+          m_parent->get_id_tokens(mode, tokens, id_mode);
+        }
+      }
     }
   }
 
+  tokens->push_back(get_name(mode));
+}  // namespace shcore
+
+std::string Help_topic::get_id(IShell_core::Mode mode,
+                               Topic_id_mode id_mode) const {
+  std::string splitter = is_api() ? HELP_API_SPLITTER : HELP_TOPIC_SPLITTER;
+  std::string last_splitter = is_command() ? HELP_CMD_SPLITTER : splitter;
+
+  std::vector<std::string> id_tokens;
+  get_id_tokens(mode, &id_tokens, id_mode);
+
+  std::string this_name = id_tokens.back();
+  id_tokens.pop_back();
+
+  std::string ret_val = shcore::str_join(id_tokens, splitter);
+
+  if (!ret_val.empty()) ret_val += last_splitter;
+
+  ret_val += this_name;
+
   return ret_val;
-}
+}  // namespace shcore
 
 const char Help_registry::HELP_ROOT[] = "Contents";
 const char Help_registry::HELP_COMMANDS[] = "Shell Commands";
@@ -248,7 +277,7 @@ void Help_registry::add_split_help(const std::string &prefix,
     para = line;
     // now keep adding lines to the paragraph until one of:
     // empty line, @ at bol, $ at bol
-    if (para == "@code") {
+    if (shcore::str_beginswith(para, "@code")) {
       while (!*eos && line != "@endcode") {
         line = get_line(eos, rstrip);
 
@@ -348,6 +377,7 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
   size_t topic_count = m_topics.size();
   m_topics[topic_count] = {name, name, type, tag, nullptr, {}, this, true};
   Help_topic *new_topic = &m_topics[topic_count];
+  m_topics_by_type[type].push_back(new_topic);
 
   std::string splitter;
 
@@ -359,8 +389,9 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
       auto topics = &m_keywords[parent_id];
 
       for (const auto &topic : *topics) {
-        // Only considers non members as the others can'
-        if (!topic.first->is_member()) {
+        // Only considers non members or object members as the others can't have
+        // children
+        if (!topic.first->is_member() || topic.first->is_object()) {
           if (parent == nullptr) {
             parent = topic.first;
           } else {
@@ -481,10 +512,12 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
         break;
 
       case Topic_type::CLASS:
+      case Topic_type::CONSTANTS:
         type = "class";
         break;
 
       case Topic_type::OBJECT:
+      case Topic_type::GLOBAL_OBJECT:
         type = "object";
         break;
 
@@ -560,83 +593,54 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
  * Non API topics register keywords available on any mode.
  */
 void Help_registry::register_keywords(Help_topic *topic, Mode_mask mode) {
-  // Patterns are associated to the mode where they are applicable
-  // For that reason we need to create the following masks:
-  // - all: for topics available on any shell mode, i.e. shell commands
-  // - scripting: for topics that are valid both for Python and JavaScript
-  //   i.e. modules and classes
-  // - JavaScript and Python: for topics that are specific to either language,
-  //   i.e. member names
-  Mode_mask scripting(IShell_core::Mode::JavaScript);
-  scripting.set(IShell_core::Mode::Python);
-  Mode_mask javascript(IShell_core::Mode::JavaScript);
-  Mode_mask python(IShell_core::Mode::Python);
+  std::vector<IShell_core::Mode> modes = {IShell_core::Mode::JavaScript,
+                                          IShell_core::Mode::Python,
+                                          IShell_core::Mode::SQL};
 
-  // The base keywords are the last component of the topic id, we need to
-  // determine them as they will be combined with the rest of the nodes.
-  std::vector<std::pair<std::string, Mode_mask>> base_keywords;
-
-  if (topic->is_member()) {
-    // Member names may differ at Python and JavaScript if that's the case
-    // we add a base keyword for each valid on its own context
-    auto names = shcore::str_split(topic->m_name, "|");
-    if (names.size() == 1) names.push_back(shcore::from_camel_case(names[0]));
-
-    if (names[0] != names[1]) {
-      base_keywords.push_back({names[0], javascript});
-      base_keywords.push_back({names[1], python});
-    } else {
-      base_keywords.push_back({names[0], scripting});
-    }
-  } else {
-    base_keywords.push_back({topic->m_name, mode});
-  }
-
-  // The ID is split in tokens
   std::string splitter =
       topic->is_api() ? HELP_API_SPLITTER : HELP_TOPIC_SPLITTER;
   std::string last_splitter =
       topic->is_command() ? HELP_CMD_SPLITTER : splitter;
-  std::vector<std::string> tokens;
 
-  size_t pos = topic->m_id.rfind(last_splitter);
-  if (pos != std::string::npos) {
-    tokens = str_split(topic->m_id.substr(0, pos), splitter);
-  } else {
-    tokens.push_back(topic->m_id);
-  }
-  std::reverse(tokens.begin(), tokens.end());
+  for (auto shell_mode : modes) {
+    if (mode.is_set(shell_mode)) {
+      std::string topic_name = topic->get_name(shell_mode);
+      std::vector<std::string> id_tokens;
 
-  // The name is at the base tokens, not needed here
-  // tokens.erase(tokens.begin());
+      if (topic->m_parent)
+        topic->m_parent->get_id_tokens(shell_mode, &id_tokens);
 
-  // Registers the keywords
-  for (auto &base_keyword : base_keywords) {
-    std::string keyword = std::get<0>(base_keyword);
-    Mode_mask context = std::get<1>(base_keyword);
+      while (!id_tokens.empty()) {
+        std::string keyword = shcore::str_join(id_tokens, splitter);
+        keyword += last_splitter + topic_name;
+        register_keyword(keyword, shell_mode, topic);
+        id_tokens.erase(id_tokens.begin());
+      }
 
-    // Registers the base keyword
-    register_keyword(keyword, context, topic);
+      register_keyword(topic_name, shell_mode, topic);
 
-    // Registers it's combination with rest of the tokens
-    bool last = true;
-    for (const auto &ptoken : tokens) {
-      keyword = ptoken + (last ? last_splitter : splitter) + keyword;
-      register_keyword(keyword, context, topic);
-      last = true;
+      if (!topic->is_api() &&
+          !shcore::str_caseeq(topic_name, topic->m_help_tag)) {
+        register_keyword(topic->m_help_tag, shell_mode, topic);
+      }
     }
-  }
-
-  // On Non API topics registers the help tag as a valid keyword if it is
-  // different than the topic name
-  if (!topic->is_api() &&
-      !shcore::str_caseeq(topic->m_name, topic->m_help_tag)) {
-    register_keyword(topic->m_help_tag, mode, topic);
   }
 }
 
 void Help_registry::register_keyword(const std::string &keyword,
-                                     Mode_mask context, Help_topic *topic,
+                                     IShell_core::Mode_mask mode,
+                                     Help_topic *topic, bool case_sensitive) {
+  if (mode.is_set(IShell_core::Mode::Python))
+    register_keyword(keyword, IShell_core::Mode::Python, topic, case_sensitive);
+  if (mode.is_set(IShell_core::Mode::JavaScript))
+    register_keyword(keyword, IShell_core::Mode::JavaScript, topic,
+                     case_sensitive);
+  if (mode.is_set(IShell_core::Mode::SQL))
+    register_keyword(keyword, IShell_core::Mode::SQL, topic, case_sensitive);
+}
+
+void Help_registry::register_keyword(const std::string &keyword,
+                                     IShell_core::Mode mode, Help_topic *topic,
                                      bool case_sensitive) {
   if (!case_sensitive) {
     if (m_keywords.find(keyword) == m_keywords.end()) {
@@ -645,9 +649,10 @@ void Help_registry::register_keyword(const std::string &keyword,
 
     auto &topics = m_keywords[keyword];
 
-    if (topics.find(topic) == topics.end()) {
-      topics[topic] = context;
-    }
+    if (topics.find(topic) == topics.end())
+      topics[topic] = Mode_mask(mode);
+    else
+      topics[topic].set(mode);
   } else {
     if (m_cs_keywords.find(keyword) == m_cs_keywords.end()) {
       m_cs_keywords[keyword] = {};
@@ -655,9 +660,10 @@ void Help_registry::register_keyword(const std::string &keyword,
 
     auto &topics = m_cs_keywords[keyword];
 
-    if (topics.find(topic) == topics.end()) {
-      topics[topic] = context;
-    }
+    if (topics.find(topic) == topics.end())
+      topics[topic] = Mode_mask(mode);
+    else
+      topics[topic].set(mode);
   }
 }
 
@@ -771,7 +777,7 @@ bool Help_registry::is_enabled(const Help_topic *topic,
   bool ret_val = false;
   try {
     if (topic->is_enabled()) {
-      auto topics = m_keywords.at(topic->get_id(true, mode));
+      auto topics = m_keywords.at(topic->get_id(mode));
       auto mask = topics.at(const_cast<Help_topic *>(topic));
       ret_val = mask.is_set(mode);
     }
@@ -918,11 +924,13 @@ void Help_manager::add_simple_function_help(
       textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
   std::string fsyntax;
 
-  if (parent->is_class())
+  if (parent->is_class()) {
     fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
-  else
-    fsyntax += function.m_parent->m_name + HELP_API_SPLITTER +
-               textui::bold(display_name);
+  } else {
+    std::string parent_name =
+        function.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+    fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
+  }
 
   // Gets the function signature
   std::string signature = get_signature(function);
@@ -1232,6 +1240,17 @@ size_t Help_manager::get_max_topic_length(
   return ret_val;
 }
 
+std::vector<std::string> Help_manager::get_topic_brief(Help_topic *topic) {
+  auto help_text = get_help_text(topic->m_help_tag + "_BRIEF");
+
+  // Deprecation notices are added as part of the description on list format
+  auto deprecated = get_help_text(topic->m_help_tag + "_DEPRECATED");
+  for (const auto &text : deprecated) {
+    help_text.push_back(text);
+  }
+  return help_text;
+}
+
 std::string Help_manager::format_topic_list(
     const std::vector<Help_topic *> &topics, size_t lpadding, bool alias) {
   std::vector<std::string> formatted;
@@ -1246,13 +1265,7 @@ std::string Help_manager::format_topic_list(
     std::string alias_str;
     if (alias) alias_str = m_registry->get_token(topic->m_help_tag + "_ALIAS");
 
-    auto help_text = get_help_text(topic->m_help_tag + "_BRIEF");
-
-    // Deprecation notices are added as part of the description on list format
-    auto deprecated = get_help_text(topic->m_help_tag + "_DEPRECATED");
-    for (const auto &text : deprecated) {
-      help_text.push_back(text);
-    }
+    auto help_text = get_topic_brief(topic);
 
     formatted.push_back(format_list_description(topic->m_name, &help_text,
                                                 name_max_len, lpadding,
@@ -1260,6 +1273,20 @@ std::string Help_manager::format_topic_list(
   }
 
   return shcore::str_join(formatted, "\n");
+}
+
+std::vector<std::string> Help_manager::get_member_brief(Help_topic *member) {
+  std::string tag = member->m_help_tag + "_BRIEF";
+  auto help_text = resolve_help_text(*member->m_parent, tag);
+
+  // Deprecation notices are added as part of the description on list format
+  tag = member->m_help_tag + "_DEPRECATED";
+  auto deprecated = resolve_help_text(*member->m_parent, tag);
+  for (const auto &text : deprecated) {
+    help_text.push_back(text);
+  }
+
+  return help_text;
 }
 
 std::string Help_manager::format_member_list(
@@ -1291,15 +1318,13 @@ std::string Help_manager::format_member_list(
 
     description += "\n";
 
-    std::string tag = member->m_help_tag + "_BRIEF";
-    auto help_text = resolve_help_text(*member->m_parent, tag);
-
-    // Deprecation notices are added as part of the description on list format
-    tag = member->m_help_tag + "_DEPRECATED";
-    auto deprecated = resolve_help_text(*member->m_parent, tag);
-    for (const auto &text : deprecated) {
-      help_text.push_back(text);
-    }
+    // Members could now be objects, briefs need to be retrieved
+    // accordingly
+    std::vector<std::string> help_text;
+    if (member->is_object())
+      help_text = get_topic_brief(member);
+    else
+      help_text = get_member_brief(member);
 
     if (!help_text.empty()) {
       description += format_help_text(&help_text, MAX_HELP_WIDTH,
@@ -1351,7 +1376,7 @@ void Help_manager::add_name_section(const Help_topic &topic,
   std::string formatted;
   std::vector<std::string> brief;
 
-  if (topic.is_member())
+  if (topic.is_member() && !topic.is_object())
     brief = resolve_help_text(*topic.m_parent, topic.m_help_tag + "_BRIEF");
   else
     brief = get_help_text(topic.m_help_tag + "_BRIEF");
@@ -1395,8 +1420,14 @@ std::string Help_manager::format_object_help(const Help_topic &object,
           textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
 
       syntax += std::string(SECTION_PADDING, ' ');
-      syntax += object.m_parent->m_name + HELP_API_SPLITTER +
-                textui::bold(object.m_name);
+
+      std::string parent_name =
+          object.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+
+      std::string display_name = object.m_name;
+      if (object.is_member()) display_name = object.get_name(m_mode);
+
+      syntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
 
       sections.push_back(syntax);
     }
@@ -1416,7 +1447,7 @@ std::string Help_manager::format_object_help(const Help_topic &object,
   }
 
   // Classifies the child topics
-  std::vector<Help_topic *> cat, prop, func, mod, cls, obj, others;
+  std::vector<Help_topic *> cat, prop, func, mod, cls, obj, consts, others;
   for (auto child : object.m_childs) {
     if (child->is_enabled(m_mode)) {
       switch (child->m_type) {
@@ -1426,13 +1457,17 @@ std::string Help_manager::format_object_help(const Help_topic &object,
         case Topic_type::CLASS:
           cls.push_back(child);
           break;
-        case Topic_type::OBJECT:
+        case Topic_type::GLOBAL_OBJECT:
           obj.push_back(child);
+          break;
+        case Topic_type::CONSTANTS:
+          consts.push_back(child);
           break;
         case Topic_type::FUNCTION:
           func.push_back(child);
           break;
         case Topic_type::PROPERTY:
+        case Topic_type::OBJECT:
           prop.push_back(child);
           break;
         case Topic_type::CATEGORY:
@@ -1445,6 +1480,11 @@ std::string Help_manager::format_object_help(const Help_topic &object,
           break;
       }
     }
+  }
+
+  if (options.is_set(Help_option::Constants)) {
+    add_childs_section(consts, &sections, lpadding, NO_MEMBER_TOPICS,
+                       tag + "_CONSTANTS", "CONSTANTS");
   }
 
   if (options.is_set(Help_option::Properties)) {
@@ -1560,12 +1600,15 @@ std::string Help_manager::format_property_help(const Help_topic &property) {
       textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
   syntax += std::string(SECTION_PADDING, ' ');
 
-  if (property.m_parent->is_class())
+  if (property.m_parent->is_class()) {
     syntax +=
         "<" + property.m_parent->m_name + ">." + textui::bold(display_name);
-  else
-    syntax += property.m_parent->m_name + HELP_API_SPLITTER +
-              textui::bold(display_name);
+  } else {
+    std::string parent_name =
+        property.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+
+    syntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
+  }
 
   sections.push_back(syntax);
 
@@ -1705,6 +1748,8 @@ std::string Help_manager::get_help(const Help_topic &topic,
     case Topic_type::MODULE:
     case Topic_type::CLASS:
     case Topic_type::OBJECT:
+    case Topic_type::CONSTANTS:
+    case Topic_type::GLOBAL_OBJECT:
       return format_object_help(topic, options);
     case Topic_type::FUNCTION:
       return format_function_help(topic);

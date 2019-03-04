@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,8 +140,9 @@ std::vector<std::string> Generic_option::get_cmdline_help(
 
 Proxy_option::Proxy_option(const char *environment_variable,
                            std::vector<std::string> &&command_line_names,
-                           const char *help, Handler handler)
-    : Generic_option("", environment_variable, std::move(command_line_names),
+                           const char *help, Handler handler,
+                           const std::string &name)
+    : Generic_option(name, environment_variable, std::move(command_line_names),
                      help),
       handler(handler) {
   assert(environment_variable == nullptr || handler != nullptr);
@@ -568,11 +569,21 @@ void Options::add_option(Generic_option *option) {
   auto cmdline_names = opt->get_cmdline_names();
   for (const auto &cmd_name : cmdline_names) {
     auto it = cmdline_options.find(cmd_name);
-    if (it != cmdline_options.end())
-      throw std::invalid_argument(
-          "Error while adding option " + opt->get_name() +
-          " its cmdline name '" + cmd_name +
-          "' clashes with option: " + it->second->get_name());
+    if (it != cmdline_options.end()) {
+      // This error may be misleading if existing command line option
+      // is for an unnamed option
+      auto name = it->second->get_name();
+      std::string reason;
+      if (name.empty()) {
+        reason = "clashes with existing option.";
+      } else {
+        reason = "clashes with option '" + name + "'.";
+      }
+
+      throw std::invalid_argument("Error while adding option '" +
+                                  opt->get_name() + "' its cmdline name '" +
+                                  cmd_name + "' " + reason);
+    }
   }
 
   if (opt->get_name().length() != 0) {

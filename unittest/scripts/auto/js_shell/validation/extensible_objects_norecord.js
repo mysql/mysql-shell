@@ -5,9 +5,12 @@ NAME
 DESCRIPTION
       Gives access to general testing functions and properties.
 
-OBJECTS
- - sampleModuleJS Sample module exported from C++
- - sampleModulePY Sample module exported from C++
+PROPERTIES
+      sampleModuleJS
+            Sample module exported from C++
+
+      sampleModulePY
+            Sample module exported from C++
 
 FUNCTIONS
       help([member])
@@ -159,7 +162,7 @@ NAME
       stringFunction - Brief description for stringFunction.
 
 SYNTAX
-      sampleModuleJS.stringFunction(data)
+      testutil.sampleModuleJS.stringFunction(data)
 
 WHERE
       data: String. Brief description for string parameter.
@@ -169,11 +172,7 @@ DESCRIPTION
 
       Detailed description for string parameter.
 
-      The data parameter accepts the following values:
-
-      - one
-      - two
-      - three
+      The data parameter accepts the following values: one, two, three.
 
 //@ Usage, function(string)
 ||sampleModuleJS.stringFunction: Argument #1 is expected to be a string (ArgumentError)
@@ -208,7 +207,7 @@ NAME
       dictFunction - Brief definition for dictFunction.
 
 SYNTAX
-      sampleModuleJS.dictFunction([data])
+      testutil.sampleModuleJS.dictFunction([data])
 
 WHERE
       data: Dictionary. Short description for dictionary parameter.
@@ -220,20 +219,18 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption String. A sample option
+      - myOption (required) String. A sample option
 
       Details for the sample option
 
-      The myOption option accepts the following values:
+      The myOption option accepts the following values: test, value.
 
-      - test
-      - value
 
 //@ Usage, function(dictionary)
 ||sampleModuleJS.dictFunction: Missing required options at Argument #1: myOption (ArgumentError)
 ||sampleModuleJS.dictFunction: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption) (ArgumentError)
-||sampleModuleJS.dictFunction: option myOption at Argument #1 is expected to be a string (ArgumentError)
-||sampleModuleJS.dictFunction: option myOption at Argument #1 only accepts the following values: test, value. (ArgumentError)
+||sampleModuleJS.dictFunction: Argument #1, option 'myOption' is expected to be a string (ArgumentError)
+||sampleModuleJS.dictFunction: Argument #1, option 'myOption' only accepts the following values: test, value. (ArgumentError)
 |No function data available|
 |Function data: test|
 
@@ -268,7 +265,7 @@ NAME
       objectFunction1 - Brief definition for objectFunction.
 
 SYNTAX
-      sampleModuleJS.objectFunction1(session)
+      testutil.sampleModuleJS.objectFunction1(session)
 
 WHERE
       session: Object. Short description for object parameter.
@@ -318,7 +315,7 @@ NAME
       objectFunction2 - Brief definition for objectFunction.
 
 SYNTAX
-      sampleModuleJS.objectFunction2(session)
+      testutil.sampleModuleJS.objectFunction2(session)
 
 WHERE
       session: Object. Short description for object parameter.
@@ -335,99 +332,47 @@ DESCRIPTION
 |Active Session: <Session:<<<__uri>>>>|
 
 //@ Registration errors, function definition
-||Testutils.registerFunction: Target object was not found. (ArgumentError)
-||Testutils.registerFunction: Invalid options at function definition: extra (ArgumentError)
-||Testutils.registerFunction: Option 'brief' is expected to be of type String, but is Integer (TypeError)
-||Testutils.registerFunction: Option 'details' is expected to be of type Array, but is Integer (TypeError)
-||Testutils.registerFunction: Option 'details' String expected, but value is Integer (TypeError)
-||Testutils.registerFunction: Option 'parameters' is expected to be of type Array, but is Integer (TypeError)
-||Testutils.registerFunction: Invalid definition at parameter #1 (ArgumentError)
+||Shell.addExtensionObjectMember: Argument #1 is expected to be an object
+||Shell.addExtensionObjectMember: Argument #1 is expected to be an extension object
+||Shell.addExtensionObjectMember: Argument #2 is expected to be a string
+||Shell.addExtensionObjectMember: Invalid options at function definition: extra (ArgumentError)
+||Shell.addExtensionObjectMember: Option 'brief' is expected to be of type String, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Option 'details' is expected to be of type Array, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Option 'details' String expected, but value is Integer (TypeError)
+||Shell.addExtensionObjectMember: Option 'parameters' is expected to be of type Array, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Invalid definition at parameter #1 (ArgumentError)
 
 //@ Registration errors, parameters
-||Testutils.registerFunction: Missing required options at parameter #1: name, type (ArgumentError)
-||Testutils.registerFunction: Option 'type' is expected to be of type String, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Missing required options at parameter #1: name, type (ArgumentError)
+||Shell.addExtensionObjectMember: Option 'type' is expected to be of type String, but is Integer (TypeError)
 
 //@ Registration errors, integer parameters
-||Testutils.registerFunction: Invalid options at parameter 'sample': class, classes, options, values (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid options at integer parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, float parameters
-||Testutils.registerFunction: Invalid options at parameter 'sample': class, classes, options, values (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid options at float parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, bool parameters
-||Testutils.registerFunction: Invalid options at parameter 'sample': class, classes, options, values (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid options at bool parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, string parameters
-||Testutils.registerFunction: Invalid options at parameter 'sample': class, classes, options (ArgumentError)
-||Testutils.registerFunction: Option 'values' is expected to be of type Array, but is Integer (TypeError)
-||Testutils.registerFunction: Option 'values' String expected, but value is Integer (TypeError)
+||Shell.addExtensionObjectMember: Invalid options at string parameter 'sample': class, classes, options (ArgumentError)
+||Shell.addExtensionObjectMember: Option 'values' is expected to be of type Array, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Option 'values' String expected, but value is Integer (TypeError)
 
 //@ Registration errors, object parameters
-||Testutils.registerFunction: Invalid options at parameter 'sample': options, values (ArgumentError)
-||Testutils.registerFunction: Option 'class' is expected to be of type String, but is Integer (TypeError)
-||Testutils.registerFunction: Option 'classes' String expected, but value is Integer (TypeError)
+||Shell.addExtensionObjectMember: Invalid options at object parameter 'sample': options, values (ArgumentError)
+||Shell.addExtensionObjectMember: Option 'class' is expected to be of type String, but is Integer (TypeError)
+||Shell.addExtensionObjectMember: Option 'classes' String expected, but value is Integer (TypeError)
 
 //@ Registration errors, dictionary parameters
-||Testutils.registerFunction: Invalid and missing options at parameter 'sample' (invalid: class, classes, values), (missing: options) (ArgumentError)
-||Testutils.registerFunction: Missing 'options' at parameter 'sample'. (ArgumentError)
-||Testutils.registerFunction: Invalid definition at parameter 'sample' option #1 (ArgumentError)
-||Testutils.registerFunction: Missing required options at parameter 'sample' option #1: name, type (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid and missing options at dictionary parameter 'sample' (invalid: class, classes, values), (missing: options) (ArgumentError)
+||Shell.addExtensionObjectMember: Missing option definitions at parameter 'sample'. (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid definition at parameter 'sample', option #1 (ArgumentError)
+||Shell.addExtensionObjectMember: Missing required options at parameter 'sample', option #1: name, type (ArgumentError)
 
 //@ Registration errors, invalid identifiers
-||Testutils.registerModule: The module name must be a valid identifier. (ArgumentError)
-||Testutils.registerFunction: The function name 'my function' is not a valid identifier. (ArgumentError)
-||Testutils.registerFunction: parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
-||Testutils.registerFunction: parameter 'sample' option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
+||Shell.addExtensionObjectMember: The function name 'my function' is not a valid identifier. (ArgumentError)
+||Shell.addExtensionObjectMember: parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
+||Shell.addExtensionObjectMember: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
 
-//@ Function with custom names, registration error
-||Testutils.registerFunction: Invalid function name. When using custom names only two names should be provided. (ArgumentError)
-
-//@ Function with custom names, registration ok
-||
-
-//@<OUT> Function with custom names, help on module
-NAME
-      sampleModuleJS - Sample module exported from C++
-
-SYNTAX
-      testutil.sampleModuleJS
-
-DESCRIPTION
-      Exploring the posibility to dynamically create objects fron C++
-
-FUNCTIONS
-      dictFunction([data])
-            Brief definition for dictFunction.
-
-      help([member])
-            Provides help about this object and it's members
-
-      js_function(data)
-            Brief description for stringFunction.
-
-      objectFunction1(session)
-            Brief definition for objectFunction.
-
-      objectFunction2(session)
-            Brief definition for objectFunction.
-
-      stringFunction(data)
-            Brief description for stringFunction.
-
-//@<OUT> Function with custom names, help on function
-NAME
-      js_function - Brief description for stringFunction.
-
-SYNTAX
-      sampleModuleJS.js_function(data)
-
-WHERE
-      data: String. Brief description for string parameter.
-
-DESCRIPTION
-      Detailed description for stringFunction
-
-      Detailed description for string parameter.
-
-
-//@ Function with custom names, usage
-|Some random data: some data|

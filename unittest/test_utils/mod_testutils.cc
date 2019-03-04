@@ -121,7 +121,7 @@ const char *k_boilerplate_root_password = "root";
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      std::shared_ptr<mysqlsh::Command_line_shell> shell,
                      const std::string &mysqlsh_path)
-    : mysqlsh::Extensible_object("testutil", "testutil"),
+    : mysqlsh::Extensible_object("testutil", "testutil", true),
       _shell(shell),
       _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
@@ -212,26 +212,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 void Testutils::dbug_set(const std::string &s) { DBUG_SET(s.c_str()); }
 
 void Testutils::enable_extensible() {
-  register_object_help(
-      "Gives access to general testing functions and properties.",
-      {"Gives access to general testing functions and properties."});
+  register_help("Gives access to general testing functions and properties.",
+                {"Gives access to general testing functions and properties."},
+                true);
 
-  shcore::Cpp_function::Metadata *md;
-
-  // Exposes the function, grabs the metadata function metadata
-  md = expose("registerModule", &Testutils::register_module, "parent", "name",
-              "?options");
-
-  // Sets allowed values for the options parameter
-  std::vector<std::shared_ptr<shcore::Parameter>> allowed;
-  allowed.emplace_back(std::make_shared<shcore::Parameter>(
-      "brief", shcore::Value_type::String, shcore::Param_flag::Optional));
-  allowed.emplace_back(std::make_shared<shcore::Parameter>(
-      "details", shcore::Value_type::Array, shcore::Param_flag::Optional));
-  md->signature[2]->validator<shcore::Option_validator>()->set_allowed(
-      std::move(allowed));
-
-  // Registers the function help on the help system
   register_function_help(
       "registerModule", "Registers a test module.",
       {"@param parent The module that will contain the new module.",
@@ -250,13 +234,6 @@ void Testutils::enable_extensible() {
        "Each entry in the details array will be turned into a paragraph on "
        "the module help.",
        "Only strings are allowed in the details array."});
-
-  // Exposes the function, grabs the metadata function metadata
-  md = expose("registerFunction", &Testutils::register_module_function,
-              "parent", "name", "function", "?definition");
-
-  // Sets a custom validator for the options parameter
-  auto options2 = std::make_shared<shcore::Option_validator>();
 
   register_function_help(
       "registerFunction", "Registers a test utility function.",
@@ -313,41 +290,11 @@ void Testutils::enable_extensible() {
       "sampleModuleJS", "Sample module exported from C++",
       {"Exploring the posibility to dynamically create objects fron C++"},
       "module");
+
   register_object(
       "sampleModulePY", "Sample module exported from C++",
       {"Exploring the posibility to dynamically create objects fron C++"},
       "module");
-}
-
-void Testutils::register_module(const std::string &parent,
-                                const std::string &name,
-                                shcore::Dictionary_t options) {
-  auto object = search_object(parent);
-
-  if (!object)
-    throw shcore::Exception::argument_error("Target object was not found.");
-
-  std::string brief;
-  std::vector<std::string> details;
-
-  shcore::Option_unpacker unpacker(options);
-  unpacker.optional("brief", &brief);
-  unpacker.optional("details", &details);
-  unpacker.end();
-
-  object->register_object(name, brief, details, "module");
-}
-
-void Testutils::register_module_function(
-    const std::string &parent, const std::string &name,
-    const shcore::Function_base_ref &function,
-    const shcore::Dictionary_t &definition) {
-  auto object = search_object(parent);
-
-  if (!object)
-    throw shcore::Exception::argument_error("Target object was not found.");
-
-  object->register_function(name, function, definition);
 }
 
 void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {

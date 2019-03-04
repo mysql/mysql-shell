@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,52 @@
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
+/**
+ * Member information to be used when exposing a member in an extensible
+ * object. It contains the following information:
+ *
+ * name: should be given in camelCase format, the member will be exposed
+ * using camelCase in JavaScript and snake_case in Python to honor naming
+ * conventions, however, specific names can be given for both languages in
+ * the format of jsname|pyname.
+ *
+ * brief: a brief description for the member (WHAT the member is).
+ * details: additional information about the member.
+ *
+ * The information on the brief and details will be integrated into the
+ * help system to be available when:
+ *
+ * - Querying for help on the member itself.
+ * - Querying for help on the object containing the member.
+ */
+struct Member_definition {
+  Member_definition() {}
+  Member_definition(const std::string &n, const std::string &b,
+                    const std::vector<std::string> &d)
+      : name(n), brief(b), details(d) {}
 
+  std::string name;
+  std::string brief;
+  std::vector<std::string> details;
+};
+
+/**
+ * This structure holds parameter metadata to be used when registering a
+ * function into an extensible object, this information includes:
+ *
+ * parameter: the parameter definition itself which includes:
+ *
+ *   - name
+ *   - whether it is required or not
+ *   - data validators
+ *
+ * brief: a brief description for the parameter (WHAT it is).
+ * details: additional information about the parameter.
+ *
+ * The information on this structure will be integrated into the help
+ * system to be available when querying information about the function
+ * where the parameter is defined.
+ */
 struct Parameter_definition {
   using Options = std::vector<std::shared_ptr<Parameter_definition>>;
 
@@ -57,17 +102,27 @@ struct Parameter_definition {
   Options m_options;
 };
 
-struct Function_definition {
+/**
+ * This structure plays the same role as the Member_definition struct, it holds
+ * the information for all the parameters on a function exposed in an
+ * extensible object.
+ *
+ * For more details look at Member_definition and Parameter_definition.
+ */
+struct Function_definition : public Member_definition {
   using Parameters = std::vector<std::shared_ptr<Parameter_definition>>;
+  Function_definition() {}
+  Function_definition(const std::string &n, const Parameters &p,
+                      const std::string &b, const std::vector<std::string> &d)
+      : Member_definition(n, b, d), parameters(p) {}
   Parameters parameters;
-  std::string brief;
-  std::vector<std::string> details;
 };
 
 /**
  * Base class for extensible objects to be exposed on the API.
  *
  * This adds dynamic behavior where:
+ *
  * - Additional objects exposed as properties can be added to this object.
  * - Additional functions can be added to this object.
  *
@@ -77,67 +132,61 @@ class Extensible_object
     : public std::enable_shared_from_this<Extensible_object>,
       public shcore::Cpp_object_bridge {
  public:
-  Extensible_object(const std::string &name, const std::string &qualified_name);
+  Extensible_object(const std::string &name = "",
+                    const std::string &qualified_name = "");
   virtual ~Extensible_object();
-  virtual std::string class_name() const { return m_name; }
-  virtual bool operator==(const Object_bridge &other) const;
+  std::string class_name() const override {
+    return m_name.empty() ? "ExtensionObject" : m_name;
+  }
+  bool operator==(const Object_bridge &other) const override;
 
-  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value get_member(const std::string &prop) const override;
+  void set_member(const std::string &prop, shcore::Value) override;
+  bool has_member(const std::string &prop) const override;
+  shcore::Value call(const std::string &name,
+                     const shcore::Argument_list &args) override;
+  shcore::Value call_advanced(const std::string &name,
+                              const shcore::Argument_list &args) override;
 
   /**
-   * Registers a new child object on this object.
-   *
-   * A new topic will be created for the object on the shell help system.
+   * Registers a new member on this object.
    *
    * @param name The name of the object to be created.
-   * @param brief A brief description of the new object.
-   * @param details Detailed description of the new object.
-   * @param type_label: String identifying the type of object being registered.
+   * @param member The value to be registered.
+   * @param definition Help data for the member being registered
    *
-   * Each entry in the details list is registered in the help system, this means
-   * it follows the same rules as registering the help with the REGISTER_HELP
-   * macro, except that this help will NOT be rendered on the Doxygen docs.
+   * The member parameter can be any of s_allowed_member_types
    *
-   * The type_label can be used to get custom messages related to the object
-   * registration, i.e.
+   * - If it is a function, then the member will be registered as a function.
+   * - Otherwise will be registered as a property in the object.
    *
-   * - The <type_label> must be a valid identifier
-   * - The module name must be a valid identifier.
-   * - The report name must be a valid identifier.
-   */
-  void register_object(const std::string &name, const std::string &brief,
-                       const std::vector<std::string> &details,
-                       const std::string &type_label);
-
-  /**
-   * Registers a new function on this object.
+   * NOTE: Members registered through this function strictly follow naming
+   *       convention, this is, members are exposed in camelCase in JavaScript
+   *       in snake_case for Python.
    *
-   * This function is to be used with function data coming from JavaScript
-   * or Python.
+   *       In some situations it is required to break the naming convention,
+   *       to achieve that, expose the member by calling the following
+   *       functions:
    *
-   * To do the same from C++:
-   * - Use the expose() to register the function and get the metadata
-   * - Use the metadata to define custom validators
-   * - Use the public register_function_help to register the help data
+   *       - register_function(definition, function)
+   *       - register_member(definition, member)
    *
-   * @param name The function name in camelCase format.
-   * @param function The callback that will be registered under the specified
-   * name.
-   * @param definition Container for help and metadata for the function
-   *
-   * With the name given in camelCase format, the function will be exposed
-   * using camelCase in JavaScript and snake_case in Python.
-   *
-   * The function definition may contain the following options:
+   * The definition parameter is a dictionary that can contain the following
+   * attributes for any member type:
    *
    * - brief: brief description of the function being registered.
    * - details: array of strings with details about the function being
    *   registered. Each entry on this list is turned into a paragraph
    *   in the help system.
+   *
+   * If the member being registered is a function, the following attribute is
+   * also allowed:
+   *
    * - parameters: list of parameters that the function accepts.
    *
-   * Each parameter is defined as another dictionary where the following options
-   * are allowed:
+   * Each parameter is defined as another dictionary where the following
+   * options are allowed:
+   *
    * - name: required, the name of the parameter.
    * - type: required, the parameter data type.
    * - required: boolean indicating if the parameter is required or not.
@@ -146,6 +195,7 @@ class Extensible_object
    *   Each entry in the list becomes a paragraph on the help system.
    *
    * Supported data types include:
+   *
    * - string
    * - integer
    * - float
@@ -165,46 +215,107 @@ class Extensible_object
    * of options allowed on the parameter.
    *
    * The definition of each option follows the same rules as the definition
-   * for a parameter.
+   * for a parameter.   *
    */
-  void register_function(const std::string &name,
-                         const shcore::Function_base_ref &function,
-                         const shcore::Dictionary_t &definition);
-
-  void register_function(const std::string &name,
-                         const shcore::Function_base_ref &function,
-                         const Function_definition &definition);
+  void register_member(const std::string &name, const shcore::Value &member,
+                       const shcore::Dictionary_t &definition);
 
   /**
-   * Searches for an object given a fully qualified name.
+   * Registers a new child object on this object.
    *
-   * @param name_chain The name of the target object.
-   * @returns The target object if found, otherwise nullptr
+   * A new topic will be created for the object on the shell help system.
    *
-   * The name_chain comes in the format of
+   * @param name The name of the object to be created.
+   * @param brief A brief description of the new object.
+   * @param details Detailed description of the new object.
+   * @param type_label: String identifying the type of object being registered.
+   * @returns Shared pointer to the extensible object created within the
+   * function.
    *
-   * parent[.child]*
+   * Each entry in the details list is registered in the help system, this means
+   * it follows the same rules as registering the help with the REGISTER_HELP
+   * macro, except that this help will NOT be rendered on the Doxygen docs.
    *
-   * If this object is named 'parent' then the 'child' is going to be searched
-   * on m_children, repeating the operation for all the names included on the
-   * name_chain.
+   * The type_label can be used to get custom messages related to the object
+   * registration, i.e.
    *
-   * If the final object is found, it will be returned
+   * - The <type_label> must be a valid identifier
+   * - The module name must be a valid identifier.
+   * - The report name must be a valid identifier.
+   *
+   * NOTE: This function is for usage from C++ only, i.e. object addition
+   *       from Python/JavaScript is currently not supported and when enabled
+   *       will be through the register_member(...) function.
    */
-  std::shared_ptr<Extensible_object> search_object(
-      const std::string &name_chain);
+  std::shared_ptr<Extensible_object> register_object(
+      const std::string &name, const std::string &brief,
+      const std::vector<std::string> &details, const std::string &type_label);
 
   /**
-   * Utility function to ease the registration of help data for this object.
+   * Registers a new function on this object.
    *
-   * @param brief A brief description of the object.
-   * @param details A list defining the details for the object.
+   * This function is to be used internally within C++ to dynamically expose
+   * a function and register help information into the help system.
    *
-   * Each help entry in details is registered and follows the same rules as
-   * the REGISTER_HELP macro.
+   * @param definition Container for help and metadata for the function
+   * @param function The callback that will be registered under the specified
+   * name.
+   * @param custom_names determines whether the exposed function should follow
+   * naming convention strictly or if it allows custom names for JavaScript and
+   * Python.
+   *
+   * In general when coming from the user, strict naming convention should be
+   * followed, not necessarily the case when coming from C++.
    */
-  void register_object_help(const std::string &brief,
-                            const std::vector<std::string> &details);
+  void register_function(const std::shared_ptr<Function_definition> &definition,
+                         const shcore::Function_base_ref &function,
+                         bool custom_names = true);
+
+  /**
+   * Registers a new member on this object.
+   *
+   * This function is to be used internally within C++ to dynamically expose
+   * a member and register help information into the help system.
+   *
+   * @param definition Container for help and metadata for the function
+   * @param member The value to be used as the exposed member.
+   * @param custom_names determines whether the exposed function should follow
+   * naming convention strictly or if it allows custom names for JavaScript and
+   * Python.
+   *
+   * In general when coming from the user, strict naming convention should be
+   * followed, not necessarily the case when coming from C++.
+   */
+  void register_property(const std::shared_ptr<Member_definition> &definition,
+                         const shcore::Value &value, bool custom_names = true);
+
+  /**
+   * Utility function to register help data for this object.
+   *
+   * @param details The Member_definition containing the help data.
+   */
+  void register_help(const std::shared_ptr<Member_definition> &details,
+                     bool is_global);
+
+  /**
+   * Utility function to ease the help registration from C++.
+   *
+   * @param brief A brief descrption for this object.
+   * @param details Detailed information about this object.
+   *
+   * This function just creates the Member_definition structure with
+   * the received data and calls the function above.
+   */
+  void register_help(const std::string &brief,
+                     const std::vector<std::string> &details, bool is_global);
+
+  /**
+   * Utility function register help about a property registered on this object.
+   *
+   * @param details The member definition that contains the help data
+   */
+  void register_property_help(
+      const std::shared_ptr<Member_definition> &details);
 
   /**
    * Utility function to ease the registration of help data for a function
@@ -212,7 +323,6 @@ class Extensible_object
    *
    * A function topic will be registered under the specified parent topic.
    *
-   * @param parent The parent topic for the function topic.
    * @param name The name of the function.
    * @param brief A brief description of the function.
    * @param params A list defining the parameters for the function.
@@ -232,31 +342,74 @@ class Extensible_object
                               const std::vector<std::string> &params,
                               const std::vector<std::string> &details);
 
+  /**
+   * Sets the registered status of this object to true.
+   *
+   * If this object was unregistered (i.e. created through shell.createObject()
+   * when this happens all the help cached for the object is registered on the
+   * help system.
+   *
+   * Otherwise this operation does nothing.
+   */
+  void set_registered(const std::string &name = "");
+
+  void set_definition(const std::shared_ptr<Member_definition> &definition) {
+    m_definition = definition;
+  }
+
+  std::shared_ptr<Extensible_object> get_parent() const {
+    return m_parent.expired() ? std::shared_ptr<Extensible_object>()
+                              : m_parent.lock();
+  }
+
+  bool is_registered() const { return m_registered; }
+
+  std::string get_name() const { return m_name; }
+  std::string get_qualified_name() const { return m_qualified_name; }
+
  protected:
+  Extensible_object(const std::string &name, const std::string &qualified_name,
+                    bool registered);
+
   void enable_help();
 
   Function_definition::Parameters parse_parameters(
-      const shcore::Array_t &parameters,
-      const shcore::Parameter_context &context, bool default_require);
+      const shcore::Array_t &parameters, shcore::Parameter_context *context,
+      const std::set<std::string> &allowed_types, bool as_parameters);
 
   virtual std::shared_ptr<Parameter_definition> start_parsing_parameter(
       const shcore::Dictionary_t &definition,
       shcore::Option_unpacker *unpacker) const;
 
  private:
-  std::string m_name;
-  std::string m_qualified_name;
-  std::map<std::string, std::shared_ptr<Extensible_object>> m_children;
+  static std::set<shcore::Value_type> s_allowed_member_types;
+  static std::set<std::string> s_allowed_param_types;
+  static std::map<std::string, shcore::Value_type> s_type_mapping;
 
-  shcore::Value_type map_type(const std::string &value);
+  static void validate_name(const std::string &name, const std::string &label,
+                            bool custom_names);
+
+  static void validate_parameter(const shcore::Parameter &parameter,
+                                 shcore::Parameter_context *context);
+
+  static void validate_function(
+      const std::shared_ptr<Function_definition> &parameters);
+
+  shcore::Value_type map_type(const std::string &type,
+                              const std::set<std::string> &allowed_types);
   std::shared_ptr<Parameter_definition> parse_parameter(
       const shcore::Dictionary_t &definition,
-      const shcore::Parameter_context &context, bool default_require);
-  std::shared_ptr<Extensible_object> search_object(
-      std::vector<std::string> *name_chain);
+      shcore::Parameter_context *context,
+      const std::set<std::string> &allowed_types, bool as_parameters);
 
-  void register_function_help(const std::string &name,
-                              const Function_definition &definition);
+  std::shared_ptr<Function_definition> parse_function_definition(
+      const shcore::Dictionary_t &definition);
+
+  std::shared_ptr<Member_definition> parse_member_definition(
+      const shcore::Dictionary_t &definition);
+
+  void register_function_help(
+      const std::shared_ptr<Function_definition> &definition);
 
   void get_param_help_brief(const Parameter_definition &param,
                             bool as_parameter,
@@ -266,15 +419,51 @@ class Extensible_object
                              bool as_parameter,
                              std::vector<std::string> *details);
 
-  static void validate_function(
-      const std::string &name,
-      const Function_definition::Parameters &parameters);
-
-  static void validate_parameter(const shcore::Parameter &parameter,
-                                 const shcore::Parameter_context &context);
-
   void disable_help();
+
+  void register_object(const std::shared_ptr<Extensible_object> &object);
+
+  std::string m_name;
+  std::string m_qualified_name;
+  bool m_registered;
+  size_t m_detail_sequence;
+  std::map<std::string, std::shared_ptr<Extensible_object>> m_children;
+  shcore::Value::Map_type m_members;
+
+  std::weak_ptr<Extensible_object> m_parent;
+  // Cache for object, member and function definition
+  std::shared_ptr<Member_definition> m_definition;
+  std::vector<std::shared_ptr<Member_definition>> m_property_definition;
+  std::vector<std::shared_ptr<Function_definition>> m_function_definition;
 };
 }  // namespace mysqlsh
+
+namespace shcore {
+
+template <>
+struct Type_info<std::shared_ptr<mysqlsh::Extensible_object>> {
+  static std::shared_ptr<mysqlsh::Extensible_object> to_native(
+      const shcore::Value &in) {
+    std::shared_ptr<mysqlsh::Extensible_object> object;
+
+    if (in.type == shcore::Object)
+      object = in.as_object<mysqlsh::Extensible_object>();
+
+    if (!object) {
+      throw shcore::Exception::type_error(
+          "Invalid typecast: extension object expected.");
+    }
+
+    return object;
+  }
+  static Value_type vtype() { return shcore::Object; }
+  static const char *code() { return "O"; }
+  static std::shared_ptr<mysqlsh::Extensible_object> default_value() {
+    return std::shared_ptr<mysqlsh::Extensible_object>();
+  }
+  static std::string desc() { return "an extension object"; }
+};
+
+}  // namespace shcore
 
 #endif  // MODULES_MOD_EXTENSIBLE_OBJECT_H_

@@ -619,15 +619,22 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   shcore::Topic_mask mask;
   std::string pattern = class_name();
   if (!item.empty()) {
+    // This group represents the API topics that can childs
+    // of another API topic
     pattern += "." + item;
     mask.set(shcore::Topic_type::FUNCTION);
     mask.set(shcore::Topic_type::PROPERTY);
     mask.set(shcore::Topic_type::OBJECT);
     mask.set(shcore::Topic_type::CLASS);
+    mask.set(shcore::Topic_type::CONSTANTS);
   } else {
-    mask.set(shcore::Topic_type::MODULE);  // i.e. mysql, mysqlx
-    mask.set(shcore::Topic_type::OBJECT);  // i.e. Shell, Options
-    mask.set(shcore::Topic_type::CLASS);   // i.e. Anything else
+    // This group represents the API topics that can contain
+    // children
+    mask.set(shcore::Topic_type::MODULE);
+    mask.set(shcore::Topic_type::OBJECT);
+    mask.set(shcore::Topic_type::GLOBAL_OBJECT);
+    mask.set(shcore::Topic_type::CONSTANTS);
+    mask.set(shcore::Topic_type::CLASS);
   }
 
   ret_val = help.get_help(pattern, mask);
@@ -773,8 +780,11 @@ Value Cpp_function::invoke(const Argument_list &args) {
       try {
         a->check_type(s->second);
       } catch (...) {
+        std::string arg = s->first;
+        if (arg[0] == '?') arg = arg.substr(1);
+
         throw Exception::argument_error(
-            "Argument " + s->first + " at pos " + std::to_string(n) + " for " +
+            "Argument " + arg + " at pos " + std::to_string(n) + " for " +
             name() + "() has wrong type: expected " + type_name(s->second) +
             " but got " + type_name(a->type));
       }
@@ -839,19 +849,22 @@ std::string Cpp_property_name::base_name() const {
 }
 
 std::string Parameter_context::str() const {
-  std::string ctx;
+  std::vector<std::string> ctx_data;
 
-  if (position.is_null()) {
-    ctx = title;
-  } else {
-    ctx = shcore::str_format("%s #%i", title.c_str(), *position);
+  for (auto it = levels.begin(); it != levels.end(); it++) {
+    if (it->position.is_null()) {
+      ctx_data.push_back(it->name);
+    } else {
+      ctx_data.push_back(
+          shcore::str_format("%s #%i", it->name.c_str(), *it->position));
+    }
   }
 
-  return ctx;
+  return (title.empty() ? "" : title + " ") + shcore::str_join(ctx_data, ", ");
 }
 
 void Parameter_validator::validate(const Parameter &param, const Value &data,
-                                   const Parameter_context &context) const {
+                                   Parameter_context *context) const {
   try {
     data.check_type(param.type());
 
@@ -869,14 +882,14 @@ void Parameter_validator::validate(const Parameter &param, const Value &data,
     }
   } catch (...) {
     auto error =
-        shcore::str_format("%s is expected to be %s", context.str().c_str(),
+        shcore::str_format("%s is expected to be %s", context->str().c_str(),
                            shcore::type_description(param.type()).c_str());
     throw shcore::Exception::argument_error(error);
   }
 }
 
 void Object_validator::validate(const Parameter &param, const Value &data,
-                                const Parameter_context &context) const {
+                                Parameter_context *context) const {
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
@@ -884,7 +897,7 @@ void Object_validator::validate(const Parameter &param, const Value &data,
 
     if (!object) {
       throw shcore::Exception::argument_error(shcore::str_format(
-          "%s is expected to be an object", context.str().c_str()));
+          "%s is expected to be an object", context->str().c_str()));
     }
 
     if (std::find(std::begin(m_allowed), std::end(m_allowed),
@@ -893,10 +906,10 @@ void Object_validator::validate(const Parameter &param, const Value &data,
       std::string error;
       if (m_allowed.size() == 1) {
         error = shcore::str_format("%s is expected to be a '%s' object.",
-                                   context.str().c_str(), allowed_str.c_str());
+                                   context->str().c_str(), allowed_str.c_str());
       } else {
         error = shcore::str_format("%s is expected to be one of '%s'.",
-                                   context.str().c_str(), allowed_str.c_str());
+                                   context->str().c_str(), allowed_str.c_str());
       }
       throw shcore::Exception::argument_error(error);
     }
@@ -904,14 +917,14 @@ void Object_validator::validate(const Parameter &param, const Value &data,
 }
 
 void String_validator::validate(const Parameter &param, const Value &data,
-                                const Parameter_context &context) const {
+                                Parameter_context *context) const {
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
     if (std::find(std::begin(m_allowed), std::end(m_allowed),
                   data.as_string()) == std::end(m_allowed)) {
       auto error = shcore::str_format(
-          "%s only accepts the following values: %s.", context.str().c_str(),
+          "%s only accepts the following values: %s.", context->str().c_str(),
           shcore::str_join(m_allowed, ", ").c_str());
       throw shcore::Exception::argument_error(error);
     }
@@ -919,7 +932,7 @@ void String_validator::validate(const Parameter &param, const Value &data,
 }
 
 void Option_validator::validate(const Parameter &param, const Value &data,
-                                const Parameter_context &context) const {
+                                Parameter_context *context) const {
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
@@ -934,18 +947,17 @@ void Option_validator::validate(const Parameter &param, const Value &data,
       }
 
       if (value) {
-        auto ctx = shcore::str_format("option %s at %s", item->name.c_str(),
-                                      context.str().c_str());
-        item->validate(value, {ctx, {}});
+        context->levels.push_back({"option '" + item->name + "'", {}});
+        item->validate(value, context);
+        context->levels.pop_back();
       }
     }
 
-    unpacker.end("at " + context.str());
+    unpacker.end("at " + context->str());
   }
 };
 
-void Parameter::validate(const Value &data,
-                         const Parameter_context &context) const {
+void Parameter::validate(const Value &data, Parameter_context *context) const {
   if (m_validator) {
     m_validator->validate(*this, data, context);
   } else {

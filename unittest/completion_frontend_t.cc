@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -646,7 +646,9 @@ TEST_F(Completer_frontend, js_shell) {
 
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
-  EXPECT_AFTER_TAB_TAB("shell.", strv({"connect()",
+  EXPECT_AFTER_TAB_TAB("shell.", strv({"addExtensionObjectMember()",
+                                       "connect()",
+                                       "createExtensionObject()",
                                        "deleteAllCredentials()",
                                        "deleteCredential()",
                                        "disablePager()",
@@ -660,6 +662,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "parseUri()",
                                        "prompt()",
                                        "reconnect()",
+                                       "registerGlobal()",
                                        "registerReport()",
                                        "reports",
                                        "setCurrentSchema()",
@@ -1135,7 +1138,9 @@ TEST_F(Completer_frontend, py_shell) {
 
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
-  EXPECT_AFTER_TAB_TAB("shell.", strv({"connect()",
+  EXPECT_AFTER_TAB_TAB("shell.", strv({"add_extension_object_member()",
+                                       "connect()",
+                                       "create_extension_object()",
                                        "delete_all_credentials()",
                                        "delete_credential()",
                                        "disable_pager()",
@@ -1149,6 +1154,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "parse_uri()",
                                        "prompt()",
                                        "reconnect()",
+                                       "register_global()",
                                        "register_report()",
                                        "reports",
                                        "set_current_schema()",

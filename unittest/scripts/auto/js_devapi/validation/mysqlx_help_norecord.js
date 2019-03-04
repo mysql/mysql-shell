@@ -98,7 +98,7 @@ PROPERTIES
 
 FUNCTIONS
       help([member])
-            Provides help about this object and it's members
+            Provides help about this class and it's members
 
 //@<OUT> Help on Type
 NAME
@@ -165,7 +165,7 @@ PROPERTIES
 
 FUNCTIONS
       help([member])
-            Provides help about this object and it's members
+            Provides help about this class and it's members
 
 //@<OUT> Help on BaseResult
 NAME

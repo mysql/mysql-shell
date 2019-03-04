@@ -51,6 +51,7 @@ struct Type_info {
 template <>
 struct Type_info<void> {
   static Value_type vtype() { return shcore::Null; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -59,6 +60,7 @@ struct Type_info<int64_t> {
   static Value_type vtype() { return shcore::Integer; }
   static const char *code() { return "i"; }
   static int64_t default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -67,6 +69,7 @@ struct Type_info<uint64_t> {
   static Value_type vtype() { return shcore::UInteger; }
   static const char *code() { return "u"; }
   static uint64_t default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -77,6 +80,7 @@ struct Type_info<int> {
   static Value_type vtype() { return shcore::Integer; }
   static const char *code() { return "i"; }
   static int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -87,6 +91,7 @@ struct Type_info<unsigned int> {
   static Value_type vtype() { return shcore::UInteger; }
   static const char *code() { return "u"; }
   static unsigned int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -95,6 +100,7 @@ struct Type_info<double> {
   static Value_type vtype() { return shcore::Float; }
   static const char *code() { return "f"; }
   static double default_value() { return 0.0; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -103,6 +109,7 @@ struct Type_info<float> {
   static Value_type vtype() { return shcore::Float; }
   static const char *code() { return "f"; }
   static float default_value() { return 0.0f; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -111,6 +118,7 @@ struct Type_info<bool> {
   static Value_type vtype() { return shcore::Bool; }
   static const char *code() { return "b"; }
   static bool default_value() { return false; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -121,6 +129,7 @@ struct Type_info<std::string> {
   static Value_type vtype() { return shcore::String; }
   static const char *code() { return "s"; }
   static std::string default_value() { return std::string(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -131,6 +140,7 @@ struct Type_info<const std::string &> {
   static Value_type vtype() { return shcore::String; }
   static const char *code() { return "s"; }
   static std::string default_value() { return std::string(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -146,6 +156,7 @@ struct Type_info<const std::vector<std::string> &> {
   static Value_type vtype() { return shcore::Array; }
   static const char *code() { return "A"; }
   static std::vector<std::string> default_value() { return {}; }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 // This mapping allows exposed functions to receive a Value parameter
@@ -158,6 +169,7 @@ struct Type_info<shcore::Value> {
   static Value_type vtype() { return shcore::Undefined; }
   static const char *code() { return "V"; }
   static shcore::Value default_value() { return shcore::Value(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -166,6 +178,7 @@ struct Type_info<const shcore::Value &> {
   static Value_type vtype() { return shcore::Undefined; }
   static const char *code() { return "V"; }
   static shcore::Value default_value() { return shcore::Value(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -176,6 +189,7 @@ struct Type_info<const shcore::Dictionary_t &> {
   static Value_type vtype() { return shcore::Map; }
   static const char *code() { return "D"; }
   static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -186,6 +200,7 @@ struct Type_info<shcore::Dictionary_t> {
   static Value_type vtype() { return shcore::Map; }
   static const char *code() { return "D"; }
   static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -196,6 +211,7 @@ struct Type_info<const shcore::Array_t &> {
   static Value_type vtype() { return shcore::Array; }
   static const char *code() { return "A"; }
   static shcore::Array_t default_value() { return shcore::Array_t(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -206,6 +222,7 @@ struct Type_info<shcore::Array_t> {
   static Value_type vtype() { return shcore::Array; }
   static const char *code() { return "A"; }
   static shcore::Array_t default_value() { return shcore::Array_t(); }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -218,6 +235,7 @@ struct Type_info<Function_base_ref> {
   static shcore::Function_base_ref default_value() {
     return shcore::Function_base_ref();
   }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <>
@@ -230,6 +248,7 @@ struct Type_info<const Function_base_ref &> {
   static shcore::Function_base_ref default_value() {
     return shcore::Function_base_ref();
   }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 template <typename Bridge_class>
@@ -242,6 +261,7 @@ struct Type_info<std::shared_ptr<Bridge_class>> {
   static std::shared_ptr<Bridge_class> default_value() {
     return std::shared_ptr<Bridge_class>();
   }
+  static std::string desc() { return type_description(vtype()); }
 };
 
 /**
@@ -261,7 +281,7 @@ struct Arg_handler {
       std::string error = "Argument #";
       error.append(std::to_string(position + 1));
       error.append(" is expected to be ")
-          .append(type_description(Type_info<T>::vtype()));
+          .append(Type_info<T>::desc().append("."));
       throw Exception::argument_error(error);
     }
   }
@@ -291,7 +311,13 @@ class SHCORE_PUBLIC Cpp_property_name {
  */
 struct Parameter_context {
   std::string title;
-  mysqlshdk::utils::nullable<int> position;
+
+  struct Context_definition {
+    std::string name;
+    mysqlshdk::utils::nullable<int> position;
+  };
+
+  std::vector<Context_definition> levels;
 
   std::string str() const;
 };
@@ -301,7 +327,7 @@ struct Parameter_validator {
  public:
   virtual ~Parameter_validator() = default;
   virtual void validate(const Parameter &param, const Value &data,
-                        const Parameter_context &context) const;
+                        Parameter_context *context) const;
 };
 
 template <typename T>
@@ -317,18 +343,18 @@ struct Parameter_validator_with_allowed : public Parameter_validator {
 
 struct Object_validator : public Parameter_validator_with_allowed<std::string> {
   void validate(const Parameter &param, const Value &data,
-                const Parameter_context &context) const override;
+                Parameter_context *context) const override;
 };
 
 struct String_validator : public Parameter_validator_with_allowed<std::string> {
   void validate(const Parameter &param, const Value &data,
-                const Parameter_context &context) const override;
+                Parameter_context *context) const override;
 };
 
 struct Option_validator
     : public Parameter_validator_with_allowed<std::shared_ptr<Parameter>> {
   void validate(const Parameter &param, const Value &data,
-                const Parameter_context &context) const override;
+                Parameter_context *context) const override;
 };
 
 enum class Param_flag { Mandatory, Optional };
@@ -344,7 +370,7 @@ struct Parameter final {
   std::string name;
   Param_flag flag;
 
-  void validate(const Value &data, const Parameter_context &context) const;
+  void validate(const Value &data, Parameter_context *context) const;
 
   void set_type(Value_type type) {
     m_type = type;
@@ -558,8 +584,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             [&md, func](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index]->validate(
-                    args[index], {"Argument", static_cast<int>(index + 1)});
+                Parameter_context context{
+                    "", {{"Argument", static_cast<int>(index + 1)}}};
+                md.signature[index]->validate(args[index], &context);
               }
 
               return func->invoke(args);
@@ -612,8 +639,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
              a1def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index]->validate(
-                    args[index], {"Argument", static_cast<int>(index + 1)});
+                Parameter_context context{
+                    "", {{"Argument", static_cast<int>(index + 1)}}};
+                md.signature[index]->validate(args[index], &context);
               }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
@@ -686,8 +714,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
              a2def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index]->validate(
-                    args[index], {"Argument", static_cast<int>(index + 1)});
+                Parameter_context context{
+                    "", {{"Argument", static_cast<int>(index + 1)}}};
+                md.signature[index]->validate(args[index], &context);
               }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
@@ -743,8 +772,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
              a3def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index]->validate(
-                    args[index], {"Argument", static_cast<int>(index + 1)});
+                Parameter_context context{
+                    "", {{"Argument", static_cast<int>(index + 1)}}};
+                md.signature[index]->validate(args[index], &context);
               }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
@@ -808,8 +838,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
              a4def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index]->validate(
-                    args[index], {"Argument", static_cast<int>(index + 1)});
+                Parameter_context context{
+                    "", {{"Argument", static_cast<int>(index + 1)}}};
+                md.signature[index]->validate(args[index], &context);
               }
               const A1 &&a1 =
                   args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);

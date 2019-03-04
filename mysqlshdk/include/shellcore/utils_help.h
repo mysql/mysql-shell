@@ -45,8 +45,16 @@ enum class Topic_type {
   MODULE,
   CLASS,
   OBJECT,
+  GLOBAL_OBJECT,
+  CONSTANTS,
   FUNCTION,
-  PROPERTY
+  PROPERTY,
+};
+
+enum class Topic_id_mode {
+  FULL = 1,           // Generate IDs considering all parent topics
+  EXCLUDE_ROOT,       // Generate IDs removing the ROOT category
+  EXCLUDE_CATEGORIES  // Generate IDs removing categories
 };
 
 typedef mysqlshdk::utils::Enum_set<Topic_type, Topic_type::PROPERTY> Topic_mask;
@@ -83,7 +91,11 @@ struct Help_topic {
 
   bool is_module() const { return m_type == Topic_type::MODULE; }
   bool is_class() const { return m_type == Topic_type::CLASS; }
-  bool is_object() const { return m_type == Topic_type::OBJECT; }
+  bool is_object() const {
+    return m_type == Topic_type::OBJECT ||
+           m_type == Topic_type::GLOBAL_OBJECT ||
+           m_type == Topic_type::CONSTANTS;
+  }
   bool is_function() const { return m_type == Topic_type::FUNCTION; }
   bool is_property() const { return m_type == Topic_type::PROPERTY; }
   bool is_command() const { return m_type == Topic_type::COMMAND; }
@@ -100,7 +112,25 @@ struct Help_topic {
   bool is_enabled(IShell_core::Mode mode) const;
   std::string get_name(IShell_core::Mode mode) const;
   std::string get_base_name() const;
-  std::string get_id(bool fully_qualified, IShell_core::Mode mode) const;
+  std::string get_id(IShell_core::Mode mode,
+                     Topic_id_mode id_mode = Topic_id_mode::FULL) const;
+
+  /**
+   * Fills the tokens array with the name of every single topic name
+   * starting from the topmost relevant topic.
+   *
+   * The name is filled following naming convention (if applicable).
+   *
+   * The topmost relevant topic is defined by the full flag:
+   * - If true, the topmost relevant topic is the root topic (Contents).
+   * - If false the topmost relevant topic is:
+   *   - For API topics: the first API topic in the hierarchy.
+   *     (i.e. Contents/<API Root Topic> get removed).
+   *   - For Non API topics: the topic that follows the root topic.
+   *     (i.e. Contents gets removed).
+   */
+  void get_id_tokens(IShell_core::Mode mode, std::vector<std::string> *tokens,
+                     Topic_id_mode id_mode = Topic_id_mode::FULL) const;
 };
 
 /**
@@ -233,9 +263,14 @@ class Help_registry {
 
   bool is_enabled(const Help_topic *topic, IShell_core::Mode mode) const;
 
-  void register_keyword(const std::string &keyword,
-                        IShell_core::Mode_mask context, Help_topic *topic,
-                        bool case_sensitive = false);
+  void register_keyword(const std::string &keyword, IShell_core::Mode mode,
+                        Help_topic *topic, bool case_sensitive = false);
+  void register_keyword(const std::string &keyword, IShell_core::Mode_mask mode,
+                        Help_topic *topic, bool case_sensitive = false);
+
+  const std::vector<Help_topic *> &get_help_topics(Topic_type type) const {
+    return m_topics_by_type.at(type);
+  }
 
  private:
   // Options will be stored on a MAP
@@ -243,6 +278,7 @@ class Help_registry {
 
   // Holds all the registered topics
   std::map<size_t, Help_topic> m_topics;
+  std::map<Topic_type, std::vector<Help_topic *>> m_topics_by_type;
 
   // List of orphan topics
   std::map<std::string, std::vector<Help_topic *>> m_orphans;
@@ -356,6 +392,7 @@ enum class Help_option {
   Classes,
   Functions,
   Properties,
+  Constants,
   Childs,
   Closing,
   Example,
@@ -540,6 +577,9 @@ class Help_manager {
    */
   std::string format_member_list(const std::vector<Help_topic *> &topics,
                                  size_t lpadding = 0);
+
+  std::vector<std::string> get_member_brief(Help_topic *member);
+  std::vector<std::string> get_topic_brief(Help_topic *member);
 };
 
 };  // namespace shcore
@@ -548,6 +588,7 @@ class Help_manager {
 #define REGISTER_HELP_TOPIC(name, type, tag, parent, mode) \
   shcore::Help_topic_register topic_##tag(                 \
       #name, shcore::Topic_type::type, #tag, #parent, shcore::Help_mode::mode)
+
 #define REGISTER_HELP_CLASS(name, parent) \
   shcore::Help_class_register class_##parent##name(#name, #parent, "");
 
@@ -558,6 +599,17 @@ class Help_manager {
   shcore::Help_topic_register object_##parent##name(     \
       #name, shcore::Topic_type::OBJECT, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_CONSTANTS(name, parent)               \
+  shcore::Help_topic_register object_##parent##name(        \
+      #name, shcore::Topic_type::CONSTANTS, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_GLOBAL_OBJECT(name, parent)               \
+  shcore::Help_topic_register object_##parent##name(            \
+      #name, shcore::Topic_type::GLOBAL_OBJECT, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+
 #define REGISTER_HELP_MODULE(name, parent)               \
   shcore::Help_topic_register module_##parent##name(     \
       #name, shcore::Topic_type::MODULE, #name, #parent, \

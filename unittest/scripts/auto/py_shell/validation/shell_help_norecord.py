@@ -5,13 +5,23 @@ NAME
 DESCRIPTION
       Gives access to general purpose functions and properties.
 
-OBJECTS
- - options Gives access to options impacting shell behavior.
- - reports Gives access to built-in and user-defined reports.
+PROPERTIES
+      options
+            Gives access to options impacting shell behavior.
+
+      reports
+            Gives access to built-in and user-defined reports.
 
 FUNCTIONS
+      add_extension_object_member(object, name, member[, definition])
+            Adds a member to an extension object.
+
       connect(connectionData[, password])
             Establishes the shell global session.
+
+      create_extension_object()
+            Creates an extension object, it can be used to extend shell
+            functionality.
 
       delete_all_credentials()
             Deletes all credentials managed by the configured helper.
@@ -51,6 +61,9 @@ FUNCTIONS
       reconnect()
             Reconnect the global session.
 
+      register_global()
+            Registers an extension object as a shell global object.
+
       register_report(name, type, report[, description])
             Registers a new user-defined report.
 
@@ -65,6 +78,120 @@ FUNCTIONS
 
       store_credential(url[, password])
             Stores given credential using the configured helper.
+
+#@<OUT> shell.add_extension_object_member
+NAME
+      add_extension_object_member - Adds a member to an extension object.
+
+SYNTAX
+      shell.add_extension_object_member(object, name, member[, definition])
+
+WHERE
+      object: The object to which the member will be added.
+      name: The name of the member being added.
+      member: The member being added.
+      definition: Dictionary with help information about the member.
+
+DESCRIPTION
+      The name parameter must be a valid identifier, this is, it should follow
+      the pattern [_|a..z|A..Z]([_|a..z|A..Z|0..9])*
+
+      The member parameter can be any of:
+
+      - An extension object
+      - A function
+      - Scalar values: boolean, integer, float, string
+      - Array
+      - Dictionary
+      - None/Null
+
+      When an extension object is added as a member, a read only property will
+      be added into the target extension object.
+
+      When a function is added as member, it will be callable on the extension
+      object but it will not be possible to overwrite it with a new value or
+      function.
+
+      When any of the other types are added as a member, a read/write property
+      will be added into the target extension object, it will be possible to
+      update the value without any restriction.
+
+      IMPORTANT: every member added into an extensible object will be available
+      only when the object is registered, this is, registered as a global shell
+      object, or added as a member of another object that is already
+      registered.
+
+      The definition parameter is an optional and can be used to define
+      additional information for the member.
+
+      The member definition accepts the following attributes:
+
+      - brief: optional string containing a brief description of the member
+        being added.
+      - details: optional array of strings containing detailed information
+        about the member being added.
+
+      This information will be integrated into the shell help to be available
+      through the built in help system (\?).
+
+      When adding a function, the following attribute is also allowed on the
+      member definition:
+
+      - parameters: a list of parameter definitions for each parameter that the
+        function accepts.
+
+      A parameter definition is a dictionary with the following attributes:
+
+      - name: required, the name of the parameter, must be a valid identifier.
+      - type: required, the data type of the parameter, allowed values include:
+        string, integer, bool, float, array, dictionary, object.
+      - required: a boolean value indicating whether the parameter is mandatory
+        or optional.
+      - brief: a string with a short description of the parameter.
+      - details: a string array with additional details about the parameter.
+
+      The information defined on the brief and details attributes will also be
+      added to the function help on the built in help system (\?).
+
+      If a parameter's type is 'string' the following attribute is also allowed
+      on the parameter definition dictionary:
+
+      - values: string array with the only values that are allowed for the
+        parameter.
+
+      If a parameter's type is 'object' the following attributes are also
+      allowed on the parameter definition dictionary:
+
+      - class: string defining the class of object allowed as parameter values.
+      - classes: string array defining multiple classes of objects allowed as
+        parameter values.
+
+      The values for the class(es) properties must be a valid class exposed
+      through the different APIs. For details use:
+
+      - \? mysql
+      - \? mysqlx
+      - \? adminapi
+      - \? shellapi
+
+      To get the class name for a global object or a registered extension call
+      the print function passing as parameter the object, i.e. "Shell" is the
+      class name for the built in shell global object:
+
+      mysql-js> print(shell)
+      <Shell>
+      mysql-js>
+
+      If a parameter's type is 'dictionary' the following attribute is also
+      allowed on the parameter definition dictionary:
+
+      - options: list of option definition dictionaries defining the allowed
+        options that can be passed on the dictionary parameter.
+
+      An option definition dictionary follows exactly the same rules as the
+      parameter definition dictionary except for one: on a parameter definition
+      dictionary, required parameters must be defined first, option definition
+      dictionaries do not have this restriction.
 
 #@<OUT> shell.connect
 NAME
@@ -155,6 +282,25 @@ DESCRIPTION
       parameter should be used only if the connectionData does not contain it
       already. If both are specified the password parameter will override the
       password defined on the connectionData.
+
+#@<OUT> shell.create_extension_object
+NAME
+      create_extension_object - Creates an extension object, it can be used to
+                                extend shell functionality.
+
+SYNTAX
+      shell.create_extension_object()
+
+DESCRIPTION
+      An extension object is defined by adding members in it (properties and
+      functions).
+
+      An extension object can be either added as a property of another
+      extension object or registered as a shell global object.
+
+      An extension object is usable only when it has been registered as a
+      global object or when it has been added into another extension object
+      that is member in an other registered object.
 
 #@<OUT> shell.delete_all_credentials
 NAME
@@ -485,6 +631,22 @@ FUNCTIONS
 
       query(session, argv)
             Executes the SQL statement given as arguments.
+
+#@<OUT> shell.register_global
+NAME
+      register_global - Registers an extension object as a shell global object.
+
+SYNTAX
+      shell.register_global()
+
+DESCRIPTION
+      As a shell global object everything in the object will be available from
+      both JavaScript and Python despite if the member implementation was done
+      in one language or the other.
+
+      When the object is registered as a global, all the help data associated
+      to the object and it's members is made available through the shell built
+      in help system (\?).
 
 #@<OUT> shell.register_report
 NAME
@@ -950,4 +1112,109 @@ The following topics were found at the SQL Syntax category:
 For help on a specific topic use: \? <topic>
 
 e.g.: \? ALTER TABLE
+
+#@<OUT> Help on extension objects
+The MySQL Shell allows for an extension of its base functionality by using
+special objects called Extension Objects.
+
+Once an extension object has been created it is possible to attach different
+type of object members such as:
+
+- Functions
+- Properties
+- Other extension objects
+
+Once an extension object has been fully defined it can be registered as a
+regular Global Object. This way the object and its members will be available in
+the scripting languages the MySQL Shell supports, just as any other global
+object such as shell, util, etc.
+
+Extending the MySQL Shell with extension objects follows this pattern:
+
+- Creation of a new extension object.
+- Addition of members (properties, functions)
+- Registration of the object
+
+Creation of a new extension object is done through the
+shell.create_extension_object function.
+
+Members can be attached to the extension object by calling the
+shell.add_extension_object_member function.
+
+Registration of an extension object as a global object can be done by calling
+the shell.register_global function.
+
+Alternatively, the extension object can be added as a member of another
+extension object by calling the shell.add_extension_object_member function.
+
+You can get more details on these functions by executing:
+
+- \? create_extension_object
+- \? add_extension_object_member
+- \? register_global
+
+Naming Convention
+
+The core MySQL Shell APIs follow a specific naming convention for object
+members. Extension objects should follow the same naming convention for
+consistency reasons.
+
+- JavaScript members use camelCaseNaming
+- Python members use snake_case_naming
+
+To simplify this across languages, it is important to use camelCaseNaming when
+specifying the 'name' parameter of the shell.add_extension_object_member
+function.
+
+The MySQL Shell will then automatically handle the snake_case_naming for that
+member when it is switched to Python mode.
+
+NOTE: the naming convention is only applicable for extension object members.
+However, when a global object is registered, the name used to register that
+object will be exactly the same in both JavaScript and Python modes.
+
+Example:
+
+# Sample python function to be added to an extension object
+def some_python_function():
+  print ("Hello world!")
+
+# The extension object is created
+obj = shell.create_extension_object()
+
+# The sample function is added as member
+# NOTE: The member name using camelCaseNaming
+shell.add_extension_object_member(obj, "mySampleFunction",
+some_python_function)
+
+# The extension object is registered
+shell.register_global("myCustomObject", obj)
+
+Calling in JavaScript:
+
+// Member is available using camelCaseNaming
+mysql-js> myCustomObject.mySampleFunction()
+Hello World!
+mysql-js>
+
+Calling in Python:
+
+# Member is available using snake_case_naming
+mysql-py> myCustomObject.my_sample_function()
+Hello World!
+mysql-py>
+
+Automatic Loading of Extension Objects
+
+The MySQL Shell startup logic scans for extension scripts at the following
+paths:
+
+- Windows: %AppData%/MySQL/mysqlsh/init.d
+- Others ~/.mysqlsh/init.d
+
+An extension script is either a JavaScript (*.js) or Python (*.py) file which
+will be automatically processed when the MySQL Shell starts.
+
+These scripts can be used to define extension objects so ther are available
+right away when the MySQL Shell starts.
 

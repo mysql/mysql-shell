@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include "modules/mod_extensible_object.h"
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -88,6 +89,10 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined disablePager();
   Undefined registerReport(String name, String type, Function report,
                            Dictionary description);
+  UserObject createExtensionObject();
+  Undefined addExtensionObjectMember(Object object, String name, Value member,
+                                     Dictionary definition);
+  Undefined registerGlobal(String name, Object object, Dictionary definition);
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -108,6 +113,10 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None enable_pager();
   None disable_pager();
   None register_report(str name, str type, Function report, dict description);
+  UserObject create_extension_object();
+  Undefined add_extension_object_member(Object object, str name, Value member,
+                                        dict definition);
+  Undefined register_global(str name, Object object, dict definition);
 #endif
 
   shcore::Value list_credential_helpers(const shcore::Argument_list &args);
@@ -132,6 +141,15 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void register_report(const std::string &name, const std::string &type,
                        const shcore::Function_base_ref &report,
                        const shcore::Dictionary_t &options);
+
+  std::shared_ptr<Extensible_object> create_extension_object();
+  void add_extension_object_member(std::shared_ptr<Extensible_object> object,
+                                   const std::string &name,
+                                   const shcore::Value &member,
+                                   const shcore::Dictionary_t &definition = {});
+  void register_global(const std::string &name,
+                       std::shared_ptr<Extensible_object> object,
+                       const shcore::Dictionary_t &definition = {});
 
  protected:
   void init();

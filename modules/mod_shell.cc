@@ -40,7 +40,7 @@
 using namespace std::placeholders;
 
 namespace mysqlsh {
-REGISTER_HELP_OBJECT(shell, shellapi);
+REGISTER_HELP_GLOBAL_OBJECT(shell, shellapi);
 REGISTER_HELP(SHELL_BRIEF,
               "Gives access to general purpose functions and properties.");
 REGISTER_HELP(SHELL_GLOBAL_BRIEF,
@@ -84,6 +84,11 @@ void Shell::init() {
   expose("disablePager", &Shell::disable_pager);
   expose("registerReport", &Shell::register_report, "name", "type", "report",
          "?description");
+  expose("createExtensionObject", &Shell::create_extension_object);
+  expose("addExtensionObjectMember", &Shell::add_extension_object_member,
+         "object", "name", "function", "?definition");
+  expose("registerGlobal", &Shell::register_global, "name", "object",
+         "?definition");
 }
 
 Shell::~Shell() {}
@@ -1399,6 +1404,259 @@ void Shell::register_report(const std::string &name, const std::string &type,
                             const shcore::Function_base_ref &report,
                             const shcore::Dictionary_t &description) {
   m_reports->register_report(name, type, report, description);
+}
+
+REGISTER_HELP_FUNCTION(createExtensionObject, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_CREATEEXTENSIONOBJECT, R"*(
+Creates an extension object, it can be used to extend shell functionality.
+
+An extension object is defined by adding members in it (properties and
+functions).
+
+An extension object can be either added as a property of another extension
+object or registered as a shell global object.
+
+An extension object is usable only when it has been registered as a global
+object or when it has been added into another extension object that is member
+in an other registered object.
+)*");
+/**
+ * $(SHELL_CREATEEXTENSIONOBJECT_BRIEF)
+ *
+ * $(SHELL_CREATEEXTENSIONOBJECT)
+ */
+#if DOXYGEN_JS
+ExtensionObject Shell::createExtensionObject() {}
+#elif DOXYGEN_PY
+ExtensionObject Shell::create_extension_object() {}
+#endif
+std::shared_ptr<Extensible_object> Shell::create_extension_object() {
+  return std::make_shared<Extensible_object>("", "");
+}
+
+REGISTER_HELP_FUNCTION(addExtensionObjectMember, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_ADDEXTENSIONOBJECTMEMBER, R"*(
+Adds a member to an extension object.
+
+@param object The object to which the member will be added.
+@param name The name of the member being added.
+@param member The member being added.
+@param definition Optional dictionary with help information about the member.
+
+The name parameter must be a valid identifier, this is, it should follow the
+pattern [_|a..z|A..Z]([_|a..z|A..Z|0..9])*
+
+The member parameter can be any of:
+
+@li An extension object
+@li A function
+@li Scalar values: boolean, integer, float, string
+@li Array
+@li Dictionary
+@li None/Null
+
+When an extension object is added as a member, a read only property will be
+added into the target extension object.
+
+When a function is added as member, it will be callable on the extension object
+but it will not be possible to overwrite it with a new value or function.
+
+When any of the other types are added as a member, a read/write property will
+be added into the target extension object, it will be possible to update the value
+without any restriction.
+
+IMPORTANT: every member added into an extensible object will be available only
+when the object is registered, this is, registered as a global shell object,
+or added as a member of another object that is already registered.
+
+The definition parameter is an optional and can be used to define additional
+information for the member.
+
+The member definition accepts the following attributes:
+
+@li brief: optional string containing a brief description of the member being
+added.
+@li details: optional array of strings containing detailed information about
+the member being added.
+
+This information will be integrated into the shell help to be available through
+the built in help system (\\?).
+
+When adding a function, the following attribute is also allowed on the member
+definition:
+
+@li parameters: a list of parameter definitions for each parameter that the
+function accepts.
+
+A parameter definition is a dictionary with the following attributes:
+
+@li name: required, the name of the parameter, must be a valid identifier.
+@li type: required, the data type of the parameter, allowed values include:
+string, integer, bool, float, array, dictionary, object.
+@li required: a boolean value indicating whether the parameter is mandatory or
+optional.
+@li brief: a string with a short description of the parameter.
+@li details: a string array with additional details about the parameter.
+
+The information defined on the brief and details attributes will also be added
+to the function help on the built in help system (\\?).
+
+If a parameter's type is 'string' the following attribute is also allowed on
+the parameter definition dictionary:
+
+@li values: string array with the only values that are allowed for the
+parameter.
+
+If a parameter's type is 'object' the following attributes are also allowed on
+the parameter definition dictionary:
+
+@li class: string defining the class of object allowed as parameter values.
+@li classes: string array defining multiple classes of objects allowed as
+parameter values.
+
+The values for the class(es) properties must be a valid class exposed through
+the different APIs. For details use:
+
+@li \? mysql
+@li \? mysqlx
+@li \? adminapi
+@li \? shellapi
+
+To get the class name for a global object or a registered extension call the
+print function passing as parameter the object, i.e. "Shell" is the class name
+for the built in shell global object:<br>
+
+@code
+mysql-js> print(shell)
+<Shell>
+mysql-js>
+@endcode
+
+If a parameter's type is 'dictionary' the following attribute is also allowed
+on the parameter definition dictionary:
+
+@li options: list of option definition dictionaries defining the allowed
+options that can be passed on the dictionary parameter.
+
+An option definition dictionary follows exactly the same rules as the
+parameter definition dictionary except for one: on a parameter definition
+dictionary, required parameters must be defined first, option definition
+dictionaries do not have this restriction.
+)*");
+/**
+ * $(SHELL_ADDEXTENSIONOBJECTMEMBER_BRIEF)
+ *
+ * $(SHELL_ADDEXTENSIONOBJECTMEMBER)
+ */
+#if DOXYGEN_JS
+Undefined Shell::addExtensionObjectMember(Object object, String name,
+                                          Value member, Dictionary definition);
+{}
+#elif DOXYGEN_PY
+None Shell::add_extension_object_member(Object object, str name, Value member,
+                                        dict definition) {}
+#endif
+void Shell::add_extension_object_member(
+    std::shared_ptr<Extensible_object> object, const std::string &name,
+    const shcore::Value &member, const shcore::Dictionary_t &definition) {
+  if (object) {
+    object->register_member(name, member, definition);
+  } else {
+    throw shcore::Exception::type_error(
+        "Argument #1 is expected to be an extension object.");
+  }
+}
+
+REGISTER_HELP_FUNCTION(registerGlobal, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_REGISTERGLOBAL, R"*(
+Registers an extension object as a shell global object.
+
+As a shell global object everything in the object will be available from both
+JavaScript and Python despite if the member implementation was done in one
+language or the other.
+
+When the object is registered as a global, all the help data associated to the
+object and it's members is made available through the shell built in help system
+(\\?).
+)*");
+/**
+ * $(SHELL_REGISTERGLOBAL_BRIEF)
+ *
+ * $(SHELL_REGISTERGLOBAL)
+ */
+#if DOXYGEN_JS
+UserObject Shell::registerGlobal(String name, Object obj,
+                                 Dictionary definition) {}
+#elif DOXYGEN_PY
+UserObject Shell::register_global(str name, Object obj, dict definition) {}
+#endif
+
+void Shell::register_global(const std::string &name,
+                            std::shared_ptr<Extensible_object> object,
+                            const shcore::Dictionary_t &definition) {
+  if (!shcore::is_valid_identifier(name)) {
+    throw shcore::Exception::argument_error("The name '" + name +
+                                            "' is not a valid identifier.");
+  }
+
+  // An object that is already child of another object can not be
+  // registered as a global object
+  if (object->get_parent()) {
+    std::string error =
+        "The provided extension object is already registered as part of "
+        "another extension object";
+
+    if (object->is_registered())
+      error += " at: " + object->get_qualified_name();
+    error += ".";
+
+    throw shcore::Exception::argument_error(error);
+  }
+
+  // An object that is already a global object can not be
+  // registered again as a global object
+  if (object->is_registered()) {
+    std::string error =
+        "The provided extension object is already registered as: " +
+        object->get_qualified_name();
+
+    throw shcore::Exception::argument_error(error);
+  }
+
+  // Global validation: mysql, mysqlx, os and sys are not registered as global
+  // variables but should be considered as shell globals.
+  bool is_global = _shell_core->is_global(name);
+  if (is_global) {
+    throw shcore::Exception::argument_error("A global named '" + name +
+                                            "' already exists.");
+  }
+
+  if (name == "mysql" || name == "mysqlx" || name == "os" || name == "sys") {
+    throw shcore::Exception::argument_error("The name '" + name +
+                                            "' is reserved.");
+  }
+
+  if (object) {
+    auto def = std::make_shared<mysqlsh::Member_definition>();
+
+    if (definition) {
+      shcore::Option_unpacker unpacker(definition);
+      unpacker.optional("brief", &def->brief);
+      unpacker.optional("details", &def->details);
+      unpacker.end("at object definition.");
+    }
+
+    object->set_definition(def);
+
+    _shell_core->set_global(name, shcore::Value(object),
+                            shcore::IShell_core::all_scripting_modes());
+
+    object->set_registered(name);
+
+  } else {
+    throw shcore::Exception::type_error(
+        "Argument #2 is expected to be an extension object.");
+  }
 }
 
 }  // namespace mysqlsh

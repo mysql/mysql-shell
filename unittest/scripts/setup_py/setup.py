@@ -1,4 +1,15 @@
 
+def get_members(object):
+  all_exports = dir(object)
+
+  exports = []
+  for member in all_exports:
+    if not member.startswith('__'):
+      exports.append(member)
+
+  return exports
+
+
 def create_root_from_anywhere(session):
   session.run_sql("SET SQL_LOG_BIN=0")
   session.run_sql("CREATE USER root@'%' IDENTIFIED BY 'root'")

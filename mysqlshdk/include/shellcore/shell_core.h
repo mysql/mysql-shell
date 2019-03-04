@@ -164,6 +164,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   void set_global(const std::string &name, const Value &value,
                   Mode_mask mode = Mode_mask::any()) override;
   Value get_global(const std::string &name) override;
+  bool is_global(const std::string &name) override;
   std::vector<std::string> get_global_objects(Mode mode) override;
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(

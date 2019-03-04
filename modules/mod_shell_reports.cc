@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,9 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+
+std::set<std::string> Shell_reports::s_report_option_types = {
+    "string", "integer", "float", "bool"};
 
 namespace {
 
@@ -528,16 +531,16 @@ struct Argv_validator : public shcore::Parameter_validator {
   explicit Argv_validator(const Report::Argc &argc) : m_argc(argc) {}
 
   void validate(const shcore::Parameter &param, const shcore::Value &data,
-                const shcore::Parameter_context &context) const override {
+                shcore::Parameter_context *context) const override {
     Parameter_validator::validate(param, data, context);
 
     const auto argv = data.as_array();
     const auto argc = argv ? argv->size() : 0;
 
     if (argc < m_argc.first || argc > m_argc.second) {
-      throw shcore::Exception::argument_error(
-          shcore::str_format("%s 'argv' is expecting %s.",
-                             context.str().c_str(), to_string(m_argc).c_str()));
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "%s 'argv' is expecting %s.", context->str().c_str(),
+          to_string(m_argc).c_str()));
     }
   }
 
@@ -569,8 +572,6 @@ class Shell_reports::Report_options : public shcore::Options {
                             "Display records vertically.");
     }
 
-    prepare_options();
-
     // add options expected by the report
     for (const auto &o : m_options) {
       const auto &p = o->parameter;
@@ -589,14 +590,32 @@ class Shell_reports::Report_options : public shcore::Options {
         names.emplace_back("-" + o->short_name);
       }
 
+      // Custom description ONLY applicable for options in the
+      // command line arg format
+      o->cmdline_brief = o->brief;
+      auto validator = o->parameter->validator<shcore::String_validator>();
+      if (o->is_required())
+        o->cmdline_brief = "(required) " + o->brief;
+      else
+        o->cmdline_brief = o->brief;
+
+      if (validator) {
+        auto allowed = validator->allowed();
+        if (!allowed.empty()) {
+          o->cmdline_brief +=
+              " Allowed values: " + shcore::str_join(allowed, ", ") + ".";
+        }
+      }
+
       // register the option
       add_startup_options()(
-          std::move(names), o->brief.c_str(),
+          std::move(names), o->cmdline_brief.c_str(),
           [&o, &p, this](const std::string &, const char *new_value) {
             if (shcore::Value_type::String == p->type()) {
+              shcore::Parameter_context context{
+                  m_report_name + ":", {{"option '--" + p->name + "'", {}}}};
               p->validator<shcore::String_validator>()->validate(
-                  *p, shcore::Value(new_value),
-                  {m_report_name + ": option '--" + p->name + "'"});
+                  *p, shcore::Value(new_value), &context);
             }
 
             // convert to the expected type
@@ -648,7 +667,8 @@ class Shell_reports::Report_options : public shcore::Options {
                               m_missing_options.end(), p->name),
                   m_missing_options.end());
             }
-          });
+          },
+          o->parameter->name);
     }
 
     initialize_help(r->brief(), r->details());
@@ -758,22 +778,6 @@ class Shell_reports::Report_options : public shcore::Options {
     for (const auto &o : m_options) {
       if (o->is_required()) {
         m_missing_options.emplace_back(o->parameter->name);
-      }
-    }
-  }
-
-  void prepare_options() {
-    for (auto &o : m_options) {
-      o->brief = (o->is_required() ? "(required) " : "") + o->brief;
-
-      if (shcore::Value_type::String == o->parameter->type()) {
-        const auto &allowed =
-            o->parameter->validator<shcore::String_validator>()->allowed();
-
-        if (!allowed.empty()) {
-          o->brief +=
-              " Allowed values: " + shcore::str_join(allowed, ", ") + ".";
-        }
       }
     }
   }
@@ -898,26 +902,25 @@ void Report::set_details(const std::vector<std::string> &details) {
 }
 
 void Report::set_options(const Options &options) {
-  std::set<std::string> long_names = {"help", "interval", "nocls"};
-  std::set<std::string> short_names = {"i"};
-
-  if (type() == Report::Type::LIST) {
-    long_names.emplace("vertical");
-    short_names.emplace("E");
-  }
+  // Validates options are not in the reserved options for the \watch
+  // command. Other options such as help and vertical(E) will be properly
+  // reported as clashes with command line options
+  std::set<std::string> reserved = {"interval", "nocls", "i"};
 
   for (const auto &o : options) {
     validate_option(*o);
 
-    if (!long_names.emplace(o->parameter->name).second) {
+    if (reserved.find(o->parameter->name) != reserved.end()) {
       throw shcore::Exception::argument_error(
-          "Report already has an option named: '" + o->parameter->name + "'.");
+          "Option '" + o->parameter->name +
+          "' is reserved for use with the \\watch command.");
     }
 
-    if (!o->short_name.empty() && !short_names.emplace(o->short_name).second) {
+    if (!o->short_name.empty() &&
+        reserved.find(o->short_name) != reserved.end()) {
       throw shcore::Exception::argument_error(
-          "Report already has an option with short name: '" + o->short_name +
-          "'.");
+          "Short name '" + o->short_name +
+          "' is reserved for use with the \\watch command.");
     }
   }
 
@@ -976,7 +979,7 @@ void Report::validate_option(const Report::Option &option) {
 
 Shell_reports::Shell_reports(const std::string &name,
                              const std::string &qualified_name)
-    : Extensible_object(name, qualified_name) {
+    : Extensible_object(name, qualified_name, true) {
   enable_help();
 
   // register query report
@@ -1035,8 +1038,9 @@ void Shell_reports::register_report(const std::string &name,
 
     new_report->set_brief(brief);
     new_report->set_details(details);
-    new_report->set_options(
-        downcast(parse_parameters(options, {"'options'"}, false)));
+    shcore::Parameter_context context{"", {{"option", {}}}};
+    new_report->set_options(downcast(
+        parse_parameters(options, &context, s_report_option_types, false)));
     new_report->set_argc(get_report_argc(argc));
   }
 
@@ -1107,14 +1111,22 @@ void Shell_reports::register_report(std::unique_ptr<Report> report) {
     parameters.emplace_back(std::move(options));
   }
 
-  Function_definition fd{parameters, report->brief(), details};
+  // Make sure the report_option creation does not error before
+  // attempting registering both the report and the function, for
+  // that, bacups the data needed for the function registration
+  auto brief = report->brief();
+  auto function = report->function();
+
+  auto roptions = shcore::make_unique<Report_options>(std::move(report));
+
+  // Reports must have the same name in both Python and JavaScript
+  auto fd = std::make_shared<Function_definition>(
+      roptions->name() + "|" + roptions->name(), parameters, brief, details);
 
   // method should have the same name in both JS and Python
-  register_function(report->name() + "|" + report->name(), report->function(),
-                    fd);
+  register_function(fd, function);
 
-  m_reports.emplace(std::move(normalized_name),
-                    shcore::make_unique<Report_options>(std::move(report)));
+  m_reports.emplace(std::move(normalized_name), std::move(roptions));
 }
 
 std::vector<std::string> Shell_reports::list_reports() const {

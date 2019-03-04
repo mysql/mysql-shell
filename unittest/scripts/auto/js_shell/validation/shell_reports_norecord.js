@@ -97,7 +97,7 @@
 ||Shell.registerReport: Argument #3 is expected to be a function (ArgumentError)
 
 //@ try to register the report with options set to invalid type
-||Shell.registerReport: Argument ?description at pos 3 for registerReport() has wrong type: expected Map but got String (ArgumentError)
+||Shell.registerReport: Argument description at pos 3 for registerReport() has wrong type: expected Map but got String (ArgumentError)
 
 //@ WL11263_TSF9_1 - Try to register a plugin report with a duplicated name, error is expected.
 ||Shell.registerReport: Duplicate report: query (ArgumentError)
@@ -164,12 +164,12 @@
 ||Shell.registerReport: Option 'options' is expected to be of type Array, but is String (TypeError)
 
 //@ The 'options' key is set to an array of invalid types
-||Shell.registerReport: Invalid definition at 'options' #1 (ArgumentError)
+||Shell.registerReport: Invalid definition at option #1 (ArgumentError)
 
 // WL11263_TSF9_7 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' key is not provided.
 
 //@ WL11263_TSF9_7 - Missing 'name' key
-||Shell.registerReport: Missing required options at 'options' #1: name (ArgumentError)
+||Shell.registerReport: Missing required options at option #1: name (ArgumentError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to undefined
 ||Shell.registerReport: Option 'name' is expected to be of type String, but is Undefined (TypeError)
@@ -181,25 +181,25 @@
 ||Shell.registerReport: Option 'name' is expected to be of type String, but is Map (TypeError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to an empty string
-||Shell.registerReport: parameter 'options' option #1 is not a valid identifier: ''. (ArgumentError)
+||Shell.registerReport: parameter 'options', option #1 is not a valid identifier: ''. (ArgumentError)
 
 //@ WL11263_TSF9_8 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' is not a valid identifier.
-||Shell.registerReport: parameter 'options' option #1 is not a valid identifier: '1'. (ArgumentError)
+||Shell.registerReport: parameter 'options', option #1 is not a valid identifier: '1'. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --help
-||Shell.registerReport: Report already has an option named: 'help'. (ArgumentError)
+||Shell.registerReport: Error while adding option 'help' its cmdline name '--help' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --interval
-||Shell.registerReport: Report already has an option named: 'interval'. (ArgumentError)
+||Shell.registerReport: Option 'interval' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --nocls
-||Shell.registerReport: Report already has an option named: 'nocls'. (ArgumentError)
+||Shell.registerReport: Option 'nocls' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --vertical in a 'list' type report
-||Shell.registerReport: Report already has an option named: 'vertical'. (ArgumentError)
+||Shell.registerReport: Error while adding option 'vertical' its cmdline name '--vertical' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Two options with the same name
-||Shell.registerReport: Report already has an option named: 'option'. (ArgumentError)
+||Shell.registerReport: option 'option' is already defined. (ArgumentError)
 
 //@ Report uses --vertical option in a 'print' type report - no error
 ||
@@ -233,13 +233,13 @@
 ||Shell.registerReport: Short name of an option must be exactly one character long. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Option duplicates -i
-||Shell.registerReport: Report already has an option with short name: 'i'. (ArgumentError)
+||Shell.registerReport: Short name 'i' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Option duplicates -E in a 'list' type report
-||Shell.registerReport: Report already has an option with short name: 'E'. (ArgumentError)
+||Shell.registerReport: Error while adding option 'option' its cmdline name '-E' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Two options with the same name
-||Shell.registerReport: Report already has an option with short name: 'o'. (ArgumentError)
+||Shell.registerReport: Error while adding option 'option2' its cmdline name '-o' clashes with option 'option1'. (ArgumentError)
 
 //@ Report uses -E option in a 'print' type report - no error
 ||
@@ -285,10 +285,10 @@
 ||Shell.registerReport: Option 'type' is expected to be of type String, but is Map (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to an empty string
-||Option type must be one of: 'string', 'bool', 'integer', 'float'. (ArgumentError)
+||Shell.registerReport: Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to an invalid value
-||Option type must be one of: 'string', 'bool', 'integer', 'float'. (ArgumentError)
+||Shell.registerReport: Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
 
 //@ WL11263_TSF9_13 - The 'type' key has valid values
 ||
@@ -338,13 +338,13 @@
 ||Shell.registerReport: Option 'values' String expected, but value is Map (TypeError)
 
 //@ The 'values' list cannot be defined for an 'integer' type
-||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+||Shell.registerReport: Invalid options at integer option 'invalid_option': values (ArgumentError)
 
 //@ The 'values' list cannot be defined for a 'bool' type
-||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+||Shell.registerReport: Invalid options at bool option 'invalid_option': values (ArgumentError)
 
 //@ The 'values' list cannot be defined for a 'float' type
-||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+||Shell.registerReport: Invalid options at float option 'invalid_option': values (ArgumentError)
 
 //@ WL11263_TSF9_16 - Register the report.
 ||
@@ -360,7 +360,7 @@
 +-------+
 
 //@ Option definition cannot contain unknown keys
-||Shell.registerReport: Invalid options at 'options' 'invalid_option': unknown_key (ArgumentError)
+||Shell.registerReport: Invalid options at string option 'invalid_option': unknown_key (ArgumentError)
 
 //@ The 'argc' key is set to undefined
 ||Shell.registerReport: Option 'argc' is expected to be of type String, but is Undefined (TypeError)
@@ -822,7 +822,7 @@ NAME
       ths_list_no_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_list_no_options_no_arguments(session)
+      shell.reports.ths_list_no_options_no_arguments(session)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -840,7 +840,7 @@ NAME
       ths_list_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_list_options_no_arguments(session, argv, options)
+      shell.reports.ths_list_options_no_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -854,19 +854,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_list_no_options_one_argument
 ||
@@ -876,7 +873,7 @@ NAME
       ths_list_no_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_list_no_options_one_argument(session, argv)
+      shell.reports.ths_list_no_options_one_argument(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -895,7 +892,7 @@ NAME
       ths_list_no_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_list_no_options_unbound_arguments(session[, argv])
+      shell.reports.ths_list_no_options_unbound_arguments(session[, argv])
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -914,7 +911,7 @@ NAME
       ths_list_no_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_list_no_options_range_of_arguments(session, argv)
+      shell.reports.ths_list_no_options_range_of_arguments(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -933,7 +930,8 @@ NAME
       ths_list_no_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_list_no_options_unbound_range_of_arguments(session, argv)
+      shell.reports.ths_list_no_options_unbound_range_of_arguments(session,
+      argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -952,7 +950,7 @@ NAME
       ths_list_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_list_options_one_argument(session, argv, options)
+      shell.reports.ths_list_options_one_argument(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -966,19 +964,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_arguments
 ||
@@ -988,7 +983,7 @@ NAME
       ths_list_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_list_options_unbound_arguments(session, argv, options)
+      shell.reports.ths_list_options_unbound_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1002,19 +997,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments
 ||
@@ -1024,7 +1016,7 @@ NAME
       ths_list_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_list_options_range_of_arguments(session, argv, options)
+      shell.reports.ths_list_options_range_of_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1038,19 +1030,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments_details
 ||
@@ -1060,7 +1049,7 @@ NAME
       ths_list_options_range_of_arguments_details - testing help
 
 SYNTAX
-      reports.ths_list_options_range_of_arguments_details(session, argv,
+      shell.reports.ths_list_options_range_of_arguments_details(session, argv,
       options)
 
 WHERE
@@ -1077,19 +1066,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_range_of_arguments
 ||
@@ -1099,7 +1085,7 @@ NAME
       ths_list_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_list_options_unbound_range_of_arguments(session, argv,
+      shell.reports.ths_list_options_unbound_range_of_arguments(session, argv,
       options)
 
 WHERE
@@ -1114,19 +1100,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_no_arguments
 ||
@@ -1136,7 +1119,7 @@ NAME
       ths_report_no_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_report_no_options_no_arguments(session)
+      shell.reports.ths_report_no_options_no_arguments(session)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1154,7 +1137,7 @@ NAME
       ths_report_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_report_options_no_arguments(session, argv, options)
+      shell.reports.ths_report_options_no_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1168,19 +1151,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_one_argument
 ||
@@ -1190,7 +1170,7 @@ NAME
       ths_report_no_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_report_no_options_one_argument(session, argv)
+      shell.reports.ths_report_no_options_one_argument(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1209,7 +1189,7 @@ NAME
       ths_report_no_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_report_no_options_unbound_arguments(session[, argv])
+      shell.reports.ths_report_no_options_unbound_arguments(session[, argv])
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1228,7 +1208,7 @@ NAME
       ths_report_no_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_report_no_options_range_of_arguments(session, argv)
+      shell.reports.ths_report_no_options_range_of_arguments(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1247,7 +1227,8 @@ NAME
       ths_report_no_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_report_no_options_unbound_range_of_arguments(session, argv)
+      shell.reports.ths_report_no_options_unbound_range_of_arguments(session,
+      argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1266,7 +1247,7 @@ NAME
       ths_report_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_report_options_one_argument(session, argv, options)
+      shell.reports.ths_report_options_one_argument(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1280,19 +1261,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_arguments
 ||
@@ -1302,7 +1280,8 @@ NAME
       ths_report_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_report_options_unbound_arguments(session, argv, options)
+      shell.reports.ths_report_options_unbound_arguments(session, argv,
+      options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1316,19 +1295,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments
 ||
@@ -1338,7 +1314,8 @@ NAME
       ths_report_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_report_options_range_of_arguments(session, argv, options)
+      shell.reports.ths_report_options_range_of_arguments(session, argv,
+      options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1352,19 +1329,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments_details
 ||
@@ -1374,8 +1348,8 @@ NAME
       ths_report_options_range_of_arguments_details - testing help
 
 SYNTAX
-      reports.ths_report_options_range_of_arguments_details(session, argv,
-      options)
+      shell.reports.ths_report_options_range_of_arguments_details(session,
+      argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1391,19 +1365,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_range_of_arguments
 ||
@@ -1413,8 +1384,8 @@ NAME
       ths_report_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_report_options_unbound_range_of_arguments(session, argv,
-      options)
+      shell.reports.ths_report_options_unbound_range_of_arguments(session,
+      argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1428,19 +1399,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_no_arguments
 ||
@@ -1450,7 +1418,7 @@ NAME
       ths_print_no_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_print_no_options_no_arguments(session)
+      shell.reports.ths_print_no_options_no_arguments(session)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1468,7 +1436,7 @@ NAME
       ths_print_options_no_arguments - testing help
 
 SYNTAX
-      reports.ths_print_options_no_arguments(session, argv, options)
+      shell.reports.ths_print_options_no_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1482,19 +1450,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_one_argument
 ||
@@ -1504,7 +1469,7 @@ NAME
       ths_print_no_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_print_no_options_one_argument(session, argv)
+      shell.reports.ths_print_no_options_one_argument(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1523,7 +1488,7 @@ NAME
       ths_print_no_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_print_no_options_unbound_arguments(session[, argv])
+      shell.reports.ths_print_no_options_unbound_arguments(session[, argv])
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1542,7 +1507,7 @@ NAME
       ths_print_no_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_print_no_options_range_of_arguments(session, argv)
+      shell.reports.ths_print_no_options_range_of_arguments(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1561,7 +1526,8 @@ NAME
       ths_print_no_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_print_no_options_unbound_range_of_arguments(session, argv)
+      shell.reports.ths_print_no_options_unbound_range_of_arguments(session,
+      argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1580,7 +1546,7 @@ NAME
       ths_print_options_one_argument - testing help
 
 SYNTAX
-      reports.ths_print_options_one_argument(session, argv, options)
+      shell.reports.ths_print_options_one_argument(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1594,19 +1560,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_arguments
 ||
@@ -1616,7 +1579,7 @@ NAME
       ths_print_options_unbound_arguments - testing help
 
 SYNTAX
-      reports.ths_print_options_unbound_arguments(session, argv, options)
+      shell.reports.ths_print_options_unbound_arguments(session, argv, options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1630,19 +1593,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments
 ||
@@ -1652,7 +1612,8 @@ NAME
       ths_print_options_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_print_options_range_of_arguments(session, argv, options)
+      shell.reports.ths_print_options_range_of_arguments(session, argv,
+      options)
 
 WHERE
       session: Object. A Session object to be used to execute the report.
@@ -1666,19 +1627,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments_details
 ||
@@ -1688,7 +1646,7 @@ NAME
       ths_print_options_range_of_arguments_details - testing help
 
 SYNTAX
-      reports.ths_print_options_range_of_arguments_details(session, argv,
+      shell.reports.ths_print_options_range_of_arguments_details(session, argv,
       options)
 
 WHERE
@@ -1705,19 +1663,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_range_of_arguments
 ||
@@ -1727,7 +1682,7 @@ NAME
       ths_print_options_unbound_range_of_arguments - testing help
 
 SYNTAX
-      reports.ths_print_options_unbound_range_of_arguments(session, argv,
+      shell.reports.ths_print_options_unbound_range_of_arguments(session, argv,
       options)
 
 WHERE
@@ -1742,19 +1697,16 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one Optional String. Option with default type.
-      - two String. Option with "string" type.
-      - three Optional Bool. Option with "bool" type.
-      - four Optional Integer. Option with "integer" type.
-      - five Optional Float. Option with "float" type.
+      - one String. Option with default type.
+      - two (required) String. Option with "string" type.
+      - three Bool. Option with "bool" type.
+      - four Integer. Option with "integer" type.
+      - five Float. Option with "float" type.
 
-      The one option accepts the following values:
-
-      - a
-      - b
-      - c
+      The one option accepts the following values: a, b, c.
 
       Details of parameter three.
+
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_no_arguments
 ths_list_no_options_no_arguments - testing help
@@ -2407,7 +2359,7 @@ Arguments:
 }
 
 //@ call shell.reports.list_report_testing_various_options using the first option with int
-||reports.list_report_testing_various_options: option one at Argument #3 is expected to be a string (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'one' is expected to be a string (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the first option with string
 {
@@ -2438,7 +2390,7 @@ Arguments:
 }
 
 //@ call shell.reports.list_report_testing_various_options using the second option with int
-||reports.list_report_testing_various_options: option two at Argument #3 is expected to be a string (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'two' is expected to be a string (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the second option with string
 {
@@ -2500,7 +2452,7 @@ Arguments:
 }
 
 //@ call shell.reports.list_report_testing_various_options using the third option with string
-||reports.list_report_testing_various_options: option three at Argument #3 is expected to be a bool (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'three' is expected to be a bool (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the third option with bool
 {
@@ -2579,7 +2531,7 @@ Arguments:
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fourth option with string
-||reports.list_report_testing_various_options: option four at Argument #3 is expected to be an integer (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'four' is expected to be an integer (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with int
 {
@@ -2625,7 +2577,7 @@ Arguments:
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fifth option with string
-||reports.list_report_testing_various_options: option five at Argument #3 is expected to be a float (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'five' is expected to be a float (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with int
 {
@@ -3066,7 +3018,7 @@ NAME
       query - Executes the SQL statement given as arguments.
 
 SYNTAX
-      reports.query(session, argv)
+      shell.reports.query(session, argv)
 
 WHERE
       session: Object. A Session object to be used to execute the report.

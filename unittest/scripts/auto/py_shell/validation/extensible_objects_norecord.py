@@ -5,9 +5,12 @@ NAME
 DESCRIPTION
       Gives access to general testing functions and properties.
 
-OBJECTS
- - sampleModuleJS Sample module exported from C++
- - sampleModulePY Sample module exported from C++
+PROPERTIES
+      sample_module_j_s
+            Sample module exported from C++
+
+      sample_module_p_y
+            Sample module exported from C++
 
 FUNCTIONS
       help([member])
@@ -21,10 +24,10 @@ FUNCTIONS
 
 #@<OUT> Registration from C++, a test module
 NAME
-      sampleModulePY - Sample module exported from C++
+      sample_module_p_y - Sample module exported from C++
 
 SYNTAX
-      testutil.sampleModulePY
+      testutil.sample_module_p_y
 
 DESCRIPTION
       Exploring the posibility to dynamically create objects fron C++
@@ -139,10 +142,10 @@ DESCRIPTION
 
 #@<OUT> Module help, function(string)
 NAME
-      sampleModulePY - Sample module exported from C++
+      sample_module_p_y - Sample module exported from C++
 
 SYNTAX
-      testutil.sampleModulePY
+      testutil.sample_module_p_y
 
 DESCRIPTION
       Exploring the posibility to dynamically create objects fron C++
@@ -159,7 +162,7 @@ NAME
       string_function - Brief description for stringFunction.
 
 SYNTAX
-      sampleModulePY.string_function(data)
+      testutil.sample_module_p_y.string_function(data)
 
 WHERE
       data: String. Brief description for string parameter.
@@ -169,11 +172,7 @@ DESCRIPTION
 
       Detailed description for string parameter.
 
-      The data parameter accepts the following values:
-
-      - one
-      - two
-      - three
+      The data parameter accepts the following values: one, two, three.
 
 #@ Usage, function(string)
 ||SystemError: ArgumentError: sampleModulePY.string_function: Argument #1 is expected to be a string
@@ -185,10 +184,10 @@ DESCRIPTION
 
 #@<OUT> Module help, function(dictionary)
 NAME
-      sampleModulePY - Sample module exported from C++
+      sample_module_p_y - Sample module exported from C++
 
 SYNTAX
-      testutil.sampleModulePY
+      testutil.sample_module_p_y
 
 DESCRIPTION
       Exploring the posibility to dynamically create objects fron C++
@@ -208,7 +207,7 @@ NAME
       dict_function - Brief definition for dictFunction.
 
 SYNTAX
-      sampleModulePY.dict_function([data])
+      testutil.sample_module_p_y.dict_function([data])
 
 WHERE
       data: Dictionary. Short description for dictionary parameter.
@@ -220,20 +219,18 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption String. A sample option
+      - myOption (required) String. A sample option
 
       Details for the sample option
 
-      The myOption option accepts the following values:
+      The myOption option accepts the following values: test, value.
 
-      - test
-      - value
 
 #@Usage, function(dictionary)
 ||SystemError: ArgumentError: sampleModulePY.dict_function: Missing required options at Argument #1: myOption
 ||SystemError: ArgumentError: sampleModulePY.dict_function: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
-||SystemError: ArgumentError: sampleModulePY.dict_function: option myOption at Argument #1 is expected to be a string
-||SystemError: ArgumentError: sampleModulePY.dict_function: option myOption at Argument #1 only accepts the following values: test, value.
+||SystemError: ArgumentError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
+||SystemError: ArgumentError: sampleModulePY.dict_function: Argument #1, option 'myOption' only accepts the following values: test, value.
 |No function data available|
 |Function data:  test|
 
@@ -243,10 +240,10 @@ DESCRIPTION
 
 #@<OUT> Module help, function(Session)
 NAME
-      sampleModulePY - Sample module exported from C++
+      sample_module_p_y - Sample module exported from C++
 
 SYNTAX
-      testutil.sampleModulePY
+      testutil.sample_module_p_y
 
 DESCRIPTION
       Exploring the posibility to dynamically create objects fron C++
@@ -269,7 +266,7 @@ NAME
       object_function1 - Brief definition for objectFunction.
 
 SYNTAX
-      sampleModulePY.object_function1(session)
+      testutil.sample_module_p_y.object_function1(session)
 
 WHERE
       session: Object. Short description for object parameter.
@@ -290,10 +287,10 @@ DESCRIPTION
 
 #@<OUT> Module help, function(Session and ClassicSession)
 NAME
-      sampleModulePY - Sample module exported from C++
+      sample_module_p_y - Sample module exported from C++
 
 SYNTAX
-      testutil.sampleModulePY
+      testutil.sample_module_p_y
 
 DESCRIPTION
       Exploring the posibility to dynamically create objects fron C++
@@ -319,7 +316,7 @@ NAME
       object_function2 - Brief definition for objectFunction.
 
 SYNTAX
-      sampleModulePY.object_function2(session)
+      testutil.sample_module_p_y.object_function2(session)
 
 WHERE
       session: Object. Short description for object parameter.
@@ -337,109 +334,46 @@ DESCRIPTION
 
 
 #@ Registration errors, function definition
-||SystemError: ArgumentError: Testutils.register_function: Target object was not found.
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at function definition: extra
-||SystemError: TypeError: Testutils.register_function: Option 'brief' is expected to be of type String, but is Integer
-||SystemError: TypeError: Testutils.register_function: Option 'details' is expected to be of type Array, but is Integer
-||SystemError: TypeError: Testutils.register_function: Option 'details' String expected, but value is Integer
-||SystemError: TypeError: Testutils.register_function: Option 'parameters' is expected to be of type Array, but is Integer
-||SystemError: ArgumentError: Testutils.register_function: Invalid definition at parameter #1
+||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an object
+||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
+||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #2 is expected to be a string
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at function definition: extra
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter #1
 
 
 #@ Registration errors, parameters
-||SystemError: ArgumentError: Testutils.register_function: Missing required options at parameter #1: name, type
-||SystemError: TypeError: Testutils.register_function: Option 'type' is expected to be of type String, but is Integer
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name, type
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
 
 #@ Registration errors, integer parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at parameter 'sample': class, classes, options, values
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class, classes, options, values
 
 #@ Registration errors, float parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at parameter 'sample': class, classes, options, values
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': class, classes, options, values
 
 
 #@ Registration errors, bool parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at parameter 'sample': class, classes, options, values
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class, classes, options, values
 
 
 #@ Registration errors, string parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at parameter 'sample': class, classes, options
-||SystemError: TypeError: Testutils.register_function: Option 'values' is expected to be of type Array, but is Integer
-||SystemError: TypeError: Testutils.register_function: Option 'values' String expected, but value is Integer
-
-
-#@ Registration errors, object parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid options at parameter 'sample': options, values
-||SystemError: TypeError: Testutils.register_function: Option 'class' is expected to be of type String, but is Integer
-||SystemError: TypeError: Testutils.register_function: Option 'classes' String expected, but value is Integer
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class, classes, options
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
+||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
 
 
 #@ Registration errors, dictionary parameters
-||SystemError: ArgumentError: Testutils.register_function: Invalid and missing options at parameter 'sample' (invalid: class, classes, values), (missing: options)
-||SystemError: ArgumentError: Testutils.register_function: Missing 'options' at parameter 'sample'.
-||SystemError: ArgumentError: Testutils.register_function: Invalid definition at parameter 'sample' option #1
-||SystemError: ArgumentError: Testutils.register_function: Missing required options at parameter 'sample' option #1: name, type
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid and missing options at dictionary parameter 'sample' (invalid: class, classes, values), (missing: options)
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing option definitions at parameter 'sample'.
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name, type
 
 
 #@ Registration errors, invalid identifiers
-||SystemError: ArgumentError: Testutils.register_module: The module name must be a valid identifier.
-||SystemError: ArgumentError: Testutils.register_function: The function name 'my function' is not a valid identifier.
-||SystemError: ArgumentError: Testutils.register_function: parameter #1 is not a valid identifier: 'a sample'.
-||SystemError: ArgumentError: Testutils.register_function: parameter 'sample' option #1 is not a valid identifier: 'an invalid name'.
-
-#@ Function with custom names, registration error
-||SystemError: ArgumentError: Testutils.register_function: Invalid function name. When using custom names only two names should be provided.
-
-#@ Function with custom names, registration ok
-||
-
-#@<OUT> Function with custom names, help on module
-NAME
-      sampleModulePY - Sample module exported from C++
-
-SYNTAX
-      testutil.sampleModulePY
-
-DESCRIPTION
-      Exploring the posibility to dynamically create objects fron C++
-
-FUNCTIONS
-      dict_function([data])
-            Brief definition for dictFunction.
-
-      function(sample)
-
-
-      help([member])
-            Provides help about this object and it's members
-
-      py_function(data)
-            Brief description for stringFunction.
-
-      object_function1(session)
-            Brief definition for objectFunction.
-
-      object_function2(session)
-            Brief definition for objectFunction.
-
-      string_function(data)
-            Brief description for stringFunction.
-
-
-
-#@<OUT> Function with custom names, help on function
-NAME
-      py_function - Brief description for stringFunction.
-
-SYNTAX
-      sampleModulePY.py_function(data)
-
-WHERE
-      data: String. Brief description for string parameter.
-
-DESCRIPTION
-      Detailed description for stringFunction
-
-      Detailed description for string parameter.
-
-#@ Function with custom names, usage
-|Some random data: some data|
+||SystemError: ArgumentError: Shell.add_extension_object_member: The function name 'my function' is not a valid identifier.
+||SystemError: ArgumentError: Shell.add_extension_object_member: parameter #1 is not a valid identifier: 'a sample'.
+||SystemError: ArgumentError: Shell.add_extension_object_member: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'.

@@ -249,6 +249,11 @@ void Command_help::print_help_multiple_topics(
     }
   }
 
+  // The list of fund topic ids wil be displayed
+  // By default we exclude the root topic
+  auto id_mode = shcore::Topic_id_mode::EXCLUDE_ROOT;
+  if (groups.size() <= 1) id_mode = shcore::Topic_id_mode::EXCLUDE_CATEGORIES;
+
   // If an exact match was found, it's information will be printed right away
   // And the other found topics will be listed into a SEE ALSO section at the
   // end, otherwise the normal printing for multiple topics is used
@@ -273,16 +278,15 @@ void Command_help::print_help_multiple_topics(
                      group.first + "</b> category:");
 
     for (auto topic : group.second) {
-      output.push_back("@li " + topic->get_id(groups.size() > 1,
-                                              _shell->interactive_mode()));
+      output.push_back("@li " +
+                       topic->get_id(_shell->interactive_mode(), id_mode));
     }
   }
 
   auto topic = *groups.begin()->second.begin();
   output.push_back("For help on a specific topic use: <b>\\?</b> <topic>");
-  output.push_back(
-      "e.g.: <b>\\?</b> " +
-      topic->get_id(groups.size() > 1, _shell->interactive_mode()));
+  output.push_back("e.g.: <b>\\?</b> " +
+                   topic->get_id(_shell->interactive_mode(), id_mode));
 
   mysqlsh::current_console()->println(
       textui::format_markup_text(output, 80, 0));

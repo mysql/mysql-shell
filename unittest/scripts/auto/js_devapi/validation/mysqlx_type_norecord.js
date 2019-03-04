@@ -63,133 +63,133 @@ PROPERTIES
 
 FUNCTIONS
       help([member])
-            Provides help about this object and it's members
+            Provides help about this class and it's members
 
 //@<OUT> Help on Type.BIGINT
 NAME
       BIGINT - A large integer.
 
 SYNTAX
-      Type.BIGINT
+      mysqlx.Type.BIGINT
 
 //@<OUT> Help on Type.BIT
 NAME
       BIT - A bit-value type.
 
 SYNTAX
-      Type.BIT
+      mysqlx.Type.BIT
 
 //@<OUT> Help on Type.BYTES
 NAME
       BYTES - A binary string.
 
 SYNTAX
-      Type.BYTES
+      mysqlx.Type.BYTES
 
 //@<OUT> Help on Type.DATE
 NAME
       DATE - A date.
 
 SYNTAX
-      Type.DATE
+      mysqlx.Type.DATE
 
 //@<OUT> Help on Type.DATETIME
 NAME
       DATETIME - A date and time combination.
 
 SYNTAX
-      Type.DATETIME
+      mysqlx.Type.DATETIME
 
 //@<OUT> Help on Type.DECIMAL
 NAME
       DECIMAL - A packed "exact" fixed-point number.
 
 SYNTAX
-      Type.DECIMAL
+      mysqlx.Type.DECIMAL
 
 //@<OUT> Help on Type.ENUM
 NAME
       ENUM - An enumeration.
 
 SYNTAX
-      Type.ENUM
+      mysqlx.Type.ENUM
 
 //@<OUT> Help on Type.FLOAT
 NAME
       FLOAT - A floating-point number.
 
 SYNTAX
-      Type.FLOAT
+      mysqlx.Type.FLOAT
 
 //@<OUT> Help on Type.GEOMETRY
 NAME
       GEOMETRY - A geometry type.
 
 SYNTAX
-      Type.GEOMETRY
+      mysqlx.Type.GEOMETRY
 
 //@<OUT> Help on Type.INT
 NAME
       INT - A normal-size integer.
 
 SYNTAX
-      Type.INT
+      mysqlx.Type.INT
 
 //@<OUT> Help on Type.JSON
 NAME
       JSON - A JSON-format string.
 
 SYNTAX
-      Type.JSON
+      mysqlx.Type.JSON
 
 //@<OUT> Help on Type.MEDIUMINT
 NAME
       MEDIUMINT - A medium-sized integer.
 
 SYNTAX
-      Type.MEDIUMINT
+      mysqlx.Type.MEDIUMINT
 
 //@<OUT> Help on Type.SET
 NAME
       SET - A set.
 
 SYNTAX
-      Type.SET
+      mysqlx.Type.SET
 
 //@<OUT> Help on Type.SMALLINT
 NAME
       SMALLINT - A small integer.
 
 SYNTAX
-      Type.SMALLINT
+      mysqlx.Type.SMALLINT
 
 //@<OUT> Help on Type.STRING
 NAME
       STRING - A character string.
 
 SYNTAX
-      Type.STRING
+      mysqlx.Type.STRING
 
 //@<OUT> Help on Type.TIME
 NAME
       TIME - A time.
 
 SYNTAX
-      Type.TIME
+      mysqlx.Type.TIME
 
 //@<OUT> Help on Type.TINYINT
 NAME
       TINYINT - A very small integer.
 
 SYNTAX
-      Type.TINYINT
+      mysqlx.Type.TINYINT
 
 //@<OUT> Help on Type.help
 NAME
-      help - Provides help about this object and it's members
+      help - Provides help about this class and it's members
 
 SYNTAX
-      Type.help([member])
+      mysqlx.Type.help([member])
 
 WHERE
       member: If specified, provides detailed information on the given member.

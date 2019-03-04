@@ -25,14 +25,14 @@ PROPERTIES
 
 FUNCTIONS
       help([member])
-            Provides help about this object and it's members
+            Provides help about this class and it's members
 
 #@<OUT> Help on LockContention.DEFAULT
 NAME
       DEFAULT - A default locking mode.
 
 SYNTAX
-      LockContention.DEFAULT
+      mysqlx.LockContention.DEFAULT
 
 #@<OUT> Help on LockContention.NOWAIT
 NAME
@@ -41,7 +41,7 @@ NAME
                is locked.
 
 SYNTAX
-      LockContention.NOWAIT
+      mysqlx.LockContention.NOWAIT
 
 #@<OUT> Help on LockContention.SKIP_LOCKED
 NAME
@@ -50,14 +50,14 @@ NAME
                     set.
 
 SYNTAX
-      LockContention.SKIP_LOCKED
+      mysqlx.LockContention.SKIP_LOCKED
 
 #@<OUT> Help on LockContention.help
 NAME
-      help - Provides help about this object and it's members
+      help - Provides help about this class and it's members
 
 SYNTAX
-      LockContention.help([member])
+      mysqlx.LockContention.help([member])
 
 WHERE
       member: If specified, provides detailed information on the given member.

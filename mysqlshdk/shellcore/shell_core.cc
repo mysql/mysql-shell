@@ -234,6 +234,10 @@ void Shell_core::set_global(const std::string &name, const Value &value,
   }
 }
 
+bool Shell_core::is_global(const std::string &name) {
+  return _globals.find(name) != _globals.end();
+}
+
 Value Shell_core::get_global(const std::string &name) {
   return (_globals.count(name) > 0) ? _globals[name].second : Value();
 }

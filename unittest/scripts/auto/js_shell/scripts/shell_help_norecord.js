@@ -16,11 +16,29 @@ shell.help("reports")
 //@ Help on Reports, \? [USE:Help on Reports]
 \? reports
 
+//@ Help on addExtensionObjectMember
+shell.help("addExtensionObjectMember")
+
+//@ Help on addExtensionObjectMember, \? [USE:Help on addExtensionObjectMember]
+\? addExtensionObjectMember
+
+//@ Help on shell.addExtensionObjectMember, \? [USE:Help on addExtensionObjectMember]
+\? shell.addExtensionObjectMember
+
 //@ Help on Connect
 shell.help("connect")
 
 //@ Help on Connect, \? [USE:Help on Connect]
 \? connect
+
+//@ Help on createExtensionObject
+shell.help("createExtensionObject")
+
+//@ Help on createExtensionObject, \? [USE:Help on createExtensionObject]
+\? createExtensionObject
+
+//@ Help on shell.createExtensionObject, \? [USE:Help on createExtensionObject]
+\? shell.createExtensionObject
 
 //@ Help on deleteAllCredentials
 shell.help("deleteAllCredentials")
@@ -94,6 +112,16 @@ shell.help("reconnect")
 //@ Help on reconnect, \? [USE:Help on reconnect]
 \? reconnect
 
+//@ Help on registerGlobal
+shell.help("registerGlobal")
+
+//@ Help on registerGlobal, \? [USE:Help on registerGlobal]
+\? registerGlobal
+
+//@ Help on shell.registerGlobal, \? [USE:Help on registerGlobal]
+\? shell.registerGlobal
+
+
 //@ Help on registerReport
 shell.help("registerReport")
 
@@ -132,3 +160,5 @@ shell.connect(__mysqluripwd)
 \? connection
 session.close()
 
+//@ Help on extension objects
+\? extension objects
