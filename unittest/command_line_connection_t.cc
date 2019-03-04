@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -661,7 +661,15 @@ TEST_F(Command_line_connection_test, socket_connection) {
         "Connection:                   localhost via Unix socket");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
   }
+}
 
+TEST_F(Command_line_connection_test, socket_connection_with_default_path) {
+  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
+    SKIP_TEST("Skipping tests for default socket paths");
+  }
+
+  // This test connects to the default socket path, which may not be available
+  // at certain test runtime environments
   std::string cmd = "shell.status()";
   std::string pwd = "--password=" + _pwd;
   {

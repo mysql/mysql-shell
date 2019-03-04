@@ -135,6 +135,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
   expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
 
+  expose("isTcpPortListening", &Testutils::is_tcp_port_listening, "host",
+         "port");
+
   expose("dumpData", &Testutils::dump_data, "uri", "filename", "schemas");
   expose("importData", &Testutils::import_data, "uri", "filename",
          "?default_schema");
@@ -657,9 +660,9 @@ std::string Testutils::get_shell_log_path() {
  * Identifies if the test suite is being executed in reply mode.
  */
 #if DOXYGEN_JS
-Bool Testutils::isReplying();
+Bool Testutils::isReplaying();
 #elif DOXYGEN_PY
-bool Testutils::is_replying();
+bool Testutils::is_replaying();
 #endif
 ///@}
 bool Testutils::is_replaying() {
@@ -758,6 +761,53 @@ void Testutils::snapshot_sandbox_conf(int port) {
         std::cerr << "Copied " << sandbox_cnf_bkpath << " to "
                   << sandbox_cnf_path << "\n";
     }
+  }
+}
+
+///@{
+/**
+ * Checks whether the given TCP port is listening for connections.
+ *
+ * The result of the check will be recorded in the trace, so that the same
+ * result is returned during a replay.
+ */
+#if DOXYGEN_JS
+Bool Testutils::isTcpPortListening(String host, Integer port);
+#elif DOXYGEN_PY
+bool Testutils::is_tcp_port_listening(str host, int port);
+#endif
+///@}
+bool Testutils::is_tcp_port_listening(const std::string &host, int port) {
+  std::string port_check_file = shcore::path::join_path(
+      _sandbox_snapshot_dir,
+      "tcp_port_check_" + std::to_string(_tcp_port_check_serial++) + ".json");
+
+  switch (mysqlshdk::db::replay::g_replay_mode) {
+    case mysqlshdk::db::replay::Mode::Replay: {
+      auto info = shcore::Value::parse(shcore::get_text_file(port_check_file));
+      auto dict = info.as_map();
+      if (dict->get_string("host") != host || dict->get_int("port") != port) {
+        std::cerr << "Mismatched TCP port check params:\n"
+                  << "Expected: " << info.descr() << "\nActual: " << host
+                  << ", " << port << "\n";
+        throw std::runtime_error("TCP port check mismatch");
+      }
+      return dict->get_bool("result");
+    }
+
+    case mysqlshdk::db::replay::Mode::Record: {
+      bool r = mysqlshdk::utils::Net::is_port_listening(host, port);
+      auto dict = shcore::make_dict();
+      dict->set("port", shcore::Value(port));
+      dict->set("host", shcore::Value(host));
+      dict->set("result", shcore::Value(r));
+      shcore::create_file(port_check_file, shcore::Value(dict).repr());
+      return r;
+    }
+
+    case mysqlshdk::db::replay::Mode::Direct:
+    default:
+      return mysqlshdk::utils::Net::is_port_listening(host, port);
   }
 }
 

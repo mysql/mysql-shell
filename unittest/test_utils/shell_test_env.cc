@@ -384,10 +384,6 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     // Set up hook to replace (non-deterministic) queries.
     mysqlshdk::db::replay::on_recorder_query_replace_hook = std::bind(
         &Shell_test_env::query_replace_hook, this, std::placeholders::_1);
-
-    // Set up hook to replace hostname in results (row values).
-    mysqlshdk::db::replay::on_recorder_result_value_replace_hook = std::bind(
-        &Shell_test_env::record_host_replace_hook, this, std::placeholders::_1);
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
@@ -621,20 +617,6 @@ std::string Shell_test_env::query_replace_hook(const std::string &sql) {
   }
 }
 
-std::string Shell_test_env::record_host_replace_hook(const std::string &value) {
-  // Replace all occurrences of the hostname and real_hostname by a constant to
-  // replace by the correct values during replay.
-  // NOTE: The hosname and real_hostname where tests were recorded are most
-  //       likely different from where the tests are executed.
-  if (value.find(hostname()) != std::string::npos) {
-    return shcore::str_replace(value, hostname(), "__HOSTNAME__");
-  }
-  if (value.find(real_hostname()) != std::string::npos) {
-    return shcore::str_replace(value, real_hostname(), "__REAL_HOSTNAME__");
-  }
-  return value;
-}
-
 static int find_column_in_select_stmt(const std::string &sql,
                                       const std::string &column) {
   std::string s = shcore::str_lower(sql);
@@ -707,54 +689,11 @@ std::unique_ptr<mysqlshdk::db::IRow> Shell_test_env::set_replay_row_hook(
         std::vector<std::string>{datadir})};
   }
 
-  // Replace recorded hostname constants by the correct host information
-  // where the test are executed (replayed).
-  std::vector<uint32_t> replaced_columns;
-  std::vector<std::string> replaced_values;
-  uint32_t num_values = source->num_fields();
-  for (uint32_t i = 0; i < num_values; ++i) {
-    if (!source->is_null(i) &&
-        mysqlshdk::db::replay::is_set_as_string(source->get_type(i))) {
-      std::string value = source->get_string(i);
-      if (value.find("__HOSTNAME__") != std::string::npos) {
-        value = shcore::str_replace(value, "__HOSTNAME__", hostname());
-        replaced_columns.push_back(i);
-        replaced_values.push_back(value);
-      }
-      if (value.find("__REAL_HOSTNAME__") != std::string::npos) {
-        value =
-            shcore::str_replace(value, "__REAL_HOSTNAME__", real_hostname());
-        replaced_columns.push_back(i);
-        replaced_values.push_back(value);
-      }
-    }
-  }
-
-  if (!replaced_columns.empty()) {
-    return std::unique_ptr<mysqlshdk::db::IRow>{new tests::Override_row_string(
-        std::move(source), replaced_columns, replaced_values)};
-  }
-
 #ifdef __sun
   return std::move(source);
 #else
   return source;
 #endif
-}
-
-std::string Shell_test_env::replay_host_replace_hook(const std::string &value) {
-  // Replace all occurrences of the constants used for the hostname and
-  // real_hostname by the correct values used by the host where the tests are
-  // executed.
-  // NOTE: The hosname and real_hostname where tests were recorded are most
-  //       likely different from where the tests are executed.
-  if (value.find("__HOSTNAME__") != std::string::npos) {
-    return shcore::str_replace(value, "__HOSTNAME__", hostname());
-  }
-  if (value.find("__REAL_HOSTNAME__") != std::string::npos) {
-    return shcore::str_replace(value, "__REAL_HOSTNAME__", real_hostname());
-  }
-  return value;
 }
 
 std::shared_ptr<mysqlshdk::db::mysql::Session>

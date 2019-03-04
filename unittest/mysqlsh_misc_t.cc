@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,22 +105,23 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   wipe_out();
 #endif
   // Test non secure call passing uri and password with cmd line params
-  execute({_mysqlsh, "root@localhost", "-pwhatever", nullptr}, nullptr, nullptr,
-          {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "WARNING: Using a password on the command line interface can be "
-      "insecure.");
-  wipe_out();
-
-  execute({_mysqlsh, "root@localhost", "--password=whatever", nullptr}, nullptr,
+  execute({_mysqlsh, _mysql_uri.c_str(), "-pwhatever", nullptr}, nullptr,
           nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Using a password on the command line interface can be "
       "insecure.");
   wipe_out();
 
+  execute({_mysqlsh, _mysql_uri.c_str(), "--password=whatever", nullptr},
+          nullptr, nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+
   // Test non secure call passing uri with empty password
-  execute({_mysqlsh, "root:@localhost", "-e1", nullptr}, nullptr, nullptr,
+  std::string tmp = "root:@localhost:" + _mysql_port;
+  execute({_mysqlsh, tmp.c_str(), "-e1", nullptr}, nullptr, nullptr,
           {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Using a password on the command line interface can be "
@@ -128,7 +129,8 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   wipe_out();
 
   // Test non secure call passing uri with password
-  execute({_mysqlsh, "root:whatever@localhost", nullptr}, nullptr, nullptr,
+  tmp = "root:whatever@localhost:" + _mysql_port;
+  execute({_mysqlsh, tmp.c_str(), nullptr}, nullptr, nullptr,
           {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Using a password on the command line interface can be "

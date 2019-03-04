@@ -71,7 +71,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined expectPassword(String prompt, String password);
   Integer makeFileReadonly(String path);
   List grepFile(String path, String pattern);
-  Bool isReplying();
+  Bool isTcpPortListening(String host, Integer port);
+  Bool isReplaying();
   Undefined fail();
   Boolean versionCheck(String v1, String op, String v2);
   Undefined mkdir(String path, Boolean recursive);
@@ -106,7 +107,8 @@ class Testutils : public mysqlsh::Extensible_object {
   None expect_password(str prompt, str password);
   int make_file_readonly(str path);
   list grep_file(str path, str pattern);
-  bool is_replying();
+  bool is_tcp_port_listening(str host, int port);
+  bool is_replaying();
   None fail();
   bool version_check(str v1, str op, str v2);
   None mkdir(str path, bool recursive);
@@ -183,6 +185,8 @@ class Testutils : public mysqlsh::Extensible_object {
                  const std::vector<std::string> &schemas);
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
+
+  bool is_tcp_port_listening(const std::string &host, int port);
 
  public:
   // InnoDB cluster routines
@@ -265,6 +269,7 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string _test_skipped;
   int _snapshot_log_index = 0;
   int _snapshot_conf_serial = 0;
+  int _tcp_port_check_serial = 0;
   Input_fn _feed_prompt;
   Input_fn _feed_password;
   Output_fn _fetch_stdout;

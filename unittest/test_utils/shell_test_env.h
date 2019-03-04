@@ -130,11 +130,9 @@ class Shell_test_env : public ::testing::Test {
                         int sandbox_port3);
 
   std::string query_replace_hook(const std::string &sql);
-  std::string record_host_replace_hook(const std::string &value);
   std::unique_ptr<mysqlshdk::db::IRow> set_replay_row_hook(
       const mysqlshdk::db::Connection_options &target, const std::string &sql,
       std::unique_ptr<mysqlshdk::db::IRow> source);
-  std::string replay_host_replace_hook(const std::string &value);
 
  protected:
   static std::string _host;  //!< localhost

@@ -281,17 +281,6 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
         &Shell_test_env::on_session_connect, this, std::placeholders::_1);
     mysqlshdk::db::replay::on_recorder_close_hook = std::bind(
         &Shell_test_env::on_session_close, this, std::placeholders::_1);*/
-
-    // Set up hook to replace hostname in results (row values).
-    auto recorder_result_value_replace_hook =
-        [this](const std::string &value) -> std::string {
-      if (value.find(_hostname) != std::string::npos) {
-        return shcore::str_replace(value, _hostname, "__HOSTNAME__");
-      }
-      return value;
-    };
-    mysqlshdk::db::replay::on_recorder_result_value_replace_hook =
-        std::bind(recorder_result_value_replace_hook, std::placeholders::_1);
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
@@ -440,28 +429,6 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
                   std::vector<std::string>{datadir})};
         }
 
-        // Replace recorded hostname constants by the correct host information
-        // where the test are executed (replayed).
-        std::vector<uint32_t> replaced_columns;
-        std::vector<std::string> replaced_values;
-        uint32_t num_values = source->num_fields();
-        for (uint32_t i = 0; i < num_values; ++i) {
-          if (!source->is_null(i) &&
-              mysqlshdk::db::replay::is_set_as_string(source->get_type(i))) {
-            std::string value = source->get_string(i);
-            if (value.find("__HOSTNAME__") != std::string::npos) {
-              value = shcore::str_replace(value, "__HOSTNAME__", _hostname);
-              replaced_columns.push_back(i);
-              replaced_values.push_back(value);
-            }
-          }
-        }
-
-        if (!replaced_columns.empty()) {
-          return std::unique_ptr<mysqlshdk::db::IRow>{
-              new tests::Override_row_string(
-                  std::move(source), replaced_columns, replaced_values)};
-        }
 #ifdef __sun
         return std::move(source);
 #else

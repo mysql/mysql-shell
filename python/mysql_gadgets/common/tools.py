@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -259,7 +259,13 @@ def is_listening(host, port):
     :rtype: bool
     """
     # Socket Initialization
-    port = port
+    try:
+        # testutil will only exist during tests. Outside of tests, this will
+        # throw an exception, which will be ignored and the regular check
+        # is executed.
+        return testutil.is_tcp_port_listening(host, port)
+    except:
+        pass
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(LISTENING_PORT_CHECK_TIMEOUT)
     try:
