@@ -123,3 +123,12 @@ shell.help("storeCredential")
 
 //@ Help on storeCredential, \? [USE:Help on storeCredential]
 \? storeCredential
+
+//@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
+\? connection
+
+//@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, after session
+shell.connect(__mysqluripwd)
+\? connection
+session.close()
+

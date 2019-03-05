@@ -186,3 +186,11 @@ shell.help('store_credential')
 
 #@ global help for store_credential [USE:shell.store_credential]
 \help Shell.store_credential
+
+#@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
+\? connection
+
+#@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, after session
+shell.connect(__mysqluripwd)
+\? connection
+session.close()

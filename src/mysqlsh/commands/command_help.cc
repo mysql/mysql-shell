@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -189,20 +189,83 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
   return sql_topics;
 }
 
+/**
+ * Traverses the topic list trying to identify exact matches doing case
+ * sensitive/insnesitive comparison based on the case_sensitive flag.
+ *
+ * @param pattern The pattern used to query for help
+ * @param topics The topics found with the given pattern.
+ * @param case_sensitive flag to identify the case to be used on the comparison
+ * @returns null if no match was found, -1 if more than one matches were found
+ *          the topic index if one match was found.
+ */
+mysqlshdk::utils::nullable<int> Command_help::find_exact_match(
+    const std::string &pattern, const std::vector<shcore::Help_topic *> &topics,
+    bool case_sensitive) {
+  // Verifies if in the topics there is an exact match case sensitive;
+  mysqlshdk::utils::nullable<int> match_index;
+
+  for (size_t index = 0; index < topics.size(); index++) {
+    bool matched = false;
+    if (case_sensitive)
+      matched = pattern == topics[index]->m_name;
+    else
+      matched = shcore::str_caseeq(pattern, topics[index]->m_name);
+
+    if (matched) {
+      if (match_index.is_null()) {
+        match_index = index;
+      } else {
+        match_index = -1;
+      }
+    }
+  }
+
+  return match_index;
+}
+
 void Command_help::print_help_multiple_topics(
     const std::string &pattern,
     const std::vector<shcore::Help_topic *> &topics) {
-  std::vector<std::string> output;
-  output.push_back("Found several entries matching <b>" + pattern + "</b>");
-
   std::map<std::string,
            std::set<shcore::Help_topic *, shcore::Help_topic_id_compare>>
       groups;
-  for (auto topic : topics) {
-    if (groups.find(topic->get_category()->m_name) == groups.end())
-      groups[topic->get_category()->m_name] = {};
 
-    groups[topic->get_category()->m_name].insert(topic);
+  // attempts to find  a case sensitive exact match on the found topics
+  auto index = find_exact_match(pattern, topics, true);
+
+  // If no exact match was found, now attempts case insensitive
+  if (index.is_null()) index = find_exact_match(pattern, topics, false);
+
+  shcore::Help_topic *match = nullptr;
+  if (!index.is_null() && *index != -1) match = topics[*index];
+
+  for (auto topic : topics) {
+    if (topic != match) {
+      if (groups.find(topic->get_category()->m_name) == groups.end())
+        groups[topic->get_category()->m_name] = {};
+
+      groups[topic->get_category()->m_name].insert(topic);
+    }
+  }
+
+  // If an exact match was found, it's information will be printed right away
+  // And the other found topics will be listed into a SEE ALSO section at the
+  // end, otherwise the normal printing for multiple topics is used
+  std::vector<std::string> output;
+  if (match) {
+    auto data = _shell->get_helper()->get_help(*match);
+
+    if (!data.empty()) {
+      current_console()->println(data);
+    }
+
+    current_console()->println();
+    output.push_back("<b>SEE ALSO</b>");
+    output.push_back("Additional entries were found matching <b>" + pattern +
+                     "</b>");
+  } else {
+    output.push_back("Found several entries matching <b>" + pattern + "</b>");
   }
 
   for (auto group : groups) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,9 @@ class Command_help : public IShell_command {
   std::vector<shcore::Help_topic> get_sql_topics(const std::string &pattern);
   std::string glob_to_sql(const std::string &pattern, const std::string &glob,
                           const std::string &sql);
+  mysqlshdk::utils::nullable<int> find_exact_match(
+      const std::string &pattern,
+      const std::vector<shcore::Help_topic *> &topics, bool case_sensitive);
 };
 }  // namespace mysqlsh
 

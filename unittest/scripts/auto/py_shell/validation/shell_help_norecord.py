@@ -673,3 +673,265 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if storing the credential fails.
+
+#@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
+The connection data may be specified in the following formats:
+
+- A URI string
+- A dictionary with the connection options
+
+A basic URI string has the following format:
+
+[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+SSL Connection Options
+
+The following options are valid for use either in a URI or in a dictionary:
+
+- ssl-mode: the SSL mode to be used in the connection.
+- ssl-ca: the path to the X509 certificate authority in PEM format.
+- ssl-capath: the path to the directory that contains the X509 certificates
+  authorities in PEM format.
+- ssl-cert: The path to the X509 certificate in PEM format.
+- ssl-key: The path to the X509 key in PEM format.
+- ssl-crl: The path to file that contains certificate revocation lists.
+- ssl-crlpath: The path of directory that contains certificate revocation list
+  files.
+- ssl-cipher: SSL Cipher to use.
+- tls-version: List of protocols permitted for secure connections
+- auth-method: Authentication method
+- get-server-public-key: Request public key from the server required for RSA
+  key pair-based password exchange. Use when connecting to MySQL 8.0 servers
+  with classic MySQL sessions with SSL mode DISABLED.
+- server-public-key-path: The path name to a file containing a client-side copy
+  of the public key required by the server for RSA key pair-based password
+  exchange. Use when connecting to MySQL 8.0 servers with classic MySQL
+  sessions with SSL mode DISABLED.
+- connect-timeout: The connection timeout in milliseconds. If not provided a
+  default timeout of 10 seconds will be used. Specifying a value of 0 disables
+  the connection timeout.
+- compression: Enable/disable compression in client/server protocol, valid
+  values: "true", "false", "1", and "0".
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+Base Connection Options
+
+- scheme: the protocol to be used on the connection.
+- user: the MySQL user name to be used on the connection.
+- dbUser: alias for user.
+- password: the password to be used on the connection.
+- dbPassword: same as password.
+- host: the hostname or IP address to be used on a TCP connection.
+- port: the port to be used in a TCP connection.
+- socket: the socket file name to be used on a connection through unix sockets.
+- schema: the schema to be selected once the connection is done.
+
+ATTENTION: The dbUser and dbPassword options are will be removed in a future
+           release.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+Protocol Selection
+
+The scheme option defines the protocol to be used on the connection, the
+following are the accepted values:
+
+- mysql: for connections using the Classic protocol.
+- mysqlx: for connections using the X protocol.
+
+Socket Connections
+
+To define a socket connection, replace the host and port by the socket path.
+
+When using a connection dictionary, the path is set as the value for the socket
+option.
+
+When using a URI, the socket path must be URL encoded. A socket path may be
+specified in a URI in one of the following ways:
+
+- /path%2Fto%2Fsocket.sock
+- (/path/to/socket.sock)
+- ./path%2Fto%2Fsocket.sock
+- (./path/to/socket.sock)
+- ../path%2Fto%2Fsocket.sock
+- (../path/to/socket.sock)
+
+SSL Mode
+
+The ssl-mode option accepts the following values:
+
+- DISABLED
+- PREFERRED
+- REQUIRED
+- VERIFY_CA
+- VERIFY_IDENTITY
+
+TLS Version
+
+The tls-version option accepts the following values:
+
+- TLSv1
+- TLSv1.1
+- TLSv1.2 (Supported only on commercial packages)
+
+URL Encoding
+
+URL encoded values only accept alphanumeric characters and the next symbols:
+-._~!$'()*+;
+
+Any other character must be URL encoded.
+
+URL encoding is done by replacing the character being encoded by the sequence:
+%XX
+
+Where XX is the hexadecimal ASCII value of the character being encoded.
+
+If host is a literal IPv6 address it should be enclosed in "[" and "]"
+characters.
+
+If host is a literal IPv6 address with zone ID, the '%' character separating
+address from the zone ID needs to be URL encoded.
+
+#@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, after session
+The connection data may be specified in the following formats:
+
+- A URI string
+- A dictionary with the connection options
+
+A basic URI string has the following format:
+
+[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+SSL Connection Options
+
+The following options are valid for use either in a URI or in a dictionary:
+
+- ssl-mode: the SSL mode to be used in the connection.
+- ssl-ca: the path to the X509 certificate authority in PEM format.
+- ssl-capath: the path to the directory that contains the X509 certificates
+  authorities in PEM format.
+- ssl-cert: The path to the X509 certificate in PEM format.
+- ssl-key: The path to the X509 key in PEM format.
+- ssl-crl: The path to file that contains certificate revocation lists.
+- ssl-crlpath: The path of directory that contains certificate revocation list
+  files.
+- ssl-cipher: SSL Cipher to use.
+- tls-version: List of protocols permitted for secure connections
+- auth-method: Authentication method
+- get-server-public-key: Request public key from the server required for RSA
+  key pair-based password exchange. Use when connecting to MySQL 8.0 servers
+  with classic MySQL sessions with SSL mode DISABLED.
+- server-public-key-path: The path name to a file containing a client-side copy
+  of the public key required by the server for RSA key pair-based password
+  exchange. Use when connecting to MySQL 8.0 servers with classic MySQL
+  sessions with SSL mode DISABLED.
+- connect-timeout: The connection timeout in milliseconds. If not provided a
+  default timeout of 10 seconds will be used. Specifying a value of 0 disables
+  the connection timeout.
+- compression: Enable/disable compression in client/server protocol, valid
+  values: "true", "false", "1", and "0".
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+Base Connection Options
+
+- scheme: the protocol to be used on the connection.
+- user: the MySQL user name to be used on the connection.
+- dbUser: alias for user.
+- password: the password to be used on the connection.
+- dbPassword: same as password.
+- host: the hostname or IP address to be used on a TCP connection.
+- port: the port to be used in a TCP connection.
+- socket: the socket file name to be used on a connection through unix sockets.
+- schema: the schema to be selected once the connection is done.
+
+ATTENTION: The dbUser and dbPassword options are will be removed in a future
+           release.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+Protocol Selection
+
+The scheme option defines the protocol to be used on the connection, the
+following are the accepted values:
+
+- mysql: for connections using the Classic protocol.
+- mysqlx: for connections using the X protocol.
+
+Socket Connections
+
+To define a socket connection, replace the host and port by the socket path.
+
+When using a connection dictionary, the path is set as the value for the socket
+option.
+
+When using a URI, the socket path must be URL encoded. A socket path may be
+specified in a URI in one of the following ways:
+
+- /path%2Fto%2Fsocket.sock
+- (/path/to/socket.sock)
+- ./path%2Fto%2Fsocket.sock
+- (./path/to/socket.sock)
+- ../path%2Fto%2Fsocket.sock
+- (../path/to/socket.sock)
+
+SSL Mode
+
+The ssl-mode option accepts the following values:
+
+- DISABLED
+- PREFERRED
+- REQUIRED
+- VERIFY_CA
+- VERIFY_IDENTITY
+
+TLS Version
+
+The tls-version option accepts the following values:
+
+- TLSv1
+- TLSv1.1
+- TLSv1.2 (Supported only on commercial packages)
+
+URL Encoding
+
+URL encoded values only accept alphanumeric characters and the next symbols:
+-._~!$'()*+;
+
+Any other character must be URL encoded.
+
+URL encoding is done by replacing the character being encoded by the sequence:
+%XX
+
+Where XX is the hexadecimal ASCII value of the character being encoded.
+
+If host is a literal IPv6 address it should be enclosed in "[" and "]"
+characters.
+
+If host is a literal IPv6 address with zone ID, the '%' character separating
+address from the zone ID needs to be URL encoded.
+
+SEE ALSO
+
+Additional entries were found matching connection
+
+The following topics were found at the SQL Syntax category:
+
+- ALTER TABLE
+- CREATE TABLE
+- EXPLAIN
+- KILL
+
+For help on a specific topic use: \? <topic>
+
+e.g.: \? ALTER TABLE
+
