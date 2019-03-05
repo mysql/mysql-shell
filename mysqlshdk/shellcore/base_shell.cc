@@ -302,30 +302,36 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
       case shcore::Shell_core::Mode::None:
         break;
       case shcore::Shell_core::Mode::SQL:
-        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
+        if (_shell->switch_mode(mode) && !initializing)
           println("Switching to SQL mode... Commands end with ;");
-        if (lang_initialized) {
+        {
           auto sql =
               static_cast<shcore::Shell_sql *>(_shell->language_object(mode));
-          sql->set_result_processor(
-              std::bind(&Base_shell::process_sql_result, this, _1, _2));
+          if (!sql->result_processor()) {
+            sql->set_result_processor(
+                std::bind(&Base_shell::process_sql_result, this, _1, _2));
+            lang_initialized = true;
+          }
         }
         break;
       case shcore::Shell_core::Mode::JavaScript:
 #ifdef HAVE_V8
-        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
+        if (_shell->switch_mode(mode) && !initializing)
           println("Switching to JavaScript mode...");
-        if (lang_initialized) {
+        {
           auto js = static_cast<shcore::Shell_javascript *>(
               _shell->language_object(mode));
-          js->set_result_processor(
-              std::bind(&Base_shell::process_result, this, _1, _2));
-          _completer.add_provider(
-              shcore::IShell_core::Mode_mask(
-                  shcore::IShell_core::Mode::JavaScript),
-              std::unique_ptr<shcore::completer::Provider>(
-                  new shcore::completer::Provider_javascript(
-                      _completer_object_registry, js->javascript_context())));
+          if (!js->result_processor()) {
+            js->set_result_processor(
+                std::bind(&Base_shell::process_result, this, _1, _2));
+            _completer.add_provider(
+                shcore::IShell_core::Mode_mask(
+                    shcore::IShell_core::Mode::JavaScript),
+                std::unique_ptr<shcore::completer::Provider>(
+                    new shcore::completer::Provider_javascript(
+                        _completer_object_registry, js->javascript_context())));
+            lang_initialized = true;
+          }
         }
 #else
         println("JavaScript mode is not supported, command ignored.");
@@ -333,18 +339,22 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         break;
       case shcore::Shell_core::Mode::Python:
 #ifdef HAVE_PYTHON
-        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
+        if (_shell->switch_mode(mode) && !initializing)
           println("Switching to Python mode...");
-        if (lang_initialized) {
+        {
           auto py = static_cast<shcore::Shell_python *>(
               _shell->language_object(mode));
-          py->set_result_processor(
-              std::bind(&Base_shell::process_result, this, _1, _2));
-          _completer.add_provider(
-              shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::Python),
-              std::unique_ptr<shcore::completer::Provider>(
-                  new shcore::completer::Provider_python(
-                      _completer_object_registry, py->python_context())));
+          if (!py->result_processor()) {
+            py->set_result_processor(
+                std::bind(&Base_shell::process_result, this, _1, _2));
+            _completer.add_provider(
+                shcore::IShell_core::Mode_mask(
+                    shcore::IShell_core::Mode::Python),
+                std::unique_ptr<shcore::completer::Provider>(
+                    new shcore::completer::Provider_python(
+                        _completer_object_registry, py->python_context())));
+            lang_initialized = true;
+          }
         }
 #else
         println("Python mode is not supported, command ignored.");

@@ -370,7 +370,54 @@ bool Shell_script_tester::validate_line_by_line(const std::string &context,
                                                 const std::string &expected,
                                                 const std::string &actual,
                                                 int srcline, int valline) {
-  return check_multiline_expect(context + "@" + chunk_id, stream, expected,
+  std::string new_expected(expected);
+  std::vector<std::string> expected_lines;
+  bool changed = false;
+  // Takes this as the posibility of the presense of conditional lines.
+  size_t end_pos = expected.find("?{}");
+  if (end_pos != std::string::npos) {
+    expected_lines = shcore::split_string(expected, "\n");
+
+    // Lines in the format of ?{<condition>} might be the start/end of a
+    // conditional Section of expectations, the section ends on a equal to ?{}
+    for (size_t index = 0; index < expected_lines.size(); index++) {
+      std::string line = expected_lines[index];
+      if (!line.empty() && line[0] == '?') {
+        auto size = line.size();
+        if (size > 1 && line[1] == '{' && line[size - 1] == '}') {
+          std::string condition = line.substr(2, size - 3);
+
+          // Empty condition is simply ignored
+          if (!condition.empty()) {
+            expected_lines.erase(expected_lines.begin() + index);
+
+            // If condition not satisfied deletes all the lines in the middle
+            // until the closing tag is found
+            bool erase = !context_enabled(condition);
+            while (expected_lines.size() > index &&
+                   expected_lines[index] != "?{}") {
+              if (erase)
+                expected_lines.erase(expected_lines.begin() + index);
+              else
+                index++;
+            }
+
+            expected_lines.erase(expected_lines.begin() + index);
+
+            changed = true;
+
+            // Goes back on the index so the new current line is analyzed as
+            // well
+            index--;
+          }
+        }
+      }
+    }
+  }
+
+  if (changed) new_expected = shcore::str_join(expected_lines, "\n");
+
+  return check_multiline_expect(context + "@" + chunk_id, stream, new_expected,
                                 actual, srcline, valline);
 }
 
@@ -1396,6 +1443,12 @@ void Shell_script_tester::validate_batch(const std::string &script) {
   execute_script(script, false);
 }
 
+void Shell_script_tester::def_var(const std::string &var,
+                                  const std::string &value) {
+  std::string code = get_variable_prefix() + var + " = " + value;
+  exec_and_out_equals(code);
+}
+
 void Shell_script_tester::set_defaults() {
   output_handler.wipe_all();
   _cout.str("");
@@ -1415,6 +1468,7 @@ void Shell_script_tester::set_defaults() {
       test_mode = "replay";
       break;
   }
+
   std::string code =
       get_variable_prefix() + "__test_execution_mode = '" + test_mode + "'";
   exec_and_out_equals(code);
@@ -1438,6 +1492,12 @@ void Shell_script_tester::set_defaults() {
          std::to_string(_target_server_version.get_major() * 10000 +
                         _target_server_version.get_minor() * 100 +
                         _target_server_version.get_patch());
+#ifdef WITH_OCI
+  def_var("__with_oci", "1");
+#else
+  def_var("__with_oci", "0");
+#endif
+
   exec_and_out_equals(code);
 }
 

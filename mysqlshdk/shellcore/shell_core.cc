@@ -163,29 +163,24 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   return _global_return_code;
 }
 
-bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
-  lang_initialized = false;
-
+bool Shell_core::switch_mode(Mode mode) {
   // Updates the shell help mode
   m_help.set_mode(mode);
 
   if (_mode != mode) {
     _mode = mode;
-    if (!_langs[_mode]) {
+    if (_langs.find(_mode) == _langs.end()) {
       switch (_mode) {
         case Mode::None:
           break;
         case Mode::SQL:
           init_sql();
-          lang_initialized = true;
           break;
         case Mode::JavaScript:
           init_js();
-          lang_initialized = true;
           break;
         case Mode::Python:
           init_py();
-          lang_initialized = true;
           break;
       }
     }
@@ -213,13 +208,15 @@ void Shell_core::init_js() {
 void Shell_core::init_py() {
 #ifdef HAVE_PYTHON
   Shell_python *py;
-  _langs[Mode::Python] = py = new Shell_python(this);
+  if (_langs.find(Mode::Python) == _langs.end()) {
+    _langs[Mode::Python] = py = new Shell_python(this);
 
-  for (std::map<std::string, std::pair<Mode_mask, Value>>::const_iterator iter =
-           _globals.begin();
-       iter != _globals.end(); ++iter) {
-    if (iter->second.first.is_set(Mode::Python))
-      py->set_global(iter->first, iter->second.second);
+    for (std::map<std::string, std::pair<Mode_mask, Value>>::const_iterator
+             iter = _globals.begin();
+         iter != _globals.end(); ++iter) {
+      if (iter->second.first.is_set(Mode::Python))
+        py->set_global(iter->first, iter->second.second);
+    }
   }
 #endif
 }

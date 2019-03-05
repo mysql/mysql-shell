@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -226,6 +226,50 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
   _types.init();
 }
 
+bool Python_context::raw_execute_helper(const std::string &statement,
+                                        std::string *error) {
+  bool ret_val = false;
+
+  try {
+    PyObject *py_result =
+        PyRun_String(statement.c_str(), Py_single_input, _globals, _locals);
+
+    if (py_result) {
+      ret_val = true;
+    } else {
+      // Even it is internal processing, the information provided
+      // By python is better as it is clear, descriptive and visible
+      // So we print it right away
+      PyErr_Print();
+    }
+  } catch (const std::exception &e) {
+    mysqlsh::current_console()->print_error(e.what());
+    log_error("Python error: %s", e.what());
+
+    assert(0);
+  }
+
+  return ret_val;
+}
+
+bool Python_context::raw_execute(const std::string &statement,
+                                 std::string *error) {
+  WillEnterPython lock;
+  return raw_execute_helper(statement, error);
+}
+
+bool Python_context::raw_execute(const std::vector<std::string> &statements,
+                                 std::string *error) {
+  WillEnterPython lock;
+  bool ret_val = true;
+
+  size_t index = 0;
+  while (ret_val && index < statements.size())
+    ret_val = raw_execute_helper(statements[index++], error);
+
+  return ret_val;
+}
+
 Python_context::~Python_context() {
   PyObject *key, *value;
   Py_ssize_t pos = 0;
@@ -373,6 +417,7 @@ Value Python_context::execute_interactive(const std::string &code,
       const_cast<char *>("displayhook"),
       PyDict_GetItemString(PyModule_GetDict(_shell_python_support_module),
                            const_cast<char *>("interactivehook")));
+
   PyObject *py_result = nullptr;
   try {
     py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
@@ -383,6 +428,7 @@ Value Python_context::execute_interactive(const std::string &code,
     // Assert let us to catch these cases during development.
     assert(0);
   }
+
   PySys_SetObject(const_cast<char *>("displayhook"), orig_hook);
   Py_DECREF(orig_hook);
   if (!py_result) {

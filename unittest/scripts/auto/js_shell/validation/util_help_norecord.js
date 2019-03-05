@@ -12,6 +12,11 @@ FUNCTIONS
             Performs series of tests on specified MySQL server to check if the
             upgrade process will succeed.
 
+?{__with_oci==1}
+      configureOci([profile])
+            Wizard to create a valid configuration for the OCI SDK.
+
+?{}
       help([member])
             Provides help about this object and it's members
 
@@ -216,3 +221,64 @@ EXCEPTIONS
       - JSON document is ill-formed
 
 
+//@<OUT> util configureOci help
+NAME
+      configureOci - Wizard to create a valid configuration for the OCI SDK.
+
+SYNTAX
+      util.configureOci([profile])
+
+WHERE
+      profile: Parameter to specify the name profile to be configured.
+
+DESCRIPTION
+      If the profile name is not specified 'DEFAULT' will be used.
+
+      To properly create OCI configuration to use the OCI SDK the following
+      information will be required:
+
+      - User OCID
+      - Tenancy OCID
+      - Tenancy region
+      - A valid API key
+
+      For details about where to find the user and tenancy details go to
+      https://docs.us-phoenix-1.oraclecloud.com/Content/API/Concepts/apisigningkey.htm#Other
+
+//@<OUT> oci help
+The MySQL Shell offers support for the Oracle Cloud Infrastructure (OCI).
+
+After starting the MySQL Shell with the --oci option an interactive wizard will
+help to create the correct OCI configuration file, load the OCI Python SDK and
+switch the shell to Python mode.
+
+The MySQL Shell can then be used to access the OCI APIs and manage the OCI
+account.
+
+The following Python objects are automatically initialized.
+
+- config an OCI configuration object with data loaded from ~/.oci/config
+- identity an OCI identity client object, offering APIs for managing users,
+  groups, compartments and policies.
+- compute an OCI compute client object, offering APIs for Networking Service,
+  Compute Service, and Block Volume Service.
+
+For more information about the OCI Python SDK please read the documentation at
+https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/
+
+EXAMPLES
+identity.get_user(config['user']).data
+      Fetches information about the OCI user account specified in the config
+      object.
+
+identity.list_compartments(config['tenancy']).data
+      Fetches the list of top level compartments available in the tenancy that
+      was specified in the config object.
+
+compartment = identity.list_compartments(config['tenancy']).data[0]
+images = compute.list_images(compartment.id).data
+for image in images:
+  print image.display_name
+      Assignes the first compartment of the tenancy to the compartment
+      variable, featches the available OS images for the compartment and prints
+      a list of their names.

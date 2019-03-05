@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,9 @@ cmake .. \
     -DWITH_TESTS=ON \
     -DWITH_GMOCK=%{with_gmock} \
 %endif
+%if 0%{?with_oci:1}
+    -DWITH_OCI=%{with_oci} \
+%endif
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
@@ -127,6 +130,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_bindir}/mysql-secret-store-login-path
 %{_datadir}/mysqlsh/mysqlprovision.zip
 %{_datadir}/mysqlsh/prompt/*
+%if 0%{?with_oci:1}
+%{_datadir}/mysqlsh/oci_sdk/*
+%endif
 %{_datadir}/mysqlsh/upgrade_checker.msg
 
 %changelog

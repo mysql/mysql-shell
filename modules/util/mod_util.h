@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,15 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #endif
   void import_json(const std::string &file,
                    const shcore::Dictionary_t &options);
+
+#ifdef WITH_OCI
+#if DOXYGEN_JS
+  Undefined configureOci(String profile) {}
+#elif DOXYGEN_PY
+  None configure_oci(str profile);
+#endif
+  void configure_oci(const std::string &profile = "");
+#endif
 
  private:
   shcore::IShell_core &_shell_core;

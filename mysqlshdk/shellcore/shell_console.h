@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,14 +118,21 @@ class Shell_console : public IConsole {
    */
   void print_note(const std::string &text) const override;
   void print_info(const std::string &text) const override;
-  bool prompt(const std::string &prompt, std::string *out_val) const override;
+  bool prompt(const std::string &prompt, std::string *out_val,
+              Validator validator = nullptr) const override;
   Prompt_answer confirm(const std::string &prompt,
                         Prompt_answer def = Prompt_answer::NO,
                         const std::string &yes_label = "&Yes",
                         const std::string &no_label = "&No",
                         const std::string &alt_label = "") const override;
-  shcore::Prompt_result prompt_password(const std::string &prompt,
-                                        std::string *out_val) const override;
+  shcore::Prompt_result prompt_password(
+      const std::string &prompt, std::string *out_val,
+      Validator validator = nullptr) const override;
+  bool select(const std::string &prompt_text, std::string *result,
+              const std::vector<std::string> &items, size_t default_option = 0,
+              bool allow_custom = false,
+              Validator validator = nullptr) const override;
+
   void print_value(const shcore::Value &value,
                    const std::string &tag) const override;
 

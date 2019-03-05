@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,11 @@
 include_directories(
   ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
   )
+
+IF(WITH_OCI AND OPENSSL_INCLUDE_DIR)
+	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+ENDIF()
+
 
 set(utils_SOURCE
     utils_mysql_parsing.cc
@@ -51,6 +56,10 @@ set(utils_SOURCE
     version.cc
     profiling.cc
 )
+
+IF(WITH_OCI)
+    LIST(APPEND utils_SOURCE ssl_keygen.cc)
+ENDIF()
 
 # platform dependent implementations
 IF(UNIX)

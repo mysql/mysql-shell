@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,15 +29,30 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/shell_script_tester.h"
 
+#include <stdlib.h>
+
 extern "C" const char *g_test_home;
 
 namespace tests {
+
+#ifdef _WIN32
+#define unsetenv(var) _putenv(var "=")
+#define putenv _putenv
+#endif
 
 class Auto_script_py : public Shell_py_script_tester,
                        public ::testing::WithParamInterface<std::string> {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp() {
+  void SetUp() override {
+    m_home_backup = getenv("HOME");
+    static char path[1024];
+    snprintf(path, sizeof(path), "HOME=%s", g_test_home);
+
+    if (putenv(path) != 0) {
+      std::cerr << "putenv failed to set HOME to a test path.\n";
+    }
+
     // Force reset_shell() to happen when reset_shell() is called explicitly
     // in each test case
     _delay_reset_shell = true;
@@ -48,7 +63,24 @@ class Auto_script_py : public Shell_py_script_tester,
                                              "setup.py"));
   }
 
-  virtual void set_defaults() {
+  void TearDown() override {
+    if (m_home_backup) {
+      static char path[1024];
+      snprintf(path, sizeof(path), "HOME=%s", m_home_backup);
+
+      if (putenv(path) != 0) {
+        std::cerr << "putenv failed to restore HOME to it's original value.\n";
+      }
+    } else {
+      unsetenv("HOME");
+    }
+    Shell_py_script_tester::TearDown();
+  }
+
+ protected:
+  char *m_home_backup = nullptr;
+
+  void set_defaults() override {
     Shell_py_script_tester::set_defaults();
 
     std::string user, host, password;
@@ -146,6 +178,12 @@ class Auto_script_py : public Shell_py_script_tester,
     else
       code = "__recording = False;";
     exec_and_out_equals(code);
+
+    code = "__home = '" + shcore::path::home() + "'";
+#ifdef WIN32
+    code = shcore::str_replace(code, "\\", "\\\\");
+#endif
+    exec_and_out_equals(code);
   }
 };
 
@@ -166,6 +204,11 @@ TEST_P(Auto_script_py, run_and_check) {
   } else {
     execute_setup();
   }
+
+  if (folder == "py_shell")
+    output_handler.set_answers_to_stdout(true);
+  else
+    output_handler.set_answers_to_stdout(false);
 
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());
   exec_and_out_equals("__script_file = '" + GetParam() + "'");

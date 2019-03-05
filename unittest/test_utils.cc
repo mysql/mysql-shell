@@ -41,7 +41,8 @@ ngcommon::Logger *Shell_test_output_handler::_logger;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern bool g_profile_test_scripts;
 
-Shell_test_output_handler::Shell_test_output_handler() : m_internal(false) {
+Shell_test_output_handler::Shell_test_output_handler()
+    : m_internal(false), m_answers_to_stdout(false) {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
@@ -152,6 +153,8 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
         makered(shcore::str_format("\n--> unexpected prompt '%s'", prompt)));
   }
 
+  if (target->m_answers_to_stdout) target->std_out.append(answer).append("\n");
+
   *ret = answer;
   return ret_val;
 }
@@ -191,6 +194,11 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
     ADD_FAILURE() << "Unexpected password prompt for '" << prompt << "'";
     target->debug_print(makered(
         shcore::str_format("\n--> unexpected pwd prompt '%s'", prompt)));
+  }
+
+  if (target->m_answers_to_stdout) {
+    std::string password(answer.size(), '*');
+    target->std_out.append(password).append("\n");
   }
 
   *ret = answer;

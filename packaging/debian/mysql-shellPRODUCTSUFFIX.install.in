@@ -4,4 +4,5 @@ usr/share/mysqlsh/mysqlprovision.zip
 usr/share/mysqlsh/LICENSE    usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh
 usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
+usr/share/mysqlsh/oci_sdk/*   usr/share/mysqlsh/oci_sdk
 usr/share/mysqlsh/upgrade_checker.msg

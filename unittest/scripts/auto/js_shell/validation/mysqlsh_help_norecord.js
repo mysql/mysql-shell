@@ -140,6 +140,13 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 prevent printing any information unless it is
                                 an error. If no value is specified uses 1 as
                                 default.
+?{__with_oci==1}
+  --oci[=profile]               Starts the shell ready to work with OCI. A
+                                wizard to configure the given profile will be
+                                launched if the profile is not configured. If
+                                no profile is specified the 'DEFAUL' profile
+                                will be used.
+?{}
   --credential-store-helper=val Specifies the helper which is going to be used
                                 to store/retrieve the passwords.
   --save-passwords=value        Controls automatic storage of passwords.

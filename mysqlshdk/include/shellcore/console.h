@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_CONSOLE_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_CONSOLE_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 #include "mysqlshdk/include/scripting/lang_base.h"
@@ -62,8 +63,10 @@ class IConsole {
   virtual void print_diag(const std::string &text) const = 0;
 
   // Throws shcore::cancelled() on ^C
-  virtual bool prompt(const std::string &prompt,
-                      std::string *out_val) const = 0;
+  using Validator = std::function<std::string(const std::string &)>;
+
+  virtual bool prompt(const std::string &prompt, std::string *out_val,
+                      Validator validator = nullptr) const = 0;
 
   /**
    * Show confirmation prompt with the displayed options.
@@ -85,8 +88,14 @@ class IConsole {
                                 const std::string &no_label = "&No",
                                 const std::string &alt_label = "") const = 0;
 
-  virtual shcore::Prompt_result prompt_password(const std::string &prompt,
-                                                std::string *out_val) const = 0;
+  virtual shcore::Prompt_result prompt_password(
+      const std::string &prompt, std::string *out_val,
+      Validator validator = nullptr) const = 0;
+
+  virtual bool select(const std::string &prompt_text, std::string *result,
+                      const std::vector<std::string> &items,
+                      size_t default_option = 0, bool allow_custom = false,
+                      Validator validator = nullptr) const = 0;
 
   /**
    * Enables the pager and returns its handle. As long IPager exists, all output

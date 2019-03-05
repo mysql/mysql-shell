@@ -31,11 +31,12 @@ INCLUDE_DIRECTORIES(BEFORE
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
 
-
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
-      "util/*.cc"
+      "util/json_importer.cc"
+      "util/mod_util.cc"
+      "util/upgrade_check.cc"
       "mod_mysql.cc"
       "mod_mysql_*.cc"
       "mod_shell.cc"
@@ -79,6 +80,11 @@ file(GLOB api_module_SOURCES
       "adminapi/replicaset/set_option.cc"
       "adminapi/replicaset/set_instance_option.cc"
       "adminapi/replicaset/check_instance_state.cc")
+
+IF(WITH_OCI)
+    LIST(APPEND api_module_SOURCES "util/oci_setup.cc")
+ENDIF()
+
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

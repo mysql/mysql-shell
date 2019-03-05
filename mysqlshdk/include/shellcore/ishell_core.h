@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ class SHCORE_PUBLIC IShell_core {
   virtual ~IShell_core();
 
   virtual Mode interactive_mode() const = 0;
-  virtual bool switch_mode(Mode mode, bool &lang_initialized) = 0;
+  virtual bool switch_mode(Mode mode) = 0;
 
   // By default, globals apply to the three languages
   virtual void set_global(const std::string &name, const Value &value,

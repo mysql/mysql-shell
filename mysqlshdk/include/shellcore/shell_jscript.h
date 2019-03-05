@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,10 @@ class Shell_javascript : public Shell_language {
 
   void set_result_processor(
       std::function<void(shcore::Value, bool)> result_processor);
+
+  std::function<void(shcore::Value, bool)> result_processor() const {
+    return _result_processor;
+  }
 
   void set_global(const std::string &name, const Value &value) override;
 

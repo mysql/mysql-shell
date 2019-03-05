@@ -1431,4 +1431,22 @@ TEST_F(Shell_cmdline_options, invalid_connect_timeout) {
   }
 }
 
+#ifdef WITH_OCI
+TEST_F(Shell_cmdline_options, conflicts_oci) {
+  auto error =
+      "Conflicting options: --oci can not be used unless initial mode is "
+      "Python.\n";
+  std::vector<std::string> options = {"--js", "--javascript", "--sql", "--sqlc",
+                                      "--sqlc"};
+
+  for (const auto &option : options) {
+    char *argv0[] = {const_cast<char *>("ut"),
+                     const_cast<char *>(option.c_str()),
+                     const_cast<char *>("--oci"), NULL};
+
+    test_conflicting_options(option + " --oci", 3, argv0, error);
+  }
+}
+#endif
+
 }  // namespace shcore

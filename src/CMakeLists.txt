@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -122,15 +122,6 @@ if(OPENSSL_TO_BUNDLE_DIR)
     )
   ELSEIF(APPLE)
     message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
-    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-    add_custom_command(TARGET mysqlsh POST_BUILD
-      COMMAND install_name_tool -change
-              "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-              $<TARGET_FILE:mysqlsh>
-      COMMAND install_name_tool -change
-              "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-              $<TARGET_FILE:mysqlsh>
-    )
 
     IF(WITH_TESTS)
       add_custom_command(TARGET mysqlshrec POST_BUILD

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,10 @@ class Shell_python : public Shell_language {
 
   void set_result_processor(
       std::function<void(shcore::Value, bool)> result_processor);
+
+  std::function<void(shcore::Value, bool)> result_processor() const {
+    return _result_processor;
+  }
 
   std::string preprocess_input_line(const std::string &s) override;
   void handle_input(std::string &code, Input_state &state) override;

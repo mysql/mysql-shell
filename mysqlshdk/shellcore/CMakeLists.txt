@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,6 @@ include_directories(
         "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 include_directories(${CMAKE_SOURCE_DIR}) # <--- TODO: REMOVE (something's including modules/*)
 
-
 set(SHELLCORE_SOURCES
   base_shell.cc
   base_session.cc
@@ -44,7 +43,8 @@ set(SHELLCORE_SOURCES
   shell_sql.cc
   provider_sql.cc
   utils_help.cc
-  shell_console.cc)
+  shell_console.cc
+  wizard.cc)
 
 if(HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")

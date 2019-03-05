@@ -158,12 +158,14 @@ class Shell_test_output_handler {
   std::list<std::pair<std::string, std::string>> passwords;
 
   void set_internal(bool value) { m_internal = value; }
+  void set_answers_to_stdout(bool value) { m_answers_to_stdout = value; }
 
  protected:
   static ngcommon::Logger *_logger;
 
   static void log_hook(const ngcommon::Logger::Log_entry &entry);
   bool m_internal;
+  bool m_answers_to_stdout;
 };
 
 #define MY_EXPECT_STDOUT_CONTAINS(x, ...)                           \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -484,7 +484,22 @@ Shell_options::Shell_options(int argc, char **argv,
         } else {
           throw std::invalid_argument("Value for --quiet-start if any, must be any of 1 or 2");
         }
-      });
+      })
+#ifdef WITH_OCI
+    (
+      cmdline("--oci[=profile]"),
+      "Starts the shell ready to work with OCI. "
+      "A wizard to configure the given profile will be launched if the profile is not configured. "
+      "If no profile is specified the 'DEFAUL' profile will be used.",
+      [this](const std::string&, const char* value) {
+        storage.oci_profile = value == nullptr ? "" : value;
+#ifdef HAVE_PYTHON
+        if (storage.initial_mode == shcore::IShell_core::Mode::None)
+          storage.initial_mode = shcore::IShell_core::Mode::Python;
+#endif
+      })
+#endif
+;  // <-- Note this is on purpose: Mark the termination of the option definition.
   // clang-format on
 
   shcore::Credential_manager::get().register_options(this);
@@ -506,6 +521,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_port_socket_conflicts();
     check_import_options();
     check_result_format();
+    check_oci_conflicts();
     ngcommon::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -918,6 +934,19 @@ void Shell_options::check_host_conflicts() {
     }
   }
 }
+
+#ifdef HAVE_PYTHON
+void Shell_options::check_oci_conflicts() {
+  if (!storage.oci_profile.is_null()) {
+    if (storage.initial_mode != shcore::IShell_core::Mode::Python) {
+      auto error =
+          "Conflicting options: --oci can not be used unless initial mode is "
+          "Python.";
+      throw std::runtime_error(error);
+    }
+  }
+}
+#endif
 
 #ifdef _WIN32
 #define SOCKET_NAME "named pipe"

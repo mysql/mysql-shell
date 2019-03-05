@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -116,6 +116,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   virtual void set_defaults();
   virtual void reset_shell();
   virtual void set_scripting_context();
+  void def_var(const std::string &var, const std::string &value);
 
   std::streambuf *_cout_backup;
   std::ostringstream _cout;

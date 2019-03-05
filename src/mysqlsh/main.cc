@@ -35,6 +35,10 @@
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_init.h"
 
+#ifdef WITH_OCI
+#include "modules/util/oci_setup.h"
+#endif
+
 #include <sys/stat.h>
 #include <clocale>
 #include <cstdio>
@@ -776,7 +780,24 @@ int main(int argc, char **argv) {
 
       std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
 
+#ifdef WITH_OCI
+      // The registration of the OCI SDK should be done all the time
+      // so the user can import oci
+      mysqlsh::oci::init(shell->shell_context());
+
+      if (!options.oci_profile.is_null()) {
+        if (options.interactive) {
+          mysqlsh::oci::load_profile(*options.oci_profile,
+                                     shell->shell_context());
+        } else {
+          mysqlsh::current_console()->print_warning(
+              "Option --oci requires interactive mode, ignoring option.");
+        }
+      }
+#endif
+
       // If default cluster specified on the cmdline, set cluster global var
+
       auto shell_cli_operation = shell_options->get_shell_cli_operation();
       if (options.default_cluster_set && !shell_cli_operation) {
         try {

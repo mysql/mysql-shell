@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +74,7 @@ class Shell_options : public shcore::Options {
     std::string schema;
     // Unix socket or Windows pipe name
     mysqlshdk::utils::nullable<std::string> sock;
+    mysqlshdk::utils::nullable<std::string> oci_profile;
     std::string auth_method;
     std::string m_connect_timeout;
     bool compress = false;
@@ -198,6 +199,7 @@ class Shell_options : public shcore::Options {
   void check_socket_conflicts();
   void check_port_socket_conflicts();
   void check_result_format();
+  void check_oci_conflicts();
 
   /**
    * --import option require default schema to be provided in connection

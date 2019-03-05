@@ -54,6 +54,12 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
     _result_processor = result_processor;
   }
 
+  std::function<void(std::shared_ptr<mysqlshdk::db::IResult>,
+                     const Sql_result_info &)>
+  result_processor() const {
+    return _result_processor;
+  }
+
   virtual void set_global(const std::string &, const Value &) {}
 
   virtual void handle_input(std::string &code, Input_state &state);

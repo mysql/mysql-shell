@@ -143,6 +143,22 @@ INCLUDE(CheckFunctionExists)
 include(curl)
 MYSQL_CHECK_CURL()
 
+IF (WITH_OCI)
+  IF (NOT HAVE_PYTHON)
+    MESSAGE(FATAL_ERROR "WITH_OCI should not be used when python is not available.")
+  ELSE()
+    IF (BUNDLED_OPENSSL_DIR)
+      FIND_PATH(OPENSSL_INCLUDE_DIR
+        NAMES openssl/ssl.h
+        HINTS ${BUNDLED_OPENSSL_DIR}/include
+      )
+    ELSE()
+      INCLUDE(ssl)
+      MYSQL_CHECK_SSL()
+    ENDIF()
+  ENDIF()
+ENDIF()
+
 if(HAVE_PYTHON)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
@@ -330,6 +346,10 @@ INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
             ${MYSQLX_INCLUDE_DIRS}
             ${PROTOBUF_INCLUDE_DIRS})
 
+IF(HAVE_PYTHON)
+  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIR})
+ENDIF()
+
 ###
 ### Handle User Options
 ###
@@ -386,6 +406,32 @@ add_definitions(-DMYSH_VERSION="${MYSH_VERSION}" -DMYSH_BUILD_ID="${MYSH_BUILD_I
 if(WIN32)
   add_definitions(-DMYSH_VERSION_WIN="${MYSH_VERSION_WIN}")
 endif()
+
+##
+## Prepares the OCI SDK when needed
+###
+IF(WITH_OCI)
+  FILE(TO_CMAKE_PATH ${WITH_OCI} OCI_SDK)
+  ADD_CUSTOM_COMMAND(OUTPUT oci_sdk_bundle
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${OCI_SDK}/ ${CMAKE_BINARY_DIR}/${INSTALL_SHAREDIR}/oci_sdk
+      COMMENT "Bundling OCI SDK from ${WITH_OCI}"
+  )
+  ADD_CUSTOM_TARGET(oci_sdk ALL DEPENDS oci_sdk_bundle)
+
+  INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_SHAREDIR}/oci_sdk/ COMPONENT main DESTINATION ${INSTALL_SHAREDIR}/oci_sdk)
+  ADD_DEFINITIONS(-DWITH_OCI)
+
+  IF (APPLE)
+    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIB ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/*_openssl.so)
+    EXECUTE_PROCESS(COMMAND install_name_tool -change
+            "${CRYPTO_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+            ${OCI_OPEN_SSL_LIB})
+    EXECUTE_PROCESS(COMMAND install_name_tool -change
+            "${OPENSSL_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+            ${OCI_OPEN_SSL_LIB})
+    EXECUTE_PROCESS(COMMAND otool -L ${OCI_OPEN_SSL_LIB})
+  ENDIF()
+ENDIF()
 
 IF(WITH_TESTS)
   ###

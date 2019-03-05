@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,6 +148,10 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   std::string fetch_and_clear_exception();
 
+  bool raw_execute(const std::string &statement, std::string *error = nullptr);
+  bool raw_execute(const std::vector<std::string> &statements,
+                   std::string *error = nullptr);
+
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
                                const std::string &stream);
@@ -193,6 +197,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   void register_mysqlsh_module();
   PyObject *call_module_function(PyObject *self, PyObject *args,
                                  PyObject *keywords, const std::string &name);
+
+  bool raw_execute_helper(const std::string &statement, std::string *error);
 
   void register_shell_stderr_module();
   void register_shell_stdout_module();

@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -166,6 +166,10 @@ endif()
 if(WITH_GMOCK)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_TESTS=ON")
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_GMOCK=${WITH_GMOCK}")
+endif()
+
+if(WITH_OCI)
+  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_OCI=${WITH_OCI}")
 endif()
 
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -265,19 +265,32 @@ void Shell_console::print_info(const std::string &text) const {
   log_info("%s", text.c_str());
 }
 
-bool Shell_console::prompt(const std::string &prompt,
-                           std::string *ret_val) const {
+bool Shell_console::prompt(const std::string &prompt, std::string *ret_val,
+                           Validator validator) const {
   std::string text;
   if (use_json()) {
     text = json_obj("prompt", prompt);
   } else {
     text = mysqlshdk::textui::bold(prompt);
   }
-  shcore::Prompt_result result =
-      m_ideleg->prompt(m_ideleg->user_data, text.c_str(), ret_val);
-  if (result == shcore::Prompt_result::Cancel)
-    throw shcore::cancelled("Cancelled");
-  if (result == shcore::Prompt_result::Ok) return true;
+
+  while (1) {
+    shcore::Prompt_result result =
+        m_ideleg->prompt(m_ideleg->user_data, text.c_str(), ret_val);
+    if (result == shcore::Prompt_result::Cancel)
+      throw shcore::cancelled("Cancelled");
+    if (result == shcore::Prompt_result::Ok) {
+      if (validator) {
+        std::string msg = validator(*ret_val);
+
+        if (msg.empty()) return true;
+
+        print_warning(msg);
+      } else {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -388,15 +401,98 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
   return final_ans;
 }  // namespace mysqlsh
 
+bool Shell_console::select(const std::string &prompt_text, std::string *result,
+                           const std::vector<std::string> &options,
+                           size_t default_option, bool allow_custom,
+                           Validator validator) const {
+  std::string answer;
+  std::string default_str;
+  std::string text(prompt_text);
+  result->clear();
+
+  if (default_option != 0)
+    text += " [" + std::to_string(default_option) + "]: ";
+
+  int index = 1;
+  for (const auto &option : options)
+    println(shcore::str_format("  %d) %s", index++, option.c_str()));
+
+  println();
+
+  bool valid = false;
+
+  mysqlshdk::utils::nullable<std::string> good_answer;
+
+  while (!valid && good_answer.is_null()) {
+    if (prompt(text, &answer)) {
+      int option = static_cast<int>(default_option);
+
+      try {
+        if (!answer.empty())
+          option = std::stoi(answer);
+        else
+          valid = allow_custom;
+
+        // The selection is a number from the list
+        if (option > 0 && option <= static_cast<int>(options.size())) {
+          answer = options[option - 1];
+          valid = true;
+        }
+      } catch (const std::exception &err) {
+        // User typed something else and it is allowed
+        valid = allow_custom;
+      }
+
+      // If there's a validator, the answer should be validated
+      std::string warning;
+      if (valid && validator) {
+        warning = validator(answer);
+        valid = warning.empty();
+      } else if (!valid) {
+        warning = "Invalid option selected.";
+      }
+
+      if (valid)
+        good_answer = answer;
+      else
+        print_warning(warning);
+    } else {
+      break;
+    }
+  }
+
+  if (!good_answer.is_null()) *result = *good_answer;
+
+  return valid;
+}
+
 shcore::Prompt_result Shell_console::prompt_password(
-    const std::string &prompt, std::string *out_val) const {
+    const std::string &prompt, std::string *out_val,
+    Validator validator) const {
   std::string text;
   if (use_json()) {
     text = json_obj("password", prompt);
   } else {
     text = mysqlshdk::textui::bold(prompt);
   }
-  return m_ideleg->password(m_ideleg->user_data, text.c_str(), out_val);
+
+  shcore::Prompt_result result;
+  bool valid = true;
+  do {
+    result = m_ideleg->password(m_ideleg->user_data, text.c_str(), out_val);
+
+    if (result == shcore::Prompt_result::Ok) {
+      if (validator) {
+        std::string msg = validator(*out_val);
+
+        valid = msg.empty();
+
+        if (!valid) print_warning(msg);
+      }
+    }
+  } while (result == shcore::Prompt_result::Ok && !valid);
+
+  return result;
 }
 
 void Shell_console::print_value(const shcore::Value &value,

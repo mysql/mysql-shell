@@ -155,7 +155,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   virtual ~Shell_core();
 
   Mode interactive_mode() const override { return _mode; }
-  bool switch_mode(Mode mode, bool &lang_initialized) override;
+  bool switch_mode(Mode mode) override;
 
   // sets a global variable, exposed to all supported scripting languages
   // the value is saved in a map, so that the exposing can be deferred in
@@ -219,11 +219,12 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   }
   std::string get_main_delimiter() const;
 
+  void init_py();
+
  private:
   mysqlsh::IConsole *m_console;
   void init_sql();
   void init_js();
-  void init_py();
 
  private:
   Object_registry *_registry;
