@@ -369,3 +369,9 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 
 //@ WL#12066: Finalization {VER(>=8.0.16)}
 ||
+
+//@<OUT> BUG#29308037: Confirm that all replication users where removed
+0
+
+//@ BUG#29308037: Finalization
+||

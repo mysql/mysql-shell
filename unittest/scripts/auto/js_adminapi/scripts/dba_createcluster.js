@@ -54,6 +54,14 @@ function print_gr_auto_rejoin_tries(session) {
     print(row[0] + "\n");
 }
 
+function get_number_of_rpl_users() {
+    var result = session.runSql(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
+        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
+    var row = result.fetchOne();
+    return row[0];
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -537,11 +545,11 @@ var c = dba.createCluster("test_cluster");
 //@ BUG#29246110: add instance error with non supported host.
 c.addInstance(__sandbox_uri1);
 
+// NOTE: Do not destroy sandbox 2 to be used on the next tests
 //@ BUG#29246110: finalization
-c.disconnect();
+c.dissolve({force: true});
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
 
 // WL#12066 AdminAPI: option to define the number of auto-rejoins
 //
@@ -555,7 +563,6 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 
 //@ WL#12066: Initialization {VER(>=8.0.16)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
@@ -572,7 +579,7 @@ var c = dba.createCluster('test', {autoRejoinTries: 2017});
 var c = dba.createCluster('test', {autoRejoinTries: 2016});
 session.close();
 shell.connect(__sandbox_uri2);
-var c2 = dba.createCluster('test2');
+var c2 = dba.createCluster('test2', {clearReadOnly: true});
 
 //@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
 print_gr_auto_rejoin_tries(s1);
@@ -587,6 +594,24 @@ c.dissolve({force: true});
 c2.dissolve({force: true});
 
 //@ WL#12066: Finalization {VER(>=8.0.16)}
+// NOTE: Do not destroy sandbox 2 to be used on the next tests
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+// Regression test for BUG#29308037
+//
+// When dba.createCluster() fails and a rollback is performed to remove the
+// created replication user, the account created at 'localhost' is not being
+// removed
+
+// Force a failure of the create_cluster function after the replication-user was created
+//@<> BUG#29308037: Create cluster using an invalid localAddress
+shell.connect(__sandbox_uri2);
+EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "ERROR: Error starting cluster");
+
+//@<OUT> BUG#29308037: Confirm that all replication users where removed
+print(get_number_of_rpl_users() + "\n");
+
+//@ BUG#29308037: Finalization
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port2);

@@ -63,6 +63,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -1057,18 +1058,25 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     tx.commit();
     // We catch whatever to do final processing before bubbling up the exception
-  } catch (...) {
+  } catch (const std::exception &) {
     try {
+      // Remove the replication user if previously created
       if (!replication_user.empty()) {
         log_debug("Removing replication user '%s'", replication_user.c_str());
-        group_session->query("DROP USER IF EXISTS /*(*/" + replication_user +
-                             "/*)*/");
+        try {
+          mysqlshdk::mysql::drop_all_accounts_for_user(group_session,
+                                                       replication_user);
+        } catch (const std::exception &drop_accounts_error) {
+          auto console = mysqlsh::current_console();
+          console->print_warning("Failed to remove replication user '" +
+                                 replication_user +
+                                 "': " + drop_accounts_error.what());
+        }
       }
-
+      // Re-throw the original exception
       throw;
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
-    throw;
   }
 
   std::string message =
