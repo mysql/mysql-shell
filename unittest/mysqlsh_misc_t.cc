@@ -105,15 +105,16 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   wipe_out();
 #endif
   // Test non secure call passing uri and password with cmd line params
-  execute({_mysqlsh, _mysql_uri.c_str(), "-pwhatever", nullptr}, nullptr,
-          nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
+  execute({_mysqlsh, _mysql_uri_nopasswd.c_str(), "-pwhatever", nullptr},
+          nullptr, nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Using a password on the command line interface can be "
       "insecure.");
   wipe_out();
 
-  execute({_mysqlsh, _mysql_uri.c_str(), "--password=whatever", nullptr},
-          nullptr, nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
+  execute(
+      {_mysqlsh, _mysql_uri_nopasswd.c_str(), "--password=whatever", nullptr},
+      nullptr, nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Using a password on the command line interface can be "
       "insecure.");

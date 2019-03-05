@@ -13,4 +13,7 @@ shell.connect(__sandbox_uri1);
 dba.createCluster("testCluster");
 
 // Clean-up instance
+// Need to shutdown first, because destroySandbox() will not do anything if the port is not listening
+// Since this is listening on 0.0.0.0, the check won't work.
+session.runSql("shutdown");
 testutil.destroySandbox(__mysql_sandbox_port1);

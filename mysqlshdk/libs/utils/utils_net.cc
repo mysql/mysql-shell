@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 #endif
 #include <errno.h>
 #include <algorithm>
@@ -55,6 +56,8 @@
 
 namespace mysqlshdk {
 namespace utils {
+
+constexpr const int k_port_check_timeout = 5;
 
 namespace {
 
@@ -473,6 +476,31 @@ std::string Net::get_hostname_impl() const { return get_this_hostname(); }
 void closesocket(int sock) { ::close(sock); }
 #endif
 
+namespace {
+int set_nonblocking(int sock, bool f) {
+#ifdef _WIN32
+  int ret;
+  u_long arg = !f ? 0 : 1;
+  ret = ioctlsocket(sock, FIONBIO, &arg);
+  return ret;
+
+#else
+  int flags;
+
+  if ((flags = fcntl(sock, F_GETFL, NULL)) < 0) return -1;
+
+  if (!f)
+    flags &= ~O_NONBLOCK;
+  else
+    flags |= O_NONBLOCK;
+
+  if (fcntl(sock, F_SETFL, flags) == -1) return -1;
+
+  return 0;
+#endif
+}
+}  // namespace
+
 bool Net::is_port_listening_impl(const std::string &address, int port) const {
   addrinfo hints;
 
@@ -495,17 +523,57 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
                                shcore::errno_to_string(errno));
     }
 
+    set_nonblocking(sock, true);
+
     if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
       closesocket(sock);
       return true;
     }
+
 #ifdef _WIN32
-    const int err = WSAGetLastError();
+    auto last_error = []() { return WSAGetLastError(); };
     const int connection_refused = WSAECONNREFUSED;
+    auto would_block = [](int err) {
+      return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
+    };
 #else
-    const int err = errno;
+    auto last_error = []() { return errno; };
     const int connection_refused = ECONNREFUSED;
+    auto would_block = [](int err) {
+      return err == EWOULDBLOCK || err == EINPROGRESS;
+    };
 #endif
+    int err;
+
+    struct timeval timeout;
+    timeout.tv_sec = k_port_check_timeout;
+    timeout.tv_usec = 0;
+
+    while (would_block((err = last_error()))) {
+      fd_set rfds;
+      fd_set wfds;
+      FD_ZERO(&rfds);
+      FD_ZERO(&wfds);
+      FD_SET(sock, &rfds);
+      FD_SET(sock, &wfds);
+      err = select(sock + 1, &rfds, &wfds, nullptr, &timeout);
+      if (err > 0) {
+        socklen_t len = sizeof(err);
+        if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char *)&err, &len) < 0) {
+          err = last_error();
+        } else {
+          if (err == 0) {
+            closesocket(sock);
+            return true;
+          }
+        }
+        break;
+      } else if (err == 0) {
+        // timeout
+        closesocket(sock);
+        return false;
+      }
+    }
     closesocket(sock);
 
     if (err == connection_refused) {

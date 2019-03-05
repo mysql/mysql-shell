@@ -134,6 +134,8 @@ class Shell_test_env : public ::testing::Test {
       const mysqlshdk::db::Connection_options &target, const std::string &sql,
       std::unique_ptr<mysqlshdk::db::IRow> source);
 
+  void inject_port_check_result(const std::string &host, int port, bool result);
+
  protected:
   static std::string _host;  //!< localhost
   static std::string _port;  //!< The port for X protocol, env:MYSQLX_PORT

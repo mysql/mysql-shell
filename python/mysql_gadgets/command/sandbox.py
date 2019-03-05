@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -1181,85 +1181,66 @@ def stop_sandbox(**kwargs):
     enc_pidf_path = tools.fs_encode(pidf_path)
     if os.path.exists(enc_pidf_path):
         _LOGGER.debug("Found pid file '%s'", pidf_path)
-        # and a server listening on the port we specified
-        if tools.is_listening("localhost", port):
-            _LOGGER.debug("Found server listening on port '%i'", port)
-            with open(enc_pidf_path) as f:
-                pid = int(f.readline().strip())
-                _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
-                              pidf_path)
-            _LOGGER.debug("Executing SHUTDOWN SQL command on server with "
-                          "PID '%i'", pid)
-            # Send shutdown signal
-            conn_dict = {"user": "root",
-                         "host": "localhost",
-                         "port": port,
-                         "passwd": password}
-            s = server.Server({"conn_info": conn_dict})
-            try:
-                s.connect()
-            except exceptions.GadgetServerError as err:
-                raise exceptions.GadgetError(
-                    "Unable to connect to MySQL sandbox {0} to send the "
-                    "SHUTDOWN request: '{1}'".format(str(s), str(err)))
-            try:
-                s.exec_query("SHUTDOWN")
-            except exceptions.GadgetQueryError:
-                # ignore query timeout or connection lost errors.
-                pass
-            # Wait for server to stop (listening on port).
-            i = 0
-            _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",
-                          port)
-            while i < timeout:
-                if tools.is_listening("localhost", port):
-                    time.sleep(1)
-                    i += 1
-                else:
-                    # port is listening, break out of loop
-                    _LOGGER.debug(
-                        "MySQL sandbox on port '%i' stopped.", port)
-                    break
+        with open(enc_pidf_path) as f:
+            pid = int(f.readline().strip())
+            _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
+                          pidf_path)
+        _LOGGER.debug("Executing SHUTDOWN SQL command on server with "
+                      "PID '%i'", pid)
+        # Send shutdown signal
+        conn_dict = {"user": "root",
+                     "host": "localhost",
+                     "port": port,
+                     "passwd": password}
+        s = server.Server({"conn_info": conn_dict})
+        try:
+            s.connect()
+        except exceptions.GadgetServerError as err:
+            raise exceptions.GadgetError(
+                "Unable to connect to MySQL sandbox {0} to send the "
+                "SHUTDOWN request: '{1}'".format(str(s), str(err)))
+        try:
+            s.exec_query("SHUTDOWN")
+        except exceptions.GadgetQueryError:
+            # ignore query timeout or connection lost errors.
+            pass
+        # Wait for server to stop (listening on port).
+        i = 0
+        _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",
+                      port)
+        while i < timeout:
+            if tools.is_listening("localhost", port):
+                time.sleep(1)
+                i += 1
             else:
-                # Timeout occurred, issue an error
-                raise exceptions.GadgetError(
-                    "Timeout waiting for sandbox mysqld process with pid "
-                    "'{0}' to stop. You might need to terminate it manually "
-                    "or use the '{1} {2}' command.".format(pid, SANDBOX,
-                                                           SANDBOX_KILL))
-            # Server was stopped
-            _LOGGER.info("MySQL sandbox was stopped on port '%i' with process "
-                         "ID: '%i'.", port, pid)
-
-            # remove pid file
-            try:
-                _LOGGER.debug("Removing pid file '%s'", pidf_path)
-                # On Windows os.unlink() issues an error if the encoded PID
-                # file path is used (despite actually removing the file). Not
-                # using the encoded PID file path works on Windows and avoids
-                # this problem.
-                if os.name == "nt":
-                    os.unlink(pidf_path)
-                else:
-                    os.unlink(enc_pidf_path)
-            except OSError as err:
-                _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
+                # port is listening, break out of loop
+                _LOGGER.debug(
+                    "MySQL sandbox on port '%i' stopped.", port)
+                break
         else:
-            # there is a process listening on the specified port, but there is
-            # no pid file so emmit a warning and do nothing
-            _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
-                            "but a pid file was still found. Removing it.", port)
-            try:
-                # On Windows os.unlink() issues an error if the encoded PID
-                # file path is used (despite actually removing the file). Not
-                # using the encoded PID file path works on Windows and avoids
-                # this problem.
-                if os.name == "nt":
-                    os.unlink(pidf_path)
-                else:
-                    os.unlink(enc_pidf_path)
-            except OSError as err:
-                _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
+            # Timeout occurred, issue an error
+            raise exceptions.GadgetError(
+                "Timeout waiting for sandbox mysqld process with pid "
+                "'{0}' to stop. You might need to terminate it manually "
+                "or use the '{1} {2}' command.".format(pid, SANDBOX,
+                                                       SANDBOX_KILL))
+        # Server was stopped
+        _LOGGER.info("MySQL sandbox was stopped on port '%i' with process "
+                     "ID: '%i'.", port, pid)
+
+        # remove pid file
+        try:
+            _LOGGER.debug("Removing pid file '%s'", pidf_path)
+            # On Windows os.unlink() issues an error if the encoded PID
+            # file path is used (despite actually removing the file). Not
+            # using the encoded PID file path works on Windows and avoids
+            # this problem.
+            if os.name == "nt":
+                os.unlink(pidf_path)
+            else:
+                os.unlink(enc_pidf_path)
+        except OSError as err:
+            _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
     else:
         # no pid file was found
         raise exceptions.GadgetError("Unable to find pid file. Stop "
@@ -1315,7 +1296,7 @@ def kill_sandbox(**kwargs):
             # there is a process listening on the specified port, but there is
             # no pid file so emmit a warning and do nothing
             _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
-                            "but a pid file was still found. Removing it.")
+                            "but a pid file was still found. Removing it.", port)
             try:
                 os.unlink(enc_pidf_path)
             except OSError as err:

@@ -36,6 +36,8 @@
 
 namespace tests {
 
+class Shell_test_env;
+
 /**
  * \ingroup Testutils
  * Class with test utilities
@@ -71,6 +73,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined expectPassword(String prompt, String password);
   Integer makeFileReadonly(String path);
   List grepFile(String path, String pattern);
+  Undefined injectPortCheckResult(String prompt, String password,
+                                  Boolean result);
   Bool isTcpPortListening(String host, Integer port);
   Bool isReplaying();
   Undefined fail();
@@ -107,6 +111,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None expect_password(str prompt, str password);
   int make_file_readonly(str path);
   list grep_file(str path, str pattern);
+  None inject_port_check_result(str host, int port, bool result);
   bool is_tcp_port_listening(str host, int port);
   bool is_replaying();
   None fail();
@@ -143,7 +148,8 @@ class Testutils : public mysqlsh::Extensible_object {
     _fetch_stderr = fetch_stderr;
   }
 
-  void set_test_execution_context(const std::string &file, int line);
+  void set_test_execution_context(const std::string &file, int line,
+                                  Shell_test_env *env);
 
   static mysqlshdk::db::Connection_options sandbox_connection_options(
       int port, const std::string &password);
@@ -186,6 +192,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
 
+  void inject_port_check_result(const std::string &host, int port, bool result);
   bool is_tcp_port_listening(const std::string &host, int port);
 
  public:
@@ -276,6 +283,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Output_fn _fetch_stderr;
   std::string _test_file;
   int _test_line = 0;
+  Shell_test_env *_test_env = nullptr;
 
   void wait_sandbox_dead(int port);
 

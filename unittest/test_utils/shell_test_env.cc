@@ -22,6 +22,7 @@
 #include "unittest/test_utils/shell_test_env.h"
 #include <fstream>
 #include <random>
+#include <tuple>
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -81,11 +82,17 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     if (get() == this) set(nullptr);
   }
 
+  void inject_port_check_result(const std::string &host, int port,
+                                bool result) {
+    m_injected_port_checks.emplace_back(host, port, result);
+  }
+
  protected:
   std::string m_hostname;
   std::string m_hostname_ip;
   std::string m_real_hostname;
   bool m_real_host_is_loopback = false;
+  mutable std::list<std::tuple<std::string, int, bool>> m_injected_port_checks;
 
   /**
    * Allows to resolve the hostname stored by the shell test environment.
@@ -112,6 +119,26 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
   }
 
   std::string get_hostname_impl() const override { return m_hostname; }
+
+  bool is_port_listening_impl(const std::string &address,
+                              int port) const override {
+    if (m_injected_port_checks.empty()) {
+      return Net::is_port_listening_impl(address, port);
+    }
+
+    std::string ex_addr;
+    int ex_port;
+    bool ex_result;
+    std::tie(ex_addr, ex_port, ex_result) = m_injected_port_checks.front();
+    m_injected_port_checks.pop_front();
+
+    if (ex_addr != address || ex_port != port) {
+      ADD_FAILURE() << "Unexpected port check for " << address << ":" << port
+                    << "\nwas expecting " << ex_addr << ":" << ex_port << "\n";
+      throw std::logic_error("Unexpected port check");
+    }
+    return ex_result;
+  }
 };
 
 Test_net_utilities test_net_utilities;
@@ -480,6 +507,11 @@ std::string Shell_test_env::get_path_to_mysqlsh() {
 std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
   if (file.empty()) return g_test_home;
   return shcore::path::join_path(g_test_home, file);
+}
+
+void Shell_test_env::inject_port_check_result(const std::string &host, int port,
+                                              bool result) {
+  test_net_utilities.inject_port_check_result(host, port, result);
 }
 
 size_t find_token(const std::string &source, const std::string &find,

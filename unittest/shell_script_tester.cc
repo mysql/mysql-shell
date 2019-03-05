@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1063,8 +1063,8 @@ void Shell_script_tester::execute_script(const std::string &path,
             pre_process_line(path, line);
 
             if (testutil)
-              testutil->set_test_execution_context(_filename,
-                                                   code[chunk_item].first);
+              testutil->set_test_execution_context(
+                  _filename, code[chunk_item].first, this);
 
             if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
                 mysqlsh::Test_debugger::Action::Skip_execute) {
@@ -1288,8 +1288,8 @@ void Shell_script_tester::validate_chunks(const std::string &path,
             pre_process_line(path, line);
 
             if (testutil)
-              testutil->set_test_execution_context(_filename,
-                                                   (code[chunk_item].first));
+              testutil->set_test_execution_context(
+                  _filename, (code[chunk_item].first), this);
 
             if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
                 mysqlsh::Test_debugger::Action::Skip_execute) {

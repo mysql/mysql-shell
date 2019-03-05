@@ -71,6 +71,7 @@
 #include "mysqlshdk/libs/utils/version.h"
 #ifndef ENABLE_SESSION_RECORDING
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 #endif
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -135,6 +136,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
   expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
 
+  expose("injectPortCheckResult", &Testutils::inject_port_check_result, "host",
+         "port", "result");
   expose("isTcpPortListening", &Testutils::is_tcp_port_listening, "host",
          "port");
 
@@ -330,9 +333,11 @@ void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {
   _sandbox_snapshot_dir = dir;
 }
 
-void Testutils::set_test_execution_context(const std::string &file, int line) {
+void Testutils::set_test_execution_context(const std::string &file, int line,
+                                           Shell_test_env *env) {
   _test_file = file;
   _test_line = line;
+  _test_env = env;
 }
 
 //!<  @name Sandbox Operations
@@ -766,6 +771,27 @@ void Testutils::snapshot_sandbox_conf(int port) {
 
 ///@{
 /**
+ * Overrides the result of one call to Net::is_port_listening()
+ */
+#if DOXYGEN_JS
+Undefined Testutils::injectPortCheckResult(String host, Integer port,
+                                           Boolean result);
+#elif DOXYGEN_PY
+None Testutils::inject_port_check_result(str host, int port, bool result);
+#endif
+///@}
+void Testutils::inject_port_check_result(const std::string &host, int port,
+                                         bool result) {
+#ifndef ENABLE_SESSION_RECORDING
+  if (!_test_env) throw std::logic_error("Not supported outside a test");
+  _test_env->inject_port_check_result(host, port, result);
+#else
+  throw std::logic_error("Not supported outside a test");
+#endif
+}
+
+///@{
+/**
  * Checks whether the given TCP port is listening for connections.
  *
  * The result of the check will be recorded in the trace, so that the same
@@ -778,9 +804,9 @@ bool Testutils::is_tcp_port_listening(str host, int port);
 #endif
 ///@}
 bool Testutils::is_tcp_port_listening(const std::string &host, int port) {
-  std::string port_check_file = shcore::path::join_path(
-      _sandbox_snapshot_dir,
-      "tcp_port_check_" + std::to_string(_tcp_port_check_serial++) + ".json");
+  std::string port_check_file = _sandbox_snapshot_dir + ".tcp_port_check_" +
+                                std::to_string(_tcp_port_check_serial++) +
+                                ".json";
 
   switch (mysqlshdk::db::replay::g_replay_mode) {
     case mysqlshdk::db::replay::Mode::Replay: {
@@ -796,7 +822,12 @@ bool Testutils::is_tcp_port_listening(const std::string &host, int port) {
     }
 
     case mysqlshdk::db::replay::Mode::Record: {
-      bool r = mysqlshdk::utils::Net::is_port_listening(host, port);
+      bool r = false;
+      try {
+        r = mysqlshdk::utils::Net::is_port_listening(host, port);
+      } catch (std::exception &) {
+        r = false;
+      }
       auto dict = shcore::make_dict();
       dict->set("port", shcore::Value(port));
       dict->set("host", shcore::Value(host));
@@ -807,7 +838,11 @@ bool Testutils::is_tcp_port_listening(const std::string &host, int port) {
 
     case mysqlshdk::db::replay::Mode::Direct:
     default:
-      return mysqlshdk::utils::Net::is_port_listening(host, port);
+      try {
+        return mysqlshdk::utils::Net::is_port_listening(host, port);
+      } catch (std::exception &) {
+        return false;
+      }
   }
 }
 

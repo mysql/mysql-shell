@@ -44,6 +44,12 @@ from mysql_gadgets.common.constants import QUOTE_CHAR
 from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.exceptions import GadgetError
 
+try:
+    import mysqlsh
+    testutil = mysqlsh.globals.testutil
+except:
+    testutil = None
+
 LISTENING_PORT_CHECK_TIMEOUT=5
 
 logging.setLoggerClass(CustomLevelLogger)
@@ -259,13 +265,11 @@ def is_listening(host, port):
     :rtype: bool
     """
     # Socket Initialization
-    try:
+    if testutil:
         # testutil will only exist during tests. Outside of tests, this will
         # throw an exception, which will be ignored and the regular check
         # is executed.
         return testutil.is_tcp_port_listening(host, port)
-    except:
-        pass
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(LISTENING_PORT_CHECK_TIMEOUT)
     try:
