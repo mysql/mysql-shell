@@ -22,6 +22,7 @@
  */
 
 #include <string>
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -33,6 +34,7 @@
 #include "src/interactive/interactive_global_dba.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/admin_api_test.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/mod_testutils.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
 
@@ -40,8 +42,7 @@ using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 using mysqlshdk::utils::Version;
 
-namespace mysqlsh {
-namespace dba {
+namespace testing {
 
 class Dba_common_test : public tests::Admin_api_test {
  public:
@@ -552,6 +553,181 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   instance_session->close();
   testutil->destroy_sandbox(_mysql_sandbox_port1);
   testutil->destroy_sandbox(_mysql_sandbox_port2);
+}
+
+TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
+  using mysqlsh::dba::check_admin_account_access_restrictions;
+  using mysqlshdk::db::Type;
+
+  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  mysqlshdk::mysql::Instance instance{mock_session};
+
+  // TEST: More than one account available for the user:
+  // - Return true independently of the interactive mode.
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'myhost'"}, {"'admin'@'otherhost'"}}}});
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "myhost", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'myhost'"}, {"'admin'@'otherhost'"}}}});
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "myhost", false));
+
+  // TEST: Only one account not using wildcards (%) available for the user:
+  // - Interactive 'true': return false;
+  // - Interactive 'false': throw exception;
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'myhost'"}}}});
+  EXPECT_FALSE(check_admin_account_access_restrictions(instance, "admin",
+                                                       "myhost", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'myhost'"}}}});
+  EXPECT_THROW_LIKE(check_admin_account_access_restrictions(instance, "admin",
+                                                            "myhost", false),
+                    std::runtime_error,
+                    "User 'admin' can only connect from 'myhost'.");
+
+  // TEST: Only one account with wildcard (%) available which is the same
+  // currently used (passed as parameter):
+  // - Return true independently of the interactive mode.
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'%'"}}}});
+  EXPECT_TRUE(
+      check_admin_account_access_restrictions(instance, "admin", "%", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'%'"}}}});
+  EXPECT_TRUE(
+      check_admin_account_access_restrictions(instance, "admin", "%", false));
+
+  // TEST: Multiple accounts and one with wildcard (%) with the needed
+  // privileges, which is not the one currently used (passed as parameter):
+  // - Return true independently of the interactive mode.
+
+  auto expect_all_privileges = [](std::shared_ptr<Mock_session> &mock_session) {
+    mock_session
+        ->expect_query(
+            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
+            "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+            "WHERE GRANTEE = '\\'admin\\'@\\'%\\''")
+        .then_return({{"",
+                       {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
+                       {Type::String, Type::String},
+                       {{"SELECT", "YES"},
+                        {"INSERT", "YES"},
+                        {"UPDATE", "YES"},
+                        {"DELETE", "YES"},
+                        {"CREATE", "YES"},
+                        {"DROP", "YES"},
+                        {"RELOAD", "YES"},
+                        {"SHUTDOWN", "YES"},
+                        {"PROCESS", "YES"},
+                        {"FILE", "YES"},
+                        {"REFERENCES", "YES"},
+                        {"INDEX", "YES"},
+                        {"ALTER", "YES"},
+                        {"SHOW DATABASES", "YES"},
+                        {"SUPER", "YES"},
+                        {"CREATE TEMPORARY TABLES", "YES"},
+                        {"LOCK TABLES", "YES"},
+                        {"EXECUTE", "YES"},
+                        {"REPLICATION SLAVE", "YES"},
+                        {"REPLICATION CLIENT", "YES"},
+                        {"CREATE VIEW", "YES"},
+                        {"SHOW VIEW", "YES"},
+                        {"CREATE ROUTINE", "YES"},
+                        {"ALTER ROUTINE", "YES"},
+                        {"CREATE USER", "YES"},
+                        {"EVENT", "YES"},
+                        {"TRIGGER", "YES"},
+                        {"CREATE TABLESPACE", "YES"}}}});
+    mock_session
+        ->expect_query(
+            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
+            "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
+            "WHERE GRANTEE = '\\'admin\\'@\\'%\\'' "
+            "ORDER BY TABLE_SCHEMA")
+        .then_return({{
+            "",
+            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
+            {Type::String, Type::String, Type::String},
+            {}  // No Records.
+        }});
+    mock_session
+        ->expect_query(
+            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
+            "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
+            "WHERE GRANTEE = '\\'admin\\'@\\'%\\'' "
+            "ORDER BY TABLE_SCHEMA, TABLE_NAME")
+        .then_return({{
+            "",
+            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
+            {Type::String, Type::String, Type::String, Type::String},
+            {}  // No Records.
+        }});
+
+    // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles data.
+    EXPECT_CALL(*mock_session, get_server_version())
+        .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 0)));
+  };
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'localhost'"}, {"'admin'@'%'"}}}});
+  expect_all_privileges(mock_session);
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "localhost", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'localhost'"}, {"'admin'@'%'"}}}});
+  expect_all_privileges(mock_session);
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "localhost", false));
 }
 
 class Dba_common_cluster_functions : public Dba_common_test {
@@ -1118,6 +1294,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
 }
 
 TEST(mod_dba_common, validate_exit_state_action_supported) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   options.exit_state_action = "1";
 
@@ -1140,6 +1318,8 @@ TEST(mod_dba_common, validate_exit_state_action_supported) {
 }
 
 TEST(mod_dba_common, validate_member_weight_supported) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   options.member_weight = 1;
 
@@ -1162,6 +1342,8 @@ TEST(mod_dba_common, validate_member_weight_supported) {
 }
 
 TEST(mod_dba_common, validate_failover_consistency_supported) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   Version version(8, 0, 14);
 
@@ -1194,6 +1376,8 @@ TEST(mod_dba_common, validate_failover_consistency_supported) {
 }
 
 TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   options.auto_rejoin_tries = 1;
 
@@ -1213,6 +1397,8 @@ TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
 }
 
 TEST(mod_dba_common, validate_expel_timeout_supported) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   Version version(8, 0, 13);
 
@@ -1281,6 +1467,8 @@ TEST(mod_dba_common, is_group_replication_option_supported) {
 }
 
 TEST(mod_dba_common, validate_group_name_option) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   Version version(8, 0, 14);
 
@@ -1298,6 +1486,8 @@ TEST(mod_dba_common, validate_group_name_option) {
 }
 
 TEST(mod_dba_common, validate_local_address_option) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   Version version(8, 0, 14);
 
@@ -1327,6 +1517,8 @@ TEST(mod_dba_common, validate_local_address_option) {
 }
 
 TEST(mod_dba_common, validate_group_seeds_option) {
+  using mysqlsh::dba::Group_replication_options;
+
   Group_replication_options options;
   Version version(8, 0, 14);
 
@@ -1424,5 +1616,4 @@ TEST(mod_dba_common, is_valid_identifier) {
       t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace testing

@@ -61,9 +61,6 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
@@ -125,9 +122,6 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                           |
@@ -163,15 +157,6 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
-1) Create remotely usable account for 'root' with same grants and password
-2) Create a new admin account for InnoDB cluster with minimal required grants
-3) Ignore and continue
-4) Cancel
-
-Please select an option [1]:
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
@@ -260,8 +245,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
 1) Create remotely usable account for 'root' with same grants and password
 2) Create a new admin account for InnoDB cluster with minimal required grants

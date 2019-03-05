@@ -6,8 +6,9 @@ var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 // --- Create Cluster Tests ---
 var mysql = require('mysql');
 shell.connect(__sandbox_uri1);
-// Drop root@% user to require read-only to be disabled to create it.
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
+// Create admin user without % to require read-only to be disabled to create it.
+session.runSql("CREATE USER 'admin'@'localhost' IDENTIFIED BY 'adminpass'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* TO 'admin'@'localhost' WITH GRANT OPTION");
 session.runSql("create user bla@localhost");
 session.runSql("set global super_read_only=1");
 var s = mysql.getSession("bla:@localhost:" + __mysql_sandbox_port1);
@@ -32,10 +33,10 @@ EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 dba.configureLocalInstance(__sandbox_uri1, {clearReadOnly:"NotABool"});
 
 //@ Dba_configure_local_instance.clear_read_only_unset
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root", clusterAdminPassword: "pwd"});
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "admin", clusterAdminPassword: "pwd"});
 
 //@ Dba_configure_local_instance.clear_read_only_false
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root", clusterAdminPassword: "pwd", clearReadOnly: false});
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "admin", clusterAdminPassword: "pwd", clearReadOnly: false});
 
 // --- Drop Metadata Schema Tests ---
 session.runSql("set global super_read_only=0");

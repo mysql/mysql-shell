@@ -197,8 +197,9 @@ void Configure_instance::check_create_admin_user() {
     m_cluster_admin_password = "";
 
     // Check that the account in use isn't too restricted (like localhost only)
-    if (!check_admin_account_access_restrictions(
-            *m_target_instance, m_current_user, m_current_host)) {
+    if (!check_admin_account_access_restrictions(*m_target_instance,
+                                                 m_current_user, m_current_host,
+                                                 m_interactive)) {
       // If interaction is enabled use the console_handler admin-user
       // handling function
       if (m_interactive) {

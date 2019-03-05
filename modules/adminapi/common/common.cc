@@ -1293,13 +1293,14 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
  * @param instance Instance object which represents the target instance
  * @param user the username
  * @param host the hostname
+ * @param interactive boolean indicating if interactive mode is used.
  *
  * @return a boolean value indicating whether the account has enough privileges
  * or not
  */
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host) {
+    const std::string &host, bool interactive) {
   int n_wildcard_accounts, n_non_wildcard_accounts;
   std::vector<std::string> hosts;
 
@@ -1316,14 +1317,20 @@ bool check_admin_account_access_restrictions(
   } else {
     auto console = mysqlsh::current_console();
 
-    if (hosts.size() == 1 && hosts[0] == "localhost") {
+    if (hosts.size() == 1 && n_wildcard_accounts == 0) {
       console->println();
-      console->print_warning("User '" + user +
-                             "' can only connect from localhost.");
-      console->println(
-          "If you need to manage this instance while connected from other "
-          "hosts, new account(s) with the proper source address specification "
-          "must be created.");
+      std::string err_msg =
+          "User '" + user + "' can only connect from '" + hosts[0] + "'.";
+      std::string msg =
+          "New account(s) with proper source address specification to allow "
+          "remote connection from all instances must be created to manage the "
+          "cluster.";
+      if (!interactive) {
+        console->print_error(msg);
+        throw std::runtime_error(err_msg);
+      } else {
+        console->print_error(err_msg + " " + msg);
+      }
       return false;
     } else {
       auto hiter =
@@ -1335,7 +1342,7 @@ bool check_admin_account_access_restrictions(
         std::string whost = *hiter;
         // don't need to check privs if this is the account in use, since
         // that will already be validated before
-        if (whost == host) {
+        if (whost != host) {
           std::string error_msg;
           if (mysqlsh::dba::validate_cluster_admin_user_privileges(
                   session, user, whost, &error_msg)) {
@@ -1345,7 +1352,13 @@ bool check_admin_account_access_restrictions(
             // account accepted
             return true;
           } else {
-            console->println(error_msg);
+            console->print_error(error_msg);
+            if (!interactive) {
+              throw shcore::Exception::runtime_error(
+                  "The account " + shcore::make_account(user, whost) +
+                  " is missing privileges required to manage an InnoDB "
+                  "cluster.");
+            }
             return false;
           }
         }

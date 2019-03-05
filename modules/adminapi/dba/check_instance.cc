@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -176,6 +177,14 @@ void Check_instance::prepare() {
 
   try {
     ensure_user_privileges(*m_target_instance);
+
+    // Check that the account in use isn't too restricted (like localhost only)
+    std::string current_user, current_host;
+    m_target_instance->get_current_user(&current_user, &current_host);
+    if (!check_admin_account_access_restrictions(
+            *m_target_instance, current_user, current_host, false)) {
+      m_is_valid = false;
+    }
 
     check_instance_address();
 

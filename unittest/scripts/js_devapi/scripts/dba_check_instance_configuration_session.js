@@ -77,9 +77,9 @@ session.close();
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'admin_test'@'localhost' IDENTIFIED BY 'adminpass'");
-session.runSql("GRANT 'root'@'localhost' TO 'admin_test'@'localhost'");
-session.runSql("SET DEFAULT ROLE 'root'@'localhost' to 'admin_test'@'localhost'");
+session.runSql("CREATE USER 'admin_test'@'%' IDENTIFIED BY 'adminpass'");
+session.runSql("GRANT 'root'@'%' TO 'admin_test'@'%'");
+session.runSql("SET DEFAULT ROLE 'root'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 //@ Check instance using user with a root role as parameter {VER(>=8.0.0)}
@@ -101,13 +101,13 @@ session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET sql_log_bin = 0");
 // Remove previous root role from admin_test user
-session.runSql("REVOKE 'root'@'localhost' FROM 'admin_test'@'localhost';");
+session.runSql("REVOKE 'root'@'%' FROM 'admin_test'@'%';");
 // Create admin_role with missing privileges and grant it to admin_test user
-session.runSql("CREATE ROLE 'admin_role'@'localhost'");
-session.runSql("GRANT ALL ON mysql.* TO 'admin_role'@'localhost'");
-session.runSql("GRANT ALL ON sys.* TO 'admin_role'@'localhost'");
-session.runSql("GRANT 'admin_role'@'localhost' TO 'admin_test'@'localhost'");
-session.runSql("SET DEFAULT ROLE 'admin_role'@'localhost' to 'admin_test'@'localhost'");
+session.runSql("CREATE ROLE 'admin_role'@'%'");
+session.runSql("GRANT ALL ON mysql.* TO 'admin_role'@'%'");
+session.runSql("GRANT ALL ON sys.* TO 'admin_role'@'%'");
+session.runSql("GRANT 'admin_role'@'%' TO 'admin_test'@'%'");
+session.runSql("SET DEFAULT ROLE 'admin_role'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0)}
@@ -128,8 +128,8 @@ dba.checkInstanceConfiguration();
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER 'admin_test'@'localhost'");
-session.runSql("DROP ROLE 'admin_role'@'localhost'");
+session.runSql("DROP USER 'admin_test'@'%'");
+session.runSql("DROP ROLE 'admin_role'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
@@ -167,3 +167,32 @@ dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port2, us
 //@ Remove the sandboxes (final)
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+//Regression test for BUG#29018457: CHECKINSTANCECONFIGURATION() DOES NOT VALIDATE IF THE ACCOUNT EXISTS ON THE HOST
+//@ BUG29018457 - Deploy instance.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname});
+
+//@ BUG29018457 - Create a admin_local user only for localhost.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'admin_local'@'localhost' IDENTIFIED BY 'local_pass'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* TO 'admin_local'@'localhost' WITH GRANT OPTION");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
+//@<> BUG29018457 - check instance fails because only a localhost account is available.
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user:'admin_local', password:'local_pass'});
+
+//@ BUG29018457 - Create a admin_host user only for report_host.
+shell.connect(__sandbox_uri1);
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'admin_host'@'" + hostname_ip + "' IDENTIFIED BY 'host_pass'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* TO 'admin_host'@'" + hostname_ip + "' WITH GRANT OPTION");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
+//@<> BUG29018457 - check instance fails because only report_host account is available.
+dba.checkInstanceConfiguration({host: hostname_ip, port: __mysql_sandbox_port1, user:'admin_host', password:'host_pass'});
+
+//@ BUG29018457 - clean-up (destroy sandbox).
+testutil.destroySandbox(__mysql_sandbox_port1);

@@ -297,16 +297,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'root' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
-
-1) Create remotely usable account for 'root' with same grants and password
-2) Create a new admin account for InnoDB cluster with minimal required grants
-3) Ignore and continue
-4) Cancel
-
-Please select an option [1]: 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is already ready for InnoDB cluster usage.
 
 #@ configure_instance() 2 - instance already valid for cluster usage
 ||

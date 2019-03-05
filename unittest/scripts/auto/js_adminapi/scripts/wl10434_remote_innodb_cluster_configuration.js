@@ -9,13 +9,6 @@
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1);
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
-session.close();
-
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -44,13 +37,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ FR1.1_1 SETUP {VER(>=8.0.11)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1);
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
-session.close();
 
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "skip_log_bin", "ON");
@@ -90,13 +76,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1);
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
-session.close();
-
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "persisted-globals-load", "OFF");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
@@ -121,13 +100,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ FR3.1_1 SETUP {VER(<8.0.11)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1);
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
-session.close();
-
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
@@ -135,7 +107,6 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 //@FR3.1_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' {VER(<8.0.11)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-testutil.expectPrompt("Please select an option [1]: ", "3");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
 dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
 // Verify that the instance was successfully configured
@@ -149,13 +120,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ FR3.2_1 SETUP {VER(<8.0.11)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1);
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
-session.close();
 
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
@@ -237,11 +201,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Deploy a pre-configured sandbox since we're not testing configure itself
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
-
-// Remove 'root'@'%' user to allow configureInstance() to create it.
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP USER IF EXISTS 'root'@'%'");
-session.runSql("SET sql_log_bin = 1");
 
 var cluster = dba.createCluster("C");
 cluster.disconnect();

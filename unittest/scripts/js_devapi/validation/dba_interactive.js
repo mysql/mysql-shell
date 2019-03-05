@@ -310,8 +310,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'mydba' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
 1) Create remotely usable account for 'mydba' with same grants and password
 2) Create a new admin account for InnoDB cluster with minimal required grants
@@ -332,8 +331,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>
 
-WARNING: User 'mydba' can only connect from localhost.
-If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
 1) Create remotely usable account for 'mydba' with same grants and password
 2) Create a new admin account for InnoDB cluster with minimal required grants

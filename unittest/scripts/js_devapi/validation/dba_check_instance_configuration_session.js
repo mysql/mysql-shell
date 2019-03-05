@@ -96,7 +96,7 @@
 ||
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0)}
-|ERROR: The account 'admin_test'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER.|
 |Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
 |Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT.|
@@ -108,13 +108,13 @@
 |Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT.|
 |Missing privileges on table 'performance_schema.replication_group_members': SELECT.|
 |Missing privileges on table 'performance_schema.threads': SELECT.|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Connect using admin user again {VER(>=8.0.0)}
 ||
 
 //@ Check instance using session user with admin role, missing privileges {VER(>=8.0.0)}
-|ERROR: The account 'admin_test'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER.|
 |Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
 |Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT.|
@@ -126,7 +126,7 @@
 |Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT.|
 |Missing privileges on table 'performance_schema.replication_group_members': SELECT.|
 |Missing privileges on table 'performance_schema.threads': SELECT.|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 
 //@ Drop user with role {VER(>=8.0.0)}
@@ -174,4 +174,32 @@ Dba.createCluster: The value for variable 'report_host' cannot be empty. (Runtim
 ||
 
 //@ Remove the sandboxes (final)
+||
+
+//@ BUG29018457 - Deploy instance.
+||
+
+//@ BUG29018457 - Create a admin_local user only for localhost.
+||
+
+//@<OUT> BUG29018457 - check instance fails because only a localhost account is available.
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+ERROR: New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
+
+//@<ERR> BUG29018457 - check instance fails because only a localhost account is available.
+Dba.checkInstanceConfiguration: User 'admin_local' can only connect from 'localhost'. (RuntimeError)
+
+//@ BUG29018457 - Create a admin_host user only for report_host.
+||
+
+//@<OUT> BUG29018457 - check instance fails because only report_host account is available.
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+ERROR: New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
+
+//@<ERR> BUG29018457 - check instance fails because only report_host account is available.
+Dba.checkInstanceConfiguration: User 'admin_host' can only connect from '<<<hostname_ip>>>'. (RuntimeError)
+
+//@ BUG29018457 - clean-up (destroy sandbox).
 ||

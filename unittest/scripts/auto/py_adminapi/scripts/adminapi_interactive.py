@@ -26,23 +26,6 @@ testutil.snapshot_sandbox_conf(__mysql_sandbox_port2)
 testutil.deploy_sandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname})
 testutil.snapshot_sandbox_conf(__mysql_sandbox_port3)
 
-# Remove 'root'@'%' user to allow configureInstance() to create it.
-shell.connect(__sandbox_uri1)
-session.run_sql("SET sql_log_bin = 0")
-session.run_sql("DROP USER IF EXISTS 'root'@'%'")
-session.run_sql("SET sql_log_bin = 1")
-session.close()
-shell.connect(__sandbox_uri2)
-session.run_sql("SET sql_log_bin = 0")
-session.run_sql("DROP USER IF EXISTS 'root'@'%'")
-session.run_sql("SET sql_log_bin = 1")
-session.close()
-shell.connect(__sandbox_uri3)
-session.run_sql("SET sql_log_bin = 0")
-session.run_sql("DROP USER IF EXISTS 'root'@'%'")
-session.run_sql("SET sql_log_bin = 1")
-session.close()
-
 __sandbox1_cnf_path = testutil.get_sandbox_conf_path(__mysql_sandbox_port1)
 __sandbox2_cnf_path = testutil.get_sandbox_conf_path(__mysql_sandbox_port2)
 __sandbox3_cnf_path = testutil.get_sandbox_conf_path(__mysql_sandbox_port3)
@@ -80,13 +63,11 @@ dba.check_instance_configuration(__sandbox_uri1)
 #@<OUT> configure_instance() - instance already valid for cluster usage
 # Restart the instance first since there were settings changed that required a restart
 testutil.restart_sandbox(__mysql_sandbox_port2)
-testutil.expect_prompt("Please select an option", "3")
 dba.configure_instance(__sandbox_uri2)
 
 #@ configure_instance() 2 - instance already valid for cluster usage
 # Restart the instance first since there were settings changed that required a restart
 testutil.restart_sandbox(__mysql_sandbox_port3)
-testutil.expect_prompt("Please select an option", "3")
 dba.configure_instance(__sandbox_uri3)
 
 # dba.createCluster():

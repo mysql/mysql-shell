@@ -279,7 +279,7 @@ std::string prompt_new_account_password();
 int prompt_menu(const std::vector<std::string> &options, int defopt);
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host);
+    const std::string &host, bool interactive);
 bool prompt_create_usable_admin_account(const std::string &user,
                                         const std::string &host,
                                         std::string *out_create_account);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,10 +80,6 @@ class Global_dba : public Interactive_object_wrapper {
   bool resolve_cnf_path(
       const mysqlshdk::db::Connection_options &connection_args,
       const shcore::Value::Map_type_ref &extra_options);
-
-  bool ensure_admin_account_usable(
-      std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &user,
-      const std::string &host, std::string *out_create_account);
 
   std::string prompt_confirmed_password();
   int prompt_menu(const std::vector<std::string> &options, int defopt);
