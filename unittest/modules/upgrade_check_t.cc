@@ -729,6 +729,11 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
   // Preparing data for this check requires manipulating datadir by hand, we
   // only check here that queries run fine
   auto check = Sql_upgrade_check::get_schema_inconsistency_check();
+
+  // Make sure special characters like hyphen are handled well
+  PrepareTestDatabase("schema_inconsitencies_test");
+  ASSERT_NO_THROW(session->execute("create table `!@#$%&*-_.:?` (i integer);"));
+
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session, opts));
   ASSERT_TRUE(issues.empty());

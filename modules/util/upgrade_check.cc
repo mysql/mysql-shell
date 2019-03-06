@@ -1120,6 +1120,14 @@ bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
         "8.0.11");
 }
 
+#define replace_in_SQL(string)                                               \
+  "replace(replace(replace(replace(replace(replace(replace(replace(replace(" \
+  "replace(replace(" string                                                  \
+  ", '@002d', '-'), '@003a', ':'), '@002e', '.'), '@0024', '$'), '@0021', "  \
+  "'!'), '@003f', '?'), '@0025', '%'), '@0023', '#'), '@0026', '&'), "       \
+  "'@002a', '*'), '@0040', '@') "
+
+// clang-format off
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_schema_inconsistency_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
@@ -1127,17 +1135,22 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
       "Schema inconsistencies resulting from file removal or corruption",
       {"select A.schema_name, A.table_name, \"present in INFORMATION_SCHEMA's "
        "INNODB_SYS_TABLES table but missing from TABLES table\" from (select "
-       "distinct substring_index(NAME, '/',1) as schema_name, substring_index( "
-       "substring_index(NAME, '/',-1),'#P#',1) as table_name from "
+       "distinct "
+       replace_in_SQL("substring_index(NAME, '/',1)")
+       "as schema_name, "
+       replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#P#',1)")
+       " as table_name from "
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
        "join information_schema.tables I on A.table_name = I.table_name and "
        "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
-       "and (I.table_name IS NULL or I.table_schema IS NULL);"},
+       "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
+       "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';"},
       Upgrade_issue::ERROR,
       "Following tables show signs that either table datadir directory or frm "
       "file was removed/corrupted. Please check server logs, examine datadir "
       "to detect the issue and fix it before upgrade"));
 }
+// clang-format on
 
 namespace {
 bool UNUSED_VARIABLE(register_schema_inconsistency_check) =
