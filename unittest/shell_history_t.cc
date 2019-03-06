@@ -90,10 +90,10 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // TS_CV#5 shell.options["history.sql.ignorePattern"]=string skip string from
   // history.
 
-  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+  char *args[] = {const_cast<char *>("ut"),
                   const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(3, args, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
   shell._history.set_limit(100);
 
   auto coptions = shcore::get_connection_options("root@localhost");
@@ -102,10 +102,47 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   coptions.set_port(atoi(getenv("MYSQL_PORT")));
   shell.connect(coptions, false);
 
-  // TS_CV#9
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",
             shell.get_options()->get("history.sql.ignorePattern").descr());
 
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  // \sql command should be filtered according to SQL mode rules
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  shell.process_line("\\sql select 1;");
+
+  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_STREQ("\\sql select 1;", linenoiseHistoryLine(0));
+
+  // ensure certain words don't appear in history for more than 1 iteration
+  shell.process_line("\\sql set password = 'secret' then fail;");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("\\sql select 1;", linenoiseHistoryLine(0));
+  // 1st time added it should be there, but not after another one is added
+  EXPECT_STREQ("\\sql set password = 'secret' then fail;",
+               linenoiseHistoryLine(1));
+
+  shell.process_line("\\sql create user foo@bar identified by 'secret';");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("\\sql select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("\\sql create user foo@bar identified by 'secret';",
+               linenoiseHistoryLine(1));
+
+  shell.process_line("\\sql alter user foo@bar set password='secret';");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("\\sql select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("\\sql alter user foo@bar set password='secret';",
+               linenoiseHistoryLine(1));
+
+  shell.process_line("\\sql secret;");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("\\sql select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("\\sql secret;", linenoiseHistoryLine(1));
+  shell.process_line("\\sql drop user foo@bar;");
+
+  // TS_CV#9
+  shell.process_line("\\sql");
   EXPECT_EQ(0, linenoiseHistorySize());
 
   shell.process_line("select 1;");

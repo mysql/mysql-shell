@@ -863,8 +863,13 @@ void Command_line_shell::handle_notification(
     std::string executed = data->get_string("statement");
     while (executed.back() == '\n' || executed.back() == '\r')
       executed.pop_back();
-    if (_shell->interactive_mode() != shcore::Shell_core::Mode::SQL ||
-        sql_safe_for_logging(executed)) {
+    auto mode = interactive_mode();
+    auto sql = executed;
+    if (shcore::str_beginswith(executed, "\\sql ") && executed.length() > 5) {
+      mode = shcore::Shell_core::Mode::SQL;
+      sql = executed.substr(5);
+    }
+    if (mode != shcore::Shell_core::Mode::SQL || sql_safe_for_logging(sql)) {
       _history.add(executed);
     } else {
       // add but delete after the next command and
