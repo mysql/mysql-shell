@@ -56,12 +56,17 @@ DESCRIPTION
         help diagnose issues is printed to the screen. Larger values mean more
         verbose. Default is 0.
 
-      The resultFormat option supports the following values:
+      The resultFormat option supports the following values to modify the
+      format of printed query results:
 
-      - table: displays the output in table format (default)
-      - json: displays the output in JSON format
-      - json/raw: displays the output in a JSON format but in a single line
+      - table: tabular format with a ascii character frame (default)
+      - tabbed: tabular format with no frame, columns separated by tabs
       - vertical: displays the outputs vertically, one line per column value
+      - json: same as json/pretty
+      - ndjson: newline delimited JSON, same as json/raw
+      - json/array: one JSON document per line, inside an array
+      - json/pretty: pretty printed JSON
+      - json/raw: one JSON document per line
 
 FUNCTIONS
       help([member])

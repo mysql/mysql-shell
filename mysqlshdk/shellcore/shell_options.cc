@@ -34,6 +34,7 @@
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
+#include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -293,13 +294,12 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.result_format, "table", SHCORE_RESULT_FORMAT,
         cmdline("--result-format=value"),
         "Determines format of results. Valid values:"
-        " [tabbed|table|vertical|json|json/raw].",
+        " [" RESULTSET_DUMPER_FORMATS "].",
         [](const std::string &val, Source) {
-          if (val != "table" && val != "json" && val != "json/raw" &&
-              val != "vertical" && val != "tabbed")
+          if (!Resultset_dumper_base::is_valid_format(val))
             throw std::invalid_argument(
                 "The acceptable values for the option " SHCORE_RESULT_FORMAT
-                " are: tabbed, table, vertical, json or json/raw.");
+                " are: " RESULTSET_DUMPER_FORMATS);
           return val;
         })
     (&storage.interactive, false, SHCORE_INTERACTIVE,

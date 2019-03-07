@@ -254,7 +254,30 @@ struct Type_info<const Function_base_ref &> {
 template <typename Bridge_class>
 struct Type_info<std::shared_ptr<Bridge_class>> {
   static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
-    return in.as_object<Bridge_class>();
+    if (in.as_object()) {
+      auto tmp = in.as_object<Bridge_class>();
+      if (!tmp) throw std::invalid_argument("Object type mismatch");
+      return tmp;
+    }
+    return std::shared_ptr<Bridge_class>();
+  }
+  static Value_type vtype() { return shcore::Object; }
+  static const char *code() { return "O"; }
+  static std::shared_ptr<Bridge_class> default_value() {
+    return std::shared_ptr<Bridge_class>();
+  }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <typename Bridge_class>
+struct Type_info<const std::shared_ptr<Bridge_class> &> {
+  static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
+    if (in.as_object()) {
+      auto tmp = in.as_object<Bridge_class>();
+      if (!tmp) throw std::invalid_argument("Object type mismatch");
+      return tmp;
+    }
+    return std::shared_ptr<Bridge_class>();
   }
   static Value_type vtype() { return shcore::Object; }
   static const char *code() { return "O"; }

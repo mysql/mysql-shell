@@ -32,6 +32,9 @@ FUNCTIONS
       disablePager()
             Disables pager for the current scripting mode.
 
+      dumpRows(result, format)
+            Formats and dumps the given resultset object to the console.
+
       enablePager()
             Enables pager specified in shell.options.pager for the current
             scripting mode.
@@ -78,6 +81,10 @@ FUNCTIONS
 
       storeCredential(url[, password])
             Stores given credential using the configured helper.
+
+      unparseUri(options)
+            Formats the given connection options to a URI string suitable for
+            mysqlsh.
 
 //@<OUT> Help on Options
 NAME
@@ -137,12 +144,17 @@ DESCRIPTION
         help diagnose issues is printed to the screen. Larger values mean more
         verbose. Default is 0.
 
-      The resultFormat option supports the following values:
+      The resultFormat option supports the following values to modify the
+      format of printed query results:
 
-      - table: displays the output in table format (default)
-      - json: displays the output in JSON format
-      - json/raw: displays the output in a JSON format but in a single line
+      - table: tabular format with a ascii character frame (default)
+      - tabbed: tabular format with no frame, columns separated by tabs
       - vertical: displays the outputs vertically, one line per column value
+      - json: same as json/pretty
+      - ndjson: newline delimited JSON, same as json/raw
+      - json/array: one JSON document per line, inside an array
+      - json/pretty: pretty printed JSON
+      - json/raw: one JSON document per line
 
 FUNCTIONS
       help([member])
@@ -1216,4 +1228,43 @@ will be automatically processed when the MySQL Shell starts.
 
 These scripts can be used to define extension objects so ther are available
 right away when the MySQL Shell starts.
+
+//@<OUT> Help on unparseUri
+NAME
+      unparseUri - Formats the given connection options to a URI string
+                   suitable for mysqlsh.
+
+SYNTAX
+      shell.unparseUri(options)
+
+WHERE
+      options: a dictionary with the connection options.
+
+RETURNS
+       A URI string
+
+DESCRIPTION
+      This function assembles a MySQL connection string which can be used in
+      the shell or X DevAPI connectors.
+
+//@<OUT> Help on dumpRows
+NAME
+      dumpRows - Formats and dumps the given resultset object to the console.
+
+SYNTAX
+      shell.dumpRows(result, format)
+
+WHERE
+      result: The resultset object to dump
+      format: One of table, tabbed, vertical, json, ndjson, json/raw,
+              json/array, json/pretty. Default is table.
+
+RETURNS
+       Nothing
+
+DESCRIPTION
+      This function shows a resultset object returned by a DB Session query in
+      the same formats supported by the shell.
+
+      Note that the resultset will be consumed by the function.
 

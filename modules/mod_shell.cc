@@ -34,6 +34,7 @@
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_notifications.h"
+#include "shellcore/shell_resultset_dumper.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 
@@ -58,8 +59,9 @@ void Shell::init() {
   add_property("options");
   add_property("reports");
 
-  add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri",
-             shcore::String);
+  expose("parseUri", &Shell::parse_uri, "uri");
+  expose("unparseUri", &Shell::unparse_uri, "options");
+
   add_varargs_method("prompt", std::bind(&Shell::prompt, this, _1));
   add_varargs_method("connect", std::bind(&Shell::connect, this, _1));
   add_method("setCurrentSchema",
@@ -89,6 +91,7 @@ void Shell::init() {
          "object", "name", "function", "?definition");
   expose("registerGlobal", &Shell::register_global, "name", "object",
          "?definition");
+  expose("dumpRows", &Shell::dump_rows, "resultset", "?format", "table");
 }
 
 Shell::~Shell() {}
@@ -182,19 +185,38 @@ Dictionary Shell::parseUri(String uri) {}
 #elif DOXYGEN_PY
 dict Shell::parse_uri(str uri) {}
 #endif
-shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, get_function_name("parseUri").c_str());
+shcore::Dictionary_t Shell::parse_uri(const std::string &uri) {
+  auto options = mysqlsh::get_connection_options(uri);
+  auto map = mysqlsh::get_connection_map(options);
 
-  try {
-    auto options = mysqlsh::get_connection_options(args, PasswordFormat::NONE);
-    auto map = mysqlsh::get_connection_map(options);
+  return mysqlsh::get_connection_map(options);
+}
 
-    ret_val = shcore::Value(map);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("parseUri"));
+REGISTER_HELP_FUNCTION(unparseUri, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_UNPARSEURI, R"*(
+Formats the given connection options to a URI string suitable for mysqlsh.
 
-  return ret_val;
+@param options a dictionary with the connection options.
+@returns A URI string
+
+This function assembles a MySQL connection string which can be used in the 
+shell or X DevAPI connectors.
+)*");
+
+/**
+ * $(SHELL_UNPARSEURI_BRIEF)
+ *
+ * $(SHELL_UNPARSEURI)
+ */
+#if DOXYGEN_JS
+String Shell::unparseUri(Dictionary options) {}
+#elif DOXYGEN_PY
+str Shell::unparse_uri(dict options) {}
+#endif
+std::string Shell::unparse_uri(const shcore::Dictionary_t &options) {
+  auto coptions = mysqlsh::get_connection_options(options);
+
+  return coptions.as_uri(mysqlshdk::db::uri::formats::full());
 }
 
 // clang-format off
@@ -1657,6 +1679,44 @@ void Shell::register_global(const std::string &name,
     throw shcore::Exception::type_error(
         "Argument #2 is expected to be an extension object.");
   }
+}
+
+REGISTER_HELP_FUNCTION(dumpRows, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_DUMPROWS, R"*(
+Formats and dumps the given resultset object to the console.
+
+@param result The resultset object to dump
+@param format One of table, tabbed, vertical, json, ndjson, json/raw, 
+json/array, json/pretty. Default is table.
+@returns Nothing
+
+This function shows a resultset object returned by a DB Session query in
+the same formats supported by the shell.
+
+Note that the resultset will be consumed by the function.
+)*");
+
+/**
+ * $(SHELL_DUMPROWS_BRIEF)
+ *
+ * $(SHELL_DUMPROWS)
+ */
+#if DOXYGEN_JS
+Undefined Shell::dumpRows(ShellBaseResult result, String format) {}
+#elif DOXYGEN_PY
+None Shell::dump_rows(ShellBaseResult result, str format) {}
+#endif
+void Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
+                      const std::string &format) {
+  if (!resultset) throw std::invalid_argument("result object must not be NULL");
+
+  if (!format.empty() && !Resultset_dumper_base::is_valid_format(format))
+    throw std::invalid_argument("Invalid format " + format);
+
+  Resultset_dumper dumper(resultset->get_result(), "off",
+                          format.empty() ? "table" : format, false, false,
+                          false);
+  dumper.dump("row", false, false);
 }
 
 }  // namespace mysqlsh

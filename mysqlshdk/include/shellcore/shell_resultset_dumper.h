@@ -25,6 +25,7 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_
 
 #include <stdlib.h>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -89,6 +90,8 @@ class Resultset_printer {
   virtual void raw_print(const std::string &s) = 0;
 };
 
+#define RESULTSET_DUMPER_FORMATS \
+  "table, tabbed, vertical, json, ndjson, json/raw, json/array, json/pretty"
 /**
  * Base dumper class which implements text-formatting logic for various output
  * formats. Has no public interface, making it essentially abstract, needs to
@@ -98,9 +101,16 @@ class Resultset_dumper_base {
  public:
   virtual ~Resultset_dumper_base() = default;
 
+  static bool is_valid_format(const std::string &format) {
+    return strstr(", " RESULTSET_DUMPER_FORMATS ", ",
+                  (", " + format + ", ").c_str()) != nullptr;
+  }
+
  protected:
   Resultset_dumper_base(mysqlshdk::db::IResult *target,
-                        std::unique_ptr<Resultset_printer> printer);
+                        std::unique_ptr<Resultset_printer> printer,
+                        const std::string &wrap_json,
+                        const std::string &format);
 
   size_t dump_tabbed();
   size_t dump_table();
@@ -122,7 +132,11 @@ class Resultset_dumper_base {
  */
 class Resultset_dumper : public Resultset_dumper_base {
  public:
+  Resultset_dumper(mysqlshdk::db::IResult *target, const std::string &wrap_json,
+                   const std::string &format, bool buffer_data,
+                   bool show_warnings, bool show_stats);
   Resultset_dumper(mysqlshdk::db::IResult *target, bool buffer_data);
+
   ~Resultset_dumper() override = default;
 
   virtual void dump(const std::string &item_label, bool is_query,
@@ -133,7 +147,7 @@ class Resultset_dumper : public Resultset_dumper_base {
   int get_warning_and_execution_time_stats(std::string *output_stats);
 
   bool m_show_warnings;
-  bool m_interactive;
+  bool m_show_stats;
   bool m_buffer_data;
 };
 

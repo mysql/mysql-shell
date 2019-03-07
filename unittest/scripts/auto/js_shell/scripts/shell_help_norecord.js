@@ -162,3 +162,9 @@ session.close()
 
 //@ Help on extension objects
 \? extension objects
+
+//@ Help on unparseUri
+\? unparseUri
+
+//@ Help on dumpRows
+\? dumpRows

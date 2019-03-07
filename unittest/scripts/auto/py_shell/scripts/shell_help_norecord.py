@@ -224,3 +224,10 @@ session.close()
 
 #@ Help on extension objects
 \? extension objects
+
+#@ unparse_uri
+\? unparse_uri
+
+#@ dump_rows
+\? dump_rows
+

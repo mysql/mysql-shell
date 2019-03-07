@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/devapi/mod_mysqlx_resultset.h"
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_mysql_resultset.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "scripting/types.h"
 #include "unittest/test_utils.h"
@@ -59,13 +63,12 @@ class mod_shell_test : public Shell_core_test_wrapper {
 
 TEST_F(mod_shell_test, parse_uri) {
   {
-    shcore::Argument_list args;
-    args.push_back(
-        shcore::Value("mysql://user:password@localhost:1234/schema"
-                      "?Ssl-MoDe=REQUIRED&auth-method=PLAIN"));
+    std::string args;
+    args =
+        "mysql://user:password@localhost:1234/schema"
+        "?Ssl-MoDe=REQUIRED&auth-method=PLAIN";
 
-    auto value = _shell->parse_uri(args);
-    auto dict = value.as_map();
+    auto dict = _shell->parse_uri(args);
 
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kScheme));
     EXPECT_STREQ("mysql", dict->get_string(mysqlshdk::db::kScheme).c_str());
@@ -84,18 +87,18 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_STREQ("REQUIRED", dict->get_string(mysqlshdk::db::kSslMode).c_str());
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kAuthMethod));
     EXPECT_STREQ("PLAIN", dict->get_string(mysqlshdk::db::kAuthMethod).c_str());
+
+    EXPECT_EQ(
+        "mysql://user:password@localhost:1234/"
+        "schema?ssl-mode=REQUIRED&auth-method=PLAIN",
+        _shell->unparse_uri(dict));
   }
 
+#ifdef _WIN32  // TODO(alfredo) - these shouldn't be different in windows
   {
-    shcore::Argument_list args;
-#ifdef _WIN32
-    args.push_back(shcore::Value("user@(\\\\.\\named.pipe)/schema"));
-#else   // !_WIN32
-    args.push_back(shcore::Value("user@(/path/to/socket.sock)/schema"));
-#endif  // !_WIN32
+    std::string args = "user@(\\\\.\\named.pipe)/schema";
 
-    auto value = _shell->parse_uri(args);
-    auto dict = value.as_map();
+    auto dict = _shell->parse_uri(args);
 
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
@@ -104,29 +107,24 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kHost));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSocket));
-#ifdef _WIN32
     EXPECT_STREQ("named.pipe",
                  dict->get_string(mysqlshdk::db::kSocket).c_str());
-#else   // !_WIN32
-    EXPECT_STREQ("/path/to/socket.sock",
-                 dict->get_string(mysqlshdk::db::kSocket).c_str());
-#endif  // !_WIN32
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSchema));
     EXPECT_STREQ("schema", dict->get_string(mysqlshdk::db::kSchema).c_str());
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kSslMode));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kAuthMethod));
+
+    // Note: not sure if this is supposed to be user@(\\\\.\\named.pipe)/schema
+    // or user@\\\\.\\named.pipe/schema"
+    EXPECT_EQ("user@\\\\.\\named.pipe/schema", _shell->unparse_uri(dict));
   }
+#endif
 
+#ifndef _WIN32
   {
-    shcore::Argument_list args;
-#ifdef _WIN32
-    args.push_back(shcore::Value("user@\\\\.\\named.pipe/schema"));
-#else   // !_WIN32
-    args.push_back(shcore::Value("user@/path%2fto%2fsocket.sock/schema"));
-#endif  // !_WIN32
+    std::string args = "user@(/path/to/socket.sock)/schema";
 
-    auto value = _shell->parse_uri(args);
-    auto dict = value.as_map();
+    auto dict = _shell->parse_uri(args);
 
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
@@ -135,34 +133,55 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kHost));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSocket));
-#ifdef _WIN32
-    EXPECT_STREQ("named.pipe",
-                 dict->get_string(mysqlshdk::db::kSocket).c_str());
-#else   // !_WIN32
     EXPECT_STREQ("/path/to/socket.sock",
                  dict->get_string(mysqlshdk::db::kSocket).c_str());
-#endif  // !_WIN32
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSchema));
     EXPECT_STREQ("schema", dict->get_string(mysqlshdk::db::kSchema).c_str());
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kSslMode));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kAuthMethod));
+
+    EXPECT_EQ("user@/path%2Fto%2Fsocket.sock/schema",
+              _shell->unparse_uri(dict));
   }
 
   {
-    shcore::Argument_list args;
-    args.push_back(
-        shcore::Value("user@host?ssl-mode=required&"
-                      "SSL-CA=%2fpath%2fto%2fca%2epem&"
-                      "ssl-caPath=%2fpath%2fto%2fcapath&"
-                      "ssl-cert=%2fpath%2fto%2fcert%2epem&"
-                      "ssl-key=%2fpath%2fto%2fkey%2epem&"
-                      "ssl-crl=%2fpath%2fto%2fcrl%2etxt&"
-                      "ssl-crlPATH=%2fpath%2fto%2fcrlpath&"
-                      "Ssl-Cipher=%2fpath%2fto%2fcipher&"
-                      "Tls-VERSION=TLSv1%2e0"));
+    std::string args = "user@/path%2fto%2fsocket.sock/schema";
 
-    auto value = _shell->parse_uri(args);
-    auto dict = value.as_map();
+    auto dict = _shell->parse_uri(args);
+
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
+    EXPECT_STREQ("user", dict->get_string(mysqlshdk::db::kUser).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPassword));
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kHost));
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSocket));
+    EXPECT_STREQ("/path/to/socket.sock",
+                 dict->get_string(mysqlshdk::db::kSocket).c_str());
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSchema));
+    EXPECT_STREQ("schema", dict->get_string(mysqlshdk::db::kSchema).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kSslMode));
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kAuthMethod));
+
+    EXPECT_EQ("user@/path%2Fto%2Fsocket.sock/schema",
+              _shell->unparse_uri(dict));
+  }
+#endif
+
+  {
+    std::string args;
+    args =
+        "user@host?ssl-mode=required&"
+        "SSL-CA=%2fpath%2fto%2fca%2epem&"
+        "ssl-caPath=%2fpath%2fto%2fcapath&"
+        "ssl-cert=%2fpath%2fto%2fcert%2epem&"
+        "ssl-key=%2fpath%2fto%2fkey%2epem&"
+        "ssl-crl=%2fpath%2fto%2fcrl%2etxt&"
+        "ssl-crlPATH=%2fpath%2fto%2fcrlpath&"
+        "Ssl-Cipher=%2fpath%2fto%2fcipher&"
+        "Tls-VERSION=TLSv1%2e0";
+
+    auto dict = _shell->parse_uri(args);
 
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
@@ -196,6 +215,14 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsVersion));
     EXPECT_STREQ("TLSv1.0",
                  dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
+
+    EXPECT_EQ(
+        "user@host?ssl-ca=%2Fpath%2Fto%2Fca.pem&ssl-capath=%2Fpath%2Fto%"
+        "2Fcapath&ssl-cert=%2Fpath%2Fto%2Fcert.pem&ssl-key=%2Fpath%2Fto%2Fkey."
+        "pem&ssl-crl=%2Fpath%2Fto%2Fcrl.txt&ssl-crlpath=%2Fpath%2Fto%2Fcrlpath&"
+        "ssl-cipher=%2Fpath%2Fto%2Fcipher&tls-version=TLSv1.0&ssl-mode="
+        "required",
+        _shell->unparse_uri(dict));
   }
 }
 
@@ -207,6 +234,136 @@ TEST_F(mod_shell_test, connect) {
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
   _shell->connect(args);
+}
+
+TEST_F(mod_shell_test, dump_rows) {
+  auto session = mysqlsh::mysql::ClassicSession(create_mysql_session());
+  auto xsession = mysqlsh::mysqlx::Session(create_mysqlx_session());
+
+  mysqlsh::ShellBaseSession *bsession = nullptr;
+
+  auto query = [&bsession](const std::string &sql) {
+    return std::dynamic_pointer_cast<mysqlsh::ShellBaseResult>(
+        bsession->raw_execute_sql(sql));
+  };
+
+  for (int i = 0; i < 2; i++) {
+    if (i == 0) {
+      bsession = &session;
+    } else {
+      bsession = &xsession;
+    }
+
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "");
+      MY_EXPECT_STDOUT_CONTAINS(
+          "+---+-------+------+--------+\n"
+          "| 1 | hello | 4.56 | foobar |\n"
+          "+---+-------+------+--------+\n"
+          "| 1 | hello | 4.56 | foobar |\n"
+          "| 4 | world | 6.32 | bla    |\n"
+          "+---+-------+------+--------+\n");
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "table");
+      MY_EXPECT_STDOUT_CONTAINS(
+          "+---+-------+------+--------+\n"
+          "| 1 | hello | 4.56 | foobar |\n"
+          "+---+-------+------+--------+\n"
+          "| 1 | hello | 4.56 | foobar |\n"
+          "| 4 | world | 6.32 | bla    |\n"
+          "+---+-------+------+--------+\n");
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "tabbed");
+      MY_EXPECT_STDOUT_CONTAINS(
+          "1\thello\t4.56\tfoobar\n"
+          "1\thello\t4.56\tfoobar\n"
+          "4\tworld\t6.32\tbla\n");
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "vertical");
+      MY_EXPECT_STDOUT_CONTAINS(
+          "*************************** 1. row ***************************\n"
+          "     1: 1\n"
+          " hello: hello\n"
+          "  4.56: 4.56\n"
+          "foobar: foobar\n"
+          "*************************** 2. row ***************************\n"
+          "     1: 4\n"
+          " hello: world\n"
+          "  4.56: 6.32\n"
+          "foobar: bla\n");
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "json");
+      MY_EXPECT_STDOUT_CONTAINS(
+          "{\n"
+          "    \"1\": 1,\n"
+          "    \"hello\": \"hello\",\n"
+          "    \"4.56\": 4.559999942779541,\n"
+          "    \"foobar\": \"foobar\"\n"
+          "}\n"
+          "{\n"
+          "    \"1\": 4,\n"
+          "    \"hello\": \"world\",\n"
+          "    \"4.56\": 6.320000171661377,\n"
+          "    \"foobar\": \"bla\"\n"
+          "}\n");
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "json/raw");
+      // clang-format off
+      MY_EXPECT_STDOUT_CONTAINS(
+          "{\"1\":1,\"hello\":\"hello\",\"4.56\":4.559999942779541,\"foobar\":\"foobar\"}\n"
+          "{\"1\":4,\"hello\":\"world\",\"4.56\":6.320000171661377,\"foobar\":\"bla\"}\n");
+      // clang-format on
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      _shell->dump_rows(result, "json/array");
+      // clang-format off
+      MY_EXPECT_STDOUT_CONTAINS(
+          "[\n"
+          "{\"1\":1,\"hello\":\"hello\",\"4.56\":4.559999942779541,\"foobar\":\"foobar\"},\n"
+          "{\"1\":4,\"hello\":\"world\",\"4.56\":6.320000171661377,\"foobar\":\"bla\"}\n"
+          "]\n");
+      // clang-format on
+      wipe_all();
+    }
+    {
+      auto result = query(
+          "select 1, 'hello', 4.56, 'foobar' "
+          "union all select 4, 'world', 6.32, 'bla'");
+      EXPECT_THROW(_shell->dump_rows(result, "ertyuikjnbg"),
+                   std::invalid_argument);
+    }
+  }
 }
 
 }  // namespace testing

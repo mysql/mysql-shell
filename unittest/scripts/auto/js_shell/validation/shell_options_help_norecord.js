@@ -40,8 +40,8 @@
                output in JSON instead.
 
 //@<OUT> resultFormat option help text
- resultFormat  Determines format of results. Valid values:
-               [tabbed|table|vertical|json|json/raw].
+ resultFormat  Determines format of results. Valid values: [table, tabbed,
+               vertical, json, ndjson, json/raw, json/array, json/pretty].
 
 //@<OUT> passwordsFromStdin option help text
  passwordsFromStdin  Read passwords from stdin instead of the tty.

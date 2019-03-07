@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include "modules/devapi/base_resultset.h"
 #include "modules/mod_extensible_object.h"
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
@@ -53,7 +54,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  shcore::Value parse_uri(const shcore::Argument_list &args);
+  shcore::Dictionary_t parse_uri(const std::string &uri);
+  std::string unparse_uri(const shcore::Dictionary_t &options);
+
   shcore::Value prompt(const shcore::Argument_list &args);
   shcore::Value connect(const shcore::Argument_list &args);
 
@@ -93,6 +96,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined addExtensionObjectMember(Object object, String name, Value member,
                                      Dictionary definition);
   Undefined registerGlobal(String name, Object object, Dictionary definition);
+  Undefined dumpRows(ShellBaseResult result, String format);
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -117,6 +121,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined add_extension_object_member(Object object, str name, Value member,
                                         dict definition);
   Undefined register_global(str name, Object object, dict definition);
+  None dump_rows(ShellBaseResult result, str format);
 #endif
 
   shcore::Value list_credential_helpers(const shcore::Argument_list &args);
@@ -150,6 +155,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void register_global(const std::string &name,
                        std::shared_ptr<Extensible_object> object,
                        const shcore::Dictionary_t &definition = {});
+
+  void dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
+                 const std::string &format);
 
  protected:
   void init();

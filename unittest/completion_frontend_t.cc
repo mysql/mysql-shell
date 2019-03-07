@@ -652,6 +652,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "deleteAllCredentials()",
                                        "deleteCredential()",
                                        "disablePager()",
+                                       "dumpRows()",
                                        "enablePager()",
                                        "getSession()",
                                        "help()",
@@ -668,7 +669,8 @@ TEST_F(Completer_frontend, js_shell) {
                                        "setCurrentSchema()",
                                        "setSession()",
                                        "status()",
-                                       "storeCredential()"}));
+                                       "storeCredential()",
+                                       "unparseUri()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1144,6 +1146,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "delete_all_credentials()",
                                        "delete_credential()",
                                        "disable_pager()",
+                                       "dump_rows()",
                                        "enable_pager()",
                                        "get_session()",
                                        "help()",
@@ -1160,7 +1163,8 @@ TEST_F(Completer_frontend, py_shell) {
                                        "set_current_schema()",
                                        "set_session()",
                                        "status()",
-                                       "store_credential()"}));
+                                       "store_credential()",
+                                       "unparse_uri()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 

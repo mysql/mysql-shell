@@ -527,25 +527,32 @@ class String_printer : public Resultset_printer {
 }  // namespace
 
 Resultset_dumper_base::Resultset_dumper_base(
-    mysqlshdk::db::IResult *target, std::unique_ptr<Resultset_printer> printer)
-    : m_result(target), m_printer(std::move(printer)) {
-  auto opts = mysqlsh::current_shell_options()->get();
-
-  // Determines whether JSON Wrappin is enabled or not
-  m_wrap_json = opts.wrap_json;
-
-  // Determines the result format when JSON Wrapping is OFF
-  m_format = opts.result_format;
+    mysqlshdk::db::IResult *target, std::unique_ptr<Resultset_printer> printer,
+    const std::string &wrap_json, const std::string &format)
+    : m_result(target),
+      m_wrap_json(wrap_json),
+      m_format(format),
+      m_printer(std::move(printer)) {
+  if (m_format == "ndjson") m_format = "json/raw";
 }
 
 Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
                                    bool buffer_data)
-    : Resultset_dumper_base(target, shcore::make_unique<Console_printer>()),
-      m_buffer_data(buffer_data) {
-  auto opts = mysqlsh::current_shell_options()->get();
-  m_interactive = opts.interactive;
-  m_show_warnings = opts.show_warnings;
-}
+    : Resultset_dumper(
+          target, mysqlsh::current_shell_options()->get().wrap_json,
+          mysqlsh::current_shell_options()->get().result_format, buffer_data,
+          mysqlsh::current_shell_options()->get().show_warnings,
+          mysqlsh::current_shell_options()->get().interactive) {}
+
+Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
+                                   const std::string &wrap_json,
+                                   const std::string &format, bool buffer_data,
+                                   bool show_warnings, bool show_stats)
+    : Resultset_dumper_base(target, shcore::make_unique<Console_printer>(),
+                            wrap_json, format),
+      m_show_warnings(show_warnings),
+      m_show_stats(show_stats),
+      m_buffer_data(buffer_data) {}
 
 void Resultset_dumper::dump(const std::string &item_label, bool is_query,
                             bool is_doc_result) {
@@ -562,7 +569,7 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
       size_t count = 0;
       if (m_result->has_resultset()) {
         // Data requires to be buffered on table format because it will be
-        // traversec once for proper formatting and once for printing it
+        // traversed once for proper formatting and once for printing it
         if (m_buffer_data || m_format == "table") m_result->buffer();
 
         if (is_doc_result || m_format.find("json") != std::string::npos)
@@ -580,14 +587,14 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
                                  (count == 1 ? "" : "s"));
         else
           output = "Empty set";
-      } else if (m_interactive && !is_query) {
+      } else if (m_show_stats && !is_query) {
         // Starts only make sense on non read only operations
         output = get_affected_stats(item_label);
       }
 
       // This information output is only printed in interactive mode
       int warning_count = 0;
-      if (m_interactive) {
+      if (m_show_stats) {
         warning_count = get_warning_and_execution_time_stats(&output);
 
         m_printer->print(output);
@@ -664,11 +671,21 @@ size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
   auto metadata = m_result->get_metadata();
   auto row = m_result->fetch_one();
   size_t row_count = 0;
+  bool as_array = m_format == "json/array";
+  bool pretty = m_format != "json/raw" && m_format != "json/array";
 
   if (!row) return row_count;
 
+  if (as_array) m_printer->raw_print("[\n");
   while (row) {
-    shcore::JSON_dumper dumper(m_format != "json/raw");
+    shcore::JSON_dumper dumper(pretty);
+
+    if (row_count > 0) {
+      if (as_array)
+        m_printer->raw_print(",\n");
+      else
+        m_printer->raw_print("\n");
+    }
 
     if (is_doc_result)
       dumper.append_json(row->get_string(0));
@@ -676,11 +693,12 @@ size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
       dump_json_row(&dumper, metadata, row);
 
     m_printer->raw_print(dumper.str());
-    m_printer->raw_print("\n");
 
     row_count++;
     row = m_result->fetch_one();
   }
+  m_printer->raw_print("\n");
+  if (as_array) m_printer->raw_print("]\n");
 
   return row_count;
 }
@@ -970,7 +988,7 @@ int Resultset_dumper::get_warning_and_execution_time_stats(
     std::string *output_stats) {
   int warning_count = 0;
 
-  if (m_interactive) {
+  if (m_show_stats) {
     warning_count = m_result->get_warning_count();
 
     if (warning_count)
@@ -1014,7 +1032,10 @@ void Resultset_dumper_base::dump_warnings() {
 }
 
 Resultset_writer::Resultset_writer(mysqlshdk::db::IResult *target)
-    : Resultset_dumper_base(target, shcore::make_unique<String_printer>()) {}
+    : Resultset_dumper_base(
+          target, shcore::make_unique<String_printer>(),
+          mysqlsh::current_shell_options()->get().wrap_json,
+          mysqlsh::current_shell_options()->get().result_format) {}
 
 std::string Resultset_writer::write_table() {
   return write([this]() {

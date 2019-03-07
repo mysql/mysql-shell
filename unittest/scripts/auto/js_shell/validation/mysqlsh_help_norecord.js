@@ -72,7 +72,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 mode.
   -E, --vertical                Print the output of a query (rows) vertically.
   --result-format=value         Determines format of results. Valid values:
-                                [tabbed|table|vertical|json|json/raw].
+                                [table, tabbed, vertical, json, ndjson,
+                                json/raw, json/array, json/pretty].
   --get-server-public-key       Request public key from the server required for
                                 RSA key pair-based password exchange. Use when
                                 connecting to MySQL 8.0 servers with classic
@@ -237,7 +238,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 mode.
   -E, --vertical                Print the output of a query (rows) vertically.
   --result-format=value         Determines format of results. Valid values:
-                                [tabbed|table|vertical|json|json/raw].
+                                [table, tabbed, vertical, json, ndjson,
+                                json/raw, json/array, json/pretty].
   --get-server-public-key       Request public key from the server required for
                                 RSA key pair-based password exchange. Use when
                                 connecting to MySQL 8.0 servers with classic

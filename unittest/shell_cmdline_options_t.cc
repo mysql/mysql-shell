@@ -1150,8 +1150,8 @@ TEST_F(Shell_cmdline_options, conflicts_output) {
 
   test_conflicting_options("--result-format=meh", 2, argv2,
                            "The acceptable values for the option "
-                           "--result-format are: tabbed, table, vertical, json "
-                           "or json/raw.\n");
+                           "--result-format are: table, tabbed, vertical, "
+                           "json, ndjson, json/raw, json/array, json/pretty\n");
 }
 
 #ifdef _WIN32
