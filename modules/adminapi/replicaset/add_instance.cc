@@ -43,15 +43,13 @@ namespace dba {
 
 Add_instance::Add_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const ReplicaSet &replicaset, const shcore::NamingStyle &naming_style,
-    const Group_replication_options &gr_options,
+    const ReplicaSet &replicaset, const Group_replication_options &gr_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     const std::string &replication_user,
     const std::string &replication_password, bool overwrite_seed,
     bool skip_instance_check, bool skip_rpl_user)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_replicaset(replicaset),
-      m_naming_style(naming_style),
       m_gr_opts(gr_options),
       m_instance_label(instance_label),
       m_rpl_user(replication_user),
@@ -65,14 +63,12 @@ Add_instance::Add_instance(
 
 Add_instance::Add_instance(
     mysqlshdk::mysql::IInstance *target_instance, const ReplicaSet &replicaset,
-    const shcore::NamingStyle &naming_style,
     const Group_replication_options &gr_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     const std::string &replication_user,
     const std::string &replication_password, bool overwrite_seed,
     bool skip_instance_check, bool skip_rpl_user)
     : m_replicaset(replicaset),
-      m_naming_style(naming_style),
       m_gr_opts(gr_options),
       m_instance_label(instance_label),
       m_rpl_user(replication_user),
@@ -263,8 +259,7 @@ void Add_instance::prepare() {
 
   // Set the internal configuration object: read/write configs from the server.
   m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler,
-      m_naming_style);
+      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
 }
 
 void Add_instance::handle_gr_protocol_version() {

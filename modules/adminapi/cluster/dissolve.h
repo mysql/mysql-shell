@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
@@ -40,7 +40,7 @@ namespace dba {
 class Dissolve : public Command_interface {
  public:
   Dissolve(const bool interactive, mysqlshdk::utils::nullable<bool> force,
-           Cluster *cluster);
+           Cluster_impl *cluster);
 
   ~Dissolve() override;
 
@@ -97,7 +97,7 @@ class Dissolve : public Command_interface {
  private:
   const bool m_interactive;
   mysqlshdk::utils::nullable<bool> m_force;
-  Cluster *m_cluster = nullptr;
+  Cluster_impl *m_cluster = nullptr;
   std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>>
       m_available_instances;
   std::vector<std::string> m_skipped_instances;

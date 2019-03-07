@@ -49,7 +49,8 @@ void ensure_instance_configuration_valid(
   } else {
     console->print_error(
         "Instance must be configured and validated with "
-        "dba.checkInstanceConfiguration() and dba.configureInstance() "
+        "dba.<<<checkInstanceConfiguration>>>() and "
+        "dba.<<<configureInstance>>>() "
         "before it can be used in an InnoDB cluster.");
     throw shcore::Exception::runtime_error("Instance check failed");
   }

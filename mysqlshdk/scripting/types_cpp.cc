@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,17 @@
 // TODO(alfredo) - clarify property mechanism
 
 using namespace std::placeholders;
-using namespace shcore;
+namespace shcore {
+
+std::vector<NamingStyle> g_naming_style{NamingStyle::LowerCamelCase};
+
+Scoped_naming_style::Scoped_naming_style(NamingStyle style) {
+  g_naming_style.push_back(style);
+}
+
+Scoped_naming_style::~Scoped_naming_style() { g_naming_style.pop_back(); }
+
+NamingStyle current_naming_style() { return g_naming_style.back(); }
 
 Cpp_function::Raw_signature Cpp_function::gen_signature(
     const std::vector<std::pair<std::string, Value_type>> &args) {
@@ -217,7 +227,7 @@ void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
   return_type = rtype;
 }
 
-Cpp_object_bridge::Cpp_object_bridge() : naming_style(LowerCamelCase) {
+Cpp_object_bridge::Cpp_object_bridge() {
   add_varargs_method("help", std::bind(&Cpp_object_bridge::help, this, _1));
 }
 
@@ -236,35 +246,27 @@ std::string &Cpp_object_bridge::append_repr(std::string &s_out) const {
   return append_descr(s_out, 0, '"');
 }
 
-std::vector<std::string> Cpp_object_bridge::get_members_advanced(
-    const NamingStyle &style) {
-  ScopedStyle ss(this, style);
-
-  return get_members();
-}
-
 std::vector<std::string> Cpp_object_bridge::get_members() const {
   std::vector<std::string> members;
 
   for (const auto &prop : _properties)
-    members.push_back(prop.name(naming_style));
+    members.push_back(prop.name(current_naming_style()));
 
   for (const auto &func : _funcs) {
-    members.push_back(func.second->name(naming_style));
+    members.push_back(func.second->name(current_naming_style()));
   }
   return members;
 }
 
 std::string Cpp_object_bridge::get_base_name(const std::string &member) const {
   std::string ret_val;
-  auto style = naming_style;
-  auto func = lookup_function(member, style);
+  auto func = lookup_function(member);
   if (func) {
     ret_val = func->name(NamingStyle::LowerCamelCase);
   } else {
     auto prop = std::find_if(_properties.begin(), _properties.end(),
-                             [member, style](const Cpp_property_name &p) {
-                               return p.name(style) == member;
+                             [member](const Cpp_property_name &p) {
+                               return p.name(current_naming_style()) == member;
                              });
     if (prop != _properties.end())
       ret_val = (*prop).name(NamingStyle::LowerCamelCase);
@@ -275,12 +277,12 @@ std::string Cpp_object_bridge::get_base_name(const std::string &member) const {
 
 std::string Cpp_object_bridge::get_function_name(const std::string &member,
                                                  bool fully_specified) const {
-  auto m = lookup_function(member, naming_style);
+  auto m = lookup_function(member);
   std::string name;
   if (!m) {
-    name = get_member_name(member, naming_style);
+    name = get_member_name(member, current_naming_style());
   } else {
-    name = m->name(naming_style);
+    name = m->name(current_naming_style());
   }
   if (fully_specified) {
     return class_name() + "." + name;
@@ -294,27 +296,26 @@ shcore::Value Cpp_object_bridge::get_member_method(
     const std::string &prop) {
   args.ensure_count(0, get_function_name(method).c_str());
 
-  return get_member_advanced(get_member_name(prop, naming_style), naming_style);
+  return get_member_advanced(get_member_name(prop, current_naming_style()));
 }
 
-Value Cpp_object_bridge::get_member_advanced(const std::string &prop,
-                                             const NamingStyle &style) const {
+Value Cpp_object_bridge::get_member_advanced(const std::string &prop) const {
   Value ret_val;
 
-  auto func = std::find_if(_funcs.begin(), _funcs.end(),
-                           [prop, style](const FunctionEntry &f) {
-                             return f.second->name(style) == prop;
-                           });
+  auto func = std::find_if(
+      _funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f) {
+        return f.second->name(current_naming_style()) == prop;
+      });
 
   if (func != _funcs.end()) {
     ret_val = Value(std::shared_ptr<Function_base>(func->second));
   } else {
-    auto prop_index = std::find_if(_properties.begin(), _properties.end(),
-                                   [prop, style](const Cpp_property_name &p) {
-                                     return p.name(style) == prop;
-                                   });
+    auto prop_index =
+        std::find_if(_properties.begin(), _properties.end(),
+                     [prop](const Cpp_property_name &p) {
+                       return p.name(current_naming_style()) == prop;
+                     });
     if (prop_index != _properties.end()) {
-      ScopedStyle ss(this, style);
       ret_val = get_member((*prop_index).base_name());
     } else
       throw Exception::attrib_error("Invalid object member " + prop);
@@ -331,19 +332,22 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const {
   throw Exception::attrib_error("Invalid object member " + prop);
 }
 
-bool Cpp_object_bridge::has_member_advanced(const std::string &prop,
-                                            const NamingStyle &style) const {
-  if (lookup_function(prop, style)) return true;
+bool Cpp_object_bridge::has_member_advanced(const std::string &prop) const {
+  if (lookup_function(prop)) return true;
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(),
-                                 [prop, style](const Cpp_property_name &p) {
-                                   return p.name(style) == prop;
-                                 });
+  auto prop_index =
+      std::find_if(_properties.begin(), _properties.end(),
+                   [prop](const Cpp_property_name &p) {
+                     return p.name(current_naming_style()) == prop;
+                   });
   return (prop_index != _properties.end());
 }
 
 bool Cpp_object_bridge::has_member(const std::string &prop) const {
-  if (lookup_function(prop, NamingStyle::LowerCamelCase)) return true;
+  {
+    Scoped_naming_style lower(NamingStyle::LowerCamelCase);
+    if (lookup_function(prop)) return true;
+  }
 
   auto prop_index = std::find_if(
       _properties.begin(), _properties.end(),
@@ -352,15 +356,13 @@ bool Cpp_object_bridge::has_member(const std::string &prop) const {
 }
 
 void Cpp_object_bridge::set_member_advanced(const std::string &prop,
-                                            Value value,
-                                            const NamingStyle &style) {
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(),
-                                 [prop, style](const Cpp_property_name &p) {
-                                   return p.name(style) == prop;
-                                 });
+                                            Value value) {
+  auto prop_index =
+      std::find_if(_properties.begin(), _properties.end(),
+                   [prop](const Cpp_property_name &p) {
+                     return p.name(current_naming_style()) == prop;
+                   });
   if (prop_index != _properties.end()) {
-    ScopedStyle ss(this, style);
-
     set_member((*prop_index).base_name(), value);
   } else {
     throw Exception::attrib_error("Can't set object member " + prop);
@@ -387,9 +389,8 @@ bool Cpp_object_bridge::has_method(const std::string &name) const {
   return method_index != _funcs.end();
 }
 
-bool Cpp_object_bridge::has_method_advanced(const std::string &name,
-                                            const NamingStyle &style) const {
-  if (lookup_function(name, style)) return true;
+bool Cpp_object_bridge::has_method_advanced(const std::string &name) const {
+  if (lookup_function(name)) return true;
   return false;
 }
 
@@ -452,11 +453,9 @@ void Cpp_object_bridge::delete_property(const std::string &name,
 }
 
 Value Cpp_object_bridge::call_advanced(const std::string &name,
-                                       const Argument_list &args,
-                                       const NamingStyle &style) {
-  auto func = lookup_function_overload(name, style, args);
+                                       const Argument_list &args) {
+  auto func = lookup_function_overload(name, args);
   if (func) {
-    ScopedStyle ss(this, style);
     auto scope = get_function_name(name, true);
     return call_function(scope, func, args);
   } else {
@@ -495,16 +494,11 @@ Value Cpp_object_bridge::call_function(
 
 std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
     const std::string &method) const {
-  return lookup_function(method, naming_style);
-}
-
-std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
-    const std::string &method, const NamingStyle &style) const {
   // NOTE this linear lookup is no good, but needed until the naming style
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
   for (i = _funcs.begin(); i != _funcs.end(); ++i) {
-    if (i->second->name(style) == method) break;
+    if (i->second->name(current_naming_style()) == method) break;
   }
   if (i == _funcs.end()) {
     return std::shared_ptr<Cpp_function>(nullptr);
@@ -514,13 +508,12 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
 }
 
 std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
-    const std::string &method, const NamingStyle &style,
-    const shcore::Argument_list &args) const {
+    const std::string &method, const shcore::Argument_list &args) const {
   // NOTE this linear lookup is no good, but needed until the naming style
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
   for (i = _funcs.begin(); i != _funcs.end(); ++i) {
-    if (i->second->name(style) == method) break;
+    if (i->second->name(current_naming_style()) == method) break;
   }
   if (i == _funcs.end()) {
     throw Exception::attrib_error("Invalid object function " + method);
@@ -538,7 +531,8 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
   std::vector<std::pair<int, std::shared_ptr<Cpp_function>>> candidates;
   int max_error_score = -1;
   std::string match_error;
-  while (i != _funcs.end() && i->second->name(style) == method) {
+  while (i != _funcs.end() &&
+         i->second->name(current_naming_style()) == method) {
     if (i->second->is_legacy) return i->second;
 
     bool match;
@@ -590,7 +584,11 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
 
 Value Cpp_object_bridge::call(const std::string &name,
                               const Argument_list &args) {
-  auto func = lookup_function_overload(name, LowerCamelCase, args);
+  std::shared_ptr<Cpp_function> func;
+  {
+    Scoped_naming_style lower(LowerCamelCase);
+    func = lookup_function_overload(name, args);
+  }
   assert(func);
   auto scope = get_function_name(name, true);
   return call_function(scope, func, args);
@@ -610,7 +608,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
   IShell_core::Mode mode;
 
-  if (naming_style == NamingStyle::LowerCamelCase)
+  if (current_naming_style() == NamingStyle::LowerCamelCase)
     mode = IShell_core::Mode::JavaScript;
   else
     mode = IShell_core::Mode::Python;
@@ -672,18 +670,6 @@ void Cpp_object_bridge::detect_overload_conflicts(
       throw Exception::attrib_error(
           "Ambiguous overload detected for funtion: " + name);
   }
-}
-
-void Cpp_object_bridge::set_naming_style(const NamingStyle &style) {
-  naming_style = style;
-}
-
-std::shared_ptr<Cpp_object_bridge::ScopedStyle>
-Cpp_object_bridge::set_scoped_naming_style(const NamingStyle &style) {
-  std::shared_ptr<Cpp_object_bridge::ScopedStyle> ss(
-      new Cpp_object_bridge::ScopedStyle(this, style));
-
-  return ss;
 }
 
 //-------
@@ -969,3 +955,5 @@ void Parameter::validate(const Value &data,
     validator.validate(*this, data, context);
   }
 }
+
+}  // namespace shcore

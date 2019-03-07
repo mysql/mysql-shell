@@ -39,8 +39,8 @@ namespace mysqlsh {
 namespace dba {
 
 Topology_configuration_command::Topology_configuration_command(
-    ReplicaSet *replicaset, const shcore::NamingStyle &naming_style)
-    : m_replicaset(replicaset), m_naming_style(naming_style) {
+    ReplicaSet *replicaset)
+    : m_replicaset(replicaset) {
   assert(replicaset);
   m_cluster_session_instance = shcore::make_unique<mysqlshdk::mysql::Instance>(
       m_replicaset->get_cluster()->get_group_session());
@@ -74,7 +74,7 @@ void Topology_configuration_command::
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + instance_address +
                           "' does not belong to the ReplicaSet: '" +
-                          m_replicaset->get_member("name").get_string() + "'.";
+                          m_replicaset->get_name() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -295,8 +295,7 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
     console->print_warning(
         "The cluster internal session is not the primary member "
         "anymore. For cluster management operations please obtain a "
-        "fresh cluster handle using <Dba>." +
-        shcore::get_member_name("getCluster", m_naming_style) + "().");
+        "fresh cluster handle using <Dba>.<<<getCluster>>>().");
     console->println();
   }
 }

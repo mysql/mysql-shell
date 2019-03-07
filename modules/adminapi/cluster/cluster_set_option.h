@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/replicaset/set_option.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -37,9 +37,9 @@ namespace dba {
 
 class Cluster_set_option : public Command_interface {
  public:
-  Cluster_set_option(Cluster *cluster, const std::string &option,
+  Cluster_set_option(Cluster_impl *cluster, const std::string &option,
                      const std::string &value);
-  Cluster_set_option(Cluster *cluster, const std::string &option,
+  Cluster_set_option(Cluster_impl *cluster, const std::string &option,
                      int64_t value);
 
   ~Cluster_set_option() override;
@@ -79,7 +79,7 @@ class Cluster_set_option : public Command_interface {
   void finish() override;
 
  private:
-  Cluster *m_cluster = nullptr;
+  Cluster_impl *m_cluster = nullptr;
   // Configuration object (to read and set instance configurations).
   std::string m_option;
   mysqlshdk::utils::nullable<std::string> m_value_str;

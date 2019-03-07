@@ -405,6 +405,61 @@ static void remove_test_keychain() {
 }
 #endif  // __APPLE__
 
+namespace testing {
+class Fail_logger : public EmptyTestEventListener {
+ public:
+  Fail_logger() : EmptyTestEventListener() {
+    m_pass_log_file.open("passed_tests", std::ofstream::app);
+  }
+
+  // Called before a test starts.
+  void OnTestStart(const ::testing::TestInfo &test_info) override {
+    m_failed = false;
+  }
+
+  // Called after a failed assertion or a SUCCESS().
+  void OnTestPartResult(
+      const ::testing::TestPartResult &test_part_result) override {
+    if (test_part_result.failed()) {
+      m_failed = true;
+    }
+  }
+
+  // Called after a test ends.
+  void OnTestEnd(const ::testing::TestInfo &test_info) override {
+    if (!m_failed) {
+      m_pass_log_file << ":" << test_info.test_case_name() << "."
+                      << test_info.name();
+    }
+  }
+
+ private:
+  std::ofstream m_pass_log_file;
+  bool m_failed;
+};
+}  // namespace testing
+
+static void setup_test_skipper() {
+  std::string passed_tests;
+
+  // Given the original filter, we want to only run the tests from that
+  // set that either failed when running or didn't run at all.
+  // Additionally, we don't want to run previously passed tests even when
+  // a re-execution is interrupted.
+  if (shcore::load_text_file("passed_tests", passed_tests) &&
+      !passed_tests.empty()) {
+    if (::testing::GTEST_FLAG(filter).find('-') == std::string::npos)
+      ::testing::GTEST_FLAG(filter) += ":-" + passed_tests.substr(1);
+    else
+      ::testing::GTEST_FLAG(filter) += ":" + passed_tests.substr(1);
+  }
+
+  ::testing::TestEventListeners &listeners =
+      ::testing::UnitTest::GetInstance()->listeners();
+  // Adds a listener to the end.  googletest takes the ownership.
+  listeners.Append(new testing::Fail_logger());
+}
+
 void setup_test_environment() {
   if (!getenv("MYSQL_PORT")) {
     if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
@@ -612,6 +667,7 @@ int main(int argc, char **argv) {
   bool show_all_skipped = false;
   bool got_filter = false;
   bool tdb = false;
+  bool only_failures = false;
   std::string tracedir;
   std::string target;
 
@@ -645,7 +701,7 @@ int main(int argc, char **argv) {
       tracedir = p + 1;
     } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
       g_generate_validation_file = true;
-    } else if (strncmp(argv[index], "--debug=", strlen("--debug=")) == 0) {
+    } else if (shcore::str_beginswith(argv[index], "--debug=")) {
       DBUG_SET_INITIAL(argv[index] + strlen("--debug="));
     } else if (strcmp(argv[index], "--trace-no-stop") == 0) {
       // continue executing script until the end on failure
@@ -654,7 +710,7 @@ int main(int argc, char **argv) {
       // stop executing script on failure
       g_test_trace_scripts = 2;
       g_test_fail_early = true;
-    } else if (strcmp(argv[index], "--verbose=") == 0) {
+    } else if (shcore::str_beginswith(argv[index], "--verbose=")) {
       g_test_default_verbosity = std::stod(strchr(argv[index], '=') + 1);
     } else if (strcmp(argv[index], "--verbose") == 0) {
       g_test_default_verbosity = 1;
@@ -670,14 +726,16 @@ int main(int argc, char **argv) {
       g_test_fail_early = true;
     } else if (strcmp(argv[index], "--profile-scripts") == 0) {
       g_profile_test_scripts = true;
+    } else if (strcmp(argv[index], "--show-skipped") == 0) {
+      show_all_skipped = true;
+    } else if (strcmp(argv[index], "--only-failures") == 0) {
+      only_failures = true;
     } else if (strcmp(argv[index], "--gtest_color=yes") == 0) {
       g_test_color_output = true;
     } else if (!shcore::str_beginswith(argv[index], "--gtest_") &&
                strcmp(argv[index], "--help") != 0) {
       std::cerr << "Invalid option " << argv[index] << "\n";
       exit(1);
-    } else if (strcmp(argv[index], "--show-skipped") == 0) {
-      show_all_skipped = true;
     }
   }
 
@@ -783,6 +841,8 @@ int main(int argc, char **argv) {
           << mysqlshdk::db::replay::g_recording_path_prefix << "\n";
       break;
   }
+
+  if (only_failures) setup_test_skipper();
 
   std::cout << "-=-\n";  // begin test marker fpr rebuild_traces
   int ret_val = RUN_ALL_TESTS();

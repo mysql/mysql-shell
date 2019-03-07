@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
 
 namespace mysqlsh {
@@ -36,7 +36,7 @@ namespace dba {
 
 class Cluster_options : public Command_interface {
  public:
-  Cluster_options(const Cluster &cluster, bool all);
+  Cluster_options(const Cluster_impl &cluster, bool all);
 
   ~Cluster_options() override;
 
@@ -72,7 +72,7 @@ class Cluster_options : public Command_interface {
   void finish() override;
 
  private:
-  const Cluster &m_cluster;
+  const Cluster_impl &m_cluster;
   bool m_all = false;
 
   shcore::Value get_replicaset_options(const ReplicaSet &replicaset);

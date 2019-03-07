@@ -8,10 +8,11 @@
 ||
 
 //@<OUT> Interactive_dba_drop_metadata_schemaread_only_no_flag_prompt_yes
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
 Do you want to disable super_read_only and continue? [y/N]:
 
@@ -19,10 +20,11 @@ Do you want to disable super_read_only and continue? [y/N]:
 ||
 
 //@<OUT> Interactive_dba_drop_metadata_schemaread_only_no_flag_prompt_no
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
 Do you want to disable super_read_only and continue? [y/N]:
 Cancelled

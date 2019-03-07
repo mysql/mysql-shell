@@ -11,7 +11,7 @@ accessible from external networks.
 
 Please enter a MySQL root password for the new instance: Deploying new MySQL instance...
 
-Instance <<<localhost>>>:<<<__mysql_sandbox_port1>>> successfully deployed and started.
+Instance localhost:<<<__mysql_sandbox_port1>>> successfully deployed and started.
 Use shell.connect('root@localhost:<<<__mysql_sandbox_port1>>>'); to connect to the instance.
 
 //@ Finalization

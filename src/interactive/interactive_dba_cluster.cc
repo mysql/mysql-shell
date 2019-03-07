@@ -52,14 +52,12 @@ void Interactive_dba_cluster::init() {
 
 mysqlsh::dba::Cluster_check_info Interactive_dba_cluster::check_preconditions(
     const std::string &function_name) const {
-  ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-  return cluster->check_preconditions(function_name);
+  return cluster->impl()->check_preconditions(function_name);
 }
 
 void Interactive_dba_cluster::assert_valid(
     const std::string &function_name) const {
-  ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
   cluster->assert_valid(function_name);
 }
@@ -140,12 +138,12 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
     std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
 
-    default_replica_set = cluster->get_default_replicaset();
+    default_replica_set = cluster->impl()->get_default_replicaset();
 
     std::string rs_name;
 
     if (default_replica_set)
-      rs_name = default_replica_set->get_member("name").get_string();
+      rs_name = default_replica_set->get_name();
     else
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 

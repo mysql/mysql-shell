@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
@@ -85,7 +85,7 @@ class Replicaset_status : public Command_interface {
 
  private:
   const ReplicaSet &m_replicaset;
-  std::shared_ptr<Cluster> m_cluster;
+  Cluster_impl *m_cluster;
   mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
 
   std::vector<ReplicaSet::Instance_info> m_instances;

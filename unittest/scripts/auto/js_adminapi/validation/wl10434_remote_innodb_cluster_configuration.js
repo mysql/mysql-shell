@@ -103,7 +103,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster
 ||Dba.configureInstance: Unable to update configuration
 
 //@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.|
 
 //@ FR1.1 TEARDOWN {VER(>=8.0.11)}
@@ -289,10 +289,10 @@ Please restart MySQL manually
 ||(using password: YES) (MySQL Error 1045)
 
 //@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.11)}
-||Access denied for user 'root'@'<<<localhost>>>' (using password: YES) (MySQL Error 1045)
+||Access denied for user 'root'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@ ET_8 - Call dba.configureInstance() with interactive flag set to false and not specifying a password {VER(>=8.0.11)}
-||Access denied for user 'root'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
+||Access denied for user 'root'@'localhost' (using password: NO) (MySQL Error 1045)
 
 //@<OUT> ET_10 - Call dba.configuereInstance() with interactive flag set to true and using clusterAdmin {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -334,12 +334,13 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
 You may want to kill these sessions to prevent them from performing unexpected updates:
 
 1 open session(s) of 'root@localhost'.
@@ -360,7 +361,7 @@ Please restart MySQL manually
 ||
 
 //@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
-|ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.|
+|ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only|
 ||Dba.configureInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ ET TEARDOWN

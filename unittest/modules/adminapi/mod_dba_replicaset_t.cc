@@ -74,8 +74,7 @@ class Dba_replicaset_test : public Admin_api_test {
   }
 
   virtual void TearDown() {
-    shcore::Argument_list args;
-    m_cluster->disconnect(args);
+    m_cluster->disconnect();
     Admin_api_test::TearDown();
   }
 
@@ -152,9 +151,8 @@ TEST_F(Dba_replicaset_test, bug28219398) {
     {
       // Create the add_instance command and execute it.
       mysqlsh::dba::Add_instance op_add_instance(
-          connection_options, *m_cluster->get_default_replicaset(),
-          shcore::NamingStyle::LowerCamelCase, {}, {}, replication_user,
-          replication_pwd, false, true, false);
+          connection_options, *m_cluster->impl()->get_default_replicaset(), {},
+          {}, replication_user, replication_pwd, false, true, false);
 
       // Always execute finish when leaving scope.
       auto finally = shcore::on_leave_scope(

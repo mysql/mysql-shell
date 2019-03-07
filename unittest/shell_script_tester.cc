@@ -858,6 +858,8 @@ void Shell_script_tester::load_validations(const std::string &path) {
   size_t chunk_index = 0;
   Chunk_t *current_chunk = &_chunks[_chunk_order[chunk_index]];
 
+  if (g_generate_validation_file) chunk_verification = false;
+
   int line_no = 0;
 
   if (!file.fail()) {
@@ -1071,14 +1073,15 @@ void Shell_script_tester::execute_script(const std::string &path,
         // Prints debugging information
         _cout.str("");
         _cout.clear();
-        std::string chunk_log = "CHUNK: " + _chunk_order[index];
+
+        // Gets the chunks for the next id
+        auto &chunk = _chunks[_chunk_order[index]];
+
+        std::string chunk_log = "CHUNK: " + chunk.def->line;
         std::string splitter(chunk_log.length(), '-');
         output_handler.debug_print(makeyellow(splitter));
         output_handler.debug_print(makeyellow(chunk_log));
         output_handler.debug_print(makeyellow(splitter));
-
-        // Gets the chunks for the next id
-        auto &chunk = _chunks[_chunk_order[index]];
 
         bool enabled;
         try {

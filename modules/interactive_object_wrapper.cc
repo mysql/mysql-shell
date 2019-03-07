@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,7 @@ Interactive_object_wrapper::Interactive_object_wrapper(const std::string &alias,
     : _alias(alias), _shell_core(core) {}
 
 Value Interactive_object_wrapper::get_member_advanced(
-    const std::string &prop, const NamingStyle &style) const {
+    const std::string &prop) const {
   shcore::Value ret_val;
 
   // If the target object is not set, the resolve function enables resolving the
@@ -47,16 +47,16 @@ Value Interactive_object_wrapper::get_member_advanced(
 
   // Member resolution only makes sense if the target is set and it also
   // has the member
-  if (_target && _target->has_member_advanced(prop, style)) {
+  if (_target && _target->has_member_advanced(prop)) {
     // Interactive functions are defined on the wrapper so
     // we verify if the member is an interactive function
-    if (Cpp_object_bridge::has_member_advanced(prop, style))
-      ret_val = Cpp_object_bridge::get_member_advanced(prop, style);
+    if (Cpp_object_bridge::has_member_advanced(prop))
+      ret_val = Cpp_object_bridge::get_member_advanced(prop);
 
     // If not an interactive function then it will be resolved as interactive
     // property
     else
-      ret_val = interactive_get_member_advanced(prop, style);
+      ret_val = interactive_get_member_advanced(prop);
   } else
     throw Exception::attrib_error("Invalid object member " + prop);
 
@@ -116,17 +116,16 @@ Value Interactive_object_wrapper::call(const std::string &name,
 }
 
 bool Interactive_object_wrapper::has_method_advanced(
-    const std::string &name, const NamingStyle &style) const {
-  bool ret_val = Cpp_object_bridge::has_method_advanced(name, style);
+    const std::string &name) const {
+  bool ret_val = Cpp_object_bridge::has_method_advanced(name);
 
-  if (!ret_val && _target) ret_val = _target->has_method_advanced(name, style);
+  if (!ret_val && _target) ret_val = _target->has_method_advanced(name);
 
   return ret_val;
 }
 
 Value Interactive_object_wrapper::call_advanced(const std::string &name,
-                                                const Argument_list &args,
-                                                const NamingStyle &style) {
+                                                const Argument_list &args) {
   shcore::Value ret_val;
 
   // If the target object is not set, the resolve function enables resolving the
@@ -136,16 +135,16 @@ Value Interactive_object_wrapper::call_advanced(const std::string &name,
 
   // Method execution only makes sense if the target object is set and it
   // also has the method
-  if (_target && _target->has_member_advanced(name, style)) {
+  if (_target && _target->has_member_advanced(name)) {
     // Interactive functions are defined on the wrapper so
     // we verify if the member is an interactive function
-    if (Cpp_object_bridge::has_member_advanced(name, style))
-      ret_val = Cpp_object_bridge::call_advanced(name, args, style);
+    if (Cpp_object_bridge::has_member_advanced(name))
+      ret_val = Cpp_object_bridge::call_advanced(name, args);
 
     // If not an interactive method then it will be called directly on the
     // target object
     else
-      ret_val = _target->call_advanced(name, args, style);
+      ret_val = _target->call_advanced(name, args);
   }
   return ret_val;
 }
@@ -158,10 +157,10 @@ shcore::Value Interactive_object_wrapper::interactive_get_member(
 }
 
 shcore::Value Interactive_object_wrapper::interactive_get_member_advanced(
-    const std::string &prop, const NamingStyle &style) const {
+    const std::string &prop) const {
   // The default implementation does not do add any interaction, it will just
   // pass the call to the target object.
-  return _target->get_member_advanced(prop, style);
+  return _target->get_member_advanced(prop);
 }
 
 bool Interactive_object_wrapper::has_member(const std::string &prop) const {
@@ -169,8 +168,8 @@ bool Interactive_object_wrapper::has_member(const std::string &prop) const {
 }
 
 bool Interactive_object_wrapper::has_member_advanced(
-    const std::string &prop, const NamingStyle &style) const {
-  return _target ? _target->has_member_advanced(prop, style) : false;
+    const std::string &prop) const {
+  return _target ? _target->has_member_advanced(prop) : false;
 }
 /*-----------------------------------------------------------------*/
 /* Helper functions to ease adding interaction on derived classes */
@@ -216,7 +215,7 @@ shcore::Value Interactive_object_wrapper::help(
   if (!_target)
     ret_val = Cpp_object_bridge::help(args);
   else
-    ret_val = _target->call_advanced("help", args, naming_style);
+    ret_val = _target->call_advanced("help", args);
 
   return ret_val;
 }
@@ -227,7 +226,6 @@ shcore::Value Interactive_object_wrapper::help(
  */
 shcore::Value Interactive_object_wrapper::call_target(
     const std::string &name, const Argument_list &args) {
-  ScopedStyle ss(_target.get(), naming_style);
   return _target->call(name, args);
 }
 

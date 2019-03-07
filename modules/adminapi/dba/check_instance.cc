@@ -130,8 +130,8 @@ bool Check_instance::check_configuration() {
            .empty()) {
     if (config_file_change || dynamic_sysvar_change) {
       console->print_note(
-          "Please use the dba.configureInstance() command to repair these "
-          "issues.");
+          "Please use the dba.<<<configureInstance>>>() command to repair "
+          "these issues.");
     } else {
       console->print_note("Please restart the MySQL server and try again.");
     }

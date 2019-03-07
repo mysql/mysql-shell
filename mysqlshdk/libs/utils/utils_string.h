@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -288,6 +289,25 @@ std::string SHCORE_PUBLIC str_join(const C &container, const std::string &sep) {
 std::string SHCORE_PUBLIC str_replace(const std::string &s,
                                       const std::string &from,
                                       const std::string &to);
+
+/** Substitute variables in string.
+ *
+ * str_subvar("hello ${foo}",
+ *        [](const std::string&) { return "world"; },
+ *        "${", "}");
+ *    --> "hello world";
+ *
+ * str_subvar("hello $foo!",
+ *        [](const std::string&) { return "world"; },
+ *        "$", "");
+ *    --> "hello world!";
+ *
+ * If var_end is "", then the variable name will span until the
+ */
+std::string SHCORE_PUBLIC str_subvars(
+    const std::string &s,
+    const std::function<std::string(const std::string &)> &subvar,
+    const std::string &var_begin = "${", const std::string &var_end = "}");
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 #ifndef _MODULE_REGISTRY_H_
 #define _MODULE_REGISTRY_H_
 
+#include <memory>
+
 #include "scripting/object_factory.h"
 #include "scripting/types_cpp.h"
 
@@ -42,21 +44,20 @@ class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
       return false;                                             \
     }                                                           \
     static std::shared_ptr<shcore::Object_bridge> create(       \
-        const shcore::Argument_list &args, shcore::NamingStyle style)
+        const shcore::Argument_list &args)
 
 #define DECLARE_FUNCTION(F) shcore::Value F(const shcore::Argument_list &args);
 
 #define END_DECLARE_MODULE() }
 
-#define REGISTER_MODULE(C, N)                                         \
-  shcore::Module_register<C> C##_##N##_register(#N);                  \
-  C::C() { init(); }                                                  \
-  std::shared_ptr<shcore::Object_bridge> C::create(                   \
-      const shcore::Argument_list &args, shcore::NamingStyle style) { \
-    auto object = new C();                                            \
-    object->set_naming_style(style);                                  \
-    return std::shared_ptr<shcore::Object_bridge>(object);            \
-  }                                                                   \
+#define REGISTER_MODULE(C, N)                              \
+  shcore::Module_register<C> C##_##N##_register(#N);       \
+  C::C() { init(); }                                       \
+  std::shared_ptr<shcore::Object_bridge> C::create(        \
+      const shcore::Argument_list &args) {                 \
+    auto object = new C();                                 \
+    return std::shared_ptr<shcore::Object_bridge>(object); \
+  }                                                        \
   void C::init()
 
 #define REGISTER_FUNCTION(C, F, N, ...) \

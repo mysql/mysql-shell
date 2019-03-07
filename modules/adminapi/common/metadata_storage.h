@@ -36,8 +36,8 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -68,7 +68,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   uint64_t get_cluster_id(const std::string &cluster_name);
   uint64_t get_cluster_id(uint64_t rs_id);
   virtual bool cluster_exists(const std::string &cluster_name);
-  virtual void insert_cluster(const std::shared_ptr<Cluster> &cluster);
+  virtual void insert_cluster(const std::shared_ptr<Cluster_impl> &cluster);
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
                           bool is_default, bool is_adopted);
   uint32_t insert_host(const std::string &host, const std::string &ip_address,
@@ -81,13 +81,12 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void drop_replicaset(uint64_t rs_id);
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
-  void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset,
-                                 const std::string &group_name);
+  void set_replicaset_group_name(uint64_t rs_id, const std::string &group_name);
   void set_cluster_name(const std::string &cluster_name,
                         const std::string &new_cluster_name);
   virtual void load_cluster(const std::string &cluster_name,
-                            std::shared_ptr<Cluster> cluster);
-  virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
+                            std::shared_ptr<Cluster_impl> cluster);
+  virtual void load_default_cluster(std::shared_ptr<Cluster_impl> cluster);
 
   bool is_replicaset_empty(uint64_t rs_id);
   virtual bool is_instance_on_replicaset(uint64_t rs_id,
@@ -186,7 +185,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual void rollback();
 
   bool get_cluster_from_query(const std::string &query,
-                              std::shared_ptr<Cluster> cluster);
+                              std::shared_ptr<Cluster_impl> cluster);
 };
 }  // namespace dba
 }  // namespace mysqlsh

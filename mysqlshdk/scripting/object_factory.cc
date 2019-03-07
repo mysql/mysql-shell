@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,12 +48,12 @@ void Object_factory::register_factory(const std::string &package,
 
 std::shared_ptr<Object_bridge> Object_factory::call_constructor(
     const std::string &package, const std::string &name,
-    const Argument_list &args, NamingStyle style) {
+    const Argument_list &args) {
   std::map<std::string, Package>::iterator iter;
   Package::iterator piter;
   if ((iter = Object_Factories->find(package)) != Object_Factories->end() &&
       (piter = iter->second.find(name)) != iter->second.end()) {
-    return piter->second(args, style);
+    return piter->second(args);
   }
   throw std::invalid_argument("Invalid factory constructor " + package + "." +
                               name + " invoked");

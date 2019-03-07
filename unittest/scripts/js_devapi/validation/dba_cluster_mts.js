@@ -95,7 +95,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
 
 //@ Adding instance to cluster (succeed: nothing to update).
 ||

@@ -31,16 +31,12 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
-
-#define ACC_USER "username"
-#define ACC_PASSWORD "password"
-
-#define ATT_DEFAULT "default"
 
 namespace mysqlsh {
 namespace dba {
@@ -109,63 +105,18 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                      const shcore::Argument_list &args) override;
   shcore::Value get_member(const std::string &prop) const override;
 
-  uint64_t get_id() const { return _id; }
-  void set_id(uint64_t id) { _id = id; }
+  std::shared_ptr<Cluster_impl> impl() const { return m_impl; }
 
-  std::shared_ptr<ReplicaSet> get_default_replicaset() const {
-    return _default_replica_set;
-  }
-
-  void set_default_replicaset(const std::string &name,
-                              const std::string &topology_type,
-                              const std::string &group_name);
-
-  std::shared_ptr<ReplicaSet> create_default_replicaset(
-      const std::string &name, bool multi_primary,
-      const std::string &group_name, bool is_adopted);
-
-  std::string get_name() const { return _name; }
-  std::string get_description() const { return _description; }
   void assert_valid(const std::string &option_name) const;
-  void set_description(const std::string &description) {
-    _description = description;
-  }
 
-  void set_name(const std::string &name) { _name = name; }
-
-  void set_options(const std::string &json) {
-    _options = shcore::Value::parse(json).as_map();
-  }
-  std::string get_options() { return shcore::Value(_options).json(false); }
-
-  void set_attribute(const std::string &attribute, const shcore::Value &value);
-  void set_attributes(const std::string &json) {
-    _attributes = shcore::Value::parse(json).as_map();
-  }
-  std::string get_attributes() {
-    return shcore::Value(_attributes).json(false);
-  }
-
-  std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
-    return _provisioning_interface;
-  }
-
-  void set_provisioning_interface(
-      std::shared_ptr<ProvisioningInterface> provisioning_interface) {
-    _provisioning_interface = provisioning_interface;
-  }
-
-  shcore::Value add_seed_instance(mysqlshdk::mysql::IInstance *target_instance,
-                                  const Group_replication_options &gr_options,
-                                  bool multi_primary, bool is_adopted,
-                                  const std::string &replication_user,
-                                  const std::string &replication_pwd);
-
-  std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
-    return _group_session;
-  }
+  /**
+   * Mark the cluster as invalid (e.g., dissolved).
+   */
+  void invalidate() { m_invalidated = true; }
 
  public:
+  void add_instance(const Connection_options &instance_def,
+                    const shcore::Dictionary_t &options);
   void add_instance(const std::string &instance_def,
                     const shcore::Dictionary_t &options);
   void add_instance(const shcore::Dictionary_t &instance_def,
@@ -175,33 +126,42 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value get_replicaset(const shcore::Argument_list &args);
   shcore::Value describe(void);
   shcore::Value status(const shcore::Dictionary_t &options);
-  shcore::Value dissolve(const shcore::Argument_list &args);
+  void dissolve(const shcore::Dictionary_t &options);
   shcore::Value check_instance_state(const std::string &instance_def);
   shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);
+  shcore::Value check_instance_state(
+      const mysqlshdk::db::Connection_options &coptions);
   void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
-  shcore::Value disconnect(const shcore::Argument_list &args);
-  template <typename T>
-  void switch_to_single_primary_mode_t(const T &instance_def) {
+  void disconnect();
+
+  void switch_to_single_primary_mode(const std::string &instance_def) {
     switch_to_single_primary_mode(get_connection_options(instance_def));
   }
-  void switch_to_single_primary_mode(const std::string &instance_def) {
-    switch_to_single_primary_mode_t(instance_def);
-  }
+
   void switch_to_single_primary_mode(const shcore::Dictionary_t &instance_def) {
-    switch_to_single_primary_mode_t(instance_def);
+    switch_to_single_primary_mode(get_connection_options(instance_def));
   }
+
   void switch_to_single_primary_mode(void) {
     switch_to_single_primary_mode(mysqlshdk::db::Connection_options{});
   }
+
+  void switch_to_single_primary_mode(const Connection_options &instance_def);
+
   void switch_to_multi_primary_mode(void);
   void set_primary_instance(const std::string &instance_def);
   void set_primary_instance(const shcore::Dictionary_t &instance_def);
+  void set_primary_instance(const Connection_options &instance_def);
 
   shcore::Value options(const shcore::Dictionary_t &options);
 
   void set_option(const std::string &option, const shcore::Value &value);
+
+  void set_instance_option(const Connection_options &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
   void set_instance_option(const shcore::Dictionary_t &instance_def,
                            const std::string &option,
                            const shcore::Value &value);
@@ -209,69 +169,13 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                            const std::string &option,
                            const shcore::Value &value);
 
-  Cluster_check_info check_preconditions(
-      const std::string &function_name) const;
-
-  std::shared_ptr<MetadataStorage> get_metadata_storage() const {
-    return _metadata_storage;
-  }
-
-  // new metadata object
-  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> metadata() const;
-
-  /*
-   * Synchronize transactions on target instance.
-   *
-   * Wait for all current cluster transactions to be applied on the specified
-   * target instance.
-   *
-   * @param target_instance instance to wait for transaction to be applied.
-   *
-   * @throw RuntimeError if the timeout is reached when waiting for
-   * transactions to be applied.
-   */
-  void sync_transactions(
-      const mysqlshdk::mysql::IInstance &target_instance) const;
-
-  /**
-   * Mark the cluster as invalid (e.g., dissolved).
-   */
-  void invalidate() { m_invalidated = true; }
-
  protected:
-  uint64_t _id;
-  std::string _name;
-  std::shared_ptr<ReplicaSet> _default_replica_set;
-  std::string _description;
-  shcore::Value::Map_type_ref _accounts;
-  shcore::Value::Map_type_ref _options;
-  shcore::Value::Map_type_ref _attributes;
-  bool m_invalidated;
-  // Session to a member of the group so we can query its status and other
-  // stuff from pfs
-  std::shared_ptr<mysqlshdk::db::ISession> _group_session;
-  std::shared_ptr<MetadataStorage> _metadata_storage;
   // Used shell options
   void init();
 
  private:
-  friend class Dba;
-  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
-
-  void set_account_data(const std::string &account, const std::string &key,
-                        const std::string &value);
-  std::string get_account_data(const std::string &account,
-                               const std::string &key);
-  shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
-
-  void switch_to_single_primary_mode(const Connection_options &instance_def);
-  void set_primary_instance(const Connection_options &instance_def);
-  void set_instance_option(const Connection_options &instance_def,
-                           const std::string &option,
-                           const shcore::Value &value);
-  shcore::Value check_instance_state(const Connection_options &instance_def);
-  void add_instance(const Connection_options &instance_def,
-                    const shcore::Dictionary_t &options);
+  std::shared_ptr<Cluster_impl> m_impl;
+  bool m_invalidated = false;
 };
 
 }  // namespace dba

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,9 +110,6 @@ const std::map<std::string, FunctionAvailability>
         {"Cluster.rescan",
          {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
           ManagedInstance::State::OnlineRW}},
-        {"ReplicaSet.status",
-         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any,
-          ManagedInstance::State::Any}},
         {"Cluster.forceQuorumUsingPartitionOf",
          {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::Any,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,19 +73,13 @@ class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
   virtual std::vector<std::string> get_members() const {
     return _target ? _target->get_members() : Cpp_object_bridge::get_members();
   }
-  virtual std::vector<std::string> get_members_advanced(
-      const NamingStyle &style) {
-    return _target ? _target->get_members_advanced(style)
-                   : Cpp_object_bridge::get_members();
-  }
   virtual void set_member(const std::string &prop, Value value) {
     _target ? _target->set_member(prop, value)
             : Cpp_object_bridge::set_member(prop, value);
   }
-  virtual void set_member_advanced(const std::string &prop, Value value,
-                                   const NamingStyle &style) {
-    _target ? _target->set_member_advanced(prop, value, style)
-            : Cpp_object_bridge::set_member_advanced(prop, value, style);
+  virtual void set_member_advanced(const std::string &prop, Value value) {
+    _target ? _target->set_member_advanced(prop, value)
+            : Cpp_object_bridge::set_member_advanced(prop, value);
   }
   virtual bool is_indexed() const {
     return _target ? _target->is_indexed() : Cpp_object_bridge::is_indexed();
@@ -121,18 +115,14 @@ class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
   // target object os not set, resolve() will be called on an attempt to set
   // _target based on input from the user (interaction) These functions are
   // called on attempts to access an object's property or method
-  virtual bool has_method_advanced(const std::string &name,
-                                   const NamingStyle &style) const;
+  virtual bool has_method_advanced(const std::string &name) const;
   virtual bool has_member(const std::string &prop) const;
-  virtual bool has_member_advanced(const std::string &prop,
-                                   const NamingStyle &style) const;
+  virtual bool has_member_advanced(const std::string &prop) const;
   virtual Value get_member(const std::string &prop) const;
-  virtual Value get_member_advanced(const std::string &prop,
-                                    const NamingStyle &style) const;
+  virtual Value get_member_advanced(const std::string &prop) const;
   virtual Value call(const std::string &name, const Argument_list &args);
   virtual Value call_advanced(const std::string &name,
-                              const Argument_list &args,
-                              const NamingStyle &style);
+                              const Argument_list &args);
 
   virtual shcore::Value help(const shcore::Argument_list &args);
 
@@ -155,8 +145,7 @@ class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
    * making the existence of this wrapper transparent.
    */
   virtual Value interactive_get_member(const std::string &prop) const;
-  virtual Value interactive_get_member_advanced(const std::string &prop,
-                                                const NamingStyle &style) const;
+  virtual Value interactive_get_member_advanced(const std::string &prop) const;
 
  public:
   // Accessors for the target object.

@@ -36,7 +36,7 @@ class Switch_to_single_primary_mode : public Topology_configuration_command {
  public:
   Switch_to_single_primary_mode(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      ReplicaSet *replicaset, const shcore::NamingStyle &naming_style);
+      ReplicaSet *replicaset);
 
   ~Switch_to_single_primary_mode() override;
 

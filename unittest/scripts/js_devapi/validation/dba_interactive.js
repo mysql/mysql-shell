@@ -201,7 +201,7 @@ The instance cluster settings were successfully persisted.
 |Number of accounts: 1|
 
 //@# Dba: configureLocalInstance not enough privileges 1 {VER(>=8.0.0)}
-|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+|ERROR: Unable to check privileges for user 'missingprivileges'@'localhost'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
 ||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges 1 {VER(<8.0.0)}
@@ -214,7 +214,7 @@ The instance cluster settings were successfully persisted.
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges 2 {VER(>=8.0.0)}
-|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+|ERROR: Unable to check privileges for user 'missingprivileges'@'localhost'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
 ||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges 2 {VER(<8.0.0)}
@@ -227,7 +227,7 @@ The instance cluster settings were successfully persisted.
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges 3 {VER(>=8.0.0)}
-|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+|ERROR: Unable to check privileges for user 'missingprivileges'@'localhost'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
 ||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges 3 {VER(<8.0.0)}

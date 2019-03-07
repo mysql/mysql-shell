@@ -34,7 +34,7 @@
 ERROR: Cannot perform operation on an healthy cluster because it can only be used to restore a cluster from quorum loss.
 
 //@<ERR> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
-Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' (RuntimeError)
+Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instance 'localhost:<<<__mysql_sandbox_port1>>>' (RuntimeError)
 
 //@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 ||
@@ -62,7 +62,7 @@ Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instanc
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
+        "statusText": "Cluster has no quorum as visible from 'localhost:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -102,7 +102,7 @@ WARNING: Cluster has no quorum and cannot process write transactions: 1 out of 2
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.forceQuorumUsingPartitionOf: Invalid URI: empty.
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.forceQuorumUsingPartitionOf: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
+||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
 
 
 //@ Cluster.forceQuorumUsingPartitionOf success

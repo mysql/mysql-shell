@@ -349,9 +349,9 @@ struct JScript_context::JScript_context_impl {
                             .ToLocalChecked());
 
     try {
-      Value result(Object_factory::call_constructor(
-          package, factory, self->convert_args(args),
-          NamingStyle::LowerCamelCase));
+      shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+      Value result(Object_factory::call_constructor(package, factory,
+                                                    self->convert_args(args)));
       if (result)
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(result));
     } catch (std::exception &e) {
@@ -472,6 +472,8 @@ struct JScript_context::JScript_context_impl {
       return;
     }
 
+    shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
     v8::HandleScope handle_scope(isolate);
     const auto str = to_string(isolate, args[0]);
 
@@ -494,15 +496,17 @@ struct JScript_context::JScript_context_impl {
       isolate->ThrowException(
           v8_string(isolate, "Invalid number of parameters"));
     } else {
+      shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
       try {
         const auto s = to_string(isolate, args[0]);
+        shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
         auto core_modules = Object_factory::package_contents("__modules__");
         if (std::find(core_modules.begin(), core_modules.end(), s) !=
             core_modules.end()) {
           auto module = Object_factory::call_constructor(
-              "__modules__", s, shcore::Argument_list(),
-              NamingStyle::LowerCamelCase);
+              "__modules__", s, shcore::Argument_list());
           args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(
               shcore::Value(std::dynamic_pointer_cast<Object_bridge>(module))));
         }
@@ -517,6 +521,8 @@ struct JScript_context::JScript_context_impl {
     v8::MaybeLocal<v8::Value> result;
     // makes _isolate the default isolate for this context
     v8::EscapableHandleScope handle_scope(isolate);
+
+    shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
     v8::TryCatch try_catch{isolate};
     // set _context to be the default context for everything in this scope
@@ -956,6 +962,8 @@ std::tuple<bool, JSObject, std::string> JScript_context::get_member_of(
   const auto lcontext = context();
   v8::Context::Scope context_scope(lcontext);
 
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
   v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
 
   auto maybe_value = lobj->Get(lcontext, v8_string(name));
@@ -991,6 +999,8 @@ std::vector<std::pair<bool, std::string>> JScript_context::get_members_of(
   // set _context to be the default context for everything in this scope
   const auto lcontext = context();
   v8::Context::Scope context_scope(lcontext);
+
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
   v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
 
@@ -1063,6 +1073,8 @@ std::pair<Value, bool> JScript_context::execute(
   // Since ret_val can't be used to check whether all was ok or not
   // Will use a boolean flag
 
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
   shcore::Value args_value = get_global("sys").as_object()->get_member("argv");
   auto args = args_value.as_array();
   args->clear();
@@ -1116,6 +1128,8 @@ std::pair<Value, bool> JScript_context::execute_interactive(
   v8::MaybeLocal<v8::Script> script =
       v8::Script::Compile(lcontext, code, &origin);
 
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
   _impl->clear_is_terminating();
 
   *r_state = Input_state::Ok;
@@ -1161,6 +1175,8 @@ std::pair<Value, bool> JScript_context::execute_interactive(
 std::string JScript_context::format_exception(const shcore::Value &exc) {
   std::string error_message;
 
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
+
   if (exc.type == Map) {
     std::string type = exc.as_map()->get_string("type", "");
     std::string message = exc.as_map()->get_string("message", "");
@@ -1193,6 +1209,8 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
 
   if (exc.Exception().IsEmpty() || exc.Exception()->IsUndefined())
     return Value();
+
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
   if (exc.Exception()->IsObject() &&
       JScript_map_wrapper::is_map(
@@ -1307,6 +1325,8 @@ std::string JScript_context::translate_exception(const v8::TryCatch &exc,
 void JScript_context::load_plugin(const std::string &file_name) {
   // load the file
   std::string source;
+
+  shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
   if (load_text_file(file_name, source)) {
     const auto _isolate = isolate();

@@ -33,6 +33,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
@@ -95,68 +96,6 @@ ReplicaSet::ReplicaSet(const std::string &name,
 
 ReplicaSet::~ReplicaSet() {}
 
-std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent),
-                                      int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + _name + ">");
-  return s_out;
-}
-
-void ReplicaSet::append_json(shcore::JSON_dumper &dumper) const {
-  dumper.start_object();
-  dumper.append_string("class", class_name());
-  dumper.append_string("name", _name);
-  dumper.end_object();
-}
-
-bool ReplicaSet::operator==(const Object_bridge &other) const {
-  return class_name() == other.class_name() && this == &other;
-}
-
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the
- * scripting languages. \param prop : A string containing the name of the member
- * to be returned
- *
- * This function returns a Value that wraps the object returned by this
- * function. The content of the returned value depends on the property being
- * requested. The next list shows the valid properties as well as the returned
- * value for each of them:
- *
- * \li name: returns a String object with the name of this ReplicaSet object.
- */
-#else
-/**
- * Returns the name of this ReplicaSet object.
- * \return the name as an String object.
- */
-#if DOXYGEN_JS
-String ReplicaSet::getName() {}
-#elif DOXYGEN_PY
-str ReplicaSet::get_name() {}
-#endif
-#endif
-shcore::Value ReplicaSet::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-  if (prop == "name")
-    ret_val = shcore::Value(_name);
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
-}
-
-std::shared_ptr<Cluster> ReplicaSet::get_cluster() const {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-
-  if (!cluster) {
-    throw shcore::Exception::runtime_error(
-        "Cluster object is no longer valid.");
-  }
-
-  return cluster;
-}
-
 void ReplicaSet::sanity_check() const { verify_topology_type_change(); }
 
 /*
@@ -165,7 +104,7 @@ void ReplicaSet::sanity_check() const { verify_topology_type_change(); }
 void ReplicaSet::verify_topology_type_change() const {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  Cluster_impl *cluster(get_cluster());
 
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
       cluster->get_group_session(), nullptr);
@@ -191,11 +130,6 @@ void ReplicaSet::verify_topology_type_change() const {
 void ReplicaSet::set_instance_option(const Connection_options &instance_def,
                                      const std::string &option,
                                      const shcore::Value &value) {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
   // Set ReplicaSet configuration option
 
   // Create the Replicaset Set_instance_option object and execute it.
@@ -209,11 +143,11 @@ void ReplicaSet::set_instance_option(const Connection_options &instance_def,
   if (value.type == shcore::String) {
     std::string value_str = value.as_string();
     op_set_instance_option = shcore::make_unique<Set_instance_option>(
-        *this, instance_def, this->naming_style, option, value_str);
+        *this, instance_def, option, value_str);
   } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
     int64_t value_int = value.as_int();
     op_set_instance_option = shcore::make_unique<Set_instance_option>(
-        *this, instance_def, this->naming_style, option, value_int);
+        *this, instance_def, option, value_int);
   } else {
     throw shcore::Exception::argument_error(
         "Argument #2 is expected to be a string or an Integer.");
@@ -262,15 +196,6 @@ void ReplicaSet::adopt_from_gr() {
   }
 }
 
-/**
- * Adds a Instance to the ReplicaSet
- * \param conn The Connection String or URI of the Instance to be added
- */
-#if DOXYGEN_JS
-Undefined ReplicaSet::addInstance(InstanceDef instance, Dictionary options) {}
-#elif DOXYGEN_PY
-None ReplicaSet::add_instance(InstanceDef instance, doptions) {}
-#endif
 void ReplicaSet::add_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Dictionary_t &options) {
@@ -308,8 +233,7 @@ void ReplicaSet::add_instance(
   // Add the Instance to the ReplicaSet
   {
     // Create the add_instance command and execute it.
-    Add_instance op_add_instance(target_coptions, *this, this->naming_style,
-                                 gr_options, label);
+    Add_instance op_add_instance(target_coptions, *this, gr_options, label);
 
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
@@ -498,9 +422,7 @@ bool ReplicaSet::do_join_replicaset(
 
   shcore::Value::Array_type_ref errors, warnings;
 
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  Cluster_impl *cluster(get_cluster());
 
   if (is_seed_instance) {
     exit_code = cluster->get_provisioning_interface()->start_replicaset(
@@ -538,51 +460,6 @@ bool ReplicaSet::do_join_replicaset(
   return exit_code == 0;
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to rejoin an Instance to the ReplicaSet
- * \param args : A list of values to be used to add a Instance to the
- * ReplicaSet.
- *
- * This function returns an empty Value.
- */
-#else
-/**
- * Rejoin a Instance to the ReplicaSet
- * \param name The name of the Instance to be rejoined
- */
-#if DOXYGEN_JS
-Undefined ReplicaSet::rejoinInstance(String name, Dictionary options) {}
-#elif DOXYGEN_PY
-None ReplicaSet::rejoin_instance(str name, Dictionary options) {}
-#endif
-#endif  // DOXYGEN_CPP
-shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
-
-  // Check if the ReplicaSet is empty
-  if (_metadata_storage->is_replicaset_empty(get_id()))
-    throw shcore::Exception::runtime_error(
-        "ReplicaSet not initialized. Please add the Seed Instance using: "
-        "addSeedInstance().");
-
-  // Rejoin the Instance to the Default ReplicaSet
-  try {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    shcore::Value::Map_type_ref options;
-
-    if (args.size() == 2) options = args.map_at(1);
-
-    ret_val = rejoin_instance(&instance_def, options);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
-
-  return ret_val;
-}
-
 /**
  * Get an up-to-date group seeds value based on the current list of active
  * members.
@@ -605,9 +482,8 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
 std::string ReplicaSet::get_cluster_group_seeds(
     const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const {
   // Get connection option for the metadata.
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  Cluster_impl *cluster(get_cluster());
+
   std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
       cluster->get_group_session();
   Connection_options cluster_cnx_opt =
@@ -679,9 +555,7 @@ std::string ReplicaSet::get_cluster_group_seeds(
 shcore::Value ReplicaSet::rejoin_instance(
     mysqlshdk::db::Connection_options *instance_def,
     const shcore::Value::Map_type_ref &rejoin_options) {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  Cluster_impl *cluster(get_cluster());
 
   shcore::Value ret_val;
   Group_replication_options gr_options(Group_replication_options::REJOIN);
@@ -739,7 +613,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     if (!_metadata_storage->is_instance_on_replicaset(get_id(), md_address)) {
       std::string message = "The instance '" + instance_def->uri_endpoint() +
                             "' " + "does not belong to the ReplicaSet: '" +
-                            get_member("name").get_string() + "'.";
+                            get_name() + "'.";
 
       throw shcore::Exception::runtime_error(message);
     }
@@ -839,9 +713,8 @@ shcore::Value ReplicaSet::rejoin_instance(
           mysqlshdk::gr::to_string(mysqlshdk::gr::get_member_state(instance));
       std::string nice_error_msg = "Cannot rejoin instance '" +
                                    instance.descr() + "' to the ReplicaSet '" +
-                                   get_member("name").get_string() +
-                                   "' since it is an active (" + member_state +
-                                   ") member of the ReplicaSet.";
+                                   get_name() + "' since it is an active (" +
+                                   member_state + ") member of the ReplicaSet.";
       session->close();
       throw shcore::Exception::runtime_error(nice_error_msg);
     }
@@ -968,8 +841,7 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Set a Config object for the target instance (required to configure GR).
     std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(
-        &target_instance, mysqlshdk::config::k_dft_cfg_server_handler,
-        this->naming_style);
+        &target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
 
     // (Re-)join the instance to the replicaset (setting up GR properly).
     // NOTE: on the rejoin operation there is no need adjust the the number of
@@ -984,36 +856,6 @@ shcore::Value ReplicaSet::rejoin_instance(
   return ret_val;
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to remove a Instance from the ReplicaSet object
- * \param args : A list of values to be used to remove a Instance to the
- * Cluster.
- *
- * This function returns an empty Value.
- */
-#else
-/**
- * Removes a Instance from the ReplicaSet
- * \param name The name of the Instance to be removed
- */
-#if DOXYGEN_JS
-Undefined ReplicaSet::removeInstance(String name) {}
-#elif DOXYGEN_PY
-None ReplicaSet::remove_instance(str name) {}
-#endif
-
-/**
- * Removes a Instance from the ReplicaSet
- * \param doc The Document representing the Instance to be removed
- */
-#if DOXYGEN_JS
-Undefined ReplicaSet::removeInstance(Document doc) {}
-#elif DOXYGEN_PY
-None ReplicaSet::remove_instance(Document doc) {}
-#endif
-#endif
-
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   mysqlshdk::utils::nullable<bool> force;
   bool interactive;
@@ -1024,9 +866,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   target_coptions =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
   interactive = current_shell_options()->get().wizards;
 
   // Get optional options.
@@ -1047,7 +886,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   try {
     // Create the remove_instance command and execute it.
     Remove_instance op_remove_instance(target_coptions, interactive, force,
-                                       *this, this->naming_style);
+                                       *this);
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
         [&op_remove_instance]() { op_remove_instance.finish(); });
@@ -1190,10 +1029,7 @@ void ReplicaSet::remove_replication_users(
     // Get replication user (recovery) used by the instance to remove
     // on remaining members.
     std::string rpl_user = mysqlshdk::gr::get_recovery_user(instance);
-    std::shared_ptr<Cluster> cluster(_cluster.lock());
-    if (!cluster)
-      throw shcore::Exception::runtime_error(
-          "Cluster object is no longer valid");
+    Cluster_impl *cluster(get_cluster());
 
     mysqlshdk::mysql::Instance primary_instance(cluster->get_group_session());
 
@@ -1203,18 +1039,17 @@ void ReplicaSet::remove_replication_users(
   }
 }
 
-shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
+void ReplicaSet::dissolve(const shcore::Dictionary_t &options) {
   mysqlshdk::utils::nullable<bool> force;
   bool interactive;
 
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  Cluster_impl *cluster(get_cluster());
+
   interactive = current_shell_options()->get().wizards;
 
   // Get optional options.
-  if (args.size() == 1) {
-    Unpack_options(args.map_at(0))
+  if (options) {
+    Unpack_options(options)
         .optional("force", &force)
         .optional("interactive", &interactive)
         .end();
@@ -1223,7 +1058,7 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
   // Dissolve the ReplicaSet
   try {
     // Create the Dissolve command and execute it.
-    Dissolve op_dissolve(interactive, force, cluster.get());
+    Dissolve op_dissolve(interactive, force, cluster);
     // Always execute finish when leaving "try catch".
     auto finally =
         shcore::on_leave_scope([&op_dissolve]() { op_dissolve.finish(); });
@@ -1234,8 +1069,6 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
   } catch (...) {
     throw;
   }
-
-  return shcore::Value();
 }
 
 namespace {
@@ -1312,10 +1145,6 @@ void ReplicaSet::rescan(const shcore::Dictionary_t &options) {
   std::vector<mysqlshdk::db::Connection_options> add_instances_list,
       remove_instances_list;
 
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
   interactive = current_shell_options()->get().wizards;
 
   // Get optional options.
@@ -1357,9 +1186,7 @@ void ReplicaSet::rescan(const shcore::Dictionary_t &options) {
 }
 
 mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() const {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  Cluster_impl *cluster(get_cluster());
 
   bool single_primary;
   std::string primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
@@ -1567,46 +1394,6 @@ std::vector<std::string> ReplicaSet::get_online_instances() const {
   return online_instances_array;
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to restore a ReplicaSet from a Quorum loss scenario
- * \param args : A list of values to be used to use the partition from
- * an Instance to restore the ReplicaSet.
- *
- * This function returns an empty Value.
- */
-#else
-/**
- * Forces the quorum on ReplicaSet with Quorum loss
- * \param name The name of the Instance to be used as partition to force the
- * quorum on the ReplicaSet
- */
-#if DOXYGEN_JS
-Undefined ReplicaSet::forceQuorumUsingPartitionOf(InstanceDef instance);
-#elif DOXYGEN_PY
-None ReplicaSet::force_quorum_using_partition_of(InstanceDef instance);
-#endif
-#endif  // DOXYGEN_CPP
-shcore::Value ReplicaSet::force_quorum_using_partition_of_(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, 2,
-                    get_function_name("forceQuorumUsingPartitionOf").c_str());
-
-  // Check if the ReplicaSet is empty
-  if (_metadata_storage->is_replicaset_empty(get_id()))
-    throw shcore::Exception::runtime_error("ReplicaSet not initialized.");
-
-  // Rejoin the Instance to the Default ReplicaSet
-  try {
-    ret_val = force_quorum_using_partition_of(args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("forceQuorumUsingPartitionOf"));
-
-  return ret_val;
-}
-
 shcore::Value ReplicaSet::force_quorum_using_partition_of(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
@@ -1656,8 +1443,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     // Check if the instance belongs to the ReplicaSet on the Metadata
     if (!_metadata_storage->is_instance_on_replicaset(rset_id, md_address)) {
       std::string message = "The instance '" + instance_address + "'";
-      message.append(" does not belong to the ReplicaSet: '" +
-                     get_member("name").get_string() + "'.");
+      message.append(" does not belong to the ReplicaSet: '" + get_name() +
+                     "'.");
       throw shcore::Exception::runtime_error(message);
     }
 
@@ -1796,16 +1583,11 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
 void ReplicaSet::switch_to_single_primary_mode(
     const Connection_options &instance_def) {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
   // Switch to single-primary mode
 
   // Create the Switch_to_single_primary_mode object and execute it.
-  Switch_to_single_primary_mode op_switch_to_single_primary_mode(
-      instance_def, this, this->naming_style);
+  Switch_to_single_primary_mode op_switch_to_single_primary_mode(instance_def,
+                                                                 this);
 
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_switch_to_single_primary_mode]() {
@@ -1820,16 +1602,10 @@ void ReplicaSet::switch_to_single_primary_mode(
 }
 
 void ReplicaSet::switch_to_multi_primary_mode(void) {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
   // Switch to multi-primary mode
 
   // Create the Switch_to_multi_primary_mode object and execute it.
-  Switch_to_multi_primary_mode op_switch_to_multi_primary_mode(
-      this, this->naming_style);
+  Switch_to_multi_primary_mode op_switch_to_multi_primary_mode(this);
 
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_switch_to_multi_primary_mode]() {
@@ -1844,16 +1620,10 @@ void ReplicaSet::switch_to_multi_primary_mode(void) {
 }
 
 void ReplicaSet::set_primary_instance(const Connection_options &instance_def) {
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-
-  if (!cluster)
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-
   // Set primary instance
 
   // Create the Set_primary_instance object and execute it.
-  Set_primary_instance op_set_primary_instance(instance_def, this,
-                                               this->naming_style);
+  Set_primary_instance op_set_primary_instance(instance_def, this);
 
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope(
@@ -1864,17 +1634,6 @@ void ReplicaSet::set_primary_instance(const Connection_options &instance_def) {
 
   // Execute Set_primary_instance operation.
   op_set_primary_instance.execute();
-}
-
-Cluster_check_info ReplicaSet::check_preconditions(
-    std::shared_ptr<mysqlshdk::db::ISession> group_session,
-    const std::string &function_name) const {
-  try {
-    return check_function_preconditions("ReplicaSet." + function_name,
-                                        group_session);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return Cluster_check_info{};
 }
 
 void ReplicaSet::remove_instances(
@@ -1947,10 +1706,8 @@ void ReplicaSet::validate_server_uuid(
       "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
   // Get connection option for the metadata.
-  std::shared_ptr<Cluster> cluster(_cluster.lock());
-  if (!cluster) {
-    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-  }
+  Cluster_impl *cluster(get_cluster());
+
   std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
       cluster->get_group_session();
   Connection_options cluster_cnx_opt =
@@ -2059,17 +1816,16 @@ std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object(
             "Instance '" + instance_def.endpoint +
             "' cannot persist configuration since MySQL version " +
             instance.get_version().get_base() +
-            " does not support the SET PERSIST command (MySQL version >= "
-            "8.0.11 required). Please use the <Dba>." +
-            get_member_name("configureLocalInstance", this->naming_style) +
-            "() command locally to persist the changes.");
+            " does not support the SET PERSIST command "
+            "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
+            "<<<configureLocalInstance>>>() command locally to persist the "
+            "changes.");
       } else if (!*support_set_persist) {
         console->print_warning(
             "Instance '" + instance_def.endpoint +
             "' will not load the persisted cluster configuration upon reboot "
             "since 'persisted-globals-load' is set to 'OFF'. Please use the "
-            "<Dba>." +
-            get_member_name("configureLocalInstance", this->naming_style) +
+            "<Dba>.<<<configureLocalInstance>>>"
             "() command locally to persist the changes or set "
             "'persisted-globals-load' to 'ON' on the configuration file.");
       }
@@ -2162,7 +1918,7 @@ void ReplicaSet::execute_in_members(
 
 void ReplicaSet::set_group_name(const std::string &group_name) {
   _group_name = group_name;
-  _metadata_storage->set_replicaset_group_name(shared_from_this(), group_name);
+  _metadata_storage->set_replicaset_group_name(get_id(), group_name);
 }
 
 }  // namespace dba

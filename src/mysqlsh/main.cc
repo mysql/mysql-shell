@@ -562,7 +562,7 @@ static void show_cluster_info(
   // cluster->diagnose();
   auto console = mysqlsh::current_console();
   console->println("You are connected to a member of cluster '" +
-                   cluster->get_name() + "'.");
+                   cluster->impl()->get_name() + "'.");
   console->println(
       "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
       "get status of this cluster or cluster.help() for more commands.");

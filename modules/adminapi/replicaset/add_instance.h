@@ -41,7 +41,6 @@ class Add_instance : public Command_interface {
  public:
   Add_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
                const ReplicaSet &replicaset,
-               const shcore::NamingStyle &naming_style,
                const Group_replication_options &gr_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
                const std::string &replication_user = "",
@@ -51,7 +50,6 @@ class Add_instance : public Command_interface {
 
   Add_instance(mysqlshdk::mysql::IInstance *target_instance,
                const ReplicaSet &replicaset,
-               const shcore::NamingStyle &naming_style,
                const Group_replication_options &gr_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
                const std::string &replication_user = "",
@@ -113,7 +111,6 @@ class Add_instance : public Command_interface {
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   const ReplicaSet &m_replicaset;
-  const shcore::NamingStyle m_naming_style;
   Group_replication_options m_gr_opts;
   mysqlshdk::utils::nullable<std::string> m_instance_label;
   std::string m_rpl_user;

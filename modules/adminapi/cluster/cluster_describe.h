@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
 
 namespace mysqlsh {
@@ -36,7 +36,7 @@ namespace dba {
 
 class Cluster_describe : public Command_interface {
  public:
-  explicit Cluster_describe(const Cluster &cluster);
+  explicit Cluster_describe(const Cluster_impl &cluster);
 
   ~Cluster_describe() override;
 
@@ -73,7 +73,7 @@ class Cluster_describe : public Command_interface {
   void finish() override;
 
  private:
-  const Cluster &m_cluster;
+  const Cluster_impl &m_cluster;
 
   shcore::Value get_replicaset_description(const ReplicaSet &replicaset);
 };

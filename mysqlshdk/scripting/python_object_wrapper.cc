@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -97,8 +97,8 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
 
   try {
     WillLeavePython lock;
-    return ctx->shcore_value_to_pyobj(
-        object->call_advanced(method, arglist, shcore::LowerCaseUnderscores));
+    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
+    return ctx->shcore_value_to_pyobj(object->call_advanced(method, arglist));
   } catch (...) {
     translate_python_exception();
     return NULL;
@@ -278,14 +278,14 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
     std::shared_ptr<Cpp_object_bridge> cobj(
         std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-    if (cobj->has_method_advanced(attrname, shcore::LowerCaseUnderscores))
-      return wrap_method(cobj, attrname);
+    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
+
+    if (cobj->has_method_advanced(attrname)) return wrap_method(cobj, attrname);
 
     shcore::Value member;
     bool error_handled = false;
     try {
-      member =
-          cobj->get_member_advanced(attrname, shcore::LowerCaseUnderscores);
+      member = cobj->get_member_advanced(attrname);
     } catch (Exception &exc) {
       if (!exc.is_attribute()) {
         Python_context::set_python_error(exc, "");
@@ -306,8 +306,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
       std::shared_ptr<Cpp_object_bridge> cobj(
           std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-      std::vector<std::string> members(
-          cobj->get_members_advanced(shcore::LowerCaseUnderscores));
+      std::vector<std::string> members(cobj->get_members());
       PyObject *list = PyList_New(members.size());
       int i = 0;
       for (std::vector<std::string>::const_iterator iter = members.begin();
@@ -328,8 +327,9 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name,
     std::shared_ptr<Cpp_object_bridge> cobj(
         std::static_pointer_cast<Cpp_object_bridge>(*self->object));
     const char *attrname = PyString_AsString(attr_name);
+    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
-    if (cobj->has_member_advanced(attrname, shcore::LowerCaseUnderscores)) {
+    if (cobj->has_member_advanced(attrname)) {
       Python_context *ctx = Python_context::get_and_check();
       if (!ctx) return -1;
 
@@ -342,8 +342,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name,
         return -1;
       }
       try {
-        cobj->set_member_advanced(attrname, value,
-                                  shcore::LowerCaseUnderscores);
+        cobj->set_member_advanced(attrname, value);
       } catch (...) {
         translate_python_exception();
         return -1;
@@ -361,6 +360,7 @@ static PyObject *call_object_method(
     PyObject *args) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
+  shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
   std::shared_ptr<shcore::Function_base> func = method.as_function();
 
@@ -400,8 +400,8 @@ static PyObject *call_object_method(
       std::shared_ptr<Cpp_function> cfunc(
           std::static_pointer_cast<Cpp_function>(func));
 
-      result = cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r,
-                                   shcore::LowerCaseUnderscores);
+      result =
+          cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r);
     }
     return ctx->shcore_value_to_pyobj(result);
   } catch (...) {
@@ -414,6 +414,7 @@ static PyObject *call_object_method(
 
 static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
   PyObject *method_name;
+  shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
   if (PyTuple_Size(args) < 1 || !(method_name = PyTuple_GetItem(args, 0)) ||
       !PyString_Check(method_name)) {
@@ -424,8 +425,8 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
   std::shared_ptr<Cpp_object_bridge> cobj(
       std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-  const Value method = cobj->get_member_advanced(PyString_AsString(method_name),
-                                                 shcore::LowerCaseUnderscores);
+  const Value method =
+      cobj->get_member_advanced(PyString_AsString(method_name));
   if (!method) {
     Python_context::set_python_error(PyExc_TypeError, "invalid method");
     return NULL;

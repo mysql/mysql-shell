@@ -36,7 +36,7 @@
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
-#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -76,7 +76,6 @@ void Global_dba::init() {
 mysqlsh::dba::Cluster_check_info Global_dba::check_preconditions(
     std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
-  ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
   return dba->check_preconditions(group_session, function_name);
 }
@@ -85,7 +84,6 @@ std::vector<std::pair<std::string, std::string>>
 Global_dba::get_replicaset_instances_status(
     std::shared_ptr<mysqlsh::dba::Cluster> cluster,
     const shcore::Value::Map_type_ref &options) const {
-  ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
   return dba->get_replicaset_instances_status(cluster, options);
 }
@@ -94,7 +92,6 @@ void Global_dba::validate_instances_status_reboot_cluster(
     std::shared_ptr<mysqlsh::dba::Cluster> cluster,
     std::shared_ptr<mysqlshdk::db::ISession> member_session,
     shcore::Value::Map_type_ref options) const {
-  ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
   return dba->validate_instances_status_reboot_cluster(cluster, member_session,
                                                        options);
@@ -318,7 +315,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   try {
     auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
-    auto style = dba->set_scoped_naming_style(naming_style);
     auto raw_cluster = dba->create_cluster(args);
 
     auto dba_cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(
@@ -413,8 +409,8 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
       raw_cluster.as_object<mysqlsh::dba::Cluster>());
 
   // TODO(.) These checks should be moved to mod_dba.cc
-  auto state =
-      dba->check_preconditions(cluster_obj->get_group_session(), "getCluster");
+  auto state = dba->check_preconditions(
+      cluster_obj->impl()->get_group_session(), "getCluster");
   if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
     println("WARNING: You are connected to an instance in state '" +
             mysqlsh::dba::ManagedInstance::describe(
@@ -522,7 +518,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       //    default_cluster = true;
       // To avoid that bug, we must obtain the default cluster name here
       // and use it for the function call.
-      cluster_name = cluster->get_name();
+      cluster_name = cluster->impl()->get_name();
     } else {
       println("Reconfiguring the cluster '" + cluster_name +
               "' from complete outage...");
@@ -531,7 +527,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
     // Verify the status of the instances
     validate_instances_status_reboot_cluster(
-        cluster, cluster->get_group_session(), options);
+        cluster, cluster->impl()->get_group_session(), options);
 
     // Get the all the instances and their status
     std::vector<std::pair<std::string, std::string>> instances_status =
@@ -704,7 +700,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
     if (prompt_read_only) {
-      if (!prompt_super_read_only(cluster->get_group_session(), options))
+      if (!prompt_super_read_only(cluster->impl()->get_group_session(),
+                                  options))
         return shcore::Value();
     }
   }
@@ -1009,14 +1006,14 @@ bool Global_dba::prompt_super_read_only(
                                     &super_read_only, false);
 
   if (super_read_only) {
-    println("The MySQL instance at '" + active_session_address +
-            "' "
-            "currently has the super_read_only \nsystem variable set to "
-            "protect it from inadvertent updates from applications. \n"
-            "You must first unset it to be able to perform any changes "
-            "to this instance. \n"
-            "For more information see: https://dev.mysql.com/doc/refman/"
-            "en/server-system-variables.html#sysvar_super_read_only.");
+    println(mysqlsh::fit_screen(
+        "The MySQL instance at '" + active_session_address +
+        "' currently has the super_read_only system variable set to "
+        "protect it from inadvertent updates from applications. "
+        "You must first unset it to be able to perform any changes "
+        "to this instance.\n"
+        "For more information see: https://dev.mysql.com/doc/refman/"
+        "en/server-system-variables.html#sysvar_super_read_only."));
     println();
 
     // Get the list of open session to the instance
@@ -1024,7 +1021,7 @@ bool Global_dba::prompt_super_read_only(
     open_sessions = mysqlsh::dba::get_open_sessions(session);
 
     if (!open_sessions.empty()) {
-      println("Note: there are open sessions to '" + active_session_address +
+      println("NOTE: There are open sessions to '" + active_session_address +
               "'.\n"
               "You may want to kill these sessions to prevent them from "
               "performing unexpected updates: \n");

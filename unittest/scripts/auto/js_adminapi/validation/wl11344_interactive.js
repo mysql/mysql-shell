@@ -70,7 +70,7 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR1-TS-03 {VER(>=8.0.12)}
 true
-A new InnoDB cluster will be created on instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -79,10 +79,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'C' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'C' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
+WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -104,7 +104,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = 62d73bbd-b830-11e7-a7b7-34e6d72fbd80
 group_replication_group_seeds =
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
-group_replication_local_address = <<<localhost>>>:<<<__local_address_1>>>
+group_replication_local_address = localhost:<<<__local_address_1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -121,7 +121,7 @@ Calling this function on a cluster member is only required for MySQL versions 8.
 
 //@<OUT> FR1-TS-06 {VER(<8.0.12)}
 true
-A new InnoDB cluster will be created on instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -130,10 +130,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'ClusterName' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'ClusterName' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -367,7 +367,7 @@ true
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__local_address_2>>>
+group_replication_group_seeds = localhost:<<<__local_address_2>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
@@ -380,7 +380,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
-group_replication_local_address = <<<localhost>>>:<<<__local_address_2>>>
+group_replication_local_address = localhost:<<<__local_address_2>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -400,7 +400,7 @@ true
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<localhost>>>:<<<__local_address_3>>>
+group_replication_group_seeds = localhost:<<<__local_address_3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -412,7 +412,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
-group_replication_local_address = <<<localhost>>>:<<<__local_address_3>>>
+group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -426,7 +426,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
-group_replication_local_address = <<<localhost>>>:<<<__local_address_3>>>
+group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = 0
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -447,14 +447,14 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-WARNING: Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ FR2-TS-6 TEARDOWN {VER(<8.0.12)}
 ||
@@ -734,9 +734,9 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
-Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
+Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
 true
@@ -786,12 +786,12 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
-Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
+Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 
-The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 {
     "clusterName": "ClusterName",

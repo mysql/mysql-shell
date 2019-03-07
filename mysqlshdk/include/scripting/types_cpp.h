@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -475,22 +475,14 @@ struct Result_wrapper<void> {
 };
 }  // namespace internal
 
+struct Scoped_naming_style {
+  explicit Scoped_naming_style(NamingStyle style);
+  ~Scoped_naming_style();
+};
+
+NamingStyle current_naming_style();
+
 class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
- public:
-  struct ScopedStyle {
-   public:
-    ScopedStyle(const Cpp_object_bridge *target, NamingStyle style)
-        : _target(target) {
-      _old_style = _target->naming_style;
-      _target->naming_style = style;
-    }
-    ~ScopedStyle() { _target->naming_style = _old_style; }
-
-   private:
-    NamingStyle _old_style;
-    const Cpp_object_bridge *_target;
-  };
-
  protected:
   Cpp_object_bridge();
   Cpp_object_bridge(const Cpp_object_bridge &) = delete;
@@ -524,26 +516,16 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   // These advanced functions verify the requested property/function to see if
   // it is valid on the active naming style first, if so, then the normal
   // functions (above) are called with the base property/function name
-  virtual std::vector<std::string> get_members_advanced(
-      const NamingStyle &style);
-  virtual Value get_member_advanced(const std::string &prop,
-                                    const NamingStyle &style) const;
-  virtual bool has_member_advanced(const std::string &prop,
-                                   const NamingStyle &style) const;
-  virtual void set_member_advanced(const std::string &prop, Value value,
-                                   const NamingStyle &style);
-  virtual bool has_method_advanced(const std::string &name,
-                                   const NamingStyle &style) const;
+  virtual Value get_member_advanced(const std::string &prop) const;
+  virtual bool has_member_advanced(const std::string &prop) const;
+  virtual void set_member_advanced(const std::string &prop, Value value);
+  virtual bool has_method_advanced(const std::string &name) const;
   virtual Value call_advanced(const std::string &name,
-                              const Argument_list &args,
-                              const NamingStyle &style);
+                              const Argument_list &args);
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;
-  void set_naming_style(const NamingStyle &style);
-  std::shared_ptr<ScopedStyle> set_scoped_naming_style(
-      const NamingStyle &style);
 
   virtual shcore::Value help(const shcore::Argument_list &args);
 
@@ -896,16 +878,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   std::vector<Cpp_property_name> _properties;
 
-  // The global active naming style
-  mutable NamingStyle naming_style;
-
  protected:
   // Returns named function which signature that matches the given argument list
   std::shared_ptr<Cpp_function> lookup_function_overload(
-      const std::string &method, const NamingStyle &style,
-      const shcore::Argument_list &args) const;
-  std::shared_ptr<Cpp_function> lookup_function(const std::string &method,
-                                                const NamingStyle &style) const;
+      const std::string &method, const shcore::Argument_list &args) const;
+
   std::shared_ptr<Cpp_function> lookup_function(
       const std::string &method) const;
 

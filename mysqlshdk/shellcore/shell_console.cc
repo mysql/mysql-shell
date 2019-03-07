@@ -31,6 +31,7 @@
 #include <sys/wait.h>
 #endif
 
+#include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -271,56 +272,72 @@ void Shell_console::println(const std::string &text) const {
   }
 }
 
+namespace {
+std::string format(const std::string &text) {
+  return shcore::str_subvars(text,
+                             [](const std::string &var) {
+                               return shcore::get_member_name(
+                                   var, shcore::current_naming_style());
+                             },
+                             "<<<", ">>>");
+}
+}  // namespace
+
 void Shell_console::print_diag(const std::string &text) const {
+  std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", text).c_str());
+    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", ftext).c_str());
   } else {
-    m_ideleg->print_diag(m_ideleg->user_data, text.c_str());
+    m_ideleg->print_diag(m_ideleg->user_data, ftext.c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
-    log_debug("%s", text.c_str());
+    log_debug("%s", ftext.c_str());
     g_dont_log--;
   }
 }
 
 void Shell_console::print_error(const std::string &text) const {
+  std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print_error(m_ideleg->user_data, json_obj("error", text).c_str());
+    m_ideleg->print_error(m_ideleg->user_data,
+                          json_obj("error", ftext).c_str());
   } else {
     m_ideleg->print_error(
         m_ideleg->user_data,
-        (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
+        (mysqlshdk::textui::error("ERROR: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
-    log_error("%s", text.c_str());
+    log_error("%s", ftext.c_str());
     g_dont_log--;
   }
 }
 
 void Shell_console::print_warning(const std::string &text) const {
+  std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("warning", text).c_str());
+    m_ideleg->print(m_ideleg->user_data, json_obj("warning", ftext).c_str());
   } else {
     m_ideleg->print(
         m_ideleg->user_data,
-        (mysqlshdk::textui::warning("WARNING: ") + text + "\n").c_str());
+        (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
-    log_warning("%s", text.c_str());
+    log_warning("%s", ftext.c_str());
     g_dont_log--;
   }
 }
 
 void Shell_console::print_note(const std::string &text) const {
+  std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("note", text).c_str());
+    m_ideleg->print(m_ideleg->user_data, json_obj("note", ftext).c_str());
   } else {
     m_ideleg->print(
         m_ideleg->user_data,
-        (mysqlshdk::textui::notice("NOTE: ") + text + "\n").c_str());
+        (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
@@ -330,14 +347,15 @@ void Shell_console::print_note(const std::string &text) const {
 }
 
 void Shell_console::print_info(const std::string &text) const {
+  std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
+    m_ideleg->print(m_ideleg->user_data, json_obj("info", ftext).c_str());
   } else {
-    m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+    m_ideleg->print(m_ideleg->user_data, (ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
-    log_debug("%s", text.c_str());
+    log_debug("%s", ftext.c_str());
     g_dont_log--;
   }
 }
@@ -642,6 +660,22 @@ void Shell_console::disable_global_pager() { m_global_pager.reset(); }
 
 bool Shell_console::is_global_pager_enabled() const {
   return nullptr != m_global_pager;
+}
+
+std::string fit_screen(const std::string &text) {
+  // int r, c;
+  // if (!mysqlshdk::vt100::get_screen_size(&r, &c)) c = 80;
+
+  // if (c >= 120)
+  //   c = 120;
+  // else if (c >= 80)
+  //   c = 80;
+  // else
+  //   return text;
+  constexpr const int c = 80;
+
+  return mysqlshdk::textui::format_markup_text(shcore::str_split(text, "\n"), c,
+                                               0, false);
 }
 
 }  // namespace mysqlsh

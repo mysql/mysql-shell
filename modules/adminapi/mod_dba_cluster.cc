@@ -28,21 +28,10 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/cluster/cluster_describe.h"
-#include "modules/adminapi/cluster/cluster_options.h"
-#include "modules/adminapi/cluster/cluster_set_option.h"
-#include "modules/adminapi/cluster/cluster_status.h"
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/replicaset/add_instance.h"
-#include "modules/adminapi/replicaset/remove_instance.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/replication.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
@@ -74,16 +63,16 @@ REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
-                 std::shared_ptr<MetadataStorage> metadata_storage)
-    : _name(name),
-      m_invalidated(false),
-      _group_session(group_session),
-      _metadata_storage(metadata_storage) {
+                 std::shared_ptr<MetadataStorage> metadata_storage) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
                                         .use_count());
   });
+
+  m_impl =
+      std::make_shared<Cluster_impl>(name, group_session, metadata_storage);
+
   init();
 }
 
@@ -91,14 +80,14 @@ Cluster::~Cluster() { DEBUG_OBJ_DEALLOC(Cluster); }
 
 std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
                                    int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + _name + ">");
+  s_out.append("<" + class_name() + ":" + m_impl->get_name() + ">");
   return s_out;
 }
 
 void Cluster::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
   dumper.append_string("class", class_name());
-  dumper.append_string("name", _name);
+  dumper.append_string("name", m_impl->get_name());
   dumper.end_object();
 }
 
@@ -119,7 +108,7 @@ void Cluster::init() {
              "data");
   expose("describe", &Cluster::describe);
   expose("status", &Cluster::status, "?options");
-  add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
+  expose("dissolve", &Cluster::dissolve, "?options");
 
   expose<shcore::Value, const std::string &, Cluster>(
       "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
@@ -130,7 +119,7 @@ void Cluster::init() {
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
-  add_method("disconnect", std::bind(&Cluster::disconnect, this, _1));
+  expose("disconnect", &Cluster::disconnect);
 
   expose<void, const std::string &, Cluster>(
       "switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
@@ -193,15 +182,10 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
   assert_valid(prop);
 
   if (prop == "name")
-    ret_val = shcore::Value(_name);
+    ret_val = shcore::Value(m_impl->get_name());
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
   return ret_val;
-}
-
-std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> Cluster::metadata()
-    const {
-  return _metadata_storage->get_new_metadata();
 }
 
 void Cluster::assert_valid(const std::string &option_name) const {
@@ -216,70 +200,18 @@ void Cluster::assert_valid(const std::string &option_name) const {
                                              "Can't call function '" + name +
                                              "' on a dissolved cluster");
     } else {
-      name = get_member_name(option_name, naming_style);
+      name = get_member_name(option_name, shcore::current_naming_style());
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
                                              "Can't access object member '" +
                                              name + "' on a dissolved cluster");
     }
   }
-  if (!_group_session) {
+  if (!m_impl->get_group_session()) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use <Dba>." +
         get_function_name("getCluster", false) +
         " to obtain a fresh cluster handle.");
   }
-}
-
-shcore::Value Cluster::add_seed_instance(
-    mysqlshdk::mysql::IInstance *target_instance,
-    const Group_replication_options &gr_options, bool multi_primary,
-    bool is_adopted, const std::string &replication_user,
-    const std::string &replication_pwd) {
-  shcore::Value ret_val;
-
-  MetadataStorage::Transaction tx(_metadata_storage);
-  std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
-
-  // Check if we have a Default ReplicaSet, if so it means we already added the
-  // Seed Instance
-  if (default_rs != NULL) {
-    uint64_t rs_id = default_rs->get_id();
-    if (!_metadata_storage->is_replicaset_empty(rs_id))
-      throw shcore::Exception::logic_error(
-          "Default ReplicaSet already initialized. Please use: addInstance() "
-          "to add more Instances to the ReplicaSet.");
-  } else {
-    // Create the Default ReplicaSet and assign it to the Cluster's
-    // default_replica_set var
-    create_default_replicaset("default", multi_primary, "", is_adopted);
-  }
-  if (!is_adopted) {
-    // Add the Instance to the Default ReplicaSet passing already created
-    // replication user and the group_name (if provided)
-    {
-      // Create the add_instance command and execute it.
-      Add_instance op_add_instance(
-          target_instance, *_default_replica_set, this->naming_style,
-          gr_options, {}, replication_user, replication_pwd, true, true, false);
-
-      // Always execute finish when leaving scope.
-      auto finally = shcore::on_leave_scope(
-          [&op_add_instance]() { op_add_instance.finish(); });
-
-      // Prepare the add_instance command execution (validations).
-      op_add_instance.prepare();
-
-      // Execute add_instance operations.
-      op_add_instance.execute();
-    }
-  }
-  std::string group_replication_group_name =
-      get_gr_replicaset_group_name(_group_session);
-  _default_replica_set->set_group_name(group_replication_group_name);
-
-  tx.commit();
-
-  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(addInstance, Cluster);
@@ -414,16 +346,10 @@ void Cluster::add_instance(const Connection_options &instance_def,
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
-  check_preconditions("addInstance");
-
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
   validate_connection_options(instance_def);
 
   // Add the Instance to the Default ReplicaSet
-  _default_replica_set->add_instance(instance_def, options);
+  m_impl->add_instance(instance_def, options);
 }
 
 void Cluster::add_instance(const std::string &instance_def,
@@ -517,12 +443,6 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   // rejoin the Instance to the Default ReplicaSet
   shcore::Value ret_val;
   try {
-    check_preconditions("rejoinInstance");
-
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
     auto instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
@@ -533,7 +453,7 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
     if (args.size() == 2) options = args.map_at(1);
 
     // if not, call mysqlprovision to join the instance to its own group
-    ret_val = _default_replica_set->rejoin_instance(&instance_def, options);
+    ret_val = m_impl->rejoin_instance(instance_def, options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
 
@@ -616,90 +536,11 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
 
   // Remove the Instance from the Default ReplicaSet
   try {
-    check_preconditions("removeInstance");
-
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-    ret_val = _default_replica_set->remove_instance(args);
+    ret_val = m_impl->remove_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
   return ret_val;
-}
-
-#if 0  // Hidden for now
-/**
-* Returns the ReplicaSet of the given name.
-* \sa ReplicaSet
-* \param name the name of the ReplicaSet to look for.
-* \return the ReplicaSet object matching the name.
-*
-* Verifies if the requested Collection exist on the metadata schema, if exists, returns the corresponding ReplicaSet object.
-*/
-#if DOXYGEN_JS
-ReplicaSet Cluster::getReplicaSet(String name) {}
-#elif DOXYGEN_PY
-ReplicaSet Cluster::get_replica_set(str name) {}
-#endif
-#endif
-shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("getReplicaSet");
-
-  shcore::Value ret_val;
-
-  if (args.size() == 0) {
-    ret_val = shcore::Value(
-        std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
-  } else {
-    args.ensure_count(1, get_function_name("getReplicaSet").c_str());
-    std::string name = args.string_at(0);
-
-    if (name == "default") {
-      ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(
-          _default_replica_set));
-    } else {
-      /*
-       * Retrieve the ReplicaSet from the ReplicaSets array
-       */
-      // if (found)
-
-      // else
-      //  throw shcore::Exception::runtime_error("The ReplicaSet " + _name + "."
-      //  + name + " does not exist");
-    }
-  }
-
-  return ret_val;
-}
-
-void Cluster::set_default_replicaset(const std::string &name,
-                                     const std::string &topology_type,
-                                     const std::string &group_name) {
-  _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage);
-
-  _default_replica_set->set_cluster(shared_from_this());
-}
-
-std::shared_ptr<ReplicaSet> Cluster::create_default_replicaset(
-    const std::string &name, bool multi_primary, const std::string &group_name,
-    bool is_adopted) {
-  std::string topology_type = ReplicaSet::kTopologySinglePrimary;
-  if (multi_primary) {
-    topology_type = ReplicaSet::kTopologyMultiPrimary;
-  }
-  _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage);
-
-  _default_replica_set->set_cluster(shared_from_this());
-
-  // Update the Cluster table with the Default ReplicaSet on the Metadata
-  _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
-
-  return _default_replica_set;
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
@@ -752,17 +593,7 @@ shcore::Value Cluster::describe(void) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("describe");
 
-  check_preconditions("describe");
-
-  // Create the Cluster_describe command and execute it.
-  Cluster_describe op_describe(*this);
-  // Always execute finish when leaving "try catch".
-  auto finally =
-      shcore::on_leave_scope([&op_describe]() { op_describe.finish(); });
-  // Prepare the Cluster_describe command execution (validations).
-  op_describe.prepare();
-  // Execute Cluster_describe operations.
-  return op_describe.execute();
+  return m_impl->describe();
 }
 
 REGISTER_HELP_FUNCTION(status, Cluster);
@@ -803,7 +634,6 @@ str Cluster::status(dict options) {}
 shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
-  check_preconditions("status");
 
   bool query_members = false;
   bool extended = false;
@@ -814,14 +644,7 @@ shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
       .optional("queryMembers", &query_members)
       .end();
 
-  // Create the Cluster_status command and execute it.
-  Cluster_status op_status(*this, extended, query_members);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_status]() { op_status.finish(); });
-  // Prepare the Cluster_status command execution (validations).
-  op_status.prepare();
-  // Execute Cluster_status operations.
-  return op_status.execute();
+  return m_impl->status(extended, query_members);
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);
@@ -857,20 +680,8 @@ str Cluster::options(dict options) {}
 shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("options");
-  auto state = check_preconditions("options");
 
-  bool all = false;
-  // Retrieves optional options
-  Unpack_options(options).optional("all", &all).end();
-
-  // Create the Cluster_options command and execute it.
-  Cluster_options op_option(*this, all);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_option]() { op_option.finish(); });
-  // Prepare the Cluster_options command execution (validations).
-  op_option.prepare();
-  // Execute Cluster_options operations.
-  return op_option.execute();
+  return m_impl->options(options);
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
@@ -922,35 +733,15 @@ Undefined Cluster::dissolve(Dictionary options) {}
 None Cluster::dissolve(dict options) {}
 #endif
 
-shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  // Check arguments count.
-  // NOTE: check for arguments need to be performed here for the correct
-  // context "Cluster.removeInstance" to be used in the error message
-  // (not ReplicaSet.removeInstance).
-  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
-
+void Cluster::dissolve(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
   // Dissolve the default replicaset.
-  try {
-    // We need to check if the group has quorum and if not we must abort the
-    // operation otherwise GR blocks the writes to preserve the consistency
-    // of the group and we end up with a hang.
-    // This check is done at check_preconditions()
-    check_preconditions("dissolve");
+  m_impl->dissolve(options);
 
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-    ret_val = _default_replica_set->dissolve(args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"))
-
-  return ret_val;
+  // Set the flag, marking this cluster instance as invalid.
+  invalidate();
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
@@ -1021,12 +812,7 @@ None Cluster::rescan(dict options) {}
 void Cluster::rescan(const shcore::Dictionary_t &options) {
   assert_valid("rescan");
 
-  check_preconditions("rescan");
-
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-  _default_replica_set->rescan(options);
+  m_impl->rescan(options);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
@@ -1050,30 +836,7 @@ Undefined Cluster::disconnect() {}
 None Cluster::disconnect() {}
 #endif
 
-shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("disconnect").c_str());
-
-  try {
-    if (_group_session) {
-      // no preconditions check needed for just disconnecting everything
-      _group_session->close();
-      _group_session.reset();
-    }
-
-    // If _group_session is the same as the session from the metadata,
-    // then get_session would thrown an exception since the session is already
-    // closed
-    try {
-      if (_metadata_storage->get_session()) {
-        _metadata_storage->get_session()->close();
-      }
-    } catch (...) {
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disconnect"));
-
-  return shcore::Value();
-}
+void Cluster::disconnect() { m_impl->disconnect(); }
 
 REGISTER_HELP_FUNCTION(forceQuorumUsingPartitionOf, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FORCEQUORUMUSINGPARTITIONOF, R"*(
@@ -1137,27 +900,12 @@ shcore::Value Cluster::force_quorum_using_partition_of(
 
   shcore::Value ret_val;
   try {
-    check_preconditions("forceQuorumUsingPartitionOf");
-
-    // Check if we have a Default ReplicaSet
-    if (!_default_replica_set)
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-    // TODO(alfredo) - unpack the arguments here insetad of at
-    // force_quorum_using_partition_of
-    ret_val = _default_replica_set->force_quorum_using_partition_of(args);
+    ret_val = m_impl->force_quorum_using_partition_of(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("forceQuorumUsingPartitionOf"));
 
   return ret_val;
-}
-
-void Cluster::set_attribute(const std::string &attribute,
-                            const shcore::Value &value) {
-  if (!_attributes) _attributes.reset(new shcore::Value::Map_type());
-
-  (*_attributes)[attribute] = value;
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
@@ -1224,13 +972,8 @@ None Cluster::check_instance_state(InstanceDef instance) {}
 shcore::Value Cluster::check_instance_state(
     const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
-  check_preconditions("checkInstanceState");
 
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-  return _default_replica_set->check_instance_state(instance_def);
+  return m_impl->check_instance_state(instance_def);
 }
 
 shcore::Value Cluster::check_instance_state(const std::string &instance_def) {
@@ -1289,14 +1032,9 @@ None Cluster::switch_to_single_primary_mode(InstanceDef instance) {}
 void Cluster::switch_to_single_primary_mode(
     const Connection_options &instance_def) {
   assert_valid("switchToSinglePrimaryMode");
-  check_preconditions("switchToSinglePrimaryMode");
-
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
   // Switch to single-primary mode
-  _default_replica_set->switch_to_single_primary_mode(instance_def);
+  m_impl->switch_to_single_primary_mode(instance_def);
 }
 
 REGISTER_HELP_FUNCTION(switchToMultiPrimaryMode, Cluster);
@@ -1327,15 +1065,9 @@ None Cluster::switch_to_multi_primary_mode() {}
 
 void Cluster::switch_to_multi_primary_mode(void) {
   assert_valid("switchToMultiPrimaryMode");
-  check_preconditions("switchToMultiPrimaryMode");
 
   // Switch to single-primary mode
-
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-  _default_replica_set->switch_to_multi_primary_mode();
+  m_impl->switch_to_multi_primary_mode();
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryInstance, Cluster);
@@ -1381,15 +1113,8 @@ None Cluster::set_primary_instance(InstanceDef instance) {}
 
 void Cluster::set_primary_instance(const Connection_options &instance_def) {
   assert_valid("setPrimaryInstance");
-  check_preconditions("setPrimaryInstance");
 
-  // Set primary instance
-
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-  _default_replica_set->set_primary_instance(instance_def);
+  m_impl->set_primary_instance(instance_def);
 }
 
 void Cluster::set_primary_instance(const std::string &instance_def) {
@@ -1481,44 +1206,8 @@ None Cluster::set_option(str option, str value) {}
 void Cluster::set_option(const std::string &option,
                          const shcore::Value &value) {
   assert_valid("setOption");
-  check_preconditions("setOption");
 
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
-
-  // Set Cluster configuration option
-
-  // Create the Cluster_set_option object and execute it.
-  std::unique_ptr<Cluster_set_option> op_cluster_set_option;
-
-  // Validation types due to a limitation on the expose() framework.
-  // Currently, it's not possible to do overloading of functions that overload
-  // an argument of type string/int since the type int is convertible to
-  // string, thus overloading becomes ambiguous. As soon as that limitation is
-  // gone, this type checking shall go away too.
-  if (value.type == shcore::String) {
-    std::string value_str = value.as_string();
-    op_cluster_set_option =
-        shcore::make_unique<Cluster_set_option>(this, option, value_str);
-  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
-    int64_t value_int = value.as_int();
-    op_cluster_set_option =
-        shcore::make_unique<Cluster_set_option>(this, option, value_int);
-  } else {
-    throw shcore::Exception::argument_error(
-        "Argument #2 is expected to be a string or an Integer.");
-  }
-
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
-      [&op_cluster_set_option]() { op_cluster_set_option->finish(); });
-
-  // Prepare the Set_option command execution (validations).
-  op_cluster_set_option->prepare();
-
-  // Execute Set_instance_option operations.
-  op_cluster_set_option->execute();
+  m_impl->set_option(option, value);
 }
 
 REGISTER_HELP_FUNCTION(setInstanceOption, Cluster);
@@ -1587,14 +1276,9 @@ void Cluster::set_instance_option(const Connection_options &instance_def,
                                   const std::string &option,
                                   const shcore::Value &value) {
   assert_valid("setInstanceOption");
-  check_preconditions("setInstanceOption");
-
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
   // Set the option in the Default ReplicaSet
-  _default_replica_set->set_instance_option(instance_def, option, value);
+  m_impl->set_instance_option(instance_def, option, value);
 }
 
 void Cluster::set_instance_option(const std::string &instance_def,
@@ -1615,35 +1299,6 @@ void Cluster::set_instance_option(const shcore::Dictionary_t &instance_def,
   target_instance = get_connection_options(instance_def);
 
   set_instance_option(target_instance, option, value);
-}
-
-Cluster_check_info Cluster::check_preconditions(
-    const std::string &function_name) const {
-  return check_function_preconditions("Cluster." + function_name,
-                                      _group_session);
-}
-
-void Cluster::sync_transactions(
-    const mysqlshdk::mysql::IInstance &target_instance) const {
-  // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
-  // the GTID of ALL transactions, otherwise only a set of transactions written
-  // to the cache in the current session might be returned.
-  std::string gtid_set = _group_session->query("SELECT @@GLOBAL.GTID_EXECUTED")
-                             ->fetch_one()
-                             ->get_string(0);
-
-  bool sync_res = mysqlshdk::mysql::wait_for_gtid_set(
-      target_instance, gtid_set,
-      current_shell_options()->get().dba_gtid_wait_timeout);
-  if (!sync_res) {
-    std::string instance_address =
-        target_instance.get_connection_options().as_uri(
-            mysqlshdk::db::uri::formats::only_transport());
-    throw shcore::Exception::runtime_error(
-        "Timeout reached waiting for cluster transactions to be applied on "
-        "instance '" +
-        instance_address + "'");
-  }
 }
 
 }  // namespace dba

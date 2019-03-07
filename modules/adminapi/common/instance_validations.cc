@@ -481,7 +481,7 @@ void ensure_instance_not_belong_to_metadata(
 
     std::string err_msg = "The instance '" + instance.descr() +
                           "' already belongs to the ReplicaSet: '" +
-                          replicaset.get_member("name").get_string() + "'";
+                          replicaset.get_name() + "'";
     if (is_rejoining)
       err_msg += " and is currently trying to auto-rejoin.";
     else

@@ -51,18 +51,18 @@
 |<Cluster:devCluster>|
 
 //@# Dba: createCluster already exist
-||Dba.createCluster: Unable to create cluster. The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
+||Dba.createCluster: Unable to create cluster. The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
 
 //@# Dba: checkInstanceConfiguration errors
-||Access denied for user 'root'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
-||Access denied for user 'sample'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
+||Access denied for user 'root'@'localhost' (using password: NO) (MySQL Error 1045)
+||Access denied for user 'sample'@'localhost' (using password: NO) (MySQL Error 1045)
 ||Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
 
 //@ Dba: checkInstanceConfiguration ok1
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
 
 //@ Dba: checkInstanceConfiguration ok2
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -129,8 +129,8 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@# Dba: configureLocalInstance errors
 //||Dba.configureLocalInstance: This function only works with local instances
-||Access denied for user 'root'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
-||Access denied for user 'sample'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
+||Access denied for user 'root'@'localhost' (using password: NO) (MySQL Error 1045)
+||Access denied for user 'sample'@'localhost' (using password: NO) (MySQL Error 1045)
 
 //@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.11)}
 |ERROR: The path to the MySQL configuration file is required to verify and fix InnoDB cluster related options.|
@@ -195,20 +195,20 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 
 //@ Dba: configureLocalInstance report fixed 1
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
 
 //@ Dba: configureLocalInstance report fixed 2
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
 
 //@# Dba: configureLocalInstance not enough privileges {VER(>=8.0.0)}
-|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+|ERROR: Unable to check privileges for user 'missingprivileges'@'localhost'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
 ||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges {VER(<8.0.0)}
-|ERROR: The account 'missingprivileges'@'<<<localhost>>>' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
 |Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|

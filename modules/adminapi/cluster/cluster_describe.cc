@@ -27,7 +27,7 @@
 namespace mysqlsh {
 namespace dba {
 
-Cluster_describe::Cluster_describe(const Cluster &cluster)
+Cluster_describe::Cluster_describe(const Cluster_impl &cluster)
     : m_cluster(cluster) {}
 
 Cluster_describe::~Cluster_describe() {}

@@ -149,6 +149,8 @@ class Shell_console : public IConsole {
   std::shared_ptr<IPager> m_global_pager;
 };
 
+std::string fit_screen(const std::string &text);
+
 }  // namespace mysqlsh
 
 #endif  // MYSQLSHDK_SHELLCORE_SHELL_CONSOLE_H_

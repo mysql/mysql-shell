@@ -309,8 +309,8 @@ std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &group_cnx_opts);
 
 std::unique_ptr<mysqlshdk::config::Config> create_server_config(
-    mysqlshdk::mysql::IInstance *instance, std::string srv_cfg_handler_name,
-    const shcore::NamingStyle &naming_style);
+    mysqlshdk::mysql::IInstance *instance,
+    const std::string &srv_cfg_handler_name);
 
 /**
  * Resolves Group Replication local address.

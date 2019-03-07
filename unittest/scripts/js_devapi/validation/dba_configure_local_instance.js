@@ -4,7 +4,7 @@
 }
 
 //@ Error: user has no privileges to run the configure command (BUG#26609909)
-||Dba.configureLocalInstance: Session account 'gr_user'@'%' (used to authenticate 'gr_user'@'<<<localhost>>>') does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'gr_user'@'%' (used to authenticate 'gr_user'@'localhost') does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 //@ Error: session user has privileges to run the configure command but we pass it an existing clusterAdmin user that doesn't have enough privileges (BUG#26979375)
 ||Dba.configureLocalInstance: Cluster Admin account 'gr_user'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
@@ -26,27 +26,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "localhost:<<<__mysql_sandbox_port1>>>": {
+                "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "second_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "localhost:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "third_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "localhost:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -69,27 +69,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "localhost:<<<__mysql_sandbox_port1>>>": {
+                "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "second_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "localhost:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "third_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "localhost:<<<__mysql_sandbox_port3>>>",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -109,27 +109,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "localhost:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+            "localhost:<<<__mysql_sandbox_port1>>>": {
+                "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "second_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "localhost:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "third_sandbox": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "localhost:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -300,43 +300,50 @@ TEST_F(Shell_cli_operation_test, integration_test) {
 
 #ifndef _MSC_VER
   MY_ASSERT_EQ_OR_DUMP(
-      0, testutil->call_mysqlsh_c(
-             {"--", "dba", "deploySandboxInstance", "53340", "--portx=53341",
-              "--password=abc", "--allow-root-from=%"},
-             "", env));
+      0,
+      testutil->call_mysqlsh_c(
+          {"--", "dba", "deploySandboxInstance",
+           std::to_string(_mysql_sandbox_ports[0]).c_str(),
+           ("--portx=" + std::to_string(_mysql_sandbox_ports[0]) + "0").c_str(),
+           "--password=abc", "--allow-root-from=%"},
+          "", env));
   MY_EXPECT_STDOUT_CONTAINS("successfully deployed and started");
   output_handler.wipe_all();
 
-  EXPECT_NE(10,
-            testutil->call_mysqlsh_c({"--", "util", "check-for-server-upgrade",
-                                      "root:abc@localhost:53340"},
-                                     "", env));
+  std::string uri =
+      "root:abc@localhost:" + std::to_string(_mysql_sandbox_ports[0]);
+
+  EXPECT_NE(10, testutil->call_mysqlsh_c(
+                    {"--", "util", "check-for-server-upgrade", uri.c_str()}, "",
+                    env));
   MY_EXPECT_STDOUT_CONTAINS("will now be checked for compatibility issues");
   output_handler.wipe_all();
 
   MY_EXPECT_EQ_OR_DUMP(
-      0, testutil->call_mysqlsh_c({"root:abc@localhost:53340", "--", "dba",
-                                   "create-cluster", "cluster_X"},
-                                  "", env));
+      0,
+      testutil->call_mysqlsh_c(
+          {uri.c_str(), "--", "dba", "create-cluster", "cluster_X"}, "", env));
   MY_EXPECT_STDOUT_CONTAINS("Cluster successfully created");
   output_handler.wipe_all();
 
   MY_EXPECT_EQ_OR_DUMP(
-      0, testutil->call_mysqlsh_c(
-             {"root:abc@localhost:53340", "--", "cluster", "status"}, "", env));
+      0, testutil->call_mysqlsh_c({uri.c_str(), "--", "cluster", "status"}, "",
+                                  env));
   MY_EXPECT_STDOUT_CONTAINS("\"clusterName\": \"cluster_X\"");
   output_handler.wipe_all();
 
-  MY_EXPECT_EQ_OR_DUMP(
-      0, testutil->call_mysqlsh_c(
-             {"--", "dba", "stopSandboxInstance", "53340", "--password=abc"},
-             "", env));
+  MY_EXPECT_EQ_OR_DUMP(0, testutil->call_mysqlsh_c(
+                              {"--", "dba", "stopSandboxInstance",
+                               std::to_string(_mysql_sandbox_ports[0]).c_str(),
+                               "--password=abc"},
+                              "", env));
   MY_EXPECT_STDOUT_CONTAINS("successfully stopped");
   output_handler.wipe_all();
 
-  MY_EXPECT_EQ_OR_DUMP(
-      0, testutil->call_mysqlsh_c(
-             {"--", "dba", "deleteSandboxInstance", "53340"}, "", env));
+  MY_EXPECT_EQ_OR_DUMP(0, testutil->call_mysqlsh_c(
+                              {"--", "dba", "deleteSandboxInstance",
+                               std::to_string(_mysql_sandbox_ports[0]).c_str()},
+                              "", env));
   MY_EXPECT_STDOUT_CONTAINS("successfully deleted");
   output_handler.wipe_all();
 #endif

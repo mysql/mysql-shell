@@ -56,7 +56,7 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
+        "statusText": "Cluster has no quorum as visible from 'localhost:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -92,14 +92,14 @@
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
 
 //@ Cluster.forceQuorumUsingPartitionOf error interactive
-||Cluster.forceQuorumUsingPartitionOf: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
+||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
 
 //@<OUT> Cluster.forceQuorumUsingPartitionOf success
 Restoring replicaset 'default' from loss of quorum, by using the partition composed of [<<<hostname>>>:<<<__mysql_sandbox_port1>>>]
 
 Restoring the InnoDB cluster ...
 
-Please provide the password for 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>': The InnoDB cluster was successfully restored using the partition from the instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The InnoDB cluster was successfully restored using the partition from the instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 WARNING: To avoid a split-brain scenario, ensure that all other members of the replicaset are removed or joined back to the group that was restored.
 

@@ -59,7 +59,6 @@
 #include "utils/utils_net.h"
 #include "utils/utils_sqlstring.h"
 
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -69,6 +68,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 /*
   Sessions used by AdminAPI
@@ -714,14 +714,15 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
-    metadata->load_default_cluster(cluster);
+    metadata->load_default_cluster(cluster->impl());
   } else {
-    metadata->load_cluster(name, cluster);
+    metadata->load_cluster(name, cluster->impl());
   }
   // Verify if the current session instance group_replication_group_name
   // value differs from the one registered in the Metadata
   if (!validate_replicaset_group_name(
-          group_session, cluster->get_default_replicaset()->get_group_name())) {
+          group_session,
+          cluster->impl()->get_default_replicaset()->get_group_name())) {
     std::string nice_error =
         "Unable to get a InnoDB cluster handle. "
         "The instance '" +
@@ -739,7 +740,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   }
 
   // Set the provision interface pointer
-  cluster->set_provisioning_interface(_provisioning_interface);
+  cluster->impl()->set_provisioning_interface(_provisioning_interface);
 
   return cluster;
 }
@@ -1061,16 +1062,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(metadata);
 
     cluster.reset(new Cluster(cluster_name, group_session, metadata));
-    cluster->set_provisioning_interface(_provisioning_interface);
+    cluster->impl()->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
-    cluster->set_description("Default Cluster");
+    cluster->impl()->set_description("Default Cluster");
 
-    cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
+    cluster->impl()->set_attribute(ATT_DEFAULT, shcore::Value::True());
 
     // Insert Cluster on the Metadata Schema
-    metadata->insert_cluster(cluster);
+    metadata->insert_cluster(cluster->impl());
 
     if (adopt_from_gr) {  // TODO(paulo): move this to a GR specific class
       // check whether single_primary_mode is on
@@ -1091,12 +1092,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "group-replication-limitations.html");
     }
     console->println("Adding Seed Instance...");
-    cluster->add_seed_instance(&target_instance, gr_options, multi_primary,
-                               adopt_from_gr, replication_user,
-                               replication_pwd);
+    cluster->impl()->add_seed_instance(&target_instance, gr_options,
+                                       multi_primary, adopt_from_gr,
+                                       replication_user, replication_pwd);
 
     if (adopt_from_gr) {
-      cluster->get_default_replicaset()->adopt_from_gr();
+      cluster->impl()->get_default_replicaset()->adopt_from_gr();
     }
 
     // If it reaches here, it means there are no exceptions
@@ -1129,14 +1130,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       adopt_from_gr
           ? "Cluster successfully created based on existing "
             "replication group."
-          : "Cluster successfully created. Use Cluster." +
-                get_member_name("addInstance", naming_style) +
-                "() to add MySQL instances.\n"
-                "At least 3 instances are needed for the cluster to be "
-                "able to withstand up to\n"
-                "one server failure.";
+          : "Cluster successfully created. Use Cluster.<<<addInstance>>>"
+            "() to add MySQL instances.\n"
+            "At least 3 instances are needed for the cluster to be "
+            "able to withstand up to\none server failure.";
 
-  console->println(message);
+  console->print_info(message);
   console->println();
 
   return ret_val;
@@ -1220,21 +1219,19 @@ void Dba::check_create_cluster_options(
 
   if (!*adopt_from_gr && multi_primary && !*force) {
     if (interactive) {
-      console->println(
+      console->print_info(fit_screen(
           "The MySQL InnoDB cluster is going to be setup in advanced "
-          "Multi-Primary Mode.\n"
+          "Multi-Primary Mode. "
           "Before continuing you have to confirm that you understand the "
-          "requirements and\n"
-          "limitations of Multi-Primary Mode. For more information see\n"
+          "requirements and "
+          "limitations of Multi-Primary Mode. For more information see "
           "https://dev.mysql.com/doc/refman/en/"
-          "group-replication-limitations.html\n"
-          "before proceeding.\n"
-          "\n");
-
-      console->println(
+          "group-replication-limitations.html "
+          "before proceeding."));
+      console->println();
+      console->print_info(fit_screen(
           "I have read the MySQL InnoDB cluster manual and I understand the "
-          "requirements\n"
-          "and limitations of advanced Multi-Primary Mode.");
+          "requirements and limitations of advanced Multi-Primary Mode."));
       if (console->confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
           mysqlsh::Prompt_answer::NO) {
         console->println();
@@ -1267,15 +1264,14 @@ bool Dba::prompt_super_read_only(
                                     &super_read_only, false);
 
   if (super_read_only) {
-    console->println(
+    console->print_info(mysqlsh::fit_screen(
         "The MySQL instance at '" + active_session_address +
-        "' "
-        "currently has the super_read_only \nsystem variable set to "
-        "protect it from inadvertent updates from applications. \n"
+        "' currently has the super_read_only system variable set to "
+        "protect it from inadvertent updates from applications. "
         "You must first unset it to be able to perform any changes "
-        "to this instance. \n"
+        "to this instance.\n"
         "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only.");
+        "en/server-system-variables.html#sysvar_super_read_only."));
     console->println();
 
     // Get the list of open session to the instance
@@ -1283,8 +1279,8 @@ bool Dba::prompt_super_read_only(
     open_sessions = mysqlsh::dba::get_open_sessions(session);
 
     if (!open_sessions.empty()) {
-      console->println(
-          "Note: there are open sessions to '" + active_session_address +
+      console->print_note(
+          "There are open sessions to '" + active_session_address +
           "'.\n"
           "You may want to kill these sessions to prevent them from "
           "performing unexpected updates: \n");
@@ -2418,21 +2414,21 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     // 3. Ensure that the provided cluster identifier exists on the Metadata
     // Schema
     if (default_cluster) {
-      metadata->load_default_cluster(cluster);
+      metadata->load_default_cluster(cluster->impl());
     } else {
-      metadata->load_cluster(cluster_name, cluster);
+      metadata->load_cluster(cluster_name, cluster->impl());
     }
 
     if (cluster) {
       // Set the provision interface pointer
-      cluster->set_provisioning_interface(_provisioning_interface);
+      cluster->impl()->set_provisioning_interface(_provisioning_interface);
 
       // Set the cluster as return value
       ret_val =
           shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
 
       // Get the default replicaset
-      default_replicaset = cluster->get_default_replicaset();
+      default_replicaset = cluster->impl()->get_default_replicaset();
 
       // Get get instance address in metadata.
       mysqlshdk::mysql::Instance group_instance(group_session);
@@ -2447,7 +2443,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         throw shcore::Exception::runtime_error(
             "The current session instance does not belong "
             "to the cluster: '" +
-            cluster->get_name() + "'.");
+            cluster->impl()->get_name() + "'.");
 
       // Ensure that all of the instances specified on the 'removeInstances'
       // list exist on the Metadata Schema and are valid
@@ -2474,7 +2470,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           throw shcore::Exception::runtime_error("The instance '" + value +
                                                  "' does not belong "
                                                  "to the cluster: '" +
-                                                 cluster->get_name() + "'.");
+                                                 cluster->impl()->get_name() +
+                                                 "'.");
       }
 
       // Ensure that all of the instances specified on the 'rejoinInstances'
@@ -2502,7 +2499,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           throw shcore::Exception::runtime_error("The instance '" + value +
                                                  "' does not belong "
                                                  "to the cluster: '" +
-                                                 cluster->get_name() + "'.");
+                                                 cluster->impl()->get_name() +
+                                                 "'.");
       }
       // Get the all the instances and their status
       std::vector<std::pair<std::string, std::string>> instances_status =
@@ -2549,7 +2547,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     }
 
     // Check if the cluster is empty
-    if (metadata->is_cluster_empty(cluster->get_id()))
+    if (metadata->is_cluster_empty(cluster->impl()->get_id()))
       throw shcore::Exception::runtime_error(
           "The cluster has no instances in it.");
 
@@ -2595,8 +2593,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       {
         // Create the add_instance command and execute it.
         Add_instance op_add_instance(&target_instance, *default_replicaset,
-                                     this->naming_style, gr_options, {}, "", "",
-                                     true, true, true);
+                                     gr_options, {}, "", "", true, true, true);
 
         // Always execute finish when leaving scope.
         auto finally = shcore::on_leave_scope(
@@ -2684,16 +2681,17 @@ Dba::get_replicaset_instances_status(
   // TODO(alfredo) This should be in the Cluster object
 
   log_info("Checking instance status for cluster '%s'",
-           cluster->get_name().c_str());
+           cluster->impl()->get_name().c_str());
 
   std::vector<Instance_definition> instances =
-      cluster->get_default_replicaset()->get_instances_from_metadata();
+      cluster->impl()->get_default_replicaset()->get_instances_from_metadata();
 
   auto current_session_options =
-      cluster->get_group_session()->get_connection_options();
+      cluster->impl()->get_group_session()->get_connection_options();
 
   // Get the current session instance reported host address
-  mysqlshdk::mysql::Instance group_instance(cluster->get_group_session());
+  mysqlshdk::mysql::Instance group_instance(
+      cluster->impl()->get_group_session());
   std::string active_session_md_address =
       mysqlshdk::mysql::get_report_host(group_instance) + ":" +
       std::to_string(current_session_options.get_port());
@@ -2769,8 +2767,7 @@ static void validate_instance_belongs_to_cluster(
     case GRInstanceType::GroupReplication:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
-          "' belongs "
-          "GR group that is not managed as an "
+          "' belongs to a GR group that is not managed as an "
           "InnoDB cluster. ");
 
     case GRInstanceType::Standalone:
@@ -2799,7 +2796,8 @@ void Dba::validate_instances_status_reboot_cluster(
   // Validate the member we're connected to
   validate_instance_belongs_to_cluster(
       member_session, "",
-      get_member_name("forceQuorumUsingPartitionOf", naming_style));
+      get_member_name("forceQuorumUsingPartitionOf",
+                      shcore::current_naming_style()));
 
   mysqlshdk::db::Connection_options member_connection_options =
       member_session->get_connection_options();
@@ -2849,7 +2847,8 @@ void Dba::validate_instances_status_reboot_cluster(
     log_info("Checking state of instance '%s'", instance_address.c_str());
     validate_instance_belongs_to_cluster(
         session, "",
-        get_member_name("forceQuorumUsingPartitionOf", naming_style));
+        get_member_name("forceQuorumUsingPartitionOf",
+                        shcore::current_naming_style()));
     session->close();
   }
 }

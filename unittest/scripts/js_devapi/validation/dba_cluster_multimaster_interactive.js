@@ -4,13 +4,12 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
-https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
-before proceeding.
-
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
-Confirm [y/N]:
+Confirm [y/N]: 
 Dba.createCluster: Cancelled
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
@@ -19,13 +18,12 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
-https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
-before proceeding.
-
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
-Confirm [y/N]:
+Confirm [y/N]: 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -53,9 +51,8 @@ WARNING: The multiMaster option is deprecated. Please use the multiPrimary optio
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
-https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
-before proceeding.
-
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
@@ -234,7 +231,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||
 
 //@ Cluster: Error cannot remove last instance
-||Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is the last member of the ReplicaSet (LogicError)
+||Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the ReplicaSet (LogicError)
 
 //@ Dissolve cluster with success
 |The cluster was successfully dissolved.|
@@ -245,9 +242,8 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
-https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
-before proceeding.
-
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.

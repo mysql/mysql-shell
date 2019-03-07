@@ -44,6 +44,7 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -967,7 +968,7 @@ bool validate_replicaset_group_name(
 bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
                               bool clear_read_only) {
   int super_read_only = 0;
-
+  // TODO(alfredo) - there are 4 slightly different copies of this snippet...
   get_server_variable(session, "super_read_only", &super_read_only, false);
 
   if (super_read_only) {
@@ -985,15 +986,15 @@ bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
       auto session_address =
           session_options.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
-      console->print_error(
+      console->print_error(mysqlsh::fit_screen(
           "The MySQL instance at '" + session_address +
           "' currently has "
           "the super_read_only system variable set to protect it from "
           "inadvertent updates from applications. You must first unset it to "
           "be "
-          "able to perform any changes to this instance. "
+          "able to perform any changes to this instance.\n"
           "For more information see: https://dev.mysql.com/doc/refman/en/"
-          "server-system-variables.html#sysvar_super_read_only.");
+          "server-system-variables.html#sysvar_super_read_only."));
 
       // Get the list of open session to the instance
       std::vector<std::pair<std::string, int>> open_sessions;
@@ -1513,15 +1514,14 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
   // If super_read_only is not null and enabled
   if (*super_read_only) {
     auto console = mysqlsh::current_console();
-    console->println(
+    console->print_info(mysqlsh::fit_screen(
         "The MySQL instance at '" + active_session_address +
-        "' "
-        "currently has the super_read_only \nsystem variable set to "
-        "protect it from inadvertent updates from applications. \n"
+        "' currently has the super_read_only system variable set to "
+        "protect it from inadvertent updates from applications. "
         "You must first unset it to be able to perform any changes "
-        "to this instance. \n"
+        "to this instance.\n"
         "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only.");
+        "en/server-system-variables.html#sysvar_super_read_only."));
     console->println();
 
     // Get the list of open session to the instance
@@ -1529,8 +1529,8 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
     open_sessions = mysqlsh::dba::get_open_sessions(session);
 
     if (!open_sessions.empty()) {
-      console->println(
-          "Note: there are open sessions to '" + active_session_address +
+      console->print_note(
+          "There are open sessions to '" + active_session_address +
           "'.\n"
           "You may want to kill these sessions to prevent them from "
           "performing unexpected updates: \n");
@@ -1840,8 +1840,8 @@ std::string get_report_host_address(
 }
 
 std::unique_ptr<mysqlshdk::config::Config> create_server_config(
-    mysqlshdk::mysql::IInstance *instance, std::string srv_cfg_handler_name,
-    const shcore::NamingStyle &naming_style) {
+    mysqlshdk::mysql::IInstance *instance,
+    const std::string &srv_cfg_handler_name) {
   auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
 
   // Get the capabilities to use set persist by the server.
@@ -1866,8 +1866,7 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
         "version " +
         instance->get_version().get_base() +
         " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
-        "required). Please use the <Dba>." +
-        get_member_name("configureLocalInstance", naming_style) +
+        "required). Please use the <Dba>.<<<configureLocalInstance>>>"
         "() command locally to persist the changes.";
     console->print_warning(warn_msg);
   } else if (*can_set_persist == false) {
@@ -1876,10 +1875,9 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
     std::string warn_msg =
         "Instance '" + instance->descr() +
         "' will not load the persisted cluster configuration upon reboot since "
-        "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>." +
-        get_member_name("configureLocalInstance", naming_style) +
-        "() command locally to persist the changes or set "
-        "'persisted-globals-load' to 'ON' on the configuration file.";
+        "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>."
+        "<<<configureLocalInstance>>>() command locally to persist the changes "
+        "or set 'persisted-globals-load' to 'ON' on the configuration file.";
     console->print_warning(warn_msg);
   }
 

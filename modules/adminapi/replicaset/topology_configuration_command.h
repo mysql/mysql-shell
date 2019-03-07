@@ -38,8 +38,7 @@ namespace dba {
 
 class Topology_configuration_command : public Command_interface {
  public:
-  Topology_configuration_command(ReplicaSet *replicaset,
-                                 const shcore::NamingStyle &naming_style);
+  explicit Topology_configuration_command(ReplicaSet *replicaset);
 
   ~Topology_configuration_command() override;
 
@@ -79,7 +78,6 @@ class Topology_configuration_command : public Command_interface {
 
  protected:
   ReplicaSet *m_replicaset = nullptr;
-  const shcore::NamingStyle m_naming_style;
 
   std::unique_ptr<mysqlshdk::mysql::Instance> m_cluster_session_instance;
 

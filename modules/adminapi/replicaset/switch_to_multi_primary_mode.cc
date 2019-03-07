@@ -37,8 +37,8 @@ namespace mysqlsh {
 namespace dba {
 
 Switch_to_multi_primary_mode::Switch_to_multi_primary_mode(
-    ReplicaSet *replicaset, const shcore::NamingStyle &naming_style)
-    : Topology_configuration_command(replicaset, naming_style) {}
+    ReplicaSet *replicaset)
+    : Topology_configuration_command(replicaset) {}
 
 Switch_to_multi_primary_mode::~Switch_to_multi_primary_mode() {}
 

@@ -70,8 +70,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   auto cluster = dba->create_cluster(args).as_object<mysqlsh::dba::Cluster>();
 
   cluster->add_instance("root:root@localhost:" + shell_env.sb_str_port2(), {});
-  _replicaset =
-      cluster->get_replicaset({}).as_object<mysqlsh::dba::ReplicaSet>();
+  _replicaset = cluster->impl()->get_default_replicaset();
 
   shell_env.execute("session.close()");
 

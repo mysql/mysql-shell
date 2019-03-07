@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,14 +30,14 @@
 
 namespace mysqlsh {
 namespace dba {
-Cluster_set_option::Cluster_set_option(Cluster *cluster,
+Cluster_set_option::Cluster_set_option(Cluster_impl *cluster,
                                        const std::string &option,
                                        const std::string &value)
     : m_cluster(cluster), m_option(option), m_value_str(value) {
   assert(cluster);
 }
 
-Cluster_set_option::Cluster_set_option(Cluster *cluster,
+Cluster_set_option::Cluster_set_option(Cluster_impl *cluster,
                                        const std::string &option, int64_t value)
     : m_cluster(cluster), m_option(option), m_value_int(value) {
   assert(cluster);

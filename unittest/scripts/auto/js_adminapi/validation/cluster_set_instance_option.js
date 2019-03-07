@@ -15,7 +15,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption for a target instance that does not belong to the cluster
-Cluster.setInstanceOption: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' does not belong to the ReplicaSet: 'default'. (RuntimeError)
+Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' does not belong to the ReplicaSet: 'default'. (RuntimeError)
 
 //@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
 ||

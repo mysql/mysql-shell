@@ -29,25 +29,23 @@
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 namespace dba {
 
 Remove_instance::Remove_instance(
     mysqlshdk::db::Connection_options instance_cnx_opts, const bool interactive,
-    mysqlshdk::utils::nullable<bool> force, const ReplicaSet &replicaset,
-    const shcore::NamingStyle &naming_style)
+    mysqlshdk::utils::nullable<bool> force, const ReplicaSet &replicaset)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_interactive(interactive),
       m_force(force),
-      m_replicaset(replicaset),
-      m_naming_style(naming_style) {
+      m_replicaset(replicaset) {
   assert(&instance_cnx_opts);
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
@@ -77,7 +75,7 @@ void Remove_instance::ensure_instance_belong_to_replicaset(
 
     std::string err_msg = "The instance '" + address +
                           "' does not belong to the ReplicaSet: '" +
-                          m_replicaset.get_member("name").get_string() + "'.";
+                          m_replicaset.get_name() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -93,8 +91,7 @@ void Remove_instance::ensure_not_last_instance_in_replicaset() {
     mysqlsh::current_console()->print_error(
         "The instance '" + m_instance_address +
         "' cannot be removed because it is the only member of the Cluster. "
-        "Please use <Cluster>." +
-        shcore::get_member_name("dissolve", m_naming_style) +
+        "Please use <Cluster>.<<<dissolve>>>" +
         "() instead to remove the last instance and dissolve the Cluster.");
 
     std::string err_msg = "The instance '" + m_instance_address +
@@ -152,9 +149,8 @@ void Remove_instance::find_failure_cause(const std::exception &err) {
             "the instance from the Cluster Metadata.";
       } else {
         message +=
-            "then please use <Cluster>." +
-            shcore::get_member_name("removeInstance", m_naming_style) +
-            "() with the force option set to true to proceed with the "
+            "then please use <Cluster>.<<<removeInstance>>>()"
+            " with the force option set to true to proceed with the "
             "operation and only remove the instance from the Cluster Metadata.";
       }
 
@@ -371,15 +367,12 @@ void Remove_instance::prepare() {
 }
 
 shcore::Value Remove_instance::execute() {
-  std::string msg =
+  auto console = mysqlsh::current_console();
+  console->print_info(fit_screen(
       "The instance will be removed from the InnoDB cluster. Depending on the "
       "instance being the Seed or not, the Metadata session might become "
       "invalid. If so, please start a new session to the Metadata Storage R/W "
-      "instance.";
-  std::string message =
-      mysqlshdk::textui::format_markup_text({msg}, 80, 0, false);
-  auto console = mysqlsh::current_console();
-  console->print_info(message);
+      "instance."));
   console->println();
 
   // JOB: Remove instance from the MD (metadata).

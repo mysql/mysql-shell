@@ -467,6 +467,10 @@ add_subdirectory(mysql-secret-store)
 
 CHECK_STAN_OPTIONS()
 
+IF(EXISTS ${CMAKE_SOURCE_DIR}/internal/CMakeLists.txt)
+  ADD_SUBDIRECTORY(internal)
+ENDIF()
+
 ###
 ### Optionally bundle Visual C++ Redistributable for Visual Studio
 ###

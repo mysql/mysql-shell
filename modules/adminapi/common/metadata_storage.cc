@@ -167,7 +167,8 @@ bool MetadataStorage::cluster_exists(const std::string &cluster_name) {
   return false;
 }
 
-void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
+void MetadataStorage::insert_cluster(
+    const std::shared_ptr<Cluster_impl> &cluster) {
   // Check if the Cluster has some description
   shcore::sqlstring query(
       "INSERT INTO mysql_innodb_cluster_metadata.clusters "
@@ -555,12 +556,8 @@ bool MetadataStorage::is_replicaset_active(uint64_t rs_id) {
   return active == 1;
 }
 
-void MetadataStorage::set_replicaset_group_name(
-    std::shared_ptr<ReplicaSet> replicaset, const std::string &group_name) {
-  uint64_t rs_id;
-
-  rs_id = replicaset->get_id();
-
+void MetadataStorage::set_replicaset_group_name(uint64_t rs_id,
+                                                const std::string &group_name) {
   shcore::sqlstring query(
       "UPDATE mysql_innodb_cluster_metadata.replicasets SET "
       "attributes = json_set(attributes, '$.group_replication_group_name', ?)"
@@ -601,8 +598,8 @@ void MetadataStorage::set_cluster_name(const std::string &cluster_name,
   }
 }
 
-bool MetadataStorage::get_cluster_from_query(const std::string &query,
-                                             std::shared_ptr<Cluster> cluster) {
+bool MetadataStorage::get_cluster_from_query(
+    const std::string &query, std::shared_ptr<Cluster_impl> cluster) {
   try {
     auto result = execute_sql(query);
     auto row = result->fetch_one();
@@ -664,7 +661,8 @@ bool MetadataStorage::get_cluster_from_query(const std::string &query,
   return false;
 }
 
-void MetadataStorage::load_default_cluster(std::shared_ptr<Cluster> cluster) {
+void MetadataStorage::load_default_cluster(
+    std::shared_ptr<Cluster_impl> cluster) {
   static const char *query =
       "SELECT cluster_id, cluster_name, default_replicaset, "
       "description, options, attributes "
@@ -678,7 +676,7 @@ void MetadataStorage::load_default_cluster(std::shared_ptr<Cluster> cluster) {
 }
 
 void MetadataStorage::load_cluster(const std::string &cluster_name,
-                                   std::shared_ptr<Cluster> cluster) {
+                                   std::shared_ptr<Cluster_impl> cluster) {
   shcore::sqlstring query;
   static const char *raw_query =
       "SELECT cluster_id, cluster_name, default_replicaset, "

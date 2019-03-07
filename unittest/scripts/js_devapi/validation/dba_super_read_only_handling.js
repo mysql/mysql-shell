@@ -11,12 +11,13 @@ Assuming full account name 'testUser'@'%' for testUser
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
 
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>'
+Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'testUser'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
@@ -57,17 +58,18 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 Creating InnoDB cluster 'sample' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
+NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates: 
 
-1 open session(s) of 'root@localhost'.
+1 open session(s) of 'root@localhost'. 
 
-Do you want to disable super_read_only and continue? [y/N]:
+Do you want to disable super_read_only and continue? [y/N]: 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
@@ -85,12 +87,13 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 Creating InnoDB cluster 'sample' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
 You may want to kill these sessions to prevent them from performing unexpected updates:
 
 1 open session(s) of 'root@localhost'.
@@ -206,20 +209,21 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
 Reconfiguring the cluster 'sample' from complete outage...
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.
-Would you like to rejoin it to the cluster? [y/N]:
+Would you like to rejoin it to the cluster? [y/N]: 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was part of the cluster configuration.
-Would you like to rejoin it to the cluster? [y/N]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+Would you like to rejoin it to the cluster? [y/N]: 
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
+NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates: 
 
-1 open session(s) of 'root@localhost'.
+1 open session(s) of 'root@localhost'. 
 
-Do you want to disable super_read_only and continue? [y/N]:
+Do you want to disable super_read_only and continue? [y/N]: 
 
 The cluster was successfully rebooted.
 
@@ -230,12 +234,13 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was part of the cluste
 Would you like to rejoin it to the cluster? [y/N]:
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was part of the cluster configuration.
 Would you like to rejoin it to the cluster? [y/N]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
-system variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
+variable set to protect it from inadvertent updates from applications. You must
+first unset it to be able to perform any changes to this instance.
+For more information see:
+https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
 You may want to kill these sessions to prevent them from performing unexpected updates:
 
 1 open session(s) of 'root@localhost'.

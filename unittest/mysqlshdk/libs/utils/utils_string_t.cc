@@ -553,4 +553,32 @@ TEST(UtilsString, str_span) {
   EXPECT_EQ(2, str_span("abbd", "abcd"));
 }
 
+TEST(UtilsString, str_subvars) {
+  EXPECT_EQ("",
+            str_subvars("", [](const std::string &v) { return ""; }, "$", ""));
+  EXPECT_EQ("",
+            str_subvars("$", [](const std::string &v) { return ""; }, "$", ""));
+  EXPECT_EQ("boo", str_subvars("$boo", [](const std::string &v) { return v; },
+                               "$", ""));
+  EXPECT_EQ(
+      "booble",
+      str_subvars("$boo$ble", [](const std::string &v) { return v; }, "$", ""));
+  EXPECT_EQ("boo.ble",
+            str_subvars("$boo.$ble", [](const std::string &v) { return v; },
+                        "$", ""));
+  EXPECT_EQ(".boo.ble.",
+            str_subvars(".$boo.$ble.", [](const std::string &v) { return v; },
+                        "$", ""));
+  EXPECT_EQ("boo.ble",
+            str_subvars("boo.{ble}", [](const std::string &v) { return v; },
+                        "{", "}"));
+  EXPECT_EQ("blaboo",
+            str_subvars("{bla}boo", [](const std::string &v) { return v; }, "{",
+                        "}"));
+  EXPECT_EQ("boo", str_subvars("boo", [](const std::string &v) { return v; },
+                               "{", "}"));
+  EXPECT_EQ("blable", str_subvars("${bla}${ble}",
+                                  [](const std::string &v) { return v; }));
+}
+
 }  // namespace shcore

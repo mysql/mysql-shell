@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,7 @@ namespace shcore {
 class SHCORE_PUBLIC Object_factory {
  public:
   typedef std::shared_ptr<Object_bridge> (*Factory_function)(
-      const Argument_list &args, NamingStyle style);
+      const Argument_list &args);
 
   //! Registers a metaclass
   static void register_factory(const std::string &package,
@@ -40,7 +40,7 @@ class SHCORE_PUBLIC Object_factory {
 
   static std::shared_ptr<Object_bridge> call_constructor(
       const std::string &package, const std::string &name,
-      const Argument_list &args, NamingStyle style);
+      const Argument_list &args);
 
   static std::vector<std::string> package_names();
   static std::vector<std::string> package_contents(const std::string &package);

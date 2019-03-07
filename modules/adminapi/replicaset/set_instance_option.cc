@@ -35,11 +35,9 @@ namespace dba {
 Set_instance_option::Set_instance_option(
     const ReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const shcore::NamingStyle naming_style, const std::string &option,
-    const std::string &value)
+    const std::string &option, const std::string &value)
     : m_replicaset(replicaset),
       m_instance_cnx_opts(instance_cnx_opts),
-      m_naming_style(naming_style),
       m_option(option),
       m_value_str(value) {
   m_target_instance_address =
@@ -50,11 +48,9 @@ Set_instance_option::Set_instance_option(
 Set_instance_option::Set_instance_option(
     const ReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const shcore::NamingStyle naming_style, const std::string &option,
-    int64_t value)
+    const std::string &option, int64_t value)
     : m_replicaset(replicaset),
       m_instance_cnx_opts(instance_cnx_opts),
-      m_naming_style(naming_style),
       m_option(option),
       m_value_int(value) {
   m_target_instance_address =
@@ -110,7 +106,7 @@ void Set_instance_option::ensure_instance_belong_to_replicaset() {
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + m_target_instance_address +
                           "' does not belong to the ReplicaSet: '" +
-                          m_replicaset.get_member("name").get_string() + "'.";
+                          m_replicaset.get_name() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -207,8 +203,8 @@ void Set_instance_option::prepare() {
   }
 
   // Create the internal configuration object.
-  m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance.get(), m_target_instance_address, m_naming_style);
+  m_cfg = mysqlsh::dba::create_server_config(m_target_instance.get(),
+                                             m_target_instance_address);
 
   if (m_option == kAutoRejoinTries && !m_value_int.is_null() &&
       *m_value_int != 0) {

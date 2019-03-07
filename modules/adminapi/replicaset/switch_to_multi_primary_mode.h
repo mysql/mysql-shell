@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,8 +32,7 @@ namespace dba {
 
 class Switch_to_multi_primary_mode : public Topology_configuration_command {
  public:
-  Switch_to_multi_primary_mode(ReplicaSet *replicaset,
-                               const shcore::NamingStyle &naming_style);
+  explicit Switch_to_multi_primary_mode(ReplicaSet *replicaset);
 
   ~Switch_to_multi_primary_mode() override;
 

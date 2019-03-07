@@ -229,7 +229,7 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
 bool Python_context::raw_execute_helper(const std::string &statement,
                                         std::string *error) {
   bool ret_val = false;
-
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   try {
     PyObject *py_result =
         PyRun_String(statement.c_str(), Py_single_input, _globals, _locals);
@@ -364,6 +364,7 @@ Value Python_context::execute(const std::string &code,
                               const std::vector<std::string> &argv) {
   PyObject *py_result;
   Value retvalue;
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   set_argv(argv);
 
@@ -382,7 +383,7 @@ Value Python_context::execute(const std::string &code,
 Value Python_context::execute_interactive(const std::string &code,
                                           Input_state &r_state) noexcept {
   Value retvalue;
-
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   r_state = shcore::Input_state::Ok;
 
   /*
@@ -484,6 +485,7 @@ Value Python_context::execute_interactive(const std::string &code,
 
 void Python_context::get_members_of(
     PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys) {
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   PyObject *members = PyObject_Dir(object);
 
   if (members && PySequence_Check(members)) {
@@ -509,6 +511,8 @@ std::vector<std::pair<bool, std::string>> Python_context::list_globals() {
   Py_ssize_t pos = 0;
   PyObject *key;
   PyObject *obj;
+
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   while (PyDict_Next(_globals, &pos, &key, &obj)) {
     keys.push_back(
@@ -843,6 +847,8 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self),
   Python_context *ctx;
   std::string text;
 
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
+
   if (!(ctx = Python_context::get_and_check())) return NULL;
 
   if (PyTuple_Size(args) == 1) {
@@ -901,6 +907,8 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args,
   Python_context *ctx;
   std::string text;
 
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
+
   if (!(ctx = Python_context::get_and_check())) return NULL;
 
   shcore::Argument_list shell_args;
@@ -935,6 +943,8 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args,
 }
 
 void Python_context::register_mysqlsh_module() {
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
+
   // Registers the mysqlsh module/package, at least for now this exists
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
@@ -950,10 +960,11 @@ void Python_context::register_mysqlsh_module() {
   // Now registers each available module as part of the mysqlsh package
   auto modules = Object_factory::package_contents("__modules__");
 
+  shcore::Scoped_naming_style lower(NamingStyle::LowerCaseUnderscores);
+
   for (auto name : modules) {
-    auto module_obj = Object_factory::call_constructor(
-        "__modules__", name, shcore::Argument_list(),
-        NamingStyle::LowerCaseUnderscores);
+    auto module_obj = Object_factory::call_constructor("__modules__", name,
+                                                       shcore::Argument_list());
 
     std::shared_ptr<shcore::Module_base> module =
         std::dynamic_pointer_cast<shcore::Module_base>(module_obj);
@@ -974,10 +985,8 @@ void Python_context::register_mysqlsh_module() {
     // Now inserts every element on the module
     PyObject *py_dict = PyModule_GetDict(py_module_ref);
 
-    for (auto &name :
-         module->get_members_advanced(shcore::LowerCaseUnderscores)) {
-      shcore::Value member =
-          module->get_member_advanced(name, shcore::LowerCaseUnderscores);
+    for (auto &name : module->get_members()) {
+      shcore::Value member = module->get_member_advanced(name);
       if (member.type == shcore::Function || member.type == shcore::Object) {
         PyObject *p = _types.shcore_value_to_pyobj(member);
         // incrs ref
@@ -1097,6 +1106,7 @@ bool Python_context::is_module(const std::string &file_name) {
 Value Python_context::execute_module(const std::string &file_name,
                                      const std::vector<std::string> &argv) {
   shcore::Value ret_val;
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   PyObject *argv0 = PyString_FromString(file_name.c_str());
   PyObject *sys_path = PySys_GetObject(const_cast<char *>("path"));
@@ -1165,6 +1175,7 @@ Value Python_context::execute_module(const std::string &file_name,
 
 void Python_context::load_plugin(const std::string &file_name) {
   WillEnterPython lock;
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   const auto file = fopen(file_name.c_str(), "r");
 
@@ -1190,6 +1201,7 @@ void Python_context::load_plugin(const std::string &file_name) {
 
 std::string Python_context::fetch_and_clear_exception() {
   std::string exception;
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   if (nullptr != PyErr_Occurred()) {
     PyObject *exc = nullptr;

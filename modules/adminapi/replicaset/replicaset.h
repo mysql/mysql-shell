@@ -46,15 +46,14 @@
 namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
-class Cluster;
+class Cluster_impl;
 
 #if DOXYGEN_CPP
 /**
  * Represents a ReplicaSet
  */
 #endif
-class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
-                   public shcore::Cpp_object_bridge {
+class ReplicaSet {
  public:
   using Instance_info = mysqlshdk::innodbcluster::Instance_info;
 
@@ -63,30 +62,20 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
              std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
 
-  std::string class_name() const override { return "ReplicaSet"; }
-  std::string &append_descr(std::string &s_out, int indent = -1,
-                            int quote_strings = 0) const override;
-  void append_json(shcore::JSON_dumper &dumper) const override;
-  bool operator==(const Object_bridge &other) const override;
-
-  shcore::Value get_member(const std::string &prop) const override;
-
   void set_id(uint64_t id) { _id = id; }
   uint64_t get_id() const { return _id; }
 
   void set_name(const std::string &name) { _name = name; }
   const std::string &get_name() const { return _name; }
 
-  void set_cluster(const std::shared_ptr<Cluster> &cluster) {
-    _cluster = cluster;
-  }
+  void set_cluster(Cluster_impl *cluster) { m_cluster = cluster; }
 
   /**
    * Get the cluster parent object.
    *
    * @return shared_ptr to Cluster parent object.
    */
-  std::shared_ptr<Cluster> get_cluster() const;
+  Cluster_impl *get_cluster() const { return m_cluster; }
 
   std::string get_topology_type() const { return _topology_type; }
 
@@ -131,58 +120,18 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   static char const *kTopologyMultiPrimary;
   static const char *kWarningDeprecateSslMode;
 
-#if DOXYGEN_JS
-  String getName();
-  Undefined addInstance(InstanceDef instance, Dictionary options);
-  Undefined rejoinInstance(IndtanceDef instance, Dictionary options);
-  Undefined removeInstance(InstanceDef instance, Dictionary options);
-  Undefined dissolve(Dictionary options);
-  Undefined disable();
-  Undefined rescan();
-  String describe();
-  String status();
-  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
-  Undefined switchToSinglePrimaryMode(InstanceDef instance);
-  Undefined switchToMultiPrimaryMode();
-  Undefined setPrimaryInstance(InstanceDef instance);
-  Undefined setInstanceOption(InstanceDef instance, String option,
-                              String value);
-
-#elif DOXYGEN_PY
-  str get_name();
-  None add_instance(InstanceDef instance, dict options);
-  None rejoin_instance(InstanceDef instance, dict options);
-  None remove_instance(InstanceDef instance, dict options);
-  None dissolve(Dictionary options);
-  None disable();
-  None rescan();
-  str describe();
-  str status();
-  None force_quorum_using_partition_of(InstanceDef instance, str password);
-  None switch_to_single_primary_mode(InstanceDef instance);
-  None switch_to_multi_primary_mode();
-  None set_primary_instance(InstanceDef instance);
-  None set_instance_option(InstanceDef instance, str option, str value);
-#endif
-
   void add_instance(const mysqlshdk::db::Connection_options &connection_options,
                     const shcore::Dictionary_t &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
-  shcore::Value rejoin_instance_(const shcore::Argument_list &args);
+
   shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
                                 const shcore::Value::Map_type_ref &options);
   shcore::Value remove_instance(const shcore::Argument_list &args);
-  shcore::Value dissolve(const shcore::Argument_list &args);
+  void dissolve(const shcore::Dictionary_t &options);
   void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
-  shcore::Value force_quorum_using_partition_of_(
-      const shcore::Argument_list &args);
-  shcore::Value get_status(const mysqlsh::dba::Cluster_check_info &state) const;
 
-  Cluster_check_info check_preconditions(
-      std::shared_ptr<mysqlshdk::db::ISession> group_session,
-      const std::string &function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
@@ -267,8 +216,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &ssl_mode) const;
 
  private:
-  // TODO(miguel) these should go to a GroupReplication file
-  friend Cluster;
+  friend Cluster_impl;
 
   void verify_topology_type_change() const;
 
@@ -277,10 +225,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::string _name;
   std::string _topology_type;
   std::string _group_name;
-  // TODO(miguel): add missing fields, rs_type, etc
 
  private:
-  std::weak_ptr<Cluster> _cluster;
+  Cluster_impl *m_cluster;
 
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;

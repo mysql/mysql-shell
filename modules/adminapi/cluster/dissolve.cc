@@ -36,7 +36,8 @@ namespace mysqlsh {
 namespace dba {
 
 Dissolve::Dissolve(const bool interactive,
-                   mysqlshdk::utils::nullable<bool> force, Cluster *cluster)
+                   mysqlshdk::utils::nullable<bool> force,
+                   Cluster_impl *cluster)
     : m_interactive(interactive), m_force(force), m_cluster(cluster) {
   assert(cluster);
   m_primary_index = SIZE_MAX;
@@ -429,11 +430,8 @@ shcore::Value Dissolve::execute() {
     remove_instance(instance_address, m_primary_index);
   }
 
-  // Set the flag, marking this cluster instance as invalid.
-  m_cluster->invalidate();
-
   // Disconnect all internal sessions
-  m_cluster->disconnect({});
+  m_cluster->disconnect();
 
   // Print appropriate output message depending if some operation was skipped.
   console->println();

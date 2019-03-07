@@ -38,13 +38,11 @@ class Set_instance_option : public Command_interface {
   Set_instance_option(
       const ReplicaSet &replicaset,
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      const shcore::NamingStyle naming_style, const std::string &option,
-      const std::string &value);
+      const std::string &option, const std::string &value);
   Set_instance_option(
       const ReplicaSet &replicaset,
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      const shcore::NamingStyle naming_style, const std::string &option,
-      int64_t value);
+      const std::string &option, int64_t value);
 
   ~Set_instance_option() override;
 
@@ -86,7 +84,6 @@ class Set_instance_option : public Command_interface {
  private:
   const ReplicaSet &m_replicaset;
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
-  const shcore::NamingStyle m_naming_style;
   std::string m_target_instance_address;
   std::string m_address_in_metadata;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_target_instance;

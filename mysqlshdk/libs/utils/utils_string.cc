@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,11 +24,15 @@
 #include "utils/utils_string.h"
 #include <algorithm>
 #include <bitset>
+#include <cassert>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 
 namespace shcore {
+
+constexpr const char k_idchars[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_01234567890";
 
 std::string str_strip(const std::string &s, const std::string &chars) {
   size_t begin = s.find_first_not_of(chars);
@@ -290,5 +294,40 @@ std::pair<std::string::size_type, std::string::size_type> get_quote_span(
   // closing quote was not found
   if (close_quote_pos == str.size()) close_quote_pos = std::string::npos;
   return std::make_pair(open_quote_pos, close_quote_pos);
+}
+
+std::string str_subvars(
+    const std::string &s,
+    const std::function<std::string(const std::string &)> &subvar,
+    const std::string &var_begin, const std::string &var_end) {
+  assert(var_begin.size() > 0);
+  std::string out_s;
+
+  std::string::size_type p0 = 0;
+  while (p0 != std::string::npos) {
+    auto pos = s.find(var_begin, p0);
+    if (pos == std::string::npos) {
+      out_s.append(s.substr(p0));
+      break;
+    } else {
+      out_s.append(s.substr(p0, pos - p0));
+    }
+    pos += var_begin.size();
+    std::string::size_type p1;
+    if (var_end.empty()) {
+      p1 = s.find_first_not_of(k_idchars, pos);
+    } else {
+      p1 = s.find(var_end, pos);
+      if (p1 == std::string::npos) return out_s.append(s.substr(pos));
+    }
+    if (p1 == std::string::npos) {
+      out_s.append(subvar(s.substr(pos)));
+    } else {
+      out_s.append(subvar(s.substr(pos, p1 - pos)));
+      p1 += var_end.size();
+    }
+    p0 = p1;
+  }
+  return out_s;
 }
 }  // namespace shcore

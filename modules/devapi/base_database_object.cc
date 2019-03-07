@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -334,12 +334,11 @@ shcore::Value DatabaseObject::find_in_cache(const std::string &name,
 }
 
 bool DatabaseObject::is_base_member(const std::string &prop) const {
-  auto style = naming_style;
-  if (has_method_advanced(prop, style)) return true;
+  if (has_method_advanced(prop)) return true;
   auto prop_index = std::find_if(
       _properties.begin(), _properties.begin() + (_base_property_count - 1),
-      [prop, style](const Cpp_property_name &p) {
-        return p.name(style) == prop;
+      [prop](const Cpp_property_name &p) {
+        return p.name(shcore::current_naming_style()) == prop;
       });
 
   return (prop_index != _properties.begin() + (_base_property_count - 1));
