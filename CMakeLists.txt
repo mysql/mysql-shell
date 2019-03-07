@@ -339,9 +339,27 @@ IF(WIN32)
   ENDIF()
 ENDIF()
 
+# Set DBUG_OFF for non-debug project types.
+FOREACH(BUILD_TYPE RELEASE RELWITHDEBINFO MINSIZEREL)
+  FOREACH(LANG C CXX)
+    SET(CMAKE_${LANG}_FLAGS_${BUILD_TYPE} "${CMAKE_${LANG}_FLAGS_${BUILD_TYPE}} -DDBUG_OFF ")
+  ENDFOREACH()
+ENDFOREACH()
+
+IF(NOT CMAKE_BUILD_TYPE
+    AND NOT CMAKE_GENERATOR MATCHES "Visual Studio"
+    AND NOT CMAKE_GENERATOR MATCHES "Xcode")
+    # This is the case of no CMAKE_BUILD_TYPE choosen, typical for VS and Xcode
+    # or if custom C flags are set. In VS and Xcode for non-Debug configurations
+    # DBUG_OFF is already correctly set.
+    ADD_DEFINITIONS(-DDBUG_OFF)
+ENDIF()
+
+
 # Includes common to the whole project
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
             ${PROJECT_SOURCE_DIR}/include
+            ${PROJECT_SOURCE_DIR}/ext
             ${MYSQL_INCLUDE_DIRS}
             ${MYSQLX_INCLUDE_DIRS}
             ${PROTOBUF_INCLUDE_DIRS})
@@ -432,6 +450,8 @@ IF(WITH_OCI)
     EXECUTE_PROCESS(COMMAND otool -L ${OCI_OPEN_SSL_LIB})
   ENDIF()
 ENDIF()
+
+ADD_SUBDIRECTORY(ext/dbug)
 
 IF(WITH_TESTS)
   ###

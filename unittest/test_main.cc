@@ -35,6 +35,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -64,12 +65,12 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
 bool g_generate_validation_file = false;
 
 int g_test_trace_scripts = 0;
+int g_test_default_verbosity = 0;
 bool g_test_fail_early = false;
-int g_test_trace_sql = 0;
 bool g_test_color_output = false;
 
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version g_target_server_version = Version("8.0.11");
+mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
@@ -336,20 +337,25 @@ static bool delete_sandbox(int port) {
   return true;
 }
 
-static void check_zombie_sandboxes(int sport1, int sport2, int sport3) {
+static void check_zombie_sandboxes(
+    int sports[tests::k_max_default_sandbox_ports]) {
   bool have_zombies = false;
+  std::string ports;
 
-  have_zombies |= !delete_sandbox(sport1);
-  have_zombies |= !delete_sandbox(sport2);
-  have_zombies |= !delete_sandbox(sport3);
+  for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
+    have_zombies |= !delete_sandbox(sports[i]);
+    if (!ports.empty()) ports.append(", ");
+    ports.append(std::to_string(sports[i]));
+  }
 
   if (have_zombies) {
     std::cout << "WARNING: mysqld running on port reserved for sandbox tests\n";
-    std::cout << "Sandbox ports: " << sport1 << ", " << sport2 << ", " << sport3
-              << "\n";
+    std::cout << "Sandbox ports: " << ports << "\n";
     std::cout << "If they're left from a previous run, terminate them first\n";
     std::cout << "Or setenv TEST_SKIP_ZOMBIE_CHECK to skip this check\n";
-    std::cout << "Or setenv MYSQL_SANDBOX_PORT1..3 to pick different ports for "
+    std::cout << "Or setenv MYSQL_SANDBOX_PORT1.."
+              << tests::k_max_default_sandbox_ports + 1
+              << " to pick different ports for "
                  "test sandboxes\n";
     exit(1);
   }
@@ -454,6 +460,17 @@ void setup_test_environment() {
     }
     if (putenv(&temp[0]) != 0) {
       std::cerr << "TMPDIR was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  // Set HOME to same as TMPDIR
+  {
+    static std::string home("HOME=");
+    home.append(getenv("TMPDIR"));
+    if (putenv(&home[0]) != 0) {
+      std::cerr << "HOME could not be overriden\n";
+      exit(1);
     }
   }
 
@@ -471,32 +488,24 @@ void setup_test_environment() {
     std::cerr << "Deleting old " << log_path << " file\n";
     shcore::delete_file(log_path);
   }
-  ngcommon::Logger::setup_instance(log_path.c_str(), false);
+  shcore::Logger::setup_instance(log_path.c_str(), false);
 
-  int sport1, sport2, sport3;
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1) {
-    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
-  } else {
-    sport1 = std::stoi(getenv("MYSQL_PORT")) + 10;
+  int sports[tests::k_max_default_sandbox_ports];  // NOLINT
+  for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
+    const char *sandbox_port =
+        getenv(shcore::str_format("MYSQL_SANDBOX_PORT%i", i + 1).c_str());
+    if (sandbox_port) {
+      sports[i] = atoi(sandbox_port);
+    } else {
+      sports[i] = std::stoi(getenv("MYSQL_PORT")) + (i + 1) * 10;
+    }
   }
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2) {
-    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
-  } else {
-    sport2 = std::stoi(getenv("MYSQL_PORT")) + 20;
-  }
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3) {
-    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
-  } else {
-    sport3 = std::stoi(getenv("MYSQL_PORT")) + 30;
-  }
+
   // Check for leftover sandbox servers
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes(sport1, sport2, sport3);
+    check_zombie_sandboxes(sports);
   }
-  tests::Shell_test_env::setup_env(sport1, sport2, sport3);
+  tests::Shell_test_env::setup_env(sports);
 
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
                                          g_target_server_version.get_full());
@@ -603,6 +612,7 @@ int main(int argc, char **argv) {
   bool listing_tests = false;
   bool show_all_skipped = false;
   bool got_filter = false;
+  bool tdb = false;
   std::string tracedir;
   std::string target;
 
@@ -636,6 +646,8 @@ int main(int argc, char **argv) {
       tracedir = p + 1;
     } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
       g_generate_validation_file = true;
+    } else if (strncmp(argv[index], "--debug=", strlen("--debug=")) == 0) {
+      DBUG_SET_INITIAL(argv[index] + strlen("--debug="));
     } else if (strcmp(argv[index], "--trace-no-stop") == 0) {
       // continue executing script until the end on failure
       g_test_trace_scripts = 1;
@@ -643,15 +655,18 @@ int main(int argc, char **argv) {
       // stop executing script on failure
       g_test_trace_scripts = 2;
       g_test_fail_early = true;
+    } else if (strcmp(argv[index], "--verbose=") == 0) {
+      g_test_default_verbosity = std::stod(strchr(argv[index], '=') + 1);
+    } else if (strcmp(argv[index], "--verbose") == 0) {
+      g_test_default_verbosity = 1;
     } else if (strcmp(argv[index], "--trace-sql") == 0) {
-      g_test_trace_sql = 1;
+      DBUG_SET_INITIAL("+d,sql");
     } else if (strcmp(argv[index], "--trace-all-sql") == 0) {
-      g_test_trace_sql = 2;
+      DBUG_SET_INITIAL("+d,sql,sqlall");
     } else if (strcmp(argv[index], "--stop-on-fail") == 0) {
       g_test_fail_early = true;
     } else if (strcmp(argv[index], "--tdb") == 0) {
-      extern void enable_tdb();
-      enable_tdb();
+      tdb = true;
       g_test_trace_scripts = 1;
       g_test_fail_early = true;
     } else if (strcmp(argv[index], "--profile-scripts") == 0) {
@@ -669,6 +684,11 @@ int main(int argc, char **argv) {
 
   if (!listing_tests) {
     setup_test_environment();
+
+    if (tdb) {
+      extern void enable_tdb();
+      enable_tdb();
+    }
 
     if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
       if (target.empty()) target = g_target_server_version.get_base();

@@ -10,7 +10,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                           |
 +----------------------------------+---------------+----------------+------------------------------------------------+
@@ -30,7 +30,7 @@ Some variables need to be changed, but cannot be done dynamically on the server.
 Cluster admin user 'root'@'%' created.
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-MySQL server needs to be restarted for configuration changes to take effect.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(<8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -38,7 +38,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -60,7 +60,7 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 Cluster admin user 'root'@'%' created.
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-MySQL server needs to be restarted for configuration changes to take effect.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -68,7 +68,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root2'@'%' for root2
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -99,7 +99,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root2'@'%' for root2
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -144,7 +144,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root5'@'%' for root5
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -164,7 +164,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root5'@'%' for root5
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -197,7 +197,7 @@ Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
 //@<OUT> Interactive_dba_configure_local_instance should ask for creation of new configuration file and then ask user to copy it. (BUG#27702439)
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -211,7 +211,7 @@ ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper
 
 Please select an option [1]: Please provide a source address filter for the account (e.g: 192.168.% or % etc) or leave empty and press Enter to cancel.
 Account Host:
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +-----------------+---------------+----------------+------------------------+
 | Variable        | Current Value | Required Value | Note                   |
 +-----------------+---------------+----------------+------------------------+

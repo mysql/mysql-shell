@@ -50,7 +50,7 @@ class Recorder_mysql : public mysql::Session {
  public:
   using super = mysql::Session;
 
-  explicit Recorder_mysql(int print_traces);
+  Recorder_mysql();
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -65,14 +65,13 @@ class Recorder_mysql : public mysql::Session {
   std::unique_ptr<Trace_writer> _trace;
   int _port;
   bool _closed = false;
-  int _print_traces = 0;
 };
 
 class Recorder_mysqlx : public mysqlx::Session {
  public:
   using super = mysqlx::Session;
 
-  explicit Recorder_mysqlx(int print_traces);
+  Recorder_mysqlx();
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -111,7 +110,6 @@ class Recorder_mysqlx : public mysqlx::Session {
   std::unique_ptr<Trace_writer> _trace;
   int _port;
   bool _closed = false;
-  int _print_traces = 0;
 };
 
 }  // namespace replay

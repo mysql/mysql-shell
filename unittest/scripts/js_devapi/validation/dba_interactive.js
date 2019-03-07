@@ -57,7 +57,7 @@
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -74,7 +74,7 @@ one server failure.
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -92,7 +92,7 @@ one server failure.
 |Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
 //@<OUT> Dba: checkInstanceConfiguration ok 1
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -107,7 +107,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -123,7 +123,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -134,7 +134,7 @@ No incompatible tables detected
 Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -150,11 +150,11 @@ Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -165,7 +165,7 @@ No incompatible tables detected
 Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -182,7 +182,7 @@ Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
@@ -247,12 +247,12 @@ The instance cluster settings were successfully persisted.
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -274,12 +274,12 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -305,7 +305,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 //@<OUT> Dba: configureLocalInstance create different admin user
 Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -326,7 +326,7 @@ Cluster admin user 'dba_test'@'%' created.
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>

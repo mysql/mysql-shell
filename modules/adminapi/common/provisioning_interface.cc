@@ -107,7 +107,7 @@ int ProvisioningInterface::execute_mysqlprovision(
   if (mysqlsh::current_shell_options()->get().log_to_stderr)
     log_level.append("@");
   log_level.append(std::to_string(
-      static_cast<int>(ngcommon::Logger::singleton()->get_log_level())));
+      static_cast<int>(shcore::Logger::singleton()->get_log_level())));
 
   args_script.push_back(g_mysqlsh_path);
   args_script.push_back(log_level.c_str());

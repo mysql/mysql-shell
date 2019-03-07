@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "dbug/my_dbug.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -57,17 +58,12 @@ void on_session_close(std::shared_ptr<mysqlshdk::db::ISession> session) {
 }  // namespace
 
 void handle_debug_options(int *argc, char ***argv) {
-  int print_traces = 0;
-
-  if (const char *debug = getenv("TEST_DEBUG")) {
-    print_traces = atoi(debug);
-  }
   if (const char *mode = getenv("MYSQLSH_RECORDER_MODE")) {
     if (strcasecmp(mode, "direct") == 0 || !*mode) {
-      mysqlshdk::db::replay::set_mode(Mode::Direct, 0);
+      mysqlshdk::db::replay::set_mode(Mode::Direct);
       puts("Disabled classic session recording");
     } else if (strcasecmp(mode, "record") == 0) {
-      mysqlshdk::db::replay::set_mode(Mode::Record, print_traces);
+      mysqlshdk::db::replay::set_mode(Mode::Record);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {
         printf(
@@ -86,7 +82,7 @@ void handle_debug_options(int *argc, char ***argv) {
       printf("Recording classic sessions to %s\n",
              mysqlshdk::db::replay::g_recording_path_prefix);
     } else if (strcasecmp(mode, "replay") == 0) {
-      mysqlshdk::db::replay::set_mode(Mode::Replay, print_traces);
+      mysqlshdk::db::replay::set_mode(Mode::Replay);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {
         printf(
@@ -108,23 +104,23 @@ void handle_debug_options(int *argc, char ***argv) {
       g_test_trace_scripts = 2;
       (*argc)--;
     } else if (strcmp((*argv)[i], "--trace-sql") == 0) {
-      print_traces = 1;
+      DBUG_SET("+d,sql");
       (*argc)--;
     } else if (strcmp((*argv)[i], "--trace-all-sql") == 0) {
-      print_traces = 2;
+      DBUG_SET("+d,sql,sqlall");
       (*argc)--;
     } else if (strncmp((*argv)[i], "--record=", strlen("--record=")) == 0) {
-      mysqlshdk::db::replay::set_mode(Mode::Record, print_traces);
+      mysqlshdk::db::replay::set_mode(Mode::Record);
       mysqlshdk::db::replay::set_recording_path_prefix(strchr((*argv)[i], '=') +
                                                        1);
       (*argc)--;
     } else if (strncmp((*argv)[i], "--replay=", strlen("--replay=")) == 0) {
-      mysqlshdk::db::replay::set_mode(Mode::Replay, print_traces);
+      mysqlshdk::db::replay::set_mode(Mode::Replay);
       mysqlshdk::db::replay::set_recording_path_prefix(strchr((*argv)[i], '=') +
                                                        1);
       (*argc)--;
     } else if (strncmp((*argv)[i], "--direct", strlen("--direct")) == 0) {
-      mysqlshdk::db::replay::set_mode(Mode::Direct, 0);
+      mysqlshdk::db::replay::set_mode(Mode::Direct);
       (*argc)--;
     } else if (strncmp((*argv)[i], "--generate-uc-translation",
                        strlen("--generate-uc-translation")) == 0) {

@@ -381,7 +381,7 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
         }
       }
       base_msg += ".";
-      console->print_note(base_msg);
+      console->print_info(base_msg);
     }
   }
   return invalid_cfs_vec;

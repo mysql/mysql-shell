@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,12 +140,11 @@ bool Shell_python::is_module(const std::string &file_name) {
 
     ret_val = _py->is_module(file_name);
   } catch (std::exception &exc) {
-    mysqlsh::current_console()->raw_print(
+    mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")
             .append(file_name)
             .append(": ")
-            .append(exc.what()),
-        mysqlsh::Output_stream::STDERR);
+            .append(exc.what()));
   }
 
   return ret_val;
@@ -168,12 +167,11 @@ void Shell_python::execute_module(const std::string &file_name) {
 
     _result_processor(ret_val, ret_val.type == shcore::Undefined);
   } catch (std::exception &exc) {
-    mysqlsh::current_console()->raw_print(
+    mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")
             .append(file_name)
             .append(": ")
-            .append(exc.what()),
-        mysqlsh::Output_stream::STDERR);
+            .append(exc.what()));
     // Should shcore::Exceptions bubble up??
   }
 }

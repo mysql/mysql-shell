@@ -59,9 +59,13 @@
  dba.gtidWaitTimeout  Timeout value in seconds to wait for GTIDs to be
                       synchronized.
 
-//@ Verify the help text when using filter
-|history.autoSave           Shell's history autosave.|
-|history.maxSize            Shell's history maximum size|
-|history.sql.ignorePattern  Shell's history ignore list.|
+//@<OUT> Verify the help text when using filter
+ history.autoSave           Shell's history autosave.
+ history.maxSize            Shell's history maximum size
+ history.sql.ignorePattern  Shell's history ignore list.
 
+//@<OUT> verbose output
+ verbose  Verbose output level. Enable diagnostic message output. If level is
+          given, it can go up to 4 for maximum verbosity, otherwise 1 is
+          assumed.
 

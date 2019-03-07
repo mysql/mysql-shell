@@ -54,19 +54,23 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
       _deferred_output(new std::string()),
       m_console_handler{
           std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
+  m_console_handler.get()->set_verbose(options().verbose_level);
+
   shcore::Interrupts::setup();
 
   std::string log_path =
       shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
 
-  ngcommon::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
-                                   options().log_level);
+  shcore::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
+                                 options().log_level);
 
   _input_mode = shcore::Input_state::Ok;
 
   _shell.reset(new shcore::Shell_core(m_console_handler.get().get()));
   _completer_object_registry.reset(new shcore::completer::Object_registry());
 }
+
+Base_shell::~Base_shell() {}
 
 void Base_shell::finish_init() {
   shcore::IShell_core::Mode initial_mode = options().initial_mode;

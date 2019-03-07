@@ -4,7 +4,7 @@
 
 //@<OUT> Dba_create_cluster.clear_read_only_unset
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -19,7 +19,7 @@ Dba.createCluster: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@<OUT> Dba_create_cluster.clear_read_only_false
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -41,7 +41,7 @@ Dba.createCluster: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@<OUT> Dba_configure_local_instance.clear_read_only_unset
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -55,7 +55,7 @@ Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@<OUT> Dba_configure_local_instance.clear_read_only_false
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>

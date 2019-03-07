@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,51 +99,25 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
     code = "var __mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port1 = " +
-           std::to_string(_mysql_sandbox_port1) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port2 = " +
-           std::to_string(_mysql_sandbox_port2) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port3 = " +
-           std::to_string(_mysql_sandbox_port3) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_gr_port1 = " +
-           std::to_string(_mysql_sandbox_port1 * 10 + 1) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_gr_port2 = " +
-           std::to_string(_mysql_sandbox_port2 * 10 + 1) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_gr_port3 = " +
-           std::to_string(_mysql_sandbox_port3 * 10 + 1) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_x_port1 = " +
-           std::to_string(_mysql_sandbox_port1 * 10) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_x_port2 = " +
-           std::to_string(_mysql_sandbox_port2 * 10) + ";";
-    exec_and_out_equals(code);
-    code = "var __mysql_sandbox_x_port3 = " +
-           std::to_string(_mysql_sandbox_port3 * 10) + ";";
-    exec_and_out_equals(code);
-    code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port1) + "';";
-    exec_and_out_equals(code);
-    code = "var __sandbox_uri2 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port2) + "';";
-    exec_and_out_equals(code);
-    code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port3) + "';";
-    exec_and_out_equals(code);
-    code = "var __hostname_uri1 = 'mysql://root:root@" + hostname() + ":" +
-           std::to_string(_mysql_sandbox_port1) + "';";
-    exec_and_out_equals(code);
-    code = "var __hostname_uri2 = 'mysql://root:root@" + hostname() + ":" +
-           std::to_string(_mysql_sandbox_port2) + "';";
-    exec_and_out_equals(code);
-    code = "var __hostname_uri3 = 'mysql://root:root@" + hostname() + ":" +
-           std::to_string(_mysql_sandbox_port3) + "';";
-    exec_and_out_equals(code);
+    for (int i = 0; i < k_max_default_sandbox_ports; i++) {
+      code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+      code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i] * 10 + 1);
+      exec_and_out_equals(code);
+      code = shcore::str_format("var __mysql_sandbox_x_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i] * 10);
+      exec_and_out_equals(code);
+      code = shcore::str_format(
+          "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
+          _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+      code = shcore::str_format(
+          "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
+          hostname().c_str(), _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+    }
 
     code = "var localhost = 'localhost'";
     exec_and_out_equals(code);

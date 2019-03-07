@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,7 @@
 #include <fcntl.h>
 #endif  // !_WIN32
 
-namespace ngcommon {
+namespace shcore {
 
 namespace {
 
@@ -58,9 +58,13 @@ bool is_timestamp(const char *text) {
 
 class Logger_test : public ::testing::Test {
  protected:
-  static void log_hook(const Logger::Log_entry &) { ++s_hook_executed; }
+  static void log_hook(const Logger::Log_entry &, void *) { ++s_hook_executed; }
+  static void log_all_hook(const Logger::Log_entry &, void *) {
+    ++s_all_hook_executed;
+  }
 
   static int hook_executed() { return s_hook_executed; }
+  static int all_hook_executed() { return s_all_hook_executed; }
 
   static std::string get_log_file(const char *filename) {
     static const auto k_test_dir = getenv("TMPDIR");
@@ -94,10 +98,12 @@ class Logger_test : public ::testing::Test {
     Logger::set_stderr_output_format(m_previous_stderr_format);
 
     s_hook_executed = 0;
+    s_all_hook_executed = 0;
   }
 
  private:
   static int s_hook_executed;
+  static int s_all_hook_executed;
 
   std::string m_previous_log_file;
   bool m_previous_use_stderr;
@@ -106,6 +112,7 @@ class Logger_test : public ::testing::Test {
 };
 
 int Logger_test::s_hook_executed = 0;
+int Logger_test::s_all_hook_executed = 0;
 
 TEST_F(Logger_test, intialization) {
   const auto name = get_log_file("mylog.txt");
@@ -125,16 +132,21 @@ TEST_F(Logger_test, log_levels_and_hooks) {
                          Logger::LOG_WARNING);
 
   const auto l = Logger::singleton();
+  Log_context ctx("Unit Test Domain");
+
+  l->attach_log_hook(log_all_hook, nullptr, true);
 
   l->attach_log_hook(log_hook);
-  l->log(Logger::LOG_ERROR, "Unit Test Domain", "Error due to %s", "critical");
+  l->log(Logger::LOG_ERROR, "Error due to %s", "critical");
   l->detach_log_hook(log_hook);
   // Debug message will not appear in the log
-  l->log(Logger::LOG_DEBUG, "Unit Test Domain", "Memory deallocated");
-  l->log(Logger::LOG_WARNING, "Unit Test Domain",
-         "Warning the file already exists");
+  l->log(Logger::LOG_DEBUG, "Memory deallocated");
+  l->log(Logger::LOG_WARNING, "Warning the file already exists");
+
+  l->detach_log_hook(log_all_hook);
 
   EXPECT_EQ(1, hook_executed());
+  EXPECT_EQ(3, all_hook_executed());
 
   std::string contents;
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
@@ -150,56 +162,26 @@ TEST_F(Logger_test, log_levels_and_hooks) {
               ::testing::Not(::testing::HasSubstr("Memory deallocated")));
 }
 
-TEST_F(Logger_test, get_level_by_name) {
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("unknown"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("NONE"));
-  EXPECT_EQ(Logger::LOG_INTERNAL_ERROR, Logger::get_level_by_name("internal"));
-  EXPECT_EQ(Logger::LOG_ERROR, Logger::get_level_by_name("error"));
-  EXPECT_EQ(Logger::LOG_WARNING, Logger::get_level_by_name("WArning"));
-  EXPECT_EQ(Logger::LOG_INFO, Logger::get_level_by_name("infO"));
-  EXPECT_EQ(Logger::LOG_DEBUG, Logger::get_level_by_name("DEBUG"));
-  EXPECT_EQ(Logger::LOG_DEBUG2, Logger::get_level_by_name("DEBUG2"));
-  EXPECT_EQ(Logger::LOG_DEBUG3, Logger::get_level_by_name("DEBUG3"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("0"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("1"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("2"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("3"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("4"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("5"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("6"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("7"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("8"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_level_by_name("9"));
-}
-
-TEST_F(Logger_test, get_log_level) {
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_log_level("unknown"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_log_level("NONE"));
-  EXPECT_EQ(Logger::LOG_INTERNAL_ERROR, Logger::get_log_level("internal"));
-  EXPECT_EQ(Logger::LOG_ERROR, Logger::get_log_level("error"));
-  EXPECT_EQ(Logger::LOG_WARNING, Logger::get_log_level("WArning"));
-  EXPECT_EQ(Logger::LOG_INFO, Logger::get_log_level("infO"));
-  EXPECT_EQ(Logger::LOG_DEBUG, Logger::get_log_level("DEBUG"));
-  EXPECT_EQ(Logger::LOG_DEBUG2, Logger::get_log_level("DEBUG2"));
-  EXPECT_EQ(Logger::LOG_DEBUG3, Logger::get_log_level("DEBUG3"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_log_level("0"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_log_level("1"));
-  EXPECT_EQ(Logger::LOG_INTERNAL_ERROR, Logger::get_log_level("2"));
-  EXPECT_EQ(Logger::LOG_ERROR, Logger::get_log_level("3"));
-  EXPECT_EQ(Logger::LOG_WARNING, Logger::get_log_level("4"));
-  EXPECT_EQ(Logger::LOG_INFO, Logger::get_log_level("5"));
-  EXPECT_EQ(Logger::LOG_DEBUG, Logger::get_log_level("6"));
-  EXPECT_EQ(Logger::LOG_DEBUG2, Logger::get_log_level("7"));
-  EXPECT_EQ(Logger::LOG_DEBUG3, Logger::get_log_level("8"));
-  EXPECT_EQ(Logger::LOG_NONE, Logger::get_log_level("9"));
-}
-
-TEST_F(Logger_test, is_level_none) {
-  EXPECT_TRUE(Logger::is_level_none("NONE"));
-  EXPECT_TRUE(Logger::is_level_none("none"));
-  EXPECT_TRUE(Logger::is_level_none("1"));
-  EXPECT_FALSE(Logger::is_level_none("0"));
-  EXPECT_FALSE(Logger::is_level_none("unknown"));
+TEST_F(Logger_test, parse_log_level) {
+  EXPECT_THROW(Logger::parse_log_level("unknown"), std::invalid_argument);
+  EXPECT_EQ(Logger::LOG_NONE, Logger::parse_log_level("NONE"));
+  EXPECT_EQ(Logger::LOG_INTERNAL_ERROR, Logger::parse_log_level("internal"));
+  EXPECT_EQ(Logger::LOG_ERROR, Logger::parse_log_level("error"));
+  EXPECT_EQ(Logger::LOG_WARNING, Logger::parse_log_level("WArning"));
+  EXPECT_EQ(Logger::LOG_INFO, Logger::parse_log_level("infO"));
+  EXPECT_EQ(Logger::LOG_DEBUG, Logger::parse_log_level("DEBUG"));
+  EXPECT_EQ(Logger::LOG_DEBUG2, Logger::parse_log_level("DEBUG2"));
+  EXPECT_EQ(Logger::LOG_DEBUG3, Logger::parse_log_level("DEBUG3"));
+  EXPECT_THROW(Logger::parse_log_level("0"), std::invalid_argument);
+  EXPECT_EQ(Logger::LOG_NONE, Logger::parse_log_level("1"));
+  EXPECT_EQ(Logger::LOG_INTERNAL_ERROR, Logger::parse_log_level("2"));
+  EXPECT_EQ(Logger::LOG_ERROR, Logger::parse_log_level("3"));
+  EXPECT_EQ(Logger::LOG_WARNING, Logger::parse_log_level("4"));
+  EXPECT_EQ(Logger::LOG_INFO, Logger::parse_log_level("5"));
+  EXPECT_EQ(Logger::LOG_DEBUG, Logger::parse_log_level("6"));
+  EXPECT_EQ(Logger::LOG_DEBUG2, Logger::parse_log_level("7"));
+  EXPECT_EQ(Logger::LOG_DEBUG3, Logger::parse_log_level("8"));
+  EXPECT_THROW(Logger::parse_log_level("9"), std::invalid_argument);
 }
 
 TEST_F(Logger_test, log_open_failure) {
@@ -230,8 +212,10 @@ TEST_F(Logger_test, log_format) {
       {Logger::LOG_WARNING, "Warning"},
       {Logger::LOG_ERROR, "Error"}};
 
+  Log_context ctx("Unit Test Domain");
+
   for (const auto &p : tests) {
-    l->log(p.first, "Unit Test Domain", "Some message");
+    l->log(p.first, "Some message");
   }
 
   std::string contents;
@@ -252,32 +236,6 @@ TEST_F(Logger_test, log_format) {
   }
 
   EXPECT_TRUE(tests.empty());
-}
-
-TEST_F(Logger_test, log_exception_format) {
-  // exception should always be logged, even if log is disabled
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), false,
-                         Logger::LOG_NONE);
-
-  const auto l = Logger::singleton();
-  const std::runtime_error e{"Some exception"};
-
-  l->log(e, "Unit Test Domain", "First message");
-  l->log(e, "Unit Test Domain", "Second message with parameter: %s", "invalid");
-
-  std::string contents;
-  EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
-  const auto lines = shcore::str_split(contents, "\n");
-
-  EXPECT_EQ(": Error: Unit Test Domain: First message: Some exception",
-            lines[0].substr(19));
-  EXPECT_TRUE(is_timestamp(lines[0].c_str()));
-
-  EXPECT_EQ(
-      ": Error: Unit Test Domain: Second message with parameter: invalid: Some "
-      "exception",
-      lines[1].substr(19));
-  EXPECT_TRUE(is_timestamp(lines[1].c_str()));
 }
 
 #ifndef _WIN32
@@ -356,11 +314,12 @@ TEST_F(Logger_test, stderr_output) {
                          Logger::LOG_WARNING);
 
   const auto l = Logger::singleton();
+  Log_context ctx("Unit Test Domain");
 
-  l->log(Logger::LOG_DEBUG, "Unit Test Domain", "First");
-  l->log(Logger::LOG_INFO, "Unit Test Domain", "Second");
-  l->log(Logger::LOG_WARNING, "Unit Test Domain", "Third");
-  l->log(Logger::LOG_ERROR, "Unit Test Domain", "Fourth");
+  l->log(Logger::LOG_DEBUG, "First");
+  l->log(Logger::LOG_INFO, "Second");
+  l->log(Logger::LOG_WARNING, "Third");
+  l->log(Logger::LOG_ERROR, "Fourth");
 
   std::string contents;
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
@@ -383,10 +342,12 @@ TEST_F(Logger_test, stderr_json_output) {
 
   const auto l = Logger::singleton();
 
-  l->log(Logger::LOG_DEBUG, "Unit Test Domain", "First");
-  l->log(Logger::LOG_INFO, "Unit Test Domain", "Second");
-  l->log(Logger::LOG_WARNING, "Unit Test Domain", "Third");
-  l->log(Logger::LOG_ERROR, "Unit Test Domain", "Fourth");
+  Log_context ctx("Unit Test Domain");
+
+  l->log(Logger::LOG_DEBUG, "First");
+  l->log(Logger::LOG_INFO, "Second");
+  l->log(Logger::LOG_WARNING, "Third");
+  l->log(Logger::LOG_ERROR, "Fourth");
 
   std::string contents;
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
@@ -429,10 +390,12 @@ TEST_F(Logger_test, stderr_json_raw_output) {
 
   const auto l = Logger::singleton();
 
-  l->log(Logger::LOG_DEBUG, "Unit Test Domain", "First");
-  l->log(Logger::LOG_INFO, "Unit Test Domain", "Second");
-  l->log(Logger::LOG_WARNING, "Unit Test Domain", "Third");
-  l->log(Logger::LOG_ERROR, "Unit Test Domain", "Fourth");
+  Log_context ctx("Unit Test Domain");
+
+  l->log(Logger::LOG_DEBUG, "First");
+  l->log(Logger::LOG_INFO, "Second");
+  l->log(Logger::LOG_WARNING, "Third");
+  l->log(Logger::LOG_ERROR, "Fourth");
 
   std::string contents;
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
@@ -465,4 +428,4 @@ TEST_F(Logger_test, stderr_json_raw_output) {
 
 #endif  // !_WIN32
 
-}  // namespace ngcommon
+}  // namespace shcore

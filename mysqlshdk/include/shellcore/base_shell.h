@@ -44,7 +44,7 @@ class SHCORE_PUBLIC Base_shell {
   Base_shell(std::shared_ptr<Shell_options> cmdline_options,
              shcore::Interpreter_delegate *custom_delegate);
 
-  virtual ~Base_shell() {}
+  virtual ~Base_shell();
 
   int process_stream(std::istream &stream, const std::string &source,
                      const std::vector<std::string> &argv,

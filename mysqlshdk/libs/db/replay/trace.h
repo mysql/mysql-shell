@@ -44,7 +44,7 @@ namespace replay {
 class Trace_writer {
  public:
   ~Trace_writer();
-  static Trace_writer *create(const std::string &path, int print_traces);
+  static Trace_writer *create(const std::string &path);
 
   void set_metadata(const std::map<std::string, std::string> &meta);
 
@@ -67,11 +67,10 @@ class Trace_writer {
  private:
   std::string _log_label;
 
-  Trace_writer(const std::string &path, int print_traces);
+  explicit Trace_writer(const std::string &path);
   std::string _path;
   std::ofstream _stream;
   int _idx = 0;
-  int _print_traces = 0;
 };
 
 void save_info(const std::string &path,
@@ -146,7 +145,7 @@ class Result_mysqlx;
 
 class Trace {
  public:
-  Trace(const std::string &path, int print_traces);
+  explicit Trace(const std::string &path);
   ~Trace();
 
   std::map<std::string, std::string> get_metadata();
@@ -179,7 +178,6 @@ class Trace {
   rapidjson::Document _doc;
   rapidjson::SizeType _index;
   std::string _trace_path;
-  int _print_traces = 0;
   bool _got_error = false;
 };
 

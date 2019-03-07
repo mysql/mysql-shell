@@ -136,7 +136,7 @@ class Mysqlsh_plugins_test : public Command_line_test {
   }
 
   static void wipe_log_file() {
-    const auto log = ngcommon::Logger::singleton()->logfile_name();
+    const auto log = shcore::Logger::singleton()->logfile_name();
 
     {
       std::ifstream f(log);
@@ -154,7 +154,7 @@ class Mysqlsh_plugins_test : public Command_line_test {
   }
 
   static std::string read_log_file() {
-    return shcore::get_text_file(ngcommon::Logger::singleton()->logfile_name());
+    return shcore::get_text_file(shcore::Logger::singleton()->logfile_name());
   }
 
   virtual std::string get_plugin_folder_name() const = 0;

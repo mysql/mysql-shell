@@ -54,6 +54,7 @@
 #include <unistd.h>
 #endif
 
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -96,7 +97,9 @@ extern bool g_test_color_output;
 
 namespace tests {
 
+constexpr int k_wait_sandbox_dead_timeout = 120;
 constexpr int k_wait_member_timeout = 120;
+constexpr int k_wait_delayed_gr_start_timeout = 300;
 constexpr int k_max_start_sandbox_retries = 5;
 const char *k_boilerplate_root_password = "root";
 
@@ -172,7 +175,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("skip", &Testutils::skip, "reason");
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
   expose("waitForDelayedGRStart", &Testutils::wait_for_delayed_gr_start, "port",
-         "rootpass", "?timeout", k_wait_member_timeout);
+         "rootpass", "?timeout", k_wait_delayed_gr_start_timeout);
   expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
   expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
   expose("chmod", &Testutils::ch_mod, "path", "mode");
@@ -181,6 +184,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("touch", &Testutils::touch, "file");
   expose("createFile", &Testutils::create_file, "path", "content");
   expose("enableExtensible", &Testutils::enable_extensible);
+  expose("dbugSet", &Testutils::dbug_set, "dbug");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -189,6 +193,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
 }
+
+void Testutils::dbug_set(const std::string &s) { DBUG_SET(s.c_str()); }
 
 void Testutils::enable_extensible() {
   register_object_help(
@@ -656,7 +662,7 @@ str Testutils::get_shell_log_path();
 #endif
 ///@}
 std::string Testutils::get_shell_log_path() {
-  return ngcommon::Logger::singleton()->logfile_name();
+  return shcore::Logger::singleton()->logfile_name();
 }
 
 //!<  @name Testing Utilities
@@ -1216,22 +1222,37 @@ void Testutils::wait_sandbox_dead(int port) {
   log_info("Waiting for ports (%d)...", port);
   // wait until classic, x and Xcom ports are free
   if (port * 10 + 1 < 65535) {
+    int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
     while (!is_port_available_for_sandbox_to_bind(port * 10 + 1)) {
+      if (--retries < 0)
+        throw std::runtime_error("Timeout waiting for sandbox " +
+                                 std::to_string(port) + " to shutdown");
       shcore::sleep_ms(500);
     }
   }
   if (port * 10 < 65535) {
+    int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
     while (!is_port_available_for_sandbox_to_bind(port * 10)) {
+      if (--retries < 0)
+        throw std::runtime_error("Timeout waiting for sandbox " +
+                                 std::to_string(port) + " to shutdown");
       shcore::sleep_ms(500);
     }
   }
-  while (!is_port_available_for_sandbox_to_bind(port)) {
-    shcore::sleep_ms(500);
+  {
+    int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
+    while (!is_port_available_for_sandbox_to_bind(port)) {
+      if (--retries < 0)
+        throw std::runtime_error("Timeout waiting for sandbox " +
+                                 std::to_string(port) + " to shutdown");
+      shcore::sleep_ms(500);
+    }
   }
 
   log_info("Waiting for lock file...");
 
 #ifdef _WIN32
+  int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   // In Windows, it should be enough to see if the ibdata file is locked
   std::string ibdata =
       shcore::path::join_path(get_sandbox_datadir(port), "ibdata1");
@@ -1242,15 +1263,27 @@ void Testutils::wait_sandbox_dead(int port) {
       break;
     }
     if (errno == ENOENT) break;
+    if (--retries < 0)
+      throw std::runtime_error("Timeout waiting for sandbox " +
+                               std::to_string(port) + " to shutdown");
     shcore::sleep_ms(500);
   }
 #else
+  int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
                                            "/mysqld.sock.lock")) {
+    if (--retries < 0)
+      throw std::runtime_error("Timeout waiting for sandbox " +
+                               std::to_string(port) + " to shutdown");
     shcore::sleep_ms(500);
   }
+
+  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (mysqlshdk::utils::check_lock_file(
       get_sandbox_datadir(port) + "/mysqlx.sock.lock", "X%zd")) {
+    if (--retries < 0)
+      throw std::runtime_error("Timeout waiting for sandbox " +
+                               std::to_string(port) + " to shutdown");
     shcore::sleep_ms(500);
   }
 
@@ -1260,7 +1293,11 @@ void Testutils::wait_sandbox_dead(int port) {
   int ibdata_fd =
       open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDWR);
   if (ibdata_fd > 0) {
+    retries = k_wait_sandbox_dead_timeout;
     while (os_file_lock(ibdata_fd) > 0) {
+      if (--retries < 0)
+        throw std::runtime_error("Timeout waiting for sandbox " +
+                                 std::to_string(port) + " to shutdown");
       shcore::sleep_ms(1000);
     }
     ::close(ibdata_fd);
@@ -2164,7 +2201,6 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
-  _mp->set_verbose(g_test_trace_scripts > 1);
   _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
                       true, true, 60, &errors);
   if (errors && !errors->empty()) {

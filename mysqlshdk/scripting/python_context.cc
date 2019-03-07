@@ -710,9 +710,10 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
     }
   }
 
-  mysqlsh::current_console()->raw_print(
-      text, stream == "error" ? mysqlsh::Output_stream::STDERR
-                              : mysqlsh::Output_stream::STDOUT);
+  if (stream == "error")
+    mysqlsh::current_console()->print_diag(text);
+  else
+    mysqlsh::current_console()->print(text);
 
   Py_INCREF(Py_None);
   return Py_None;

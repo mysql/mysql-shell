@@ -87,6 +87,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined touch(String file);
   List catFile(String path);
   List wipeFileContents(String path);
+  Undefined dbugSet(String s);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -124,6 +125,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None touch(str file);
   list cat_file(str path);
   list wipe_file_contents(str path);
+  None dbug_set(str s);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -157,6 +159,8 @@ class Testutils : public mysqlsh::Extensible_object {
   bool test_skipped() const { return !_test_skipped.empty(); }
 
   const std::string &test_skip_reason() const { return _test_skipped; }
+
+  void dbug_set(const std::string &s);
 
  public:
   // Sandbox routines

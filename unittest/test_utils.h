@@ -128,13 +128,11 @@ class Shell_test_output_handler {
   std::mutex stdout_mutex;
   static std::vector<std::string> log;
 
-  void set_log_level(ngcommon::Logger::LOG_LEVEL log_level) {
+  void set_log_level(shcore::Logger::LOG_LEVEL log_level) {
     _logger->set_log_level(log_level);
   }
 
-  ngcommon::Logger::LOG_LEVEL get_log_level() {
-    return _logger->get_log_level();
-  }
+  shcore::Logger::LOG_LEVEL get_log_level() { return _logger->get_log_level(); }
 
   void validate_stdout_content(const std::string &content, bool expected);
   void validate_stderr_content(const std::string &content, bool expected);
@@ -161,9 +159,9 @@ class Shell_test_output_handler {
   void set_answers_to_stdout(bool value) { m_answers_to_stdout = value; }
 
  protected:
-  static ngcommon::Logger *_logger;
+  static shcore::Logger *_logger;
 
-  static void log_hook(const ngcommon::Logger::Log_entry &entry);
+  static void log_hook(const shcore::Logger::Log_entry &entry, void *);
   bool m_internal;
   bool m_answers_to_stdout;
 };
@@ -234,12 +232,14 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   void reset_options(int argc = 0, const char **argv = nullptr,
                      bool remove_config = true) {
     extern char *g_mppath;
+    extern int g_test_default_verbosity;
     std::string options_file = get_options_file_name();
     if (remove_config) std::remove(options_file.c_str());
     _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
                                            options_file));
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
     _options->gadgets_path = g_mppath;
+    if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;
 
     // Allows derived classes configuring specific options

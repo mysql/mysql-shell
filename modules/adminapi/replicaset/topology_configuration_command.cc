@@ -275,11 +275,11 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
             new_role = mysqlshdk::gr::to_string(member_new.role);
 
             if (new_role != old_role) {
-              console->print_note("Instance '" + instance->classic_endpoint +
+              console->print_info("Instance '" + instance->classic_endpoint +
                                   "' was switched from " + old_role + " to " +
                                   new_role + ".");
             } else {
-              console->print_note("Instance '" + instance->classic_endpoint +
+              console->print_info("Instance '" + instance->classic_endpoint +
                                   "' remains " + old_role + ".");
             }
           }

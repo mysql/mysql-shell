@@ -994,7 +994,7 @@ void Shell_script_tester::load_validations(const std::string &path) {
         current_val_def->validation == ValidationType::Multiline) {
       std::string value = multiline(lines);
 
-      value = str_strip(value);
+      value = str_rstrip(value);
 
       if (current_val_def->stream == "OUT" ||
           current_val_def->stream == "PROTOCOL")

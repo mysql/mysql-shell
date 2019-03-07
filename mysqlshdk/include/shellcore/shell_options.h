@@ -46,6 +46,9 @@
 
 #define SHCORE_DEFAULT_COMPRESS "defaultCompress"
 
+#define SHCORE_VERBOSE "verbose"
+#define SHCORE_DEBUG "debug"
+
 #include <stdlib.h>
 #include <iostream>
 #include <memory>
@@ -108,7 +111,8 @@ class Shell_options : public shcore::Options {
     std::string sandbox_directory;
     int dba_gtid_wait_timeout;
     std::string gadgets_path;
-    ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_INFO;
+    shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;
+    int verbose_level = 0;
     bool wizards = true;
     bool admin_mode = false;
     std::string histignore;

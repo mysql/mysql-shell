@@ -95,8 +95,8 @@ class Dba_common_test : public tests::Admin_api_test {
 };
 
 TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  auto session = create_session(_mysql_sandbox_port1);
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
+  auto session = create_session(_mysql_sandbox_ports[0]);
   Instance instance(session);
 
   // InstanceSSL memberSslMode require_secure_transport
@@ -220,14 +220,14 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
-  disable_ssl_on_instance(_mysql_sandbox_port1, "unsecure");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
+  disable_ssl_on_instance(_mysql_sandbox_ports[0], "unsecure");
 
-  auto session = create_session(_mysql_sandbox_port1, "unsecure");
+  auto session = create_session(_mysql_sandbox_ports[0], "unsecure");
 
   Instance instance(session);
 
@@ -289,17 +289,17 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
 
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root", sandbox_opts);
-  testutil->deploy_sandbox(_mysql_sandbox_port2, "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_ports[1], "root", sandbox_opts);
   execute("shell.connect('root:root@localhost:" +
-          std::to_string(_mysql_sandbox_port1) + "')");
+          std::to_string(_mysql_sandbox_ports[0]) + "')");
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
@@ -311,8 +311,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   execute("c.disconnect()");
   execute("session.close()");
 
-  auto peer_session = create_session(_mysql_sandbox_port1);
-  auto instance_session = create_session(_mysql_sandbox_port2);
+  auto peer_session = create_session(_mysql_sandbox_ports[0]);
+  auto instance_session = create_session(_mysql_sandbox_ports[1]);
 
   // Cluster SSL memberSslMode
   //----------- -------------
@@ -379,8 +379,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   }
 
   instance_session->close();
-  disable_ssl_on_instance(_mysql_sandbox_port2, "unsecure");
-  instance_session = create_session(_mysql_sandbox_port2, "unsecure");
+  disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
+  instance_session = create_session(_mysql_sandbox_ports[1], "unsecure");
 
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
@@ -424,18 +424,18 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
   peer_session->close();
   instance_session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
-  testutil->destroy_sandbox(_mysql_sandbox_port2);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
 
 TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
 
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root", sandbox_opts);
-  testutil->deploy_sandbox(_mysql_sandbox_port2, "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root", sandbox_opts);
+  testutil->deploy_sandbox(_mysql_sandbox_ports[1], "root", sandbox_opts);
   execute("shell.connect('root:root@localhost:" +
-          std::to_string(_mysql_sandbox_port1) + "')");
+          std::to_string(_mysql_sandbox_ports[0]) + "')");
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
@@ -447,8 +447,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   execute("c.disconnect()");
   execute("session.close()");
 
-  auto peer_session = create_session(_mysql_sandbox_port1);
-  auto instance_session = create_session(_mysql_sandbox_port2);
+  auto peer_session = create_session(_mysql_sandbox_ports[0]);
+  auto instance_session = create_session(_mysql_sandbox_ports[1]);
 
   // Cluster SSL memberSslMode
   //----------- -------------
@@ -546,13 +546,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   }
 
   instance_session->close();
-  disable_ssl_on_instance(_mysql_sandbox_port2, "unsecure");
-  instance_session = create_session(_mysql_sandbox_port2, "unsecure");
+  disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
+  instance_session = create_session(_mysql_sandbox_ports[1], "unsecure");
 
   peer_session->close();
   instance_session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
-  testutil->destroy_sandbox(_mysql_sandbox_port2);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
 
 TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
@@ -742,7 +742,7 @@ class Dba_common_cluster_functions : public Dba_common_test {
 };
 
 TEST_F(Dba_common_cluster_functions, get_instances_gr) {
-  auto md_session = create_session(_mysql_sandbox_port1);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -765,7 +765,7 @@ TEST_F(Dba_common_cluster_functions, get_instances_gr) {
 }
 
 TEST_F(Dba_common_cluster_functions, get_instances_md) {
-  auto md_session = create_session(_mysql_sandbox_port1);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -791,7 +791,7 @@ TEST_F(Dba_common_cluster_functions, get_instances_md) {
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
 TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
-  auto md_session = create_session(_mysql_sandbox_port1);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -814,7 +814,7 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
 // P_S info is the same get_unavailable_instances()
 // should return an empty list
 TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
-  auto md_session = create_session(_mysql_sandbox_port1);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -833,7 +833,7 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
 }
 
 TEST_F(Dba_common_cluster_functions, get_gr_replicaset_group_name) {
-  auto session = create_session(_mysql_sandbox_port1);
+  auto session = create_session(_mysql_sandbox_ports[0]);
 
   try {
     std::string result = mysqlsh::dba::get_gr_replicaset_group_name(session);
@@ -852,8 +852,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   // There are missing instances and the instance we are checking belongs to
   // the metadata list but does not belong to the GR list.
 
-  auto md_session = create_session(_mysql_sandbox_port1);
-  auto instance_session = create_session(_mysql_sandbox_port3);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
@@ -867,7 +867,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
       "NULL, NULL, NULL)";
 
   query = shcore::str_replace(query, "<port>",
-                              std::to_string(_mysql_sandbox_port3));
+                              std::to_string(_mysql_sandbox_ports[2]));
 
   md_session->query(query);
 
@@ -898,8 +898,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   // There are missing instances and the instance we are checking belongs
   // to neither the metadata nor GR lists.
 
-  auto md_session = create_session(_mysql_sandbox_port1);
-  auto instance_session = create_session(_mysql_sandbox_port3);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
@@ -914,7 +914,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
       "NULL, NULL, NULL)";
 
   query = shcore::str_replace(query, "<port>",
-                              std::to_string(_mysql_sandbox_port3));
+                              std::to_string(_mysql_sandbox_ports[2]));
 
   md_session->query(query);
 
@@ -944,8 +944,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
   // There are no missing instances and the instance we are checking belongs
   // to both the metadata and GR lists.
-  auto md_session = create_session(_mysql_sandbox_port1);
-  auto instance_session = create_session(_mysql_sandbox_port2);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto instance_session = create_session(_mysql_sandbox_ports[1]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -967,10 +967,10 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
   enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   // super_read_only is ON, no active sessions
   session->query("set global super_read_only = 1");
@@ -985,19 +985,19 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   auto extra_session = mysqlshdk::db::mysql::Session::create();
   extra_session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   // super_read_only is ON, no active sessions
   session->query("set global super_read_only = 1");
@@ -1012,15 +1012,15 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
 
   session->close();
   extra_session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   // super_read_only is ON, no active sessions
   session->query("set global super_read_only = 1");
@@ -1033,15 +1033,15 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
   enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   // super_read_only is OFF, no active sessions
   session->query("set global super_read_only = 0");
@@ -1056,15 +1056,15 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
   enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_port1, "root"));
+      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
 
   // super_read_only is OFF, no active sessions
   session->query("set global super_read_only = 0");
@@ -1079,7 +1079,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
   }
 
   session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_port1);
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
 TEST(mod_dba_common, validate_ipwhitelist_option) {

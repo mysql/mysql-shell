@@ -66,7 +66,7 @@
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -77,7 +77,7 @@ No incompatible tables detected
 Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -93,11 +93,11 @@ Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -108,7 +108,7 @@ No incompatible tables detected
 Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -125,7 +125,7 @@ Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@# Dba: configureLocalInstance errors
 //||Dba.configureLocalInstance: This function only works with local instances
@@ -142,12 +142,12 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -168,12 +168,12 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+
@@ -227,7 +227,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 //@<OUT> Dba: configureLocalInstance create different admin user
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -238,7 +238,7 @@ Cluster admin user 'dba_test'@'%' created.
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>

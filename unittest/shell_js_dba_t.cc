@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
@@ -124,42 +123,22 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       exec_and_out_equals(code);
       code = "var __mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port1 = " +
-             std::to_string(_mysql_sandbox_port1) + ";";
-      exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port2 = " +
-             std::to_string(_mysql_sandbox_port2) + ";";
-      exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port3 = " +
-             std::to_string(_mysql_sandbox_port3) + ";";
-      exec_and_out_equals(code);
-      code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
-             std::to_string(_mysql_sandbox_port1) + "';";
-      exec_and_out_equals(code);
-      code = "var __sandbox_uri2 = 'mysql://root:root@localhost:" +
-             std::to_string(_mysql_sandbox_port2) + "';";
-      exec_and_out_equals(code);
-      code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
-             std::to_string(_mysql_sandbox_port3) + "';";
-      exec_and_out_equals(code);
-      code = "var __hostname_uri1 = 'mysql://root:root@" + hostname() + ":" +
-             std::to_string(_mysql_sandbox_port1) + "';";
-      exec_and_out_equals(code);
-      code = "var __hostname_uri2 = 'mysql://root:root@" + hostname() + ":" +
-             std::to_string(_mysql_sandbox_port2) + "';";
-      exec_and_out_equals(code);
-      code = "var __hostname_uri3 = 'mysql://root:root@" + hostname() + ":" +
-             std::to_string(_mysql_sandbox_port3) + "';";
-      exec_and_out_equals(code);
-      code = "var uri1 = 'localhost:" + std::to_string(_mysql_sandbox_port1) +
-             "';";
-      exec_and_out_equals(code);
-      code = "var uri2 = 'localhost:" + std::to_string(_mysql_sandbox_port2) +
-             "';";
-      exec_and_out_equals(code);
-      code = "var uri3 = 'localhost:" + std::to_string(_mysql_sandbox_port3) +
-             "';";
-      exec_and_out_equals(code);
+      for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
+        code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
+                                  _mysql_sandbox_ports[i]);
+        exec_and_out_equals(code);
+        code = shcore::str_format(
+            "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
+            _mysql_sandbox_ports[i]);
+        exec_and_out_equals(code);
+        code = shcore::str_format(
+            "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
+            hostname().c_str(), _mysql_sandbox_ports[i]);
+        exec_and_out_equals(code);
+        code = shcore::str_format("var uri%i = 'localhost:%i';", i + 1,
+                                  _mysql_sandbox_ports[i]);
+        exec_and_out_equals(code);
+      }
     }
     std::string str_have_ssl = _have_ssl ? "true" : "false";
     code = "var __have_ssl = " + str_have_ssl + ";";
@@ -275,7 +254,7 @@ TEST_F(Shell_js_dba_tests, no_active_session_error) {
 TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   _options->wizards = false;
   reset_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
   execute("dba.verbose = true;");
 
 // Create directory with space and quotes in name to test.
@@ -325,7 +304,7 @@ TEST_F(Shell_js_dba_tests, dba_check_instance_configuration_session) {
 TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   _options->interactive = true;
   reset_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
   // BUG 26830224
   // Please enter a MySQL root password for the new instance:
   output_handler.passwords.push_back({"*", "root"});
@@ -354,7 +333,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
   _options->wizards = false;
   reset_replayable_shell();
 
-  output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+  output_handler.set_log_level(shcore::Logger::LOG_DEBUG);
 
   // Tests cluster functionality, adding, removing instances
   // error conditions
@@ -394,7 +373,7 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
-  output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+  output_handler.set_log_level(shcore::Logger::LOG_DEBUG);
 
   //@ Cluster: removeInstance errors
   output_handler.prompts.push_back({"*", "no"});
@@ -459,7 +438,7 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   // Dissolve cluster.
   output_handler.prompts.push_back({"*", "yes"});
 
-  output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
+  output_handler.set_log_level(shcore::Logger::LOG_INFO);
 
   // Tests cluster functionality, adding, removing instances
   // error conditions.
@@ -477,7 +456,7 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
 TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   _options->wizards = false;
   reset_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
+  output_handler.set_log_level(shcore::Logger::LOG_INFO);
 
   // Execute setup script to be able to use smart deployment functions.
   execute_setup();
@@ -572,7 +551,7 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
 TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
   _options->wizards = false;
   reset_replayable_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_misconfigurations.js");
 
@@ -586,7 +565,7 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   _options->wizards = false;
   reset_replayable_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_no_misconfigurations.js");
 
@@ -594,7 +573,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
       // "DBA: root@localhost:" + _mysql_sandbox_port1 +
       //     " : Server variable binlog_format was changed from 'MIXED' to
       //     'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_ports[0]) +
       " : Server variable binlog_checksum was changed from 'CRC32' to "
       "'NONE'"};
 
@@ -605,7 +584,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
 
@@ -613,7 +592,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
       // "DBA: root@localhost:" + _mysql_sandbox_port1 +
       //     " : Server variable binlog_format was changed from 'MIXED' to
       //     'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_ports[0]) +
       " : Server variable binlog_checksum was changed from 'CRC32' to "
       "'NONE'"};
 
@@ -630,7 +609,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
 TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   _options->wizards = false;
   reset_replayable_shell();
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_add_instance.js");
 }

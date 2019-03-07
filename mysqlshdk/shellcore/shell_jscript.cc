@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,8 +56,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
       std::tie(result, got_error) = _js->execute(
           code, _owner->get_input_source(), _owner->get_input_args());
     } catch (std::exception &exc) {
-      mysqlsh::current_console()->raw_print(exc.what(),
-                                            mysqlsh::Output_stream::STDERR);
+      mysqlsh::current_console()->print_diag(exc.what());
     }
   }
 

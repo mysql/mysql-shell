@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -57,7 +58,7 @@ class Custom_variable_matches : public Prompt_manager::Custom_variable {
       const std::function<std::string(const std::string &)> &apply_vars) {
     std::string pattern = apply_vars(pattern_);
     std::string value = apply_vars(value_);
-    log_debug("Match '%s' vs '%s'", pattern.c_str(), value.c_str());
+    DBUG_LOG("shell", "Match '" << pattern << "' vs '" << value << "'");
     if (shcore::match_glob(pattern, value))
       return apply_vars(true_value_);
     else

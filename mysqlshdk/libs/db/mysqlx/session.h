@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,9 +110,10 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   void load_session_info();
 
-  void check_error_and_throw(const xcl::XError &error);
+  void check_error_and_throw(const xcl::XError &error,
+                             const char *context = nullptr);
 
-  void store_error_and_throw(const Error &error);
+  void store_error_and_throw(const Error &error, const char *context = nullptr);
 
   Error *get_last_error() const { return m_last_error.get(); }
 

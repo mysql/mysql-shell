@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,7 @@ class Replayer_mysql : public mysql::Session {
  public:
   using super = mysql::Session;
 
-  explicit Replayer_mysql(int print_traces);
+  Replayer_mysql();
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -72,7 +72,6 @@ class Replayer_mysql : public mysql::Session {
 
  private:
   std::unique_ptr<Replayer_impl> _impl;
-  int _print_traces = 0;
 };
 
 class Result_mysql : public db::mysql::Result {
@@ -111,7 +110,7 @@ class Replayer_mysqlx : public mysqlx::Session {
  public:
   using super = mysqlx::Session;
 
-  explicit Replayer_mysqlx(int print_traces);
+  Replayer_mysqlx();
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -160,7 +159,6 @@ class Replayer_mysqlx : public mysqlx::Session {
 
  private:
   std::unique_ptr<Replayer_impl> _impl;
-  int _print_traces = 0;
 };
 
 class Result_mysqlx : public db::mysqlx::Result {

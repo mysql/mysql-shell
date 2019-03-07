@@ -27,8 +27,9 @@
 #include <vector>
 
 #include <mysql_version.h>
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/libs/utils/profiling.h"
-#include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -37,6 +38,7 @@ namespace mysql {
 void Session_impl::throw_on_connection_fail() {
   auto exception = mysqlshdk::db::Error(
       mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  DBUG_LOG("sql", mysql_thread_id(_mysql) << ": ERROR: " << exception.format());
   close();
   throw exception;
 }
@@ -104,6 +106,7 @@ void Session_impl::connect(
       _connection_options.get_compression())
     mysql_options(_mysql, MYSQL_OPT_COMPRESS, nullptr);
 
+  DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
   if (!mysql_real_connect(
           _mysql,
           _connection_options.has_host()
@@ -127,6 +130,8 @@ void Session_impl::connect(
           flags)) {
     throw_on_connection_fail();
   }
+  DBUG_LOG("sql", get_thread_id()
+                      << ": CONNECTED: " << _connection_options.uri_endpoint());
 
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysql");
@@ -215,7 +220,10 @@ void Session_impl::close() {
   // avoid having unneeded output on the script mode
   if (_prev_result) _prev_result.reset();
 
-  if (_mysql) mysql_close(_mysql);
+  if (_mysql) {
+    DBUG_LOG("sql", get_thread_id() << ": DISCONNECT");
+    mysql_close(_mysql);
+  }
   _mysql = nullptr;
 }
 
@@ -246,9 +254,21 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
     mysql_free_result(trailing_result);
   }
 
+  DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << std::string(sql, len));
+
   if (mysql_real_query(_mysql, sql, len) != 0) {
-    throw Error(mysql_error(_mysql), mysql_errno(_mysql),
-                mysql_sqlstate(_mysql));
+    auto err =
+        Error(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+
+    if (DBUG_EVALUATE_IF("sqlall", 1, 0)) {
+      DBUG_LOG("sql", get_thread_id() << ": ERROR: " << err.format());
+    } else {
+      DBUG_LOG("sql", get_thread_id()
+                          << ": ERROR: " << err.format()
+                          << "\n\twhile executing: " << std::string(sql, len));
+    }
+
+    throw err;
   }
 
   std::shared_ptr<Result> result(

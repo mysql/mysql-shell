@@ -182,8 +182,67 @@ class Shell_pager : public IPager {
   FILE *m_pager = nullptr;
 };
 
+namespace {
+int g_dont_log = 0;
+
+void log_hook(const shcore::Logger::Log_entry &log, void *data) {
+  Shell_console *self = reinterpret_cast<Shell_console *>(data);
+
+  if (self->get_verbose() > 0) {
+    const char *show_prefix = nullptr;
+
+    // verbose=1, everything up to INFO
+    // verbose=2, DEBUG
+    // verbose=3, DEBUG2
+    // verbose=4, DEBUG3
+    switch (self->get_verbose()) {
+      case 4:
+        if (log.level == shcore::Logger::LOG_DEBUG3) show_prefix = "verbose";
+      case 3:
+        if (log.level == shcore::Logger::LOG_DEBUG2) show_prefix = "verbose";
+      case 2:
+        if (log.level == shcore::Logger::LOG_DEBUG) show_prefix = "verbose";
+      case 1:
+        switch (log.level) {
+          case shcore::Logger::LOG_INFO:
+            show_prefix = "verbose";
+            break;
+          case shcore::Logger::LOG_WARNING:
+            show_prefix = "verbose: warning";
+            break;
+          case shcore::Logger::LOG_ERROR:
+          case shcore::Logger::LOG_INTERNAL_ERROR:
+            show_prefix = "verbose: error";
+            break;
+          default:
+            break;
+        }
+        break;
+    }
+
+    if (show_prefix && g_dont_log == 0) {
+      if (log.domain && *log.domain)
+        self->raw_print(shcore::str_format("%s: %s: %s\n", show_prefix,
+                                           log.domain, log.message),
+                        Output_stream::STDERR);
+      else
+        self->raw_print(
+            shcore::str_format("%s: %s\n", show_prefix, log.message),
+            Output_stream::STDERR);
+    }
+  }
+}
+}  // namespace
+
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
-    : m_ideleg(deleg) {}
+    : m_ideleg(deleg) {
+  // Capture logging output and if verbose is enabled, show them in the console
+  shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
+}
+
+Shell_console::~Shell_console() {
+  shcore::Logger::singleton()->detach_log_hook(log_hook);
+}
 
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json) const {
@@ -198,8 +257,6 @@ void Shell_console::raw_print(const std::string &text, Output_stream stream,
   } else {
     print(m_ideleg->user_data, text.c_str());
   }
-
-  log_debug("%s", text.c_str());
 }
 
 void Shell_console::print(const std::string &text) const {
@@ -212,7 +269,19 @@ void Shell_console::println(const std::string &text) const {
   } else {
     m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
   }
-  if (!text.empty()) log_debug("%s", text.c_str());
+}
+
+void Shell_console::print_diag(const std::string &text) const {
+  if (use_json()) {
+    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", text).c_str());
+  } else {
+    m_ideleg->print_diag(m_ideleg->user_data, text.c_str());
+  }
+  if (g_dont_log == 0) {
+    g_dont_log++;
+    log_debug("%s", text.c_str());
+    g_dont_log--;
+  }
 }
 
 void Shell_console::print_error(const std::string &text) const {
@@ -223,16 +292,11 @@ void Shell_console::print_error(const std::string &text) const {
         m_ideleg->user_data,
         (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
   }
-  log_error("%s", text.c_str());
-}
-
-void Shell_console::print_diag(const std::string &text) const {
-  if (use_json()) {
-    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", text).c_str());
-  } else {
-    m_ideleg->print_diag(m_ideleg->user_data, text.c_str());
+  if (g_dont_log == 0) {
+    g_dont_log++;
+    log_error("%s", text.c_str());
+    g_dont_log--;
   }
-  log_error("%s", text.c_str());
 }
 
 void Shell_console::print_warning(const std::string &text) const {
@@ -243,17 +307,26 @@ void Shell_console::print_warning(const std::string &text) const {
         m_ideleg->user_data,
         (mysqlshdk::textui::warning("WARNING: ") + text + "\n").c_str());
   }
-  log_warning("%s", text.c_str());
+  if (g_dont_log == 0) {
+    g_dont_log++;
+    log_warning("%s", text.c_str());
+    g_dont_log--;
+  }
 }
 
 void Shell_console::print_note(const std::string &text) const {
   if (use_json()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("note", text).c_str());
   } else {
-    m_ideleg->print(m_ideleg->user_data,
-                    mysqlshdk::textui::notice(text + "\n").c_str());
+    m_ideleg->print(
+        m_ideleg->user_data,
+        (mysqlshdk::textui::notice("NOTE: ") + text + "\n").c_str());
   }
-  log_info("%s", text.c_str());
+  if (g_dont_log == 0) {
+    g_dont_log++;
+    log_debug("%s", text.c_str());
+    g_dont_log--;
+  }
 }
 
 void Shell_console::print_info(const std::string &text) const {
@@ -262,7 +335,11 @@ void Shell_console::print_info(const std::string &text) const {
   } else {
     m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
   }
-  log_info("%s", text.c_str());
+  if (g_dont_log == 0) {
+    g_dont_log++;
+    log_debug("%s", text.c_str());
+    g_dont_log--;
+  }
 }
 
 bool Shell_console::prompt(const std::string &prompt, std::string *ret_val,

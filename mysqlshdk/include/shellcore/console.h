@@ -27,6 +27,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 #include "mysqlshdk/include/scripting/lang_base.h"
 
 namespace mysqlsh {
@@ -58,6 +59,7 @@ class IConsole {
   virtual void print_warning(const std::string &text) const = 0;
   virtual void print_note(const std::string &text) const = 0;
   virtual void print_info(const std::string &text) const = 0;
+
   virtual void print_value(const shcore::Value &value,
                            const std::string &tag) const = 0;
   virtual void print_diag(const std::string &text) const = 0;
@@ -126,6 +128,13 @@ class IConsole {
    * @returns true if the global pager is enabled.
    */
   virtual bool is_global_pager_enabled() const = 0;
+
+  void set_verbose(int level) { m_verbose = level; }
+
+  int get_verbose() const { return m_verbose; }
+
+ protected:
+  int m_verbose = 0;
 };
 
 std::shared_ptr<IConsole> current_console();

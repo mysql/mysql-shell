@@ -28,11 +28,12 @@
 #include <string>
 #include <utility>
 
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/profiling.h"
-#include "utils/debug.h"
-#include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -293,6 +294,8 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   std::string host = data.has_host() ? data.get_host() : "localhost";
 
+  DBUG_LOG("sqlall", "CONNECT: " << data.uri_endpoint());
+
   if ((host.empty() || host == "localhost") && data.has_socket()) {
     err = _mysql->connect(
         data.has_socket()
@@ -335,12 +338,15 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   }
 
   if (_connection_options.has_compression() &&
-      _connection_options.get_compression())
+      _connection_options.get_compression())  // TODO(alfredo): no references to
+                                              // shellcore from here!
     mysqlsh::current_console()->print_warning(
         "X Protocol: Compression is not supported and will be ignored.");
 
   // If the account is not expired, retrieves additional session information
   if (!_expired_account) load_session_info();
+
+  DBUG_LOG("sql", get_thread_id() << ": CONNECTED: " << data.uri_endpoint());
 
   // fill in defaults
   if (!_connection_options.has_scheme())
@@ -372,6 +378,8 @@ void XSession_impl::close() {
     enable_trace(false);
     _enable_trace = true;
   }
+
+  DBUG_LOG("sql", get_thread_id() << ": DISCONNECT");
 
   m_prep_stmt_count = 0;
   _connection_id = 0;
@@ -467,9 +475,12 @@ std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
     ::Mysqlx::Sql::StmtExecute stmt;
 
     stmt.set_stmt(sql, len);
+
+    DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt.stmt());
     xresult = _mysql->get_protocol().execute_stmt(stmt, &error);
+
+    check_error_and_throw(error, stmt.stmt().c_str());
   }
-  check_error_and_throw(error);
   auto result = after_query(std::move(xresult), buffered);
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());
@@ -489,9 +500,11 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   timer.stage_begin("execute_stmt");
   before_query();
   xcl::XError error;
+  if (ns.empty() || ns == "sql")
+    DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt);
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->execute_stmt(ns, stmt, args, &error));
-  check_error_and_throw(error);
+  check_error_and_throw(error, stmt.c_str());
   auto result = after_query(std::move(xresult));
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());
@@ -595,15 +608,23 @@ void XSession_impl::deallocate_prep_stmt(uint32_t stmt_id) {
   m_prepared_statements.erase(stmt_id);
 }
 
-void XSession_impl::check_error_and_throw(const xcl::XError &error) {
+void XSession_impl::check_error_and_throw(const xcl::XError &error,
+                                          const char *context) {
   if (error) {
-    store_error_and_throw(Error(error.what(), error.error()));
+    store_error_and_throw(Error(error.what(), error.error()), context);
   } else {
     m_last_error.reset(nullptr);
   }
 }
 
-void XSession_impl::store_error_and_throw(const Error &error) {
+void XSession_impl::store_error_and_throw(const Error &error,
+                                          const char *context) {
+  if (DBUG_EVALUATE_IF("sqlall", 1, 0) || !context) {
+    DBUG_LOG("sql", get_thread_id() << ": ERROR: " << error.format());
+  } else {
+    DBUG_LOG("sql", get_thread_id() << ": ERROR: " << error.format()
+                                    << "\n\twhile executing: " << context);
+  }
   m_last_error.reset(new Error(error));
   throw error;
 }

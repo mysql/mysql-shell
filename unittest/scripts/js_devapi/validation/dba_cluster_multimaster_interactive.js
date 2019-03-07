@@ -27,7 +27,7 @@ I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -61,7 +61,7 @@ I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -87,7 +87,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -104,7 +104,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -253,7 +253,7 @@ I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -276,7 +276,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -295,7 +295,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>

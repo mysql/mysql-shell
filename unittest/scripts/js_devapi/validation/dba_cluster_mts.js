@@ -3,7 +3,7 @@
 
 //@<OUT> check instance with invalid parallel type.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -13,14 +13,14 @@ No incompatible tables detected
 
 Checking instance configuration...
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +---------------------+---------------+----------------+----------------------------+
 | Variable            | Current Value | Required Value | Note                       |
 +---------------------+---------------+----------------+----------------------------+
 | slave_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 +---------------------+---------------+----------------+----------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@ Create cluster (fail: parallel type check fail).
 ||Dba.createCluster: Instance check failed (RuntimeError)
@@ -33,7 +33,7 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> check instance with invalid commit order.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -43,14 +43,14 @@ No incompatible tables detected
 
 Checking instance configuration...
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +-----------------------------+---------------+----------------+----------------------------+
 | Variable                    | Current Value | Required Value | Note                       |
 +-----------------------------+---------------+----------------+----------------------------+
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable |
 +-----------------------------+---------------+----------------+----------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@ Adding instance to cluster (fail: commit order wrong).
 |Please use the dba.configureInstance() command to repair these issues.|
@@ -58,7 +58,7 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> check instance with invalid type and commit order.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -68,7 +68,7 @@ No incompatible tables detected
 
 Checking instance configuration...
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +-----------------------------+---------------+----------------+----------------------------+
 | Variable                    | Current Value | Required Value | Note                       |
 +-----------------------------+---------------+----------------+----------------------------+
@@ -76,7 +76,7 @@ Some configuration options need to be fixed:
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable |
 +-----------------------------+---------------+----------------+----------------------------+
 
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 
 //@ configure instance and update type and commit order with valid values.
@@ -84,7 +84,7 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> check instance, no invalid values after configure.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>

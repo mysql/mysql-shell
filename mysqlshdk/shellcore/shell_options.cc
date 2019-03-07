@@ -29,6 +29,7 @@
 #include <iostream>
 #include <limits>
 
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
@@ -341,28 +342,22 @@ Shell_options::Shell_options(int argc, char **argv,
   // make sure hack for accessing log_level via Value works
   static_assert(
       std::is_integral<
-          std::underlying_type<ngcommon::Logger::LOG_LEVEL>::type>::value,
-      "Invalid underlying type of ngcommon::Logger::LOG_LEVEL enum");
+          std::underlying_type<shcore::Logger::LOG_LEVEL>::type>::value,
+      "Invalid underlying type of shcore::Logger::LOG_LEVEL enum");
   add_named_options()
     (&storage.force, false, SHCORE_BATCH_CONTINUE_ON_ERROR, cmdline("--force"),
         "To use in SQL batch mode, forces processing to "
         "continue if an error is found.", shcore::opts::Read_only<bool>())
     (reinterpret_cast<int*>(&storage.log_level),
-        ngcommon::Logger::LOG_INFO, "logLevel", cmdline("--log-level=value"),
-        ngcommon::Logger::get_level_range_info(),
+        shcore::Logger::LOG_INFO, "logLevel", cmdline("--log-level=value"),
+        shcore::Logger::get_level_range_info(),
         [this](const std::string &val, Source) {
           const char* value = val.c_str();
           if (*value == '@') {
             storage.log_to_stderr = true;
             value++;
           }
-          ngcommon::Logger::LOG_LEVEL nlog_level
-            = ngcommon::Logger::get_log_level(value);
-          if (nlog_level == ngcommon::Logger::LOG_NONE &&
-              !ngcommon::Logger::is_level_none(value))
-            throw std::invalid_argument(
-                ngcommon::Logger::get_level_range_info());
-          return nlog_level;
+          return shcore::Logger::parse_log_level(value);
         })
     (&storage.passwords_from_stdin, false, "passwordsFromStdin",
         cmdline("--passwords-from-stdin"),
@@ -403,7 +398,12 @@ Shell_options::Shell_options(int argc, char **argv,
         "by default.")
     (&storage.default_compress, false, SHCORE_DEFAULT_COMPRESS,
         "Enable compression in client/server protocol by default "
-        "in global shell sessions.");
+        "in global shell sessions.")
+    (&storage.verbose_level, 0, SHCORE_VERBOSE, cmdline("--verbose[=level]"),
+        "Verbose output level. Enable diagnostic message output. "
+        "If level is given, it can go up to 4 for maximum verbosity, "
+        "otherwise 1 is assumed.",
+        shcore::opts::Range<int>(0, 10));
 
   add_startup_options()
     (cmdline("--name-cache"),
@@ -485,6 +485,17 @@ Shell_options::Shell_options(int argc, char **argv,
           throw std::invalid_argument("Value for --quiet-start if any, must be any of 1 or 2");
         }
       })
+      (cmdline("--debug=#"), "Debug options for DBUG package.",
+      [](const std::string &val, const char* value) {
+#ifdef DBUG_OFF
+        // If DBUG is disabled, we just print a warning saying the option won't
+        // do anything. This is to keep options compatible beetween build types
+        std::cout << "WARNING: This build of mysqlsh has the DBUG feature "
+          "disabled. --debug option ignored." << std::endl;
+#else
+        DBUG_SET_INITIAL(value);
+#endif
+      })
 #ifdef WITH_OCI
     (
       cmdline("--oci[=profile]"),
@@ -523,7 +534,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_import_options();
     check_result_format();
     check_oci_conflicts();
-    ngcommon::Logger::set_stderr_output_format(storage.wrap_json);
+    shcore::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     storage.exit_code = 1;

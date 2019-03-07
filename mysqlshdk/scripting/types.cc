@@ -105,9 +105,7 @@ void skip_whitespace(const char **pc) {
 
 // --
 
-Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {
-  log_error("%s", what());
-}
+Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {}
 
 Exception Exception::argument_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());

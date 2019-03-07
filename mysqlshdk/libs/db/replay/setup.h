@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,13 +40,13 @@ namespace replay {
 
 enum class Mode { Direct, Record, Replay };
 
-void set_mode(Mode mode, int print_traces);
+void set_mode(Mode mode);
 
 void set_recording_path_prefix(const std::string &path);
 void begin_recording_context(const std::string &context);
 void end_recording_context();
 
-void setup_mysql_session_injector(Mode mode, int print_traces);
+void setup_mysql_session_injector(Mode mode);
 
 void set_replay_query_hook(Query_hook func);
 void set_replay_row_hook(Result_row_hook func);

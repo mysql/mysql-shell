@@ -31,6 +31,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <utility>
+#include "dbug/my_dbug.h"
 #include "mysqlshdk/libs/db/replay/replayer.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -159,18 +160,17 @@ void Trace_writer::serialize_connect(
       .append(":")
       .append(std::to_string(data.get_port()));
 
-  if (_print_traces)
-    std::cerr << _log_label << ": connect " << data.as_uri(uri::formats::full())
-              << "\n";
+  DBUG_LOG("sql",
+           _log_label << ": connect " << data.as_uri(uri::formats::full()));
 }
 
 void Trace_writer::serialize_close() {
-  if (_print_traces) std::cerr << _log_label << ": close\n";
+  DBUG_LOG("sql", _log_label << ": close");
   _stream << make_json("request", "CLOSE", {}, ++_idx) << ",\n";
 }
 
 void Trace_writer::serialize_query(const std::string &sql) {
-  if (_print_traces > 1) std::cerr << _log_label << ": " << sql << "\n";
+  DBUG_LOG("sqlall", _log_label << ": " << sql);
   _stream << make_json("request", "QUERY", {{"sql", sql}}, ++_idx) << ",\n";
 }
 
@@ -350,9 +350,8 @@ void Trace_writer::serialize_result(
 }
 
 void Trace_writer::serialize_error(const db::Error &e) {
-  if (_print_traces)
-    std::cerr << _log_label << ": MySQL error: " << e.what() << " (" << e.code()
-              << ")\n";
+  DBUG_LOG("sql",
+           _log_label << ": MySQL error: " << e.what() << " (" << e.code());
   _stream << make_json("response", "ERROR",
                        {{"code", std::to_string(e.code())},
                         {"msg", e.what()},
@@ -362,16 +361,15 @@ void Trace_writer::serialize_error(const db::Error &e) {
 }
 
 void Trace_writer::serialize_error(const std::runtime_error &e) {
-  if (_print_traces)
-    std::cerr << "Runtime error in " << _path << ": " << e.what() << "\n";
+  DBUG_LOG("sql", "Runtime error in " << _path << ": " << e.what());
   _stream << make_json("response", "ERROR",
                        {{"code", ""}, {"msg", e.what()}, {"sqlstate", ""}},
                        ++_idx)
           << ",\n";
 }
 
-Trace_writer *Trace_writer::create(const std::string &path, int print_traces) {
-  return new Trace_writer(path, print_traces);
+Trace_writer *Trace_writer::create(const std::string &path) {
+  return new Trace_writer(path);
 }
 
 void Trace_writer::set_metadata(
@@ -394,10 +392,9 @@ void Trace_writer::set_metadata(
   _stream << buffer.GetString() << ",\n";
 }
 
-Trace_writer::Trace_writer(const std::string &path, int print_traces)
-    : _path(path), _print_traces(print_traces) {
+Trace_writer::Trace_writer(const std::string &path) : _path(path) {
   _log_label = shcore::path::basename(path);
-  if (_print_traces) std::cerr << "Creating trace file " << path << "\n";
+  DBUG_LOG("sql", "Creating trace file " << path);
   _stream.open(path);
   if (_stream.bad()) throw std::logic_error(path + ": " + strerror(errno));
   _stream.rdbuf()->pubsetbuf(0, 0);
@@ -406,19 +403,16 @@ Trace_writer::Trace_writer(const std::string &path, int print_traces)
 
 Trace_writer::~Trace_writer() {
   _stream << "null]\n";
-
-  if (_print_traces)
-    std::cerr << "Closed trace file " << _path << " (" << _idx << " entries)\n";
+  DBUG_LOG("sql", "Closed trace file " << _path << " (" << _idx << " entries)");
 }
 
 // ------------------------------------------------
 
-Trace::Trace(const std::string &path, int print_traces)
-    : _trace_path(path), _print_traces(print_traces) {
+Trace::Trace(const std::string &path) : _trace_path(path) {
   std::FILE *file;
   char buffer[1024 * 4];
 
-  if (_print_traces) std::cerr << "Opening trace file " << path << "\n";
+  DBUG_LOG("sql", "Opening trace file " << path);
 
   file = std::fopen(path.c_str(), "r");
   if (!file) throw std::logic_error(path + ": " + strerror(errno));
@@ -486,9 +480,8 @@ mysqlshdk::db::Connection_options Trace::expected_connect() {
   next(&obj);
 
   expect_request(&obj, "CONNECT");
-  if (_print_traces > 1)
-    std::cerr << shcore::path::basename(_trace_path)
-              << ": connect: " << obj["uri"].GetString() << "\n";
+  DBUG_LOG("sqlall", shcore::path::basename(_trace_path)
+                         << ": connect: " << obj["uri"].GetString());
   return mysqlshdk::db::Connection_options(obj["uri"].GetString());
 }
 
@@ -505,8 +498,7 @@ std::string Trace::expected_query(const std::string &expected) {
 
   expect_request(&obj, "QUERY", expected.c_str());
   std::string query = obj["sql"].GetString();
-  if (_print_traces > 1)
-    std::cerr << shcore::path::basename(_trace_path) << ": " << query << "\n";
+  DBUG_LOG("sqlall", shcore::path::basename(_trace_path) << ": " << query);
   return query;
 }
 

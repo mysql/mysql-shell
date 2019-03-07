@@ -348,7 +348,7 @@
  useWizards                      true
 
 //@<OUT> List all the options using \option and show-origin for SQL mode
- Switching to SQL mode... Commands end with ;
+Switching to SQL mode... Commands end with ;
  autocomplete.nameCache          true (Compiled default)
  batchContinueOnError            false (Compiled default)
  credentialStore.excludeFilters  [] (Compiled default)

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -539,6 +539,18 @@ TEST(UtilsString, unquote_string) {
       EXPECT_EQ(s, unquote_string(quote_string(s, quote), quote));
     }
   }
+}
+
+TEST(UtilsString, str_span) {
+  EXPECT_EQ(std::string::npos, str_span("", ""));
+  EXPECT_EQ(0, str_span("", "1"));
+  EXPECT_EQ(0, str_span("1", ""));
+  EXPECT_EQ(0, str_span("x", "1"));
+  EXPECT_EQ(0, str_span("1", "x"));
+  EXPECT_EQ(1, str_span("x", "x1"));
+  EXPECT_EQ(std::string::npos, str_span("abc", "abc"));
+  EXPECT_EQ(3, str_span("abc", "abcd"));
+  EXPECT_EQ(2, str_span("abbd", "abcd"));
 }
 
 }  // namespace shcore

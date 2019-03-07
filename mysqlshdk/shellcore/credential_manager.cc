@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -157,7 +157,7 @@ Credential_manager &Credential_manager::get() {
 
 void Credential_manager::initialize() {
   if (!m_is_initialized) {
-    set_logger([](const std::string &msg) { log_debug("%s", msg.c_str()); });
+    set_logger([](const std::string &msg) { log_debug2("%s", msg.c_str()); });
 
     if (k_disabled_helper_name == m_helper_string) {
       log_info("Credential store mechanism has been disabled by the user.");

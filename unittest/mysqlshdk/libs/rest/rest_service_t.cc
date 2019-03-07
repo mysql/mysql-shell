@@ -50,10 +50,15 @@ class Rest_service_test : public ::testing::Test {
     int port = 8080;
     bool port_found = false;
 
-    for (int i = 0; !port_found && i < 100; ++i) {
-      if (!utils::Net::is_port_listening("127.0.0.1", port + i)) {
-        port += i;
-        port_found = true;
+    if (getenv("MYSQLSH_TEST_HTTP_PORT")) {
+      port = std::stod(getenv("MYSQLSH_TEST_HTTP_PORT"));
+      port_found = true;
+    } else {
+      for (int i = 0; !port_found && i < 100; ++i) {
+        if (!utils::Net::is_port_listening("127.0.0.1", port + i)) {
+          port += i;
+          port_found = true;
+        }
       }
     }
 

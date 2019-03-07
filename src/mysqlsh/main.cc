@@ -661,6 +661,14 @@ int main(int argc, char **argv) {
 
   if (options.exit_code != 0) return options.exit_code;
 
+  // Setup logging
+  {
+    std::string log_path =
+        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+    shcore::Logger::setup_instance(log_path.c_str(), options.log_to_stderr,
+                                   options.log_level);
+  }
+
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
   try {
     bool interrupted = false;

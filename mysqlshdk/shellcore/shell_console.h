@@ -36,6 +36,7 @@ class Shell_console : public IConsole {
  public:
   // Interface methods
   explicit Shell_console(shcore::Interpreter_delegate *deleg);
+  ~Shell_console() override;
 
   /**
    * Sends the provided text to the indicated stream.
@@ -118,6 +119,7 @@ class Shell_console : public IConsole {
    */
   void print_note(const std::string &text) const override;
   void print_info(const std::string &text) const override;
+
   bool prompt(const std::string &prompt, std::string *out_val,
               Validator validator = nullptr) const override;
   Prompt_answer confirm(const std::string &prompt,

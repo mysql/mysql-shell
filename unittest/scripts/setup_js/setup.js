@@ -20,6 +20,13 @@ function get_sysvar(session, variable) {
   return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
 }
 
+function disable_auto_rejoin(session, port) {
+  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
+  if (__version > 80011) {
+    session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
+  }
+}
+
 
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];

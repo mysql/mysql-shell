@@ -767,7 +767,7 @@ REGISTER_HELP_FUNCTION(log, shell);
 REGISTER_HELP(SHELL_LOG_BRIEF, "Logs an entry to the shell's log file.");
 REGISTER_HELP(SHELL_LOG_PARAM,
               "@param level one of ERROR, WARNING, INFO, "
-              "DEBUG, DEBUG2 as a string");
+              "DEBUG, DEBUG2, DEBUG3 as a string");
 REGISTER_HELP(SHELL_LOG_PARAM1, "@param message the text to be logged");
 REGISTER_HELP(
     SHELL_LOG_DETAIL,
@@ -791,12 +791,14 @@ shcore::Value Shell::log(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("log").c_str());
 
   try {
-    ngcommon::Logger::LOG_LEVEL level = ngcommon::Logger::LOG_INFO;
-    level = ngcommon::Logger::get_log_level(args.string_at(0));
-    if (level == ngcommon::Logger::LOG_NONE)
+    shcore::Logger::LOG_LEVEL level;
+    try {
+      level = shcore::Logger::parse_log_level(args.string_at(0));
+    } catch (...) {
       throw shcore::Exception::argument_error("Invalid log level '" +
                                               args[0].descr() + "'");
-    ngcommon::Logger::log(level, nullptr, "%s", args.string_at(1).c_str());
+    }
+    shcore::Logger::log(level, "%s", args.string_at(1).c_str());
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("log"));
 

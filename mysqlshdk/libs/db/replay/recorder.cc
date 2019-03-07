@@ -51,12 +51,10 @@ std::function<std::string(const std::string &sql)>
 std::function<std::string(const std::string &value)>
     on_recorder_result_value_replace_hook;
 
-Recorder_mysql::Recorder_mysql(int print_traces)
-    : _print_traces(print_traces) {}
+Recorder_mysql::Recorder_mysql() {}
 
 void Recorder_mysql::connect(const mysqlshdk::db::Connection_options &data) {
-  _trace.reset(
-      Trace_writer::create(new_recording_path("mysql_trace"), _print_traces));
+  _trace.reset(Trace_writer::create(new_recording_path("mysql_trace")));
 
   try {
     if (data.has_port()) _port = data.get_port();
@@ -134,12 +132,10 @@ void Recorder_mysql::close() {
 
 // ---
 
-Recorder_mysqlx::Recorder_mysqlx(int print_traces)
-    : _print_traces(print_traces) {}
+Recorder_mysqlx::Recorder_mysqlx() {}
 
 void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options &data) {
-  _trace.reset(
-      Trace_writer::create(new_recording_path("mysqlx_trace"), _print_traces));
+  _trace.reset(Trace_writer::create(new_recording_path("mysqlx_trace")));
   try {
     if (data.has_port()) _port = data.get_port();
     _trace->serialize_connect(data, "x");

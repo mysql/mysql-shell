@@ -220,12 +220,12 @@ c.status()
 
 #@ Restart instance 2 - quorum-loss
 testutil.start_sandbox(__mysql_sandbox_port2)
-testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port2, 'root', 0)
+testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port2, 'root')
 testutil.wait_member_state(__mysql_sandbox_port2, "ONLINE")
 
 #@ Restart instance 3 - quorum-loss
 testutil.start_sandbox(__mysql_sandbox_port3)
-testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port3, 'root', 0)
+testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port3, 'root')
 testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE")
 
 #@<OUT> Verify the final cluster status
@@ -240,6 +240,23 @@ c.status()
 # 3. Rejoin the instances back to the cluster by accepting the interactive prompts to rejoin
 # 4. Verify the final cluster status
 
+#@<> Disable auto-rejoin in all members {VER(>=8.0.11)}
+shell.connect(__sandbox_uri3)
+session.run_sql("SET PERSIST group_replication_start_on_boot=OFF")
+session.close()
+
+shell.connect(__sandbox_uri2)
+session.run_sql("SET PERSIST group_replication_start_on_boot=OFF")
+session.close()
+
+shell.connect(__sandbox_uri1)
+session.run_sql("SET PERSIST group_replication_start_on_boot=OFF")
+
+#@<> Disable auto-rejoin config in all members {VER(<8.0.11)}
+testutil.change_sandbox_conf(__mysql_sandbox_port1, 'group_replication_start_on_boot', 'OFF')
+testutil.change_sandbox_conf(__mysql_sandbox_port2, 'group_replication_start_on_boot', 'OFF')
+testutil.change_sandbox_conf(__mysql_sandbox_port3, 'group_replication_start_on_boot', 'OFF')
+
 #@ Kill instance 2 - complete-outage
 testutil.kill_sandbox(__mysql_sandbox_port2, True)
 testutil.wait_member_state(__mysql_sandbox_port2, "(MISSING)")
@@ -253,15 +270,12 @@ testutil.kill_sandbox(__mysql_sandbox_port1, True)
 
 #@ Restart instance 2 - complete-outage
 testutil.start_sandbox(__mysql_sandbox_port2)
-testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port2, 'root', 0)
 
 #@ Restart instance 3 - complete-outage
 testutil.start_sandbox(__mysql_sandbox_port3)
-testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port3, 'root', 0)
 
 #@ Restart instance 1 - complete-outage
 testutil.start_sandbox(__mysql_sandbox_port1)
-testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port1, 'root', 0)
 
 # Re-establish the session
 shell.connect({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin', 'password': 'myPwd'})

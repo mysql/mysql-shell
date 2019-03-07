@@ -166,15 +166,13 @@ std::string Shell_test_env::_mysql_socket;
 
 std::string Shell_test_env::_sandbox_dir;
 
-int Shell_test_env::_def_mysql_sandbox_port1 = 0;
-int Shell_test_env::_def_mysql_sandbox_port2 = 0;
-int Shell_test_env::_def_mysql_sandbox_port3 = 0;
+int Shell_test_env::_def_mysql_sandbox_ports[k_max_default_sandbox_ports] = {0};
 
 mysqlshdk::utils::Version Shell_test_env::_target_server_version;
 mysqlshdk::utils::Version Shell_test_env::_highest_tls_version;
 
-void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
-                               int sandbox_port3) {
+void Shell_test_env::setup_env(
+    const int sandbox_ports[k_max_default_sandbox_ports]) {
   // All tests expect the following standard test server definitions
   // Tests that need something else should create a sandbox with the required
   // configurations
@@ -217,9 +215,8 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
 
   _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 
-  _def_mysql_sandbox_port1 = sandbox_port1;
-  _def_mysql_sandbox_port2 = sandbox_port2;
-  _def_mysql_sandbox_port3 = sandbox_port3;
+  for (int i = 0; i < k_max_default_sandbox_ports; i++)
+    _def_mysql_sandbox_ports[i] = sandbox_ports[i];
 
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {
@@ -265,47 +262,26 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
  * specified the path where run_unit_tests binary will be used.
  */
 Shell_test_env::Shell_test_env() {
-  _mysql_sandbox_port1 = _def_mysql_sandbox_port1;
-  _mysql_sandbox_port2 = _def_mysql_sandbox_port2;
-  _mysql_sandbox_port3 = _def_mysql_sandbox_port3;
+  for (int i = 0; i < k_max_default_sandbox_ports; i++)
+    _mysql_sandbox_ports[i] = _def_mysql_sandbox_ports[i];
 
   _test_context = _target_server_version.get_base();
 }
 
-std::string Shell_test_env::mysql_sandbox_uri1(const std::string &user,
-                                               const std::string &pwd) {
+std::string Shell_test_env::mysql_sandbox_uri(int sbindex,
+                                              const std::string &user,
+                                              const std::string &pwd) {
+  assert(sbindex < k_max_default_sandbox_ports && sbindex >= 0);
   return "mysql://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port1);
+         "@localhost:" + std::to_string(_mysql_sandbox_ports[sbindex]);
 }
 
-std::string Shell_test_env::mysql_sandbox_uri2(const std::string &user,
+std::string Shell_test_env::mysqlx_sandbox_uri(int sbindex,
+                                               const std::string &user,
                                                const std::string &pwd) {
-  return "mysql://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port2);
-}
-
-std::string Shell_test_env::mysql_sandbox_uri3(const std::string &user,
-                                               const std::string &pwd) {
-  return "mysql://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port3);
-}
-
-std::string Shell_test_env::mysqlx_sandbox_uri1(const std::string &user,
-                                                const std::string &pwd) {
+  assert(sbindex < k_max_default_sandbox_ports && sbindex >= 0);
   return "mysqlx://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port1 * 10);
-}
-
-std::string Shell_test_env::mysqlx_sandbox_uri2(const std::string &user,
-                                                const std::string &pwd) {
-  return "mysqlx://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port2 * 10);
-}
-
-std::string Shell_test_env::mysqlx_sandbox_uri3(const std::string &user,
-                                                const std::string &pwd) {
-  return "mysqlx://" + user + ":" + pwd +
-         "@localhost:" + std::to_string(_mysql_sandbox_port3 * 10);
+         "@localhost:" + std::to_string(_mysql_sandbox_ports[sbindex] * 10);
 }
 
 static bool g_initialized_test = false;
@@ -338,7 +314,7 @@ void Shell_test_env::TearDown() {
 void Shell_test_env::SetUpTestCase() { g_initialized_test = false; }
 
 std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
-  mysqlshdk::db::replay::set_mode(g_test_recording_mode, g_test_trace_sql);
+  mysqlshdk::db::replay::set_mode(g_test_recording_mode);
   _recording_enabled = true;
 
   bool is_recording =
@@ -426,9 +402,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 
       // Override environment dependant data with the same values that were
       // used and saved during recording
-      _mysql_sandbox_port1 = std::stoi(info["sandbox_port1"]);
-      _mysql_sandbox_port2 = std::stoi(info["sandbox_port2"]);
-      _mysql_sandbox_port3 = std::stoi(info["sandbox_port3"]);
+      for (int i = 0; i < k_max_default_sandbox_ports; i++)
+        _mysql_sandbox_ports[i] =
+            std::stoi(info["sandbox_port" + std::to_string(i)]);
 
       m_hostname = info["hostname"];
       m_hostname_ip = info["hostname_ip"];
@@ -436,9 +412,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
       m_real_host_is_loopback = info["real_host_is_loopback"] == "1";
     } catch (std::exception &e) {
       // std::cout << e.what() << "\n";
-      _mysql_sandbox_port1 = 3316;
-      _mysql_sandbox_port2 = 3326;
-      _mysql_sandbox_port3 = 3336;
+      for (int i = 0; i < k_max_default_sandbox_ports; i++)
+        _mysql_sandbox_ports[i] = 3316 + i * 10;
     }
 
     // Inject the recorded environment, so that tests that call things like
@@ -450,9 +425,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     _recording = true;
     std::map<std::string, std::string> info;
 
-    info["sandbox_port1"] = std::to_string(_mysql_sandbox_port1);
-    info["sandbox_port2"] = std::to_string(_mysql_sandbox_port2);
-    info["sandbox_port3"] = std::to_string(_mysql_sandbox_port3);
+    for (int i = 0; i < k_max_default_sandbox_ports; i++)
+      info["sandbox_port" + std::to_string(i)] =
+          std::to_string(_mysql_sandbox_ports[i]);
     info["hostname"] = s_hostname;
     info["hostname_ip"] = s_hostname_ip;
     info["real_hostname"] = s_real_hostname;

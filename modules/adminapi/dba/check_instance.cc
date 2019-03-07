@@ -125,7 +125,7 @@ bool Check_instance::check_configuration() {
   }
 
   if (!m_silent)
-    console->print_note(
+    console->print_info(
         "Instance configuration is compatible with InnoDB cluster");
   return true;
 }
@@ -200,7 +200,7 @@ void Check_instance::prepare() {
 
   if (m_is_valid && !m_silent) {
     console->println();
-    console->print_note("The instance '" + target +
+    console->print_info("The instance '" + target +
                         "' is valid for InnoDB cluster usage.");
     if (bad_schema) {
       console->print_warning(

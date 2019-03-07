@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,100 +33,86 @@ namespace mysqlsh {
 using shcore::Value;
 
 REGISTER_HELP_OBJECT(options, shell);
-REGISTER_HELP(OPTIONS_BRIEF,
-              "Gives access to options impacting shell behavior.");
+REGISTER_HELP_TOPIC_WITH_BRIEF_TEXT(OPTIONS, R"*(
+Gives access to options impacting shell behavior.
 
-REGISTER_HELP(OPTIONS_DETAIL,
-              "The options object acts as a dictionary, it may contain "
-              "the following attributes:");
-REGISTER_HELP(OPTIONS_DETAIL1,
-              "@li autocomplete.nameCache: true if auto-refresh of DB object "
-              "name cache is "
-              "enabled. The \\rehash command can be used for manual refresh");
-REGISTER_HELP(OPTIONS_DETAIL2,
-              "@li batchContinueOnError: read-only, "
-              "boolean value to indicate if the "
-              "execution of an SQL script in batch "
-              "mode shall continue if errors occur");
-REGISTER_HELP(OPTIONS_DETAIL3,
-              "@li credentialStore.excludeFilters: array of URLs for which "
-              "automatic password storage is disabled, supports glob "
-              "characters '*' and '?'");
-REGISTER_HELP(OPTIONS_DETAIL4,
-              "@li credentialStore.helper: name of the credential helper to "
-              "use to fetch/store passwords; a special value \"default\" is "
-              "supported to use platform default helper; a special value "
-              "\"@<disabled>\" is supported to disable the credential store");
-REGISTER_HELP(OPTIONS_DETAIL5,
-              "@li credentialStore.savePasswords: controls automatic password "
-              "storage, allowed values: \"always\", \"prompt\" or \"never\" ");
-REGISTER_HELP(OPTIONS_DETAIL6,
-              "@li dba.gtidWaitTimeout: timeout value in seconds to wait for "
-              "GTIDs to be synchronized");
-REGISTER_HELP(OPTIONS_DETAIL7,
-              "@li defaultCompress: Enable compression in client/server "
-              "protocol by default in global shell sessions.");
-REGISTER_HELP(OPTIONS_DETAIL8,
-              "@li defaultMode: shell mode to use when shell is started, "
-              "allowed values: \"js\", \"py\", \"sql\" or \"none\" ");
-REGISTER_HELP(OPTIONS_DETAIL9,
-              "@li devapi.dbObjectHandles: true to enable schema collection "
-              "and table name aliases in the db "
-              "object, for DevAPI operations.");
-REGISTER_HELP(OPTIONS_DETAIL10,
-              "@li history.autoSave: true "
-              "to save command history when exiting the shell");
-REGISTER_HELP(OPTIONS_DETAIL11,
-              "@li history.maxSize: number "
-              "of entries to keep in command history");
-REGISTER_HELP(OPTIONS_DETAIL12,
-              "@li history.sql.ignorePattern: colon separated list of glob "
-              "patterns to filter"
-              " out of the command history in SQL mode");
-REGISTER_HELP(OPTIONS_DETAIL13,
-              "@li interactive: read-only, boolean "
-              "value that indicates if the shell is "
-              "running in interactive mode");
-REGISTER_HELP(OPTIONS_DETAIL14, "@li logLevel: current log level");
-REGISTER_HELP(OPTIONS_DETAIL15,
-              "@li resultFormat: controls the type of "
-              "output produced for SQL results.");
-REGISTER_HELP(OPTIONS_DETAIL16,
-              "@li pager: string which specifies the external command which is "
-              "going to be used to display the paged output");
-REGISTER_HELP(OPTIONS_DETAIL17,
-              "@li passwordsFromStdin: boolean value that indicates if the "
-              "shell should read passwords from stdin instead of the tty");
-REGISTER_HELP(OPTIONS_DETAIL18,
-              "@li sandboxDir: default path where the "
-              "new sandbox instances for InnoDB "
-              "cluster will be deployed");
-REGISTER_HELP(
-    OPTIONS_DETAIL19,
-    "@li showColumnTypeInfo: display column type information in SQL mode. "
-    "Please be aware that "
-    "output may depend on the protocol you are using to connect to the "
-    "server, e.g. DbType field is approximated when using X protocol.");
-REGISTER_HELP(OPTIONS_DETAIL20,
-              "@li showWarnings: boolean value to "
-              "indicate whether warnings shall be "
-              "included when printing an SQL result");
-REGISTER_HELP(OPTIONS_DETAIL21,
-              "@li useWizards: read-only, boolean value "
-              "to indicate if the Shell is using the "
-              "interactive wrappers (wizard mode)");
+The options object acts as a dictionary, it may contain
+the following attributes:
 
-REGISTER_HELP(OPTIONS_DETAIL22,
-              "The resultFormat option supports the following values:");
-REGISTER_HELP(OPTIONS_DETAIL23,
-              "@li table: displays the output in table format (default)");
-REGISTER_HELP(OPTIONS_DETAIL24, "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    OPTIONS_DETAIL25,
-    "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(
-    OPTIONS_DETAIL26,
-    "@li vertical: displays the outputs vertically, one line per column value");
+@li autocomplete.nameCache: true if auto-refresh of DB object
+name cache is enabled. The \rehash command can be used for manual refresh
+
+@li batchContinueOnError: read-only, boolean value to indicate if the
+execution of an SQL script in batch mode shall continue if errors occur
+
+@li credentialStore.excludeFilters: array of URLs for which
+automatic password storage is disabled, supports glob characters '*' and '?'
+
+@li credentialStore.helper: name of the credential helper to
+use to fetch/store passwords; a special value "default" is
+supported to use platform default helper; a special value
+"@<disabled>" is supported to disable the credential store
+
+@li credentialStore.savePasswords: controls automatic password
+storage, allowed values: "always", "prompt" or "never"
+
+@li dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
+synchronized
+
+@li defaultCompress: Enable compression in client/server
+protocol by default in global shell sessions.
+
+@li defaultMode: shell mode to use when shell is started,
+allowed values: "js", "py", "sql" or "none"
+
+@li devapi.dbObjectHandles: true to enable schema collection
+and table name aliases in the db object, for DevAPI operations.
+
+@li history.autoSave: true to save command history when exiting the shell
+
+@li history.maxSize: number of entries to keep in command history
+
+@li history.sql.ignorePattern: colon separated list of glob
+patterns to filter out of the command history in SQL mode
+
+@li interactive: read-only, boolean value that indicates if the shell is
+running in interactive mode
+
+@li logLevel: current log level
+
+@li resultFormat: controls the type of output produced for SQL results.
+
+@li pager: string which specifies the external command which is
+going to be used to display the paged output
+
+@li passwordsFromStdin: boolean value that indicates if the
+shell should read passwords from stdin instead of the tty
+
+@li sandboxDir: default path where the new sandbox instances for InnoDB
+cluster will be deployed
+
+@li showColumnTypeInfo: display column type information in SQL mode.
+Please be aware that output may depend on the protocol you are using to
+connect to the server, e.g. DbType field is approximated when using X protocol.
+
+@li showWarnings: boolean value to indicate whether warnings shall be
+included when printing a SQL result
+
+@li useWizards: read-only, boolean value to indicate if interactive prompting
+and wizards are enabled by default in AdminAPI and others. Use --no-wizard
+to disable.
+
+@li verbose: 0..4, verbose output level. If >0, additional output that may help
+diagnose issues is printed to the screen. Larger values mean more verbose.
+Default is 0.
+
+The resultFormat option supports the following values:
+
+@li table: displays the output in table format (default)
+@li json: displays the output in JSON format
+@li json/raw: displays the output in a JSON format but in a single line
+@li vertical: displays the outputs vertically, one line per column value
+)*");
 
 std::string &Options::append_descr(std::string &s_out, int indent,
                                    int quote_strings) const {

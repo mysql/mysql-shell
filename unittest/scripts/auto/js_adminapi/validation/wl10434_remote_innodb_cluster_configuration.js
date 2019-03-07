@@ -15,7 +15,7 @@ No incompatible tables detected
 
 Checking instance configuration...
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -26,7 +26,7 @@ Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Please use the dba.configureInstance() command to repair these issues.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 {
     "config_errors": [
@@ -61,7 +61,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -74,7 +74,7 @@ Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-MySQL server needs to be restarted for configuration changes to take effect.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -122,7 +122,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                           |
 +----------------------------------+---------------+----------------+------------------------------------------------+
@@ -139,11 +139,11 @@ Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server: set persist support is disabled. Enable it or provide an option file.
-persisted_globals_load option is OFF
+NOTE: persisted_globals_load option is OFF
 Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-MySQL server needs to be restarted for configuration changes to take effect.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ FR2_2 TEARDOWN {VER(>=8.0.11)}
 ||
@@ -157,7 +157,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 
 This instance reports its own address as <<<hostname>>>
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -178,7 +178,7 @@ Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-MySQL server needs to be restarted for configuration changes to take effect.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -189,7 +189,7 @@ No incompatible tables detected
 Checking instance configuration...
 Configuration file <<<sandbox_cnf1>>> will also be checked.
 
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -204,7 +204,7 @@ Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Please restart the MySQL server and try again.
+NOTE: Please restart the MySQL server and try again.
 
 //@ FR3.1_1 TEARDOWN {VER(<8.0.11)}
 ||
@@ -215,7 +215,7 @@ Please restart the MySQL server and try again.
 //@# FR3.2_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' providing mycnfPath {VER(<8.0.11)}
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
-|MySQL server needs to be restarted for configuration changes to take effect.|
+|NOTE: MySQL server needs to be restarted for configuration changes to take effect.|
 
 |Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
 |Please use the dba.configureInstance() command to repair these issues.|
@@ -253,7 +253,7 @@ ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper
 4) Cancel
 
 Please select an option [1]:
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -300,7 +300,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'clusterAdminAccount'@'%' for clusterAdminAccount
 Password for new account: Confirm password:
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -323,7 +323,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>
 Assuming full account name 'newClusterAdminAccount'@'%' for newClusterAdminAccount
 Password for new account: Confirm password:
-Some configuration options need to be fixed:
+NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,13 +64,13 @@ void begin_recording_context(const std::string &context) {
 }
 
 void end_recording_context() {
-  mysqlshdk::db::replay::set_mode(mysqlshdk::db::replay::Mode::Direct, 0);
+  mysqlshdk::db::replay::set_mode(mysqlshdk::db::replay::Mode::Direct);
   mysqlshdk::db::replay::set_replay_row_hook({});
 }
 
-void set_mode(Mode mode, int print_traces) {
+void set_mode(Mode mode) {
   g_replay_mode = mode;
-  setup_mysql_session_injector(mode, print_traces);
+  setup_mysql_session_injector(mode);
 }
 
 std::string current_recording_dir() {
@@ -123,34 +123,28 @@ std::map<std::string, std::string> load_test_case_info() {
 }
 
 static Mode g_active_session_injector_mode = Mode::Direct;
-static int g_active_session_print_trace_mode = 0;
 
-void setup_mysql_session_injector(Mode mode, int print_traces) {
+void setup_mysql_session_injector(Mode mode) {
   g_active_session_injector_mode = mode;
-  g_active_session_print_trace_mode = print_traces;
   switch (mode) {
     case Mode::Direct:
       mysql::Session::set_factory_function({});
       mysqlx::Session::set_factory_function({});
       break;
     case Mode::Record:
-      mysql::Session::set_factory_function([print_traces]() {
-        return std::shared_ptr<mysql::Session>(
-            new replay::Recorder_mysql(print_traces));
+      mysql::Session::set_factory_function([]() {
+        return std::shared_ptr<mysql::Session>(new replay::Recorder_mysql());
       });
-      mysqlx::Session::set_factory_function([print_traces]() {
-        return std::shared_ptr<mysqlx::Session>(
-            new replay::Recorder_mysqlx(print_traces));
+      mysqlx::Session::set_factory_function([]() {
+        return std::shared_ptr<mysqlx::Session>(new replay::Recorder_mysqlx());
       });
       break;
     case Mode::Replay:
-      mysql::Session::set_factory_function([print_traces]() {
-        return std::shared_ptr<mysql::Session>(
-            new replay::Replayer_mysql(print_traces));
+      mysql::Session::set_factory_function([]() {
+        return std::shared_ptr<mysql::Session>(new replay::Replayer_mysql());
       });
-      mysqlx::Session::set_factory_function([print_traces]() {
-        return std::shared_ptr<mysqlx::Session>(
-            new replay::Replayer_mysqlx(print_traces));
+      mysqlx::Session::set_factory_function([]() {
+        return std::shared_ptr<mysqlx::Session>(new replay::Replayer_mysqlx());
       });
       break;
   }
@@ -162,14 +156,12 @@ void set_replay_query_hook(Query_hook func) { g_replay_query_hook = func; }
 
 No_replay::No_replay() {
   _old_mode = g_active_session_injector_mode;
-  if (_old_mode != Mode::Direct)
-    setup_mysql_session_injector(Mode::Direct,
-                                 g_active_session_print_trace_mode);
+  if (_old_mode != Mode::Direct) setup_mysql_session_injector(Mode::Direct);
 }
 
 No_replay::~No_replay() {
   if (g_active_session_injector_mode != _old_mode)
-    setup_mysql_session_injector(_old_mode, g_active_session_print_trace_mode);
+    setup_mysql_session_injector(_old_mode);
 }
 
 }  // namespace replay

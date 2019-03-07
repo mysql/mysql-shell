@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,12 +76,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   // Utility functions to retriev session status
   uint64_t get_thread_id() {
-    _prev_result.reset();
     if (_mysql) return mysql_thread_id(_mysql);
     return 0;
   }
   uint64_t get_protocol_info() {
-    _prev_result.reset();
     if (_mysql) return mysql_get_proto_info(_mysql);
     return 0;
   }
@@ -89,12 +87,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return _mysql ? _mysql->net.compress : false;
   }
   const char *get_connection_info() {
-    _prev_result.reset();
     if (_mysql) return mysql_get_host_info(_mysql);
     return nullptr;
   }
   const char *get_server_info() {
-    _prev_result.reset();
     if (_mysql) return mysql_get_server_info(_mysql);
     return nullptr;
   }
@@ -104,7 +100,6 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return nullptr;
   }
   const char *get_ssl_cipher() {
-    _prev_result.reset();
     if (_mysql) return mysql_get_ssl_cipher(_mysql);
     return nullptr;
   }

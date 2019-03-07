@@ -665,7 +665,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_EQ(options.initial_mode, IShell_core::Mode::None);
 
   EXPECT_FALSE(options.interactive);
-  EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_INFO);
+  EXPECT_EQ(options.log_level, shcore::Logger::LOG_INFO);
   EXPECT_EQ("table", options.result_format);
   EXPECT_EQ("off", options.wrap_json);
   EXPECT_EQ(nullptr, options.password);

@@ -36,7 +36,7 @@
 using namespace shcore;
 
 std::vector<std::string> Shell_test_output_handler::log;
-ngcommon::Logger *Shell_test_output_handler::_logger;
+shcore::Logger *Shell_test_output_handler::_logger;
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern bool g_profile_test_scripts;
@@ -55,10 +55,10 @@ Shell_test_output_handler::Shell_test_output_handler()
 
   // Initialize the logger and attach the hook for error verification
   // Assumes logfile already initialized
-  ngcommon::Logger::setup_instance(
-      ngcommon::Logger::singleton()->logfile_name().c_str(),
+  shcore::Logger::setup_instance(
+      shcore::Logger::singleton()->logfile_name().c_str(),
       getenv("TEST_DEBUG") != nullptr);
-  _logger = ngcommon::Logger::singleton();
+  _logger = shcore::Logger::singleton();
   _logger->attach_log_hook(log_hook);
 }
 
@@ -66,9 +66,9 @@ Shell_test_output_handler::~Shell_test_output_handler() {
   _logger->detach_log_hook(log_hook);
 }
 
-void Shell_test_output_handler::log_hook(
-    const ngcommon::Logger::Log_entry &entry) {
-  ngcommon::Logger::LOG_LEVEL current_level = _logger->get_log_level();
+void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
+                                         void *) {
+  shcore::Logger::LOG_LEVEL current_level = _logger->get_log_level();
 
   // If the level of the log is different than
   // the one set, we don't want to store the message
@@ -370,7 +370,7 @@ void Shell_core_test_wrapper::SetUp() {
   reset_shell();
 
   if (getenv("TEST_DEBUG")) {
-    output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+    output_handler.set_log_level(shcore::Logger::LOG_DEBUG);
     enable_debug();
   }
 }

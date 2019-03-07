@@ -45,14 +45,6 @@ class Auto_script_py : public Shell_py_script_tester,
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   void SetUp() override {
-    m_home_backup = getenv("HOME");
-    static char path[1024];
-    snprintf(path, sizeof(path), "HOME=%s", g_test_home);
-
-    if (putenv(path) != 0) {
-      std::cerr << "putenv failed to set HOME to a test path.\n";
-    }
-
     // Force reset_shell() to happen when reset_shell() is called explicitly
     // in each test case
     _delay_reset_shell = true;
@@ -63,23 +55,7 @@ class Auto_script_py : public Shell_py_script_tester,
                                              "setup.py"));
   }
 
-  void TearDown() override {
-    if (m_home_backup) {
-      static char path[1024];
-      snprintf(path, sizeof(path), "HOME=%s", m_home_backup);
-
-      if (putenv(path) != 0) {
-        std::cerr << "putenv failed to restore HOME to it's original value.\n";
-      }
-    } else {
-      unsetenv("HOME");
-    }
-    Shell_py_script_tester::TearDown();
-  }
-
  protected:
-  char *m_home_backup = nullptr;
-
   void set_defaults() override {
     Shell_py_script_tester::set_defaults();
 
@@ -136,24 +112,16 @@ class Auto_script_py : public Shell_py_script_tester,
     exec_and_out_equals(code);
     code = "__mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code =
-        "__mysql_sandbox_port1 = " + std::to_string(_mysql_sandbox_port1) + ";";
-    exec_and_out_equals(code);
-    code =
-        "__mysql_sandbox_port2 = " + std::to_string(_mysql_sandbox_port2) + ";";
-    exec_and_out_equals(code);
-    code =
-        "__mysql_sandbox_port3 = " + std::to_string(_mysql_sandbox_port3) + ";";
-    exec_and_out_equals(code);
-    code = "__sandbox_uri1 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port1) + "';";
-    exec_and_out_equals(code);
-    code = "__sandbox_uri2 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port2) + "';";
-    exec_and_out_equals(code);
-    code = "__sandbox_uri3 = 'mysql://root:root@localhost:" +
-           std::to_string(_mysql_sandbox_port3) + "';";
-    exec_and_out_equals(code);
+    for (int i = 0; i < k_max_default_sandbox_ports; i++) {
+      code = shcore::str_format("__mysql_sandbox_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+
+      code = shcore::str_format(
+          "__sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
+          _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+    }
 
     code = "localhost = 'localhost'";
     exec_and_out_equals(code);

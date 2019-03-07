@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,6 +141,18 @@ inline bool str_iendswith(const std::string &s, const std::string &suffix) {
   return strncasecmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
                      suffix.length()) == 0;
 #endif
+}
+
+/** Return position of the first difference in the strings or npos if they're
+ * the same */
+inline size_t str_span(const std::string &s1, const std::string &s2) {
+  size_t p = 0;
+  while (p < s1.size() && p < s2.size()) {
+    if (s1[p] != s2[p]) return p;
+    ++p;
+  }
+  if (p == s1.size() && p == s2.size()) return std::string::npos;
+  return p;
 }
 
 /** Partition a string in 2 at a separator, if present */

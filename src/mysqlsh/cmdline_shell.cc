@@ -316,6 +316,8 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
 Command_line_shell::~Command_line_shell() {
   // global pager needs to be destroyed as it uses the delegate
   current_console()->disable_global_pager();
+  // disable verbose output, since it also uses the delegate
+  current_console()->set_verbose(0);
 }
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
@@ -898,6 +900,10 @@ void Command_line_shell::handle_notification(
         console->disable_global_pager();
         console->enable_global_pager();
       }
+    } else if (SHCORE_VERBOSE == option) {
+      const auto console = current_console();
+
+      console->set_verbose(data->get_int("value"));
     }
   }
 }

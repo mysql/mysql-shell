@@ -134,7 +134,7 @@
 
 //@<OUT> Check instance must fail if report_host is defined but empty.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 
@@ -143,7 +143,7 @@ Dba.checkInstanceConfiguration: The value for variable 'report_host' cannot be e
 
 //@<OUT> Configure instance must fail if report_host is defined but empty.
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 
@@ -154,7 +154,7 @@ Dba.configureInstance: The value for variable 'report_host' cannot be empty. (Ru
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port2>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 

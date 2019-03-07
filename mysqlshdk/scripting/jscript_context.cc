@@ -563,7 +563,7 @@ struct JScript_context::JScript_context_impl {
   }
 
   void print_exception(const std::string &text) {
-    mysqlsh::current_console()->raw_print(text, mysqlsh::Output_stream::STDERR);
+    mysqlsh::current_console()->print_diag(text);
   }
 
   void set_global_item(const std::string &global_name,
@@ -1075,9 +1075,8 @@ std::pair<Value, bool> JScript_context::execute(
     v8::MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(lcontext);
     if (is_terminating() || try_catch.HasTerminated()) {
       _impl->isolate->CancelTerminateExecution();
-      mysqlsh::current_console()->raw_print(
-          "Script execution interrupted by user.\n",
-          mysqlsh::Output_stream::STDERR);
+      mysqlsh::current_console()->print_diag(
+          "Script execution interrupted by user.");
 
       return {Value(), true};
     } else if (!try_catch.HasCaught()) {
@@ -1136,15 +1135,13 @@ std::pair<Value, bool> JScript_context::execute_interactive(
     v8::MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(lcontext);
     if (is_terminating() || try_catch.HasTerminated()) {
       _impl->isolate->CancelTerminateExecution();
-      console->raw_print("Script execution interrupted by user.\n",
-                         mysqlsh::Output_stream::STDERR);
+      console->print_diag("Script execution interrupted by user.");
     } else if (try_catch.HasCaught()) {
       Value exc(get_v8_exception_data(try_catch, true));
       if (exc)
         _impl->print_exception(format_exception(exc));
       else
-        console->raw_print("Error executing script\n",
-                           mysqlsh::Output_stream::STDERR);
+        console->print_diag("Error executing script");
     } else {
       try {
         return {v8_value_to_shcore_value(result.ToLocalChecked()), false};
@@ -1153,8 +1150,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
         // thrown from v8_value_to_shcore_value() aren't being caught from
         // main.cc, leading to a crash due to unhandled exception.. so we catch
         // and print it here
-        console->raw_print(std::string("INTERNAL ERROR: ").append(exc.what()),
-                           mysqlsh::Output_stream::STDERR);
+        console->print_diag(std::string("INTERNAL ERROR: ").append(exc.what()));
       }
     }
   }

@@ -33,6 +33,7 @@
 #include <utility>
 #include <vector>
 
+#include "dbug/my_dbug.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -933,6 +934,8 @@ shcore::Value ReplicaSet::add_instance(
   // Get the current number of replicaSet members
   uint64_t replicaset_count =
       _metadata_storage->get_replicaset_count(this->get_id());
+
+  DBUG_EXECUTE_IF("dba_abort_join_group", { throw std::logic_error("debug"); });
 
   // Call MP
   if (seed_instance) {

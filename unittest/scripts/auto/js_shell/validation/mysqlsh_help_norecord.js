@@ -110,6 +110,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 ENV variable PAGER. This option only works in
                                 interactive mode. This option is disabled by
                                 default.
+  --verbose[=level]             Verbose output level. Enable diagnostic message
+                                output. If level is given, it can go up to 4
+                                for maximum verbosity, otherwise 1 is assumed.
   --name-cache                  Enable database name caching for autocompletion
                                 and DevAPI (default).
   -A, --no-name-cache           Disable automatic database name caching for
@@ -140,6 +143,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 prevent printing any information unless it is
                                 an error. If no value is specified uses 1 as
                                 default.
+  --debug=#                     Debug options for DBUG package.
 ?{__with_oci==1}
   --oci[=profile]               Starts the shell ready to work with OCI. A
                                 wizard to configure the given profile will be
@@ -271,6 +275,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 ENV variable PAGER. This option only works in
                                 interactive mode. This option is disabled by
                                 default.
+  --verbose[=level]             Verbose output level. Enable diagnostic message
+                                output. If level is given, it can go up to 4
+                                for maximum verbosity, otherwise 1 is assumed.
   --name-cache                  Enable database name caching for autocompletion
                                 and DevAPI (default).
   -A, --no-name-cache           Disable automatic database name caching for
@@ -301,6 +308,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 prevent printing any information unless it is
                                 an error. If no value is specified uses 1 as
                                 default.
+  --debug=#                     Debug options for DBUG package.
 ?{__with_oci==1}
   --oci[=profile]               Starts the shell ready to work with OCI. A
                                 wizard to configure the given profile will be

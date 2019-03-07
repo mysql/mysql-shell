@@ -292,9 +292,11 @@ struct Help_register_split {
 };
 
 struct Help_register_topic_text {
-  Help_register_topic_text(const std::string &prefix, const std::string &data) {
+  Help_register_topic_text(const std::string &prefix, const std::string &data,
+                           bool auto_brief) {
     // Adds _DETAIL# entries for the whole thing
-    shcore::Help_registry::get()->add_split_help(prefix, data, false, false);
+    shcore::Help_registry::get()->add_split_help(prefix, data, auto_brief,
+                                                 false);
     // Add topl-level reference to the 1st _DETAIL entry
     shcore::Help_registry::get()->add_help(prefix, "${" + prefix + "_DETAIL}");
   }
@@ -570,7 +572,11 @@ class Help_manager {
       #name, shcore::Topic_type::PROPERTY, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
 
-#define REGISTER_HELP_TOPIC_TEXT(x, y) shcore::Help_register_topic_text x(#x, y)
+#define REGISTER_HELP_TOPIC_TEXT(x, y) \
+  shcore::Help_register_topic_text x(#x, y, false)
+
+#define REGISTER_HELP_TOPIC_WITH_BRIEF_TEXT(x, y) \
+  shcore::Help_register_topic_text x(#x, y, true)
 
 #define REGISTER_HELP_FUNCTION_TEXT(x, y) \
   shcore::Help_register_split x##function(#x, y, true, false)

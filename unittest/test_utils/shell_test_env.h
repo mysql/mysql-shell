@@ -41,7 +41,6 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 extern "C" const char *g_argv0;
 extern int g_test_trace_scripts;
 extern bool g_test_fail_early;
-extern int g_test_trace_sql;
 extern bool g_test_color_output;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 
@@ -78,6 +77,10 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
   }
 
 namespace tests {
+
+// Max. number of pre-defined sandbox ports
+static constexpr const int k_max_default_sandbox_ports = 3;
+
 /**
  * \ingroup UTFramework
  * \todo This class must be documented.
@@ -126,8 +129,7 @@ class Shell_test_env : public ::testing::Test {
   std::string setup_recorder(const char *sub_test_name = nullptr);
   void teardown_recorder();
 
-  static void setup_env(int sandbox_port1, int sandbox_port2,
-                        int sandbox_port3);
+  static void setup_env(const int sandbox_ports[k_max_default_sandbox_ports]);
 
   std::string query_replace_hook(const std::string &sql);
   std::unique_ptr<mysqlshdk::db::IRow> set_replay_row_hook(
@@ -166,14 +168,10 @@ class Shell_test_env : public ::testing::Test {
   static std::string _sandbox_dir;  //!< Path to the sandbox directory
 
   // Default sandbox ports
-  static int _def_mysql_sandbox_port1;  //!< Port of the first sandbox
-  static int _def_mysql_sandbox_port2;  //!< Port of the second sandbox
-  static int _def_mysql_sandbox_port3;  //!< Port of the third sandbox
+  static int _def_mysql_sandbox_ports[k_max_default_sandbox_ports];  //!< Ports
 
   // Overriden sandbox ports (used for replays)
-  int _mysql_sandbox_port1;  //!< Port of the first sandbox
-  int _mysql_sandbox_port2;  //!< Port of the second sandbox
-  int _mysql_sandbox_port3;  //!< Port of the third sandbox
+  int _mysql_sandbox_ports[k_max_default_sandbox_ports];  //!< Ports
 
   static mysqlshdk::utils::Version
       _target_server_version;  //!< The version of the used MySQL Server
@@ -222,18 +220,11 @@ class Shell_test_env : public ::testing::Test {
                                    : m_real_host_is_loopback;
   }
 
-  std::string mysql_sandbox_uri1(const std::string &user = "root",
+  std::string mysql_sandbox_uri(int sbindex, const std::string &user = "root",
+                                const std::string &pwd = "root");
+
+  std::string mysqlx_sandbox_uri(int sbindex, const std::string &user = "root",
                                  const std::string &pwd = "root");
-  std::string mysql_sandbox_uri2(const std::string &user = "root",
-                                 const std::string &pwd = "root");
-  std::string mysql_sandbox_uri3(const std::string &user = "root",
-                                 const std::string &pwd = "root");
-  std::string mysqlx_sandbox_uri1(const std::string &user = "root",
-                                  const std::string &pwd = "root");
-  std::string mysqlx_sandbox_uri2(const std::string &user = "root",
-                                  const std::string &pwd = "root");
-  std::string mysqlx_sandbox_uri3(const std::string &user = "root",
-                                  const std::string &pwd = "root");
 
  private:
   struct Open_session {

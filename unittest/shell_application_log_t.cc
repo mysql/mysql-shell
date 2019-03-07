@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,11 +38,11 @@ namespace shcore {
 class Shell_application_log_tests : public Shell_core_test_wrapper {
  protected:
   static int i;
-  ngcommon::Logger *_logger;
+  shcore::Logger *_logger;
 
   static std::string error;
 
-  static void my_hook(const ngcommon::Logger::Log_entry &entry) {
+  static void my_hook(const shcore::Logger::Log_entry &entry, void *) {
     EXPECT_THAT(entry.message, ::testing::HasSubstr(error));
     i++;
   }
@@ -54,9 +54,9 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
 
     const auto log_path =
         shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-    ngcommon::Logger::setup_instance(log_path.c_str(), false,
-                                     ngcommon::Logger::LOG_ERROR);
-    _logger = ngcommon::Logger::singleton();
+    shcore::Logger::setup_instance(log_path.c_str(), false,
+                                   shcore::Logger::LOG_DEBUG);
+    _logger = shcore::Logger::singleton();
     _logger->attach_log_hook(my_hook);
 
     _interactive_shell->process_line("\\js");
@@ -73,7 +73,7 @@ std::string Shell_application_log_tests::error = "";
 
 #ifdef HAVE_V8
 TEST_F(Shell_application_log_tests, test) {
-  // issue an stmt with syntax error, then check the log.
+  // issue a stmt with syntax error, then check the log.
   error = "SyntaxError: missing ) after argument list at :1:6\nin print('x';";
   execute("print('x';");
 
@@ -83,7 +83,7 @@ TEST_F(Shell_application_log_tests, test) {
       "line 1";
   execute("session.runSql('select * from sakila.actor1 limit');");
   // The hook was invoked
-  EXPECT_EQ(3, Shell_application_log_tests::i);
+  EXPECT_EQ(2, Shell_application_log_tests::i);
 
   execute("session.close();");
 }

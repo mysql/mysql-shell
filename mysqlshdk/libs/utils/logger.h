@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 #ifdef _MSC_VER
 #include <sal.h>
@@ -37,12 +38,7 @@
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
 
-namespace ngcommon {
-
-#define DOMAIN_DEFAULT nullptr
-#ifndef LOG_DOMAIN
-#define LOG_DOMAIN DOMAIN_DEFAULT
-#endif
+namespace shcore {
 
 class SHCORE_PUBLIC Logger final {
  public:
@@ -68,7 +64,7 @@ class SHCORE_PUBLIC Logger final {
     LOG_LEVEL level;
   };
 
-  using Log_hook = void (*)(const Log_entry &entry);
+  using Log_hook = void (*)(const Log_entry &entry, void *);
 
   Logger(const Logger &) = delete;
   Logger(Logger &&) = delete;
@@ -78,27 +74,21 @@ class SHCORE_PUBLIC Logger final {
   Logger &operator=(const Logger &) = delete;
   Logger &operator=(Logger &&) = delete;
 
-  void attach_log_hook(Log_hook hook);
+  void attach_log_hook(Log_hook hook, void *hook_data = nullptr,
+                       bool catch_all = false);
   void detach_log_hook(Log_hook hook);
 
   void set_log_level(LOG_LEVEL log_level);
-  LOG_LEVEL get_log_level();
+  LOG_LEVEL get_log_level() const { return m_log_level; }
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
-  static void log(LOG_LEVEL level, const char *domain, const char *format, ...)
-      __attribute__((__format__(__printf__, 3, 4)));
-  static void log(const std::exception &exc, const char *domain,
-                  const char *format, ...)
-      __attribute__((__format__(__printf__, 3, 4)));
+  static void log(LOG_LEVEL level, const char *format, ...)
+      __attribute__((__format__(__printf__, 2, 3)));
 #elif _MSC_VER
-  static void log(LOG_LEVEL level, const char *domain,
-                  _In_z_ _Printf_format_string_ const char *format, ...);
-  static void log(const std::exception &exc, const char *domain,
+  static void log(LOG_LEVEL level,
                   _In_z_ _Printf_format_string_ const char *format, ...);
 #else
-  static void log(LOG_LEVEL level, const char *domain, const char *format, ...);
-  static void log(const std::exception &exc, const char *domain,
-                  const char *format, ...);
+  static void log(LOG_LEVEL level, const char *format, ...);
 #endif
 
   static Logger *singleton();
@@ -107,11 +97,7 @@ class SHCORE_PUBLIC Logger final {
   static void setup_instance(const char *filename, bool use_stderr = false,
                              LOG_LEVEL level = LOG_INFO);
 
-  static LOG_LEVEL get_level_by_name(const std::string &level_name);
-
-  static LOG_LEVEL get_log_level(const std::string &tag);
-
-  static bool is_level_none(const std::string &tag);
+  static LOG_LEVEL parse_log_level(const std::string &tag);
 
   static const char *get_level_range_info();
 
@@ -123,25 +109,24 @@ class SHCORE_PUBLIC Logger final {
 
   bool use_stderr() const;
 
- private:
-  Logger(const char *filename, bool use_stderr = false,
-         LOG_LEVEL log_level = LOG_INFO);
+  inline void push_context(const std::string &context) {
+    m_log_context.push_back(context);
+  }
 
-  static void out_to_stderr(const Log_entry &entry);
+  inline void pop_context() { m_log_context.pop_back(); }
+
+  inline const char *context() const {
+    return m_log_context.empty() ? "" : m_log_context.back().c_str();
+  }
+
+ private:
+  Logger(const char *filename, bool use_stderr);
+
+  static void out_to_stderr(const Log_entry &entry, void *);
 
   static std::string format_message(const Log_entry &entry);
 
   static void assert_logger_initialized();
-
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
-  static std::string format(const char *formats, ...)
-      __attribute__((__format__(__printf__, 1, 2)));
-#elif _MSC_VER
-  static std::string format(_In_z_ _Printf_format_string_ const char *format,
-                            ...);
-#else
-  static std::string format(const char *formats, ...);
-#endif
 
   static std::string format(const char *formats, va_list args);
 
@@ -150,50 +135,40 @@ class SHCORE_PUBLIC Logger final {
   static std::unique_ptr<Logger> s_instance;
   static std::string s_output_format;
 
-  LOG_LEVEL m_log_level;
+  LOG_LEVEL m_log_level = LOG_NONE;
+
   std::ofstream m_log_file;
   std::string m_log_file_name;
-  std::list<Log_hook> m_hook_list;
+  std::list<std::tuple<Log_hook, void *, bool>> m_hook_list;
+
+  std::list<std::string> m_log_context;
 };
 
-#define log_internal_error(...)                                           \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_INTERNAL_ERROR, LOG_DOMAIN, \
-                        __VA_ARGS__)
-#define log_unexpected(...)                                               \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_INTERNAL_ERROR, LOG_DOMAIN, \
-                        __VA_ARGS__)
+struct Log_context {
+  Log_context(const std::string &context) {
+    Logger::singleton()->push_context(context);
+  }
 
-#define log_exception(exc, ...) \
-  ngcommon::Logger::log(exc, LOG_DOMAIN, __VA_ARGS__)
+  ~Log_context() { Logger::singleton()->pop_context(); }
+};
+
 #define log_error(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_ERROR, LOG_DOMAIN, __VA_ARGS__)
+  shcore::Logger::log(shcore::Logger::LOG_ERROR, __VA_ARGS__)
+
 #define log_warning(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_WARNING, LOG_DOMAIN, __VA_ARGS__)
-#define log_info(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_INFO, LOG_DOMAIN, __VA_ARGS__)
+  shcore::Logger::log(shcore::Logger::LOG_WARNING, __VA_ARGS__)
+
+#define log_info(...) shcore::Logger::log(shcore::Logger::LOG_INFO, __VA_ARGS__)
+
 #define log_debug(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG, LOG_DOMAIN, __VA_ARGS__)
+  shcore::Logger::log(shcore::Logger::LOG_DEBUG, __VA_ARGS__)
 
-#ifndef NDEBUG
 #define log_debug2(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG2, LOG_DOMAIN, __VA_ARGS__)
-#define log_debug3(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG3, LOG_DOMAIN, __VA_ARGS__)
+  shcore::Logger::log(shcore::Logger::LOG_DEBUG2, __VA_ARGS__)
 
-#define log_secret(...) \
-  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG, LOG_DOMAIN, __VA_ARGS__)
-#else
-#define log_debug2(...) \
-  do {                  \
-  } while (0)
 #define log_debug3(...) \
-  do {                  \
-  } while (0)
+  shcore::Logger::log(shcore::Logger::LOG_DEBUG3, __VA_ARGS__)
 
-#define log_secret(...) \
-  do {                  \
-  } while (0)
-#endif
-}  // namespace ngcommon
+}  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_LOGGER_H_

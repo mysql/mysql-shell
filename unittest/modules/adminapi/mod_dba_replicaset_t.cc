@@ -52,7 +52,7 @@ class Dba_replicaset_test : public Admin_api_test {
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
 
     execute("shell.connect('root:root@localhost:" +
-            std::to_string(_mysql_sandbox_port1) + "')");
+            std::to_string(_mysql_sandbox_ports[0]) + "')");
 
     auto dba = _interactive_shell->shell_context()
                    ->get_global("dba")
@@ -124,7 +124,7 @@ TEST_F(Dba_replicaset_test, bug28219398) {
   replication_pwd = "|t+-*2]1@+T?e%&H;*.%s)>)F/U}9,$?";
 
   // Create the replication_user on the cluster
-  auto md_session = create_session(_mysql_sandbox_port1);
+  auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   md_session->query("CREATE USER IF NOT EXISTS '" + replication_user +
                     "'@'localhost' IDENTIFIED BY /*(*/ '" + replication_pwd +
@@ -140,9 +140,9 @@ TEST_F(Dba_replicaset_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'%' /*)*/");
 
-  // Set the connection options for _mysql_sandbox_port3
+  // Set the connection options for _mysql_sandbox_ports[2]
   connection_options.set_host("localhost");
-  connection_options.set_port(_mysql_sandbox_port3);
+  connection_options.set_port(_mysql_sandbox_ports[2]);
   connection_options.set_user("root");
   connection_options.set_password("root");
 
@@ -159,13 +159,13 @@ TEST_F(Dba_replicaset_test, bug28219398) {
 
     // Set the Shell global session
     execute("shell.connect('root:root@localhost:" +
-            std::to_string(_mysql_sandbox_port3) + "')");
+            std::to_string(_mysql_sandbox_ports[2]) + "')");
 
-    testutil->wait_member_state(_mysql_sandbox_port3, "ONLINE", false);
+    testutil->wait_member_state(_mysql_sandbox_ports[2], "ONLINE", false);
 
     execute("session.close()");
 
-    auto session = create_session(_mysql_sandbox_port3);
+    auto session = create_session(_mysql_sandbox_ports[2]);
     auto instance_type = mysqlsh::dba::get_gr_instance_type(session);
 
     mysqlsh::dba::Cluster_check_info state =

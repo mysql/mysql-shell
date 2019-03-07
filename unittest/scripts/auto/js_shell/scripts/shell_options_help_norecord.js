@@ -52,3 +52,6 @@
 
 //@ Verify the help text when using filter
 \option --help history
+
+//@ verbose output
+\option --help verbose

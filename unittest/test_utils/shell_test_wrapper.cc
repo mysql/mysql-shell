@@ -212,7 +212,7 @@ void Shell_test_wrapper::enable_testutil() {
 }
 
 std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
-  mysqlshdk::db::replay::set_mode(g_test_recording_mode, g_test_trace_sql);
+  mysqlshdk::db::replay::set_mode(g_test_recording_mode);
   _recording_enabled = true;
 
   bool is_recording =

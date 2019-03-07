@@ -48,9 +48,13 @@ DESCRIPTION
         connect to the server, e.g. DbType field is approximated when using X
         protocol.
       - showWarnings: boolean value to indicate whether warnings shall be
-        included when printing an SQL result
-      - useWizards: read-only, boolean value to indicate if the Shell is using
-        the interactive wrappers (wizard mode)
+        included when printing a SQL result
+      - useWizards: read-only, boolean value to indicate if interactive
+        prompting and wizards are enabled by default in AdminAPI and others.
+        Use --no-wizard to disable.
+      - verbose: 0..4, verbose output level. If >0, additional output that may
+        help diagnose issues is printed to the screen. Larger values mean more
+        verbose. Default is 0.
 
       The resultFormat option supports the following values:
 

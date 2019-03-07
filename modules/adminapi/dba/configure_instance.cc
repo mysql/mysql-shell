@@ -226,7 +226,7 @@ void Configure_instance::check_create_admin_user() {
     if (admin_user_host.empty()) {
       admin_user_host = "%";
       std::string full = shcore::make_account(admin_user, admin_user_host);
-      console->print_note("Assuming full account name " + full + " for " +
+      console->print_info("Assuming full account name " + full + " for " +
                           m_cluster_admin);
       m_cluster_admin = full;
     }
@@ -308,7 +308,7 @@ void Configure_instance::create_admin_user() {
       throw shcore::Exception::runtime_error(error_msg);
     }
 
-    mysqlsh::current_console()->print_note("Cluster admin user " +
+    mysqlsh::current_console()->print_info("Cluster admin user " +
                                            m_cluster_admin + " created.");
   }
 }
@@ -352,7 +352,7 @@ bool Configure_instance::check_configuration_updates(
              (m_can_set_persist.is_null() || !*m_can_set_persist));
   } else {
     console->println();
-    console->print_note("The instance '" + m_target_instance->descr() +
+    console->print_info("The instance '" + m_target_instance->descr() +
                         "' is valid for InnoDB cluster usage.");
     return false;
   }
@@ -363,7 +363,7 @@ void Configure_instance::ensure_instance_address_usable() {
 
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
-    console->print_info("Instance detected as a sandbox.");
+    console->print_note("Instance detected as a sandbox.");
     console->println(
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");

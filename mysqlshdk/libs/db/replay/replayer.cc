@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -149,14 +149,12 @@ class Replayer_impl {
 
 //-----
 
-Replayer_mysql::Replayer_mysql(int print_traces) : _print_traces(print_traces) {
-  _impl.reset(new Replayer_impl());
-}
+Replayer_mysql::Replayer_mysql() { _impl.reset(new Replayer_impl()); }
 
 Replayer_mysql::~Replayer_mysql() {}
 
 void Replayer_mysql::connect(const mysqlshdk::db::Connection_options &data_) {
-  _impl->set_trace(new Trace(next_replay_path("mysql_trace"), _print_traces));
+  _impl->set_trace(new Trace(next_replay_path("mysql_trace")));
 
   mysqlshdk::db::Connection_options data(data_);
 
@@ -219,15 +217,12 @@ Result_mysql::Result_mysql(uint64_t affected_rows, unsigned int warning_count,
 
 // ---
 
-Replayer_mysqlx::Replayer_mysqlx(int print_traces)
-    : _print_traces(print_traces) {
-  _impl.reset(new Replayer_impl());
-}
+Replayer_mysqlx::Replayer_mysqlx() { _impl.reset(new Replayer_impl()); }
 
 Replayer_mysqlx::~Replayer_mysqlx() {}
 
 void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options &data_) {
-  _impl->set_trace(new Trace(next_replay_path("mysqlx_trace"), _print_traces));
+  _impl->set_trace(new Trace(next_replay_path("mysqlx_trace")));
 
   mysqlshdk::db::Connection_options data(data_);
   // Normalization done in the real Session object must be done here too

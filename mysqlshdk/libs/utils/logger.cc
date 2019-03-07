@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,51 +40,53 @@
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 
-namespace ngcommon {
+namespace shcore {
 
 namespace {
 
-struct Logger_levels_table {
- public:
-  Logger_levels_table() {
-    m_names[0] = "";
-    m_names[1] = "None";
-    m_names[2] = "INTERNAL";
-    m_names[3] = "Error";
-    m_names[4] = "Warning";
-    m_names[5] = "Info";
-    m_names[6] = "Debug";
-    m_names[7] = "Debug2";
-    m_names[8] = "Debug3";
-
-    for (int i = Logger::LOG_NONE; i <= Logger::LOG_MAX_LEVEL; ++i) {
-      m_levels.insert(
-          std::make_pair(m_names[i], static_cast<Logger::LOG_LEVEL>(i)));
-    }
+std::string to_string(Logger::LOG_LEVEL level) {
+  switch (level) {
+    case Logger::LOG_NONE:
+      return "None";
+    case Logger::LOG_INTERNAL_ERROR:
+      return "INTERNAL";
+    case Logger::LOG_ERROR:
+      return "Error";
+    case Logger::LOG_WARNING:
+      return "Warning";
+    case Logger::LOG_INFO:
+      return "Info";
+    case Logger::LOG_DEBUG:
+      return "Debug";
+    case Logger::LOG_DEBUG2:
+      return "Debug2";
+    case Logger::LOG_DEBUG3:
+      return "Debug3";
+    default:
+      return "";
   }
+}
 
-  Logger::LOG_LEVEL to_log_level(const std::string &level_name) {
-    const auto it = m_levels.find(level_name);
-    if (m_levels.end() != it)
-      return it->second;
-    else
-      return Logger::LOG_NONE;
-  }
-
-  std::string &to_string(Logger::LOG_LEVEL level) { return m_names[level]; }
-
- private:
-  struct Case_insensitive_comp {
-    bool operator()(const std::string &lhs, const std::string &rhs) const {
-      return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
-    }
-  };
-
-  std::string m_names[Logger::LOG_MAX_LEVEL + 1];
-  std::map<std::string, Logger::LOG_LEVEL, Case_insensitive_comp> m_levels;
-};
-
-Logger_levels_table g_level_converter;
+Logger::LOG_LEVEL get_level_by_name(const std::string &name) {
+  if (strcasecmp(name.c_str(), "none") == 0)
+    return Logger::LOG_NONE;
+  else if (strcasecmp(name.c_str(), "internal") == 0)
+    return Logger::LOG_INTERNAL_ERROR;
+  else if (strcasecmp(name.c_str(), "error") == 0)
+    return Logger::LOG_ERROR;
+  else if (strcasecmp(name.c_str(), "warning") == 0)
+    return Logger::LOG_WARNING;
+  else if (strcasecmp(name.c_str(), "info") == 0)
+    return Logger::LOG_INFO;
+  else if (strcasecmp(name.c_str(), "debug") == 0)
+    return Logger::LOG_DEBUG;
+  else if (strcasecmp(name.c_str(), "debug2") == 0)
+    return Logger::LOG_DEBUG2;
+  else if (strcasecmp(name.c_str(), "debug3") == 0)
+    return Logger::LOG_DEBUG3;
+  else
+    throw std::invalid_argument("invalid level");
+}
 
 }  // namespace
 
@@ -101,27 +103,25 @@ Logger::Log_entry::Log_entry(const char *domain, const char *message,
       message{message},
       level{level} {}
 
-void Logger::attach_log_hook(Log_hook hook) {
+void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
   if (hook) {
-    m_hook_list.push_back(hook);
+    m_hook_list.emplace_back(hook, user_data, catch_all);
   } else {
-    throw std::logic_error("Logger::attach_log_hook: Null hook pointer");
+    throw std::invalid_argument("Logger::attach_log_hook: Null hook pointer");
   }
 }
 
 void Logger::detach_log_hook(Log_hook hook) {
   if (hook) {
-    m_hook_list.remove(hook);
+    m_hook_list.remove_if([hook](const std::tuple<Log_hook, void *, bool> &i) {
+      return std::get<0>(i) == hook;
+    });
   } else {
-    throw std::logic_error("Logger::detach_log_hook: Null hook pointer");
+    throw std::invalid_argument("Logger::detach_log_hook: Null hook pointer");
   }
 }
 
-void Logger::set_log_level(LOG_LEVEL log_level) {
-  this->m_log_level = log_level;
-}
-
-Logger::LOG_LEVEL Logger::get_log_level() { return m_log_level; }
+void Logger::set_log_level(LOG_LEVEL log_level) { m_log_level = log_level; }
 
 void Logger::assert_logger_initialized() {
   if (s_instance.get() == nullptr) {
@@ -134,15 +134,6 @@ void Logger::assert_logger_initialized() {
     ::write(STDERR_FILENO, msg_noinit, strlen(msg_noinit));
 #endif  // !_WIN32
   }
-}
-
-std::string Logger::format(const char *formats, ...) {
-  va_list args;
-  va_start(args, formats);
-  const auto msg = format(formats, args);
-  va_end(args);
-
-  return msg;
 }
 
 std::string Logger::format(const char *formats, va_list args) {
@@ -165,45 +156,30 @@ std::string Logger::format(const char *formats, va_list args) {
   return mybuf;
 }
 
-void Logger::log(LOG_LEVEL level, const char *domain, const char *formats,
-                 ...) {
-  assert_logger_initialized();
-
-  if (s_instance.get() != nullptr && level <= s_instance->m_log_level) {
-    va_list args;
-    va_start(args, formats);
-    const auto msg = format(formats, args);
-    va_end(args);
-
-    do_log({domain, msg.c_str(), level});
-  }
-}
-
-void Logger::log(const std::exception &exc, const char *domain,
-                 const char *formats, ...) {
+void Logger::log(LOG_LEVEL level, const char *formats, ...) {
   assert_logger_initialized();
 
   if (s_instance.get() != nullptr) {
     va_list args;
     va_start(args, formats);
-    const auto msg =
-        format("%s: %s", format(formats, args).c_str(), exc.what());
+    const auto msg = format(formats, args);
     va_end(args);
 
-    do_log({domain, msg.c_str(), Logger::LOG_ERROR});
+    do_log({s_instance->context(), msg.c_str(), level});
   }
 }
 
 void Logger::do_log(const Log_entry &entry) {
-  const auto s = format_message(entry);
-
-  if (s_instance->m_log_file.is_open()) {
+  if (s_instance->m_log_file.is_open() &&
+      entry.level <= s_instance->m_log_level) {
+    const auto s = format_message(entry);
     s_instance->m_log_file.write(s.c_str(), s.length());
     s_instance->m_log_file.flush();
   }
 
   for (const auto &f : s_instance->m_hook_list) {
-    f(entry);
+    if (std::get<2>(f) || entry.level <= s_instance->m_log_level)
+      std::get<0>(f)(entry, std::get<1>(f));
   }
 }
 
@@ -211,11 +187,11 @@ Logger *Logger::singleton() {
   if (s_instance.get() != nullptr) {
     return s_instance.get();
   } else {
-    throw std::logic_error("ngcommon::Logger not initialized");
+    throw std::logic_error("shcore::Logger not initialized");
   }
 }
 
-void Logger::out_to_stderr(const Log_entry &entry) {
+void Logger::out_to_stderr(const Log_entry &entry, void *) {
   std::string msg;
 
   if (std::string::npos != s_output_format.find("json")) {
@@ -227,7 +203,7 @@ void Logger::out_to_stderr(const Log_entry &entry) {
                   rapidjson::StringRef(timestamp.c_str(), timestamp.length()),
                   allocator);
 
-    const auto level = g_level_converter.to_string(entry.level);
+    const auto level = to_string(entry.level);
     doc.AddMember(rapidjson::StringRef("level"),
                   rapidjson::StringRef(level.c_str(), level.length()),
                   allocator);
@@ -282,10 +258,10 @@ std::string Logger::format_message(const Log_entry &entry) {
   {
     result.reserve(512);
     result += timestamp;
-    result += g_level_converter.to_string(entry.level);
+    result += to_string(entry.level);
     result += ':';
     result += ' ';
-    if (entry.domain) {
+    if (entry.domain && *entry.domain) {
       result += entry.domain;
       result += ':';
       result += ' ';
@@ -316,20 +292,19 @@ void Logger::setup_instance(const char *filename, bool use_stderr,
       s_instance->m_log_file_name.clear();
     }
 
-    s_instance->set_log_level(log_level);
     s_instance->detach_log_hook(&Logger::out_to_stderr);
 
     if (use_stderr) {
       s_instance->attach_log_hook(&Logger::out_to_stderr);
     }
   } else {
-    s_instance.reset(new Logger(filename, use_stderr, log_level));
+    s_instance.reset(new Logger(filename, use_stderr));
   }
+
+  s_instance->set_log_level(log_level);
 }
 
-Logger::Logger(const char *filename, bool use_stderr,
-               Logger::LOG_LEVEL log_level)
-    : m_log_level{log_level} {
+Logger::Logger(const char *filename, bool use_stderr) {
   if (filename != nullptr) {
     m_log_file_name = filename;
     m_log_file.open(filename, std::ios_base::app);
@@ -348,28 +323,20 @@ Logger::~Logger() {
   if (m_log_file.is_open()) m_log_file.close();
 }
 
-Logger::LOG_LEVEL Logger::get_level_by_name(const std::string &level_name) {
-  return g_level_converter.to_log_level(level_name);
-}
+Logger::LOG_LEVEL Logger::parse_log_level(const std::string &tag) {
+  try {
+    try {
+      return get_level_by_name(tag);
+    } catch (...) {
+      int level = std::stoi(tag);
+      if (level >= 1 && level <= LOG_MAX_LEVEL)
+        return static_cast<LOG_LEVEL>(level);
 
-Logger::LOG_LEVEL Logger::get_log_level(const std::string &tag) {
-  LOG_LEVEL level = get_level_by_name(tag);
-
-  if (level != LOG_NONE || is_level_none(tag)) return level;
-
-  if (tag.size() == 1) {
-    int nlevel = tag.c_str()[0] - '0';
-    if (nlevel >= 1 && nlevel <= 8) return static_cast<LOG_LEVEL>(nlevel);
+      throw std::invalid_argument(get_level_range_info());
+    }
+  } catch (...) {
+    throw std::invalid_argument(get_level_range_info());
   }
-
-  return LOG_NONE;
-}
-
-bool Logger::is_level_none(const std::string &tag) {
-  if (strcasecmp("none", tag.c_str()) == 0 || (tag == "1"))
-    return true;
-  else
-    return false;
 }
 
 const char *Logger::get_level_range_info() {
@@ -385,8 +352,11 @@ void Logger::set_stderr_output_format(const std::string &format) {
 std::string Logger::stderr_output_format() { return s_output_format; }
 
 bool Logger::use_stderr() const {
-  return m_hook_list.end() != std::find(m_hook_list.begin(), m_hook_list.end(),
-                                        &Logger::out_to_stderr);
+  return m_hook_list.end() !=
+         std::find_if(m_hook_list.begin(), m_hook_list.end(),
+                      [](const std::tuple<Log_hook, void *, bool> &h) {
+                        return std::get<0>(h) == &Logger::out_to_stderr;
+                      });
 }
 
-}  // namespace ngcommon
+}  // namespace shcore

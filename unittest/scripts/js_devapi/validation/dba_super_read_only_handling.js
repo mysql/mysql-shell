@@ -3,7 +3,7 @@
 
 //@<OUT> Configures the instance, answers 'yes' on the read only prompt
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -22,7 +22,7 @@ Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
 //@<OUT> Configures the instance, read only set, no prompt
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -35,7 +35,7 @@ Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port2>>>'
 
 //@<OUT> Configures the instance, no prompt
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -49,7 +49,7 @@ Cluster admin user 'testUser'@'%' created.
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -77,7 +77,7 @@ one server failure.
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -109,7 +109,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -124,7 +124,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -141,7 +141,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
@@ -156,7 +156,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster ...
 
 Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
-Instance detected as a sandbox.
+NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>
