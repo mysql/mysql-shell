@@ -2536,11 +2536,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // This must be done before rejoining the instances due to the fixes for
       // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
       gr_options.group_name = default_replicaset->get_group_name();
-      // the previous ssl mode must be preserved
-      std::string gr_ssl_mode;
-      get_server_variable(group_session, "global.group_replication_ssl_mode",
-                          &gr_ssl_mode);
-      gr_options.ssl_mode = gr_ssl_mode;
+
+      // BUG#29265869: reboot cluster overrides some GR settings.
+      // Read actual GR configurations to preserve them in the seed instance.
+      gr_options.read_option_values(target_instance);
 
       // BUG#27344040: REBOOT CLUSTER SHOULD NOT CREATE NEW USER
       // No new replication user should be created when rebooting a cluster and

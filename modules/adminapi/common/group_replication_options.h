@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 
+#include <mysql/instance.h>
 #include <string>
 #include <vector>
 #include "modules/mod_common.h"
@@ -53,6 +54,16 @@ struct Group_replication_options {
   }
 
   void check_option_values(const mysqlshdk::utils::Version &version);
+
+  /**
+   * Read the Group Replication option values from the given Instance.
+   *
+   * NOTE: This function does not override any GR option previously set, i.e.,
+   *       only read a specific option if its value is null.
+   *
+   * @param instance target Instance object to read the GR options.
+   */
+  void read_option_values(const mysqlshdk::mysql::IInstance &instance);
 
   Unpack_target target;
 

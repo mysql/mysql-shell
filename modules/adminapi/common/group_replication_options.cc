@@ -404,5 +404,60 @@ void Group_replication_options::check_option_values(
   }
 }
 
+void Group_replication_options::read_option_values(
+    const mysqlshdk::mysql::IInstance &instance) {
+  if (group_name.is_null()) {
+    group_name = instance.get_sysvar_string("group_replication_group_name");
+  }
+
+  if (ssl_mode.is_null()) {
+    ssl_mode = instance.get_sysvar_string("group_replication_ssl_mode");
+  }
+
+  if (group_seeds.is_null()) {
+    group_seeds = instance.get_sysvar_string("group_replication_group_seeds");
+  }
+
+  if (ip_whitelist.is_null()) {
+    ip_whitelist = instance.get_sysvar_string("group_replication_ip_whitelist");
+  }
+
+  if (local_address.is_null()) {
+    local_address =
+        instance.get_sysvar_string("group_replication_local_address");
+  }
+
+  mysqlshdk::utils::Version version = instance.get_version();
+
+  if (member_weight.is_null() &&
+      version >= mysqlshdk::utils::Version(8, 0, 2)) {
+    member_weight = instance.get_sysvar_int("group_replication_member_weight");
+  }
+
+  if (exit_state_action.is_null() &&
+      version >= mysqlshdk::utils::Version(8, 0, 12)) {
+    exit_state_action =
+        instance.get_sysvar_string("group_replication_exit_state_action");
+  }
+
+  if (expel_timeout.is_null() &&
+      version >= mysqlshdk::utils::Version(8, 0, 13)) {
+    expel_timeout =
+        instance.get_sysvar_int("group_replication_member_expel_timeout");
+  }
+
+  if (failover_consistency.is_null() &&
+      version >= mysqlshdk::utils::Version(8, 0, 14)) {
+    failover_consistency =
+        instance.get_sysvar_string("group_replication_consistency");
+  }
+
+  if (auto_rejoin_tries.is_null() &&
+      version >= mysqlshdk::utils::Version(8, 0, 16)) {
+    auto_rejoin_tries =
+        instance.get_sysvar_int("group_replication_autorejoin_tries");
+  }
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

@@ -23,11 +23,16 @@ Reconfiguring the cluster 'C' from complete outage...
 The cluster was successfully rebooted.
 
 <Cluster:C>
+group_replication_consistency = EVENTUAL
+group_replication_autorejoin_tries = 1
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
+group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_member_expel_timeout = 0
+group_replication_member_weight = 50
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -163,11 +168,16 @@ Reconfiguring the cluster 'ClusterName' from complete outage...
 The cluster was successfully rebooted.
 
 <Cluster:ClusterName>
+group_replication_consistency = EVENTUAL
+group_replication_autorejoin_tries = 1
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
+group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_member_expel_timeout = 0
+group_replication_member_weight = 50
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED

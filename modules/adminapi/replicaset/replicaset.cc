@@ -1481,6 +1481,11 @@ shcore::Value ReplicaSet::rejoin_instance(
           throw;
         }
       }
+
+      // BUG#29265869: reboot cluster overrides some GR settings.
+      // Read actual GR configurations to preserve them when rejoining the
+      // instance.
+      gr_options.read_option_values(target_instance);
     }
 
     // Get the seed session connection data
