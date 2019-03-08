@@ -587,9 +587,9 @@ DESCRIPTION
       The registered report is also going to be available as a method of the
       shell.reports object.
 
-      Users may create custom report files in the reporters folder located in
-      the Shell configuration path (by default it is ~/.mysqlsh/reporters in
-      Unix and %AppData%\MySQL\mysqlsh\reporters in Windows).
+      Users may create custom report files in the init.d folder located in the
+      Shell configuration path (by default it is ~/.mysqlsh/init.d in Unix and
+      %AppData%\MySQL\mysqlsh\init.d in Windows).
 
       Custom reports may be written in either JavaScript or Python. The
       standard file extension for each case should be used to get them properly

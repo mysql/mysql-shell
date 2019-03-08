@@ -140,7 +140,7 @@ class SHCORE_PUBLIC Base_shell {
    *
    * Iterates through known plugin directories and loads files based on their
    * extension. Checks following directories:
-   * - ${MYSQLSH_USER_CONFIG_HOME}//reporters
+   * - ${MYSQLSH_USER_CONFIG_HOME}//init.d
    */
   void load_plugins();
 

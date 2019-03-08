@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -56,10 +56,14 @@ class Api_connections : public Shell_js_script_tester {
     execute("var __sandbox_dir = testutil.getSandboxPath();");
     execute("var __my_user = 'root';");
 
-    if (_highest_tls_version >= mysqlshdk::utils::Version("1.2"))
+    auto tls1_2 = mysqlshdk::utils::Version("1.2");
+    if (_highest_tls_version > tls1_2) {
+      execute("var __default_cipher = 'TLS_AES_256_GCM_SHA384';");
+    } else if (_highest_tls_version == tls1_2) {
       execute("var __default_cipher = 'DHE-RSA-AES128-GCM-SHA256';");
-    else
+    } else {
       execute("var __default_cipher = 'DHE-RSA-AES256-SHA';");
+    }
   }
 
   static void SetUpTestCase() {

@@ -626,7 +626,7 @@ void Base_shell::set_global_object(
 void Base_shell::load_plugins() {
   const auto initial_mode = _shell->interactive_mode();
   const std::string plugin_directories[] = {
-      shcore::path::join_path(shcore::get_user_config_path(), "reporters")};
+      shcore::path::join_path(shcore::get_user_config_path(), "init.d")};
   // mode, extension, files to load
   std::vector<std::tuple<shcore::IShell_core::Mode, const char *,
                          std::vector<std::string>>>

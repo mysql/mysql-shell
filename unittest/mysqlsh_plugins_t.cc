@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -187,7 +187,7 @@ const char Mysqlsh_plugins_test::k_file[] = "plugin_test";
 
 class Mysqlsh_reports_test : public Mysqlsh_plugins_test {
  protected:
-  std::string get_plugin_folder_name() const override { return "reporters"; }
+  std::string get_plugin_folder_name() const override { return "init.d"; }
 };
 
 TEST_F(Mysqlsh_reports_test, WL11263_TSF8_1) {

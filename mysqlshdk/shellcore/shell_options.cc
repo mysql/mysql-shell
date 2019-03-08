@@ -490,7 +490,7 @@ Shell_options::Shell_options(int argc, char **argv,
       cmdline("--oci[=profile]"),
       "Starts the shell ready to work with OCI. "
       "A wizard to configure the given profile will be launched if the profile is not configured. "
-      "If no profile is specified the 'DEFAUL' profile will be used.",
+      "If no profile is specified the 'DEFAULT' profile will be used.",
       [this](const std::string&, const char* value) {
         storage.oci_profile = value == nullptr ? "" : value;
 #ifdef HAVE_PYTHON
