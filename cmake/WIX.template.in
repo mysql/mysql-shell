@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,12 @@
         <WixVariable Id="WixUIDialogBmp" Value="$(var.CPACK_WIX_UI_DIALOG)"/>
         <?endif?>
 
-        <FeatureRef Id="ProductFeature"/>
+        <FeatureRef Id="ProductFeature">
+        <Component Id="UpdatePath" Directory="CM_DP_main.bin" Guid="0D572FF7-1AE6-493D-8991-D2DC99E1F5C1">
+        <CreateFolder/>
+        <Environment Id="UpdatePathEnv" Action="set" Name="PATH" Value="[CM_DP_main.bin]"/>
+        </Component>
+        </FeatureRef>
 
         <UI>
           <UIRef Id="WixUI_InstallDir" />
