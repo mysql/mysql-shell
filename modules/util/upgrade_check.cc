@@ -1067,7 +1067,7 @@ bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::get_removed_sys_vars_check,
                   std::placeholders::_1, std::placeholders::_2),
-        "8.0.11", "8.0.13");
+        "8.0.11", "8.0.13", "8.0.16");
 }
 
 std::unique_ptr<Upgrade_check>
@@ -1138,7 +1138,7 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
        "distinct "
        replace_in_SQL("substring_index(NAME, '/',1)")
        "as schema_name, "
-       replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#P#',1)")
+       replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#',1)")
        " as table_name from "
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
        "join information_schema.tables I on A.table_name = I.table_name and "

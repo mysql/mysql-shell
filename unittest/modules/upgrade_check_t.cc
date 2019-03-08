@@ -732,7 +732,15 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
 
   // Make sure special characters like hyphen are handled well
   PrepareTestDatabase("schema_inconsitencies_test");
-  ASSERT_NO_THROW(session->execute("create table `!@#$%&*-_.:?` (i integer);"));
+  EXPECT_NO_THROW(session->execute("create table `!@#$%&*-_.:?` (i integer);"));
+
+  // Make sure partitioned tables do not get positively flagged by accident
+  EXPECT_NO_THROW(session->execute(
+      "create table t(a datetime(5) not null) engine=innodb default "
+      "charset=latin1 row_format=dynamic partition by range columns(a) "
+      "(partition p0 values less than ('2019-01-23 16:59:53'), partition p1 "
+      "values less than ('2019-02-22 10:17:03'), partition p2 values less than "
+      "(maxvalue));"));
 
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session, opts));
