@@ -105,7 +105,7 @@ To support JavaScript on the MySQL Shell add the next flags to the CMake call:
 -DV8_INCLUDE_DIR=<path_to_v8>/include
 -DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
 
-Note that version 3.28 is needed and newer versions may not work.
+Note that version 6.7.288.46 is needed and newer versions may not work.
 
 
 Enabling Python Support
