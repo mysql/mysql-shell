@@ -29,6 +29,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -37,11 +42,6 @@
                     "option": "expelTimeout",
                     "value": "0",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -66,6 +66,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "ABORT_SERVER",
                     "variable": "group_replication_exit_state_action"
@@ -74,11 +79,6 @@
                     "option": "expelTimeout",
                     "value": "0",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -103,6 +103,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -111,11 +116,6 @@
                     "option": "expelTimeout",
                     "value": "0",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -161,6 +161,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -169,11 +174,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -198,6 +198,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "ABORT_SERVER",
                     "variable": "group_replication_exit_state_action"
@@ -206,11 +211,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -235,6 +235,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -243,11 +248,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -340,7 +340,7 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "failoverConsistency",
+                    "option": "consistency",
                     "value": "EVENTUAL",
                     "variable": "group_replication_consistency"
                 },
@@ -557,7 +557,7 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "failoverConsistency",
+                    "option": "consistency",
                     "value": "EVENTUAL",
                     "variable": "group_replication_consistency"
                 },
@@ -774,7 +774,7 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "failoverConsistency",
+                    "option": "consistency",
                     "value": "EVENTUAL",
                     "variable": "group_replication_consistency"
                 },
@@ -1474,6 +1474,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -1482,11 +1487,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -1538,6 +1538,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -1546,11 +1551,6 @@
                     "option": "expelTimeout",
                     "value": "0",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",

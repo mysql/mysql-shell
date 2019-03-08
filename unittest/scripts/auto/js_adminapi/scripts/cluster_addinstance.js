@@ -28,7 +28,7 @@ function print_metadata_instance_addresses(session) {
     print("\n");
 }
 
-function print_gr_failover_consistency() {
+function print_gr_consistency() {
     var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
     var row = result.fetchOne();
     print(row[0] + "\n");
@@ -477,7 +477,7 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 // a short period of time (during the new primary promotion).
 
 // In order to support defining such option, the AdminAPI was extended by
-// introducing a new optional parameter, named 'failoverConsistency', in the
+// introducing a new optional parameter, named 'consistency', in the
 // dba.createCluster function.
 //
 //@ WL#12067: Initialization {VER(>=8.0.14)}
@@ -490,12 +490,12 @@ shell.connect(__sandbox_uri1);
 
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_1 The value for group_replication_consistency must be the same on all cluster members (single-primary) {VER(>=8.0.14)}
-var c = dba.createCluster('test', {failoverConsistency: "1"});
+var c = dba.createCluster('test', {consistency: "1"});
 c.addInstance(__sandbox_uri2);
 
 //@WL#12067: TSF2_1 Confirm group_replication_consistency value is the same on all cluster members (single-primary) {VER(>=8.0.14)}
-print_gr_failover_consistency(s1);
-print_gr_failover_consistency(s2);
+print_gr_consistency(s1);
+print_gr_consistency(s2);
 
 //@WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
 print_persisted_variables_like(s1, "group_replication_consistency");
@@ -506,12 +506,12 @@ c.dissolve({force: true});
 
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
-var c = dba.createCluster('test', { clearReadOnly:true, failoverConsistency: "1", multiPrimary:true, force: true});
+var c = dba.createCluster('test', { clearReadOnly:true, consistency: "1", multiPrimary:true, force: true});
 c.addInstance(__sandbox_uri2);
 
 //@WL#12067: TSF2_2 Confirm group_replication_consistency value is the same on all cluster members (multi-primary) {VER(>=8.0.14)}
-print_gr_failover_consistency(s1);
-print_gr_failover_consistency(s2);
+print_gr_consistency(s1);
+print_gr_consistency(s2);
 
 //@WL#12067: TSF2_2 Confirm group_replication_consistency value was persisted (multi-primary) {VER(>=8.0.14)}
 print_persisted_variables_like(s1, "group_replication_consistency");

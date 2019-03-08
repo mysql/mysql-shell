@@ -1416,21 +1416,25 @@ The accepted values for the configuration option are:
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
+${CLUSTER_OPT_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
+
+@attention The failoverConsistency option will be removed in a future release.
+Please use the consistency option instead.
 
 The value for the configuration option is used to set the Group Replication
 system variable that corresponds to it.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
-${CLUSTER_OPT_FAILOVER_CONSISTENCY_DETAIL}
+${CLUSTER_OPT_CONSISTENCY_DETAIL}
 
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 
-${CLUSTER_OPT_FAILOVER_CONSISTENCY_EXTRA}
+${CLUSTER_OPT_CONSISTENCY_EXTRA}
 
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 

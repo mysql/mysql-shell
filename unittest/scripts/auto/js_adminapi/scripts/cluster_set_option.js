@@ -10,7 +10,7 @@ function print_exit_state_action_variable(session) {
   print(row[1] + "\n");
 }
 
-function print_failover_consistency_variable(session) {
+function print_consistency_variable(session) {
   var res = session.runSql('SHOW VARIABLES like "group_replication_consistency"')
   var row = res.fetchOne();
   print(row[1] + "\n");
@@ -115,7 +115,7 @@ var cluster = scene.cluster
 //
 // - exitStateAction
 // - memberWeight
-// - failoverConsistency
+// - consistency
 // - expelTimeout
 // - clusterName
 
@@ -172,22 +172,22 @@ shell.connect(__sandbox_uri3);
 print_exit_state_action_variable(session);
 session.close();
 
-//@<OUT> WL#11465: setOption failoverConsistency {VER(>=8.0.14)}
-cluster.setOption("failoverConsistency", "BEFORE_ON_PRIMARY_FAILOVER");
+//@<OUT> WL#11465: setOption consistency {VER(>=8.0.14)}
+cluster.setOption("consistency", "BEFORE_ON_PRIMARY_FAILOVER");
 
 shell.connect(__sandbox_uri1);
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 1 {VER(>=8.0.14)}
-print_failover_consistency_variable(session);
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 1 {VER(>=8.0.14)}
+print_consistency_variable(session);
 session.close();
 
 shell.connect(__sandbox_uri2);
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 2 {VER(>=8.0.14)}
-print_failover_consistency_variable(session);
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 2 {VER(>=8.0.14)}
+print_consistency_variable(session);
 session.close();
 
 shell.connect(__sandbox_uri3);
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 3 {VER(>=8.0.14)}
-print_failover_consistency_variable(session);
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 3 {VER(>=8.0.14)}
+print_consistency_variable(session);
 session.close();
 
 //@<OUT> WL#11465: setOption expelTimeout {VER(>=8.0.14)}

@@ -35,6 +35,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "<<<exit_state>>>",
                     "variable": "group_replication_exit_state_action"
@@ -43,11 +48,6 @@
                     "option": "expelTimeout",
                     "value": "<<<expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "<<<failover_consistency>>>",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -72,6 +72,11 @@
             ],
             "<<<uri2>>>": [
                 {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "<<<exit_state>>>",
                     "variable": "group_replication_exit_state_action"
@@ -80,11 +85,6 @@
                     "option": "expelTimeout",
                     "value": "<<<expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "<<<failover_consistency>>>",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -130,6 +130,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -138,11 +143,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -167,6 +167,11 @@
             ],
             "<<<uri2>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -175,11 +180,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -237,6 +237,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "<<<exit_state>>>",
                     "variable": "group_replication_exit_state_action"
@@ -245,11 +250,6 @@
                     "option": "expelTimeout",
                     "value": "<<<expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "<<<failover_consistency>>>",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -274,6 +274,11 @@
             ],
             "<<<uri2>>>": [
                 {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "<<<exit_state>>>",
                     "variable": "group_replication_exit_state_action"
@@ -282,11 +287,6 @@
                     "option": "expelTimeout",
                     "value": "<<<expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": "<<<failover_consistency>>>",
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -332,6 +332,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -340,11 +345,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",
@@ -369,6 +369,11 @@
             ],
             "<<<uri2>>>": [
                 {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
                     "option": "exitStateAction",
                     "value": "READ_ONLY",
                     "variable": "group_replication_exit_state_action"
@@ -377,11 +382,6 @@
                     "option": "expelTimeout",
                     "value": null,
                     "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "failoverConsistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "groupSeeds",

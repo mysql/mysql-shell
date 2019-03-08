@@ -346,7 +346,7 @@ DESCRIPTION
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
       - failoverConsistency: string value indicating the consistency guarantees
-        for primary failover in single primary mode.
+        that the cluster provides.
       - expelTimeout: integer value to define the time period in seconds that
         cluster members should wait for a non-responding member before evicting
         it from the cluster.
@@ -355,6 +355,9 @@ DESCRIPTION
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
+
+      ATTENTION: The failoverConsistency option will be removed in a future
+                 release. Please use the consistency option instead.
 
       An InnoDB cluster may be setup in two ways:
 
@@ -385,7 +388,7 @@ DESCRIPTION
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
-      The failoverConsistency option supports the following values:
+      The consistency option supports the following values:
 
       - BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or write) to the
         new primary will be put on hold until after the backlog from the old
@@ -393,8 +396,7 @@ DESCRIPTION
       - EVENTUAL: if used, read queries to the new primary are allowed even if
         the backlog isn't applied.
 
-      If failoverConsistency is not specified, EVENTUAL will be used by
-      default.
+      If consistency is not specified, EVENTUAL will be used by default.
 
       The ipWhitelist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -442,18 +444,46 @@ DESCRIPTION
 
       Group Replication uses a default value of 50 if no value is provided.
 
-      The value for failoverConsistency is used to set the Group Replication
-      system variable 'group_replication_failover_consistency' and configure
-      how Group Replication behaves when a new primary instance is elected.
-      When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or write) to
+      The value for consistency is used to set the Group Replication system
+      variable 'group_replication_consistency' and configure the transaction
+      consistency guarantee which a cluster provides.
+
+      When set to to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
+      happens in single-primary mode (default), new queries (read or write) to
       the newly elected primary that is applying backlog from the old primary,
-      will be hold be hold before execution until the backlog is applied. When
-      set to EVENTUAL, read queries to the new primary are allowed even if the
-      backlog isn't applied but writes will fail (if the backlog isn't applied)
-      due to super-read-only mode being enabled. The client may return old
-      valued. The failoverConsistency option accepts case-insensitive string
-      values, being the accepted values: BEFORE_ON_PRIMARY_FAILOVER (or 1) and
-      EVENTUAL (or 0).
+      will be hold before execution until the backlog is applied. When set to
+      EVENTUAL, read queries to the new primary are allowed even if the backlog
+      isn't applied but writes will fail (if the backlog isn't applied) due to
+      super-read-only mode being enabled. The client may return old values.
+
+      When set to BEFORE, each transaction (RW or RO) waits until all preceding
+      transactions are complete before starting its execution. This ensures
+      that each transaction is executed on the most up-to-date snapshot of the
+      data, regardless of which member it is executed on. The latency of the
+      transaction is affected but the overhead of synchronization on RW
+      transactions is reduced since synchronization is used only on RO
+      transactions.
+
+      When set to AFTER, each RW transaction waits until its changes have been
+      applied on all of the other members. This ensures that once this
+      transaction completes, all following transactions read a database state
+      that includes its changes, regardless of which member they are executed
+      on. This mode shall only be used on a group that is used for
+      predominantly RO operations to  to ensure that subsequent reads fetch the
+      latest data which includes the latest writes. The overhead of
+      synchronization on every RO transaction is reduced since synchronization
+      is used only on RW transactions.
+
+      When set to BEFORE_AND_AFTER, each RW transaction waits for all preceding
+      transactions to complete before being applied and until its changes have
+      been applied on other members. A RO transaction waits for all preceding
+      transactions to complete before execution takes place. This ensures the
+      guarantees given by BEFORE and by AFTER. The overhead of synchronization
+      is higher.
+
+      The consistency option accepts case-insensitive string values, being the
+      accepted values: EVENTUAL (or 0), BEFORE_ON_PRIMARY_FAILOVER (or 1),
+      BEFORE (or 2), AFTER (or 3), and BEFORE_AND_AFTER (or 4).
 
       The default value is EVENTUAL.
 
@@ -491,13 +521,13 @@ EXCEPTIONS
       - If the value for the memberSslMode option is not one of the allowed.
       - If adoptFromGR is true and the multiPrimary option is used.
       - If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
-        exitStateAction or failoverConsistency options is empty.
+        exitStateAction or consistency options is empty.
       - If the value for the expelTimeout is not in the range: [0, 3600]
 
       RuntimeError in the following scenarios:
 
       - If the value for the groupName, localAddress, groupSeeds,
-        exitStateAction, memberWeight, failoverConsistency, expelTimeout or
+        exitStateAction, memberWeight, consistency, expelTimeout or
         autoRejoinTries options is not valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
 

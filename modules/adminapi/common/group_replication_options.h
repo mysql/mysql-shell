@@ -73,7 +73,7 @@ struct Group_replication_options {
   mysqlshdk::utils::nullable<std::string> local_address;
   mysqlshdk::utils::nullable<std::string> group_seeds;
   mysqlshdk::utils::nullable<std::string> exit_state_action;
-  mysqlshdk::utils::nullable<std::string> failover_consistency;
+  mysqlshdk::utils::nullable<std::string> consistency;
   mysqlshdk::utils::nullable<int64_t> member_weight;
   mysqlshdk::utils::nullable<int64_t> expel_timeout;
   mysqlshdk::utils::nullable<uint64_t> auto_rejoin_tries;

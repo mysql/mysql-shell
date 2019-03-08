@@ -56,11 +56,20 @@ void Set_option::ensure_option_valid() {
    *     - exitStateAction
    *     - memberWeight
    *     - failoverConsistency
+   *     - consistency
    *     - expelTimeout
    */
   if (k_global_replicaset_supported_options.count(m_option) == 0) {
     throw shcore::Exception::argument_error("Option '" + m_option +
                                             "' not supported.");
+  }
+
+  // Verify the deprecation of failoverConsistency
+  if (m_option == kFailoverConsistency) {
+    auto console = mysqlsh::current_console();
+    console->print_warning(
+        "The failoverConsistency option is deprecated. "
+        "Please use the consistency option instead.");
   }
 }
 

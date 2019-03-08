@@ -621,11 +621,12 @@ void ReplicaSet::query_group_wide_option_values(
         console->print_warning(
             "The instance '" +
             target_instance->get_connection_options().uri_endpoint() +
-            "' inherited the BEFORE_ON_PRIMARY_FAILOVER consistency "
-            "value from the cluster, however some instances on the group do "
-            "not support this feature (version < 8.0.14). In single-primary "
-            "mode, upon failover, the member with the lowest version will be"
-            "the one elected and it doesn't support this option.");
+            "' inherited the " + gr_consistency.non_default_value +
+            " consistency value from the cluster, however some instances on "
+            "the group do not support this feature (version < 8.0.14). In "
+            "single-primary mode, upon failover, the member with the lowest "
+            "version will be the one elected and it doesn't support this "
+            "option.");
       }
     }
   }
@@ -857,10 +858,9 @@ shcore::Value ReplicaSet::add_instance(
   }
 
   // If this is not seed instance, then we should try to read the
-  // failoverConsistency and expelTimeout values from a a cluster member
+  // consistency and expelTimeout values from a a cluster member
   if (!seed_instance) {
-    query_group_wide_option_values(target_instance,
-                                   &gr_options.failover_consistency,
+    query_group_wide_option_values(target_instance, &gr_options.consistency,
                                    &gr_options.expel_timeout);
   }
 

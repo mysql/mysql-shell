@@ -484,9 +484,8 @@ int ProvisioningInterface::start_replicaset(
   if (!gr_options.member_weight.is_null()) {
     kwargs["member_weight"] = shcore::Value(*gr_options.member_weight);
   }
-  if (!gr_options.failover_consistency.is_null()) {
-    kwargs["failover_consistency"] =
-        shcore::Value(*gr_options.failover_consistency);
+  if (!gr_options.consistency.is_null()) {
+    kwargs["consistency"] = shcore::Value(*gr_options.consistency);
   }
   if (!gr_options.expel_timeout.is_null()) {
     kwargs["expel_timeout"] = shcore::Value(*gr_options.expel_timeout);
@@ -554,9 +553,8 @@ int ProvisioningInterface::join_replicaset(
   if (!gr_options.member_weight.is_null()) {
     kwargs["member_weight"] = shcore::Value(*gr_options.member_weight);
   }
-  if (!gr_options.failover_consistency.is_null()) {
-    kwargs["failover_consistency"] =
-        shcore::Value(*gr_options.failover_consistency);
+  if (!gr_options.consistency.is_null()) {
+    kwargs["consistency"] = shcore::Value(*gr_options.consistency);
   }
   if (!gr_options.expel_timeout.is_null()) {
     kwargs["expel_timeout"] = shcore::Value(*gr_options.expel_timeout);

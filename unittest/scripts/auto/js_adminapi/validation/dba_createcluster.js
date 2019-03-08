@@ -168,17 +168,19 @@ group_replication_start_on_boot = ON
 ||
 
 //@ WL#12067: TSF1_6 Unsupported server version {VER(<8.0.14)}
-||Option 'failoverConsistency' not supported on target server version: '<<<__version>>>'
+||Option 'consistency' not supported on target server version: '<<<__version>>>'
 
-//@ WL#12067: Create cluster errors using failoverConsistency option {VER(>=8.0.14)}
-||Invalid value for failoverConsistency, string value cannot be empty.
-||Invalid value for failoverConsistency, string value cannot be empty.
-||Error starting cluster: Invalid value for failoverConsistency, can't be set to the value of ':'
-||Error starting cluster: Invalid value for failoverConsistency, can't be set to the value of 'AB'
-||Error starting cluster: Invalid value for failoverConsistency, can't be set to the value of '10'
-||Option 'failoverConsistency' is expected to be of type String, but is Integer (TypeError)
+//@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
+||Invalid value for consistency, string value cannot be empty.
+||Invalid value for consistency, string value cannot be empty.
+||Error starting cluster: Invalid value for consistency, can't be set to the value of ':'
+||Error starting cluster: Invalid value for consistency, can't be set to the value of 'AB'
+||Error starting cluster: Invalid value for consistency, can't be set to the value of '10'
+||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
+||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
-//@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for failoverConsistency {VER(>=8.0.14)}
+
+//@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for consistency {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
@@ -190,7 +192,7 @@ group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
 //@ WL#12067: Dissolve cluster 1 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_2 Create cluster using EVENTUAL as value for failoverConsistency {VER(>=8.0.14)}
+//@ WL#12067: TSF1_2 Create cluster using EVENTUAL as value for consistency {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
@@ -202,7 +204,7 @@ group_replication_consistency = EVENTUAL
 //@ WL#12067: Dissolve cluster 2 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_1 Create cluster using 1 as value for failoverConsistency {VER(>=8.0.14)}
+//@ WL#12067: TSF1_1 Create cluster using 1 as value for consistency {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
@@ -211,7 +213,7 @@ BEFORE_ON_PRIMARY_FAILOVER
 //@ WL#12067: Dissolve cluster 3 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_2 Create cluster using 0 as value for failoverConsistency {VER(>=8.0.14)}
+//@ WL#12067: TSF1_2 Create cluster using 0 as value for consistency {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
@@ -220,16 +222,16 @@ EVENTUAL
 //@ WL#12067: Dissolve cluster 4 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_3 Create cluster using no value for failoverConsistency {VER(>=8.0.14)}
+//@ WL#12067: TSF1_3 Create cluster using no value for consistency {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: TSF1_3 Confirm without failoverConsistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
+//@<OUT> WL#12067: TSF1_3 Confirm without consistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
 EVENTUAL
 
 //@ WL#12067: Dissolve cluster 5 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_7 Create cluster using evenTual as value for failoverConsistency throws no exception (case insensitive) {VER(>=8.0.14)}
+//@ WL#12067: TSF1_7 Create cluster using evenTual as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
@@ -238,7 +240,7 @@ EVENTUAL
 //@ WL#12067: Dissolve cluster 6 {VER(>=8.0.14)}
 ||
 
-//@ WL#12067: TSF1_8 Create cluster using Before_ON_PriMary_FailoveR as value for failoverConsistency throws no exception (case insensitive) {VER(>=8.0.14)}
+//@ WL#12067: TSF1_8 Create cluster using Before_ON_PriMary_FailoveR as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 ||
 
 //@<OUT> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
@@ -253,7 +255,7 @@ BEFORE_ON_PRIMARY_FAILOVER
 //@ WL#12067: Create cluster 2 {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: failoverConsistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
+//@<OUT> WL#12067: consistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
 
 //@ WL#12067: Finalization
 ||

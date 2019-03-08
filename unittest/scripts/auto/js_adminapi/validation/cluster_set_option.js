@@ -76,18 +76,18 @@ ABORT_SERVER
 //@<OUT> WL#11465: Verify exitStateAction changed correctly in instance 3
 ABORT_SERVER
 
-//@<OUT> WL#11465: setOption failoverConsistency {VER(>=8.0.14)}
-Setting the value of 'failoverConsistency' to 'BEFORE_ON_PRIMARY_FAILOVER' in all ReplicaSet members ...
+//@<OUT> WL#11465: setOption consistency {VER(>=8.0.14)}
+Setting the value of 'consistency' to 'BEFORE_ON_PRIMARY_FAILOVER' in all ReplicaSet members ...
 
-Successfully set the value of 'failoverConsistency' to 'BEFORE_ON_PRIMARY_FAILOVER' in the 'default' ReplicaSet.
+Successfully set the value of 'consistency' to 'BEFORE_ON_PRIMARY_FAILOVER' in the 'default' ReplicaSet.
 
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 1 {VER(>=8.0.14)}
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 1 {VER(>=8.0.14)}
 BEFORE_ON_PRIMARY_FAILOVER
 
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 2 {VER(>=8.0.14)}
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 2 {VER(>=8.0.14)}
 BEFORE_ON_PRIMARY_FAILOVER
 
-//@<OUT> WL#11465: Verify failoverConsistency changed correctly in instance 3 {VER(>=8.0.14)}
+//@<OUT> WL#11465: Verify consistency changed correctly in instance 3 {VER(>=8.0.14)}
 BEFORE_ON_PRIMARY_FAILOVER
 
 //@<OUT> WL#11465: setOption expelTimeout {VER(>=8.0.14)}

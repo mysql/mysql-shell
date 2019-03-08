@@ -67,7 +67,7 @@ from mysql_gadgets.common.group_replication import (
     GR_FORCE_MEMBERS,
     GR_BOOTSTRAP_GROUP,
     GR_LOCAL_ADDRESS,
-    GR_FAILOVER_CONSISTENCY,
+    GR_CONSISTENCY,
     GR_EXPEL_TIMEOUT,
     GR_AUTO_REJOIN_TRIES)
 
@@ -79,7 +79,7 @@ from mysql_gadgets.common.group_replication import (
     get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
     stop_gr_plugin, unset_bootstrap, validate_exit_state_action,
-    validate_member_weight, validate_group_name, validate_failover_consistency,
+    validate_member_weight, validate_group_name, validate_consistency,
     validate_expel_timeout, validate_auto_rejoin_tries)
 from mysql_gadgets.common.tools import is_listening
 from mysql_gadgets.common.config_parser import create_option_file
@@ -400,7 +400,7 @@ def start(server_info, **kwargs):
                                        must be an integer value, with a
                                        percentage weight for automatic
                                        primary election on failover.
-                        failover_consistency: Group Replication failover
+                        consistency: Group Replication failover
                                               Consistency, must be a string
                                               containing either
                                               "BEFORE_ON_PRIMARY_FAILOVER",
@@ -443,7 +443,7 @@ def start(server_info, **kwargs):
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
     exit_state_action = kwargs.get("exit_state_action", None)
     member_weight = kwargs.get("member_weight", None)
-    failover_consistency = kwargs.get("failover_consistency", None)
+    consistency = kwargs.get("consistency", None)
     expel_timeout = kwargs.get("expel_timeout", None)
     auto_rejoin_tries = kwargs.get("auto_rejoin_tries", None)
 
@@ -487,8 +487,8 @@ def start(server_info, **kwargs):
 
         # attempt to set the group_replication_consistency in order to
         # let GR do the value validation and catch any error right away
-        if failover_consistency is not None:
-            validate_failover_consistency(server, failover_consistency, dry_run)
+        if consistency is not None:
+            validate_consistency(server, consistency, dry_run)
 
         # attempt to set the group_replication_member_expel_timeout in order to
         # let GR do the value validation and catch any error right away
@@ -526,8 +526,8 @@ def start(server_info, **kwargs):
         if gr_config_vars[GR_MEMBER_WEIGHT] is None:
             gr_config_vars.pop(GR_MEMBER_WEIGHT)
 
-        if gr_config_vars[GR_FAILOVER_CONSISTENCY] is None:
-            gr_config_vars.pop(GR_FAILOVER_CONSISTENCY)
+        if gr_config_vars[GR_CONSISTENCY] is None:
+            gr_config_vars.pop(GR_CONSISTENCY)
 
         if gr_config_vars[GR_EXPEL_TIMEOUT] is None:
             gr_config_vars.pop(GR_EXPEL_TIMEOUT)
@@ -815,7 +815,7 @@ def join(server_info, peer_server_info, **kwargs):
                                   to be consistent with the SSL GR modes on the
                                   peer-server otherwise an error will be
                                   thrown).
-                        failover_consistency: Group Replication failover
+                        consistency: Group Replication failover
                                               Consistency, must be a string
                                               containing either
                                               "BEFORE_ON_PRIMARY_FAILOVER",
@@ -857,7 +857,7 @@ def join(server_info, peer_server_info, **kwargs):
     target_is_local = kwargs.get("target_is_local", False)
     exit_state_action = kwargs.get("exit_state_action", None)
     member_weight = kwargs.get("member_weight", None)
-    failover_consistency = kwargs.get("failover_consistency", None)
+    consistency = kwargs.get("consistency", None)
     expel_timeout = kwargs.get("expel_timeout", None)
     auto_rejoin_tries = kwargs.get("auto_rejoin_tries", None)
 
@@ -937,8 +937,8 @@ def join(server_info, peer_server_info, **kwargs):
 
         # attempt to set the group_replication_consistency in order to
         # let GR do the value validation and catch any error right away
-        if failover_consistency is not None:
-            validate_failover_consistency(server, failover_consistency, dry_run)
+        if consistency is not None:
+            validate_consistency(server, consistency, dry_run)
 
         # attempt to set the group_replication_member_expel_timeout in order to
         # let GR do the value validation and catch any error right away
@@ -1058,8 +1058,8 @@ def join(server_info, peer_server_info, **kwargs):
         if gr_config_vars[GR_MEMBER_WEIGHT] is None:
             gr_config_vars.pop(GR_MEMBER_WEIGHT)
 
-        if gr_config_vars[GR_FAILOVER_CONSISTENCY] is None:
-            gr_config_vars.pop(GR_FAILOVER_CONSISTENCY)
+        if gr_config_vars[GR_CONSISTENCY] is None:
+            gr_config_vars.pop(GR_CONSISTENCY)
 
         if gr_config_vars[GR_EXPEL_TIMEOUT] is None:
             gr_config_vars.pop(GR_EXPEL_TIMEOUT)

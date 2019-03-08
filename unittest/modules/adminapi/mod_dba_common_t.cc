@@ -1341,7 +1341,7 @@ TEST(mod_dba_common, validate_member_weight_supported) {
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 11)));
 }
 
-TEST(mod_dba_common, validate_failover_consistency_supported) {
+TEST(mod_dba_common, validate_consistency_supported) {
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
@@ -1351,26 +1351,26 @@ TEST(mod_dba_common, validate_failover_consistency_supported) {
   auto null_fail_cons = mysqlshdk::utils::nullable<std::string>();
   auto valid_fail_cons = mysqlshdk::utils::nullable<std::string>("1");
 
-  options.failover_consistency = null_fail_cons;
+  options.consistency = null_fail_cons;
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
   options.check_option_values(version);
 
-  options.failover_consistency = empty_fail_cons;
+  options.consistency = empty_fail_cons;
   // if an empty value was provided, an error should be thrown independently
   // of the server version
   EXPECT_THROW_LIKE(
       options.check_option_values(version), shcore::Exception,
-      "Invalid value for failoverConsistency, string value cannot be empty.");
+      "Invalid value for consistency, string value cannot be empty.");
 
   // if a valid value (non empty) was provided, an error should only be thrown
   // in case the option is not supported by the server version.
-  options.failover_consistency = valid_fail_cons;
+  options.consistency = valid_fail_cons;
 
-  EXPECT_THROW_LIKE(
-      options.check_option_values(Version(8, 0, 13)), std::runtime_error,
-      "Option 'failoverConsistency' not supported on target server "
-      "version:");
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 13)),
+                    std::runtime_error,
+                    "Option 'consistency' not supported on target server "
+                    "version:");
 
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
 }

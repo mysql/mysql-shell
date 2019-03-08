@@ -67,6 +67,8 @@ constexpr const char kGrExpelTimeout[] =
     "group_replication_member_expel_timeout";
 constexpr const char kFailoverConsistency[] = "failoverConsistency";
 constexpr const char kGrFailoverConsistency[] = "group_replication_consistency";
+constexpr const char kConsistency[] = "consistency";
+constexpr const char kGrConsistency[] = "group_replication_consistency";
 constexpr const char kGroupName[] = "groupName";
 constexpr const char kGrGroupName[] = "group_replication_group_name";
 constexpr const char kMemberSslMode[] = "memberSslMode";
@@ -96,13 +98,10 @@ const std::map<std::string, std::string> k_global_options{
  * <sysvar, name>
  */
 const std::map<std::string, std::string> k_instance_options{
-    {kExitStateAction, kGrExitStateAction},
-    {kGroupSeeds, kGrGroupSeeds},
-    {kIpWhitelist, kGrIpWhitelist},
-    {kLocalAddress, kGrLocalAddress},
-    {kMemberWeight, kGrMemberWeight},
-    {kExpelTimeout, kGrExpelTimeout},
-    {kFailoverConsistency, kGrFailoverConsistency}};
+    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},         {kLocalAddress, kGrLocalAddress},
+    {kMemberWeight, kGrMemberWeight},       {kExpelTimeout, kGrExpelTimeout},
+    {kConsistency, kGrConsistency}};
 
 /**
  * Map of the supported global ReplicaSet configuration options in the AdminAPI
@@ -119,6 +118,7 @@ const std::map<std::string, Option_availability>
         {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
         {kFailoverConsistency,
          {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
+        {kConsistency, {kGrConsistency, mysqlshdk::utils::Version("8.0.14")}},
         {kAutoRejoinTries,
          {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}}};
 

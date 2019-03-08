@@ -114,25 +114,25 @@ void validate_exit_state_action_supported(
 }
 
 /**
- * Validate if the failoverConsistency option is supported the target instance
+ * Validate if the consistency option is supported the target instance
  * version. The actual value is validated by the GR plugin.
  *
  * @param version version of the target instance
  * @throw RuntimeError if the value is not supported on the target instance
  * @throw argument_error if the value provided is empty
  */
-void validate_failover_consistency_supported(
+void validate_consistency_supported(
     const mysqlshdk::utils::Version &version,
-    const mysqlshdk::utils::nullable<std::string> &failover_consistency) {
-  if (!failover_consistency.is_null()) {
-    if (shcore::str_strip(*failover_consistency).empty()) {
+    const mysqlshdk::utils::nullable<std::string> &consistency) {
+  if (!consistency.is_null()) {
+    if (shcore::str_strip(*consistency).empty()) {
       throw shcore::Exception::argument_error(
-          "Invalid value for failoverConsistency, string value cannot be "
+          "Invalid value for consistency, string value cannot be "
           "empty.");
     }
-    if (!is_group_replication_option_supported(version, kFailoverConsistency)) {
+    if (!is_group_replication_option_supported(version, kConsistency)) {
       throw std::runtime_error(
-          "Option 'failoverConsistency' not supported on target server "
+          "Option 'consistency' not supported on target server "
           "version: '" +
           version.get_full() + "'");
     }
@@ -301,36 +301,27 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
     case NONE:
       break;
 
+    // Here it CREATE falls back into the JOIN case as they
+    // share the same options except for groupName
     case CREATE:
-      unpacker->optional("memberSslMode", &ssl_mode)
-          .optional("ipWhitelist", &ip_whitelist)
-          .optional("localAddress", &local_address)
-          .optional("groupSeeds", &group_seeds)
-          .optional("exitStateAction", &exit_state_action)
-          .optional_exact("memberWeight", &member_weight)
-          .optional("failoverConsistency", &failover_consistency)
-          .optional_exact("expelTimeout", &expel_timeout)
-          .optional("groupName", &group_name)
-          .optional(kAutoRejoinTries, &auto_rejoin_tries);
-
-      break;
-
+      unpacker->optional(kGroupName, &group_name);
     case JOIN:
-      unpacker->optional("memberSslMode", &ssl_mode)
-          .optional("ipWhitelist", &ip_whitelist)
-          .optional("localAddress", &local_address)
-          .optional("groupSeeds", &group_seeds)
-          .optional("exitStateAction", &exit_state_action)
-          .optional_exact("memberWeight", &member_weight)
-          .optional("failoverConsistency", &failover_consistency)
-          .optional_exact("expelTimeout", &expel_timeout)
+      unpacker->optional(kMemberSslMode, &ssl_mode)
+          .optional(kIpWhitelist, &ip_whitelist)
+          .optional(kLocalAddress, &local_address)
+          .optional(kGroupSeeds, &group_seeds)
+          .optional(kExitStateAction, &exit_state_action)
+          .optional_exact(kMemberWeight, &member_weight)
+          .optional(kFailoverConsistency, &consistency)
+          .optional(kConsistency, &consistency)
+          .optional_exact(kExpelTimeout, &expel_timeout)
           .optional(kAutoRejoinTries, &auto_rejoin_tries);
 
       break;
 
     case REJOIN:
-      unpacker->optional("memberSslMode", &ssl_mode)
-          .optional("ipWhitelist", &ip_whitelist);
+      unpacker->optional(kMemberSslMode, &ssl_mode)
+          .optional(kIpWhitelist, &ip_whitelist);
       break;
   }
 }
@@ -384,12 +375,12 @@ void Group_replication_options::check_option_values(
     validate_member_weight_supported(version);
   }
 
-  if (!failover_consistency.is_null()) {
-    // Validate if the failoverConsistency option is supported on the target
+  if (!consistency.is_null()) {
+    // Validate if the consistency option is supported on the target
     // instance and if is not empty.
     // The validation for the value set is handled at the group-replication
     // level
-    validate_failover_consistency_supported(version, failover_consistency);
+    validate_consistency_supported(version, consistency);
   }
 
   if (!expel_timeout.is_null()) {
@@ -446,10 +437,8 @@ void Group_replication_options::read_option_values(
         instance.get_sysvar_int("group_replication_member_expel_timeout");
   }
 
-  if (failover_consistency.is_null() &&
-      version >= mysqlshdk::utils::Version(8, 0, 14)) {
-    failover_consistency =
-        instance.get_sysvar_string("group_replication_consistency");
+  if (consistency.is_null() && version >= mysqlshdk::utils::Version(8, 0, 14)) {
+    consistency = instance.get_sysvar_string("group_replication_consistency");
   }
 
   if (auto_rejoin_tries.is_null() &&
