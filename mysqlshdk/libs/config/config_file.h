@@ -38,12 +38,15 @@ namespace config {
 
 enum class Case { SENSITIVE, INSENSITIVE };
 
+enum class Escape { YES, NO };
+
 class Config_file {
  public:
   /**
    * Constructors
    */
-  Config_file(Case group_case = Case::INSENSITIVE);
+  explicit Config_file(Case group_case = Case::INSENSITIVE,
+                       Escape escape = Escape::YES);
   Config_file(const Config_file &cnf_obj) = default;
 
   bool operator==(const Config_file &other) const {
@@ -214,6 +217,8 @@ class Config_file {
   };
 
   Case m_group_case;
+
+  Escape m_escape_characters;
 
   typedef std::map<Option_key, mysqlshdk::utils::nullable<std::string>>
       Option_map;

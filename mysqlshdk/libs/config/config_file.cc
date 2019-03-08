@@ -33,8 +33,9 @@
 
 namespace mysqlshdk {
 namespace config {
-Config_file::Config_file(Case group_case)
+Config_file::Config_file(Case group_case, Escape escape)
     : m_group_case(group_case),
+      m_escape_characters(escape),
       m_configmap(m_group_case == Case::SENSITIVE ? Config_file::comp
                                                   : Config_file::icomp) {}
 
@@ -163,6 +164,10 @@ std::string Config_file::parse_group_line(const std::string &line,
 
 std::string Config_file::parse_escape_sequence_from_file(
     const std::string &input, const char quote) const {
+  if (m_escape_characters == Escape::NO) {
+    return input;
+  }
+
   std::string result;
   char escape = '\0';
   for (char c : input) {
@@ -196,6 +201,10 @@ std::string Config_file::parse_escape_sequence_from_file(
 
 std::string Config_file::parse_escape_sequence_to_file(const std::string &input,
                                                        const char quote) const {
+  if (m_escape_characters == Escape::NO) {
+    return input;
+  }
+
   std::string result;
   for (char c : input) {
     if (c == quote) {

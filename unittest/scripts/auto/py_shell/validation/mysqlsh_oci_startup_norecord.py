@@ -52,7 +52,7 @@ Type '\? oci' for help.
 {
     "additional_user_agent": "",
     "fingerprint": "[[*]]",
-    "key_file": "<<<def_key_path>>>",
+    "key_file": "<<<repr(def_key_path)[1:-1]>>>",
     "log_requests": false,
     "pass_phrase": "MySamplePwd",
     "region": "ca-toronto-1",
@@ -78,7 +78,7 @@ Type '\? oci' for help.
 {
     "additional_user_agent": "",
     "fingerprint": "[[*]]",
-    "key_file": "<<<def_key_path>>>",
+    "key_file": "<<<repr(def_key_path)[1:-1]>>>",
     "log_requests": false,
     "pass_phrase": "MySamplePwd",
     "region": "ca-toronto-1",
@@ -103,7 +103,7 @@ Type '\? oci' for help.
 {
     "additional_user_agent": "",
     "fingerprint": "[[*]]",
-    "key_file": "<<<def_key_path>>>",
+    "key_file": "<<<repr(def_key_path)[1:-1]>>>",
     "log_requests": false,
     "pass_phrase": "MySamplePwd",
     "region": "ca-toronto-1",
@@ -158,7 +158,7 @@ Type '\? oci' for help.
 {
     "additional_user_agent": "",
     "fingerprint": "[[*]]",
-    "key_file": "<<<def_key_path>>>",
+    "key_file": "<<<repr(def_key_path)[1:-1]>>>",
     "log_requests": false,
     "pass_phrase": "MySamplePwd",
     "region": "eu-frankfurt-1",

@@ -210,7 +210,8 @@ void load_profile(const std::string &user_profile,
 
 Oci_setup::Oci_setup()
     : shcore::wizard::Wizard(),
-      m_config(mysqlshdk::config::Case::SENSITIVE),
+      m_config(mysqlshdk::config::Case::SENSITIVE,
+               mysqlshdk::config::Escape::NO),
       m_oci_path(shcore::path::join_path(shcore::path::home(), ".oci")),
       m_oci_cfg_path(shcore::path::join_path(m_oci_path, "config")) {
   if (shcore::file_exists(m_oci_cfg_path)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -321,6 +321,11 @@ std::string get_mysqlx_home_path() {
 /*
  * Returns whether if a file exists (true) or doesn't (false);
  */
+// TODO(pawel): This function has different behaviour on Windows and
+// non-Windows platforms, on Windows it checks if filename exists and is a
+// file, on non-Windows it checks only if filename exists (will return true
+// even if filename points to a directory). Make it consistent across all
+// platforms.
 bool file_exists(const std::string &filename) {
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());

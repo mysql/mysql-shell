@@ -33,8 +33,8 @@ print ("Config File Exists: %s" % os.path.exists(config_path));
 print ("Key Path Exists: %s" % os.path.exists(def_key_path));
 print ("Public Key Path Exists: %s" % os.path.exists(def_public_key_path));
 
-file = open(config_path, 'r')
-print(file.read())
+with open(config_path, 'r') as file:
+  print(file.read())
 
 #@ Second configuration attempt, profile already exists
 util.configure_oci()
@@ -49,8 +49,8 @@ testutil.expect_password("Wrong passphrase, please try again:", "MySamplePwd");
 testutil.expect_prompt("Do you want to write your passphrase to the config file? [y/N]:", "y");
 util.configure_oci('second')
 
-file = open(config_path, 'r')
-print(file.read())
+with open(config_path, 'r') as file:
+  print(file.read())
 
 
 #@ Third configuration attempt, creates yet another key file
@@ -74,8 +74,8 @@ util.configure_oci('third')
 print ("Key Path Exists: %s" % os.path.exists(key_path));
 print ("Public Key Path Exists: %s" % os.path.exists(public_key_path));
 
-file = open(config_path, 'r')
-print(file.read())
+with open(config_path, 'r') as file:
+  print(file.read())
 
 
 #@ Fourth configuration attempt, uses an existing KEY without password
@@ -94,8 +94,8 @@ util.configure_oci('fourth')
 print ("Key Path Exists: %s" % os.path.exists(key_path));
 print ("Public Key Path Exists: %s" % os.path.exists(public_key_path));
 
-file = open(config_path, 'r')
-print(file.read())
+with open(config_path, 'r') as file:
+  print(file.read())
 
 #@ Fifth configuration attempt, uses an existing KEY with password, savng password
 testutil.expect_prompt("Please enter your USER OCID:", "ocid1.user.oc1..abcdfgetrhjzqdlgnqlrmzclepeihqrjtqmbwz6s562ywdyikr5gr7izfhlq");
@@ -126,8 +126,8 @@ util.configure_oci('fifth')
 print ("Key Path Exists: %s" % os.path.exists(key_path));
 print ("Public Key Path Exists: %s" % os.path.exists(public_key_path));
 
-file = open(config_path, 'r')
-print(file.read())
+with open(config_path, 'r') as file:
+  print(file.read())
 
 #@ Cleanup
 os.remove(config_path);
@@ -135,4 +135,4 @@ os.remove(def_key_path);
 os.remove(def_public_key_path);
 os.remove(key_path);
 os.remove(public_key_path);
-os.rmdir(oci_folder);
+os.rmdir(oci_path);
