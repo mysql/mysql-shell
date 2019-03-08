@@ -165,6 +165,9 @@ class Auto_script_py : public Shell_py_script_tester,
            _mysql_port + "';";
     exec_and_out_equals(code);
 
+    code = "__os_type = '" + shcore::to_string(shcore::get_os_type()) + "'";
+    exec_and_out_equals(code);
+
     code = "__system_user = '" + shcore::get_system_user() + "';";
     exec_and_out_equals(code);
 

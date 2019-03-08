@@ -754,12 +754,18 @@ option.
 When using a URI, the socket path must be URL encoded. A socket path may be
 specified in a URI in one of the following ways:
 
+?{__os_type=='windows'}
+- \.\named.pipe
+- (\.\named.pipe)
+?{}
+?{__os_type!='windows'}
 - /path%2Fto%2Fsocket.sock
 - (/path/to/socket.sock)
 - ./path%2Fto%2Fsocket.sock
 - (./path/to/socket.sock)
 - ../path%2Fto%2Fsocket.sock
 - (../path/to/socket.sock)
+?{}
 
 SSL Mode
 
@@ -877,12 +883,18 @@ option.
 When using a URI, the socket path must be URL encoded. A socket path may be
 specified in a URI in one of the following ways:
 
+?{__os_type=='windows'}
+- \.\named.pipe
+- (\.\named.pipe)
+?{}
+?{__os_type!='windows'}
 - /path%2Fto%2Fsocket.sock
 - (/path/to/socket.sock)
 - ./path%2Fto%2Fsocket.sock
 - (./path/to/socket.sock)
 - ../path%2Fto%2Fsocket.sock
 - (../path/to/socket.sock)
+?{}
 
 SSL Mode
 
