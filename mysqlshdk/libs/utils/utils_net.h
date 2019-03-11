@@ -112,6 +112,24 @@ class Net {
   static std::string get_hostname();
 
   /**
+   * Returns fully qualified domain name if provided address is a hostname or IP
+   * address if provided address is a IP.
+   *
+   * @param address Hostname or IP address in text form.
+   * @return Fully qualified domain name, canonical name or IP address.
+   */
+  static std::string get_fqdn(const std::string &address) noexcept;
+
+  /**
+   * Check if provided address is externally addressable.
+   *
+   * @param address Hostname or IP address in text form.
+   * @return true if address can be reached from outside.
+   * @return false if address belong to loopback interface.
+   */
+  static bool is_externally_addressable(const std::string &address);
+
+  /**
    * Checks whether a TCP port is busy
    * @param address to check
    * @param port the port number to check
@@ -178,6 +196,8 @@ class Net {
   virtual bool is_local_address_impl(const std::string &address) const;
 
   virtual std::string get_hostname_impl() const;
+
+  virtual std::string get_fqdn_impl(const std::string &address) const noexcept;
 
   virtual bool is_port_listening_impl(const std::string &address,
                                       int port) const;

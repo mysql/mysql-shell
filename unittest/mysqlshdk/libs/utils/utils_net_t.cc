@@ -26,6 +26,9 @@
 
 #include "mysqlshdk/libs/utils/utils_net.h"
 
+#include <algorithm>
+#include <iterator>
+
 namespace mysqlshdk {
 namespace utils {
 
@@ -230,6 +233,7 @@ TEST(utils_net, is_loopback) {
   EXPECT_TRUE(Net::is_loopback("localhost"));
 
   EXPECT_FALSE(Net::is_loopback("192.168.1.1"));
+  EXPECT_FALSE(Net::is_loopback("127.bing.com"));
 }
 
 TEST(utils_net, is_local_address) {
@@ -240,9 +244,34 @@ TEST(utils_net, is_local_address) {
   EXPECT_TRUE(
       Net::is_local_address(Net::resolve_hostname_ipv4(Net::get_hostname())));
 
+  EXPECT_FALSE(Net::is_local_address("127.bing.com"));
   EXPECT_FALSE(Net::is_local_address("oracle.com"));
   EXPECT_FALSE(Net::is_local_address("bogus-host"));
   EXPECT_FALSE(Net::is_local_address("8.8.8.8"));
+}
+
+TEST(utils_net, is_externally_addressable) {
+  EXPECT_FALSE(Net::is_externally_addressable("localhost"));
+  EXPECT_FALSE(Net::is_externally_addressable("127.0.0.1"));
+  EXPECT_FALSE(Net::is_externally_addressable("127.0.1.1"));
+  EXPECT_FALSE(Net::is_externally_addressable("127.0.2.1"));
+  EXPECT_FALSE(Net::is_externally_addressable("127.1.2.1"));
+
+  const auto hostname = Net::get_hostname();
+  const auto self_fqdn = Net::get_fqdn(hostname);
+  const std::string domain{".oracle.com"};
+
+  auto contains_domain = std::search(self_fqdn.begin(), self_fqdn.end(),
+                                     domain.begin(), domain.end());
+  if (contains_domain != self_fqdn.end()) {
+    std::advance(contains_domain, domain.size());
+    if (contains_domain == self_fqdn.end()) {
+      EXPECT_TRUE(Net::is_externally_addressable(self_fqdn));
+    }
+  }
+  EXPECT_TRUE(Net::is_externally_addressable("oracle.com"));
+  EXPECT_TRUE(Net::is_externally_addressable("8.8.4.4"));
+  EXPECT_TRUE(Net::is_externally_addressable("127.bing.com"));
 }
 
 TEST(utils_net, is_port_listening) {

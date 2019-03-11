@@ -922,11 +922,11 @@ int main(int argc, char **argv) {
     if (mysqlshdk::utils::Net::is_loopback(getenv("MYSQL_REAL_HOSTNAME"))) {
       std::cout << "Note: " << getenv("MYSQL_REAL_HOSTNAME")
                 << " resolves to a loopback\n";
-      if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) ==
-          0) {
+      if (!mysqlshdk::utils::Net::is_externally_addressable(
+              getenv("MYSQL_HOSTNAME"))) {
         std::cout
-            << "Set the MYSQL_HOSTNAME to an externally addressable "
-               "hostname or IP when executing AdminAPI tests in this host.\n";
+            << "Set the MYSQL_HOSTNAME to an externally addressable hostname "
+               "or IP when executing AdminAPI tests in this host.\n";
       }
     } else {
       if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) !=

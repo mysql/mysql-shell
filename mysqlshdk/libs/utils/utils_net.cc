@@ -148,6 +148,54 @@ std::string get_this_hostname() {
   return hostname;
 }
 
+enum class Hostname_type { UNKNOWN, HOSTNAME, ABSOLUTE_HOSTNAME, IPV4, IPV6 };
+Hostname_type get_hostname_type(const std::string &address) {
+  Hostname_type type =
+      address.empty() ? Hostname_type::UNKNOWN : Hostname_type::HOSTNAME;
+
+  if (Net::is_ipv4(address)) {
+    return Hostname_type::IPV4;
+  }
+
+  if (Net::is_ipv6(address)) {
+    return Hostname_type::IPV6;
+  }
+
+  if (type == Hostname_type::HOSTNAME && address.back() == '.') {
+    return Hostname_type::ABSOLUTE_HOSTNAME;
+  }
+
+  return type;
+}
+
+std::string get_fqdn(const std::string &address, int fqdn_type) {
+  if (address.empty()) {
+    return std::string{};
+  }
+
+  addrinfo hints = {};
+  hints.ai_flags = fqdn_type;
+
+  addrinfo *info = nullptr;
+  int r = getaddrinfo(address.c_str(), nullptr, &hints, &info);
+
+  if (r != 0) {
+    return std::string{};
+  }
+
+  if (info != nullptr) {
+    // NOTE: If hints.ai_flags includes the AI_CANONNAME flag, then the
+    // ai_canonname field of the first of the addrinfo structures in the
+    // returned list is set to point to the official name of the host. Therefore
+    // there is no need to iterate over whole list.
+    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+    if (info->ai_canonname) {
+      return std::string{info->ai_canonname};
+    }
+  }
+  return std::string{};
+}
+
 namespace detail {
 
 enum class Address_type { LOOPBACK, LOCAL };
@@ -269,7 +317,6 @@ void get_this_host_addresses(const Address_types &types,
     out_addrs->push_back(get_this_hostname());
   }
 }
-
 }  // namespace detail
 }  // namespace
 
@@ -394,8 +441,50 @@ std::vector<std::string> Net::resolve_hostname_ipv_any_all_impl(
   return addrs;
 }
 
+std::string Net::get_fqdn(const std::string &address) noexcept {
+  return get()->get_fqdn_impl(address);
+}
+
+std::string Net::get_fqdn_impl(const std::string &address) const noexcept {
+  // windows resolves localhost to `hostname`.
+  if (address.compare("localhost") == 0) {
+    return std::string{"localhost"};
+  }
+
+  std::string cname{};
+#ifdef AI_FQDN
+  if (AI_FQDN != AI_CANONNAME) {
+    cname = ::mysqlshdk::utils::get_fqdn(address, AI_FQDN);
+  }
+#endif
+  if (cname.empty()) {
+    cname = ::mysqlshdk::utils::get_fqdn(address, AI_CANONNAME);
+  }
+  return cname;
+}
+
+bool Net::is_externally_addressable(const std::string &address) {
+  const std::string fqdn = get_fqdn(address);
+
+  // Some addresses do not have FQDN (for example MacOS return empty string for
+  // "127.0.0.1"), so we fallback to check original address.
+  std::string check = !fqdn.empty() ? fqdn : address;
+  auto type = get_hostname_type(check);
+
+  if (Hostname_type::HOSTNAME == type) {
+    // Convert to absolute hostname
+    check += '.';
+  }
+
+  if (is_loopback(check)) {
+    return false;
+  }
+
+  return true;
+}
+
 bool Net::is_loopback_impl(const std::string &name) const {
-  if (name == "localhost" || name == "::1" || name.compare(0, 4, "127.") == 0) {
+  if (name == "localhost" || name == "::1") {
     return true;
   }
 

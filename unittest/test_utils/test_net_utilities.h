@@ -26,6 +26,9 @@
 
 #include "mysqlshdk/libs/utils/utils_net.h"
 
+#include <string>
+#include <vector>
+
 namespace tests {
 
 /**
@@ -191,6 +194,23 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
 
   std::string get_hostname_impl() const override { return m_hostname; }
 
+  std::string get_fqdn_impl(const std::string &address) const
+      noexcept override {
+    const std::string key = "get_fqdn:" + address;
+    switch (m_mode) {
+      case mysqlshdk::db::replay::Mode::Record: {
+        const std::string result = Net::get_fqdn(address);
+        add_recorded(key, result);
+        return result;
+      }
+      case mysqlshdk::db::replay::Mode::Replay:
+        return get_recorded_string(key, true);
+      case mysqlshdk::db::replay::Mode::Direct:
+        return Net::get_fqdn(address);
+    }
+    return std::string{};
+  }
+
   bool is_port_listening_impl(const std::string &address,
                               int port) const override {
     bool result = false;
@@ -278,6 +298,29 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     return strv;
   }
 
+  std::string get_recorded_string(const std::string &key,
+                                  bool is_static) const {
+    if (!m_recorded_data->has_key(key))
+      throw std::logic_error("Net_utils: Recorded data has no data for " + key);
+
+    shcore::Array_t array = m_recorded_data->get_array(key);
+    size_t idx = m_recorded_data_index[key];
+    if (!array || idx >= array->size())
+      throw std::logic_error(
+          "Net_utils: Recorded data has not enough data for " + key);
+    if (!is_static) m_recorded_data_index[key] = idx + 1;
+
+    shcore::Value value = array->at(idx);
+    if (value.type == shcore::Map) {
+      if (value.as_map()->get_string("type") == "net_error")
+        throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
+      else
+        throw std::runtime_error(value.as_map()->get_string("what"));
+    }
+
+    return value.as_string();
+  }
+
   void add_recorded_exc(const std::string &key) const {
     shcore::Array_t array;
     if (!m_recorded_data->has_key(key)) {
@@ -315,6 +358,18 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
       strv->push_back(shcore::Value(s));
     }
     array->push_back(shcore::Value(strv));
+  }
+
+  void add_recorded(const std::string &key, const std::string &value) const {
+    shcore::Array_t array;
+    if (!m_recorded_data->has_key(key)) {
+      array = shcore::make_array();
+      m_recorded_data->set(key, shcore::Value(array));
+    } else {
+      array = m_recorded_data->get_array(key);
+    }
+
+    array->push_back(shcore::Value(value));
   }
 };
 
