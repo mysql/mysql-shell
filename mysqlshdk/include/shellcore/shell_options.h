@@ -200,6 +200,7 @@ class Shell_options : public shcore::Options {
   void check_port_socket_conflicts();
   void check_result_format();
   void check_oci_conflicts();
+  void check_file_execute_conflicts();
 
   /**
    * --import option require default schema to be provided in connection

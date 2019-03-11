@@ -1449,4 +1449,106 @@ TEST_F(Shell_cmdline_options, conflicts_oci) {
 }
 #endif
 
+TEST_F(Shell_cmdline_options, conflicts_execute_and_file) {
+  static constexpr auto error =
+      "Conflicting options: --execute and --file cannot be used at the same "
+      "time.\n";
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("-e"),
+        const_cast<char *>("SELECT 1"),     const_cast<char *>("-f"),
+        const_cast<char *>("select_2.sql"), nullptr};
+
+    test_conflicting_options("-e -f", 5, argv, error);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("--execute"),
+        const_cast<char *>("SELECT 1"),     const_cast<char *>("-f"),
+        const_cast<char *>("select_2.sql"), nullptr};
+
+    test_conflicting_options("--execute -f", 5, argv, error);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("-e"),
+        const_cast<char *>("SELECT 1"),     const_cast<char *>("--file"),
+        const_cast<char *>("select_2.sql"), nullptr};
+
+    test_conflicting_options("-e --file", 5, argv, error);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("--execute"),
+        const_cast<char *>("SELECT 1"),     const_cast<char *>("--file"),
+        const_cast<char *>("select_2.sql"), nullptr};
+
+    test_conflicting_options("--execute --file", 5, argv, error);
+  }
+}
+
+TEST_F(Shell_cmdline_options, test_file_and_execute) {
+  const auto test_options = [](const std::string &context, size_t argc,
+                               char *argv[]) {
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    SCOPED_TRACE("TESTING: " + context);
+
+    Shell_options options(argc, argv);
+
+    EXPECT_EQ(0, options.get().exit_code);
+
+    EXPECT_STREQ("", cerr.str().c_str());
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  };
+
+  // if --file is before --execute then there's no conflict between these two,
+  // as all command line options after --file are used as options of the
+  // processed file
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("-f"),
+        const_cast<char *>("select_2.sql"), const_cast<char *>("-e"),
+        const_cast<char *>("SELECT 1"),     nullptr};
+
+    test_options("-f -e", 5, argv);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("-f"),
+        const_cast<char *>("select_2.sql"), const_cast<char *>("--execute"),
+        const_cast<char *>("SELECT 1"),     nullptr};
+
+    test_options("-f --execute", 5, argv);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("--file"),
+        const_cast<char *>("select_2.sql"), const_cast<char *>("-e"),
+        const_cast<char *>("SELECT 1"),     nullptr};
+
+    test_options("--file -e", 5, argv);
+  }
+
+  {
+    char *argv[] = {
+        const_cast<char *>("ut"),           const_cast<char *>("--file"),
+        const_cast<char *>("select_2.sql"), const_cast<char *>("--execute"),
+        const_cast<char *>("SELECT 1"),     nullptr};
+
+    test_options("--file --execute", 5, argv);
+  }
+}
+
 }  // namespace shcore

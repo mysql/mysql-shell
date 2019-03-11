@@ -519,6 +519,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_port_conflicts();
     check_socket_conflicts();
     check_port_socket_conflicts();
+    check_file_execute_conflicts();
     check_import_options();
     check_result_format();
     check_oci_conflicts();
@@ -1025,6 +1026,14 @@ void Shell_options::check_port_socket_conflicts() {
     auto error = "Conflicting options: " SOCKET_NAME
                  " cannot be used if the URI contains a port.";
     throw std::runtime_error(error);
+  }
+}
+
+void Shell_options::check_file_execute_conflicts() {
+  if (!storage.run_file.empty() && !storage.execute_statement.empty()) {
+    throw std::runtime_error(
+        "Conflicting options: --execute and --file cannot be used at the same "
+        "time.");
   }
 }
 
