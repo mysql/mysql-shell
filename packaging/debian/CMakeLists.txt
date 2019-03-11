@@ -112,6 +112,7 @@ message(STATUS "OS code name    : ${CODENAME}")
 
 set(EXTRA_CMAKE_OPTS)
 set(DEB_BUILD_DEPS)
+set(DEB_DEPS)
 
 if(WITH_SSL)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_SSL=${WITH_SSL}")
@@ -157,6 +158,10 @@ endif()
 if(HAVE_PYTHON)
   list(APPEND EXTRA_CMAKE_OPTS "-DHAVE_PYTHON=1")
   list(APPEND DEB_BUILD_DEPS "python-dev")
+  # Most runtime deps the Deb build tools figures out, like the dependency
+  # on "libpython2.7.so". But it can't know about the dependency on the
+  # standard Python modules, i.e. almost all of a normal Python install
+  list(APPEND DEB_DEPS "python2.7")
 endif()
 
 if(MYSQL_SOURCE_DIR)

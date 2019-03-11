@@ -13,7 +13,8 @@ Package: mysql-shell@PRODUCT_SUFFIX@
 Section: database
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ @DEB_DEPS@
 Conflicts: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
 Replaces: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
 Description: MySQL Shell (part of MySQL Server) 8.0

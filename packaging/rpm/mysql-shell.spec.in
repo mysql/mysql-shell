@@ -36,6 +36,16 @@ Release:        @RPM_RELEASE@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
+
+# Most runtime deps the RPM build tools figures out, like the dependency
+# on "libpython2.7.so". But it can't know about the dependency on the
+# standard Python modules, i.e. almost all of a normal Python install
+%if 0%{?suse_version}
+Requires:       python-base
+%else
+Requires:       python2
+%endif
+
 BuildRequires:  cmake
 %if 0%{!?with_protobuf:1} && 0%{!?with_mysql_source:1}
 BuildRequires:  protobuf-devel
