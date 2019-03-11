@@ -320,6 +320,10 @@ def run_subprocess(cmd_str, **kwargs):
     if os.name == "nt":
         # on windows we can use the string directly
         cmd_list = cmd_str.encode('mbcs')
+        # create process in a new group, otherwise pressing CTRL-C in the
+        # current console will kill the created process
+        kwargs['creationflags'] = kwargs.get(
+            'creationflags', 0) | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         # shlex.split() does not fully support UTF-8.
         cmd_list = map(
