@@ -37,7 +37,7 @@ Please ensure your *public* API key is uploaded to your OCI User Settings page.
 It can be found at <<<def_public_key_path>>>
 
 #@<OUT> Now start the shell using --oci
-MySQL Shell 8.0.16[[*]]
+MySQL Shell [[*]]
 
 Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
@@ -62,7 +62,7 @@ Type '\? oci' for help.
 0
 
 #@<OUT> Tweak the password to make it incorrect
-MySQL Shell 8.0.16[[*]]
+MySQL Shell [[*]]
 
 Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
@@ -88,7 +88,7 @@ Type '\? oci' for help.
 0
 
 #@<OUT> Tweak the password to remove it
-MySQL Shell 8.0.16[[*]]
+MySQL Shell [[*]]
 
 Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
@@ -143,7 +143,7 @@ A new OCI profile named 'passwordless' has been created *successfully*.
 Please ensure your *public* API key is uploaded to your OCI User Settings page.
 
 #@<OUT> Now start the shell using --oci=passwordless
-MySQL Shell 8.0.16[[*]]
+MySQL Shell [[*]]
 
 Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
