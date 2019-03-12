@@ -93,6 +93,16 @@ static const uint32_t ascii_to_hex[256] = {
 
 namespace shcore {
 
+namespace {
+
+void skip_whitespace(const char **pc) {
+  while (**pc == ' ' || **pc == '\t' || **pc == '\r' || **pc == '\n' ||
+         **pc == '\v' || **pc == '\f')
+    ++*pc;
+}
+
+}  // namespace
+
 // --
 
 Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {
@@ -600,8 +610,7 @@ Value Value::parse_map(const char **pc) {
 
   bool done = false;
   while (!done) {
-    // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+    skip_whitespace(pc);
 
     if (**pc == '}') {
       ++*pc;
@@ -615,8 +624,7 @@ Value Value::parse_map(const char **pc) {
     else {
       key = parse_string(pc, **pc);
 
-      // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+      skip_whitespace(pc);
 
       if (**pc != ':')
         throw Exception::parser_error(
@@ -625,15 +633,13 @@ Value Value::parse_map(const char **pc) {
       // skips the :
       ++*pc;
 
-      // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+      skip_whitespace(pc);
 
       value = parse(pc);
 
       (*map)[key.get_string()] = value;
 
-      // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+      skip_whitespace(pc);
 
       if (**pc == '}') {
         done = true;
@@ -646,8 +652,7 @@ Value Value::parse_map(const char **pc) {
         throw Exception::parser_error(
             "Error parsing map, unexpected item separator.");
 
-      // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+      skip_whitespace(pc);
     }
   }
 
@@ -660,18 +665,15 @@ Value Value::parse_array(const char **pc) {
   // Skips the opening [
   ++*pc;
 
-  // Skips the spaces
-  while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+  skip_whitespace(pc);
 
   bool done = false;
   while (!done) {
-    // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+    skip_whitespace(pc);
 
     if (**pc != ']') array->push_back(parse(pc));
 
-    // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+    skip_whitespace(pc);
 
     if (**pc == ']') {
       done = true;
@@ -684,8 +686,7 @@ Value Value::parse_array(const char **pc) {
       throw Exception::parser_error(
           "Error parsing array, unexpected value separator.");
 
-    // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
+    skip_whitespace(pc);
   }
 
   return Value(array);
@@ -892,12 +893,16 @@ Value Value::parse_number(const char **pcc) {
 Value Value::parse(const std::string &s) {
   const char *begin = s.c_str();
   const char *pc = begin;
+
+  // ignore any white-space at the beginning of string
+  skip_whitespace(&pc);
+
   Value tmp(parse(&pc));
   size_t parsed_length = pc - begin;
 
   if (parsed_length < s.size()) {
     // ensure any leftover chars are just whitespaces
-    while (isspace(*pc)) ++pc;
+    skip_whitespace(&pc);
     parsed_length = pc - begin;
     if (parsed_length < s.size())
       throw Exception::parser_error(

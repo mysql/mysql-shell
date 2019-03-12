@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -565,6 +565,48 @@ TEST(Parsing, Array) {
   EXPECT_EQ(shcore::Array, v2.type);
   Value::Array_type_ref array2 = v2.as_array();
   EXPECT_EQ(array2->size(), 0);
+}
+
+TEST(Parsing, newline_characters) {
+  for (const auto file :
+       {"{\r\n  \"k\": [\r\n    1\r\n  ]\r\n}", "{\n  \"k\": [\n    1\n  ]\n}",
+        "{\r  \"k\": [\r    1\r  ]\r}"}) {
+    SCOPED_TRACE("TESTING: " + std::string(file));
+
+    const auto v = shcore::Value::parse(file);
+    EXPECT_EQ(shcore::Value_type::Map, v.type);
+    const auto m = v.as_map();
+    EXPECT_EQ(1, m->size());
+    const auto k = m->find("k");
+    ASSERT_NE(m->end(), k);
+    EXPECT_EQ(shcore::Value_type::Array, k->second.type);
+    const auto a = k->second.as_array();
+    ASSERT_EQ(1, a->size());
+    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].type);
+    EXPECT_EQ(1, (*a)[0].as_int());
+  }
+}
+
+TEST(Parsing, whitespace_characters) {
+  std::string json = " { \"k\": [ 7 ] } ";
+  for (const auto whitespace : {' ', '\t', '\r', '\n', '\v', '\f'}) {
+    SCOPED_TRACE("TESTING: " + std::to_string(static_cast<int>(whitespace)));
+
+    json[0] = json[2] = json[7] = json[9] = json[11] = json[13] = json[15] =
+        whitespace;
+
+    const auto v = shcore::Value::parse(json);
+    EXPECT_EQ(shcore::Value_type::Map, v.type);
+    const auto m = v.as_map();
+    EXPECT_EQ(1, m->size());
+    const auto k = m->find("k");
+    ASSERT_NE(m->end(), k);
+    EXPECT_EQ(shcore::Value_type::Array, k->second.type);
+    const auto a = k->second.as_array();
+    ASSERT_EQ(1, a->size());
+    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].type);
+    EXPECT_EQ(7, (*a)[0].as_int());
+  }
 }
 
 TEST(Argument_map, all) {
