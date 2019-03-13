@@ -323,9 +323,17 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_json_document.AddMember("manualChecks", m_manual_checks, m_allocator);
 
     rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-    m_json_document.Accept(writer);
-    mysqlsh::current_console()->println(buffer.GetString());
+    if (mysqlsh::current_shell_options()->get().wrap_json == "json/raw") {
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+      m_json_document.Accept(writer);
+    } else {
+      rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+      m_json_document.Accept(writer);
+    }
+    mysqlsh::current_console()->raw_print(
+        buffer.GetString(), mysqlsh::Output_stream::STDOUT, false);
+    mysqlsh::current_console()->raw_print("\n", mysqlsh::Output_stream::STDOUT,
+                                          false);
   }
 
  private:
@@ -438,7 +446,11 @@ shcore::Value Util::check_for_server_upgrade(
     }
 
     Upgrade_check_options opts{"", MYSH_VERSION, ""};
-    std::string output_format("TEXT");
+    std::string output_format(
+        shcore::str_beginswith(
+            mysqlsh::current_shell_options()->get().wrap_json, "json")
+            ? "JSON"
+            : "TEXT");
 
     if (args.size() > 0 &&
         args[args.size() - 1].type == shcore::Value_type::Map) {

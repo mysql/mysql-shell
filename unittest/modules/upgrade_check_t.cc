@@ -836,8 +836,10 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
 
 TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
   if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+      _target_server_version >= Version(MYSH_VERSION))
+    SKIP_TEST(
+        "This test requires running against MySQL server version 5.7 up to but "
+        "not including " MYSH_VERSION);
   Util util(_interactive_shell->shell_context().get());
   shcore::Argument_list args;
 
@@ -870,7 +872,7 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     ASSERT_TRUE(d.HasMember("checksPerformed"));
     ASSERT_TRUE(d["checksPerformed"].IsArray());
     auto checks = d["checksPerformed"].GetArray();
-    ASSERT_GT(checks.Size(), 1);
+    ASSERT_GE(checks.Size(), 1);
     for (rapidjson::SizeType i = 0; i < checks.Size(); i++) {
       ASSERT_TRUE(checks[i].IsObject());
       ASSERT_TRUE(checks[i].HasMember("id"));
@@ -901,7 +903,9 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     ASSERT_TRUE(d.HasMember("manualChecks"));
     ASSERT_TRUE(d["manualChecks"].IsArray());
     auto manual = d["manualChecks"].GetArray();
-    ASSERT_GT(manual.Size(), 0);
+    if (_target_server_version < Version(8, 0, 0)) {
+      ASSERT_GT(manual.Size(), 0);
+    }
     for (rapidjson::SizeType i = 0; i < manual.Size(); i++) {
       ASSERT_TRUE(manual[i].IsObject());
       ASSERT_TRUE(manual[i].HasMember("id"));
@@ -914,6 +918,19 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
         ASSERT_TRUE(manual[i]["documentationLink"].IsString());
       }
     }
+
+    // Test if valid JSON is produced when JSON wrapping is enabled
+    wipe_all();
+    EXPECT_NE("json/raw", _options->wrap_json);
+    auto old_wrap = _options->wrap_json;
+    _options->wrap_json = "json/raw";
+    args.pop_back();
+    util.check_for_server_upgrade(args);
+    _options->wrap_json = old_wrap;
+    rapidjson::Document d1;
+    d1.Parse(output_handler.std_out.c_str());
+    ASSERT_FALSE(d.HasParseError());
+    ASSERT_TRUE(d.IsObject());
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
