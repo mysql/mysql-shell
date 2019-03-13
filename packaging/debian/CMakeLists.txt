@@ -100,7 +100,11 @@ if(lsb_id STREQUAL "debian")
   string(REGEX REPLACE "\\..*" "" lsb_release "${lsb_release}")
 endif()
 
-set(ID_RELEASE "${lsb_id}${lsb_release}")
+if(CODENAME STREQUAL "buster")
+  set(ID_RELEASE "${lsb_id}10")
+else()
+  set(ID_RELEASE "${lsb_id}${lsb_release}")
+endif()
 
 message(STATUS "OS distribution : ${ID_RELEASE}")
 message(STATUS "OS code name    : ${CODENAME}")
