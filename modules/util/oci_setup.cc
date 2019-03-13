@@ -214,7 +214,7 @@ Oci_setup::Oci_setup()
                mysqlshdk::config::Escape::NO),
       m_oci_path(shcore::path::join_path(shcore::path::home(), ".oci")),
       m_oci_cfg_path(shcore::path::join_path(m_oci_path, "config")) {
-  if (shcore::file_exists(m_oci_cfg_path)) {
+  if (shcore::is_file(m_oci_cfg_path)) {
     m_config.read(m_oci_cfg_path);
   }
 }
@@ -227,7 +227,7 @@ void Oci_setup::init_create_profile_wizard() {
   oci_api_name.append(shcore::ssl::kPrivatePemSuffix);
   std::string oci_key_path = shcore::path::join_path(m_oci_path, oci_api_name);
 
-  bool default_key_exists = shcore::file_exists(oci_key_path);
+  bool default_key_exists = shcore::is_file(oci_key_path);
 
   // Step : Retrieve the user OCID
   add_prompt(kUser)
@@ -330,12 +330,12 @@ void Oci_setup::init_create_profile_wizard() {
           std::string pub = shcore::path::join_path(
               m_oci_path, stripped + shcore::ssl::kPublicPemSuffix);
 
-          if (shcore::file_exists(pri)) {
+          if (shcore::path_exists(pri)) {
             error =
                 "A private API key with the indicated name already exists, use "
                 "a "
                 "different name.";
-          } else if (shcore::file_exists(pub)) {
+          } else if (shcore::path_exists(pub)) {
             error =
                 "A public API key with the indicated name already exists, use "
                 "a "
@@ -453,7 +453,7 @@ void Oci_setup::create_profile(const std::string &profile_name) {
   if (profile.empty()) profile = kDefaultProfile;
 
   bool new_config = false;
-  if (!shcore::file_exists(m_oci_cfg_path)) {
+  if (!shcore::is_file(m_oci_cfg_path)) {
     new_config = true;
     shcore::create_directory(m_oci_path);
   }

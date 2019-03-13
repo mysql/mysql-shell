@@ -137,7 +137,7 @@ void Config_file_handler::set_now(const std::string &name,
     config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
-    if (shcore::file_exists(m_output_config_path)) {
+    if (shcore::is_file(m_output_config_path)) {
       config_file.read(m_output_config_path);
     }
   }
@@ -166,7 +166,7 @@ void Config_file_handler::set_now(const std::string &name,
     config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
-    if (shcore::file_exists(m_output_config_path)) {
+    if (shcore::is_file(m_output_config_path)) {
       config_file.read(m_output_config_path);
     }
   }
@@ -195,7 +195,7 @@ void Config_file_handler::set_now(const std::string &name,
     config_file.read(m_input_config_path);
   } else {
     // Only read the contents of the output file if it exists.
-    if (shcore::file_exists(m_output_config_path)) {
+    if (shcore::is_file(m_output_config_path)) {
       config_file.read(m_output_config_path);
     }
   }

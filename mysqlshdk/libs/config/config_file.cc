@@ -343,7 +343,7 @@ void Config_file::write(const std::string &cnf_path) const {
 
   std::set<std::string> cnf_files_to_write;
   bool update_file = false;
-  if (shcore::file_exists(cnf_path)) {
+  if (shcore::is_file(cnf_path)) {
     // Update an existing file.
     // Get list of files considering any existing include directives
     get_include_files(cnf_path, &cnf_files_to_write, 0);

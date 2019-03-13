@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -637,7 +637,7 @@ struct JScript_context::JScript_context_impl {
           v8_string(isolate, "file_exists(<path>) takes 1 argument"));
     } else {
       args.GetReturnValue().Set(
-          v8::Boolean::New(isolate, file_exists(to_string(isolate, args[0]))));
+          v8::Boolean::New(isolate, is_file(to_string(isolate, args[0]))));
     }
   }
 

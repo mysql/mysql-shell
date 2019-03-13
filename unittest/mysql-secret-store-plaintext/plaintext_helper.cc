@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,7 +73,7 @@ std::vector<common::Secret> load_file(const std::string &path) {
 
   std::vector<common::Secret> secrets;
 
-  if (shcore::file_exists(path)) {
+  if (shcore::is_file(path)) {
     auto doc = parse(shcore::get_text_file(path));
 
     if (doc.IsArray()) {

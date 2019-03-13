@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,7 +69,7 @@ size_t file_size(const char *path);
 size_t file_size(const std::string &path);
 
 bool SHCORE_PUBLIC is_folder(const std::string &filename);
-bool SHCORE_PUBLIC file_exists(const std::string &filename);
+bool SHCORE_PUBLIC path_exists(const std::string &path);
 void SHCORE_PUBLIC ensure_dir_exists(const std::string &path);  // delme
 void SHCORE_PUBLIC create_directory(const std::string &path,
                                     bool recursive = true);

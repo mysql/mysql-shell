@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -363,7 +363,7 @@ TEST_F(Command_line_test, bug26970629) {
 #ifdef _WIN32
     socket = "--socket=" + socket_path;
 #else   // !_WIN32
-    if (shcore::file_exists(socket_path)) {
+    if (shcore::path_exists(socket_path)) {
       socket = "--socket=" + socket_path;
     } else {
       result = session->query("show variables like 'datadir'");
@@ -371,7 +371,7 @@ TEST_F(Command_line_test, bug26970629) {
       socket_path = shcore::path::normalize(
           shcore::path::join_path(row->get_as_string(1), socket_path));
 
-      if (shcore::file_exists(socket_path)) {
+      if (shcore::path_exists(socket_path)) {
         socket = "--socket=" + socket_path;
       }
     }

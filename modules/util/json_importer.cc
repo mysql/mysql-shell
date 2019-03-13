@@ -75,7 +75,7 @@ void Prepare_json_import::validate() {
 
     auto full_path = shcore::path::expand_user(m_source.path);
 
-    if (!shcore::file_exists(full_path)) {
+    if (!shcore::path_exists(full_path)) {
       throw shcore::Exception::logic_error("Path \"" + full_path +
                                            "\" does not exist.");
     }

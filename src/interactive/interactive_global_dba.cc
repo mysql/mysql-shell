@@ -784,7 +784,7 @@ bool Global_dba::resolve_cnf_path(
     path_elements[path_elements.size() - 1] = "my.cnf";
 
     tmpPath = shcore::str_join(path_elements, path_separator);
-    if (shcore::file_exists(tmpPath)) {
+    if (shcore::is_file(tmpPath)) {
       println();
       println("Detected as sandbox instance.");
       println();
@@ -815,7 +815,7 @@ bool Global_dba::resolve_cnf_path(
     // Detect the distribution
     std::string distro_buffer, proc_version = "/proc/version";
 
-    if (shcore::file_exists(proc_version)) {
+    if (shcore::is_file(proc_version)) {
       // Read the proc_version file
       std::ifstream s(proc_version.c_str());
 
@@ -887,7 +887,7 @@ bool Global_dba::resolve_cnf_path(
     // Iterate the default_paths to check if the files exist and if so,
     // set cnfPath
     for (const auto &value : default_paths) {
-      if (shcore::file_exists(value)) {
+      if (shcore::is_file(value)) {
         // Prompt the user to validate if shall use it or not
         println("Found configuration file at standard location: " + value);
 
@@ -932,7 +932,7 @@ bool Global_dba::resolve_cnf_path(
       if (tmpPath.empty()) {
         done = true;
       } else {
-        if (shcore::file_exists(tmpPath)) {
+        if (shcore::is_file(tmpPath)) {
           cnfPath = tmpPath;
           done = true;
         } else {

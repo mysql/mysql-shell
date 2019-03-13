@@ -111,7 +111,7 @@ bool Configure_instance::check_config_path_for_update() {
   // existence and write permissions
   if (m_output_mycnf_path.empty()) {
     // Check if the configuration file does not exist
-    if (!shcore::file_exists(m_mycnf_path)) {
+    if (!shcore::is_file(m_mycnf_path)) {
       console->print_warning(m_mycnf_path + " does not exist.");
       if (m_interactive) {
         // Ask the user if accepts that a new file is created in the same path
@@ -328,7 +328,7 @@ bool Configure_instance::check_configuration_updates(
   // If mycnfPath was used, validate if the file exists and if doesn't do not
   // use it in the check call
   std::string cnf_path = m_mycnf_path;
-  if (!m_mycnf_path.empty() && !shcore::file_exists(cnf_path)) {
+  if (!m_mycnf_path.empty() && !shcore::is_file(cnf_path)) {
     console->print_warning("MySQL configuration file " + cnf_path +
                            " does not exist. Skipping file verification.");
     cnf_path.clear();
@@ -416,7 +416,7 @@ void Configure_instance::ensure_configuration_change_possible(
 void Configure_instance::validate_config_path() {
   // If the configuration file was provided but doesn't exist, then issue an
   // error (BUG#27702439).
-  if (!m_mycnf_path.empty() && !shcore::file_exists(m_mycnf_path)) {
+  if (!m_mycnf_path.empty() && !shcore::is_file(m_mycnf_path)) {
     auto console = mysqlsh::current_console();
     console->print_error(
         "The specified MySQL option file does not exist. A valid path is "

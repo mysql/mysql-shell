@@ -110,11 +110,11 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   std::string user_file = "";
 
   try {
-    // Checks existence of gobal startup script
+    // Checks existence of global startup script
     std::string path = shcore::get_global_config_path();
     path.append("shellrc");
     path.append(extension);
-    if (shcore::file_exists(path)) scripts_paths.push_back(path);
+    if (shcore::is_file(path)) scripts_paths.push_back(path);
 
     // Checks existence of startup script at MYSQLSH_HOME
     // Or the binary location if not a standard installation
@@ -126,13 +126,13 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       path.append("/mysqlshrc");
     }
     path.append(extension);
-    if (shcore::file_exists(path)) scripts_paths.push_back(path);
+    if (shcore::is_file(path)) scripts_paths.push_back(path);
 
     // Checks existence of user startup script
     path = shcore::get_user_config_path();
     path.append("mysqlshrc");
     path.append(extension);
-    if (shcore::file_exists(path)) scripts_paths.push_back(path);
+    if (shcore::is_file(path)) scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin();
          i != scripts_paths.end(); ++i) {

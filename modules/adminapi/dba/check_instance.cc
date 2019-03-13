@@ -240,7 +240,7 @@ void Check_instance::prepare_config_object() {
   bool use_cfg_handler = false;
   // if the configuration file was provided and exists, we add it to the
   // config object.
-  if (!m_mycnf_path.empty() && shcore::file_exists(m_mycnf_path)) {
+  if (!m_mycnf_path.empty() && shcore::is_file(m_mycnf_path)) {
     use_cfg_handler = true;
   }
   // Add server configuration handler depending on SET PERSIST support.

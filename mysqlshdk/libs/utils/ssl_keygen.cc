@@ -126,7 +126,7 @@ void init() { SSL_library_init(); }
 std::string load_private_key(const std::string &path, Password_callback pwd_cb,
                              void *user_data) {
   std::string fingerprint;
-  if (!shcore::file_exists(path)) {
+  if (!shcore::path_exists(path)) {
     throw std::runtime_error("The indicated path does not exist.");
   } else if (!shcore::is_file(path)) {
     throw std::runtime_error("The indicated path is not a file.");

@@ -384,8 +384,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 
   if (is_recording) {
     if (shcore::is_folder(mysqlshdk::db::replay::current_recording_dir()) &&
-        !shcore::file_exists(mysqlshdk::db::replay::current_recording_dir() +
-                             "/FAILED")) {
+        !shcore::is_file(mysqlshdk::db::replay::current_recording_dir() +
+                         "/FAILED")) {
       ADD_FAILURE() << "Test running in record mode, but trace directory "
                        "already exists (and is not FAILED). Delete directory "
                        "to re-record it: "

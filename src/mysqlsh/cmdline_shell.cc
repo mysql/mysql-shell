@@ -342,9 +342,9 @@ void Command_line_shell::load_state(shcore::Shell_core::Mode mode) {
   std::string path = history_file(mode);
 
   // Copy old history from before the split
-  if (!shcore::file_exists(path)) {
+  if (!shcore::is_file(path)) {
     std::string old_hist_file = path.substr(0, path.rfind('.'));
-    if (shcore::file_exists(old_hist_file)) {
+    if (shcore::is_file(old_hist_file)) {
       shcore::copy_file(old_hist_file,
                         history_file(shcore::IShell_core::Mode::SQL));
 #ifdef HAVE_V8

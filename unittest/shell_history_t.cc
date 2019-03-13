@@ -467,12 +467,12 @@ TEST_F(Shell_history, history_linenoise) {
 
     // check history autosave
     shell.save_state();
-    EXPECT_FALSE(shcore::file_exists(hist_file));
+    EXPECT_FALSE(shcore::is_file(hist_file));
 
     opt.set_member("history.autoSave", shcore::Value::True());
 
     shell.save_state();
-    EXPECT_TRUE(shcore::file_exists(hist_file));
+    EXPECT_TRUE(shcore::is_file(hist_file));
 
     // TS_CV#1 shell.options["history.maxSize"]=number sets the max number of
     // entries to store in the shell history file
@@ -1538,12 +1538,12 @@ TEST_F(Shell_history, migrate_old_history) {
   {
     mysqlsh::Command_line_shell shell(
         std::make_shared<Shell_options>(2, args, _options_file));
-    EXPECT_FALSE(shcore::file_exists(shell.history_file()));
+    EXPECT_FALSE(shcore::is_file(shell.history_file()));
     shell.process_line("select 1;\n");
     history_size = linenoiseHistorySize();
     shell.process_line("\\history save\n");
     const auto hist_file = shell.history_file();
-    ASSERT_TRUE(shcore::file_exists(hist_file));
+    ASSERT_TRUE(shcore::is_file(hist_file));
     shcore::rename_file(hist_file, hist_file.substr(0, hist_file.rfind('.')));
   }
 
@@ -1552,12 +1552,12 @@ TEST_F(Shell_history, migrate_old_history) {
   shell.load_state();
   EXPECT_EQ(history_size, linenoiseHistorySize());
   EXPECT_TRUE(
-      shcore::file_exists(shell.history_file(shcore::IShell_core::Mode::SQL)));
+      shcore::is_file(shell.history_file(shcore::IShell_core::Mode::SQL)));
   shcore::delete_file(shell.history_file(shcore::IShell_core::Mode::SQL));
 #ifdef HAVE_V8
   shell.process_line("\\js\n");
   EXPECT_EQ(history_size, linenoiseHistorySize());
-  EXPECT_TRUE(shcore::file_exists(
+  EXPECT_TRUE(shcore::is_file(
       shell.history_file(shcore::IShell_core::Mode::JavaScript)));
   shcore::delete_file(
       shell.history_file(shcore::IShell_core::Mode::JavaScript));
@@ -1565,8 +1565,8 @@ TEST_F(Shell_history, migrate_old_history) {
 #ifdef HAVE_PYTHON
   shell.process_line("\\py\n");
   EXPECT_EQ(history_size, linenoiseHistorySize());
-  EXPECT_TRUE(shcore::file_exists(
-      shell.history_file(shcore::IShell_core::Mode::Python)));
+  EXPECT_TRUE(
+      shcore::is_file(shell.history_file(shcore::IShell_core::Mode::Python)));
   shcore::delete_file(shell.history_file(shcore::IShell_core::Mode::Python));
 #endif
 }

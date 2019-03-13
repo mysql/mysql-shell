@@ -459,7 +459,7 @@ std::string pick_prompt_theme() {
   // check environment variable to override prompt theme
   if (char *theme = getenv("MYSQLSH_PROMPT_THEME")) {
     if (*theme) {
-      if (!shcore::file_exists(theme)) {
+      if (!shcore::is_file(theme)) {
         const std::string prompt_theme_msg =
             "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '" +
             std::string{theme} + "' does not exist.\n";
@@ -475,7 +475,7 @@ std::string pick_prompt_theme() {
   std::string path = shcore::get_user_config_path();
   path.append("prompt.json");
 
-  if (shcore::file_exists(path)) {
+  if (shcore::is_file(path)) {
     log_debug("Using prompt theme file %s", path.c_str());
     return path;
   }

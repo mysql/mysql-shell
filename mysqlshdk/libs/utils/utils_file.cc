@@ -278,7 +278,7 @@ std::string SHCORE_PUBLIC get_mp_path() {
   std::string path;
   path = shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh",
                                  "mysqlprovision.zip");
-  if (!shcore::file_exists(path))
+  if (!shcore::is_file(path))
     throw std::runtime_error(
         path + ": mysqlprovision not found, shell installation likely invalid");
 
@@ -319,24 +319,19 @@ std::string get_mysqlx_home_path() {
 }
 
 /*
- * Returns whether if a file exists (true) or doesn't (false);
+ * Returns whether a file or a directory exists at the given path (true) or
+ * doesn't (false);
  */
-// TODO(pawel): This function has different behaviour on Windows and
-// non-Windows platforms, on Windows it checks if filename exists and is a
-// file, on non-Windows it checks only if filename exists (will return true
-// even if filename points to a directory). Make it consistent across all
-// platforms.
-bool file_exists(const std::string &filename) {
+bool path_exists(const std::string &path) {
 #ifdef WIN32
-  DWORD dwAttrib = GetFileAttributesA(filename.c_str());
+  DWORD dwAttrib = GetFileAttributesA(path.c_str());
 
-  if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+  if (dwAttrib != INVALID_FILE_ATTRIBUTES)
     return true;
   else
     return false;
 #else
-  if (::access(filename.c_str(), F_OK) != -1)
+  if (::access(path.c_str(), F_OK) != -1)
     return true;
   else
     return false;
@@ -689,13 +684,13 @@ std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
 }
 
 /*
- * Deletes a file in a cross platform manner. If file removal file,
+ * Deletes a file in a cross platform manner. If file removal fails,
  * an exception is thrown.
  *
  * If file does not exist, and quiet is true, fails silently.
  */
 void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet) {
-  if (quiet && !shcore::file_exists(filename)) return;
+  if (quiet && !path_exists(filename)) return;
 #ifdef WIN32
   if (!DeleteFile(filename.c_str()))
     throw std::runtime_error(
@@ -846,7 +841,7 @@ void copy_dir(const std::string &from, const std::string &to) {
 void check_file_writable_or_throw(const std::string &filename) {
   std::ofstream ofs;
 
-  if (file_exists(filename)) {
+  if (is_file(filename)) {
     // Use openmode 'out' to open the file for writing
     ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
     std::string error = shcore::errno_to_string(errno);
@@ -939,7 +934,7 @@ std::string get_absolute_path(const std::string &base_dir,
 
 std::string get_tempfile_path(const std::string &cnf_path) {
   std::string tmp_file_path = cnf_path + ".tmp";
-  if (shcore::file_exists(tmp_file_path)) {
+  if (path_exists(tmp_file_path)) {
     // Attempt use a temp file with a random component if it already exists.
     int attempts = 0;
     bool temp_file_not_exist = false;
@@ -956,7 +951,7 @@ std::string get_tempfile_path(const std::string &cnf_path) {
       tmp_file_path = cnf_path + ".tmp" + std::to_string(rand_num);
       attempts++;
 
-      if (!shcore::file_exists(tmp_file_path)) {
+      if (!path_exists(tmp_file_path)) {
         temp_file_not_exist = true;
         break;
       }

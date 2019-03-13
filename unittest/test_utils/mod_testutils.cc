@@ -364,7 +364,7 @@ std::string Testutils::get_sandbox_conf_path(int port) {
 std::string Testutils::get_sandbox_datadir(int port) {
   std::string path =
       shcore::path::join_path(_sandbox_dir, std::to_string(port), "data");
-  if (!shcore::file_exists(path))
+  if (!shcore::is_folder(path))
     path = shcore::path::join_path(_sandbox_dir, std::to_string(port),
                                    "sandboxdata");
   return path;
@@ -1376,7 +1376,7 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
                                          const std::string &section) {
   std::string cfgfile_path = get_sandbox_conf_path(port);
 
-  bool file_exists = shcore::file_exists(cfgfile_path);
+  bool file_exists = shcore::is_file(cfgfile_path);
   if (!file_exists && _dummy_sandboxes) return;
 
   mysqlshdk::config::Config_file cfg;
@@ -1436,7 +1436,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
   std::string section = section_.empty() ? "mysqld" : section_;
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
-  bool file_exists = shcore::file_exists(cfgfile_path);
+  bool file_exists = shcore::is_file(cfgfile_path);
   if (!file_exists && _dummy_sandboxes) return;
 
   mysqlshdk::config::Config_file cfg;
@@ -1481,10 +1481,10 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
   std::string autocnf_path =
       shcore::path::join_path(get_sandbox_datadir(port), "auto.cnf");
 
-  if (!shcore::file_exists(autocnf_path) && _dummy_sandboxes) return;
+  if (!shcore::is_file(autocnf_path) && _dummy_sandboxes) return;
 
   // Check if the auto.cnf file exists (only created on the first server start).
-  if (shcore::file_exists(autocnf_path)) {
+  if (shcore::is_file(autocnf_path)) {
     // Replace the server-uuid with the new value in the auto.cnf file.
     std::string new_autocnf_path = autocnf_path + ".new";
     std::ofstream new_autocnf_file(new_autocnf_path);
@@ -1889,7 +1889,7 @@ None Testutils::touch(str file);
 #endif
 ///@}
 void Testutils::touch(const std::string &file) {
-  if (!shcore::file_exists(file)) {
+  if (!shcore::is_file(file)) {
     make_empty_file(file);
   }
 }
@@ -2257,7 +2257,7 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
 
       if (shcore::is_folder(item_from)) {
         copy_boilerplate_sandbox(item_from, item_to);
-      } else if (shcore::file_exists(item_from)) {
+      } else if (shcore::is_file(item_from)) {
 #ifndef _WIN32
         if (name == "mysqld") {
           if (symlink(item_from.c_str(), item_to.c_str()) != 0) {

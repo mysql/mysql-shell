@@ -1080,7 +1080,7 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
       // Remove the trailing path_separator
       if (tmpPath.back() == path_separator[0]) tmpPath.pop_back();
 
-      if (shcore::file_exists(tmpPath)) {
+      if (shcore::is_file(tmpPath)) {
         if (cnfPath) {
           *cnfPath = tmpPath;
         }
@@ -1183,7 +1183,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
     // Iterate the default_paths to check if the files exist and if so,
     // set cnfPath
     for (const auto &value : default_paths) {
-      if (shcore::file_exists(value)) {
+      if (shcore::is_file(value)) {
         // Prompt the user to validate if shall use it or not
         console->println("Found configuration file at standard location: " +
                          value);
@@ -1209,7 +1209,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
       if (tmpPath.empty()) {
         done = true;
       } else {
-        if (shcore::file_exists(tmpPath)) {
+        if (shcore::is_file(tmpPath)) {
           cnfPath = tmpPath;
           done = true;
         } else {

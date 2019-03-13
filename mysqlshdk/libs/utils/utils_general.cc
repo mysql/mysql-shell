@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -885,7 +885,7 @@ OperatingSystem get_os_type() {
   // Detect the distribution
   std::string distro_buffer, proc_version = "/proc/version";
 
-  if (shcore::file_exists(proc_version)) {
+  if (is_file(proc_version)) {
     // Read the proc_version file
     std::ifstream s(proc_version.c_str());
 

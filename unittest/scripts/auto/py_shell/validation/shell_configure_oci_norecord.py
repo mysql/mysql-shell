@@ -206,12 +206,7 @@ Please enter the number of an option listed above: 3
 Enter the location of the existing API key: 
 WARNING: The path can not be empty or blank characters.
 Enter the location of the existing API key: <<<oci_path>>>
-?{__os_type=='windows'}
-WARNING: The indicated path does not exist.
-?{}
-?{__os_type!='windows'}
 WARNING: The indicated path is not a file.
-?{}
 Enter the location of the existing API key: <<<unexisting_path>>>
 WARNING: The indicated path does not exist.
 Enter the location of the existing API key: <<<key_path>>>

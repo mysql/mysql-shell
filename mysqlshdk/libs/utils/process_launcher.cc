@@ -318,7 +318,7 @@ void Process::redirect_file_to_stdin(const std::string &input_file) {
         "the child process.");
   }
 
-  if (!shcore::file_exists(input_file)) {
+  if (!shcore::is_file(input_file)) {
     throw std::runtime_error(input_file + ": Input file does not exist");
   }
 

@@ -1059,7 +1059,7 @@ void Shell_script_tester::execute_script(const std::string &path,
       std::ofstream ofile;
       if (g_generate_validation_file) {
         std::string vfile_name = VALIDATION_SCRIPT(path);
-        if (!shcore::file_exists(vfile_name)) {
+        if (!shcore::is_file(vfile_name)) {
           ofile.open(vfile_name, std::ofstream::out | std::ofstream::trunc);
         } else {
           vfile_name.append(".new");

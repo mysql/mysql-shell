@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -467,7 +467,7 @@ void setup_test_environment() {
   // Setup logger with default configs
   std::string log_path =
       shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-  if (shcore::file_exists(log_path)) {
+  if (shcore::path_exists(log_path)) {
     std::cerr << "Deleting old " << log_path << " file\n";
     shcore::delete_file(log_path);
   }
