@@ -265,7 +265,7 @@ dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "cluster
 // prompts the user if wants to disable super_read_only to continue with the operation.
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
-EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 //@ ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
@@ -278,7 +278,7 @@ session.close();
 //@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set {VER(>=8.0.11)}
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
-EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
@@ -288,7 +288,7 @@ dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.ge
 //@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set 5.7 {VER(<8.0.11)}
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
-EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
@@ -297,7 +297,7 @@ dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.ge
 // ET_13 - Super read-only enabled and 'clearReadOnly' is not set with interactive is DISABLED
 // prompts the user if wants to disable super_read_only to continue with the operation.
 set_sysvar(session, "super_read_only", 1);
-EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 //@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount3", clusterAdminPassword: "pwd"});
 

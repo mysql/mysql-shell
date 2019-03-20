@@ -13,12 +13,6 @@ function print_instances_count_for_gr() {
     print(row[0] + "\n");
 }
 
-function print_gr_start_on_boot() {
-    var result = session.runSql("SHOW VARIABLES LIKE 'group_replication_start_on_boot';");
-    var row = result.fetchOne();
-    print(row[1] + "\n");
-}
-
 function exist_in_metadata_schema() {
     var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = @@server_uuid;");
     var row = result.fetchOne();
@@ -189,11 +183,11 @@ shell.connect(__sandbox_uri2);
 // WL#11862 - FR5_1
 exist_in_metadata_schema();
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.11)}.
+//@<> Confirm that GR start on boot is disabled {VER(>=8.0.11)}.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
 // NOTE: Cannot count instance for GR due to a SET PERSIST bug (BUG#26495619).
 // This test check is only valid for server version >= 8.0.11.
-print_gr_start_on_boot();
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port2, "group_replication_start_on_boot"));
 
 //@ Connect back to seed instance and get cluster.
 session.close();

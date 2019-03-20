@@ -56,8 +56,14 @@ dba.rebootClusterFromCompleteOutage("dev");
 dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
 
 // Kill all the instances
+session.close();
+
+//@<> Reset gr_start_on_boot on instance 1 and 2
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
 
 // Kill instance 2
+shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
@@ -78,13 +84,9 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
-//the timeout for GR plugin to install a new view is 60s, so it should be at
-// least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 session.close();
 cluster.disconnect();
@@ -118,7 +120,7 @@ cluster.status();
 testutil.startSandbox(__mysql_sandbox_port3);
 
 // Add instance 3 back to the cluster
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root');
 
 //@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
 // if server version is greater than 8.0.11 then the GR settings will be
@@ -140,18 +142,23 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycn
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
+//@<> Reset persisted gr_start_on_boot on all instances {VER(>=8.0.11)}
+session.close();
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
 
 // Kill all the instances
 
-// Kill instance 2
+//@<> Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
-// Kill instance 3
+//@<> Kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
@@ -159,27 +166,25 @@ testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 session.close();
 
-// Kill instance 1
+//@<> Kill instance 1
 testutil.killSandbox(__mysql_sandbox_port1);
 
 // Re-start all the instances
 
-// Start instance 2
+//@<> Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
-// Start instance 1
+//@<> Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
-// Start instance 3
+//@<> Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
-// Re-establish the connection to instance 1
+//@<> Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);
 
 cluster.disconnect();
+//@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
 cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3]});
 
 session.close();

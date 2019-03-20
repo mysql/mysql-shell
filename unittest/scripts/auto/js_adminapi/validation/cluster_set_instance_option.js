@@ -100,15 +100,15 @@ Successfully set the value of 'autoRejoinTries' to '0' in the 'default' ReplicaS
 
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
 |2016|
-|group_replication_autorejoin_tries = 2016|
+|2016|
 
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
 |20|
-|group_replication_autorejoin_tries = 20|
+|20|
 
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
 |0|
-|group_replication_autorejoin_tries = 0|
+|0|
 
 //@ WL#11465: Finalization
 ||

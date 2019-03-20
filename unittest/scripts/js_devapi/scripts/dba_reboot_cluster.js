@@ -93,10 +93,15 @@ shell.connect(__sandbox_uri1);
 //@ Get data about existing replication users before reboot.
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
 var rpl_users_rows = get_rpl_users();
+session.close();
+
+//@<> Reset gr_start_on_boot on all instances
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
 
 // Kill all the instances
 // Connect to instance 1 to properly check status of other killed instances.
-session.close();
 shell.connect(__sandbox_uri1);
 
 // Kill instance 2
@@ -124,15 +129,9 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
-//the timeout for GR plugin to install a new view is 60s, so it should be at
-// least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
-//the timeout for GR plugin to install a new view is 60s, so it should be at
-// least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 session.close();
 

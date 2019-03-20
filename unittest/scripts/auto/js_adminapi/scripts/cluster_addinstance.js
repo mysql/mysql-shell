@@ -1,55 +1,9 @@
 // Assumptions: smart deployment functions available
 
-function print_gr_exit_state_action() {
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_exit_state_action');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-}
-
-function print_gr_member_weight() {
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_member_weight');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-}
-
-function print_auto_increment_variables() {
-  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
-  for (var i = 0; i < 2; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-  }
-  print("\n");
-}
-
 function print_metadata_instance_addresses(session) {
     var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll();
     for (var i = 0; i < res.length; i++) {
         print(res[i][4] + " = " + res[i][7] + "\n");
-    }
-    print("\n");
-}
-
-function print_gr_consistency() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_gr_expel_timeout() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_member_expel_timeout');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_gr_auto_rejoin_tries(session) {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_autorejoin_tries');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_persisted_variables_like(session, pattern) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
     }
     print("\n");
 }
@@ -118,8 +72,8 @@ c.addInstance(__sandbox_uri2, {exitStateAction: "READ_ONLY"})
 session.close()
 shell.connect(__sandbox_uri2);
 
-//@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
-print_persisted_variables_like(session, "group_replication_exit_state_action");
+//@<> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
+EXPECT_EQ("READ_ONLY", get_sysvar(session,  "group_replication_exit_state_action", "PERSISTED"));
 
 //@ WL#12049: Dissolve cluster 2 {VER(>=8.0.12)}
 c.dissolve({force: true});
@@ -142,17 +96,13 @@ var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-448500515
 //@ WL#12049: Add instance without using exitStateAction {VER(>=8.0.12)}
 c.addInstance(__sandbox_uri2)
 
-session.close()
-shell.connect(__sandbox_uri2);
-
-//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
-print_persisted_variables_like(session, "group_replication_exit_state_action");
+//@<> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
+EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
 
 //@ WL#12049: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-
 
 // WL#11032 AdminAPI: Configure member weight for automatic primary election on
 // failover
@@ -211,11 +161,8 @@ var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6f
 //@ WL#11032: Add instance using a valid value for memberWeight (-50) {VER(>=8.0.11)}
 c.addInstance(__sandbox_uri2, {memberWeight: -50})
 
-session.close()
-shell.connect(__sandbox_uri2);
-
-//@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
-print_persisted_variables_like(session, "group_replication_member_weight");
+//@<> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
+EXPECT_EQ("0", get_sysvar(__mysql_sandbox_port2, "group_replication_member_weight", "PERSISTED"));
 
 //@ WL#11032: Dissolve cluster 2 {VER(>=8.0.11)}
 c.dissolve({force: true});
@@ -238,11 +185,8 @@ var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-448500515
 //@ WL#11032: Add instance without using memberWeight {VER(>=8.0.11)}
 c.addInstance(__sandbox_uri2)
 
-session.close()
-shell.connect(__sandbox_uri2);
-
-//@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
-print_persisted_variables_like(session, "group_replication_member_weight");
+//@<> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
+EXPECT_EQ("", get_sysvar(__mysql_sandbox_port2, "group_replication_member_weight", "PERSISTED"));
 
 //@ WL#11032: Finalization
 session.close();
@@ -276,33 +220,25 @@ shell.connect(__sandbox_uri1);
 //@ BUG#27084767: Create a cluster in single-primary mode
 var c = dba.createCluster('test');
 
-// Reconnect the session before validating the values of auto_increment_%
-// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
-session.close();
-shell.connect(__sandbox_uri1);
-
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance
+EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"));
 
 //@ BUG#27084767: Add instance to cluster in single-primary mode
 c.addInstance(__sandbox_uri2)
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-// Connect to the instance 2 to perform the auto_increment_% validations
-session.close();
-shell.connect(__sandbox_uri2);
-
-//@<OUT> BUG#27084767: Verify the values of auto_increment_%
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_%
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
 // Test in multi-primary mode
 
-// Reconnect to instance 1
-session.close();
-shell.connect(__sandbox_uri1);
-
 //@ BUG#27084767: Dissolve the cluster
 c.dissolve({force: true})
+session.close();
+
+shell.connect(__sandbox_uri1);
 
 //@ BUG#27084767: Create a cluster in multi-primary mode
 var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true});
@@ -319,8 +255,9 @@ var server_id = row[0];
 
 var __expected_auto_inc_offset = 1 + server_id%7
 
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
+EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
 
 //@ BUG#27084767: Add instance to cluster in multi-primary mode
 c.addInstance(__sandbox_uri2)
@@ -337,8 +274,9 @@ var server_id = row[0];
 
 var __expected_auto_inc_offset = 1 + server_id%7
 
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% multi-primary
+EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
 
 //@ BUG#27084767: Finalization
 c.disconnect()
@@ -370,24 +308,17 @@ shell.connect(__hostname_uri1);
 //@ BUG#27084767: Create a cluster in single-primary mode non-sandbox
 var c = dba.createCluster('test');
 
-// Reconnect the session before validating the values of auto_increment_%
-// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
-session.close();
-shell.connect(__sandbox_uri1);
-
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
+EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"));
 
 //@ BUG#27084767: Add instance to cluster in single-primary mode non-sandbox
 c.addInstance(__hostname_uri2)
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-// Connect to the instance 2 to perform the auto_increment_% validations
-session.close();
-shell.connect(__sandbox_uri2);
-
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% non-sandbox
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% non-sandbox
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
 // Test in multi-primary mode
 
@@ -412,8 +343,9 @@ var server_id = row[0];
 
 var __expected_auto_inc_offset = 1 + server_id%7
 
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% in multi-primary non-sandbox
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% in multi-primary non-sandbox
+EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
 
 //@ BUG#27084767: Add instance to cluster in multi-primary mode non-sandbox
 c.addInstance(__hostname_uri2)
@@ -430,8 +362,9 @@ var server_id = row[0];
 
 var __expected_auto_inc_offset = 1 + server_id%7
 
-//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary non-sandbox
-print_auto_increment_variables(session);
+//@<> BUG#27084767: Verify the values of auto_increment_% multi-primary non-sandbox
+EXPECT_EQ(7, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
 //@ BUG#27084767: Finalization non-sandbox
 c.disconnect();
@@ -492,33 +425,35 @@ shell.connect(__sandbox_uri1);
 //@ WL#12067: TSF2_1 The value for group_replication_consistency must be the same on all cluster members (single-primary) {VER(>=8.0.14)}
 var c = dba.createCluster('test', {consistency: "1"});
 c.addInstance(__sandbox_uri2);
+session.close();
 
-//@WL#12067: TSF2_1 Confirm group_replication_consistency value is the same on all cluster members (single-primary) {VER(>=8.0.14)}
-print_gr_consistency(s1);
-print_gr_consistency(s2);
+//@<> WL#12067: TSF2_1 Confirm group_replication_consistency value is the same on all cluster members (single-primary) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency"));
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency"));
 
-//@WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
-print_persisted_variables_like(s1, "group_replication_consistency");
-print_persisted_variables_like(s2, "group_replication_consistency");
+//@<> WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency", "PERSISTED"));
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency", "PERSISTED"));
 
 //@ WL#12067: Dissolve cluster 1{VER(>=8.0.14)}
 c.dissolve({force: true});
 
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', { clearReadOnly:true, consistency: "1", multiPrimary:true, force: true});
 c.addInstance(__sandbox_uri2);
+session.close();
 
-//@WL#12067: TSF2_2 Confirm group_replication_consistency value is the same on all cluster members (multi-primary) {VER(>=8.0.14)}
-print_gr_consistency(s1);
-print_gr_consistency(s2);
+//@<> WL#12067: TSF2_2 Confirm group_replication_consistency value is the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency"));
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency"));
 
-//@WL#12067: TSF2_2 Confirm group_replication_consistency value was persisted (multi-primary) {VER(>=8.0.14)}
-print_persisted_variables_like(s1, "group_replication_consistency");
-print_persisted_variables_like(s2, "group_replication_consistency");
+//@<> WL#12067: TSF2_2 Confirm group_replication_consistency value was persisted (multi-primary) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency", "PERSISTED"));
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency", "PERSISTED"));
 
 //@ WL#12067: Finalization {VER(>=8.0.14)}
-session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
@@ -542,33 +477,35 @@ shell.connect(__sandbox_uri1);
 //@ WL#12050: TSF2_1 The value for group_replication_member_expel_timeout must be the same on all cluster members (single-primary) {VER(>=8.0.13)}
 var c = dba.createCluster('test', {expelTimeout: 100});
 c.addInstance(__sandbox_uri2);
+session.close();
 
-//@WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value is the same on all cluster members (single-primary) {VER(>=8.0.13)}
-print_gr_expel_timeout(s1);
-print_gr_expel_timeout(s2);
+//@<> WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value is the same on all cluster members (single-primary) {VER(>=8.0.13)}
+EXPECT_EQ(100, get_sysvar(__mysql_sandbox_port1, "group_replication_member_expel_timeout"));
+EXPECT_EQ(100, get_sysvar(__mysql_sandbox_port2, "group_replication_member_expel_timeout"));
 
-//@WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value was persisted (single-primary) {VER(>=8.0.13)}
-print_persisted_variables_like(s1, "group_replication_member_expel_timeout");
-print_persisted_variables_like(s2, "group_replication_member_expel_timeout");
+//@<> WL#12050: TSF2_1 Confirm group_replication_member_expel_timeout value was persisted (single-primary) {VER(>=8.0.13)}
+EXPECT_EQ("100", get_sysvar(__mysql_sandbox_port1, "group_replication_member_expel_timeout", "PERSISTED"));
+EXPECT_EQ("100", get_sysvar(__mysql_sandbox_port2, "group_replication_member_expel_timeout", "PERSISTED"));
 
-//@ WL#12050: Dissolve cluster 1{VER(>=8.0.13)}
+//@ WL#12050: Dissolve cluster 1 {VER(>=8.0.13)}
 c.dissolve({force: true});
 
 // FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
 //@ WL#12050: TSF2_2 The value for group_replication_member_expel_timeout must be the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', { clearReadOnly:true, expelTimeout: 200, multiPrimary:true, force: true});
 c.addInstance(__sandbox_uri2);
+session.close();
 
-//@WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value is the same on all cluster members (multi-primary) {VER(>=8.0.13)}
-print_gr_expel_timeout(s1);
-print_gr_expel_timeout(s2);
+//@<> WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value is the same on all cluster members (multi-primary) {VER(>=8.0.13)}
+EXPECT_EQ(200, get_sysvar(__mysql_sandbox_port1, "group_replication_member_expel_timeout"));
+EXPECT_EQ(200, get_sysvar(__mysql_sandbox_port2, "group_replication_member_expel_timeout"));
 
-//@WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value was persisted (multi-primary) {VER(>=8.0.13)}
-print_persisted_variables_like(s1, "group_replication_member_expel_timeout");
-print_persisted_variables_like(s2, "group_replication_member_expel_timeout");
+//@<> WL#12050: TSF2_2 Confirm group_replication_member_expel_timeout value was persisted (multi-primary) {VER(>=8.0.13)}
+EXPECT_EQ("200", get_sysvar(__mysql_sandbox_port1, "group_replication_member_expel_timeout", "PERSISTED"));
+EXPECT_EQ("200", get_sysvar(__mysql_sandbox_port2, "group_replication_member_expel_timeout", "PERSISTED"));
 
 //@ WL#12050: Finalization {VER(>=8.0.13)}
-session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
@@ -603,22 +540,23 @@ c.addInstance(__sandbox_uri2, {autoRejoinTries: 2017});
 //@ WL#12066: TSF1_1, TSF6_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 c.addInstance(__sandbox_uri2, {autoRejoinTries: 2016});
 c.addInstance(__sandbox_uri3);
+session.close();
 
-//@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
-print_gr_auto_rejoin_tries(s1);
-print_gr_auto_rejoin_tries(s2);
-print_gr_auto_rejoin_tries(s3);
+//@<> WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries"));
+EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries"));
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
 
-//@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
-print_persisted_variables_like(s1, "group_replication_autorejoin_tries");
-print_persisted_variables_like(s2, "group_replication_autorejoin_tries");
-print_persisted_variables_like(s3, "group_replication_autorejoin_tries");
+//@<> WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
+EXPECT_EQ("2", get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries", "PERSISTED"));
+EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries", "PERSISTED"));
+EXPECT_EQ("", get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
 
 //@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
 c.dissolve({force: true});
 
 //@ WL#12066: Finalization {VER(>=8.0.16)}
-session.close();
+
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

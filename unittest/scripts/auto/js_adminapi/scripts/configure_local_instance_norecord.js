@@ -26,7 +26,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive:true, mycnfPath: mycnf_p
 testutil.changeSandboxConf(__mysql_sandbox_port1, "skip_log_bin", "");
 testutil.restartSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
-EXPECT_EQ('OFF', get_sysvar(session, "log_bin"));
+EXPECT_EQ(0, get_sysvar(session, "log_bin"));
 
 //@ ConfigureLocalInstance should detect path of configuration file by looking at the server (BUG#27305806) {VER(>=8.0.11)}
 testutil.expectPrompt("Do you want to modify this file?", "y");

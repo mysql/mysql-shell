@@ -8,44 +8,6 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-function print_gr_local_address() {
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_local_address');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-}
-
-function print_other_gr_local_address(cnx_opts) {
-  shell.connect(cnx_opts);
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_local_address');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-  session.close();
-}
-
-function print_gr_group_seeds() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_group_seeds');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_other_gr_group_seeds(cnx_opts) {
-    shell.connect(cnx_opts);
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_group_seeds');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-    session.close();
-}
-
-function print_gr_group_name() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_group_name');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function stop_sandbox(port) {
-    testutil.stopSandbox(port);
-}
-
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //BUG#27758041: SHELL PICKS RANDOM PORTS IF GR LOCAL ADDRESS PORT IS BUSY
@@ -95,8 +57,8 @@ var __local_address_2 = ":" + valid_port;
 var __result_local_address_2 = hostname + __local_address_2;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_2});
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-2)
-print_gr_local_address();
+//@<> Confirm local address is set correctly (FR1-TS-1-2)
+EXPECT_EQ(__result_local_address_2, get_sysvar(session, "group_replication_local_address"));
 
 //@ Dissolve cluster (FR1-TS-1-2)
 c.dissolve({force: true});
@@ -107,8 +69,8 @@ var result_port = __mysql_sandbox_port1 * 10 + 1;
 var __result_local_address_3 = __local_address_3 + result_port;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_3});
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-3)
-print_gr_local_address();
+//@<> Confirm local address is set correctly (FR1-TS-1-3)
+EXPECT_EQ(__result_local_address_3, get_sysvar(session, "group_replication_local_address"));
 
 //@ Dissolve cluster (FR1-TS-1-3)
 c.dissolve({force: true});
@@ -118,8 +80,8 @@ var __local_address_4 = (__mysql_sandbox_port2 * 10 + 1).toString();
 var __result_local_address_4 = hostname + ":" + __local_address_4;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4});
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-4)
-print_gr_local_address();
+//@<> Confirm local address is set correctly (FR1-TS-1-4)
+EXPECT_EQ(__result_local_address_4, get_sysvar(session, "group_replication_local_address"));
 
 //@ Dissolve cluster (FR1-TS-1-4)
 c.dissolve({force: true});
@@ -129,8 +91,8 @@ var __local_address_9 = localhost;
 var __result_local_address_9 = __local_address_9 + ":" + result_port;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_9});
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-9)
-print_gr_local_address();
+//@<> Confirm local address is set correctly (FR1-TS-1-9)
+EXPECT_EQ(__result_local_address_9, get_sysvar(session, "group_replication_local_address"));
 
 //@ Dissolve cluster (FR1-TS-1-9)
 c.dissolve({force: true});
@@ -141,8 +103,8 @@ var __local_address_10 = localhost + ":" + __local_address_port_10;
 var __result_local_address_10 = __local_address_10;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_10});
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-10)
-print_gr_local_address();
+//@<> Confirm local address is set correctly (FR1-TS-1-10)
+EXPECT_EQ(__result_local_address_10, get_sysvar(session, "group_replication_local_address"));
 
 //@ Dissolve cluster (FR1-TS-1-10)
 c.dissolve({force: true});
@@ -153,8 +115,8 @@ var __group_seeds_1 = "127.0.0.1:" + default_valid_port1;
 var __result_group_seeds_1 = __group_seeds_1;
 var c = dba.createCluster('test', {clearReadOnly: true, groupSeeds: __group_seeds_1});
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-1-1)
-print_gr_group_seeds();
+//@<> Confirm group seeds is set correctly (FR2-TS-1-1)
+EXPECT_EQ(__result_group_seeds_1, get_sysvar(session, "group_replication_group_seeds"));
 
 //@ Dissolve cluster (FR2-TS-1-1)
 c.dissolve({force: true});
@@ -166,8 +128,8 @@ var __group_seeds_2 = "127.0.0.1:" + default_valid_port1 + ",127.0.0.1:" + defau
 var __result_group_seeds_2 = __group_seeds_2;
 var c = dba.createCluster('test', {clearReadOnly: true, groupSeeds: __group_seeds_2});
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-1-2)
-print_gr_group_seeds();
+//@<> Confirm group seeds is set correctly (FR2-TS-1-2)
+EXPECT_EQ(__result_group_seeds_2, get_sysvar(session, "group_replication_group_seeds"));
 
 //@ Dissolve cluster (FR2-TS-1-2)
 c.dissolve({force: true});
@@ -177,8 +139,8 @@ var __group_name_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 var __result_group_name_1 = __group_name_1;
 var c = dba.createCluster('test', {clearReadOnly: true, groupName: __group_name_1});
 
-//@<OUT> Confirm group name is set correctly (FR3-TS-1-1)
-print_gr_group_name();
+//@<> Confirm group name is set correctly (FR3-TS-1-1)
+EXPECT_EQ(__result_group_name_1, get_sysvar(session, "group_replication_group_name"));
 
 //@ Dissolve cluster (FR3-TS-1-1)
 c.dissolve({force: true});
@@ -221,9 +183,9 @@ var __result_local_address_add_2 = hostname + __local_address_add_2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_2});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-2)
+//@<> Confirm local address is set correctly (FR1-TS-2-2)
 session.close();
-print_other_gr_local_address(add_instance_options);
+EXPECT_EQ(__result_local_address_add_2, get_sysvar(__mysql_sandbox_port2, "group_replication_local_address"));
 
 c.disconnect();
 
@@ -239,9 +201,9 @@ var __result_local_address_add_3 = __local_address_add_3 + result_port2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_3});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-3)
+//@<> Confirm local address is set correctly (FR1-TS-2-3)
 session.close();
-print_other_gr_local_address(add_instance_options);
+EXPECT_EQ(__result_local_address_add_3, get_sysvar(__mysql_sandbox_port2, "group_replication_local_address"));
 
 c.disconnect();
 
@@ -256,9 +218,9 @@ var __result_local_address_add_4 = hostname + ":" + __local_address_add_4;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-4)
+//@<> Confirm local address is set correctly (FR1-TS-2-4)
 session.close();
-print_other_gr_local_address(add_instance_options);
+EXPECT_EQ(__result_local_address_add_4, get_sysvar(__mysql_sandbox_port2, "group_replication_local_address"));
 
 c.disconnect();
 
@@ -273,9 +235,9 @@ var __result_local_address_add_9 = __local_address_add_9 + ":" + result_port2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_9});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-9)
+//@<> Confirm local address is set correctly (FR1-TS-2-9)
 session.close();
-print_other_gr_local_address(add_instance_options);
+EXPECT_EQ(__result_local_address_add_9, get_sysvar(__mysql_sandbox_port2, "group_replication_local_address"));
 
 c.disconnect();
 
@@ -290,9 +252,9 @@ var __result_local_address_add_10 = __local_address_add_10;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_10});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-10)
+//@<> Confirm local address is set correctly (FR1-TS-2-10)
 session.close();
-print_other_gr_local_address(add_instance_options);
+EXPECT_EQ(__result_local_address_add_10, get_sysvar(__mysql_sandbox_port2, "group_replication_local_address"));
 
 c.disconnect();
 
@@ -305,9 +267,9 @@ c.removeInstance(add_instance_options);
 c.addInstance(add_instance_options, {groupSeeds: __group_seeds_1});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-2-1)
+//@<> Confirm group seeds is set correctly (FR2-TS-2-1)
 session.close();
-print_other_gr_group_seeds(add_instance_options);
+EXPECT_EQ(__result_group_seeds_1, get_sysvar(__mysql_sandbox_port2, "group_replication_group_seeds"));
 
 c.disconnect();
 
@@ -320,9 +282,9 @@ c.removeInstance(add_instance_options);
 c.addInstance(add_instance_options, {groupSeeds: __group_seeds_2});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-2-2)
+//@<> Confirm group seeds is set correctly (FR2-TS-2-2)
 session.close();
-print_other_gr_group_seeds(add_instance_options);
+EXPECT_EQ(__result_group_seeds_2, get_sysvar(__mysql_sandbox_port2, "group_replication_group_seeds"));
 
 c.disconnect();
 
@@ -367,31 +329,32 @@ dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, passwo
 //@ Configure added instance (FR1-TS-4)
 session.close();
 add_instance_options['port'] = __mysql_sandbox_port2;
-shell.connect(add_instance_options);
 var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
 dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
 
 //@ Stop seed and added instance with specific options (FR1-TS-4)
-stop_sandbox(__mysql_sandbox_port2);
-stop_sandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port1);
 
 //@ Restart added instance (FR1-TS-4)
 testutil.startSandbox(__mysql_sandbox_port2);
 
-//@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for added instance (FR1-TS-4)
-shell.connect(add_instance_options);
-print_gr_local_address();
-print_gr_group_seeds();
-print_gr_group_name();
+//@<> Confirm localAddress, groupSeeds, and groupName values were persisted for added instance (FR1-TS-4)
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+EXPECT_EQ(__cfg_local_address2, get_sysvar(session, "group_replication_local_address"));
+EXPECT_EQ(__cfg_group_seeds, get_sysvar(session, "group_replication_group_seeds"));
+EXPECT_EQ(__cfg_group_name, get_sysvar(session, "group_replication_group_name"));
+session.close();
 
 //@ Restart seed instance (FR1-TS-4)
 testutil.startSandbox(__mysql_sandbox_port1);
 
-//@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for seed instance (FR1-TS-4)
+//@<> Confirm localAddress, groupSeeds, and groupName values were persisted for seed instance (FR1-TS-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-print_gr_local_address();
-print_gr_group_seeds();
-print_gr_group_name();
+EXPECT_EQ(__cfg_local_address1, get_sysvar(session, "group_replication_local_address"));
+EXPECT_EQ(__cfg_group_seeds, get_sysvar(session, "group_replication_group_seeds"));
+EXPECT_EQ(__cfg_group_name, get_sysvar(session, "group_replication_group_name"));
+session.close();
 
 //@ Dissolve cluster (FR1-TS-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});

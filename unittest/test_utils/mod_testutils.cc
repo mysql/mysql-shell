@@ -78,6 +78,7 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "scripting/obj_date.h"
 
 // clang-format off
 #ifndef _WIN32

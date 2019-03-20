@@ -1,11 +1,3 @@
-function print_auto_increment_variables() {
-  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
-  for (var i = 0; i < 2; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-  }
-  print("\n");
-}
-
 function print_metadata_replicasets_topology_type(session) {
     var res = session.runSql("select topology_type from mysql_innodb_cluster_metadata.replicasets");
     var row = res.fetchOne();
@@ -92,24 +84,18 @@ cluster.status()
 
 // F1.1.2 - The auto-increment settings should be updated accordingly in all
 // cluster members to auto_increment_increment = 1 and auto_increment_offset = 2
-session.close()
-shell.connect(__sandbox_uri1);
 
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
-print_auto_increment_variables(session);
-session.close();
+//@<> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port1, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port1, "auto_increment_offset"));
 
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member2 {VER(>=8.0.13)}
-shell.connect(__sandbox_uri2);
+//@<> WL#12052: Verify the values of auto_increment_% in the member2 {VER(>=8.0.13)}
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
-print_auto_increment_variables(session);
-session.close();
-
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member3 {VER(>=8.0.13)}
-shell.connect(__sandbox_uri3);
-
-print_auto_increment_variables(session);
-session.close();
+//@<> WL#12052: Verify the values of auto_increment_% in the member3 {VER(>=8.0.13)}
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port3, "auto_increment_increment"));
+EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port3, "auto_increment_offset"));
 
 // F1.1.3 - The Metadata schema must be updated to change the replicasets.topology_type value to "pm"
 

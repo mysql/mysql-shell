@@ -1,41 +1,3 @@
-function print_member_weight_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_member_weight"')
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_exit_state_action_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_exit_state_action"')
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_consistency_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_consistency"')
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_persisted_variables_like(session, pattern) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-    }
-    print("\n");
-}
-
-function print_expel_timeout_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_member_expel_timeout"')
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_auto_rejoin_tries_variable(session) {
-    var res = session.runSql('SHOW VARIABLES like "group_replication_autorejoin_tries"')
-    var row = res.fetchOne();
-    print(row[1] + "\n");
-}
-
 function print_metadata_clusters_cluster_name(session) {
     var res = session.runSql("select cluster_name from mysql_innodb_cluster_metadata.clusters")
     var row = res.fetchOne();
@@ -134,19 +96,14 @@ cluster.setOption("memberWeight", 25);
 //@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setOption("memberWeight", 25);
 
-//@<OUT> WL#11465: Verify memberWeight changed correctly in instance 1
-print_member_weight_variable(session);
-session.close();
+//@<> WL#11465: Verify memberWeight changed correctly in instance 1
+EXPECT_EQ(25, get_sysvar(session, "group_replication_member_weight"));
 
-shell.connect(__sandbox_uri2);
-//@<OUT> WL#11465: Verify memberWeight changed correctly in instance 2
-print_member_weight_variable(session);
-session.close();
+//@<> WL#11465: Verify memberWeight changed correctly in instance 2
+EXPECT_EQ(25, get_sysvar(__mysql_sandbox_port2, "group_replication_member_weight"));
 
-shell.connect(__sandbox_uri3);
-//@<OUT> WL#11465: Verify memberWeight changed correctly in instance 3
-print_member_weight_variable(session);
-session.close();
+//@<> WL#11465: Verify memberWeight changed correctly in instance 3
+EXPECT_EQ(25, get_sysvar(__mysql_sandbox_port3, "group_replication_member_weight"));
 
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
 cluster.setOption("exitStateAction", "ABORT");
@@ -157,56 +114,38 @@ cluster.setOption("exitStateAction", "ABORT_SERVER");
 //@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setOption("exitStateAction", "ABORT_SERVER");
 
-//@<OUT> WL#11465: Verify exitStateAction changed correctly in instance 1
-shell.connect(__sandbox_uri1);
-print_exit_state_action_variable(session);
-session.close();
+//@<> WL#11465: Verify exitStateAction changed correctly in instance 1
+EXPECT_EQ("ABORT_SERVER", get_sysvar(__mysql_sandbox_port1, "group_replication_exit_state_action"));
 
-shell.connect(__sandbox_uri2);
-//@<OUT> WL#11465: Verify exitStateAction changed correctly in instance 2
-print_exit_state_action_variable(session);
-session.close();
+//@<> WL#11465: Verify exitStateAction changed correctly in instance 2
+EXPECT_EQ("ABORT_SERVER", get_sysvar(__mysql_sandbox_port2, "group_replication_exit_state_action"));
 
-shell.connect(__sandbox_uri3);
-//@<OUT> WL#11465: Verify exitStateAction changed correctly in instance 3
-print_exit_state_action_variable(session);
-session.close();
+//@<> WL#11465: Verify exitStateAction changed correctly in instance 3
+EXPECT_EQ("ABORT_SERVER", get_sysvar(__mysql_sandbox_port3, "group_replication_exit_state_action"));
 
 //@<OUT> WL#11465: setOption consistency {VER(>=8.0.14)}
 cluster.setOption("consistency", "BEFORE_ON_PRIMARY_FAILOVER");
 
-shell.connect(__sandbox_uri1);
-//@<OUT> WL#11465: Verify consistency changed correctly in instance 1 {VER(>=8.0.14)}
-print_consistency_variable(session);
-session.close();
+//@<> WL#11465: Verify consistency changed correctly in instance 1 {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency"));
 
-shell.connect(__sandbox_uri2);
-//@<OUT> WL#11465: Verify consistency changed correctly in instance 2 {VER(>=8.0.14)}
-print_consistency_variable(session);
-session.close();
+//@<> WL#11465: Verify consistency changed correctly in instance 2 {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency"));
 
-shell.connect(__sandbox_uri3);
-//@<OUT> WL#11465: Verify consistency changed correctly in instance 3 {VER(>=8.0.14)}
-print_consistency_variable(session);
-session.close();
+//@<> WL#11465: Verify consistency changed correctly in instance 3 {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port3, "group_replication_consistency"));
 
 //@<OUT> WL#11465: setOption expelTimeout {VER(>=8.0.14)}
 cluster.setOption("expelTimeout", 3500);
 
-shell.connect(__sandbox_uri1);
-//@<OUT> WL#11465: Verify expelTimeout changed correctly in instance 1 {VER(>=8.0.14)}
-print_expel_timeout_variable(session);
-session.close();
+//@<> WL#11465: Verify expelTimeout changed correctly in instance 1 {VER(>=8.0.14)}
+EXPECT_EQ(3500, get_sysvar(__mysql_sandbox_port1, "group_replication_member_expel_timeout"));
 
-shell.connect(__sandbox_uri2);
-//@<OUT> WL#11465: Verify expelTimeout changed correctly in instance 2 {VER(>=8.0.14)}
-print_expel_timeout_variable(session);
-session.close();
+//@<> WL#11465: Verify expelTimeout changed correctly in instance 2 {VER(>=8.0.14)}
+EXPECT_EQ(3500, get_sysvar(__mysql_sandbox_port2, "group_replication_member_expel_timeout"));
 
-shell.connect(__sandbox_uri3);
-//@<OUT> WL#11465: Verify expelTimeout changed correctly in instance 3 {VER(>=8.0.14)}
-print_expel_timeout_variable(session);
-session.close();
+//@<> WL#11465: Verify expelTimeout changed correctly in instance 3 {VER(>=8.0.14)}
+EXPECT_EQ(3500, get_sysvar(__mysql_sandbox_port3, "group_replication_member_expel_timeout"));
 
 //@<OUT> WL#12066: TSF6_1 setOption autoRejoinTries {VER(>=8.0.16)}
 cluster.setOption("autoRejoinTries", 2016);
@@ -217,23 +156,17 @@ cluster.setOption("autoRejoinTries", -1);
 //@ WL#12066: TSF2_5 setOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
 cluster.setOption("autoRejoinTries", 2017);
 
-shell.connect(__sandbox_uri1);
-//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+//@<> WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
+EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries"));
+EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries", "PERSISTED"));
 
-shell.connect(__sandbox_uri2);
-//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+//@<> WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
+EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries"));
+EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries", "PERSISTED"));
 
-shell.connect(__sandbox_uri3);
-//@ WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+//@<> WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
+EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
+EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
 
 //@ WL#11465: Finalization
 scene.destroy();

@@ -1,11 +1,3 @@
-function print_auto_increment_variables() {
-  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
-  for (var i = 0; i < 2; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-  }
-  print("\n");
-}
-
 function print_metadata_replicasets_topology_type(session) {
     var res = session.runSql("select topology_type from mysql_innodb_cluster_metadata.replicasets");
     var row = res.fetchOne();
@@ -90,32 +82,35 @@ var result = session.runSql("SELECT @@server_id");
 var row = result.fetchOne();
 var server_id = row[0];
 var __expected_auto_inc_offset = 1 + server_id%7
-
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
-print_auto_increment_variables(session);
 session.close();
 
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member2 {VER(>=8.0.13)}
+//@<> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
+EXPECT_EQ(7, get_sysvar(__mysql_sandbox_port1, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(__mysql_sandbox_port1, "auto_increment_offset"));
+
+//@<> WL#12052: Verify the values of auto_increment_% in the member2 {VER(>=8.0.13)}
 // Get the server_id to calculate the expected value of auto_increment_offset
 shell.connect(__sandbox_uri2);
 var result = session.runSql("SELECT @@server_id");
 var row = result.fetchOne();
 var server_id = row[0];
 var __expected_auto_inc_offset = 1 + server_id%7
-
-print_auto_increment_variables(session);
 session.close();
 
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member3 {VER(>=8.0.13)}
+EXPECT_EQ(7, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
+
+//@<> WL#12052: Verify the values of auto_increment_% in the member3 {VER(>=8.0.13)}
 // Get the server_id to calculate the expected value of auto_increment_offset
 shell.connect(__sandbox_uri3);
 var result = session.runSql("SELECT @@server_id");
 var row = result.fetchOne();
 var server_id = row[0];
 var __expected_auto_inc_offset = 1 + server_id%7
-
-print_auto_increment_variables(session);
 session.close();
+
+EXPECT_EQ(7, get_sysvar(__mysql_sandbox_port3, "auto_increment_increment"));
+EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(__mysql_sandbox_port3, "auto_increment_offset"));
 
 // F2.1.3 - The Metadata schema must be updated to change the replicasets.topology_type value to "mm"
 

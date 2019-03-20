@@ -78,12 +78,20 @@ ensureSuperReadOnly(connection3);
 cluster.rejoinInstance(connection3);
 
 cluster.disconnect();
+session.close();
 
 // killSandboxInstance does not wait until the process is actually killed
 // before returning, so the function does not fit this use-case.
 // OTOH stopSandboxInstance waits until the MySQL classic port is not listening
 // anymore, but the x-protocol port may take a bit longer. As so, we must use
 // testutil.startSandbox() to make sure the instance is restarted.
+
+//@<> Reset gr_start_on_boot on all instances
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
+shell.connect(connection1);
 
 //@ Stop sandbox 2
 testutil.stopSandbox(__mysql_sandbox_port2);
@@ -99,15 +107,12 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 
 //@ Start sandbox 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 //@ Start sandbox 2
 testutil.startSandbox(__mysql_sandbox_port2);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 //@ Start sandbox 3
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@<OUT> Reboot the cluster
 shell.connect(connection1);

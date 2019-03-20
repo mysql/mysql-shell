@@ -31,7 +31,15 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Check cluster status before reboot
 c.status();
 
+session.close();
+
+//@<> Reset gr_start_on_boot on all instances
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 //@ Kill all cluster members
+shell.connect(__sandbox_uri1);
 c.disconnect();
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
@@ -42,11 +50,8 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 //@ Start the members again
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 testutil.startSandbox(__mysql_sandbox_port2);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 // Reboot cluster from complete outage, not specifying the name
 

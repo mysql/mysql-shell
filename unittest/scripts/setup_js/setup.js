@@ -16,17 +16,117 @@ function set_sysvar(session, variable, value) {
   session.runSql("SET GLOBAL "+variable+" = ?", [value]);
 }
 
-function get_sysvar(session, variable) {
-  return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
+function get_sysvar(session, variable, type) {
+  var close_session = false;
+  var pos = 0;
+  var query = "";
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  if (type == undefined)
+    type = "GLOBAL";
+
+  if (type == "GLOBAL") {
+    query = "SELECT @@GLOBAL." + variable;
+  } else if (type == "PERSISTED") {
+    query = "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + variable + "%'";
+    pos = 1;
+  }
+
+  var row = session.runSql(query).fetchOne();
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  if (row == null)
+    return "";
+
+  return row[pos];
+}
+
+function get_query_single_result(session, query) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  if (query == undefined)
+    testutil.fail("query argument for get_query_single_result() can't be empty");
+
+  var row = session.runSql(query).fetchOne();
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  if (row == null)
+    testutil.fail("Query returned no results");
+
+  return row[0];
+}
+
+function get_persisted_gr_sysvars(session) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  var query = "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'";
+
+  var ret = "";
+
+  var result = session.runSql(query);
+  var row = result.fetchOne();
+
+  if (row == null) {
+    if (close_session)
+      session.close();
+
+    testutil.fail("Query returned no results");
+  }
+
+  while (row) {
+    var ret_line = row[0] + " = " + row[1];
+    ret += "\n" + ret_line;
+    row = result.fetchOne();
+  }
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  return ret;
 }
 
 function disable_auto_rejoin(session, port) {
-  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
-  if (__version > 80011) {
-    session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
-  }
-}
+  var close_session = false;
 
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    var port = session;
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
+
+  if (__version_num > 80011)
+    session.runSql("RESET PERSIST group_replication_start_on_boot");
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+}
 
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
@@ -288,7 +388,7 @@ function ClusterScenario(ports, topology_mode="pm") {
       if (survivor_ports.indexOf(ports[i]) < 0) {
         testutil.killSandbox(ports[i]);
         var state = testutil.waitMemberState(ports[i], "UNREACHABLE,(MISSING)");
-        if (state != "UNREACHABLE")
+        if (state != "UNREACHABLE" && state != "(MISSING)")
           testutil.fail("Member "+ports[i]+" got into state that was not supposed to: "+state);
       }
     }

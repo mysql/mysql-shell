@@ -224,8 +224,56 @@ function set_sysvar(session, variable, value) {
     session.runSql("SET GLOBAL "+variable+" = ?", [value]);
 }
 
-function get_sysvar(session, variable) {
-    return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
+function get_sysvar(session, variable, type) {
+  var close_session = false;
+  var pos = 0;
+  var query = "";
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  if (type == undefined)
+    type = "GLOBAL";
+
+  if (type == "GLOBAL") {
+    query = "SELECT @@GLOBAL." + variable;
+  } else if (type == "PERSISTED") {
+    query = "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + variable + "%'";
+    pos = 1;
+  }
+
+  var row = session.runSql(query).fetchOne();
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  if (row == null)
+    return "";
+
+  return row[pos];
+}
+
+function disable_auto_rejoin(session, port) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    var port = session;
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
+
+  if (__version_num > 80011)
+    session.runSql("RESET PERSIST group_replication_start_on_boot");
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
 }
 
 function create_root_from_anywhere(session, clear_super_read_only) {
@@ -283,4 +331,15 @@ function check_server_version(major, minor, patch) {
     return (srv_major > major ||
         (srv_major == major &&
             (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
+}
+
+// -------- Test Expectations
+
+function EXPECT_EQ(expected, actual, note) {
+  if (note == undefined)
+    note = "";
+  if (repr(expected) != repr(actual)) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    testutil.fail(context);
+  }
 }

@@ -178,7 +178,6 @@ session.close();
 
 //@ Create single-primary cluster 2
 shell.connect(__sandbox_uri1);
-var singleSession2 = session;
 
 var single2 = dba.createCluster('single2', {clearReadOnly: true});
 
@@ -200,6 +199,11 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port3);
+
+//@<> Reset persisted gr_start_on_boot on instance 3
+session.close();
+disable_auto_rejoin(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
 
 // stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
@@ -227,7 +231,6 @@ testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@ Create multi-primary cluster 2
-shell.connect(__sandbox_uri1);
 var multiSession2 = session;
 
 var multi2 = dba.createCluster('multi2', {clearReadOnly: true, multiPrimary: true, force: true});
@@ -415,7 +418,6 @@ c.dissolve({force: true});
 session.close();
 singleSession.close();
 multiSession.close();
-singleSession2.close();
 multiSession2.close();
 
 testutil.destroySandbox(__mysql_sandbox_port1);

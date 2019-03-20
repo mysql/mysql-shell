@@ -262,9 +262,6 @@ false
 //@<OUT> Removed instance2 does not exist on its Metadata.
 false
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.11)}.
-OFF
-
 //@ Connect back to seed instance and get cluster.
 ||
 

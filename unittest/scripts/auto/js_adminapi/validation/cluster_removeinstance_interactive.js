@@ -269,7 +269,7 @@ false
 false
 
 //@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.11)}.
-OFF
+0
 
 //@ Connect back to seed instance and get cluster.
 ||

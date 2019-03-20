@@ -58,18 +58,6 @@ The cluster successfully switched to Multi-Primary mode.
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the seed instance {VER(>=8.0.13)}
-auto_increment_increment = 7
-auto_increment_offset = <<<__expected_auto_inc_offset>>>
-
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member2 {VER(>=8.0.13)}
-auto_increment_increment = 7
-auto_increment_offset = <<<__expected_auto_inc_offset>>>
-
-//@<OUT> WL#12052: Verify the values of auto_increment_% in the member3 {VER(>=8.0.13)}
-auto_increment_increment = 7
-auto_increment_offset = <<<__expected_auto_inc_offset>>>
-
 //@<OUT> WL#12052: Verify the value of replicasets.topology_type {VER(>=8.0.13)}
 mm
 

@@ -38,7 +38,7 @@ testutil.expectPrompt("*", "y");
 //@<OUT> create_cluster.read_only_no_flag_prompt_yes
 var c = dba.createCluster('dev');
 
-EXPECT_EQ('OFF', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 
 //@ prepare create_cluster.read_only_no_flag_prompt_no
 c.disconnect();
@@ -75,7 +75,7 @@ var c = dba.createCluster('dev', {clearReadOnly: true});
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_port1+"' currently has the super_read_only");
 
-EXPECT_EQ('OFF', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 
 //@ prepare create_cluster.read_only_flag_false
 c.disconnect();
@@ -88,7 +88,7 @@ dba.createCluster('dev', {clearReadOnly: false});
 
 EXPECT_OUTPUT_NOT_CONTAINS("Adding Seed Instance...");
 
-EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 //@ Cleanup
 session.close();

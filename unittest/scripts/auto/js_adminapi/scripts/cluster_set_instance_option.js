@@ -4,32 +4,6 @@ function print_metadata_instance_label(session, address) {
   print(row[0] + "\n");
 }
 
-function print_member_weight_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_member_weight"');
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_exit_state_action_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_exit_state_action"');
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_auto_rejoin_tries_variable(session) {
-  var res = session.runSql('SHOW VARIABLES like "group_replication_autorejoin_tries"')
-  var row = res.fetchOne();
-  print(row[1] + "\n");
-}
-
-function print_persisted_variables_like(session, pattern) {
-  var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
-  for (var i = 0; i < res.length; i++) {
-    print(res[i][0] + " = " + res[i][1] + "\n");
-  }
-  print("\n");
-}
-
 // WL#11465 AdminAPI: AdminAPI: change cluster member options
 //
 // Currently, it's not possible to change a previously configuration option
@@ -148,10 +122,8 @@ cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 //@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 
-session.close();
-shell.connect(__sandbox_uri2);
 //@<OUT> WL#11465: memberWeight label changed correctly
-print_member_weight_variable(session);
+print(get_sysvar(session, "group_replication_member_weight"));
 
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT");
@@ -162,10 +134,8 @@ cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
 //@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
 
-session.close();
-shell.connect(__sandbox_uri2);
 //@<OUT> WL#11465: exitStateAction label changed correctly
-print_exit_state_action_variable(session);
+print(get_sysvar(session, "group_replication_exit_state_action"));
 session.close();
 
 //@<OUT> WL#12066: TSF6_1 setInstanceOption autoRejoinTries {VER(>=8.0.16)}
@@ -179,23 +149,17 @@ cluster.setInstanceOption(__sandbox_uri1, "autoRejoinTries", -1);
 //@ WL#12066: TSF3_5 setInstanceOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
 cluster.setInstanceOption(__sandbox_uri1, "autoRejoinTries", 2017);
 
-shell.connect(__sandbox_uri1);
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+print(get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries"));
+print(get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries", "PERSISTED"));
 
-shell.connect(__sandbox_uri2);
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 2 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+print(get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries"));
+print(get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries", "PERSISTED"));
 
-shell.connect(__sandbox_uri3);
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
-print_auto_rejoin_tries_variable(session);
-print_persisted_variables_like(session, "group_replication_autorejoin_tries");
-session.close();
+print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
+print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
 
 //@ WL#11465: Finalization
 scene.destroy();

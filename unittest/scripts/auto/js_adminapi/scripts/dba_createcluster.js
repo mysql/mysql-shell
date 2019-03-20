@@ -1,66 +1,6 @@
 // Assumptions: smart deployment functions available
 
-function print_gr_exit_state_action() {
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_exit_state_action');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-}
-
-function print_persisted_variables(session) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-    }
-    print("\n");
-}
-
-function print_persisted_variables_like(session, pattern) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-    }
-    print("\n");
-}
-
-function print_gr_member_weight() {
-  var result = session.runSql('SELECT @@GLOBAL.group_replication_member_weight');
-  var row = result.fetchOne();
-  print(row[0] + "\n");
-}
-
-function print_auto_increment_variables() {
-  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
-  for (var i = 0; i < 2; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-  }
-  print("\n");
-}
-
-function print_gr_consistency() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_gr_expel_timeout() {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_member_expel_timeout');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function print_gr_auto_rejoin_tries(session) {
-    var result = session.runSql('SELECT @@GLOBAL.group_replication_autorejoin_tries');
-    var row = result.fetchOne();
-    print(row[0] + "\n");
-}
-
-function get_number_of_rpl_users() {
-    var result = session.runSql(
-        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
-    var row = result.fetchOne();
-    return row[0];
-}
+var number_of_rpl_users_query = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"";
 
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
@@ -105,11 +45,11 @@ var c = dba.createCluster('test', {exitStateAction: "10"});
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 var c = dba.createCluster('test', {exitStateAction: "ABORT_SERVER"});
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (ABORT_SERVER) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (ABORT_SERVER) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
-print_gr_exit_state_action();
+EXPECT_EQ("ABORT_SERVER", get_sysvar(session, "group_replication_exit_state_action"));
 
 //@ WL#12049: Dissolve cluster 1 {VER(>=5.7.24)}
 c.dissolve({force: true});
@@ -119,11 +59,11 @@ c.dissolve({force: true});
 // disable it
 var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "READ_ONLY"});
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
-print_gr_exit_state_action();
+EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
 
 //@ WL#12049: Dissolve cluster 2 {VER(>=5.7.24)}
 c.dissolve({force: true});
@@ -133,11 +73,11 @@ c.dissolve({force: true});
 // disable it
 var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "1"});
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (1) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (1) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
-print_gr_exit_state_action();
+EXPECT_EQ("ABORT_SERVER", get_sysvar(session, "group_replication_exit_state_action"));
 
 //@ WL#12049: Dissolve cluster 3 {VER(>=5.7.24)}
 c.dissolve({force: true});
@@ -147,11 +87,11 @@ c.dissolve({force: true});
 // disable it
 var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "0"});
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (0) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (0) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
-print_gr_exit_state_action();
+EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
 
 //@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
 c.dissolve({force: true});
@@ -167,7 +107,7 @@ c.dissolve({force: true});
 var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY"});
 
 //@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
 
 //@ WL#12049: Dissolve cluster 6 {VER(>=8.0.12)}
 c.dissolve({force: true});
@@ -186,7 +126,7 @@ shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
 //@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
 
 //@ WL#12049: Finalization
 session.close();
@@ -232,11 +172,11 @@ var c = dba.createCluster('test', {memberWeight: 10.5});
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (25) {VER(>=5.7.20)}
 var c = dba.createCluster('test', {memberWeight: 25});
 
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (25) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (25) {VER(>=5.7.20)}
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
-print_gr_member_weight();
+EXPECT_EQ(25, get_sysvar(session, "group_replication_member_weight"));
 
 //@ WL#11032: Dissolve cluster 1 {VER(>=5.7.20)}
 c.dissolve({force: true});
@@ -246,11 +186,11 @@ c.dissolve({force: true});
 // disable it
 var c = dba.createCluster('test', {clearReadOnly: true, memberWeight: 100});
 
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (100) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (100) {VER(>=5.7.20)}
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
-print_gr_member_weight();
+EXPECT_EQ(100, get_sysvar(session, "group_replication_member_weight"));
 
 //@ WL#11032: Dissolve cluster 2 {VER(>=5.7.20)}
 c.dissolve({force: true});
@@ -260,11 +200,11 @@ c.dissolve({force: true});
 // disable it
 var c = dba.createCluster('test', {clearReadOnly: true, memberWeight: -50});
 
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (0) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (0) {VER(>=5.7.20)}
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
-print_gr_member_weight();
+EXPECT_EQ(0, get_sysvar(session, "group_replication_member_weight"));
 
 //@ WL#11032: Dissolve cluster 3 {VER(>=5.7.20)}
 c.dissolve({force: true});
@@ -280,7 +220,7 @@ c.dissolve({force: true});
 var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75});
 
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
-print_persisted_variables(session);
+print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
 
 //@ WL#11032: Dissolve cluster 6 {VER(>=8.0.11)}
 c.dissolve({force: true});
@@ -299,7 +239,7 @@ shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
 //@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
-print_persisted_variables(session);
+print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
 
 //@ WL#11032: Finalization
 session.close();
@@ -349,11 +289,11 @@ var c = dba.createCluster('test', {consistency: "1", failoverConsistency: "1"});
 //@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for consistency {VER(>=8.0.14)}
 var c = dba.createCluster('test', {consistency: "BEFORE_ON_PRIMARY_FAILOVER"});
 
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency"));
 
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
-print_persisted_variables_like(session, "group_replication_consistency");
+//@<> WL#12067: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency", "PERSISTED"));
 
 //@ WL#12067: Dissolve cluster 1 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -362,11 +302,11 @@ c.dissolve({force: true});
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
 var c = dba.createCluster('test', {clearReadOnly:true, consistency: "EVENTUAL"});
 
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
+EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
 
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
-print_persisted_variables_like(session, "group_replication_consistency");
+//@<> WL#12067: TSF1_2 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
+EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency", "PERSISTED"));
 
 //@ WL#12067: Dissolve cluster 2 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -374,8 +314,8 @@ c.dissolve({force: true});
 //@ WL#12067: TSF1_1 Create cluster using 1 as value for consistency {VER(>=8.0.14)}
 var c = dba.createCluster('test', {clearReadOnly:true, consistency: "1"});
 
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency"));
 
 //@ WL#12067: Dissolve cluster 3 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -384,8 +324,8 @@ c.dissolve({force: true});
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
 var c = dba.createCluster('test', {clearReadOnly:true, consistency: "0"});
 
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
+EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
 
 //@ WL#12067: Dissolve cluster 4 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -394,8 +334,8 @@ c.dissolve({force: true});
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
 var c = dba.createCluster('test', {clearReadOnly:true});
 
-//@<OUT> WL#12067: TSF1_3 Confirm without consistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_3 Confirm without consistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
+EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
 
 //@ WL#12067: Dissolve cluster 5 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -404,8 +344,8 @@ c.dissolve({force: true});
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
 var c = dba.createCluster('test', {clearReadOnly:true, consistency: "EvenTual"});
 
-//@<OUT> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
+EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
 
 //@ WL#12067: Dissolve cluster 6 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -414,8 +354,8 @@ c.dissolve({force: true});
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
 var c = dba.createCluster('test', {clearReadOnly:true, consistency: "Before_ON_PriMary_FailoveR"});
 
-//@<OUT> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
-print_gr_consistency();
+//@<> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
+EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency"));
 
 //@ WL#12067: Dissolve cluster 7 {VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -432,8 +372,8 @@ shell.connect(__sandbox_uri1);
 //@ WL#12067: Create cluster 2 {VER(>=8.0.14)}
 var c = dba.createCluster('test');
 
-//@<OUT> WL#12067: consistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
-print_persisted_variables_like(session, "group_replication_consistency");
+//@<> WL#12067: consistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
+EXPECT_EQ("", get_sysvar(session, "group_replication_consistency", "PERSISTED"));
 
 //@ WL#12067: Finalization
 session.close();
@@ -471,11 +411,11 @@ var c = dba.createCluster('test', {expelTimeout: 3601});
 //@ WL#12050: TSF1_1 Create cluster using 12 as value for expelTimeout {VER(>=8.0.13)}
 var c = dba.createCluster('test', {expelTimeout: 12});
 
-//@ WL#12050: TSF1_1 Confirm group_replication_member_expel_timeout is set correctly (12) {VER(>=8.0.13)}
-print_gr_expel_timeout();
+//@<> WL#12050: TSF1_1 Confirm group_replication_member_expel_timeout is set correctly (12) {VER(>=8.0.13)}
+EXPECT_EQ(12, get_sysvar(session, "group_replication_member_expel_timeout"));
 
-//@<OUT> WL#12050: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.13)}
-print_persisted_variables_like(session, "group_replication_member_expel_timeout");
+//@<> WL#12050: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.13)}
+EXPECT_EQ("12", get_sysvar(session, "group_replication_member_expel_timeout", "PERSISTED"));
 
 //@ WL#12050: Dissolve cluster 1 {VER(>=8.0.13)}
 c.dissolve({force: true});
@@ -493,11 +433,11 @@ shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {clearReadOnly:true});
 c.disconnect();
 
-//@ WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
-print_gr_expel_timeout();
+//@<> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
+EXPECT_EQ(0, get_sysvar(session, "group_replication_member_expel_timeout"));
 
-//@<OUT> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout was not persisted since no value was provided. {VER(>=8.0.13)}
-print_persisted_variables_like(session, "group_replication_member_expel_timeout");
+//@<> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout was not persisted since no value was provided. {VER(>=8.0.13)}
+EXPECT_EQ("", get_sysvar(session, "group_replication_member_expel_timeout", "PERSISTED"));
 
 //@ WL#12050: Finalization
 session.close();
@@ -582,14 +522,15 @@ var c = dba.createCluster('test', {autoRejoinTries: 2016});
 session.close();
 shell.connect(__sandbox_uri2);
 var c2 = dba.createCluster('test2', {clearReadOnly: true});
+session.close();
 
-//@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
-print_gr_auto_rejoin_tries(s1);
-print_gr_auto_rejoin_tries(s2);
+//@<> WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
+EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries"));
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries"));
 
-//@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
-print_persisted_variables_like(s1, "group_replication_autorejoin_tries");
-print_persisted_variables_like(s2, "group_replication_autorejoin_tries");
+//@<> WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
+EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries", "PERSISTED"));
+EXPECT_EQ("", get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries", "PERSISTED"));
 
 //@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
 c.dissolve({force: true});
@@ -597,7 +538,6 @@ c2.dissolve({force: true});
 
 //@ WL#12066: Finalization {VER(>=8.0.16)}
 // NOTE: Do not destroy sandbox 2 to be used on the next tests
-session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 // Regression test for BUG#29308037
@@ -612,7 +552,7 @@ shell.connect(__sandbox_uri2);
 EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "ERROR: Error starting cluster");
 
 //@<OUT> BUG#29308037: Confirm that all replication users where removed
-print(get_number_of_rpl_users() + "\n");
+print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
 
 //@ BUG#29308037: Finalization
 session.close();

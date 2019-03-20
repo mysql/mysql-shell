@@ -14,17 +14,11 @@
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (ABORT_SERVER) {VER(>=5.7.24)}
-ABORT_SERVER
-
 //@ WL#12049: Dissolve cluster 1 {VER(>=5.7.24)}
 ||
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY) {VER(>=5.7.24)}
 ||
-
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY) {VER(>=5.7.24)}
-READ_ONLY
 
 //@ WL#12049: Dissolve cluster 2 {VER(>=5.7.24)}
 ||
@@ -32,17 +26,11 @@ READ_ONLY
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (1) {VER(>=5.7.24)}
 ||
 
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (1) {VER(>=5.7.24)}
-ABORT_SERVER
-
 //@ WL#12049: Dissolve cluster 3 {VER(>=5.7.24)}
 ||
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (0) {VER(>=5.7.24)}
 ||
-
-//@<OUT> WL#12049: Confirm group_replication_exit_state_action is set correctly (0) {VER(>=5.7.24)}
-READ_ONLY
 
 //@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
 ||
@@ -101,26 +89,17 @@ group_replication_start_on_boot = ON
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (25) {VER(>=5.7.20)}
 ||
 
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (25) {VER(>=5.7.20)}
-25
-
 //@ WL#11032: Dissolve cluster 1 {VER(>=5.7.20)}
 ||
 
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (100) {VER(>=5.7.20)}
 ||
 
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (100) {VER(>=5.7.20)}
-100
-
 //@ WL#11032: Dissolve cluster 2 {VER(>=5.7.20)}
 ||
 
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (-50) {VER(>=5.7.20)}
 ||
-
-//@<OUT> WL#11032: Confirm group_replication_member_weight is set correctly (0) {VER(>=5.7.20)}
-0
 
 //@ WL#11032: Dissolve cluster 3 {VER(>=5.7.20)}
 ||
@@ -183,23 +162,11 @@ group_replication_start_on_boot = ON
 //@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for consistency {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
-BEFORE_ON_PRIMARY_FAILOVER
-
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
-group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
-
 //@ WL#12067: Dissolve cluster 1 {VER(>=8.0.14)}
 ||
 
 //@ WL#12067: TSF1_2 Create cluster using EVENTUAL as value for consistency {VER(>=8.0.14)}
 ||
-
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
-EVENTUAL
-
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
-group_replication_consistency = EVENTUAL
 
 //@ WL#12067: Dissolve cluster 2 {VER(>=8.0.14)}
 ||
@@ -207,17 +174,11 @@ group_replication_consistency = EVENTUAL
 //@ WL#12067: TSF1_1 Create cluster using 1 as value for consistency {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
-BEFORE_ON_PRIMARY_FAILOVER
-
 //@ WL#12067: Dissolve cluster 3 {VER(>=8.0.14)}
 ||
 
 //@ WL#12067: TSF1_2 Create cluster using 0 as value for consistency {VER(>=8.0.14)}
 ||
-
-//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
-EVENTUAL
 
 //@ WL#12067: Dissolve cluster 4 {VER(>=8.0.14)}
 ||
@@ -225,26 +186,17 @@ EVENTUAL
 //@ WL#12067: TSF1_3 Create cluster using no value for consistency {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: TSF1_3 Confirm without consistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
-EVENTUAL
-
 //@ WL#12067: Dissolve cluster 5 {VER(>=8.0.14)}
 ||
 
 //@ WL#12067: TSF1_7 Create cluster using evenTual as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 ||
 
-//@<OUT> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
-EVENTUAL
-
 //@ WL#12067: Dissolve cluster 6 {VER(>=8.0.14)}
 ||
 
 //@ WL#12067: TSF1_8 Create cluster using Before_ON_PriMary_FailoveR as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 ||
-
-//@<OUT> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
-BEFORE_ON_PRIMARY_FAILOVER
 
 //@ WL#12067: Dissolve cluster 7 {VER(>=8.0.14)}
 ||
@@ -254,8 +206,6 @@ BEFORE_ON_PRIMARY_FAILOVER
 
 //@ WL#12067: Create cluster 2 {VER(>=8.0.14)}
 ||
-
-//@<OUT> WL#12067: consistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
 
 //@ WL#12067: Finalization
 ||
@@ -278,12 +228,6 @@ BEFORE_ON_PRIMARY_FAILOVER
 //@ WL#12050: TSF1_1 Create cluster using 12 as value for expelTimeout {VER(>=8.0.13)}
 ||
 
-//@ WL#12050: TSF1_1 Confirm group_replication_member_expel_timeout is set correctly (12) {VER(>=8.0.13)}
-|12|
-
-//@<OUT> WL#12050: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.13)}
-group_replication_member_expel_timeout = 12
-
 //@ WL#12050: Dissolve cluster 1 {VER(>=8.0.13)}
 ||
 
@@ -292,11 +236,6 @@ group_replication_member_expel_timeout = 12
 
 //@ WL#12050: TSF1_2 Create cluster using no value for expelTimeout, confirm it has the default value {VER(>=8.0.13)}
 ||
-
-//@ WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
-|0|
-
-//@<OUT> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout was not persisted since no value was provided. {VER(>=8.0.13)}
 
 //@ WL#12050: Finalization
 ||
@@ -357,14 +296,6 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 
 //@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
-
-//@WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
-|2016|
-|0|
-
-//@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
-|group_replication_autorejoin_tries = 2016|
-||
 
 //@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
 ||

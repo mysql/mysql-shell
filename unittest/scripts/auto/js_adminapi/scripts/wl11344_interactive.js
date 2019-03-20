@@ -1,11 +1,3 @@
-function print_persisted_variables(session) {
-    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][0] + " = " + res[i][1] + "\n");
-    }
-    print("\n");
-}
-
 // Connect to sandbox1
 //FR1 - On a successful dba.createCluster() call, the group replication sysvars must be updated and persisted at the seed instance.
 //@ FR1-TS-01 SETUP {VER(>=8.0.12)}
@@ -16,18 +8,23 @@ var cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-448500
 cluster.disconnect();
 
 //@ FR1-TS-01 Check persisted variables after create cluster {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
+
+//@<> Reset gr_start_on_boot on instance 1 {VER(>=8.0.12)}
+disable_auto_rejoin(__mysql_sandbox_port1);
 
 //@ FR1-TS-01 reboot instance {VER(>=8.0.12)}
 session.close();
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 shell.connect(__sandbox_uri1);
 
-//@ FR1-TS-01 reboot cluster and check persisted variables {VER(>=8.0.12)}
+//@ FR1-TS-01 reboot cluster {VER(>=8.0.12)}
 cluster = dba.rebootClusterFromCompleteOutage("C");
-print_persisted_variables(session);
+
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+//@ FR1-TS-01 check persisted variables {VER(>=8.0.12)}
+print(persisted_sysvars + "\n");
 cluster.status();
 
 //@ FR1-TS-01 TEARDOWN {VER(>=8.0.12)}
@@ -81,9 +78,11 @@ shell.connect(__hostname_uri1);
 
 var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 
-cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 //@ FR1-TS-04/05 {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(persisted_sysvars + "\n\n");
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
 
@@ -109,25 +108,30 @@ cluster.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
-
 //@ FR1-TS-7 SETUP {VER(>=8.0.12)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 //@ FR1-TS-7 show persisted cluster variables {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(persisted_sysvars);
+
+//@<> Reset gr_start_on_boot on instance 1 again {VER(>=8.0.12)}
+disable_auto_rejoin(__mysql_sandbox_port1);
 
 //@ FR1-TS-7 reboot instance 1 {VER(>=8.0.12)}
 session.close();
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 shell.connect(__sandbox_uri1);
 
-//@ FR1-TS-7 reboot cluster and check persisted variables {VER(>=8.0.12)}
+//@ FR1-TS-7 reboot cluster {VER(>=8.0.12)}
 cluster = dba.rebootClusterFromCompleteOutage("ClusterName");
-print_persisted_variables(session);
+
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+//@ FR1-TS-7 check persisted variables {VER(>=8.0.12)}
+print(persisted_sysvars + "\n");
 cluster.status();
 
 //@ FR1-TS-7 TEARDOWN {VER(>=8.0.12)}
@@ -148,8 +152,9 @@ cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+var persisted_sysvars = get_persisted_gr_sysvars(s2);
 //@ FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
-print_persisted_variables(s2);
+print(persisted_sysvars);
 
 //@ FR2-TS-1 stop instance 2 {VER(>=8.0.12)}
 testutil.stopSandbox(__mysql_sandbox_port2);
@@ -204,15 +209,19 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 cluster = dba.getCluster("ClusterName");
 var __local_address_2 = "15679";
-cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+
 //@ FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
-print_persisted_variables(s1);
-print_persisted_variables(s2);
+print(persisted_sysvars1);
+print("\n");
+print(persisted_sysvars2);
 
 //@ FR2-TS-4 TEARDOWN {VER(>=8.0.12)}
 session.close();
@@ -268,17 +277,22 @@ shell.connect(__hostname_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
 var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();
-cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 session.close();
 shell.connect(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+
 //@ FR2-TS-5 {VER(>=8.0.12)}
-print_persisted_variables(s1);
-print_persisted_variables(s2);
+print(persisted_sysvars1);
+print("\n");
+print(persisted_sysvars2);
+print("\n");
 var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 dba.configureLocalInstance(__sandbox_uri2, {interactive: true, mycnfPath: sandbox_cnf2, clearReadOnly: true});
-print_persisted_variables(s2);
+print(persisted_sysvars2);
 
 //@ FR2-TS-5 TEARDOWN {VER(>=8.0.12)}
 session.close();
@@ -328,10 +342,17 @@ dba.createCluster("ClusterName", {multiPrimary: true, force: true, groupName: "c
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+shell.connect(__sandbox_uri1);
 
 //@ FR2-TS-8 Check that correct values were persisted and that instance rejoins automatically {VER(>=8.0.12)}
-print_persisted_variables(s1);
-print_persisted_variables(s2);
+print(persisted_sysvars1);
+print("\n");
+print(persisted_sysvars2);
+print("\n");
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 cluster.status();
@@ -359,18 +380,30 @@ dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
 
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port2);
 //@ FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
-print_persisted_variables(s2);
+print(persisted_sysvars);
 
 //@FR2-TS-9 Add instance 3 and wait for it to be online {VER(>=8.0.12)}
+shell.connect(__sandbox_uri1);
 cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+session.close();
+
+var persisted_sysvars3 = get_persisted_gr_sysvars(__mysql_sandbox_port3);
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+shell.connect(__sandbox_uri1);
 
 //@ FR2-TS-9 Check that correct values are persisted and updated when instances are added and that instances rejoin automatically {VER(>=8.0.12)}
-print_persisted_variables(s3);
-print_persisted_variables(s2);
-print_persisted_variables(s1);
+print(persisted_sysvars3);
+print("\n");
+print(persisted_sysvars2);
+print("\n");
+print(persisted_sysvars1);
+print("\n");
 
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
@@ -407,9 +440,13 @@ cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.removeInstance(__sandbox_uri2);
 
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+
 //@ FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
-print_persisted_variables(s2);
-print_persisted_variables(s1);
+print(persisted_sysvars2);
+print("\n");
+print(persisted_sysvars1);
 
 //@ FR5-TS-1 TEARDOWN {VER(>=8.0.12)}
 cluster.disconnect();
@@ -434,12 +471,24 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
-print_persisted_variables(s3);
+var persisted_sysvars3 = get_persisted_gr_sysvars(__mysql_sandbox_port3);
+
+//@ FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - before {VER(>=8.0.12)}
+print(persisted_sysvars3);
+print("\n");
 cluster.removeInstance(__sandbox_uri2);
-print_persisted_variables(s3);
-print_persisted_variables(s2);
-print_persisted_variables(s1);
+
+//@<> Get the persisted vars again {VER(>=8.0.12)}
+var persisted_sysvars3 = get_persisted_gr_sysvars(__mysql_sandbox_port3);
+var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+
+//@ FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
+print(persisted_sysvars3);
+print("\n");
+print(persisted_sysvars2);
+print("\n");
+print(persisted_sysvars1);
 
 //@ FR5-TS-4 TEARDOWN {VER(>=8.0.12)}
 cluster.disconnect();
@@ -492,8 +541,9 @@ cluster = dba.getCluster("ClusterName");
 testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 cluster.dissolve({force:true});
 
+var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 //@ Check if Cluster dissolve will reset persisted variables {VER(>=8.0.12)}
-print_persisted_variables(session);
+print(persisted_sysvars);
 
 //@ Check if Cluster dissolve will reset persisted variables TEARDOWN {VER(>=8.0.12)}
 session.close();

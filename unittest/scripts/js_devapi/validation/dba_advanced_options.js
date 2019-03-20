@@ -24,17 +24,11 @@
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-2)
-<<<__result_local_address_2>>>
-
 //@ Dissolve cluster (FR1-TS-1-2)
 ||
 
 //@ Create cluster specifying <valid_host>: for localAddress (FR1-TS-1-3)
 ||
-
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-3)
-<<<__result_local_address_3>>>
 
 //@ Dissolve cluster (FR1-TS-1-3)
 ||
@@ -42,17 +36,11 @@
 //@ Create cluster specifying <valid_port> for localAddress (FR1-TS-1-4)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-4)
-<<<__result_local_address_4>>>
-
 //@ Dissolve cluster (FR1-TS-1-4)
 ||
 
 //@ Create cluster specifying <valid_host> for localAddress (FR1-TS-1-9)
 ||
-
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-9)
-<<<__result_local_address_9>>>
 
 //@ Dissolve cluster (FR1-TS-1-9)
 ||
@@ -60,17 +48,11 @@
 //@ Create cluster specifying <valid_host>:<valid_port> for localAddress (FR1-TS-1-10)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-1-10)
-<<<__result_local_address_10>>>
-
 //@ Dissolve cluster (FR1-TS-1-10)
 ||
 
 //@ Create cluster specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-1-1)
 ||
-
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-1-1)
-<<<__result_group_seeds_1>>>
 
 //@ Dissolve cluster (FR2-TS-1-1)
 ||
@@ -78,17 +60,11 @@
 //@ Create cluster specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-1-2)
 ||
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-1-2)
-<<<__result_group_seeds_2>>>
-
 //@ Dissolve cluster (FR2-TS-1-2)
 ||
 
 //@ Create cluster specifying aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa for groupName (FR3-TS-1-1)
 ||
-
-//@<OUT> Confirm group name is set correctly (FR3-TS-1-1)
-<<<__result_group_name_1>>>
 
 //@ Dissolve cluster (FR3-TS-1-1)
 ||
@@ -115,17 +91,11 @@
 //@ Add instance specifying :<valid_port> for localAddress (FR1-TS-2-2)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-2)
-<<<__result_local_address_add_2>>>
-
 //@ Remove instance (FR1-TS-2-2)
 ||
 
 //@ Add instance specifying <valid_host>: for localAddress (FR1-TS-2-3)
 ||
-
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-3)
-<<<__result_local_address_add_3>>>
 
 //@ Remove instance (FR1-TS-2-3)
 ||
@@ -133,17 +103,11 @@
 //@ Add instance specifying <valid_port> for localAddress (FR1-TS-2-4)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-4)
-<<<__result_local_address_add_4>>>
-
 //@ Remove instance (FR1-TS-2-4)
 ||
 
 //@ Add instance specifying <valid_host> for localAddress (FR1-TS-2-9)
 ||
-
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-9)
-<<<__result_local_address_add_9>>>
 
 //@ Remove instance (FR1-TS-2-9)
 ||
@@ -151,26 +115,17 @@
 //@ Add instance specifying <valid_host>:<valid_port> for localAddress (FR1-TS-2-10)
 ||
 
-//@<OUT> Confirm local address is set correctly (FR1-TS-2-10)
-<<<__result_local_address_add_10>>>
-
 //@ Remove instance (FR1-TS-2-10)
 ||
 
 //@ Add instance specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-2-1)
 ||
 
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-2-1)
-<<<__result_group_seeds_1>>>
-
 //@ Remove instance (FR2-TS-2-1)
 ||
 
 //@ Add instance specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-2-2)
 ||
-
-//@<OUT> Confirm group seeds is set correctly (FR2-TS-2-2)
-<<<__result_group_seeds_2>>>
 
 //@ Remove instance (FR2-TS-2-2)
 ||
@@ -199,18 +154,8 @@
 //@ Restart added instance (FR1-TS-4)
 ||
 
-//@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for added instance (FR1-TS-4)
-<<<__cfg_local_address2>>>
-<<<__cfg_group_seeds>>>
-<<<__cfg_group_name>>>
-
 //@ Restart seed instance (FR1-TS-4)
 ||
-
-//@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for seed instance (FR1-TS-4)
-<<<__cfg_local_address1>>>
-<<<__cfg_group_seeds>>>
-<<<__cfg_group_name>>>
 
 //@ Dissolve cluster (FR1-TS-4)
 ||

@@ -56,7 +56,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list80>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -93,7 +93,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list80>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -151,7 +151,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -188,7 +188,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -258,7 +258,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list80>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -295,7 +295,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list80>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -353,7 +353,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -390,7 +390,7 @@
                 },
                 {
                     "option": "ipWhitelist",
-                    "value": "<<<ip_white_list>>>",
+                    "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
