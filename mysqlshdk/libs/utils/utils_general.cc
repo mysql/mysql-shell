@@ -22,8 +22,9 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/include/mysh_config.h"
 #include "mysqlshdk/libs/textui/textui.h"
+
+#include "my_config.h"
 
 #ifdef WIN32
 #include <Lmcons.h>
@@ -52,7 +53,6 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 #include <ctime>
 #include <locale>
 
-#include "mysh_config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"

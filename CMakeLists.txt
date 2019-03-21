@@ -294,22 +294,16 @@ SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
 
 ##
-## Configure style system detection(generation of config.h)
+## Configure style system detection
 ##
 INCLUDE(configure.cmake)
 
 ## The following definition is required to have memset_s
 ## available on the platforms that implement it
+CHECK_FUNCTION_EXISTS (memset_s HAVE_MEMSET_S)
 IF (HAVE_MEMSET_S)
   ADD_DEFINITIONS(-D__STDC_WANT_LIB_EXT1__=1)
 ENDIF()
-
-# This is used for the version_compile_machine variable.
-SET(MYSQL_MACHINE_TYPE ${CMAKE_SYSTEM_PROCESSOR})
-IF(CMAKE_SYSTEM_PROCESSOR MATCHES "i386" AND CMAKE_SIZEOF_VOID_P MATCHES 8)
-  SET(MYSQL_MACHINE_TYPE "x86_64")
-ENDIF()
-CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/mysqlshdk/include/mysh_config.h)
 
 MACRO(MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(SAVE_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
@@ -355,10 +349,9 @@ IF(NOT CMAKE_BUILD_TYPE
     ADD_DEFINITIONS(-DDBUG_OFF)
 ENDIF()
 
-
 # Includes common to the whole project
-INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
-            ${PROJECT_SOURCE_DIR}/include
+INCLUDE_DIRECTORIES(
+            ${CMAKE_BINARY_DIR}
             ${PROJECT_SOURCE_DIR}/ext
             ${MYSQL_INCLUDE_DIRS}
             ${MYSQLX_INCLUDE_DIRS}
@@ -451,7 +444,6 @@ IF(WITH_OCI)
   ENDIF()
 ENDIF()
 
-ADD_SUBDIRECTORY(ext/dbug)
 
 IF(WITH_TESTS)
   ###

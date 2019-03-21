@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <mysql_version.h>
-#include "dbug/my_dbug.h"
+#include "my_dbug.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 

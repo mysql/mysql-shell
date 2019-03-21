@@ -1,4 +1,4 @@
-/* Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,7 @@
 
 // modified to be standalone for mysqlsh
 
-#include "mysh_config.h"
+#include "my_config.h"
 
 #if defined(HAVE_GETPASS) && !defined(__APPLE__)
 // Don't use getpass() since it doesn't handle ^C (and it's deprecated)

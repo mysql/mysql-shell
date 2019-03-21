@@ -20,7 +20,6 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <string>
-#include "mysh_config.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_file.h"

@@ -29,7 +29,7 @@
 #include <iostream>
 #include <limits>
 
-#include "dbug/my_dbug.h"
+#include "my_dbug.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
@@ -486,15 +486,14 @@ Shell_options::Shell_options(int argc, char **argv,
         }
       })
       (cmdline("--debug=#"), "Debug options for DBUG package.",
-      [](const std::string &val, const char* value) {
+      [this](const std::string &, const char* value) {
 #ifdef DBUG_OFF
         // If DBUG is disabled, we just print a warning saying the option won't
         // do anything. This is to keep options compatible beetween build types
         std::cout << "WARNING: This build of mysqlsh has the DBUG feature "
           "disabled. --debug option ignored." << std::endl;
-#else
-        DBUG_SET_INITIAL(value);
 #endif
+        storage.dbug_options = value ? value : "";
       })
 #ifdef WITH_OCI
     (

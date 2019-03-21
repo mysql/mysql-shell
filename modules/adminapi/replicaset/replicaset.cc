@@ -33,7 +33,6 @@
 #include <utility>
 #include <vector>
 
-#include "dbug/my_dbug.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -50,6 +49,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "modules/mysqlxtest_utils.h"
+#include "my_dbug.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"

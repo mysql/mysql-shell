@@ -30,7 +30,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "dbug/my_dbug.h"
+#include "my_dbug.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"

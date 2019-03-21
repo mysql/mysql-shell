@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -87,11 +87,17 @@ ELSE()
   IF (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
     SET(PROTOBUF_INCLUDE_DIR "${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
     IF (WIN32)
-      SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
-      SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
+      IF(CMAKE_BUILD_TYPE STREQUAL Debug)
+        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobufd.lib")
+      ELSE()
+        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
+      ENDIF()
     ELSE()
-      SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
-      SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+      IF(CMAKE_BUILD_TYPE STREQUAL Debug)
+        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobufd.a")
+      ELSE()
+        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+      ENDIF()
     ENDIF()
   ENDIF()
 ENDIF()

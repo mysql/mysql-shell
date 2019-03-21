@@ -31,7 +31,6 @@
 #include <random>
 #include <stdexcept>
 
-#include "mysqlshdk/include/mysh_config.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"

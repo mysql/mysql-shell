@@ -54,7 +54,7 @@
 #include <unistd.h>
 #endif
 
-#include "dbug/my_dbug.h"
+#include "my_dbug.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"

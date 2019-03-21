@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dbug/my_dbug.h"
 #include "modules/util/upgrade_check.h"
+#include "my_dbug.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "unittest/test_utils/mod_testutils.h"

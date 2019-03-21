@@ -31,7 +31,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <utility>
-#include "dbug/my_dbug.h"
+#include "my_dbug.h"
 #include "mysqlshdk/libs/db/replay/replayer.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"

@@ -23,6 +23,8 @@
 
 #include "scripting/jscript_context.h"
 
+#include "my_config.h"
+
 #if V8_MAJOR_VERSION > 6 || (V8_MAJOR_VERSION == 6 && V8_MINOR_VERSION > 7)
 #error "v8::Platform uses deprecated code, remove these undefs when it's fixed"
 #else
@@ -31,7 +33,6 @@
 #include <libplatform/libplatform.h>
 #endif
 
-#include "mysqlshdk/include/mysh_config.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/module_registry.h"
 #include "scripting/object_factory.h"

@@ -131,6 +131,7 @@ class Shell_options : public shcore::Options {
     Quiet_start quiet_start = Quiet_start::NOT_SET;
     bool show_column_type_info = false;
     bool default_compress = false;
+    std::string dbug_options;
 
     int exit_code = 0;
 

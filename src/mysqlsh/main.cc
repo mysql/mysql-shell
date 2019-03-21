@@ -23,7 +23,7 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
-#include "mysh_config.h"
+#include "my_dbug.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/textui/textui.h"
@@ -604,6 +604,10 @@ static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 #ifdef ENABLE_SESSION_RECORDING
   init_debug_shell(shell);
 #endif
+
+  if (!shell->options().dbug_options.empty()) {
+    DBUG_SET_INITIAL(shell->options().dbug_options.c_str());
+  }
 }
 
 static void finalize_shell(mysqlsh::Command_line_shell *shell) {
