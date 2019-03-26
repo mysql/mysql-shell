@@ -36,6 +36,9 @@
 #include "utils/utils_string.h"
 
 #ifdef WIN32
+#include <AccCtrl.h>
+#include <AclAPI.h>
+#include <Lmcons.h>
 #include <ShlObj.h>
 #include <Shlwapi.h>
 #include <comdef.h>
@@ -883,6 +886,136 @@ int SHCORE_PUBLIC make_file_readonly(const std::string &path) {
     return 0;
   return -1;
 #endif
+}
+
+/**
+ * Changes the file permissions of the indicated path.
+ * @param path The path of the file/folder which will be updated.
+ * @param mode The User/Group/Other permissions to be set.
+ *
+ * Permissions should be given in binary mask format, this is
+ * as a number in the format of 0UGO
+ *
+ * Where:
+ *  @li U is the binary mask for User's permissions
+ *  @li G is the binary mask for User Group's permissions
+ *  @li O is the binary mask for Other's permissions
+ *
+ * Each binary mask contains the a permission combination that includes:
+ * @li 0x001: Indicates execution permission
+ * @li 0x010: Indicates write permission
+ * @li 0x100: Indicates read permission
+ *
+ * On Windows, only the User permissions are considered:
+ * @li if the user write permission is OFF, the file will be set as
+ * Read Only.
+ * @li if the user write permission is ON, the Read Only flag will be
+ * removed from the file.
+ *
+ * This function does not work with Windows folders.
+ */
+int SHCORE_PUBLIC ch_mod(const std::string &path, int mode) {
+#ifndef _WIN32
+  return chmod(path.c_str(), mode);
+#else
+  auto dwAttrs = GetFileAttributes(path.c_str());
+  // If user write permission is off, sets the file read only
+  // otherwise, cleans the file read only
+  int user_write = (2 << 6) & mode;
+  dwAttrs = user_write ? dwAttrs & ~FILE_ATTRIBUTE_READONLY
+                       : dwAttrs | FILE_ATTRIBUTE_READONLY;
+  if (!SetFileAttributes(path.c_str(), dwAttrs)) return -1;
+  return 0;
+#endif
+}
+
+/**
+ * Updates file or folder permissions so it is accessible only to the current
+ * user.
+ *
+ * In linux, sets files with RW permissions and folders with RWX.
+ * In windows, sets all with Full Control for:
+ * @li Current User
+ * @li System User
+ * @li Admin Group
+ */
+int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
+  int ret_val = -1;
+#ifndef _WIN32
+  int mode = 0600;
+  if (shcore::is_folder(path)) mode = 0700;
+  ret_val = chmod(path.c_str(), mode);
+#else
+  DWORD dwRes = 0;
+  PSID pSystemSID = NULL, pAdminSID = NULL;
+  SID_IDENTIFIER_AUTHORITY SIDAuthNT = SECURITY_NT_AUTHORITY;
+  PACL pNewDACL = NULL;
+  EXPLICIT_ACCESS ea[3];
+
+  if (!path.empty()) {
+    DWORD inheritance = NO_INHERITANCE;
+    if (shcore::is_folder(path))
+      inheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+
+    LPSTR target_path = const_cast<char *>(path.c_str());
+
+    // Create a SIDs for the BUILTIN\Administrators group
+    // and for the SYSTEM
+    if (AllocateAndInitializeSid(&SIDAuthNT, 2, SECURITY_BUILTIN_DOMAIN_RID,
+                                 DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0,
+                                 &pAdminSID) &&
+        AllocateAndInitializeSid(&SIDAuthNT, 1, SECURITY_LOCAL_SYSTEM_RID, 0, 0,
+                                 0, 0, 0, 0, 0, &pSystemSID)) {
+      DWORD user_full_control = GENERIC_ALL | STANDARD_RIGHTS_ALL;
+      // Initialize an EXPLICIT_ACCESS structure for the new ACE.
+      // Sets full access to administrators group
+      ZeroMemory(&ea, 3 * sizeof(EXPLICIT_ACCESS));
+      ea[0].grfAccessPermissions = user_full_control;
+      ea[0].grfAccessMode = SET_ACCESS;
+      ea[0].grfInheritance = inheritance;
+      ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+      ea[0].Trustee.TrusteeType = TRUSTEE_IS_GROUP;
+      ea[0].Trustee.ptstrName = (LPTSTR)pAdminSID;
+
+      // Sets full access to system user
+      ea[1].grfAccessPermissions = user_full_control;
+      ea[1].grfAccessMode = SET_ACCESS;
+      ea[1].grfInheritance = inheritance;
+      ea[1].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+      ea[1].Trustee.TrusteeType = TRUSTEE_IS_COMPUTER;
+      ea[1].Trustee.ptstrName = (LPTSTR)pSystemSID;
+
+      // Sets full access to current user
+      char username[UNLEN + 1];
+      DWORD username_len = UNLEN + 1;
+      GetUserNameA(username, &username_len);
+      ea[2].grfAccessPermissions = user_full_control;
+      ea[2].grfAccessMode = SET_ACCESS;
+      ea[2].grfInheritance = inheritance;
+      ea[2].Trustee.TrusteeForm = TRUSTEE_IS_NAME;
+      ea[2].Trustee.TrusteeType = TRUSTEE_IS_USER;
+      ea[2].Trustee.ptstrName = username;
+
+      // Create a new ACL with defined ACEs
+      if (ERROR_SUCCESS == SetEntriesInAclA(3, ea, nullptr, &pNewDACL)) {
+        // Sets the new ACL as the object's DACL.
+        dwRes = SetNamedSecurityInfoA(
+            target_path, SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+            NULL, NULL, pNewDACL, NULL);
+        if (ERROR_SUCCESS == dwRes) {
+          ret_val = 0;
+        }
+      }
+    }
+
+    // Cleanup
+    if (pAdminSID != NULL) FreeSid(pAdminSID);
+    if (pSystemSID != NULL) FreeSid(pSystemSID);
+    if (pNewDACL != NULL) LocalFree((HLOCAL)pNewDACL);
+  }
+#endif
+  return ret_val;
 }
 
 std::string get_absolute_path(const std::string &base_dir,

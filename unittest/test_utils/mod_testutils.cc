@@ -1868,18 +1868,7 @@ int Testutils::chmod(str path, int mode);
 #endif
 ///@}
 int Testutils::ch_mod(const std::string &path, int mode) {
-#ifndef _WIN32
-  return chmod(path.c_str(), mode);
-#else
-  auto dwAttrs = GetFileAttributes(path.c_str());
-  // If user write permission is off, sets the file read only
-  // otherwise, cleans the file read only
-  int user_write = (2 << 6) & mode;
-  dwAttrs = user_write ? dwAttrs & ~FILE_ATTRIBUTE_READONLY
-                       : dwAttrs | FILE_ATTRIBUTE_READONLY;
-  if (!SetFileAttributes(path.c_str(), dwAttrs)) return -1;
-  return 0;
-#endif
+  return shcore::ch_mod(path, mode);
 }
 
 //!< @name File Operations

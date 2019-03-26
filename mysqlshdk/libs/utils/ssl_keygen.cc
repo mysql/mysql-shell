@@ -200,6 +200,12 @@ std::string create_key_pair(const std::string &path,
 
   if (rc != 1) throw_last_error("saving public key file");
 
+  rc = shcore::set_user_only_permissions(public_path);
+  if (rc != 0) {
+    throw std::runtime_error(
+        "Error setting file permissions on public key file: " + public_path);
+  }
+
   BIO_ptr bio_private(BIO_new_file(private_path.c_str(), "w+"), ::BIO_free);
   if (passphrase.empty()) {
     rc = PEM_write_bio_RSAPrivateKey(bio_private.get(), rsa.get(), nullptr,
@@ -214,6 +220,12 @@ std::string create_key_pair(const std::string &path,
   }
 
   if (rc != 1) throw_last_error("saving private key file");
+
+  rc = shcore::set_user_only_permissions(private_path);
+  if (rc != 0) {
+    throw std::runtime_error(
+        "Error setting file permissions on private key file: " + public_path);
+  }
 
   return get_fingerprint(pkey.get());
 }

@@ -93,6 +93,8 @@ bool SHCORE_PUBLIC iterdir(const std::string &path,
 
 void SHCORE_PUBLIC check_file_writable_or_throw(const std::string &filename);
 int SHCORE_PUBLIC make_file_readonly(const std::string &path);
+int SHCORE_PUBLIC ch_mod(const std::string &path, int mode);
+int SHCORE_PUBLIC set_user_only_permissions(const std::string &path);
 
 std::string SHCORE_PUBLIC get_absolute_path(const std::string &base_dir,
                                             const std::string &file_path);
