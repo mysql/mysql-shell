@@ -7,8 +7,16 @@
 //@ create cluster
 ||
 
+//@ remove instance not in MD but reachable when there's just 1 (should fail)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+
 //@ Adding instance
 ||
+
+//@ remove instance not in MD but reachable when there are 2 (should fail)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 ||
@@ -356,6 +364,10 @@ start a new session to the Metadata Storage R/W instance.
 
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
+
+//@ remove instance not in MD and unreachable (should fail)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {

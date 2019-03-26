@@ -831,8 +831,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
 }
 
 std::vector<Instance_definition> MetadataStorage::get_replicaset_instances(
-    uint64_t rs_id, bool with_state, const std::vector<std::string> &states,
-    const std::shared_ptr<mysqlshdk::db::ISession> &alt_session) {
+    uint64_t rs_id, bool with_state, const std::vector<std::string> &states) {
   std::vector<Instance_definition> ret_val;
   std::string statement;
   shcore::sqlstring query;
@@ -862,18 +861,9 @@ std::vector<Instance_definition> MetadataStorage::get_replicaset_instances(
   query.done();
 
   std::shared_ptr<mysqlshdk::db::IResult> result;
-  if (alt_session) {
-    std::string instance_address =
-        alt_session->uri(mysqlshdk::db::uri::formats::only_transport());
-    log_debug(
-        "DBA: Using alternative instance '%s' to access metadata "
-        "information.",
-        instance_address.c_str());
-    log_debug("DBA: executing query: '%s'", query.str().c_str());
-    result = alt_session->query(query);
-  } else {
-    result = execute_sql(query);
-  }
+
+  result = execute_sql(query);
+
   auto row = result->fetch_one();
   while (row) {
     Instance_definition instance;
@@ -892,10 +882,8 @@ std::vector<Instance_definition> MetadataStorage::get_replicaset_instances(
 }
 
 std::vector<Instance_definition>
-MetadataStorage::get_replicaset_online_instances(
-    uint64_t rs_id,
-    const std::shared_ptr<mysqlshdk::db::ISession> &alt_session) {
-  return get_replicaset_instances(rs_id, false, {"'ONLINE'"}, alt_session);
+MetadataStorage::get_replicaset_online_instances(uint64_t rs_id) {
+  return get_replicaset_instances(rs_id, false, {"'ONLINE'"});
 }
 
 /**
@@ -912,11 +900,8 @@ MetadataStorage::get_replicaset_online_instances(
  *         specified replicaset.
  */
 std::vector<Instance_definition>
-MetadataStorage::get_replicaset_active_instances(
-    uint64_t rs_id,
-    const std::shared_ptr<mysqlshdk::db::ISession> &alt_session) {
-  return get_replicaset_instances(rs_id, false, {"'ONLINE'", "'RECOVERING'"},
-                                  alt_session);
+MetadataStorage::get_replicaset_active_instances(uint64_t rs_id) {
+  return get_replicaset_instances(rs_id, false, {"'ONLINE'", "'RECOVERING'"});
 }
 
 Instance_definition MetadataStorage::get_instance(

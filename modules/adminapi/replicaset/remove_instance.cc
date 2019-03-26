@@ -56,25 +56,26 @@ Remove_instance::Remove_instance(
 
 Remove_instance::~Remove_instance() { delete m_target_instance; }
 
-void Remove_instance::ensure_instance_belong_to_replicaset() {
+void Remove_instance::ensure_instance_belong_to_replicaset(
+    const std::string &address) {
   // Check if the instance exists on the ReplicaSet
-  log_debug("Checking if the instance belongs to the replicaset");
+  log_debug("Checking if the instance %s belongs to the replicaset",
+            address.c_str());
   bool is_instance_on_md =
       m_replicaset.get_cluster()
           ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                      m_address_in_metadata);
+          ->is_instance_on_replicaset(m_replicaset.get_id(), address);
 
   if (!is_instance_on_md) {
     mysqlsh::current_console()->print_error(
-        "The instance '" + m_instance_address +
+        "The instance '" + address +
         "' cannot be removed because it does not belong "
         "to the cluster (not found in the metadata). "
         "If you really want to remove this instance because "
         "it is still using Group Replication then it must "
         "be stopped manually.");
 
-    std::string err_msg = "The instance '" + m_instance_address +
+    std::string err_msg = "The instance '" + address +
                           "' does not belong to the ReplicaSet: '" +
                           m_replicaset.get_member("name").get_string() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
@@ -111,11 +112,8 @@ Instance_definition Remove_instance::remove_instance_metadata() {
           m_address_in_metadata);
 
   log_debug("Removing instance from metadata");
-  MetadataStorage::Transaction tx(
-      m_replicaset.get_cluster()->get_metadata_storage());
   m_replicaset.get_cluster()->get_metadata_storage()->remove_instance(
       m_address_in_metadata);
-  tx.commit();
 
   return instance_def;
 }
@@ -299,9 +297,6 @@ void Remove_instance::prepare() {
       m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
   }
 
-  // Ensure instance is not the last in the replicaset.
-  ensure_not_last_instance_in_replicaset();
-
   // Try to establish a connection to the target instance, although it might
   // fail if the instance is OFFLINE.
   // NOTE: Connection required to perform some last validations if the target
@@ -314,7 +309,8 @@ void Remove_instance::prepare() {
     m_target_instance = new mysqlshdk::mysql::Instance(session);
     log_debug("Successfully connected to instance");
   } catch (std::exception &err) {
-    log_debug("Failed to connect to instance: %s", err.what());
+    log_warning("Failed to connect to %s: %s",
+                m_instance_cnx_opts.uri_endpoint().c_str(), err.what());
     // Make sure the target instance is not set if an connection error occurs.
     m_target_instance = nullptr;
     // Find error cause to print more information about before prompt in
@@ -322,6 +318,13 @@ void Remove_instance::prepare() {
     try {
       find_failure_cause(err);
     } catch (std::exception &err) {
+      log_warning("%s", err.what());
+
+      // Before anything, check if the instance actually belongs to the
+      // cluster, since it wouldn't make sense to ask about removing a
+      // bogus instance from the metadata.
+      ensure_instance_belong_to_replicaset(m_address_in_metadata);
+
       // Ask the user if in interactive is used and 'force' option was not used.
       if (m_interactive && m_force.is_null()) {
         prompt_to_force_remove();
@@ -344,13 +347,16 @@ void Remove_instance::prepare() {
   // Set the metadata address to use if instance is reachable, otherwise use
   // the provided instance connection address.
   if (m_target_instance) {
-    m_address_in_metadata =
-        mysqlshdk::mysql::get_report_host(*m_target_instance) + ":" +
-        std::to_string(m_instance_cnx_opts.get_port());
+    m_address_in_metadata = m_target_instance->get_canonical_address();
   }
 
   // Ensure instance belong to replicaset.
-  ensure_instance_belong_to_replicaset();
+  ensure_instance_belong_to_replicaset(m_address_in_metadata);
+
+  // Ensure instance is not the last in the replicaset.
+  // Should be called after we know there's any chance the instance actually
+  // belongs to the replicaset.
+  ensure_not_last_instance_in_replicaset();
 
   // Validate user privileges to use the command (only if the instance is
   // available).

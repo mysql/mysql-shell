@@ -31,11 +31,19 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 //@ create cluster
 var cluster = dba.createCluster('dev');
 
+//@ remove instance not in MD but reachable when there's just 1 (should fail)
+cluster.removeInstance(__hostname_uri3, {interactive:true});
+cluster.removeInstance(__hostname_uri3, {interactive:false});
+
 //@ Adding instance
 cluster.addInstance(__sandbox_uri2);
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@ remove instance not in MD but reachable when there are 2 (should fail)
+cluster.removeInstance(__hostname_uri3, {interactive:true});
+cluster.removeInstance(__hostname_uri3, {interactive:false});
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -272,6 +280,10 @@ cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
 // WL#11862 - FR4_5
 cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
 
+//@ remove instance not in MD and unreachable (should fail)
+cluster.removeInstance(__hostname_uri3, {interactive:true});
+cluster.removeInstance(__hostname_uri3, {interactive:false});
+
 //@<OUT> Cluster status after removal of instance on port2 and port3
 cluster.status();
 
@@ -425,4 +437,3 @@ cluster.disconnect();
 //       the test.
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2, true);
-testutil.destroySandbox(__mysql_sandbox_port3, true);

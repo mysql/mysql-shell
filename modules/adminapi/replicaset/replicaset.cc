@@ -2129,8 +2129,6 @@ void ReplicaSet::remove_instance_metadata(
     const mysqlshdk::db::Connection_options &instance_def) {
   log_debug("Removing instance from metadata");
 
-  MetadataStorage::Transaction tx(_metadata_storage);
-
   std::string port = std::to_string(instance_def.get_port());
 
   std::string host = instance_def.get_host();
@@ -2139,8 +2137,6 @@ void ReplicaSet::remove_instance_metadata(
   std::string instance_address = host + ":" + port;
 
   _metadata_storage->remove_instance(instance_address);
-
-  tx.commit();
 }
 
 std::vector<std::string> ReplicaSet::get_online_instances() const {

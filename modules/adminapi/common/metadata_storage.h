@@ -108,14 +108,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::string get_seed_instance(uint64_t rs_id);
   std::vector<Instance_definition> get_replicaset_instances(
       uint64_t rs_id, bool with_state = false,
-      const std::vector<std::string> &states = {},
-      const std::shared_ptr<mysqlshdk::db::ISession> &alt_session = nullptr);
+      const std::vector<std::string> &states = {});
   std::vector<Instance_definition> get_replicaset_online_instances(
-      uint64_t rs_id,
-      const std::shared_ptr<mysqlshdk::db::ISession> &alt_session = nullptr);
+      uint64_t rs_id);
   std::vector<Instance_definition> get_replicaset_active_instances(
-      uint64_t rs_id,
-      const std::shared_ptr<mysqlshdk::db::ISession> &alt_session = nullptr);
+      uint64_t rs_id);
 
   Instance_definition get_instance(const std::string &instance_address);
 

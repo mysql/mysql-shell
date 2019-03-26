@@ -113,9 +113,9 @@
 ||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: Invalid values in connection options: fakeOption
-||Cluster.removeInstance: Unable to retrieve status information for the instance 'localhost:3306'. The instance might no longer be part of the cluster.
-||Cluster.removeInstance: Unable to retrieve status information for the instance 'localhost:3306'. The instance might no longer be part of the cluster.
-||Cluster.removeInstance: Unable to retrieve status information for the instance 'localhost:3306'. The instance might no longer be part of the cluster.
+||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'.
+||Cluster.removeInstance: The instance 'localhost' does not belong to the ReplicaSet: 'default'.
+||Cluster.removeInstance: The instance 'localhost' does not belong to the ReplicaSet: 'default'.
 
 //@ Cluster: removeInstance read only
 ||

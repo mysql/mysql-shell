@@ -106,7 +106,7 @@ class Remove_instance : public Command_interface {
    * Verify if the instance belongs to the replicaset, otherwise it cannot be
    * removed.
    */
-  void ensure_instance_belong_to_replicaset();
+  void ensure_instance_belong_to_replicaset(const std::string &address);
 
   /**
    * Verify if it is the last instance in the replicaset, otherwise it cannot
