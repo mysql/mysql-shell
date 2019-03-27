@@ -1049,6 +1049,7 @@ std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
 
   const char *name = "removedSysVars";
   const char *title = "Removed system variables";
+  const char *problem_description = "is set and will be removed";
   const char *advice =
       "Following system variables that were detected as being used will be "
       "removed. Please update your system to not rely on them before the "
@@ -1057,9 +1058,9 @@ std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
   if (ver < Version(8, 0, 0))
     return shcore::make_unique<Config_check>(
         name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
-        Upgrade_issue::ERROR, "is set and will be removed", title, advice);
-  return shcore::make_unique<Removed_sys_var_check>(name, title,
-                                                    std::move(vars), advice);
+        Upgrade_issue::ERROR, problem_description, title, advice);
+  return shcore::make_unique<Removed_sys_var_check>(
+      name, title, std::move(vars), problem_description, advice);
 }
 
 namespace {
