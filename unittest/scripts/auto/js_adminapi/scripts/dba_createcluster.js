@@ -555,5 +555,42 @@ EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearRe
 print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
 
 //@ BUG#29308037: Finalization
+//NOTE: Do not destroy sandbox 2 to be used on the next tests
 session.close();
+
+// BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
+//
+// dba.checkInstance() reports that a target instance which is running the Slave
+// SQL and IO threads is valid for InnoDB cluster usage.
+//
+// As a consequence, the AdminAPI fails to detects that an instance has
+// asynchronous replication running and both addInstance() and rejoinInstance()
+// fail with useless/unfriendly errors on this scenario. There's not even
+// information on how to overcome the issue.
+//
+// dba.createCluster() shall not fail if asynchronous replication is running
+
+//@ BUG#29305551: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+
+//@<> BUG#29305551: Setup asynchronous replication
+shell.connect(__sandbox_uri1);
+
+// Create Replication user
+session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
+
+// Set async channel on instance2
+session.close();
+shell.connect(__sandbox_uri2);
+
+session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
+session.runSql("START SLAVE");
+
+//@ Create cluster async replication OK
+dba.createCluster('testAsync', {clearReadOnly: true});
+
+//@ BUG#29305551: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

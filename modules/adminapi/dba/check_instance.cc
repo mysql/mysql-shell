@@ -86,6 +86,24 @@ bool Check_instance::check_schema_compatibility() {
   return false;
 }
 
+void Check_instance::check_running_async_repl() {
+  auto console = mysqlsh::current_console();
+
+  log_debug(
+      "Checking if instance '%s' is running asynchronous (master-slave) "
+      "replication.",
+      m_target_instance->descr().c_str());
+
+  if (mysqlshdk::mysql::is_async_replication_running(*m_target_instance)) {
+    console->print_warning(
+        "The instance '" + m_target_instance->descr() +
+        "' cannot be added to an InnoDB cluster because it has the "
+        "asynchronous (master-slave) replication configured and running. "
+        "To add to it a cluster please stop the slave threads by executing "
+        "the query: 'STOP SLAVE;'");
+  }
+}
+
 bool Check_instance::check_configuration() {
   auto console = mysqlsh::current_console();
   if (!m_silent) {
@@ -190,6 +208,18 @@ void Check_instance::prepare() {
 
     if (!check_schema_compatibility()) {
       bad_schema = true;
+    }
+
+    // Check if async replication is running
+    //
+    // NOTE: This check shall be only executed when the flag silent is
+    // disabled. Otherwise, if async replication is running,
+    // addInstance/rejoinInstance will print a WARNING and will also error out.
+    // This happens because addInstance/rejoinInstance do a call
+    // to ensure_instance_configuration_valid() which on the background creates
+    // a Check_instance object with the silent flag enabled and executes it.
+    if (!m_silent) {
+      check_running_async_repl();
     }
 
     if (!check_configuration()) m_is_valid = false;

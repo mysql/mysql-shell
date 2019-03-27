@@ -408,5 +408,8 @@
     }
 }
 
-//@ BUG29265869 - clean-up (destroy sandboxes).
+//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
+
+//@ BUG#29305551: Finalization
 ||

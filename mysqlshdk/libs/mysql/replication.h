@@ -111,6 +111,20 @@ int64_t generate_server_id();
 std::string get_report_host(const mysqlshdk::mysql::IInstance &instance,
                             bool *out_is_report_host_set = nullptr);
 
+/**
+ * Checks if the asynchronous (master-slave) replication channels and threads
+ * are active on the target instance:
+ *   - Verifies if the replication I/O thread exists (receiver channel) and is
+ * active or connecting to the master
+ *   - Verifies if replication applier thread is active (applier channel)
+ *
+ * @param instance Instance to use to perform the check.
+ *
+ * @return a boolean value indicating if the instance has the asynchronous
+ * (master-slave) replication active
+ */
+bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

@@ -21,8 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/mysql/replication.h"
 
@@ -88,6 +90,58 @@ std::string get_report_host(const mysqlshdk::mysql::IInstance &instance,
     }
     result = instance.get_session()->query("SELECT @@HOSTNAME");
     return result->fetch_one()->get_string(0);
+  }
+}
+
+bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
+  auto session = instance.get_session();
+  std::string receiver_channel_state, applier_channel_state;
+
+  std::vector<std::string> valid_receiver_states = {"ON", "OFF", "CONNECTING"};
+  std::vector<std::string> valid_applier_states = {"ON", "OFF"};
+
+  assert(session);
+
+  try {
+    // Get the state of the receiver and applier channels
+    // NOTE:
+    // - Values of receiver channel can be: ON, OFF, or CONNECTING
+    // - Values of applier channel can be: ON, OFF
+    std::string query(
+        "SELECT a.SERVICE_STATE AS RECEIVER, b.SERVICE_STATE "
+        "AS APPLIER FROM "
+        "performance_schema.replication_connection_status a, "
+        "performance_schema.replication_applier_status b WHERE "
+        "a.CHANNEL_NAME != 'group_replication_applier' AND "
+        "a.CHANNEL_NAME != 'group_replication_recovery' AND "
+        "b.CHANNEL_NAME != 'group_replication_applier' AND "
+        "b.CHANNEL_NAME != 'group_replication_recovery'");
+
+    log_debug("Executing query '%s'.", query.c_str());
+
+    auto resultset = session->query(query);
+    auto row = resultset->fetch_one();
+
+    // If the query returned no values it means async replication channels are
+    // not set
+    if (!row) {
+      log_debug("Query returned no results.");
+      return false;
+    }
+
+    receiver_channel_state = row->get_string(0);
+    applier_channel_state = row->get_string(1);
+
+    // If any of the channels is running, we can consider async replication
+    // is running
+    if ((receiver_channel_state != "OFF") || (applier_channel_state != "OFF")) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (const std::exception &e) {
+    log_error("Error checking asynchronous replication status: %s", e.what());
+    throw;
   }
 }
 

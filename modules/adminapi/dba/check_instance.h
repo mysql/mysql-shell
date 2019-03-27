@@ -53,6 +53,7 @@ class Check_instance : public Command_interface {
   void check_instance_address();
   bool check_schema_compatibility();
   bool check_configuration();
+  void check_running_async_repl();
 
   /**
    * Prepare the internal mysqlshdk::config::Config object to use.

@@ -796,6 +796,30 @@ shcore::Value ReplicaSet::add_instance(
     }
   }
 
+  // Verify if the instance is running asynchronous (master-slave) replication
+  // NOTE: Only verify if this is being called from a addInstance() and not a
+  // createCluster() command.
+  if (!seed_instance) {
+    auto console = mysqlsh::current_console();
+
+    log_debug(
+        "Checking if instance '%s' is running asynchronous (master-slave) "
+        "replication.",
+        target_instance->descr().c_str());
+
+    if (mysqlshdk::mysql::is_async_replication_running(*target_instance)) {
+      console->print_error(
+          "Cannot add instance '" + target_instance->descr() +
+          "' to the cluster because it has asynchronous (master-slave) "
+          "replication configured and running. Please stop the slave threads "
+          "by executing the query: 'STOP SLAVE;'");
+
+      throw shcore::Exception::runtime_error(
+          "The instance '" + target_instance->descr() +
+          "' is running asynchronous (master-slave) replication.");
+    }
+  }
+
   // Check instance server UUID (must be unique among the cluster members).
   validate_server_uuid(target_instance->get_session());
 
@@ -1345,6 +1369,29 @@ shcore::Value ReplicaSet::rejoin_instance(
     throw shcore::Exception::runtime_error("Could not open a connection to " +
                                            seed_instance.uri_endpoint() + ": " +
                                            e.what() + ".");
+  }
+
+  // Verify if the instance is running asynchronous (master-slave) replication
+  {
+    auto console = mysqlsh::current_console();
+    auto instance = mysqlshdk::mysql::Instance(session);
+
+    log_debug(
+        "Checking if instance '%s' is running asynchronous (master-slave) "
+        "replication.",
+        instance.descr().c_str());
+
+    if (mysqlshdk::mysql::is_async_replication_running(instance)) {
+      console->print_error(
+          "Cannot rejoin instance '" + instance.descr() +
+          "' to the cluster because it has asynchronous (master-slave) "
+          "replication configured and running. Please stop the slave threads "
+          "by executing the query: 'STOP SLAVE;'");
+
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance.descr() +
+          "' is running asynchronous (master-slave) replication.");
+    }
   }
 
   // Verify if the group_replication plugin is active on the seed instance

@@ -175,8 +175,21 @@
 //@WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
 ||
 
-//@ WL#12066: Dissolve cluster {VER(>=8.0.16)}
+//@ WL#12066: Finalization {VER(>=8.0.16)}
 ||
 
-//@ WL#12066: Finalization {VER(>=8.0.16)}
+//@<OUT> AddInstance async replication error
+Validating instance at <<<localhost>>>:<<<__mysql_sandbox_port2>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
+
+//@<ERR> AddInstance async replication error
+Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (master-slave) replication. (RuntimeError)
+
+//@ BUG#29305551: Finalization
 ||

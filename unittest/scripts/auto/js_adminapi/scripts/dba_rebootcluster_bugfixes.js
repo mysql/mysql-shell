@@ -78,8 +78,66 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<OUT> BUG29265869 - Show cluster options after reboot.
 c.options();
 
-//@ BUG29265869 - clean-up (destroy sandboxes).
-c.disconnect();
+//@<> BUG29265869 - clean-up
+//NOTE: Do not destroy the sandboxes so they can be used on the following test
 session.close();
-testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
+//
+// dba.checkInstance() reports that a target instance which is running the Slave
+// SQL and IO threads is valid for InnoDB cluster usage.
+//
+// As a consequence, the AdminAPI fails to detects that an instance has
+// asynchronous replication running and both addInstance() and rejoinInstance()
+// fail with useless/unfriendly errors on this scenario. There's not even
+// information on how to overcome the issue.
+
+//@<> BUG#29305551: Initialization
+c.dissolve({force: true});
+
+//@<> BUG#29305551: Create cluster
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('test', {clearReadOnly: true});
+
+//@<> BUG#29305551: Add instance to the cluster
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+
+//@<> BUG#29305551: Reset gr_start_on_boot on all instances
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+
+//@<> BUG#29305551: Kill all cluster members.
+c.disconnect();
+shell.connect(__sandbox_uri1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
+session.close();
+testutil.killSandbox(__mysql_sandbox_port1);
+
+//@<> BUG#29305551: Start the members again.
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port1);
+
+//@<> BUG#29305551: Setup asynchronous replication
+shell.connect(__sandbox_uri1);
+// Create Replication user
+session.runSql("SET GLOBAL super_read_only=0");
+session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
+
+// Set async channel on instance2
+session.close();
+shell.connect(__sandbox_uri2);
+
+session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
+session.runSql("START SLAVE");
+
+//@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@ BUG#29305551: Finalization
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

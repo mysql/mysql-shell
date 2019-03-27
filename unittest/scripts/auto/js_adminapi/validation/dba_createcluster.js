@@ -308,3 +308,12 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 
 //@ BUG#29308037: Finalization
 ||
+
+//@ BUG#29305551: Initialization
+||
+
+//@ Create cluster async replication OK
+||
+
+//@ BUG#29305551: Finalization
+||
