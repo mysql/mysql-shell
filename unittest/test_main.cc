@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -69,7 +69,7 @@ int g_test_trace_sql = 0;
 bool g_test_color_output = false;
 
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version g_target_server_version = Version("8.0.11");
+mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
@@ -454,6 +454,17 @@ void setup_test_environment() {
     }
     if (putenv(&temp[0]) != 0) {
       std::cerr << "TMPDIR was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  // Set HOME to same as TMPDIR
+  {
+    static std::string home("HOME=");
+    home.append(getenv("TMPDIR"));
+    if (putenv(&home[0]) != 0) {
+      std::cerr << "HOME could not be overriden\n";
+      exit(1);
     }
   }
 

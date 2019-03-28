@@ -45,14 +45,6 @@ class Auto_script_py : public Shell_py_script_tester,
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   void SetUp() override {
-    m_home_backup = getenv("HOME");
-    static char path[1024];
-    snprintf(path, sizeof(path), "HOME=%s", g_test_home);
-
-    if (putenv(path) != 0) {
-      std::cerr << "putenv failed to set HOME to a test path.\n";
-    }
-
     // Force reset_shell() to happen when reset_shell() is called explicitly
     // in each test case
     _delay_reset_shell = true;
@@ -63,23 +55,7 @@ class Auto_script_py : public Shell_py_script_tester,
                                              "setup.py"));
   }
 
-  void TearDown() override {
-    if (m_home_backup) {
-      static char path[1024];
-      snprintf(path, sizeof(path), "HOME=%s", m_home_backup);
-
-      if (putenv(path) != 0) {
-        std::cerr << "putenv failed to restore HOME to it's original value.\n";
-      }
-    } else {
-      unsetenv("HOME");
-    }
-    Shell_py_script_tester::TearDown();
-  }
-
  protected:
-  char *m_home_backup = nullptr;
-
   void set_defaults() override {
     Shell_py_script_tester::set_defaults();
 
