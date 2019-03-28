@@ -251,6 +251,53 @@ print "First Name: %s\n" % record.FirstName
 print "In Three Years: %s\n" % record.InThreeYears
 //! [CollectionFind: Field Selection Projection]
 
+#@<> WL12813 Collection.Find Collection
+collection = schema.create_collection('wl12813')
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA01', "like": 'foo', "nested": { "like": 'bar' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA02', "like": 'foo', "nested": { "like": 'nested bar' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA03', "like": 'top foo', "nested": { "like": 'bar' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA04', "like": 'top foo', "nested": { "like": 'nested bar' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA05', "like": 'bar', "nested": { "like": 'foo' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA06', "like": 'bar', "nested": { "like": 'nested foo' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA07', "like": 'top bar', "nested": { "like": 'foo' } }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA08', "like": 'top bar', "nested": { "like": 'nested foo' } }).execute()
+
+#@ WL12813 Collection Test 01
+# Collection.Find foo, like as column
+collection.find('`like` = "foo"').execute()
+
+#@ WL12813 Collection Test 02 [USE:WL12813 Collection Test 01]
+# Collection.Find foo, unescaped like as column
+collection.find('like = "foo"').execute()
+
+#@ WL12813 Collection Test 03
+# Collection.Find foo, nested like as column
+collection.find('nested.`like` = "foo"').execute()
+
+#@ WL12813 Collection Test 04
+# Collection.Find % bar, like as column and operand
+collection.find('`like` LIKE "%bar"').execute()
+
+#@ WL12813 Collection Test 05 [USE:WL12813 Collection Test 04]
+# Collection.Find % bar, like as unescaped column and operand
+collection.find('like LIKE "%bar"').execute()
+
+#@ WL12813 Collection Test 06
+# Collection.Find % bar, nested like as column
+collection.find('nested.`like` LIKE "%bar"').execute()
+
+#@ WL12813 Collection Test 07 [USE:WL12813 Collection Test 04]
+# Collection.Find like as column, operand and placeholder
+collection.find('`like` LIKE :like').bind('like', '%bar').execute()
+
+#@ WL12813 Collection Test 08 [USE:WL12813 Collection Test 04]
+# Collection.Find unescaped like as column, operand and placeholder
+collection.find('like LIKE :like').bind('like', '%bar').execute()
+
+#@ WL12813 Collection Test 09 [USE:WL12813 Collection Test 06]
+# Collection.Find, nested like as column, operand and placeholder
+collection.find('nested.`like` LIKE :like').bind('like', '%bar').execute()
+
 # Cleanup
 mySession.drop_schema('js_shell_test')
 mySession.close()

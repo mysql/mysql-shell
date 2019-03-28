@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,10 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_module) {
 
 TEST_F(Shell_py_mysqlx_tests, mysqlx_session) {
   validate_interactive("mysqlx_session.py");
+}
+
+TEST_F(Shell_py_mysqlx_tests, mysqlx_session_sql) {
+  validate_interactive("mysqlx_session_sql.py");
 }
 
 TEST_F(Shell_py_mysqlx_tests, mysqlx_schema) {

@@ -258,6 +258,50 @@ for index in xrange(4):
 #@ Table.Select Zerofill field display
 mySession.sql('select * from table2')
 
+#@<> WL12813 Collection.Find Collection
+result = mySession.sql('create table wl12813 (`like` varchar(50), `notnested.like` varchar(50));').execute()
+table = schema.get_table('wl12813')
+result = table.insert().values('foo', 'bar').execute()
+result = table.insert().values('foo', 'non nested bar').execute()
+result = table.insert().values('bar', 'foo').execute()
+result = table.insert().values('bar', 'non nested foo').execute()
+
+#@ WL12813 Table Test 01
+# Table.Select like as column
+table.select().where('`like` = "foo"').execute()
+
+#@ WL12813 Table Test 02 [USE:WL12813 Table Test 01]
+# Table.Select unescaped like as column
+table.select().where('like = "foo"').execute()
+
+#@ WL12813 Table Test 03
+# Table.Select escaped column
+table.select().where('`notnested.like` = "foo"').execute()
+
+#@ WL12813 Table Test 04
+# Table.Select like as column and operator
+table.select().where('`like` LIKE "%bar"').execute()
+
+#@ WL12813 Table Test 05 [USE:WL12813 Table Test 04]
+# Table.Select unescaped like as column and operator
+table.select().where('like LIKE "%bar"').execute()
+
+#@ WL12813 Table Test 06 [USE:WL12813 Table Test 01]
+# Table.Select escaped column and like operator
+table.select().where('`notnested.like` LIKE "%bar"').execute()
+
+#@ WL12813 Table Test 07 [USE:WL12813 Table Test 04]
+# Table.Select like as column, operator and placeholder
+table.select().where('`like` LIKE :like').bind('like', '%bar').execute()
+
+#@ WL12813 Table Test 08 [USE:WL12813 Table Test 04]
+# Table.Select unescaped like as column, operator and placeholder
+table.select().where('like LIKE :like').bind('like', '%bar').execute()
+
+#@ WL12813 Table Test 09 [USE:WL12813 Table Test 01]
+# Table.Select escaped column, with like as operator and placeholder
+table.select().where('`notnested.like` LIKE :like').bind('like', '%bar').execute()
+
 # Cleanup
 mySession.drop_schema('js_shell_test')
 mySession.close()

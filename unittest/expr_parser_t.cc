@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -393,6 +393,116 @@ TEST(Expr_parser_tests, json_in) {
   parse_and_assert_expr("1 in bla[*]", "[76, 14, 19, 8, 38, 9]",
                         "(1 CONT_IN $.bla[*])", true);
 }
+
+TEST(Expr_parser_tests, keywords_as_doc_fields) {
+  // Any keyword should produce a column expression unless it's one of the
+  // following exceptions:
+  // - Unary Operator: not
+  // - Cast Operator: cast
+  // - Literals: false, true, null
+  // - Binary Function: binary
+  // - Interval Definition: interval
+  std::set<std::string> incomplete = {"not", "cast", "interval", "binary"};
+  std::set<std::string> literals = {"false", "true", "null"};
+
+  for (const auto &kwd : Tokenizer::map.reserved_words) {
+    SCOPED_TRACE(kwd.first);
+    std::unique_ptr<Expr_parser> p;
+    std::stringstream out, out_tokens;
+
+    if (incomplete.find(kwd.first) != incomplete.end()) {
+      p.reset(new Expr_parser(kwd.first, true));
+      std::unique_ptr<Mysqlx::Expr::Expr> e;
+      EXPECT_THROW(e = p->expr(), Parser_error);
+    } else {
+      p.reset(new Expr_parser(kwd.first, true));
+      std::unique_ptr<Mysqlx::Expr::Expr> e;
+      EXPECT_NO_THROW(e = p->expr());
+      if (e) {
+        std::string actual = Expr_unparser::expr_to_string(*(e.get()));
+
+        std::string expected;
+        if (literals.find(kwd.first) != literals.end())
+          expected = shcore::str_upper(kwd.first);
+        else
+          expected = "$." + kwd.first;
+
+        EXPECT_STREQ(expected.c_str(), actual.c_str());
+      }
+    }
+  }
+}
+
+TEST(Expr_parser_tests, keywords_in_expressions) {
+  std::vector<std::tuple<std::string, std::string, std::string, std::string>>
+      data{
+          std::make_tuple("`in` in :in", "[19, 14, 79, 14]",
+                          "($.in CONT_IN :0)", "(in CONT_IN :0)"),
+          std::make_tuple("in in :in", "[14, 14, 79, 14]", "($.in CONT_IN :0)",
+                          "(in CONT_IN :0)"),
+          std::make_tuple("in not in :in", "[14, 1, 14, 79, 14]",
+                          "($.in NOT_CONT_IN :0)", "(in NOT_CONT_IN :0)"),
+          std::make_tuple("`is` is :is", "[19, 5, 79, 5]", "($.is IS :0)",
+                          "(is IS :0)"),
+          std::make_tuple("is is :is", "[5, 5, 79, 5]", "($.is IS :0)",
+                          "(is IS :0)"),
+          std::make_tuple("is is not :is", "[5, 5, 1, 79, 5]",
+                          "NOT ( ($.is IS :0))", "NOT ( (is IS :0))"),
+          std::make_tuple("`in` like `like`", "[19, 15, 19]",
+                          "($.in LIKE $.like)", "(in LIKE like)"),
+          std::make_tuple("in like like", "[14, 15, 15]", "($.in LIKE $.like)",
+                          "(in LIKE like)"),
+          std::make_tuple("in not like like", "[14, 1, 15, 15]",
+                          "NOT ( ($.in LIKE $.like))", "NOT ( (in LIKE like))"),
+          std::make_tuple("`like` and `and`", "[19, 2, 19]",
+                          "($.like && $.and)", "(like && and)"),
+          std::make_tuple("like and and", "[15, 2, 2]", "($.like && $.and)",
+                          "(like && and)"),
+          std::make_tuple("not like and not and", "[1, 15, 2, 1, 2]",
+                          "(NOT ( $.like) && NOT ( $.and))",
+                          "(NOT ( like) && NOT ( and))"),
+          std::make_tuple("`and` or `or`", "[19, 3, 19]", "($.and || $.or)",
+                          "(and || or)"),
+          std::make_tuple("and or or", "[2, 3, 3]", "($.and || $.or)",
+                          "(and || or)"),
+          std::make_tuple(
+              "`between` between `and` and `or`", "[19, 10, 19, 2, 19]",
+              "$.between BETWEEN $.and AND $.or", "between BETWEEN and AND or"),
+          std::make_tuple("between between and and or", "[10, 10, 2, 2, 3]",
+                          "$.between BETWEEN $.and AND $.or",
+                          "between BETWEEN and AND or"),
+          std::make_tuple("between between between and between",
+                          "[10, 10, 10, 2, 10]",
+                          "$.between BETWEEN $.between AND $.between",
+                          "between BETWEEN between AND between"),
+          std::make_tuple("between not between between and between",
+                          "[10, 1, 10, 10, 2, 10]",
+                          "NOT ( $.between BETWEEN $.between AND $.between)",
+                          "NOT ( between BETWEEN between AND between)"),
+          std::make_tuple("`regexp` regexp :regexp", "[19, 17, 79, 17]",
+                          "($.regexp REGEXP :0)", "(regexp REGEXP :0)"),
+          std::make_tuple("regexp regexp :regexp", "[17, 17, 79, 17]",
+                          "($.regexp REGEXP :0)", "(regexp REGEXP :0)"),
+          std::make_tuple("regexp not regexp :regexp", "[17, 1, 17, 79, 17]",
+                          "NOT ( ($.regexp REGEXP :0))",
+                          "NOT ( (regexp REGEXP :0))"),
+          std::make_tuple("month(`month`)", "[50, 6, 19, 7]", "month($.month)",
+                          "month(month)"),
+          std::make_tuple("month(month)", "[50, 6, 50, 7]", "month($.month)",
+                          "month(month)"),
+      };
+
+  for (const auto &tup : data) {
+    SCOPED_TRACE("Document Expressions");
+    parse_and_assert_expr(std::get<0>(tup), std::get<1>(tup), std::get<2>(tup),
+                          true);
+  }
+
+  for (const auto &tup : data) {
+    SCOPED_TRACE("Table Expressions");
+    parse_and_assert_expr(std::get<0>(tup), std::get<1>(tup), std::get<3>(tup));
+  }
+}  // namespace expr_parser_tests
 
 };  // namespace expr_parser_tests
 };  // namespace shcore

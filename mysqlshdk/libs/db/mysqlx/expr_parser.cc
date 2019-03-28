@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,14 +140,24 @@ void Expr_parser::paren_expr_list(
  * identifier ::= IDENT [ DOT IDENT ]
  */
 std::unique_ptr<Mysqlx::Expr::Identifier> Expr_parser::identifier() {
-  _tokenizer.assert_cur_token(Token::IDENT);
+  bool is_keyword = _tokenizer.cur_token_type_is_keyword();
+
+  if (!is_keyword) _tokenizer.assert_cur_token(Token::IDENT);
+
   std::unique_ptr<Mysqlx::Expr::Identifier> id(new Mysqlx::Expr::Identifier());
   if (_tokenizer.next_token_type(Token::DOT)) {
     const std::string &schema_name = _tokenizer.consume_token(Token::IDENT);
     id->set_schema_name(schema_name.c_str(), schema_name.size());
     _tokenizer.consume_token(Token::DOT);
   }
-  const std::string &name = _tokenizer.consume_token(Token::IDENT);
+  std::string name;
+  if (is_keyword) {
+    const auto &token = _tokenizer.consume_any_token();
+    name = token.get_text();
+    id->set_name(name.c_str(), name.size());
+  } else {
+    name = _tokenizer.consume_token(Token::IDENT);
+  }
   id->set_name(name.c_str(), name.size());
   return id;
 }
@@ -173,6 +183,10 @@ void Expr_parser::docpath_member(Mysqlx::Expr::DocumentPathItem &item) {
   item.set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
   if (_tokenizer.cur_token_type_is(Token::IDENT)) {
     const std::string &ident = _tokenizer.consume_token(Token::IDENT);
+    item.set_value(ident.c_str(), ident.size());
+  } else if (_tokenizer.cur_token_type_is_keyword()) {
+    const auto &token = _tokenizer.consume_any_token();
+    auto ident = token.get_text();
     item.set_value(ident.c_str(), ident.size());
   } else if (_tokenizer.cur_token_type_is(Token::LSTRING)) {
     const std::string &lstring = _tokenizer.consume_token(Token::LSTRING);
@@ -255,10 +269,14 @@ void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier &colid) {
  * id ::= IDENT | MUL
  */
 const std::string &Expr_parser::id() {
-  if (_tokenizer.cur_token_type_is(Token::IDENT))
+  if (_tokenizer.cur_token_type_is(Token::IDENT)) {
     return _tokenizer.consume_token(Token::IDENT);
-  else
+  } else if (_tokenizer.cur_token_type_is_keyword()) {
+    const auto &token = _tokenizer.consume_any_token();
+    return token.get_text();
+  } else {
     return _tokenizer.consume_token(Token::MUL);
+  }
 }
 
 /*
@@ -322,11 +340,18 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::document_field() {
   if (_tokenizer.cur_token_type_is(Token::DOLLAR))
     _tokenizer.consume_token(Token::DOLLAR);
   Mysqlx::Expr::ColumnIdentifier *colid = e->mutable_identifier();
-  if (_tokenizer.cur_token_type_is(Token::IDENT)) {
+  if (_tokenizer.cur_token_type_is(Token::IDENT) ||
+      _tokenizer.cur_token_type_is_keyword()) {
     Mysqlx::Expr::DocumentPathItem *item =
         colid->mutable_document_path()->Add();
     item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
-    const std::string &value = _tokenizer.consume_token(Token::IDENT);
+    std::string value;
+    if (_tokenizer.cur_token_type_is(Token::IDENT)) {
+      value = _tokenizer.consume_token(Token::IDENT);
+    } else {
+      const auto &token = _tokenizer.consume_any_token();
+      value = token.get_text();
+    }
     item->set_value(value.c_str(), value.size());
   }
   document_path(*colid);
@@ -464,6 +489,18 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr() {
       }
       break;
     default:
+      // A reserved word should be also treated as identifier
+      _tokenizer.unget_token();
+      if (_tokenizer.cur_token_type_is_keyword()) {
+        if (_tokenizer.next_token_type(Token::LPAREN)) {
+          return function_call();
+        } else {
+          if (!_document_mode)
+            return column_field();
+          else
+            return document_field();
+        }
+      }
       break;
   }
   const Token &tok = _tokenizer.peek_token();
@@ -544,12 +581,16 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::placeholder() {
   if (_tokenizer.cur_token_type_is(Token::COLON)) {
     _tokenizer.consume_token(Token::COLON);
 
-    if (_tokenizer.cur_token_type_is(Token::LINTEGER))
+    if (_tokenizer.cur_token_type_is(Token::LINTEGER)) {
       placeholder_name = _tokenizer.consume_token(Token::LINTEGER);
-    else if (_tokenizer.cur_token_type_is(Token::IDENT))
+    } else if (_tokenizer.cur_token_type_is(Token::IDENT)) {
       placeholder_name = _tokenizer.consume_token(Token::IDENT);
-    else
+    } else if (_tokenizer.cur_token_type_is_keyword()) {
+      const auto &token = _tokenizer.consume_any_token();
+      placeholder_name = token.get_text();
+    } else {
       placeholder_name = std::to_string(_place_holder_ref->size());
+    }
   } else if (_tokenizer.cur_token_type_is(Token::PLACEHOLDER)) {
     _tokenizer.consume_token(Token::PLACEHOLDER);
     placeholder_name = std::to_string(_place_holder_ref->size());

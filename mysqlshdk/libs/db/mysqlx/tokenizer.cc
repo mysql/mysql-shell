@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -255,6 +255,15 @@ void Tokenizer::assert_cur_token(Token::TokenType type) {
 
 bool Tokenizer::cur_token_type_is(Token::TokenType type) {
   return pos_token_type_is(_pos, type);
+}
+
+bool Tokenizer::cur_token_type_is_keyword() {
+  if (_pos < _tokens.size()) {
+    return map.reserved_words.find(_tokens[_pos].get_text()) !=
+           map.reserved_words.end();
+  } else {
+    return false;
+  }
 }
 
 bool Tokenizer::next_token_type(Token::TokenType type) {

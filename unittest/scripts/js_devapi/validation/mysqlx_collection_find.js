@@ -176,3 +176,99 @@
 //@ Collection.Find Field Selection Using Projection Expression
 |First Name: JACK|
 |In Three Years: 20|
+
+//@<OUT> WL12813 Collection Test 01
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA01",
+    "like": "foo",
+    "nested": {
+        "like": "bar"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA02",
+    "like": "foo",
+    "nested": {
+        "like": "nested bar"
+    }
+}
+2 documents in set [[*]]
+
+//@<OUT> WL12813 Collection Test 03
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA05",
+    "like": "bar",
+    "nested": {
+        "like": "foo"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA07",
+    "like": "top bar",
+    "nested": {
+        "like": "foo"
+    }
+}
+2 documents in set [[*]]
+
+//@<OUT> WL12813 Collection Test 04
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA05",
+    "like": "bar",
+    "nested": {
+        "like": "foo"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA06",
+    "like": "bar",
+    "nested": {
+        "like": "nested foo"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA07",
+    "like": "top bar",
+    "nested": {
+        "like": "foo"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA08",
+    "like": "top bar",
+    "nested": {
+        "like": "nested foo"
+    }
+}
+4 documents in set [[*]]
+
+//@<OUT> WL12813 Collection Test 06
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA01",
+    "like": "foo",
+    "nested": {
+        "like": "bar"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA02",
+    "like": "foo",
+    "nested": {
+        "like": "nested bar"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA03",
+    "like": "top foo",
+    "nested": {
+        "like": "bar"
+    }
+}
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA04",
+    "like": "top foo",
+    "nested": {
+        "like": "nested bar"
+    }
+}
+4 documents in set [[*]]

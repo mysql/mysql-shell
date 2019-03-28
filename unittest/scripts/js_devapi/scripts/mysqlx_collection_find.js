@@ -11,13 +11,13 @@ var schema = mySession.createSchema('js_shell_test');
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
 
-var result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA01', name: 'jack', age: 17, gender: 'male' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA02', name: 'adam', age: 15, gender: 'male' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA03', name: 'brian', age: 14, gender: 'male' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA04', name: 'alma', age: 13, gender: 'female' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA05', name: 'carol', age: 14, gender: 'female' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA06', name: 'donna', age: 16, gender: 'female' }).execute();
-result = collection.add({ _id: '3C514FF38144B714E7119BCF48B4CA07', name: 'angel', age: 14, gender: 'male' }).execute();
+var result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA01', name: 'jack', age: 17, gender: 'male' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA02', name: 'adam', age: 15, gender: 'male' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA03', name: 'brian', age: 14, gender: 'male' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA04', name: 'alma', age: 13, gender: 'female' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA05', name: 'carol', age: 14, gender: 'female' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA06', name: 'donna', age: 16, gender: 'female' }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA07', name: 'angel', age: 14, gender: 'male' }).execute();
 
 // ----------------------------------------------
 // Collection.Find Unit Testing: Dynamic Behavior
@@ -241,6 +241,53 @@ var record = result.fetchOne();
 print('First Name:', record.FirstName, '\n');
 print('In Three Years:', record.InThreeYears, '\n');
 //! [CollectionFind: Field Selection Projection]
+
+//@<> WL12813 Collection.Find Collection
+var collection = schema.createCollection('wl12813');
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA01', like: 'foo', nested: { like: 'bar' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA02', like: 'foo', nested: { like: 'nested bar' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA03', like: 'top foo', nested: { like: 'bar' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA04', like: 'top foo', nested: { like: 'nested bar' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA05', like: 'bar', nested: { like: 'foo' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA06', like: 'bar', nested: { like: 'nested foo' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA07', like: 'top bar', nested: { like: 'foo' } }).execute();
+result = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA08', like: 'top bar', nested: { like: 'nested foo' } }).execute();
+
+//@ WL12813 Collection Test 01
+// Collection.Find foo, like as column
+collection.find('`like` = "foo"').execute()
+
+//@ WL12813 Collection Test 02 [USE:WL12813 Collection Test 01]
+// Collection.Find foo, unescaped like as column
+collection.find('like = "foo"').execute()
+
+//@ WL12813 Collection Test 03
+// Collection.Find foo, nested like as column
+collection.find('nested.`like` = "foo"').execute()
+
+//@ WL12813 Collection Test 04
+// Collection.Find % bar, like as column and operand
+collection.find('`like` LIKE "%bar"').execute()
+
+//@ WL12813 Collection Test 05 [USE:WL12813 Collection Test 04]
+// Collection.Find % bar, like as unescaped column and operand
+collection.find('like LIKE "%bar"').execute()
+
+//@ WL12813 Collection Test 06
+// Collection.Find % bar, nested like as column
+collection.find('nested.`like` LIKE "%bar"').execute()
+
+//@ WL12813 Collection Test 07 [USE:WL12813 Collection Test 04]
+// Collection.Find like as column, operand and placeholder
+collection.find('`like` LIKE :like').bind('like', '%bar').execute()
+
+//@ WL12813 Collection Test 08 [USE:WL12813 Collection Test 04]
+// Collection.Find unescaped like as column, operand and placeholder
+collection.find('like LIKE :like').bind('like', '%bar').execute()
+
+//@ WL12813 Collection Test 09 [USE:WL12813 Collection Test 06]
+// Collection.Find, nested like as column, operand and placeholder
+collection.find('nested.`like` LIKE :like').bind('like', '%bar').execute()
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

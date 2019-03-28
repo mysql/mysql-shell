@@ -217,3 +217,30 @@
 |12345|
 |123456789|
 |+-----------+|
+
+
+#@<OUT> WL12813 Table Test 01
++------+----------------+
+| like | notnested.like |
++------+----------------+
+| foo  | bar            |
+| foo  | non nested bar |
++------+----------------+
+2 rows in set [[*]]
+
+#@<OUT> WL12813 Table Test 03
++------+----------------+
+| like | notnested.like |
++------+----------------+
+| bar  | foo            |
++------+----------------+
+1 row in set [[*]]
+
+#@<OUT> WL12813 Table Test 04
++------+----------------+
+| like | notnested.like |
++------+----------------+
+| bar  | foo            |
+| bar  | non nested foo |
++------+----------------+
+2 rows in set [[*]]

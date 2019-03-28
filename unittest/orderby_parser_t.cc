@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -54,11 +54,11 @@ void parse_and_assert_expr(const std::string &input,
                            const std::string &token_list,
                            const std::string &unparsed,
                            bool document_mode = false) {
+  SCOPED_TRACE(input);
   std::stringstream out, out_tokens;
   Orderby_parser p(input, document_mode);
   print_tokens(p, out_tokens);
-  std::string token_list2 = out_tokens.str();
-  ASSERT_TRUE(token_list == token_list2);
+  ASSERT_EQ(token_list, out_tokens.str());
   google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> cols;
   p.parse(cols);
   std::string s = Expr_unparser::order_list_to_string(cols);
@@ -71,6 +71,8 @@ TEST(Orderby_parser_tests, simple) {
   parse_and_assert_expr("col1 desc", "[19, 58]", "orderby (col1 desc)");
   parse_and_assert_expr("col1 asc", "[19, 57]", "orderby (col1 asc)");
   parse_and_assert_expr("a", "[19]", "orderby (a asc)");
+  parse_and_assert_expr("`asc` asc", "[19, 57]", "orderby (asc asc)");
+  parse_and_assert_expr("asc asc", "[57, 57]", "orderby (asc asc)");
   EXPECT_ANY_THROW(parse_and_assert_expr("a asc, col1 desc, b asc",
                                          "[19, 57, 24, 19, 58, 24, 19, 57]",
                                          "orderby (a asc, col1 desc, b asc)"));
