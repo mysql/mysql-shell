@@ -28,6 +28,7 @@
 #include <signal.h>
 #endif
 #include <errno.h>
+#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 
 namespace mysqlshdk {
@@ -57,6 +58,21 @@ bool check_lock_file(const std::string &path, const char *pid_format) {
   return true;
 }
 #endif
+
+std::string run_and_catch_output(const char *const *argv, bool catch_stderr,
+                                 int *out_rc) {
+  shcore::Process p(argv, catch_stderr);
+
+  p.start();
+  std::string r = p.read_all();
+
+  if (out_rc)
+    *out_rc = p.wait();
+  else
+    p.wait();
+
+  return r;
+}
 
 }  // namespace utils
 }  // namespace mysqlshdk

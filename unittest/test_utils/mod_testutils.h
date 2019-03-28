@@ -135,7 +135,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void set_sandbox_snapshot_dir(const std::string &dir);
 
   static void validate_boilerplate(const std::string &sandbox_dir,
-                                   const std::string &version);
+                                   bool delete_if_expired = true);
 
   using Input_fn =
       std::function<void(const std::string &, const std::string &)>;

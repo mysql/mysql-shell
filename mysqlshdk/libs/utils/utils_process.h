@@ -48,6 +48,10 @@ namespace utils {
 bool check_lock_file(const std::string &path, const char *pid_format = "%zd");
 #endif
 
+std::string run_and_catch_output(const char *const *argv,
+                                 bool catch_stderr = false,
+                                 int *out_rc = nullptr);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

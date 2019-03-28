@@ -25,6 +25,7 @@
 #include "my_dbug.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/utils/utils_process.h"
 #include "unittest/test_utils/mod_testutils.h"
 
 using mysqlshdk::db::replay::Mode;
@@ -150,6 +151,9 @@ void handle_debug_options(int *argc, char ***argv) {
 }
 
 void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+  tests::Testutils::validate_boilerplate(shell->options().sandbox_directory,
+                                         false);
+
   std::shared_ptr<tests::Testutils> testutil(
       new tests::Testutils(shell->options().sandbox_directory,
                            mysqlshdk::db::replay::g_replay_mode ==

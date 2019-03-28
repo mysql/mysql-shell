@@ -507,8 +507,7 @@ void setup_test_environment() {
   }
   tests::Shell_test_env::setup_env(sports);
 
-  tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
-                                         g_target_server_version.get_full());
+  tests::Testutils::validate_boilerplate(getenv("TMPDIR"));
 
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
 

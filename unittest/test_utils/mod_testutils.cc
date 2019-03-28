@@ -98,6 +98,20 @@ extern bool g_test_color_output;
 
 namespace tests {
 
+namespace {
+std::string get_mysqld_version() {
+  static const char *argv[] = {"mysqld", "--version", nullptr};
+  std::string version = mysqlshdk::utils::run_and_catch_output(argv, true);
+  if (!version.empty()) {
+    auto tokens = shcore::str_split(version, " ", -1, true);
+    if (tokens[1] == "Ver") {
+      return tokens[2];
+    }
+  }
+  return "";
+}
+}  // namespace
+
 constexpr int k_wait_sandbox_dead_timeout = 120;
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_wait_delayed_gr_start_timeout = 300;
@@ -2199,20 +2213,9 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
     throw std::runtime_error("Error deploying sandbox");
   }
 
-  {
-    mysqlshdk::db::replay::No_replay noreplay;
-    auto session = mysqlshdk::db::mysql::Session::create();
-    auto options = mysqlshdk::db::Connection_options("root@localhost");
-    options.set_port(port);
-    options.set_password(rootpass);
-    session->connect(options);
-    auto result = session->query("select @@version");
-    std::string version = result->fetch_one()->get_string(0);
-    shcore::create_file(shcore::path::join_path(
-                            _sandbox_dir, std::to_string(port), "version.txt"),
-                        mysqlshdk::utils::Version(version).get_full());
-    session->close();
-  }
+  shcore::create_file(shcore::path::join_path(
+                          _sandbox_dir, std::to_string(port), "version.txt"),
+                      get_mysqld_version());
 
   stop_sandbox(port);
 
@@ -2304,28 +2307,26 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
 }
 
 void Testutils::validate_boilerplate(const std::string &sandbox_dir,
-                                     const std::string &version) {
+                                     bool delete_if_expired) {
+  std::string version = get_mysqld_version();
+  delete_if_expired = true;
   std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
   if (shcore::is_folder(basedir)) {
     std::string bversion =
         shcore::get_text_file(shcore::path::join_path(basedir, "version.txt"));
-    try {
-      if (mysqlshdk::utils::Version(bversion) !=
-          mysqlshdk::utils::Version(version)) {
-        std::cerr << "Sandbox boilerplate was created for " << bversion
-                  << " but available mysqld is " << version << "\n";
-        expired = true;
-      }
-    } catch (std::exception &e) {
+    if (bversion != version) {
+      std::cerr << "Sandbox boilerplate was created for " << bversion
+                << " but mysqld in PATH is " << version << "\n";
       expired = true;
     }
     if (expired) {
-      std::cerr << "Deleting expired boilerplate at " << basedir << "...\n";
-      shcore::remove_directory(basedir);
-    } else {
-      std::cerr << "Found apparently valid sandbox boilerplate at " << basedir
-                << " for version " << bversion << "\n";
+      if (delete_if_expired) {
+        std::cerr << "Deleting expired boilerplate at " << basedir << "...\n";
+        log_info("DELET SANDBOX BOILER %s %s %s\n", basedir.c_str(),
+                 version.c_str(), bversion.c_str());
+        shcore::remove_directory(basedir);
+      }
     }
   }
 }
