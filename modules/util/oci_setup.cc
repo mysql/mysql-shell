@@ -455,7 +455,17 @@ void Oci_setup::create_profile(const std::string &profile_name) {
   bool new_config = false;
   if (!shcore::file_exists(m_oci_cfg_path)) {
     new_config = true;
-    shcore::create_directory(m_oci_path);
+
+    if (!shcore::is_folder(m_oci_path)) {
+      shcore::create_directory(m_oci_path);
+
+      int rc = shcore::set_user_only_permissions(m_oci_path);
+      if (rc != 0) {
+        throw std::runtime_error(
+            "Error setting file permissions on the OCI configuration folder: " +
+            m_oci_path);
+      }
+    }
   }
 
   auto console = current_console();
@@ -497,6 +507,16 @@ void Oci_setup::create_profile(const std::string &profile_name) {
           m_config.set(profile, kPassphrase, m_data[kPassphrase]);
 
         m_config.write(m_oci_cfg_path);
+
+        if (new_config) {
+          int rc = shcore::set_user_only_permissions(m_oci_cfg_path);
+          if (rc != 0) {
+            throw std::runtime_error(
+                "Error setting file permissions on the OCI configuration "
+                "file: " +
+                m_oci_cfg_path);
+          }
+        }
 
         console->println();
         console->println("A new OCI profile named '" + profile +
