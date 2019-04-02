@@ -248,21 +248,6 @@ void ReplicaSet::add_instance(
   }
 }
 
-void ReplicaSet::set_group_replication_member_options(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &ssl_mode) const {
-  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 5) &&
-      ssl_mode == dba::kMemberSSLModeDisabled) {
-    // We need to install the GR plugin to have GR sysvars available
-    mysqlshdk::mysql::Instance instance(session);
-    mysqlshdk::gr::install_plugin(instance, nullptr);
-
-    // This option required to connect using the new caching_sha256_password
-    // authentication method without SSL
-    session->query("SET PERSIST group_replication_recovery_get_public_key=1");
-  }
-}
-
 namespace {
 template <typename T>
 struct Option_info {
@@ -403,62 +388,6 @@ void ReplicaSet::query_group_wide_option_values(
       }
     }
   }
-}
-
-// TODO(pjesus): remove this function and replace by direct call to MP
-//  replacement join_replicaset() and start_replicaset in
-//  modules/adminapi/common/provision.cc for the refactor of createCluster().
-bool ReplicaSet::do_join_replicaset(
-    const mysqlshdk::db::Connection_options &instance,
-    mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
-    const std::string &repl_user_password, bool skip_rpl_user,
-    const mysqlshdk::utils::nullable<uint64_t> &replicaset_count,
-    const Group_replication_options &gr_options) const {
-  shcore::Value ret_val;
-  int exit_code = -1;
-
-  bool is_seed_instance = peer ? false : true;
-  // Assert to make sure it can only be used for createCluster().
-  assert(is_seed_instance);
-
-  shcore::Value::Array_type_ref errors, warnings;
-
-  Cluster_impl *cluster(get_cluster());
-
-  if (is_seed_instance) {
-    exit_code = cluster->get_provisioning_interface()->start_replicaset(
-        instance, repl_user, repl_user_password,
-        _topology_type == kTopologyMultiPrimary, gr_options, skip_rpl_user,
-        replicaset_count, &errors);
-  } else {
-    throw std::logic_error(
-        "Cannot use do_join_replicaset() to add instances to a replicaset.");
-  }
-
-  if (exit_code == 0) {
-    auto instance_url = instance.as_uri(user_transport());
-    // If the exit_code is zero but there are errors
-    // it means they're warnings and we must log them first
-    if (errors) {
-      for (auto error_object : *errors) {
-        auto map = error_object.as_map();
-        std::string error_str = map->get_string("msg");
-        log_warning("DBA: %s : %s", instance_url.c_str(), error_str.c_str());
-      }
-    }
-    if (is_seed_instance)
-      ret_val = shcore::Value(
-          "The instance '" + instance_url +
-          "' was successfully added as seeding instance to the MySQL Cluster.");
-    else
-      ret_val = shcore::Value("The instance '" + instance_url +
-                              "' was successfully added to the MySQL Cluster.");
-  } else {
-    throw shcore::Exception::runtime_error(
-        get_mysqlprovision_error_string(errors));
-  }
-
-  return exit_code == 0;
 }
 
 /**

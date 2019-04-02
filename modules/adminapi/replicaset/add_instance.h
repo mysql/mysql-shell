@@ -115,6 +115,11 @@ class Add_instance : public Command_interface {
   mysqlshdk::utils::nullable<std::string> m_instance_label;
   std::string m_rpl_user;
   std::string m_rpl_pwd;
+
+  // TODO(pjesus): remove 'm_seed_instance' and 'm_skip_instance_check' for
+  //               refactor of reboot cluster (WL#11561), since
+  //               mysqlsh::dba::start_replicaset() should be used directly
+  //               instead of the Add_instance operation.
   bool m_seed_instance;
   bool m_skip_instance_check;
   bool m_skip_rpl_user;

@@ -155,8 +155,8 @@ TEST_F(Group_replication_test, plugin_installation) {
 }
 
 TEST_F(Group_replication_test, generate_group_name) {
-  std::string name1 = mysqlshdk::gr::generate_group_name();
-  std::string name2 = mysqlshdk::gr::generate_group_name();
+  std::string name1 = mysqlshdk::gr::generate_group_name(*instance);
+  std::string name2 = mysqlshdk::gr::generate_group_name(*instance);
   // Generated group names must be different.
   EXPECT_STRNE(name1.c_str(), name2.c_str());
 }
@@ -277,7 +277,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
       instance->get_sysvar_string("group_replication_local_address");
 
   // Set GR variable to start GR.
-  std::string group_name = mysqlshdk::gr::generate_group_name();
+  std::string group_name = mysqlshdk::gr::generate_group_name(*instance);
   instance->set_sysvar("group_replication_group_name", group_name,
                        Var_qualifier::GLOBAL);
   std::string local_address = "localhost:13013";
@@ -608,10 +608,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
   EXPECT_EQ(res.at(1).restart, true);
 
   // Set incompatible values on file, issues found.
-  cfg.set("skip_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("disable_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
   res.clear();
@@ -691,10 +691,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
   EXPECT_EQ(res.at(0).restart, true);
 
   // Set incompatible values on file, issues found.
-  cfg.set("skip_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("disable_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
   res.clear();
@@ -764,10 +764,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   }
 
   // Set incompatible values on file, issues found.
-  cfg.set("skip_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("disable_log_bin", nullable<std::string>(),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
   res.clear();
@@ -822,8 +822,8 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
   EXPECT_EQ(0, res.size());
 
-  cfg.set("log_bin", nullable<std::string>("Some text"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("log_bin", nullable<std::string>("Some text"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
   res.clear();
   mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
@@ -917,8 +917,8 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
   EXPECT_EQ(res.at(0).restart, false);
 
   // Fixing the value on the config will clear all warnings.
-  cfg.set("server_id", nullable<std::string>("1"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("server_id", nullable<std::string>("1"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
   res.clear();
   mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
@@ -1096,46 +1096,54 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_EQ(res.at(8).restart, false);
 
   // Fixing all the config file incorrect values on both config objects
-  cfg_file_only.set("binlog_format", nullable<std::string>("ROW"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("binlog_checksum", nullable<std::string>("NONE"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("log_slave_updates", nullable<std::string>("ON"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("enforce_gtid_consistency", nullable<std::string>("ON"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("gtid_mode", nullable<std::string>("ON"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("master_info_repository", nullable<std::string>("TABLE"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("relay_log_info_repository", nullable<std::string>("TABLE"),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("transaction_write_set_extraction",
-                    nullable<std::string>("MURMUR32"),  // different but valid
-                    mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set("report_port", nullable<std::string>(instance_port),
-                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("binlog_format", nullable<std::string>("ROW"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("binlog_checksum",
+                                nullable<std::string>("NONE"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("log_slave_updates",
+                                nullable<std::string>("ON"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("enforce_gtid_consistency",
+                                nullable<std::string>("ON"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("gtid_mode", nullable<std::string>("ON"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("master_info_repository",
+                                nullable<std::string>("TABLE"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("relay_log_info_repository",
+                                nullable<std::string>("TABLE"),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler(
+      "transaction_write_set_extraction",
+      nullable<std::string>("MURMUR32"),  // different but valid
+      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set_for_handler("report_port",
+                                nullable<std::string>(instance_port),
+                                mysqlshdk::config::k_dft_cfg_file_handler);
   cfg_file_only.apply();
 
-  cfg.set("binlog_format", nullable<std::string>("ROW"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("binlog_checksum", nullable<std::string>("NONE"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("log_slave_updates", nullable<std::string>("ON"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("enforce_gtid_consistency", nullable<std::string>("ON"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("gtid_mode", nullable<std::string>("ON"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("master_info_repository", nullable<std::string>("TABLE"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("relay_log_info_repository", nullable<std::string>("TABLE"),
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("transaction_write_set_extraction",
-          nullable<std::string>("MURMUR32"),  // different but valid
-          mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set("report_port", nullable<std::string>(instance_port),
-          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("binlog_format", nullable<std::string>("ROW"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("binlog_checksum", nullable<std::string>("NONE"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("log_slave_updates", nullable<std::string>("ON"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("enforce_gtid_consistency", nullable<std::string>("ON"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("gtid_mode", nullable<std::string>("ON"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("master_info_repository", nullable<std::string>("TABLE"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("relay_log_info_repository",
+                      nullable<std::string>("TABLE"),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("transaction_write_set_extraction",
+                      nullable<std::string>("MURMUR32"),  // different but valid
+                      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("report_port", nullable<std::string>(instance_port),
+                      mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
   // Since all incorrect values have been fixed on the configuration file

@@ -2,6 +2,56 @@
 
 var number_of_rpl_users_query = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"";
 
+function gtid_contains_gr_group_name(session) {
+    // Get GR group_name.
+    var res = session.runSql("SELECT @@GLOBAL.group_replication_group_name");
+    var row = res.fetchOne();
+    var group_name = row[0];
+
+    // Get GTIDs (executed) set.
+    res = session.runSql("SELECT @@GLOBAL.gtid_executed");
+    var row = res.fetchOne();
+    var gtids = row[0];
+
+    return gtids.search(group_name) >= 0;
+}
+
+function gtid_contains_server_uuid(session) {
+    // Get server UUID;
+    res = session.runSql("SELECT @@GLOBAL.server_uuid");
+    row = res.fetchOne();
+    var uuid = row[0];
+
+    // Get GTIDs (executed) set.
+    res = session.runSql("SELECT @@GLOBAL.gtid_executed");
+    var row = res.fetchOne();
+    var gtids = row[0];
+
+    return gtids.search(uuid) >= 0;
+}
+
+// WL#12011: AdminAPI: Refactor dba.createCluster()
+//@ WL#12011: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+
+//@<> WL#12011: FR2-04 - invalid value for interactive option.
+var c = dba.createCluster('test', {interactive: "not a valid type"});
+
+//@<> WL#12011: FR2-01 - interactive = true.
+testutil.expectPrompt("Confirm [y/N]:", "n");
+var c = dba.createCluster('test', {interactive: true, multiPrimary: true});
+
+//@<> WL#12011: FR2-03 - no interactive option (default: non-interactive).
+var c = dba.createCluster('test', {multiPrimary: true, force: true});
+
+//@ WL#12011: Finalization.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -549,7 +599,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Force a failure of the create_cluster function after the replication-user was created
 //@<> BUG#29308037: Create cluster using an invalid localAddress
 shell.connect(__sandbox_uri2);
-EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "ERROR: Error starting cluster");
+EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "Group Replication failed to start");
 
 //@<OUT> BUG#29308037: Confirm that all replication users where removed
 print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
@@ -591,6 +641,62 @@ session.runSql("START SLAVE");
 dba.createCluster('testAsync', {clearReadOnly: true});
 
 //@ BUG#29305551: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#29361352: multiprimary warning and prompt displayed with multiPrimary:false
+//
+// The warning an prompt for creating multi-primary cluster should only be
+// displayed if the multiPrimary option is set to true.
+// This is a regression issue.
+
+//@ BUG#29361352: Initialization.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+shell.connect(__sandbox_uri1);
+
+//@<> BUG#29361352: no warning or prompt for multi-primary (interactive: true, multiPrimary: false).
+var c = dba.createCluster('test', {interactive: true, multiPrimary: false, force: false});
+
+//@ BUG#29361352: Finalization.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+// BUG#28064729: mysql-shell builds the metadata schema before first member bootstraps the group
+//
+// The create cluster operation creates the metadata and replication users
+// before bootstrapping the GR group, creating GTIDs for those transaction
+// associated to the server UUID instead of the Gr group name (UUID).
+
+//@ BUG#28064729: Initialization.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+shell.connect(__sandbox_uri1);
+
+//@ BUG#28064729: create a cluster.
+var c = dba.createCluster('test');
+
+//@<> BUG#28064729: Verify that there are no GTIDs associated to the server uuid (create cluster).
+EXPECT_FALSE(gtid_contains_server_uuid(session));
+
+//@<> BUG#28064729: Verify that there are GTIDS associated to the GR group name (create cluster).
+EXPECT_TRUE(gtid_contains_gr_group_name(session));
+
+//@ BUG#28064729: add an instance.
+c.addInstance(__sandbox_uri2);
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<> BUG#28064729: Verify that there are no GTIDs associated to the server uuid (add instance).
+EXPECT_FALSE(gtid_contains_server_uuid(session));
+
+//@<> BUG#28064729: Verify that there are GTIDS associated to the GR group name (add instance).
+EXPECT_TRUE(gtid_contains_gr_group_name(session));
+
+//@ BUG#28064729: Finalization.
+c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

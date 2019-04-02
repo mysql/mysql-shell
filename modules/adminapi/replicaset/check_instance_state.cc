@@ -91,7 +91,7 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
     std::string error = "The instance '" + m_target_instance_address;
 
     // No need to verify if the state is GRInstanceType::InnoDBCluster because
-    // that has been verified in ensure_instance_not_belong_to_replicaset
+    // that has been verified in ensure_instance_not_belong_to_cluster
 
     if (instance_type == GRInstanceType::GroupReplication) {
       error +=

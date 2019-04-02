@@ -870,17 +870,14 @@ void stop_group_replication(const mysqlshdk::mysql::IInstance &instance) {
   session->execute("STOP GROUP_REPLICATION");
 }
 
-/**
- * Generate a UUID to use for the group name.
- *
- * The UUID generated is a string representation of 5 hexadecimal numbers
- * with the format aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.
- *
- * @return A string with a new UUID to be used for the group name.
- */
-std::string generate_group_name() {
-  // Generate a UUID.
-  return get_string_uuid();
+std::string generate_group_name(const mysqlshdk::mysql::IInstance &instance) {
+  // Generate a UUID on the MySQL server.
+  std::string get_uuid_stmt = "SELECT UUID()";
+  auto session = instance.get_session();
+  auto resultset = session->query(get_uuid_stmt);
+  auto row = resultset->fetch_one();
+
+  return row->get_string(0);
 }
 
 /**
@@ -1354,8 +1351,8 @@ void update_auto_increment(mysqlshdk::config::Config *config,
       mysqlshdk::utils::nullable<int64_t> server_id =
           config->get_int("server_id", handler_name);
       int64_t offset = 1 + *server_id % n;
-      config->set("auto_increment_offset", utils::nullable<int64_t>{offset},
-                  handler_name);
+      config->set_for_handler("auto_increment_offset",
+                              utils::nullable<int64_t>{offset}, handler_name);
     }
   }
 }
@@ -1409,8 +1406,8 @@ void update_group_seeds(mysqlshdk::config::Config *config,
         break;
     }
 
-    config->set("group_replication_group_seeds", gr_group_seeds_new_value,
-                handler_name);
+    config->set_for_handler("group_replication_group_seeds",
+                            gr_group_seeds_new_value, handler_name);
   }
 }
 

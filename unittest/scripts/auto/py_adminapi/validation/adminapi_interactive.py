@@ -304,7 +304,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is already ready for InnoDB
 ||
 
 #@<OUT> create_cluster() {VER(>=8.0.11)}
-A new InnoDB cluster will be created on instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -313,7 +313,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'testCluster' on 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
@@ -321,7 +321,7 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 #@<OUT> create_cluster() {VER(<8.0.11)}
-A new InnoDB cluster will be created on instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -330,10 +330,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'testCluster' on 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configure_local_instance() command locally to persist the changes.
+Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configure_local_instance() command locally to persist the changes.
 Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.

@@ -409,9 +409,9 @@ void validate_performance_schema_enabled(
   }
 }
 
-void ensure_instance_not_belong_to_replicaset(
+void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlsh::dba::ReplicaSet &replicaset) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &cluster_session) {
   GRInstanceType type =
       mysqlsh::dba::get_gr_instance_type(instance.get_session());
 
@@ -420,9 +420,6 @@ void ensure_instance_not_belong_to_replicaset(
     // Retrieves the new instance UUID
     mysqlshdk::utils::nullable<std::string> uuid = instance.get_sysvar_string(
         "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-    // Verifies if the instance is part of the cluster replication group
-    auto cluster_session = replicaset.get_cluster()->get_group_session();
 
     // Verifies if this UUID is part of the current replication group
     if (is_server_on_replication_group(cluster_session, *uuid)) {

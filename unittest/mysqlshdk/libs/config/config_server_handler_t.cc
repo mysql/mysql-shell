@@ -542,4 +542,61 @@ TEST_F(Config_server_handler_test, apply) {
   EXPECT_STREQ("OFF", (*gtid_mode).c_str());
 }
 
+TEST_F(Config_server_handler_test, apply_errors) {
+  // Test errors applying changes.
+  mysqlshdk::mysql::Instance instance(m_session);
+
+  {
+    SCOPED_TRACE("Error applying bool value setting (no context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_bool", nullable<bool>(true));
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unknown system variable 'not_exit_bool'");
+  }
+
+  {
+    SCOPED_TRACE("Error applying bool value setting (with context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_bool", nullable<bool>(true), "notExistBool");
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unable to set value 'true' for 'notExistBool': Unknown "
+                      "system variable 'not_exit_bool'");
+  }
+
+  {
+    SCOPED_TRACE("Error applying int value setting (no context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_int", nullable<int64_t>(1234));
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unknown system variable 'not_exit_int'");
+  }
+
+  {
+    SCOPED_TRACE("Error applying int value setting (with context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_int", nullable<int64_t>(1234), "notExistInt");
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unable to set value '1234' for 'notExistInt': Unknown "
+                      "system variable 'not_exit_int'");
+  }
+
+  {
+    SCOPED_TRACE("Error applying string value setting (no context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_string", nullable<std::string>("mystr"));
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unknown system variable 'not_exit_string'");
+  }
+
+  {
+    SCOPED_TRACE("Error applying string value setting (with context).");
+    Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+    cfg_h.set("not_exit_string", nullable<std::string>("mystr"),
+              "notExistString");
+    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+                      "Unable to set value 'mystr' for 'notExistString': "
+                      "Unknown system variable 'not_exit_string'");
+  }
+}
+
 }  // namespace testing

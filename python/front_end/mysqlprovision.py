@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,6 @@ import json
 
 from mysql_gadgets.common.logger import setup_logging, CustomLevelLogger
 from mysql_gadgets.common.tools import fs_decode
-from mysql_gadgets.command.gr_admin import check, CHECK, join, leave, start
 from mysql_gadgets.command.sandbox import create_sandbox, stop_sandbox, \
     kill_sandbox, delete_sandbox, start_sandbox, SANDBOX, SANDBOX_CREATE, \
     SANDBOX_DELETE, SANDBOX_KILL, SANDBOX_START, SANDBOX_STOP
@@ -85,29 +84,7 @@ def main():
         # Perform command
         command_error_msg = "executing operation"
         try:
-            if command == CHECK:
-                if cmd_options.get("update", False):
-                    command_error_msg = "configuring instance"
-                else:
-                    command_error_msg = "checking instance"
-                check(**cmd_options)
-
-            elif command == JOIN:
-                command_error_msg = "joining instance to cluster"
-                server = shell_options[0]
-                peer_server = shell_options[1]
-                join(server, peer_server, **cmd_options)
-
-            elif command == LEAVE:
-                command_error_msg = "leaving cluster"
-                server = shell_options[0]
-                leave(server, **cmd_options)
-
-            elif command == START:
-                command_error_msg = "starting cluster"
-                server = shell_options[0]
-                start(server, **cmd_options)
-            elif command == SANDBOX:
+            if command == SANDBOX:
                 sandbox_cmd = cmd_options["sandbox_cmd"]
                 command = '{0} {1}'.format(command, sandbox_cmd)
                 command_error_msg = "executing sandbox operation"

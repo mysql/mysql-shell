@@ -62,9 +62,9 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
 void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance);
 
-void ensure_instance_not_belong_to_replicaset(
+void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlsh::dba::ReplicaSet &replicaset);
+    const std::shared_ptr<mysqlshdk::db::ISession> &cluster_session);
 
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,

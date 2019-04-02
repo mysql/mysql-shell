@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,12 +62,14 @@ class IConfig_handler {
   virtual utils::nullable<std::string> get_string(
       const std::string &name) const = 0;
   virtual utils::nullable<int64_t> get_int(const std::string &name) const = 0;
+  virtual void set(const std::string &name, const utils::nullable<bool> &value,
+                   const std::string &context) = 0;
   virtual void set(const std::string &name,
-                   const utils::nullable<bool> &value) = 0;
+                   const utils::nullable<int64_t> &value,
+                   const std::string &context) = 0;
   virtual void set(const std::string &name,
-                   const utils::nullable<int64_t> &value) = 0;
-  virtual void set(const std::string &name,
-                   const utils::nullable<std::string> &value) = 0;
+                   const utils::nullable<std::string> &value,
+                   const std::string &context) = 0;
   virtual void apply() = 0;
 };
 
@@ -133,9 +135,11 @@ class Config : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable boolean with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<bool> &value) override;
+  void set(const std::string &name, const utils::nullable<bool> &value,
+           const std::string &context = "") override;
 
   /**
    * Set the given configuration with the specified value (on all registered
@@ -143,9 +147,11 @@ class Config : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable integer with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<int64_t> &value) override;
+  void set(const std::string &name, const utils::nullable<int64_t> &value,
+           const std::string &context = "") override;
 
   /**
    * Set the given configuration with the specified value (on all registered
@@ -153,9 +159,11 @@ class Config : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable string with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<std::string> &value) override;
+  void set(const std::string &name, const utils::nullable<std::string> &value,
+           const std::string &context = "") override;
 
   /**
    * Effectively apply the configuration changes (on all registered
@@ -263,10 +271,14 @@ class Config : public IConfig_handler {
    * @param name string with the name of the configuration to set.
    * @param value nullable boolean with the value to set.
    * @param handler_name string with the name of the target handler.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  void set(const std::string &name, const utils::nullable<bool> &value,
-           const std::string &handler_name);
+  void set_for_handler(const std::string &name,
+                       const utils::nullable<bool> &value,
+                       const std::string &handler_name,
+                       const std::string &context = "");
 
   /**
    * Set the given configuration with the specified value on a specific
@@ -275,10 +287,14 @@ class Config : public IConfig_handler {
    * @param name string with the name of the configuration to set.
    * @param value nullable integer with the value to set.
    * @param handler_name string with the name of the target handler.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  void set(const std::string &name, const utils::nullable<int64_t> &value,
-           const std::string &handler_name);
+  void set_for_handler(const std::string &name,
+                       const utils::nullable<int64_t> &value,
+                       const std::string &handler_name,
+                       const std::string &context = "");
 
   /**
    * Set the given configuration with the specified value on a specific
@@ -287,10 +303,14 @@ class Config : public IConfig_handler {
    * @param name string with the name of the configuration to set.
    * @param value nullable string with the value to set.
    * @param handler_name string with the name of the target handler.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  void set(const std::string &name, const utils::nullable<std::string> &value,
-           const std::string &handler_name);
+  void set_for_handler(const std::string &name,
+                       const utils::nullable<std::string> &value,
+                       const std::string &handler_name,
+                       const std::string &context = "");
 
   /**
    * Get a pointer to a specified configuration handler.
@@ -326,6 +346,25 @@ class Config : public IConfig_handler {
   // String with the name of the default configuration handler.
   std::string m_default_handler;
 };
+
+/**
+ * Set an indexable option.
+ *
+ * Indexable option can also be represented as an index instead of the
+ * corresponding string value representing it. In that case the index must be
+ * converted to an integer before being setting it on a MySQL server in order
+ * to avoid an SQL error.
+ *
+ * @param config Config object for the target instance to join the replicaset.
+ * @param option_name string with the name of the option to set.
+ * @param option_value Nullable string with the value of the option to set.
+ * @param context (optional) string with the option context to appear in error
+ *                messages.
+ */
+void set_indexable_option(
+    mysqlshdk::config::Config *config, const std::string &option_name,
+    const mysqlshdk::utils::nullable<std::string> &option_value,
+    const std::string &context = "");
 
 }  // namespace config
 }  // namespace mysqlshdk

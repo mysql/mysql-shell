@@ -67,19 +67,13 @@ Cluster_impl::metadata() const {
   return _metadata_storage->get_new_metadata();
 }
 
-shcore::Value Cluster_impl::add_seed_instance(
-    mysqlshdk::mysql::IInstance *target_instance,
-    const Group_replication_options &gr_options, bool multi_primary,
-    bool is_adopted, const std::string &replication_user,
-    const std::string &replication_pwd) {
-  shcore::Value ret_val;
-
-  MetadataStorage::Transaction tx(_metadata_storage);
+void Cluster_impl::insert_default_replicaset(bool multi_primary,
+                                             bool is_adopted) {
   std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
 
   // Check if we have a Default ReplicaSet, if so it means we already added the
   // Seed Instance
-  if (default_rs != NULL) {
+  if (default_rs != nullptr) {
     uint64_t rs_id = default_rs->get_id();
     if (!_metadata_storage->is_replicaset_empty(rs_id))
       throw shcore::Exception::logic_error(
@@ -90,33 +84,6 @@ shcore::Value Cluster_impl::add_seed_instance(
     // default_replica_set var
     create_default_replicaset("default", multi_primary, "", is_adopted);
   }
-  if (!is_adopted) {
-    // Add the Instance to the Default ReplicaSet passing already created
-    // replication user and the group_name (if provided)
-    {
-      // Create the add_instance command and execute it.
-      Add_instance op_add_instance(target_instance, *_default_replica_set,
-                                   gr_options, {}, replication_user,
-                                   replication_pwd, true, true, false);
-
-      // Always execute finish when leaving scope.
-      auto finally = shcore::on_leave_scope(
-          [&op_add_instance]() { op_add_instance.finish(); });
-
-      // Prepare the add_instance command execution (validations).
-      op_add_instance.prepare();
-
-      // Execute add_instance operations.
-      op_add_instance.execute();
-    }
-  }
-  std::string group_replication_group_name =
-      get_gr_replicaset_group_name(_group_session);
-  _default_replica_set->set_group_name(group_replication_group_name);
-
-  tx.commit();
-
-  return ret_val;
 }
 
 void Cluster_impl::add_instance(const Connection_options &instance_def,

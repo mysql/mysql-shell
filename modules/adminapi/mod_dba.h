@@ -135,10 +135,9 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value configure_local_instance(const shcore::Argument_list &args);
   shcore::Value configure_instance(const shcore::Argument_list &args);
 
-  shcore::Value clone_instance(const shcore::Argument_list &args);
-  shcore::Value reset_instance(const shcore::Argument_list &args);
+  shcore::Value create_cluster(const std::string &cluster_name,
+                               const shcore::Dictionary_t &options);
 
-  shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster_(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
@@ -181,15 +180,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);
-
-  void prepare_metadata_schema(mysqlshdk::mysql::Instance *metadata_target);
-
-  void check_create_cluster_options(
-      bool interactive, const mysqlsh::dba::Cluster_check_info &check_state,
-      shcore::Dictionary_t options, bool *force, bool *adopt_from_gr);
-
-  bool prompt_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
-                              const shcore::Value::Map_type_ref &options);
 };
 }  // namespace dba
 }  // namespace mysqlsh

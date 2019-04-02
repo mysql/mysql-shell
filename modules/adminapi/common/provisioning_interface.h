@@ -59,20 +59,6 @@ class ProvisioningInterface {
                    shcore::Value::Array_type_ref *errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
                     shcore::Value::Array_type_ref *errors);
-  int start_replicaset(
-      const mysqlshdk::db::Connection_options &instance,
-      const std::string &repl_user, const std::string &repl_user_password,
-      bool multi_primary, const Group_replication_options &gr_options,
-      bool skip_rpl_user,
-      const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
-      shcore::Value::Array_type_ref *errors);
-  int join_replicaset(
-      const mysqlshdk::db::Connection_options &instance,
-      const mysqlshdk::db::Connection_options &peer,
-      const std::string &repl_user, const std::string &repl_user_password,
-      const Group_replication_options &gr_options, bool skip_rpl_user,
-      const mysqlshdk::utils::nullable<uint64_t> replicaset_count,
-      shcore::Value::Array_type_ref *errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() const { return _verbose; }

@@ -114,6 +114,37 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
                                mysqlshdk::config::Config *config);
 
 /**
+ * Start the replicaset (Group Replication group) using the given instance.
+ *
+ * This function starts the Group Replication (GR) group but it does not
+ * create the recovery user nor sets it, thus that step must be performed
+ * afterwards to allow the instance to recover from other members in case
+ * of a fault. The recovery user should be created after starting the
+ * replicaset to ensure that the group UUID is associated to that transaction.
+ *
+ * NOTE: Metadata is NOT changed by this function, it only starts MySQL
+ *       Group Replication (replicaset), updating any necessary variables
+ *       on the target instance.
+ *       Any variables changes are persisted (using SET PERSIST) if
+ *       supported by the used server version (through the config object).
+ *
+ * @param instance target Instance object to start the replicaset.
+ * @param gr_opts Group_replication_options structure with the GR options
+ *                to set for the instance (i.e., group_name, ssl_mode,
+ *                local_address, group_seeds, ip_whitelist, member_weight,
+ *                expel_timeout, exit_state_action, and failover_consistency)
+ *                when defined.
+ * @param multi_primary nullable boolean indicating the GR topology mode that
+ *                      will be set. Multi-primary mode if true and
+ *                      single-primary mode if false, otherwise not set.
+ * @param config Config object for the target instance to start the replicaset.
+ */
+void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
+                      const Group_replication_options &gr_opts,
+                      const mysqlshdk::utils::nullable<bool> &multi_primary,
+                      mysqlshdk::config::Config *config);
+
+/**
  * Join the instance to the replicaset (Group Replication group).
  *
  * To join instances and to obtain any required information from the replicaset,

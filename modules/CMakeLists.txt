@@ -62,6 +62,7 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"
+      "adminapi/dba/create_cluster.cc"
       "adminapi/cluster/cluster_impl.cc"
       "adminapi/cluster/cluster_describe.cc"
       "adminapi/cluster/cluster_status.cc"

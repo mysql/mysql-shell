@@ -65,9 +65,8 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shcore::Argument_list args;
   shcore::Dictionary_t options = shcore::make_dict();
   options->emplace("memberSslMode", "REQUIRED");
-  args.emplace_back("sample");
-  args.emplace_back(options);
-  auto cluster = dba->create_cluster(args).as_object<mysqlsh::dba::Cluster>();
+  auto cluster =
+      dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
 
   cluster->add_instance("root:root@localhost:" + shell_env.sb_str_port2(), {});
   _replicaset = cluster->impl()->get_default_replicaset();

@@ -312,25 +312,34 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   // This is an instance of the API cluster
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
+
+  args.ensure_count(1, 2, get_function_name("createCluster").c_str());
+
+  shcore::Value raw_cluster;
   try {
-    auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
+    std::string cluster_name = args.string_at(0);
+    shcore::Dictionary_t options;
+    if (args.size() > 1) {
+      // Map with the options
+      options = args.map_at(1);
+    } else {
+      options = shcore::make_dict();
+    }
 
-    auto raw_cluster = dba->create_cluster(args);
-
-    auto dba_cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(
-        raw_cluster.as_object());
-
-    // Returns an interactive wrapper of this instance
-    Interactive_dba_cluster *cluster =
-        new Interactive_dba_cluster(this->_shell_core);
-    cluster->set_target(dba_cluster);
-    ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-  } catch (shcore::Exception &e) {
-    if (!strstr(e.what(), "Cancelled")) throw;
-    // probably should just let it bubble up and be caught elsewhere
-    println(e.what());
-    return shcore::Value();
+    raw_cluster = dba->create_cluster(cluster_name, options);
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+
+  auto dba_cluster =
+      std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(raw_cluster.as_object());
+
+  // Returns an interactive wrapper of this instance
+  Interactive_dba_cluster *cluster =
+      new Interactive_dba_cluster(this->_shell_core);
+  cluster->set_target(dba_cluster);
+  ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+
   return ret_val;
 }
 

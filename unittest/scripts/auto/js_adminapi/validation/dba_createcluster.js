@@ -1,3 +1,46 @@
+//@ WL#12011: Initialization
+||
+
+//@<ERR> WL#12011: FR2-04 - invalid value for interactive option.
+Dba.createCluster: Option 'interactive' Bool expected, but value is String (TypeError)
+
+//@<OUT> WL#12011: FR2-01 - interactive = true.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+Before continuing you have to confirm that you understand the requirements and
+limitations of Multi-Primary Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
+
+I have read the MySQL InnoDB cluster manual and I understand the requirements
+and limitations of advanced Multi-Primary Mode.
+Confirm [y/N]:
+
+//@<ERR> WL#12011: FR2-01 - interactive = true.
+Dba.createCluster: Cancelled (RuntimeError)
+
+//@<OUT> WL#12011: FR2-03 - no interactive option (default: non-interactive).
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@ WL#12011: Finalization.
+||
+
 //@ WL#12049: Initialization
 ||
 
@@ -7,9 +50,9 @@
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of ':'
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of 'AB'
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -60,10 +103,8 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
-group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -130,10 +171,8 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.12)}
-group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -152,9 +191,9 @@ group_replication_start_on_boot = ON
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Error starting cluster: Invalid value for consistency, can't be set to the value of ':'
-||Error starting cluster: Invalid value for consistency, can't be set to the value of 'AB'
-||Error starting cluster: Invalid value for consistency, can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
@@ -289,10 +328,10 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Dba.createCluster: Argument 'autoRejoinTries' is expected to be an unsigned int (TypeError)
+||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
-||ERROR: Error starting cluster: Invalid value for autoRejoinTries, can't be set to the value of '2017'
+||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
 
 //@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
@@ -316,4 +355,41 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ BUG#29305551: Finalization
+||
+
+
+//@ BUG#29361352: Initialization.
+||
+
+//@<OUT> BUG#29361352: no warning or prompt for multi-primary (interactive: true, multiPrimary: false).
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@ BUG#29361352: Finalization.
+||
+
+//@ BUG#28064729: Initialization.
+||
+
+//@ BUG#28064729: create a cluster.
+||
+
+//@ BUG#28064729: add an instance.
+||
+
+//@ BUG#28064729: Finalization.
 ||

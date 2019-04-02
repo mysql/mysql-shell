@@ -151,7 +151,7 @@ ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_po
 Dba.configureInstance: The value for variable 'report_host' cannot be empty. (RuntimeError)
 
 //@<OUT> Create cluster must fail if report_host is defined but empty.
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port2>>>'.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.

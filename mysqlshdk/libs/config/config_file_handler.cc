@@ -92,32 +92,67 @@ utils::nullable<int64_t> Config_file_handler::get_int(
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<bool> &value) {
+                              const utils::nullable<bool> &value,
+                              const std::string &context) {
   utils::nullable<std::string> value_to_set;
   if (!value.is_null()) {
     *value ? value_to_set = "ON" : value_to_set = "OFF";
   }
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
-  m_config_file.set(m_group, name, value_to_set);
+  try {
+    m_config_file.set(m_group, name, value_to_set);
+  } catch (const std::exception &err) {
+    if (!context.empty()) {
+      std::string str_value =
+          (value.is_null()) ? "NULL" : (*value) ? "true" : "false";
+      throw std::runtime_error("Unable to set value " + str_value + " for '" +
+                               context + "': " + err.what());
+    } else {
+      throw;
+    }
+  }
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<int64_t> &value) {
+                              const utils::nullable<int64_t> &value,
+                              const std::string &context) {
   utils::nullable<std::string> value_to_set;
   if (!value.is_null()) {
     value_to_set = std::to_string(*value);
   }
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
-  m_config_file.set(m_group, name, value_to_set);
+  try {
+    m_config_file.set(m_group, name, value_to_set);
+  } catch (const std::exception &err) {
+    if (!context.empty()) {
+      std::string str_value =
+          (value.is_null()) ? "NULL" : std::to_string(*value);
+      throw std::runtime_error("Unable to set value " + str_value + " for '" +
+                               context + "': " + err.what());
+    } else {
+      throw;
+    }
+  }
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<std::string> &value) {
+                              const utils::nullable<std::string> &value,
+                              const std::string &context) {
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
-  m_config_file.set(m_group, name, value);
+  try {
+    m_config_file.set(m_group, name, value);
+  } catch (const std::exception &err) {
+    if (!context.empty()) {
+      std::string str_value = (value.is_null()) ? "NULL" : "'" + *value + "'";
+      throw std::runtime_error("Unable to set value " + str_value + " for '" +
+                               context + "': " + err.what());
+    } else {
+      throw;
+    }
+  }
 }
 
 void Config_file_handler::apply() {

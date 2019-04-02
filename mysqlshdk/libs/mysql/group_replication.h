@@ -261,7 +261,17 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
                              const uint16_t read_only_timeout = 900);
 void stop_group_replication(const mysqlshdk::mysql::IInstance &instance);
 
-std::string generate_group_name();
+/**
+ * Generate a UUID to use for the group name.
+ *
+ * The UUID is generated from the target instance (MySQL server) using the
+ * UUID() SQL function.
+ *
+ * @param instance target instance used to generate the UUID.
+ *
+ * @return A string with a new UUID to be used for the group name.
+ */
+std::string generate_group_name(const mysqlshdk::mysql::IInstance &instance);
 
 // Function to manage the replication (recovery) user for GR.
 mysql::User_privileges_result check_replication_user(

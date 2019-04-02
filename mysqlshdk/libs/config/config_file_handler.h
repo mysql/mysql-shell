@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,30 +92,39 @@ class Config_file_handler : public IConfig_handler {
    * option file in the mysqld group.
    */
   utils::nullable<int64_t> get_int(const std::string &name) const override;
+
   /**
    * Set the specified option with the specified value in the mysqld group.
    *
    * @param name string with the name of the configuration to get.
-   * @return nullable boolean with the value for the specified option.
+   * @param value nullable boolean with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<bool> &value) override;
+  void set(const std::string &name, const utils::nullable<bool> &value,
+           const std::string &context = "") override;
+
   /**
    * Set the specified option with the specified value in the mysqld group.
    *
    * @param name string with the name of the configuration to get.
-   * @return nullable integer with the value for the specified option.
+   * @param value nullable integer with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<int64_t> &value) override;
+  void set(const std::string &name, const utils::nullable<int64_t> &value,
+           const std::string &context = "") override;
+
   /**
    * Set the specified option with the specified value in the mysqld group.
    *
    * @param name string with the name of the configuration to get.
-   * @return nullable string with the value for the specified option.
+   * @param value nullable string with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    */
-  void set(const std::string &name,
-           const utils::nullable<std::string> &value) override;
+  void set(const std::string &name, const utils::nullable<std::string> &value,
+           const std::string &context = "") override;
   /**
    * Effectively apply all the configuration file changes.
    *

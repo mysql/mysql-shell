@@ -92,20 +92,7 @@ class Cluster_impl {
     return shcore::Value(_attributes).json(false);
   }
 
-  std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
-    return _provisioning_interface;
-  }
-
-  void set_provisioning_interface(
-      const std::shared_ptr<ProvisioningInterface> &provisioning_interface) {
-    _provisioning_interface = provisioning_interface;
-  }
-
-  shcore::Value add_seed_instance(mysqlshdk::mysql::IInstance *target_instance,
-                                  const Group_replication_options &gr_options,
-                                  bool multi_primary, bool is_adopted,
-                                  const std::string &replication_user,
-                                  const std::string &replication_pwd);
+  void insert_default_replicaset(bool multi_primary, bool is_adopted);
 
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
     return _group_session;

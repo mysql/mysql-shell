@@ -31,6 +31,7 @@ validateMember(members, 'rebootClusterFromCompleteOutage');
 //@# Dba: createCluster errors
 dba.createCluster();
 dba.createCluster(5);
+dba.createCluster('');
 dba.createCluster('', 5);
 dba.createCluster('devCluster', 'bla');
 dba.createCluster('devCluster', {invalid:1, another:2});

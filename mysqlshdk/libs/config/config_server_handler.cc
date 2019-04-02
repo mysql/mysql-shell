@@ -103,35 +103,55 @@ utils::nullable<int64_t> Config_server_handler::get_int(
 }
 
 void Config_server_handler::set(const std::string &name,
-                                const utils::nullable<bool> &value) {
-  set(name, value, m_var_qualifier);
+                                const utils::nullable<bool> &value,
+                                const std::string &context) {
+  set(name, value, m_var_qualifier, 0, context);
 }
 
 void Config_server_handler::set(const std::string &name,
-                                const utils::nullable<int64_t> &value) {
-  set(name, value, m_var_qualifier);
+                                const utils::nullable<int64_t> &value,
+                                const std::string &context) {
+  set(name, value, m_var_qualifier, 0, context);
 }
 
 void Config_server_handler::set(const std::string &name,
-                                const utils::nullable<std::string> &value) {
-  set(name, value, m_var_qualifier);
+                                const utils::nullable<std::string> &value,
+                                const std::string &context) {
+  set(name, value, m_var_qualifier, 0, context);
 }
 
 void Config_server_handler::apply() {
   for (const auto &var_tuple : m_change_sequence) {
     std::string var_name = std::get<0>(var_tuple);
-    if (std::get<1>(var_tuple).type == shcore::Value_type::Bool) {
-      bool value = *value_to_nullable_bool(std::get<1>(var_tuple));
-      log_debug("Set '%s'=%s", var_name.c_str(), (value) ? "true" : "false");
-      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
-    } else if (std::get<1>(var_tuple).type == shcore::Value_type::Integer) {
-      int64_t value = *value_to_nullable_int(std::get<1>(var_tuple));
-      log_debug("Set '%s'=%s", var_name.c_str(), std::to_string(value).c_str());
-      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
-    } else {
-      std::string value = *value_to_nullable_string(std::get<1>(var_tuple));
-      log_debug("Set '%s'='%s'", var_name.c_str(), value.c_str());
-      m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
+
+    try {
+      if (std::get<1>(var_tuple).type == shcore::Value_type::Bool) {
+        bool value = *value_to_nullable_bool(std::get<1>(var_tuple));
+        log_debug("Set '%s'=%s", var_name.c_str(), (value) ? "true" : "false");
+        m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
+      } else if (std::get<1>(var_tuple).type == shcore::Value_type::Integer) {
+        int64_t value = *value_to_nullable_int(std::get<1>(var_tuple));
+        log_debug("Set '%s'=%s", var_name.c_str(),
+                  std::to_string(value).c_str());
+        m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
+      } else {
+        std::string value = *value_to_nullable_string(std::get<1>(var_tuple));
+        log_debug("Set '%s'='%s'", var_name.c_str(), value.c_str());
+        m_instance->set_sysvar(var_name, value, std::get<2>(var_tuple));
+      }
+    } catch (const std::exception &err) {
+      std::string context = std::get<4>(var_tuple);
+      if (!context.empty()) {
+        // Send error with context information (more user friendly).
+        std::string value =
+            (std::get<1>(var_tuple).type == shcore::Value_type::Null)
+                ? "NULL"
+                : "'" + std::get<1>(var_tuple).as_string() + "'";
+        throw std::runtime_error("Unable to set value " + value + " for '" +
+                                 context + "': " + err.what());
+      } else {
+        throw;
+      }
     }
 
     // Sleep after setting the variable if delay is defined (> 0).

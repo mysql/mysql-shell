@@ -5,7 +5,7 @@
 ||Dba.createCluster: The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
 
 //@ Create cluster errors using localAddress option
-||ERROR: Error starting cluster: 'localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.createCluster: Group Replication failed to start
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
@@ -15,11 +15,11 @@
 
 //@ Create cluster errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||ERROR: Error starting cluster: 'localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.createCluster: Group Replication failed to start:
 
 //@ Create cluster errors using groupName option
 ||Invalid value for groupName, string value cannot be empty. (ArgumentError)
-||ERROR: Error starting cluster: Invalid value 'abc' for groupName, it must be a valid UUID. (RuntimeError)
+||Unable to set value 'abc' for 'groupName': The group name is not a valid UUID (RuntimeError)
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||

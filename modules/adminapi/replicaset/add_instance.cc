@@ -93,14 +93,13 @@ Add_instance::~Add_instance() {
 /**
  * Resolves SSL mode based on the given options.
  *
- * Determine the SSL mode for the cluster based on the provided SSL option and
- * if SSL is enabled on the target instance used to bootstrap the cluster (seed
- * instance). In case a new instance is joining an existing cluster, then the
- * same SSL mode of the cluster is used.
+ * Determine the SSL mode for the instance based on the cluster SSL mode and
+ * if SSL is enabled on the target instance. The same SSL mode of the cluster
+ * is used for new instance joining it.
  */
 void Add_instance::resolve_ssl_mode() {
   // Show deprecation message for memberSslMode option if if applies.
-  if (!m_gr_opts.ssl_mode.is_null() && !m_seed_instance) {
+  if (!m_gr_opts.ssl_mode.is_null()) {
     auto console = mysqlsh::current_console();
     console->print_warning(mysqlsh::dba::ReplicaSet::kWarningDeprecateSslMode);
     console->println();
@@ -111,22 +110,13 @@ void Add_instance::resolve_ssl_mode() {
     m_gr_opts.ssl_mode = dba::kMemberSSLModeAuto;
   }
 
-  std::string new_ssl_mode;
-  std::string target;
-  if (m_seed_instance) {
-    new_ssl_mode = resolve_cluster_ssl_mode(m_target_instance->get_session(),
-                                            *m_gr_opts.ssl_mode);
-    target = "cluster";
-  } else {
-    new_ssl_mode = resolve_instance_ssl_mode(m_target_instance->get_session(),
-                                             m_peer_instance->get_session(),
-                                             *m_gr_opts.ssl_mode);
-    target = "instance";
-  }
+  std::string new_ssl_mode = resolve_instance_ssl_mode(
+      m_target_instance->get_session(), m_peer_instance->get_session(),
+      *m_gr_opts.ssl_mode);
 
   if (new_ssl_mode != *m_gr_opts.ssl_mode) {
     m_gr_opts.ssl_mode = new_ssl_mode;
-    log_warning("SSL mode used to configure the %s: '%s'", target.c_str(),
+    log_warning("SSL mode used to configure the instance: '%s'",
                 m_gr_opts.ssl_mode->c_str());
   }
 }
@@ -199,15 +189,23 @@ void Add_instance::prepare() {
   validate_replication_filters(m_target_instance->get_session());
 
   // Resolve the SSL Mode to use to configure the instance.
-  resolve_ssl_mode();
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
+  if (!m_seed_instance) {
+    resolve_ssl_mode();
+  }
 
-  // Make sure the target instance does not already belong to a replicaset.
-  mysqlsh::dba::checks::ensure_instance_not_belong_to_replicaset(
-      *m_target_instance, m_replicaset);
+  // Make sure the target instance does not already belong to a cluster.
+  mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+      *m_target_instance, m_replicaset.get_cluster()->get_group_session());
 
   // Verify if the instance is running asynchronous (master-slave) replication
   // NOTE: Only verify if this is being called from a addInstance() and not a
   // createCluster() command.
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     auto console = mysqlsh::current_console();
 
@@ -246,6 +244,9 @@ void Add_instance::prepare() {
 
   // If this is not seed instance, then we should try to read the
   // failoverConsistency and expelTimeout values from a a cluster member.
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     m_replicaset.query_group_wide_option_values(
         m_target_instance, &m_gr_opts.consistency, &m_gr_opts.expel_timeout);
@@ -253,6 +254,9 @@ void Add_instance::prepare() {
 
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller
+  // TODO(pjesus): remove the 'if (!m_skip_instance_check)' for refactor of
+  //               reboot cluster (WL#11561), i.e. always execute check, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_skip_instance_check) {
     ensure_instance_configuration_valid(*m_target_instance);
   }
@@ -350,6 +354,9 @@ void Add_instance::log_used_gr_options() {
 shcore::Value Add_instance::execute() {
   auto console = mysqlsh::current_console();
 
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     std::string msg =
         "A new instance will be added to the InnoDB cluster. Depending on the "
@@ -364,6 +371,9 @@ shcore::Value Add_instance::execute() {
   // Common informative logging
   log_used_gr_options();
 
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     console->print_info("Adding instance to the cluster ...");
     console->println();
@@ -378,6 +388,9 @@ shcore::Value Add_instance::execute() {
   mysqlshdk::gr::install_plugin(*m_target_instance, nullptr, true);
 
   // Handle GR protocol version.
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     handle_gr_protocol_version();
   }
@@ -389,36 +402,31 @@ shcore::Value Add_instance::execute() {
 
   DBUG_EXECUTE_IF("dba_abort_join_group", { throw std::logic_error("debug"); });
 
-  // Call MP
-  // TODO(pjesus): This success should be removed for the refactor of
-  //               createCluster(), exceptions will be raised if an error occurs
-  //               when MP call is removed.
-  bool success = false;
+  // TODO(pjesus): remove the 'if (m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), mysqlsh::dba::start_replicaset() should
+  //               be used directly instead of the Add_instance operation.
   if (m_seed_instance) {
     if (!m_gr_opts.group_name.is_null() && !m_gr_opts.group_name->empty()) {
       log_info("Using Group Replication group name: %s",
                m_gr_opts.group_name->c_str());
     }
 
-    // Set the ssl mode
-    m_replicaset.set_group_replication_member_options(
-        m_target_instance->get_session(), *m_gr_opts.ssl_mode);
-
-    // If no group_seeds value was provided by the user, then,
-    // set it ti empty to maintain the current behaviour.
-    // TODO(pjesus): Review need for this for createCluster() refactoring.
-    if (m_gr_opts.group_seeds.is_null()) {
-      m_gr_opts.group_seeds = "";
-    }
-
     log_info("Starting Replicaset with '%s' using account %s",
              m_instance_address.c_str(),
              m_instance_cnx_opts.get_user().c_str());
 
-    // Call mysqlprovision to bootstrap the group using "start"
-    success = m_replicaset.do_join_replicaset(m_instance_cnx_opts, nullptr,
-                                              m_rpl_user, m_rpl_pwd,
-                                              m_skip_rpl_user, 0, m_gr_opts);
+    // Determine the topology mode to use.
+    // TODO(pjesus): the topology mode (multi_primary) should not be needed,
+    //               remove it for refactor of reboot cluster (WL#11561) and
+    //               just pass a null (bool). Now, the current behaviour is
+    //               maintained.
+    mysqlshdk::utils::nullable<bool> multi_primary =
+        m_replicaset.get_topology_type() == ReplicaSet::kTopologyMultiPrimary;
+
+    // Start the replicaset to bootstrap Group Replication.
+    mysqlsh::dba::start_replicaset(*m_target_instance, m_gr_opts, multi_primary,
+                                   m_cfg.get());
+
   } else {
     // If no group_seeds value was provided by the user, then,
     // before joining instance to cluster, get the values of the
@@ -432,90 +440,91 @@ shcore::Value Add_instance::execute() {
              m_peer_instance->get_connection_options().get_user().c_str(),
              m_peer_instance->descr().c_str());
 
+    // Join the instance to the Group Replication group.
     mysqlsh::dba::join_replicaset(*m_target_instance, *m_peer_instance,
                                   m_rpl_user, m_rpl_pwd, m_gr_opts,
                                   replicaset_count, m_cfg.get());
-    success = true;
   }
 
-  if (success) {
-    // Check if instance address already belong to replicaset (metadata).
-    bool is_instance_on_md =
-        m_replicaset.get_cluster()
-            ->get_metadata_storage()
-            ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                        m_address_in_metadata);
+  // Check if instance address already belong to replicaset (metadata).
+  bool is_instance_on_md =
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->is_instance_on_replicaset(m_replicaset.get_id(),
+                                      m_address_in_metadata);
 
-    log_debug("ReplicaSet %s: Instance '%s' %s",
-              std::to_string(m_replicaset.get_id()).c_str(),
-              m_instance_address.c_str(),
-              is_instance_on_md ? "is already in the Metadata."
-                                : "is being added to the Metadata...");
+  log_debug("ReplicaSet %s: Instance '%s' %s",
+            std::to_string(m_replicaset.get_id()).c_str(),
+            m_instance_address.c_str(),
+            is_instance_on_md ? "is already in the Metadata."
+                              : "is being added to the Metadata...");
 
-    // If the instance is not on the Metadata, we must add it.
-    if (!is_instance_on_md)
-      m_replicaset.add_instance_metadata(m_instance_cnx_opts,
-                                         m_instance_label.get_safe());
+  // If the instance is not on the Metadata, we must add it.
+  if (!is_instance_on_md)
+    m_replicaset.add_instance_metadata(m_instance_cnx_opts,
+                                       m_instance_label.get_safe());
 
-    // Get the gr_address of the instance being added
-    std::string added_instance_gr_address = *m_gr_opts.local_address;
+  // Get the gr_address of the instance being added
+  std::string added_instance_gr_address = *m_gr_opts.local_address;
 
-    // Create a configuration object for the replicaset, ignoring the added
-    // instance, to update the remaining replicaset members.
-    // NOTE: only members that already belonged to the cluster and are either
-    //       ONLINE or RECOVERING will be considered.
-    std::vector<std::string> ignore_instances_vec = {m_address_in_metadata};
-    std::unique_ptr<mysqlshdk::config::Config> replicaset_cfg =
-        m_replicaset.create_config_object(ignore_instances_vec, true);
+  // Create a configuration object for the replicaset, ignoring the added
+  // instance, to update the remaining replicaset members.
+  // NOTE: only members that already belonged to the cluster and are either
+  //       ONLINE or RECOVERING will be considered.
+  std::vector<std::string> ignore_instances_vec = {m_address_in_metadata};
+  std::unique_ptr<mysqlshdk::config::Config> replicaset_cfg =
+      m_replicaset.create_config_object(ignore_instances_vec, true);
 
-    // Update the group_replication_group_seeds of the replicaset members
-    // by adding the gr_local_address of the instance that was just added.
-    log_debug("Updating Group Replication seeds on all active members...");
-    mysqlshdk::gr::update_group_seeds(replicaset_cfg.get(),
-                                      added_instance_gr_address,
-                                      mysqlshdk::gr::Gr_seeds_change_type::ADD);
+  // Update the group_replication_group_seeds of the replicaset members
+  // by adding the gr_local_address of the instance that was just added.
+  log_debug("Updating Group Replication seeds on all active members...");
+  mysqlshdk::gr::update_group_seeds(replicaset_cfg.get(),
+                                    added_instance_gr_address,
+                                    mysqlshdk::gr::Gr_seeds_change_type::ADD);
+  replicaset_cfg->apply();
+
+  // Increase the replicaset_count counter
+  replicaset_count++;
+
+  // Auto-increment values must be updated according to:
+  //
+  // Set auto-increment for single-primary topology:
+  // - auto_increment_increment = 1
+  // - auto_increment_offset = 2
+  //
+  // Set auto-increment for multi-primary topology:
+  // - auto_increment_increment = n;
+  // - auto_increment_offset = 1 + server_id % n;
+  // where n is the size of the GR group if > 7, otherwise n = 7.
+  //
+  // We must update the auto-increment values in add_instance for 2
+  // scenarios
+  //   - Multi-primary Replicaset
+  //   - Replicaset that has 7 or more members after the add_instance
+  //     operation
+  //
+  // NOTE: in the other scenarios, the Add_instance operation is in charge of
+  // updating auto-increment accordingly
+
+  // Get the topology mode of the replicaSet
+  mysqlshdk::gr::Topology_mode topology_mode =
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->get_replicaset_topology_mode(m_replicaset.get_id());
+
+  if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
+      replicaset_count > 7) {
+    log_debug("Updating auto-increment settings on all active members...");
+    mysqlshdk::gr::update_auto_increment(
+        replicaset_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
     replicaset_cfg->apply();
-
-    // Increase the replicaset_count counter
-    replicaset_count++;
-
-    // Auto-increment values must be updated according to:
-    //
-    // Set auto-increment for single-primary topology:
-    // - auto_increment_increment = 1
-    // - auto_increment_offset = 2
-    //
-    // Set auto-increment for multi-primary topology:
-    // - auto_increment_increment = n;
-    // - auto_increment_offset = 1 + server_id % n;
-    // where n is the size of the GR group if > 7, otherwise n = 7.
-    //
-    // We must update the auto-increment values in add_instance for 2
-    // scenarios
-    //   - Multi-primary Replicaset
-    //   - Replicaset that has 7 or more members after the add_instance
-    //     operation
-    //
-    // NOTE: in the other scenarios, the Add_instance operation is in charge of
-    // updating auto-increment accordingly
-
-    // Get the topology mode of the replicaSet
-    mysqlshdk::gr::Topology_mode topology_mode =
-        m_replicaset.get_cluster()
-            ->get_metadata_storage()
-            ->get_replicaset_topology_mode(m_replicaset.get_id());
-
-    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
-        replicaset_count > 7) {
-      log_debug("Updating auto-increment settings on all active members...");
-      mysqlshdk::gr::update_auto_increment(
-          replicaset_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
-      replicaset_cfg->apply();
-    }
-
-    log_debug("Instance add finished");
   }
 
+  log_debug("Instance add finished");
+
+  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  //               cluster (WL#11561), i.e. always execute code inside, not
+  //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
     console->print_info("The instance '" + m_instance_address +
                         "' was successfully added to the cluster.");

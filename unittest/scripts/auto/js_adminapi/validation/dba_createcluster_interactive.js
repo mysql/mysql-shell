@@ -1,3 +1,43 @@
+//@ WL#12011: Initialization
+||
+
+//@<OUT> WL#12011: FR2-03 - no interactive option (default: interactive).
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+Before continuing you have to confirm that you understand the requirements and
+limitations of Multi-Primary Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
+
+I have read the MySQL InnoDB cluster manual and I understand the requirements
+and limitations of advanced Multi-Primary Mode.
+Confirm [y/N]:
+
+//@<ERR> WL#12011: FR2-03 - no interactive option (default: interactive).
+Dba.createCluster: Cancelled (RuntimeError)
+
+//@<OUT> WL#12011: FR2-02 - interactive = false.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@ WL#12011: Finalization.
+||
+
 //@ WL#12049: Initialization
 ||
 
@@ -7,9 +47,9 @@
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of ':'
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of 'AB'
-||Error starting cluster: Invalid value for exitStateAction, can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -45,9 +85,9 @@
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Error starting cluster: Invalid value for consistency, can't be set to the value of ':'
-||Error starting cluster: Invalid value for consistency, can't be set to the value of 'AB'
-||Error starting cluster: Invalid value for consistency, can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
@@ -80,3 +120,28 @@ WARNING: The failoverConsistency option is deprecated. Please use the consistenc
 
 //@ WL#12050: Finalization
 ||
+
+//@ BUG#29361352: Initialization.
+||
+
+//@<OUT> BUG#29361352: no warning or prompt for multi-primary (multiPrimary: false).
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@ BUG#29361352: Finalization.
+||
+

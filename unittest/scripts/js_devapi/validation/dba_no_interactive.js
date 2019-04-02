@@ -19,6 +19,7 @@
 ||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 0
 ||Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
+||Dba.createCluster: Argument #2 is expected to be a map
 ||Argument #2 is expected to be a map
 ||Invalid options: another, invalid
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
@@ -26,10 +27,10 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
-||Cannot use multiPrimary option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
-||Cannot use multiPrimary option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
-||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
-||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
+||Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
+||Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
+||Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
+||Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Invalid value for ipWhitelist: string value cannot be empty.

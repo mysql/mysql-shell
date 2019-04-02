@@ -1,5 +1,24 @@
 // Assumptions: smart deployment functions available
 
+// WL#12011: AdminAPI: Refactor dba.createCluster()
+//@ WL#12011: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+
+//@<> WL#12011: FR2-03 - no interactive option (default: interactive).
+testutil.expectPrompt("Confirm [y/N]:", "n");
+var c = dba.createCluster('test', {multiPrimary: true});
+
+//@<> WL#12011: FR2-02 - interactive = false.
+var c = dba.createCluster('test', {interactive: false, multiPrimary: true, force: true});
+
+//@ WL#12011: Finalization.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -181,6 +200,25 @@ var c = dba.createCluster('test', {expelTimeout: 3601});
 var c = dba.createCluster('test', {expelTimeout: 12});
 
 //@ WL#12050: Finalization
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+// BUG#29361352: multiprimary warning and prompt displayed with multiPrimary:false
+//
+// The warning an prompt for creating multi-primary cluster should only be
+// displayed if the multiPrimary option is set to true.
+// This is a regression issue.
+
+//@ BUG#29361352: Initialization.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+shell.connect(__sandbox_uri1);
+
+//@<> BUG#29361352: no warning or prompt for multi-primary (multiPrimary: false).
+var c = dba.createCluster('test', {multiPrimary: false, force: false});
+
+//@ BUG#29361352: Finalization.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,10 +118,12 @@ class Config_server_handler : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable boolean with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name,
-           const utils::nullable<bool> &value) override;
+  void set(const std::string &name, const utils::nullable<bool> &value,
+           const std::string &context = "") override;
 
   /**
    * Set the given server configuration (system variable) with the specified
@@ -129,10 +131,12 @@ class Config_server_handler : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable integer with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name,
-           const utils::nullable<int64_t> &value) override;
+  void set(const std::string &name, const utils::nullable<int64_t> &value,
+           const std::string &context = "") override;
 
   /**
    * Set the given server configuration (system variable) with the specified
@@ -140,10 +144,12 @@ class Config_server_handler : public IConfig_handler {
    *
    * @param name string with the name of the configuration to set.
    * @param value nullable string with the value to set.
+   * @param context string with the configuration context to include in error
+   *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name,
-           const utils::nullable<std::string> &value) override;
+  void set(const std::string &name, const utils::nullable<std::string> &value,
+           const std::string &context = "") override;
 
   /**
    * Effectively apply all the server configuration (system variable) changes.
@@ -258,12 +264,15 @@ class Config_server_handler : public IConfig_handler {
    *              NOTE: This allow to workaround BUG#27629719, ensuring
    *              different timestamps are set for variable that need to be set
    *              in a specific order.
+   * @param context string describing the configuration being set to include in
+   *                the error message if defined.
    * @throw std::invalid_argument if the specified value is null.
    *
    */
   template <typename T>
   void set(const std::string &name, const utils::nullable<T> &value,
-           const mysql::Var_qualifier var_qualifier, uint32_t delay = 0) {
+           const mysql::Var_qualifier var_qualifier, uint32_t delay = 0,
+           const std::string &context = "") {
     // The value cannot be null (not supported by set_sysvar())
     if (value.is_null()) {
       throw std::invalid_argument{"The value parameter cannot be null."};
@@ -272,7 +281,7 @@ class Config_server_handler : public IConfig_handler {
     // NOTE: PERSIST_ONLY variables are only stored in the internal sequence of
     // changes to apply, but not on the map that hold a cache of the changes.
     shcore::Value val = nullable_type_to_value(value);
-    m_change_sequence.emplace_back(name, val, var_qualifier, delay);
+    m_change_sequence.emplace_back(name, val, var_qualifier, delay, context);
 
     // Store variable changes in an internal cache (used by get()).
     if (var_qualifier == mysql::Var_qualifier::GLOBAL ||
@@ -385,10 +394,11 @@ class Config_server_handler : public IConfig_handler {
   mysql::Var_qualifier m_get_scope;
 
   // List of tuples with the change to apply. Each tuple contains the name of
-  // the variable, the value to set, the variable qualifier to use, and the
-  // time in ms to wait (if any, by default 0).
-  std::vector<
-      std::tuple<std::string, shcore::Value, mysql::Var_qualifier, uint32_t>>
+  // the variable, the value to set, the variable qualifier to use, the
+  // time in ms to wait (if any, by default 0), and an optional variable context
+  // to use in error messages if defined.
+  std::vector<std::tuple<std::string, shcore::Value, mysql::Var_qualifier,
+                         uint32_t, std::string>>
       m_change_sequence;
   std::map<std::string, shcore::Value> m_global_change_tracker;
   std::map<std::string, shcore::Value> m_session_change_tracker;

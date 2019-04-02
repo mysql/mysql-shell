@@ -1,5 +1,5 @@
 //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -9,11 +9,13 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
-Confirm [y/N]: 
-Dba.createCluster: Cancelled
+Confirm [y/N]:
+
+//@<ERR> Dba: createCluster multiPrimary with interaction, cancel
+Dba.createCluster: Cancelled (RuntimeError)
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -31,10 +33,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -45,9 +47,10 @@ one server failure.
 |The cluster was successfully dissolved.|
 
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
-
 WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
+
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
@@ -64,10 +67,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -237,7 +240,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 |The cluster was successfully dissolved.|
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -255,10 +258,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.

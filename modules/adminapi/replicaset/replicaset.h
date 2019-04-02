@@ -190,13 +190,6 @@ class ReplicaSet {
    */
   mysqlshdk::db::Connection_options pick_seed_instance() const;
 
-  bool do_join_replicaset(
-      const mysqlshdk::db::Connection_options &instance,
-      mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
-      const std::string &repl_user_password, bool skip_rpl_user,
-      const mysqlshdk::utils::nullable<uint64_t> &replicaset_count,
-      const Group_replication_options &gr_options) const;
-
   void validate_server_uuid(
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const;
 
@@ -208,12 +201,6 @@ class ReplicaSet {
       mysqlshdk::mysql::IInstance *target_instance,
       mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
       mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) const;
-
-  // TODO(pjesus): remove after refactor of createCluster() to be done by MP
-  //               replacement.
-  void set_group_replication_member_options(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &ssl_mode) const;
 
  private:
   friend Cluster_impl;
@@ -230,7 +217,6 @@ class ReplicaSet {
   Cluster_impl *m_cluster;
 
   std::shared_ptr<MetadataStorage> _metadata_storage;
-  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 };
 }  // namespace dba
 }  // namespace mysqlsh

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -241,21 +241,23 @@ TEST_F(Config_test, config_interface) {
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
   // Restore previous setting individually at each handler.
-  cfg.set("sql_warnings", nullable<bool>(false), "server_global");
-  cfg.set("sql_warnings", nullable<bool>(false), "config_file");
+  cfg.set_for_handler("sql_warnings", nullable<bool>(false), "server_global");
+  cfg.set_for_handler("sql_warnings", nullable<bool>(false), "config_file");
   bool_val = cfg.get_bool("sql_warnings", "server_global");
   EXPECT_FALSE(*bool_val);
   bool_val = cfg.get_bool("sql_warnings", "config_file");
   EXPECT_FALSE(*bool_val);
-  cfg.set("wait_timeout", wait_timeout, "server_global");
-  cfg.set("wait_timeout", wait_timeout, "config_file");
+  cfg.set_for_handler("wait_timeout", wait_timeout, "server_global");
+  cfg.set_for_handler("wait_timeout", wait_timeout, "config_file");
   int_val = cfg.get_int("wait_timeout", "server_global");
   EXPECT_FALSE(int_val.is_null());
   EXPECT_EQ(*wait_timeout, *int_val);
   int_val = cfg.get_int("wait_timeout", "config_file");
   EXPECT_EQ(*wait_timeout, *int_val);
-  cfg.set("lc_messages", nullable<std::string>("en_US"), "server_global");
-  cfg.set("lc_messages", nullable<std::string>("en_US"), "config_file");
+  cfg.set_for_handler("lc_messages", nullable<std::string>("en_US"),
+                      "server_global");
+  cfg.set_for_handler("lc_messages", nullable<std::string>("en_US"),
+                      "config_file");
   string_val = cfg.get_string("lc_messages", "server_global");
   EXPECT_STREQ("en_US", (*string_val).c_str());
   string_val = cfg.get_string("lc_messages", "config_file");
