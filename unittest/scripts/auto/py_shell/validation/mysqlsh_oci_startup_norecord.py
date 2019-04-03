@@ -166,3 +166,6 @@ Type '\? oci' for help.
     "user": "ocid1.user.oc1..abcdfgetrhjzqdlgnqlrmzclepeihqrjtqmbwz6s562ywdyikr5gr7izfhlq"
 }
 0
+
+#@<OUT> WL13046-FR-TS-02 Importing paramiko
+2.4.2
