@@ -1108,25 +1108,13 @@ REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL5,
  * $(SHELL_ENABLEPAGER_BRIEF)
  *
  * $(SHELL_ENABLEPAGER_DETAIL)
- */
-#if DOXYGEN_JS
-/**
  *
- * This behavior is in effect until disablePager() is called or current
- * scripting mode is changed. Changing the scripting mode has the same effect as
- * calling disablePager().
- */
-#elif DOXYGEN_PY
-/**
+ * $(SHELL_ENABLEPAGER_DETAIL1)
  *
- * This behavior is in effect until disable_pager() is called or current
- * scripting mode is changed. Changing the scripting mode has the same effect as
- * calling disable_pager().
- */
-#endif
-/**
+ * $(SHELL_ENABLEPAGER_DETAIL2)
  *
  * $(SHELL_ENABLEPAGER_DETAIL3)
+ *
  * $(SHELL_ENABLEPAGER_DETAIL4)
  *
  * $(SHELL_ENABLEPAGER_DETAIL5)
@@ -1398,18 +1386,8 @@ REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL33,
  *
  * $(SHELL_REGISTERREPORT_DETAIL31)
  * $(SHELL_REGISTERREPORT_DETAIL32)
+ * $(SHELL_REGISTERREPORT_DETAIL33)
  */
-#if DOXYGEN_JS
-/**
- * All reports registered in those files using the registerReport()
- * method will be available when Shell starts.
- */
-#elif DOXYGEN_PY
-/**
- * All reports registered in those files using the register_report()
- * method will be available when Shell starts.
- */
-#endif
 #if DOXYGEN_JS
 Undefined Shell::registerReport(String name, String type, Function report,
                                 Dictionary description) {}

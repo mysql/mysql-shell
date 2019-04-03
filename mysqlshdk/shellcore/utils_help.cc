@@ -221,12 +221,15 @@ void Help_registry::add_split_help(const std::string &prefix,
   std::vector<std::string> lines = shcore::str_split(data, "\n");
   std::vector<std::string>::const_iterator line_iter = lines.begin();
 
-  auto get_line = [&lines, &line_iter](bool *eos) {
+  auto get_line = [&lines, &line_iter](bool *eos, bool strip) {
     if (line_iter == lines.end()) {
       *eos = true;
       return std::string();
     } else {
-      return shcore::str_rstrip(*line_iter++);
+      if (strip)
+        return shcore::str_rstrip(*line_iter++);
+      else
+        return *line_iter++;
     }
   };
 
@@ -237,19 +240,30 @@ void Help_registry::add_split_help(const std::string &prefix,
   auto get_para = [&get_line, &unget_line](bool *eos) {
     std::string line;
     std::string para;
+    bool rstrip = true;
 
-    line = get_line(eos);
-    while (!*eos && line.empty()) line = get_line(eos);
+    line = get_line(eos, rstrip);
+    while (!*eos && line.empty()) line = get_line(eos, rstrip);
 
     para = line;
     // now keep adding lines to the paragraph until one of:
     // empty line, @ at bol, $ at bol
-    line = get_line(eos);
-    while (!*eos && !line.empty() && line[0] != '@' && line[0] != '$') {
-      para.append(" ").append(line);
-      line = get_line(eos);
+    if (para == "@code") {
+      while (!*eos && line != "@endcode") {
+        line = get_line(eos, rstrip);
+
+        if (line != "@endcode") para.append("\n");
+
+        para.append(line);
+      }
+    } else {
+      line = get_line(eos, rstrip);
+      while (!*eos && !line.empty() && line[0] != '@' && line[0] != '$') {
+        para.append(" ").append(line);
+        line = get_line(eos, rstrip);
+      }
+      unget_line();
     }
-    unget_line();
 
     return para;
   };

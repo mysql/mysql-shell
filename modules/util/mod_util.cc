@@ -885,12 +885,12 @@ REGISTER_HELP(OCI_EXAMPLE1_DESC,
               "tenancy that was specified in the config object.");
 REGISTER_HELP(
     OCI_EXAMPLE2,
-    "<code>"
+    "@code"
     "compartment = identity.list_compartments(config['tenancy']).data[0]\n"
     "images = compute.list_images(compartment.id).data\n"
     "for image in images:\n"
     "  print image.display_name"
-    "</code>");
+    "@endcode");
 REGISTER_HELP(OCI_EXAMPLE2_DESC,
               "Assignes the first compartment of the tenancy to the "
               "compartment variable, featches the available OS images for the "

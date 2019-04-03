@@ -78,24 +78,24 @@ Highlight find_highlight(const std::string &where) {
 std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   std::string ret_val = line;
 
-  // <code> tags are only used in Doxygen, in the console they are removed.
-  size_t start = ret_val.find("<code>");
-  size_t end = ret_val.find("</code>", start);
+  // @code tags are only used in Doxygen, in the console they are removed.
+  size_t start = ret_val.find("@code");
+  size_t end = ret_val.find("@endcode", start);
   while (start != std::string::npos && end != std::string::npos) {
     std::string tmp_line = ret_val.substr(0, start);
-    tmp_line += ret_val.substr(start + 6, end - start - 6);
-    tmp_line += ret_val.substr(end + 7);
+    tmp_line += ret_val.substr(start + 5, end - start - 5);
+    tmp_line += ret_val.substr(end + 8);
 
     ret_val = tmp_line;
-    start = ret_val.find("<code>");
-    end = ret_val.find("</code>", start);
+    start = ret_val.find("@code");
+    end = ret_val.find("@endcode", start);
   }
 
   // Some characters need to be specified using special doxygen format to
   // to prevent generating doxygen warnings.
   std::vector<std::pair<const char *, const char *>> replacements = {
-      {"@<", "<"},  {"@>", ">"}, {"&nbsp;", " "},
-      {"@li", "-"}, {"@%", "%"}, {"\\\\", "\\"}};
+      {"@<", "<"}, {"@>", ">"},    {"&nbsp;", " "}, {"@li", "-"},
+      {"@%", "%"}, {"\\\\", "\\"}, {"<br>", "\n"}};
 
   for (const auto &rpl : replacements) {
     ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
@@ -572,7 +572,7 @@ std::string format_markup_text(const std::string &line, size_t width,
   internal::postprocess_markup(&sublines, highlights);
 
   for (auto &subline : sublines)
-    subline = padding + shcore::str_rstrip(subline);
+    subline = padding + shcore::str_rstrip(subline, " \t");
 
   return shcore::str_join(sublines, "\n");
 }
@@ -590,10 +590,10 @@ std::string format_markup_text(const std::vector<std::string> &lines,
     for (auto line : lines) {
       if (!ret_val.empty()) ret_val += "\n";
 
-      if (shcore::str_beginswith(line.c_str(), "<code>") &&
-          shcore::str_endswith(line.c_str(), "</code>")) {
+      if (shcore::str_beginswith(line.c_str(), "@code") &&
+          shcore::str_endswith(line.c_str(), "@endcode")) {
         // Handles Code Items
-        std::string code = line.substr(6, line.size() - 13);
+        std::string code = line.substr(5, line.size() - 13);
         std::vector<std::string> code_lines = shcore::str_split(code, "\n");
         ret_val += format_markup_text(code_lines, width, left_padding, false);
       } else if (0 == line.find("@li ")) {

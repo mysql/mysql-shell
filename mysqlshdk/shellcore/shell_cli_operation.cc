@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,123 +30,131 @@
 namespace shcore {
 
 REGISTER_HELP_TOPIC(Command Line, TOPIC, cmdline, Contents, ALL);
-REGISTER_HELP(cmdline,
-              "Following syntax can be used to execute methods of the Shell "
-              "global objects from command line:");
-REGISTER_HELP(cmdline1, "  mysqlsh [options] -- <object> <method> [arguments]");
+REGISTER_HELP_TOPIC_TEXT(cmdline, R"*(
+The MySQL Shell functionality is generally available as API calls, this is
+objects containing methods to perform specific tasks, they can be called either
+in JavaScript or Python modes.
+
+The most important functionality (available on the shell global objects) has
+been integrated in a way that it is possible to call it directly from the
+command line, by following a specific syntax.
+
+<b>SYNTAX</b>:
+
+  mysqlsh [options] -- <object> <method> [arguments]
+
+<b>WHERE</b>:
+
+@li object - a string identifying shell object to be called.
+@li method - a string identifying method to be called on the object.
+@li arguments - arguments passed to the called method.
+
+<b>DETAILS</b>:
+
+The following objects can be called using this format:
+
+@li dba - dba global object.
+@li cluster - cluster returned by calling dba.getCluster().
+@li shell - shell global object.
+@li shell.options - shell.options object.
+@li util - util global object
+
+The method name can be given in the following naming styles:
+
+@li Camel case: (e.g. createCluster, checkForServerUpgrade)
+@li Kebab case: (e.g. create-cluster, check-for-server-upgrade)
+
+The arguments syntax allows mixing positional and named arguments (similar to
+args and *kwargs in Python):
+
+<b>ARGUMENT SYNTAX</b>:
+
+  [ positional_argument ]* [ { named_argument* } ]* [ named_argument ]*
+
+<b>WHERE</b>:
+
+@li positional_argument - is a single string representing a value.
+@li named_argument - a string in the form of --argument-name[=value]
+
+A positional_argument is defined by the following rules:
+
+@li positional_argument ::= value
+@li value   ::= string | integer | float | boolean | null
+@li string  ::= plain string, quoted if contains whitespace characters
+@li integer ::= plain integer
+@li float   ::= plain float
+@li boolean ::= 1 | 0 | true | false
+@li null    ::= "-"
+
+Positional arguments are passed to the function call in the order they are
+defined.
+
+Named arguments represent a dictionary option that the method is expecting. It
+is created by prepending the option name with double dash and can also be
+specified either using camelCaseNaming or kebab-case-naming, examples:<br>
+
+@code
+--anOptionName[=value]
+--an-option-name[=value]
+@endcode
+
+If the value is not provided the option name will be handled as a boolean
+option with a default value of TRUE.
+
+<b>Grouping Named Arguments</b>
+
+It is possible to create a group of named arguments by enclosing them between
+curly braces. This group would be handled as a positional argument at the
+position where the opening curly brace was found, it will be passed to the
+function as a dictionary containing all the named arguments defined on the
+group.
+
+Named arguments that are not placed inside curly braces (independently of the
+position on the command line), are packed a single dictionary, passed as a last
+parameter on the method call.
+
+Following are some examples of command line calls as well as how they are mapped
+to the API method call.
+)*");
+
 REGISTER_HELP(
-    cmdline2,
-    "@li object - a string identifying shell object exposed to command line:");
-REGISTER_HELP(cmdline3,
-              "<code>"
-              "  * dba - dba global object\n"
-              "  * cluster - cluster returned by calling dba.getCluster()\n"
-              "  * shell - shell global object\n"
-              "  * shell.options - shell.options object\n"
-              "  * util - util global object\n</code>");
-REGISTER_HELP(
-    cmdline4,
-    "@li method - a string identifying method of the object in either:");
-REGISTER_HELP(
-    cmdline5,
-    "<code>"
-    "  * Camel case form (e.g. createCluster, checkForServerUpgrade)\n"
-    "  * Kebab case form (all lower case, words separated by hyphens)\n"
-    "    (e.g. create-cluster, check-for-server-upgrade)\n</code>");
-REGISTER_HELP(
-    cmdline6,
-    "@li arguments - arguments passed to the method in format described "
-    "below.");
-REGISTER_HELP(cmdline7,
-              "Arguments syntax allows mixing positional and named arguments "
-              "(similar to args and *kwargs in Python):");
-REGISTER_HELP(
-    cmdline8,
-    "  [ positional_argument ]* [ { named_argument* } ]* [ named_argument "
-    "]*");
-REGISTER_HELP(
-    cmdline9,
-    "@li positional_argument - is a single string representing a value:");
-REGISTER_HELP(
-    cmdline10,
-    "<code>"
-    "  * positional_argument ::= value\n"
-    "  * value   ::= string | integer | float | boolean | null\n"
-    "  * string  ::= plain string, quoted if contains whitespace characters\n"
-    "  * integer ::= plain integer\n"
-    "  * float   ::= plain float\n"
-    "  * boolean ::= 1 | 0 | true | false\n"
-    "  * null    ::= \"-\"\n</code>");
-REGISTER_HELP(
-    cmdline11,
-    "@li named_argument - a string in '--argument-name[=value]' format where:");
-REGISTER_HELP(
-    cmdline12,
-    "<code>"
-    "  * argument-name - is a dictionary keyword that method is expecting "
-    "either\n"
-    "    in the JS camel case or the command line, lowercase + hyphens, "
-    "format\n"
-    "    (e.g. --outputFormat or --output-format)\n"
-    "  * \"--argument-name\" is interpreted as \"--argument-name=true\"\n"
-    "  * value is analogical to positional argument.\n</code>");
-REGISTER_HELP(
-    cmdline13,
-    "Such command line arguments are transformed into method parameters:");
-REGISTER_HELP(
-    cmdline14,
-    "@li positional arguments are passed to method in the exact order they "
-    "appear on the command line");
-REGISTER_HELP(
-    cmdline15,
-    "@li named arguments grouped by curly braces are packed together into"
-    " a dictionary that is passed to the method at the exact place it appears "
-    "on the command line");
-REGISTER_HELP(cmdline16,
-              "@li named arguments that are not placed inside curly braces, "
-              "independent of where they appear on command line, are packed "
-              "into a single dictionary, passed as a last parameter to the "
-              "method.");
-REGISTER_HELP(cmdline_EXAMPLE,
-              "Command line form followed by the equivalent JavaScript call:");
-REGISTER_HELP(
-    cmdline_EXAMPLE1,
-    "<code>"
-    "$ mysqlsh -- dba deploy-sandbox-instance 1234 --password=secret\n"
-    "  mysql-js> dba.deploySandboxInstance(1234, {password: secret})</code>");
+    cmdline_EXAMPLE,
+    "$ mysqlsh -- dba deploy-sandbox-instance 1234 --password=secret");
+REGISTER_HELP(cmdline_EXAMPLE_DESC,
+              "mysql-js> dba.deploySandboxInstance(1234, {password: secret})");
+REGISTER_HELP(cmdline_EXAMPLE1,
+              "$ mysqlsh root@localhost:1234 -- dba create-cluster mycluster");
+REGISTER_HELP(cmdline_EXAMPLE1_DESC,
+              "mysql-js> dba.createCluster(\"mycluster\")");
 REGISTER_HELP(cmdline_EXAMPLE2,
-              "<code>"
-              "$ mysqlsh root@localhost:1234 -- dba create-cluster mycluster\n"
-              "  mysql-js> dba.createCluster(\"mycluster\")</code>");
+              "$ mysqlsh root@localhost:1234 -- cluster status");
+REGISTER_HELP(cmdline_EXAMPLE2_DESC, "mysql-js> cluster.status()");
 REGISTER_HELP(cmdline_EXAMPLE3,
-              "<code>"
-              "$ mysqlsh root@localhost:1234 -- cluster status\n"
-              "  mysql-js> cluster.status()</code>");
-REGISTER_HELP(
-    cmdline_EXAMPLE4,
-    "<code>"
-    "$ mysqlsh -- shell.options set-persist history.autoSave true\n"
-    "  mysql-js> shell.options.setPersist(\"history.autoSave\", true);</code>");
-REGISTER_HELP(cmdline_EXAMPLE5,
-              "<code>"
+              "$ mysqlsh -- shell.options set-persist history.autoSave true");
+REGISTER_HELP(cmdline_EXAMPLE3_DESC,
+              "mysql-js> shell.options.setPersist(\"history.autoSave\", true)");
+REGISTER_HELP(cmdline_EXAMPLE4,
               "$ mysqlsh -- util checkForServerUpgrade root@localhost "
-              "--outputFormat=JSON\n"
-              "  mysql-js> util.checkForServerUpgrade(\"root@localhost\",\n"
-              "                   {outputFormat: \"JSON\"});</code>");
+              "--outputFormat=JSON");
 REGISTER_HELP(
-    cmdline_EXAMPLE6,
-    "<code>"
-    "$ mysqlsh -- util check-for-server-upgrade\n"
-    "                   { --user=root --host=localhost } --password=\n"
-    "  mysql-js> util.checkForServerUpgrade(\n"
-    "                   {user:\"root\", host:\"localhost\"}, "
-    "{password:\"\"})</code>");
+    cmdline_EXAMPLE4_DESC,
+    "mysql-js> util.checkForServerUpgrade(\"root@localhost\",{outputFormat: "
+    "\"JSON\"})");
+REGISTER_HELP(cmdline_EXAMPLE5,
+              "$ mysqlsh -- util check-for-server-upgrade { --user=root "
+              "--host=localhost } --password=");
+REGISTER_HELP(
+    cmdline_EXAMPLE5_DESC,
+    "mysql-js> util.checkForServerUpgrade({user:\"root\", host:\"localhost\"}, "
+    "{password:\"\"})");
 
 void Shell_cli_operation::register_provider(
     const std::string &name, Shell_cli_operation::Provider provider) {
   if (m_providers.find(name) != m_providers.end())
     throw std::invalid_argument(
-        "Shell operation provider already registered under name " + name);
+        "Shell operation provider already registered under "
+        "name " +
+        name);
 
   m_providers.emplace(name, provider);
 }
@@ -214,8 +222,8 @@ void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
   while (cmdline_iterator->valid()) {
     std::string arg = cmdline_iterator->get();
 
-    // "{" is the correct syntax, we are matching "{--" for user convenience as
-    // it will be a common mistake
+    // "{" is the correct syntax, we are matching "{--" for user
+    // convenience as it will be a common mistake
     if (arg == "{" || str_beginswith(arg, "{--")) {
       if (local_map)
         throw Mapping_error("Nested dictionaries are not supported");
@@ -239,7 +247,8 @@ void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
     } else {
       if (local_map)
         throw Mapping_error(
-            "Positional arguments are not allowed inside local dictionary");
+            "Positional arguments are not allowed inside local "
+            "dictionary");
       m_argument_list.push_back(arg == "-" ? Value::Null() : Value(arg));
     }
   }

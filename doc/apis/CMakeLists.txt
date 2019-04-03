@@ -30,6 +30,37 @@ ENDIF()
 
 project (mysqlsh)
 
+function (to_snake_case input output)
+  string(REGEX REPLACE "([a-z0-9])([A-Z])" "\\1_\\2" value "${input}")
+  string(TOLOWER "${value}" value)
+  set(${output} "${value}" PARENT_SCOPE)
+endfunction()
+
+function (remove_member_indicators input output)
+  string(LENGTH ${input}, len)
+  math(EXPR new_len "${len} - 6 - 1")
+  string(SUBSTRING "${input}" 3 ${new_len} value)
+  set(${output} "${value}" PARENT_SCOPE)
+endfunction()
+
+function(resolve_member_names input output mode)
+  set(${output} "${input}" PARENT_SCOPE)
+  string(REGEX MATCHALL "<<<[A-Z|a-z|0-9|_]+>>>" members "${input}")
+  foreach(member ${members})
+    remove_member_indicators("${member}" final_member)
+    if ("PY" STREQUAL "${mode}")
+      to_snake_case("${final_member}" final_member)
+    endif()
+
+    # STRING(REGEX REPLACE "${member}" "${final_member}" input "${input}")
+    string(REPLACE "${member}" "${final_member}" input "${input}")
+
+    set(${output} "${input}" PARENT_SCOPE)
+  endforeach()
+endfunction()
+
+function (generate_docs type)
+
 file(GLOB docs_SRC
     "${CMAKE_SOURCE_DIR}/../../modules/devapi/*"
     "${CMAKE_SOURCE_DIR}/../../modules/adminapi/*"
@@ -172,10 +203,12 @@ foreach(file ${docs_SRC})
       # Creates the variable with the assigned value
       STRING(STRIP "${variable}" stripped_variable)
       #MESSAGE ("VAR: '${stripped_variable}' : '${value}'")
-      SET(ENV{${stripped_variable}} "${value}")
+      resolve_member_names("${value}" final_value "${type}")
+      SET(ENV{${stripped_variable}} "${final_value}")
       IF(NOT "${value_brief}" STREQUAL "")
         SET(variable_brief "${stripped_variable}_BRIEF")
-        SET(ENV{${variable_brief}} "${value_brief}")
+        resolve_member_names("${value}" final_value_brief "${type}")
+        SET(ENV{${variable_brief}} "${final_value_brief}")
       ENDIF()
       SET(process "0")
 
@@ -187,7 +220,6 @@ foreach(file ${docs_SRC})
 endforeach()
 
 SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../modules/devapi ${CMAKE_SOURCE_DIR}/../../modules/util ${CMAKE_SOURCE_DIR}")
-
 SET(DOX_EXAMPLE_PATH "${CMAKE_SOURCE_DIR}/../../unittest/scripts/py_devapi/scripts/")
 SET(DOX_EXAMPLE_PATH "${DOX_EXAMPLE_PATH} ${CMAKE_SOURCE_DIR}/../../unittest/scripts/js_devapi/scripts/")
 SET(DOX_EXAMPLE_PATH "${DOX_EXAMPLE_PATH} ${CMAKE_SOURCE_DIR}/../../unittest/scripts/js_dev_api_examples/")
@@ -199,14 +231,15 @@ SET(DOX_EXCLUDE_PATTERNS "*my_aes* *mod_dba_replicaset* *mod_dba_instan* mod_ext
 
 SET(DOX_LAYOUT_FILE "${CMAKE_SOURCE_DIR}/DoxygenLayout.scripting.xml")
 
+
 # JS Documentation Generation
-SET(DOX_PREDEFINED "DOXYGEN_JS")
-SET(DOX_ENABLED_SECTIONS "DOXYGEN_JS")
+SET(DOX_PREDEFINED "DOXYGEN_${type}")
+SET(DOX_ENABLED_SECTIONS "DOXYGEN_${type}")
 
 if(SHELL_DOCS_PATH)
-  SET(DOX_OUTDIR "${SHELL_DOCS_PATH}/JS")
+  SET(DOX_OUTDIR "${SHELL_DOCS_PATH}/${type}")
 else()
-  SET(DOX_OUTDIR "JS")
+  SET(DOX_OUTDIR "${type}")
 endif()
 
 string(TIMESTAMP TODAY "%b %d, %Y")
@@ -218,25 +251,9 @@ configure_file("${CMAKE_SOURCE_DIR}/footer.html.in"
 
 # Creates the target file containing the code ready for processing
 configure_file("${CMAKE_SOURCE_DIR}/doxygen.cfg.in"
-               "doxygen_js.cfg")
+               "doxygen_${type}.cfg")
 
-execute_process(COMMAND doxygen "doxygen_js.cfg")
-
-# PY Documentation Generation
-SET(DOX_PREDEFINED "DOXYGEN_PY")
-SET(DOX_ENABLED_SECTIONS "DOXYGEN_PY")
-
-if(SHELL_DOCS_PATH)
-  SET(DOX_OUTDIR "${SHELL_DOCS_PATH}/PY")
-else()
-  SET(DOX_OUTDIR "PY")
-endif()
-
-# Creates the target file containing the code ready for processing
-configure_file("${CMAKE_SOURCE_DIR}/doxygen.cfg.in"
-               "doxygen_py.cfg")
-
-execute_process(COMMAND doxygen "doxygen_py.cfg")
+execute_process(COMMAND doxygen "doxygen_${type}.cfg")
 
 # search for all unparsed variables
 
@@ -253,3 +270,10 @@ foreach(file ${html_files})
     endif()
   endforeach()
 endforeach()
+
+endfunction()
+
+
+generate_docs("JS")
+generate_docs("PY")
+

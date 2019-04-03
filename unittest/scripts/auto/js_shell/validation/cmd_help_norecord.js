@@ -378,78 +378,108 @@ e.g.: \? SQL Syntax/SELECT
 SQL help requires the Shell to be connected to a MySQL server.
 
 //@<OUT> Help for API Command Line Integration
-Following syntax can be used to execute methods of the Shell global objects
-from command line:
+The MySQL Shell functionality is generally available as API calls, this is
+objects containing methods to perform specific tasks, they can be called either
+in JavaScript or Python modes.
+
+The most important functionality (available on the shell global objects) has
+been integrated in a way that it is possible to call it directly from the
+command line, by following a specific syntax.
+
+SYNTAX:
 
   mysqlsh [options] -- <object> <method> [arguments]
 
-- object - a string identifying shell object exposed to command line:
-  * dba - dba global object
-  * cluster - cluster returned by calling dba.getCluster()
-  * shell - shell global object
-  * shell.options - shell.options object
-  * util - util global object
+WHERE:
 
-- method - a string identifying method of the object in either:
-  * Camel case form (e.g. createCluster, checkForServerUpgrade)
-  * Kebab case form (all lower case, words separated by hyphens)
-    (e.g. create-cluster, check-for-server-upgrade)
+- object - a string identifying shell object to be called.
+- method - a string identifying method to be called on the object.
+- arguments - arguments passed to the called method.
 
-- arguments - arguments passed to the method in format described below.
+DETAILS:
 
-Arguments syntax allows mixing positional and named arguments (similar to args
-and *kwargs in Python):
+The following objects can be called using this format:
+
+- dba - dba global object.
+- cluster - cluster returned by calling dba.getCluster().
+- shell - shell global object.
+- shell.options - shell.options object.
+- util - util global object
+
+The method name can be given in the following naming styles:
+
+- Camel case: (e.g. createCluster, checkForServerUpgrade)
+- Kebab case: (e.g. create-cluster, check-for-server-upgrade)
+
+The arguments syntax allows mixing positional and named arguments (similar to
+args and *kwargs in Python):
+
+ARGUMENT SYNTAX:
 
   [ positional_argument ]* [ { named_argument* } ]* [ named_argument ]*
 
-- positional_argument - is a single string representing a value:
-  * positional_argument ::= value
-  * value   ::= string | integer | float | boolean | null
-  * string  ::= plain string, quoted if contains whitespace characters
-  * integer ::= plain integer
-  * float   ::= plain float
-  * boolean ::= 1 | 0 | true | false
-  * null    ::= "-"
+WHERE:
 
-- named_argument - a string in '--argument-name[=value]' format where:
-  * argument-name - is a dictionary keyword that method is expecting either
-    in the JS camel case or the command line, lowercase + hyphens, format
-    (e.g. --outputFormat or --output-format)
-  * "--argument-name" is interpreted as "--argument-name=true"
-  * value is analogical to positional argument.
+- positional_argument - is a single string representing a value.
+- named_argument - a string in the form of --argument-name[=value]
 
+A positional_argument is defined by the following rules:
 
-Such command line arguments are transformed into method parameters:
+- positional_argument ::= value
+- value   ::= string | integer | float | boolean | null
+- string  ::= plain string, quoted if contains whitespace characters
+- integer ::= plain integer
+- float   ::= plain float
+- boolean ::= 1 | 0 | true | false
+- null    ::= "-"
 
-- positional arguments are passed to method in the exact order they appear on
-  the command line
-- named arguments grouped by curly braces are packed together into a dictionary
-  that is passed to the method at the exact place it appears on the command
-  line
-- named arguments that are not placed inside curly braces, independent of where
-  they appear on command line, are packed into a single dictionary, passed as a
-  last parameter to the method.
+Positional arguments are passed to the function call in the order they are
+defined.
+
+Named arguments represent a dictionary option that the method is expecting. It
+is created by prepending the option name with double dash and can also be
+specified either using camelCaseNaming or kebab-case-naming, examples:
+
+--anOptionName[=value]
+--an-option-name[=value]
+
+If the value is not provided the option name will be handled as a boolean
+option with a default value of TRUE.
+
+Grouping Named Arguments
+
+It is possible to create a group of named arguments by enclosing them between
+curly braces. This group would be handled as a positional argument at the
+position where the opening curly brace was found, it will be passed to the
+function as a dictionary containing all the named arguments defined on the
+group.
+
+Named arguments that are not placed inside curly braces (independently of the
+position on the command line), are packed a single dictionary, passed as a last
+parameter on the method call.
+
+Following are some examples of command line calls as well as how they are
+mapped to the API method call.
 
 EXAMPLES
-Command line form followed by the equivalent JavaScript call:
-
 $ mysqlsh -- dba deploy-sandbox-instance 1234 --password=secret
-  mysql-js> dba.deploySandboxInstance(1234, {password: secret})
+      mysql-js> dba.deploySandboxInstance(1234, {password: secret})
 
 $ mysqlsh root@localhost:1234 -- dba create-cluster mycluster
-  mysql-js> dba.createCluster("mycluster")
+      mysql-js> dba.createCluster("mycluster")
 
 $ mysqlsh root@localhost:1234 -- cluster status
-  mysql-js> cluster.status()
+      mysql-js> cluster.status()
 
 $ mysqlsh -- shell.options set-persist history.autoSave true
-  mysql-js> shell.options.setPersist("history.autoSave", true);
+      mysql-js> shell.options.setPersist("history.autoSave", true)
 
 $ mysqlsh -- util checkForServerUpgrade root@localhost --outputFormat=JSON
-  mysql-js> util.checkForServerUpgrade("root@localhost",
-                   {outputFormat: "JSON"});
+      mysql-js> util.checkForServerUpgrade("root@localhost",{outputFormat:
+      "JSON"})
 
-$ mysqlsh -- util check-for-server-upgrade
-                   { --user=root --host=localhost } --password=
-  mysql-js> util.checkForServerUpgrade(
-                   {user:"root", host:"localhost"}, {password:""})
+$ mysqlsh -- util check-for-server-upgrade { --user=root --host=localhost }
+--password=
+      mysql-js> util.checkForServerUpgrade({user:"root", host:"localhost"},
+      {password:""})
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,30 +88,47 @@ TEST(Textui, get_sized_strings) {
 TEST(Textui, preprocess_markup) {
   {
     Highlights highlights;
-    auto result =
-        preprocess_markup("<code>var sample = 3;</code>", &highlights);
+    auto result = preprocess_markup(
+        "@code"
+        "var sample = 3;"
+        "@endcode",
+        &highlights);
     EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3;", result);
 
-    result = preprocess_markup("Some text <code>var sample = 3;</code>",
-                               &highlights);
+    result = preprocess_markup(
+        "Some text @code"
+        "var sample = 3;"
+        "@endcode",
+        &highlights);
     EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("Some text var sample = 3;", result);
 
-    result = preprocess_markup("<code>var sample = 3;</code> Some text",
-                               &highlights);
+    result = preprocess_markup(
+        "@code"
+        "var sample = 3;"
+        "@endcode "
+        "Some text",
+        &highlights);
     EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3; Some text", result);
 
-    result = preprocess_markup("Some <code>var sample = 3;</code> text",
-                               &highlights);
+    result = preprocess_markup(
+        "Some @code"
+        "var sample = 3;"
+        "@endcode text",
+        &highlights);
     EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("Some var sample = 3; text", result);
 
     result = preprocess_markup(
-        "<code>var sample = 3;</code>"
+        "@code"
+        "var sample = 3;"
+        "@endcode"
         "Some text "
-        "<code>var other = 3;</code>",
+        "@code"
+        "var other = 3;"
+        "@endcode",
         &highlights);
     EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3;Some text var other = 3;", result);
@@ -736,7 +753,7 @@ TEST(Textui, format_markup_text_single) {
   std::string B = "\x1B[1m";  // sequence for <b>
   std::string b = "\x1B[0m";  // sequence for </b>
 
-  std::string text1 = "@li <b>Sample</b> text <code>with code</code>";
+  std::string text1 = "@li <b>Sample</b> text @codewith code@endcode";
 
   // Single post markup
   {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -747,99 +747,61 @@ shcore::Value Collection::find_(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(createIndex, Collection);
-REGISTER_HELP(COLLECTION_CREATEINDEX_BRIEF,
-              "Creates an index on a collection.");
-REGISTER_HELP(COLLECTION_CREATEINDEX_PARAM,
-              "@param name the name of the index to be created.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_PARAM1,
-    "@param indexDefinition a JSON document with the index information.");
-REGISTER_HELP(COLLECTION_CREATEINDEX_RETURNS, "@returns a Result object.");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL,
-              "This function will create an index on the collection using the "
-              "information "
-              "provided in indexDefinition.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL1,
-    "The indexDefinition is a JSON document with the next information:");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL2,
-              "<code>{\n"
-              "&nbsp;&nbsp;fields : [@<index_field@>, ...],\n"
-              "&nbsp;&nbsp;type   : @<type@>\n"
-              "}</code>");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL3,
-              "@li fields array of index_field objects, each describing a "
-              "single document "
-              "member to be included in the index.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL4,
-    "@li type string, (optional) the type of index. One of INDEX or SPATIAL. "
-    "Default is INDEX and may be omitted.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL5,
-    "A single index_field description consists of the following fields:");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL6,
-              "<code>{\n"
-              "&nbsp;&nbsp;field    : @<field@>,\n"
-              "&nbsp;&nbsp;type     : @<type@>,\n"
-              "&nbsp;&nbsp;required : @<boolean@>\n"
-              "&nbsp;&nbsp;options  : @<uint@>,\n"
-              "&nbsp;&nbsp;srid     : @<uint@>\n"
-              "}</code>");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL7,
-    "@li field: string, the full document path to the document member or field "
-    "to be indexed.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL8,
-    "@li type: string, one of the supported SQL column types to map the field "
-    "into. For numeric types, the optional UNSIGNED keyword may follow. For "
-    "the "
-    "TEXT type, the length to consider for indexing may be added.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL9,
-    "@li required: bool, (optional) true if the field is required to exist in "
-    "the document. defaults to false, except for GEOJSON where it defaults to "
-    "true.");
-REGISTER_HELP(
-    COLLECTION_CREATEINDEX_DETAIL10,
-    "@li options: uint, (optional) special option flags for use when decoding "
-    "GEOJSON data");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL11,
-              "@li srid: uint, (optional) srid value for use when decoding "
-              "GEOJSON data.");
-REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL12,
-              "The 'options' and 'srid' fields in IndexField can and must be "
-              "present only "
-              "if 'type' is set to 'GEOJSON'.");
+REGISTER_HELP_FUNCTION_TEXT(COLLECTION_CREATEINDEX, R"*(
+Creates an index on a collection.
+
+@param name the name of the index to be created.
+@param indexDefinition a JSON document with the index information.
+@returns a Result object.
+
+This function will create an index on the collection using the information 
+provided in indexDefinition.
+
+The indexDefinition is a JSON document with the next information:
+
+@code
+{
+  fields : [<index_field>, ...],
+  type   : <type>
+}
+@endcode
+
+@li fields array of index_field objects, each describing a single document
+member to be included in the index.
+@li type string, (optional) the type of index. One of INDEX or SPATIAL. Default
+is INDEX and may be omitted.
+
+A single index_field description consists of the following fields:
+
+@code
+{
+  field    : <field>,
+  type     : <type>,
+  required : <boolean>,
+  options  : <uint>,
+  srid     : <uint>
+}
+@endcode
+
+@li field: string, the full document path to the document member or field to be
+indexed.
+@li type: string, one of the supported SQL column types to map the field into.
+For numeric types, the optional UNSIGNED keyword may follow. For the TEXT type,
+the length to consider for indexing may be added.
+@li required: bool, (optional) true if the field is required to exist in the
+document. defaults to false, except for GEOJSON where it defaults to true.
+@li options: uint, (optional) special option flags for use when decoding GEOJSON
+data.
+@li srid: uint, (optional) srid value for use when decoding GEOJSON data.
+
+The 'options' and 'srid' fields in IndexField can and must be present only if
+'type' is set to 'GEOJSON'.
+)*");
 
 /**
  * $(COLLECTION_CREATEINDEX_BRIEF)
  *
- * $(COLLECTION_CREATEINDEX_PARAM)
- * $(COLLECTION_CREATEINDEX_PARAM1)
- *
- * $(COLLECTION_CREATEINDEX_RETURNS)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL)
- * $(COLLECTION_CREATEINDEX_DETAIL1)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL2)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL3)
- * $(COLLECTION_CREATEINDEX_DETAIL4)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL5)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL6)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL7)
- * $(COLLECTION_CREATEINDEX_DETAIL8)
- * $(COLLECTION_CREATEINDEX_DETAIL9)
- * $(COLLECTION_CREATEINDEX_DETAIL10)
- * $(COLLECTION_CREATEINDEX_DETAIL11)
- *
- * $(COLLECTION_CREATEINDEX_DETAIL12)
+ * $(COLLECTION_CREATEINDEX)
  */
 //@{
 #if DOXYGEN_JS

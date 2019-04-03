@@ -182,7 +182,6 @@ NAME
 SYNTAX
       <Collection>.count()
 
-
 //@<OUT> Help on createIndex
 NAME
       createIndex - Creates an index on a collection.
@@ -216,7 +215,7 @@ DESCRIPTION
       {
         field    : <field>,
         type     : <type>,
-        required : <boolean>
+        required : <boolean>,
         options  : <uint>,
         srid     : <uint>
       }
@@ -230,7 +229,7 @@ DESCRIPTION
         the document. defaults to false, except for GEOJSON where it defaults
         to true.
       - options: uint, (optional) special option flags for use when decoding
-        GEOJSON data
+        GEOJSON data.
       - srid: uint, (optional) srid value for use when decoding GEOJSON data.
 
       The 'options' and 'srid' fields in IndexField can and must be present
