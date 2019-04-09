@@ -54,6 +54,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
 #include "utils/utils_net.h"
@@ -1732,11 +1733,27 @@ void ReplicaSet::remove_replication_users(
       throw shcore::Exception::runtime_error(
           "Cluster object is no longer valid");
 
-    mysqlshdk::mysql::Instance primary_instance(cluster->get_group_session());
-
     // Remove the replication user used by the removed instance on all
     // cluster members through the primary (using replication).
-    primary_instance.drop_users_with_regexp(rpl_user + ".*");
+    // NOTE: Make sure to remove the user if it was an user created by
+    // the Shell, i.e. with the format: mysql_innodb_cluster_r[0-9]{10}
+    if (!rpl_user.empty() &&
+        shcore::str_beginswith(rpl_user, "mysql_innodb_cluster_r")) {
+      log_debug("Removing replication user '%s'", rpl_user.c_str());
+      try {
+        mysqlshdk::mysql::drop_all_accounts_for_user(
+            cluster->get_group_session(), rpl_user);
+      } catch (const std::exception &drop_accounts_error) {
+        auto console = mysqlsh::current_console();
+        console->print_warning("Failed to remove replication user '" +
+                               rpl_user + "': " + drop_accounts_error.what());
+      }
+    } else {
+      auto console = mysqlsh::current_console();
+      console->print_warning(
+          "Unable to determine replication user used for recovery. Skipping "
+          "removal of it.");
+    }
   }
 }
 
