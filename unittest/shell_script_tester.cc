@@ -1495,13 +1495,19 @@ void Shell_script_tester::set_defaults() {
          std::to_string(_target_server_version.get_major() * 10000 +
                         _target_server_version.get_minor() * 100 +
                         _target_server_version.get_patch());
+  exec_and_out_equals(code);
+
 #ifdef WITH_OCI
   def_var("__with_oci", "1");
 #else
   def_var("__with_oci", "0");
 #endif
 
-  exec_and_out_equals(code);
+#ifdef DBUG_OFF
+  def_var("__dbug_off", "1");
+#else
+  def_var("__dbug_off", "0");
+#endif
 }
 
 void Shell_js_script_tester::set_defaults() {

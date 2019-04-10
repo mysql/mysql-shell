@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -1146,37 +1147,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   // if no config files were found, try to look in the default paths
   if (config_paths.empty()) {
     shcore::OperatingSystem os = shcore::get_os_type();
-    log_info("OS detected as %s", shcore::to_string(os).c_str());
-    switch (os) {
-      case shcore::OperatingSystem::DEBIAN:
-        default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
-        break;
-      case shcore::OperatingSystem::REDHAT:
-      case shcore::OperatingSystem::SOLARIS:
-        default_paths.push_back("/etc/my.cnf");
-        break;
-      case shcore::OperatingSystem::LINUX:
-        default_paths.push_back("/etc/my.cnf");
-        default_paths.push_back("/etc/mysql/my.cnf");
-        break;
-      case shcore::OperatingSystem::WINDOWS: {
-        char *program_data_ptr = std::getenv("PROGRAMDATA");
-        if (program_data_ptr) {
-          default_paths.push_back(std::string(program_data_ptr) +
-                                  R"(\MySQL\MySQL Server 5.7\my.ini)");
-          default_paths.push_back(std::string(program_data_ptr) +
-                                  R"(\MySQL\MySQL Server 8.0\my.ini)");
-        }
-      } break;
-      case shcore::OperatingSystem::MACOS:
-        default_paths.push_back("/etc/my.cnf");
-        default_paths.push_back("/etc/mysql/my.cnf");
-        default_paths.push_back("/usr/local/mysql/etc/my.cnf");
-        break;
-      default:
-        // The non-handled OS case will keep default_paths and cnfPath empty
-        break;
-    }
+    auto default_paths = mysqlshdk::config::get_default_config_paths(os);
   }
   // Iterate the config_paths found in the instance checking if the user wants
   // to modify any of them
@@ -1841,7 +1812,7 @@ std::string get_report_host_address(
 
 std::unique_ptr<mysqlshdk::config::Config> create_server_config(
     mysqlshdk::mysql::IInstance *instance,
-    const std::string &srv_cfg_handler_name) {
+    const std::string &srv_cfg_handler_name, bool silent) {
   auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
 
   // Get the capabilities to use set persist by the server.
@@ -1857,31 +1828,64 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
                             ? mysqlshdk::mysql::Var_qualifier::PERSIST
                             : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
 
-  if (can_set_persist.is_null()) {
-    auto console = mysqlsh::current_console();
+  if (!silent) {
+    if (can_set_persist.is_null()) {
+      auto console = mysqlsh::current_console();
 
-    std::string warn_msg =
-        "Instance '" + instance->descr() +
-        "' cannot persist Group Replication configuration since MySQL "
-        "version " +
-        instance->get_version().get_base() +
-        " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
-        "required). Please use the <Dba>.<<<configureLocalInstance>>>"
-        "() command locally to persist the changes.";
-    console->print_warning(warn_msg);
-  } else if (*can_set_persist == false) {
-    auto console = mysqlsh::current_console();
+      std::string warn_msg =
+          "Instance '" + instance->descr() +
+          "' cannot persist Group Replication configuration since MySQL "
+          "version " +
+          instance->get_version().get_base() +
+          " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
+          "required). Please use the <Dba>.<<<configureLocalInstance>>>"
+          "() command locally to persist the changes.";
+      console->print_warning(warn_msg);
+    } else if (*can_set_persist == false) {
+      auto console = mysqlsh::current_console();
 
-    std::string warn_msg =
-        "Instance '" + instance->descr() +
-        "' will not load the persisted cluster configuration upon reboot since "
-        "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>."
-        "<<<configureLocalInstance>>>() command locally to persist the changes "
-        "or set 'persisted-globals-load' to 'ON' on the configuration file.";
-    console->print_warning(warn_msg);
+      std::string warn_msg =
+          "Instance '" + instance->descr() +
+          "' will not load the persisted cluster configuration upon reboot "
+          "since "
+          "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>."
+          "<<<configureLocalInstance>>>() command locally to persist the "
+          "changes "
+          "or set 'persisted-globals-load' to 'ON' on the configuration file.";
+      console->print_warning(warn_msg);
+    }
   }
 
   return cfg;
+}
+
+void add_config_file_handler(mysqlshdk::config::Config *cfg,
+                             const std::string handler_name,
+                             const std::string &mycnf_path,
+                             const std::string &output_mycnf_path) {
+  // Add configuration handle to update option file (if provided).
+  if (mycnf_path.empty() && output_mycnf_path.empty()) {
+    throw std::logic_error("No option file path was provided.");
+  }
+  if (output_mycnf_path.empty()) {
+    // Read and update mycnf.
+    cfg->add_handler(handler_name,
+                     std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                         new mysqlshdk::config::Config_file_handler(
+                             mycnf_path, mycnf_path)));
+  } else if (mycnf_path.empty()) {
+    // Update output_mycnf (creating it if needed).
+    cfg->add_handler(
+        handler_name,
+        std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+            new mysqlshdk::config::Config_file_handler(output_mycnf_path)));
+  } else {
+    // Read from mycnf but update output_mycnf (creating it if needed).
+    cfg->add_handler(handler_name,
+                     std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                         new mysqlshdk::config::Config_file_handler(
+                             mycnf_path, output_mycnf_path)));
+  }
 }
 
 std::string resolve_gr_local_address(

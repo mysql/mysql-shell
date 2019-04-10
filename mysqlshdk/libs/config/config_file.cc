@@ -27,6 +27,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "my_dbug.h"
+
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -792,6 +794,43 @@ std::string Config_file::parse_include_path(
         line + "'.");
   }
   return res;
+}
+
+std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {
+  std::vector<std::string> default_paths;
+  log_info("Getting default config paths for OS %s", to_string(os).c_str());
+  switch (os) {
+    case shcore::OperatingSystem::DEBIAN:
+      default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
+      break;
+    case shcore::OperatingSystem::REDHAT:
+    case shcore::OperatingSystem::SOLARIS:
+      default_paths.push_back("/etc/my.cnf");
+      break;
+    case shcore::OperatingSystem::LINUX:
+      default_paths.push_back("/etc/my.cnf");
+      default_paths.push_back("/etc/mysql/my.cnf");
+      break;
+    case shcore::OperatingSystem::WINDOWS: {
+      char *program_data_ptr = getenv("PROGRAMDATA");
+      if (program_data_ptr) {
+        default_paths.push_back(std::string(program_data_ptr) +
+                                R"(\MySQL\MySQL Server 5.7\my.ini)");
+        default_paths.push_back(std::string(program_data_ptr) +
+                                R"(\MySQL\MySQL Server 8.0\my.ini)");
+      }
+    } break;
+    case shcore::OperatingSystem::MACOS:
+      default_paths.push_back("/etc/my.cnf");
+      default_paths.push_back("/etc/mysql/my.cnf");
+      default_paths.push_back("/usr/local/mysql/etc/my.cnf");
+      break;
+    default:
+      // The non-handled OS case will keep default_paths and cnfPath empty
+      break;
+  }
+  DBUG_EXECUTE_IF("override_mycnf_default_path", { default_paths.clear(); });
+  return default_paths;
 }
 
 }  // namespace config

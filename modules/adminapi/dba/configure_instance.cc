@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
@@ -409,6 +410,19 @@ void Configure_instance::ensure_configuration_change_possible(
             "server being configured, and pass the path to its configuration "
             "file through the mycnfPath option.");
       throw shcore::Exception::runtime_error("Unable to update configuration");
+    } else {
+      // Update the configuration handler if the m_mycnf_path or
+      // m_output_mycnf_path were read during the wizard on
+      // check_config_path_for_update. Remove the current config handler if it
+      // exists before adding it again.
+      if (!m_mycnf_path.empty() || !m_output_mycnf_path.empty()) {
+        if (m_cfg->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
+          m_cfg->remove_handler(mysqlshdk::config::k_dft_cfg_file_handler);
+        }
+        mysqlsh::dba::add_config_file_handler(
+            m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
+            m_mycnf_path, m_output_mycnf_path);
+      }
     }
   }
 }
@@ -430,40 +444,16 @@ void Configure_instance::validate_config_path() {
 }
 
 void Configure_instance::prepare_config_object() {
-  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
-
   // Add server configuration handler depending on SET PERSIST support.
-  // NOTE: Add server handler first to set it has the default handler.
-  m_cfg->add_handler(
-      mysqlshdk::config::k_dft_cfg_server_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_server_handler(
-              m_target_instance,
-              (!m_can_set_persist.is_null() && *m_can_set_persist)
-                  ? mysqlshdk::mysql::Var_qualifier::PERSIST
-                  : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
+  // NOTE: Add server handler first to set it as the default handler.
+  m_cfg = mysqlsh::dba::create_server_config(
+      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler, true);
 
   // Add configuration handle to update option file (if provided).
   if (!m_mycnf_path.empty() || !m_output_mycnf_path.empty()) {
-    if (m_output_mycnf_path.empty()) {
-      // Read and update mycnf.
-      m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
-                         std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                             new mysqlshdk::config::Config_file_handler(
-                                 m_mycnf_path, m_mycnf_path)));
-    } else if (m_mycnf_path.empty()) {
-      // Update output_mycnf (creating it if needed).
-      m_cfg->add_handler(
-          mysqlshdk::config::k_dft_cfg_file_handler,
-          std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-              new mysqlshdk::config::Config_file_handler(m_output_mycnf_path)));
-    } else {
-      // Read from mycnf but update output_mycnf (creating it if needed).
-      m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
-                         std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                             new mysqlshdk::config::Config_file_handler(
-                                 m_mycnf_path, m_output_mycnf_path)));
-    }
+    mysqlsh::dba::add_config_file_handler(
+        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler, m_mycnf_path,
+        m_output_mycnf_path);
   }
 }
 

@@ -308,9 +308,29 @@ std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &cnx_opts,
     const mysqlshdk::db::Connection_options &group_cnx_opts);
 
+/**
+ *  Creates a config object with a config_server_handler
+ *
+ * @param instance object pointing to the server to create the handler for.
+ * @param srv_cfg_handler_name the name of the handler.
+ * @param silent if true, print no warnings.
+ * @return a unique pointer to a config object.
+ */
 std::unique_ptr<mysqlshdk::config::Config> create_server_config(
     mysqlshdk::mysql::IInstance *instance,
-    const std::string &srv_cfg_handler_name);
+    const std::string &srv_cfg_handler_name, bool silent = false);
+
+/** Adds a config file handler to the config object
+ *
+ * @param cfg pointer to a config object
+ * @param handler_name name to be given to the config_file handler
+ * @param mycnf_path path to the mycnf_path
+ * @param output_mycnf_path path to the output_cnf_path
+ */
+void add_config_file_handler(mysqlshdk::config::Config *cfg,
+                             const std::string handler_name,
+                             const std::string &mycnf_path,
+                             const std::string &output_mycnf_path);
 
 /**
  * Resolves Group Replication local address.

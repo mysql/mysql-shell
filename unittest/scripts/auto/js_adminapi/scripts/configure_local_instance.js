@@ -105,3 +105,22 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
 
 //@ Cleanup (BUG#27702439)
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+// Override the get_default_config_paths function behavior to return empty list of config_paths.
+testutil.dbugSet("+d,override_mycnf_default_path");
+
+//@<OUT> Interactive_dba_configure_local_instance where we pass the configuration file path via wizard. (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.expectPrompt("Please specify the path to the MySQL configuration file: ", mycnf_path);
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
+
+//@<OUT> Confirm that changes were applied to config file (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+dba.configureLocalInstance(__sandbox_uri1, {interactive:true, mycnfPath:mycnf_path});
+
+//@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.destroySandbox(__mysql_sandbox_port1);

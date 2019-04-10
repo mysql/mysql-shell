@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace config {
@@ -373,6 +374,14 @@ class Config_file {
   std::string parse_include_path(const std::string &line,
                                  const std::string &base_path = "") const;
 };
+
+/**
+ * Gets a list of the default config file paths according to the OS
+ * @param os OperatingSystem enum
+ * @return vector with the default config file paths of the OS
+ */
+std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os);
+
 }  // namespace config
 }  // namespace mysqlshdk
 

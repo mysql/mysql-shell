@@ -262,7 +262,6 @@ void Check_instance::finish() {
 }
 
 void Check_instance::prepare_config_object() {
-  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
   bool use_cfg_handler = false;
   // if the configuration file was provided and exists, we add it to the
   // config object.
@@ -271,22 +270,15 @@ void Check_instance::prepare_config_object() {
   }
   // Add server configuration handler depending on SET PERSIST support.
   // NOTE: Add server handler first to set it has the default handler.
-  m_cfg->add_handler(
-      mysqlshdk::config::k_dft_cfg_server_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_server_handler(
-              m_target_instance,
-              (!m_can_set_persist.is_null() && *m_can_set_persist)
-                  ? mysqlshdk::mysql::Var_qualifier::PERSIST
-                  : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
+  m_cfg = mysqlsh::dba::create_server_config(
+      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler, true);
 
   // Add configuration handle to update option file (if provided) and not to
   // be skipped
   if (use_cfg_handler) {
-    m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
-                       std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-                           new mysqlshdk::config::Config_file_handler(
-                               m_mycnf_path, m_mycnf_path)));
+    mysqlsh::dba::add_config_file_handler(
+        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler, m_mycnf_path,
+        m_mycnf_path);
   }
 }
 
