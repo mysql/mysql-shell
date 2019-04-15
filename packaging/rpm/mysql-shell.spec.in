@@ -144,6 +144,8 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_datadir}/mysqlsh/oci_sdk/*
 %endif
 %{_datadir}/mysqlsh/upgrade_checker.msg
+%{_datadir}/mysqlsh/Docs/INFO_SRC
+%{_datadir}/mysqlsh/Docs/INFO_BIN
 
 %changelog
 * Mon Oct 8 2018 Rene Ramirez <j.rene.ramirez@oracle.com> - 8.0.14

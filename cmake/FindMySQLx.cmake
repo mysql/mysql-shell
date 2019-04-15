@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -40,15 +40,32 @@
 # ----------------------------------------------------------------------
 
 if(NOT MYSQL_CONFIG_EXECUTABLE)
-  set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config)
+  if(WIN32)
+    set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config.pl)
+  else()
+    set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config)
+  endif()
 endif()
 
+MESSAGE("----> EXECUTABLE: ${MYSQL_CONFIG_EXECUTABLE}")
+
 macro(_mysql_conf _var _opt)
-  execute_process(
-    COMMAND ${MYSQL_CONFIG_EXECUTABLE} ${_opt}
-    OUTPUT_VARIABLE ${_var}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
+  if(WIN32)
+    include(FindPerl)
+    if(PERL_FOUND)
+      execute_process(
+        COMMAND ${PERL_EXECUTABLE} ${MYSQL_CONFIG_EXECUTABLE} ${_opt}
+        OUTPUT_VARIABLE ${_var}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+    endif()
+  else()
+    execute_process(
+      COMMAND ${MYSQL_CONFIG_EXECUTABLE} ${_opt}
+      OUTPUT_VARIABLE ${_var}
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+  endif()
 endmacro()
 
 ####
@@ -167,5 +184,16 @@ else()
   message(STATUS "MYSQL_CLIENT_LIB: ${MYSQL_CLIENT_LIB}")
   message(FATAL_ERROR "Could not find MySQL client (libmysqlclient) and X protocol client (libmysqlxclient) libraries. Please set MYSQL_SOURCE_DIR and MYSQL_BUILD_DIR")
 endif()
+
+_mysql_conf(_mysql_version "--version")
+
+# Clean up so only numeric, in case of "-alpha" or similar
+string(REGEX MATCHALL "([0-9]+.[0-9]+.[0-9]+)" MYSQL_VERSION "${_mysql_version}")
+# To create a fully numeric version, first normalize so N.NN.NN
+string(REGEX REPLACE "[.]([0-9])[.]" ".0\\1." MYSQL_NUM_VERSION "${MYSQL_VERSION}")
+string(REGEX REPLACE "[.]([0-9])$"   ".0\\1"  MYSQL_NUM_VERSION "${MYSQL_NUM_VERSION}")
+# Finally remove the dot
+string(REGEX REPLACE "[.]" "" MYSQL_NUM_VERSION "${MYSQL_NUM_VERSION}")
+
 
 mark_as_advanced(MYSQLX_LIBRARY MYSQLX_INCLUDE_DIRS)

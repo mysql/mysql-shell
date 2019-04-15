@@ -292,6 +292,7 @@ SET(INSTALL_BINDIR "bin")
 SET(INSTALL_LIBDIR "lib/mysqlsh")
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
+SET(INSTALL_DOCDIR "share/mysqlsh/Docs")
 
 ##
 ## Configure style system detection
@@ -482,6 +483,26 @@ if(WIN32)
      INSTALL_VS_REDIST(main)
   endif()
 endif()
+
+#
+# Create the INFO_SRC and INFO_BIN files
+# =========================
+#
+# Will set GIT_EXECUTABLE and GIT_FOUND
+FIND_PACKAGE(Git)
+
+CONFIGURE_FILE(
+    ${CMAKE_SOURCE_DIR}/cmake/info_macros.cmake.in
+    ${CMAKE_BINARY_DIR}/info_macros.cmake @ONLY)
+
+INCLUDE(info_src)
+INSTALL(FILES ${CMAKE_BINARY_DIR}/Docs/INFO_SRC COMPONENT main DESTINATION ${INSTALL_DOCDIR})
+
+IF (NOT BUILD_SOURCE_PACKAGE)
+  INCLUDE(info_bin)
+  INSTALL(FILES ${CMAKE_BINARY_DIR}/Docs/INFO_BIN COMPONENT main DESTINATION ${INSTALL_DOCDIR})
+ENDIF()
+
 
 ###
 ### Packaging and other dependecy copying
