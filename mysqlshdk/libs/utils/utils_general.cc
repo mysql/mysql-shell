@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/textui/textui.h"
 
+#include "include/mysh_config.h"
 #include "my_config.h"
 
 #ifdef WIN32

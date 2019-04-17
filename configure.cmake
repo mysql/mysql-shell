@@ -212,3 +212,19 @@ IF(UNIX)
   ENDIF()
 ENDIF()
 
+#
+# Tests for header files
+#
+INCLUDE (CheckIncludeFiles)
+
+
+CHECK_INCLUDE_FILES (bsd/string.h HAVE_BSD_STRING_H)
+
+#
+# Tests for functions
+#
+CHECK_FUNCTION_EXISTS (getpwuid_r HAVE_GETPWUID_R)
+CHECK_FUNCTION_EXISTS (getlogin_r HAVE_GETLOGIN_R)
+CHECK_FUNCTION_EXISTS (memset_s HAVE_MEMSET_S)
+CHECK_FUNCTION_EXISTS (explicit_bzero HAVE_EXPLICIT_BZERO)
+
