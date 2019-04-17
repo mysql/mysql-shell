@@ -127,7 +127,8 @@ static const std::map<int, std::string> TokenName(
         {Token::LCURLY, "{"},
         {Token::RCURLY, "}"},
         {Token::ARROW, "ARROW"},
-        {Token::QUOTE, "QUOTE"}});
+        {Token::QUOTE, "QUOTE"},
+        {Token::TWOHEADARROW, "TWOHEADARROW"}});
 
 Tokenizer::Maps::Maps() {
   reserved_words["and"] = Token::AND;
@@ -345,11 +346,17 @@ void Tokenizer::get_tokens() {
       } else if (c == '-') {
         if (!arrow_last && next_char_is(i, '>')) {
           ++i;
-          _tokens.push_back(Token(Token::ARROW, "->", i));
+          if (next_char_is(i, '>')) {
+            ++i;
+            _tokens.push_back(Token(Token::TWOHEADARROW, "->>", i));
+          } else {
+            _tokens.push_back(Token(Token::ARROW, "->", i));
+          }
           arrow_last = true;
           continue;
-        } else
+        } else {
           _tokens.push_back(Token(Token::MINUS, std::string(1, c), i));
+        }
       } else if (c == '*') {
         if (next_char_is(i, '*')) {
           ++i;

@@ -116,9 +116,10 @@ class Token {
     COLON = 79,
     LCURLY = 80,
     RCURLY = 81,
-    ARROW = 82,
+    ARROW = 82,  // literal ->
     QUOTE = 83,
     OVERLAPS = 84,
+    TWOHEADARROW = 85  // literal ->>
   };
 
   Token(Token::TokenType type, const std::string &text, int cur_pos);
@@ -136,7 +137,7 @@ class Token {
 
 class Tokenizer {
  public:
-  Tokenizer(const std::string &input);
+  explicit Tokenizer(const std::string &input);
 
   typedef std::vector<Token> tokens_t;
 
@@ -189,7 +190,8 @@ class Tokenizer {
 
 class Parser_error : public std::runtime_error {
  public:
-  Parser_error(const std::string &msg) : std::runtime_error(msg), column(-1) {}
+  explicit Parser_error(const std::string &msg)
+      : std::runtime_error(msg), column(-1) {}
   Parser_error(const std::string &msg, const std::string &line_, int column_)
       : std::runtime_error(msg), line(line_), column(column_) {}
 

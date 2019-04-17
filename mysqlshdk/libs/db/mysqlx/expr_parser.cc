@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "db/mysqlx/expr_parser.h"
+#include "mysqlshdk/libs/db/mysqlx/expr_parser.h"
 
 #ifndef WIN32
 #include <strings.h>
@@ -36,7 +36,8 @@
 #include <stdexcept>
 #include <utility>
 
-#include "db/mysqlx/tokenizer.h"
+#include "mysqlshdk/libs/db/mysqlx/tokenizer.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlx {
@@ -280,10 +281,11 @@ const std::string &Expr_parser::id() {
 }
 
 /*
- * column_field ::= [ id DOT ][ id DOT ] id [ ARROW QUOTE DOLLAR docpath QUOTE ]
+ * column_field ::= [ id DOT ][ id DOT ] id [ (ARROW | TWOHEADARROW) QUOTE
+ * DOLLAR docpath QUOTE ]
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::column_field() {
-  std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
+  auto e = shcore::make_unique<Mysqlx::Expr::Expr>();
   std::vector<std::string> parts;
   const std::string &part = id();
 
@@ -319,15 +321,35 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::column_field() {
     else if (i == 2)
       colid->set_schema_name(s.c_str(), s.size());
   }
-  // Arrow & docpath
-  if (_tokenizer.cur_token_type_is(Token::ARROW)) {
-    _tokenizer.consume_token(Token::ARROW);
+
+  // (Arrow | TwoHeadArrow) & docpath
+  const bool is_twoheadarrow_token =
+      _tokenizer.cur_token_type_is(Token::TWOHEADARROW);
+  if (is_twoheadarrow_token || _tokenizer.cur_token_type_is(Token::ARROW)) {
+    _tokenizer.consume_any_token();
     _tokenizer.consume_token(Token::QUOTE);
     _tokenizer.consume_token(Token::DOLLAR);
     document_path(*colid);
     _tokenizer.consume_token(Token::QUOTE);
   }
+
   e->set_type(Mysqlx::Expr::Expr::IDENT);
+
+  if (is_twoheadarrow_token) {
+    // wrap with json_unquote function_call
+    auto func_unquote = shcore::make_unique<Mysqlx::Expr::Expr>();
+    func_unquote->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
+    Mysqlx::Expr::FunctionCall *func = func_unquote->mutable_function_call();
+    auto id = shcore::make_unique<Mysqlx::Expr::Identifier>();
+    id->set_name(std::string("JSON_UNQUOTE"));
+    func->set_allocated_name(id.release());
+    ::google::protobuf::RepeatedPtrField<::Mysqlx::Expr::Expr> *params =
+        func->mutable_param();
+    params->AddAllocated(e.release());
+
+    return func_unquote;
+  }
+
   return e;
 }
 

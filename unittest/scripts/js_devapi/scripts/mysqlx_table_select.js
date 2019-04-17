@@ -329,6 +329,26 @@ table.select(["name"]).where("list not OvErLaPs overlaps").execute()
 //@ WL12767-TS5_1 {VER(>=8.0.17)}
 table.select(["name"]).where("name OvErLaPs overlaps").execute()
 
+//@<> BUG29794340 X DEVAPI: SUPPORT FOR JSON UNQUOTING EXTRACTION OPERATOR (->>)
+shell.options['resultFormat'] = "tabbed"
+mySession.sql("drop table if exists bug29794340").execute();
+mySession.sql("create table bug29794340 (id integer primary key, doc json)").execute();
+var n = schema.getTable("bug29794340");
+n.insert("id", "doc").
+  values(1, '{ "name": "Bob" }').
+  values(2, '{ "name": "Jake" }').
+  values(3, '{ "name": "Mark" }').
+  execute();
+
+//@<OUT> BUG29794340: Right arrow operator
+n.select("doc->'$.name' as names");
+
+//@<OUT> BUG29794340: Two head right arrow operator
+n.select("doc->>'$.name' as names");
+
+//@ BUG29794340: Expected token type QUOTE
+n.select("doc->>>'$.name' as names");
+
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

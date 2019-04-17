@@ -275,4 +275,20 @@ true
 //@ WL12767-TS5_1
 ||Invalid JSON text in argument 1 to function json_overlaps: "Invalid value." at position 0.
 
+// BUG29794340 X DEVAPI: SUPPORT FOR JSON UNQUOTING EXTRACTION OPERATOR (->>)
+//@<OUT> BUG29794340: Right arrow operator
+names
+"Bob"
+"Jake"
+"Mark"
+3 rows in set ([[*]])
 
+//@<OUT> BUG29794340: Two head right arrow operator
+names
+Bob
+Jake
+Mark
+3 rows in set ([[*]])
+
+//@ BUG29794340: Expected token type QUOTE
+||Expected token type QUOTE at position 6 but found >. (RuntimeError)

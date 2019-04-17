@@ -123,6 +123,10 @@ TEST(Expr_parser_tests, x_test_cast) {
       "cast(doc->'$.foo' as char(30))",
       "[59, 6, 19, 82, 83, 77, 22, 19, 83, 56, 67, 6, 76, 7, 7]",
       "CAST(doc$.foo AS char(30))");
+  parse_and_assert_expr(
+      "cast(doc->>'$.foo' as char(30))",
+      "[59, 6, 19, 85, 83, 77, 22, 19, 83, 56, 67, 6, 76, 7, 7]",
+      "CAST(JSON_UNQUOTE(doc$.foo) AS char(30))");
   parse_and_assert_expr("cast(1234 as unsigned int)",
                         "[59, 6, 76, 56, 74, 75, 7]",
                         "CAST(1234 AS unsigned int)");
@@ -245,26 +249,52 @@ TEST(Expr_parser_tests, x_test_3) {
 
 TEST(Expr_parser_tests, x_test_4) {
   parse_and_assert_expr("a->'$.b'", "[19, 82, 83, 77, 22, 19, 83]", "a$.b");
+  parse_and_assert_expr("a->>'$.b'", "[19, 85, 83, 77, 22, 19, 83]",
+                        "JSON_UNQUOTE(a$.b)");
   parse_and_assert_expr("a->'$.b[0][0].c**.d.\"a weird\\\"key name\"'",
                         "[19, 82, 83, 77, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, "
                         "54, 22, 19, 22, 20, 83]",
                         "a$.b[0][0].c**.d.a weird\"key name");
+  parse_and_assert_expr("a->>'$.b[0][0].c**.d.\"a weird\\\"key name\"'",
+                        "[19, 85, 83, 77, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, "
+                        "54, 22, 19, 22, 20, 83]",
+                        "JSON_UNQUOTE(a$.b[0][0].c**.d.a weird\"key name)");
   parse_and_assert_expr("a->'$.*'", "[19, 82, 83, 77, 22, 38, 83]", "a$.*");
+  parse_and_assert_expr("a->>'$.*'", "[19, 85, 83, 77, 22, 38, 83]",
+                        "JSON_UNQUOTE(a$.*)");
   parse_and_assert_expr("a->'$.foo[*]'",
                         "[19, 82, 83, 77, 22, 19, 8, 38, 9, 83]", "a$.foo[*]");
+  parse_and_assert_expr("a->>'$.foo[*]'",
+                        "[19, 85, 83, 77, 22, 19, 8, 38, 9, 83]",
+                        "JSON_UNQUOTE(a$.foo[*])");
   parse_and_assert_expr("a->'$.foo[*].bar'",
                         "[19, 82, 83, 77, 22, 19, 8, 38, 9, 22, 19, 83]",
                         "a$.foo[*].bar");
+  parse_and_assert_expr("a->>'$.foo[*].bar'",
+                        "[19, 85, 83, 77, 22, 19, 8, 38, 9, 22, 19, 83]",
+                        "JSON_UNQUOTE(a$.foo[*].bar)");
   parse_and_assert_expr("a->'$[0].*'", "[19, 82, 83, 77, 8, 76, 9, 22, 38, 83]",
                         "a$[0].*");
+  parse_and_assert_expr("a->>'$[0].*'",
+                        "[19, 85, 83, 77, 8, 76, 9, 22, 38, 83]",
+                        "JSON_UNQUOTE(a$[0].*)");
   parse_and_assert_expr("a->'$**[0].*'",
                         "[19, 82, 83, 77, 54, 8, 76, 9, 22, 38, 83]",
                         "a$**[0].*");
+  parse_and_assert_expr("a->>'$**[0].*'",
+                        "[19, 85, 83, 77, 54, 8, 76, 9, 22, 38, 83]",
+                        "JSON_UNQUOTE(a$**[0].*)");
 
   parse_and_assert_expr("bla->'$.foo.bar'",
                         "[19, 82, 83, 77, 22, 19, 22, 19, 83]", "bla$.foo.bar");
+  parse_and_assert_expr("bla->>'$.foo.bar'",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 83]",
+                        "JSON_UNQUOTE(bla$.foo.bar)");
   parse_and_assert_expr("bla->'$.\"foo\".bar'",
                         "[19, 82, 83, 77, 22, 20, 22, 19, 83]", "bla$.foo.bar");
+  parse_and_assert_expr("bla->>'$.\"foo\".bar'",
+                        "[19, 85, 83, 77, 22, 20, 22, 19, 83]",
+                        "JSON_UNQUOTE(bla$.foo.bar)");
   parse_and_assert_expr(".foo", "[22, 19]", "$.foo", true);
   parse_and_assert_expr(".\"foo\"", "[22, 20]", "$.foo", true);
   parse_and_assert_expr(".*", "[22, 38]", "$.*", true);
@@ -304,6 +334,20 @@ TEST(Expr_parser_tests, arrow_operator) {
   parse_and_assert_expr("doc->'$.\"a b\"'=42",
                         "[19, 82, 83, 77, 22, 20, 83, 25, 76]",
                         "(doc$.a b == 42)");
+
+  EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
+}
+
+TEST(Expr_parser_tests, twoheadrightarrow_operator) {
+  parse_and_assert_expr("c->>'$.foo.bar'",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 83]",
+                        "JSON_UNQUOTE(c$.foo.bar)");
+  parse_and_assert_expr("`foo`->>'$.bla.bla.bla'",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 22, 19, 83]",
+                        "JSON_UNQUOTE(foo$.bla.bla.bla)");
+  parse_and_assert_expr("doc->>'$.\"a b\"'=42",
+                        "[19, 85, 83, 77, 22, 20, 83, 25, 76]",
+                        "(JSON_UNQUOTE(doc$.a b) == 42)");
 
   EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
 }

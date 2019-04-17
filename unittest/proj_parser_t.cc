@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -57,8 +57,8 @@ void parse_and_assert_expr(const std::string &input,
   std::stringstream out, out_tokens;
   Proj_parser p(input, document_mode, allow_alias);
   print_tokens(p, out_tokens);
-  std::string token_list2 = out_tokens.str();
-  ASSERT_TRUE(token_list == token_list2);
+  std::string actual_tokens = out_tokens.str();
+  ASSERT_EQ(token_list, actual_tokens);
   google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Projection> cols;
   p.parse(cols);
   std::string s = Expr_unparser::column_list_to_string(cols);
@@ -106,12 +106,21 @@ TEST(Proj_parser_tests, x_test) {
   parse_and_assert_expr("bar->'$.foo.bar'",
                         "[19, 82, 83, 77, 22, 19, 22, 19, 83]",
                         "projection (bar$.foo.bar)");
+  parse_and_assert_expr("bar->>'$.foo.bar'",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 83]",
+                        "projection (JSON_UNQUOTE(bar$.foo.bar))");
   parse_and_assert_expr("bar->'$.foo.bar' as bla",
                         "[19, 82, 83, 77, 22, 19, 22, 19, 83, 56, 19]",
                         "projection (bar$.foo.bar as bla)");
+  parse_and_assert_expr("bar->>'$.foo.bar' as bla",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 83, 56, 19]",
+                        "projection (JSON_UNQUOTE(bar$.foo.bar) as bla)");
   parse_and_assert_expr("bar->'$.foo.bar' bla",
                         "[19, 82, 83, 77, 22, 19, 22, 19, 83, 19]",
                         "projection (bar$.foo.bar as bla)");
+  parse_and_assert_expr("bar->>'$.foo.bar' bla",
+                        "[19, 85, 83, 77, 22, 19, 22, 19, 83, 19]",
+                        "projection (JSON_UNQUOTE(bar$.foo.bar) as bla)");
   EXPECT_ANY_THROW(parse_and_assert_expr("bar$foo.bar bla",
                                          "[19, 77, 19, 22, 19, 19]",
                                          "projection ($.foo.bar)", true));
@@ -146,8 +155,11 @@ TEST(Proj_parser_tests, x_test) {
   EXPECT_ANY_THROW(parse_and_assert_expr("-->'$.foo'",
                                          "[37, 82, 83, 77, 22, 19, 83]",
                                          "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("->>'$.foo'",
-                                         "[82, 27, 83, 77, 22, 19, 83]",
+  EXPECT_ANY_THROW(parse_and_assert_expr("-->>'$.foo'",
+                                         "[37, 85, 83, 77, 22, 19, 83]",
+                                         "projection ($.foo.bar, ble)", false));
+  EXPECT_ANY_THROW(parse_and_assert_expr("->>>'$.foo'",
+                                         "[85, 27, 83, 77, 22, 19, 83]",
                                          "projection ($.foo.bar, ble)", false));
 
   parse_and_assert_expr(
