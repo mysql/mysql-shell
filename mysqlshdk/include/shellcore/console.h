@@ -58,8 +58,7 @@ class IConsole {
   virtual void print_error(const std::string &text) const = 0;
   virtual void print_warning(const std::string &text) const = 0;
   virtual void print_note(const std::string &text) const = 0;
-  virtual void print_info(const std::string &text) const = 0;
-
+  virtual void print_info(const std::string &text = "") const = 0;
   virtual void print_value(const shcore::Value &value,
                            const std::string &tag) const = 0;
   virtual void print_diag(const std::string &text) const = 0;

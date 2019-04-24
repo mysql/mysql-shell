@@ -80,11 +80,11 @@ class Shell_console : public IConsole {
   void println(const std::string &text = "") const override;
 
   /**
-   * Sends the provided text to the STDOUT with an error tag.
+   * Sends the provided text to the STDERR with an error tag.
    *
    * The produced output will depend on the active output format:
    * - For JSON:  {"error": <text>}
-   * - Otherwise: the raw text will be sent to STDOUT prepended with an ERROR:
+   * - Otherwise: the raw text will be sent to STDERR prepended with an ERROR:
    *   tag.
    */
   void print_error(const std::string &text) const override;
@@ -94,31 +94,30 @@ class Shell_console : public IConsole {
    *
    * The produced output will depend on the active output format:
    * - For JSON:  {"error": <text>}
-   * - Otherwise: the raw text will be sent to STDOUT prepended with an ERROR:
+   * - Otherwise: the raw text will be sent to STDERR prepended with an ERROR:
    *   tag.
    */
-
   void print_diag(const std::string &text) const override;
   /**
-   * Sends the provided text to the STDOUT with a warning tag.
+   * Sends the provided text to the STDERR with a warning tag.
    *
    * The produced output will depend on the active output format:
    * - For JSON:  {"warning": <text>}
-   * - Otherwise: the raw text will be sent to STDOUT prepended with an WARNING:
+   * - Otherwise: the raw text will be sent to STDERR prepended with an WARNING:
    *   tag.
    */
   void print_warning(const std::string &text) const override;
 
   /**
-   * Sends the provided text to the STDOUT with notice formatting.
+   * Sends the provided text to the STDERR with notice formatting.
    *
    * The produced output will depend on the active output format:
    * - For JSON:  {"note": <text>}
-   * - Otherwise: the raw text will be sent to STDOUT with special color if
+   * - Otherwise: the raw text will be sent to STDERR with special color if
    *   supported.
    */
   void print_note(const std::string &text) const override;
-  void print_info(const std::string &text) const override;
+  void print_info(const std::string &text = "") const override;
 
   bool prompt(const std::string &prompt, std::string *out_val,
               Validator validator = nullptr) const override;
@@ -147,6 +146,8 @@ class Shell_console : public IConsole {
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;
   std::shared_ptr<IPager> m_global_pager;
+
+  void dump_json(const char *tag, const std::string &s) const;
 };
 
 std::string fit_screen(const std::string &text);

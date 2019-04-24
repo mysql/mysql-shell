@@ -152,6 +152,17 @@ REGISTER_HELP(SQL_CONTENTS_BRIEF,
               "Entry point to retrieve syntax help on SQL statements.");
 
 namespace mysqlsh {
+
+namespace {
+void print_diag(const std::string &s) { current_console()->print_diag(s); }
+
+void print_warning(const std::string &s) {
+  current_console()->print_warning(s);
+}
+
+void println(const std::string &s) { current_console()->println(s); }
+}  // namespace
+
 class Shell_command_provider : public shcore::completer::Provider {
  public:
   explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {}
@@ -1275,7 +1286,7 @@ void Mysql_shell::refresh_completion(bool force) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         _shell->get_dev_session());
     std::string current_schema;
-    auto handle_error = [this](const std::exception &e) {
+    auto handle_error = [](const std::exception &e) {
       print_diag(shcore::str_format(
           "Error during auto-completion cache update: %s\n", e.what()));
     };

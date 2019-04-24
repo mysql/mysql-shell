@@ -23,7 +23,6 @@
 Running with arguments: <<<__pager.cmd>>> --append
 
 2222
-Pager has been set to '<<<__pager.cmd>>> --append --new-pager'.
 Running with arguments: <<<__pager.cmd>>> --append --new-pager
 
 <<<__pager.cmd>>> --append --new-pager

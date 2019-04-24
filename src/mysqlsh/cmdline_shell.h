@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "shellcore/base_shell.h"
@@ -100,6 +101,7 @@ class Command_line_shell : public Mysql_shell,
 
   static void deleg_print(void *self, const char *text);
   static void deleg_disable_print(void *self, const char *text);
+  static void deleg_disable_print_error(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
   static void deleg_print_diag(void *self, const char *text);
   static shcore::Prompt_result deleg_prompt(void *self, const char *text,
@@ -120,7 +122,7 @@ class Command_line_shell : public Mysql_shell,
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
 
   shcore::Interpreter_delegate _backup_delegate;
-  std::stringstream _full_output;
+  std::vector<std::pair<int, std::string>> _full_output;
   Prompt_manager _prompt;
   bool _output_printed;
   const std::string m_default_pager;

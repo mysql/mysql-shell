@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,8 @@ class Shell_error_printing : public Shell_core_test_wrapper {};
 TEST_F(Shell_error_printing, print_error) {
   reset_shell();
   wipe_all();
-  _interactive_shell->print_error("test");
+
+  current_console()->print_error("test");
   EXPECT_EQ("ERROR: test\n", output_handler.std_out);
   wipe_all();
 }
@@ -39,10 +40,10 @@ TEST_F(Shell_error_printing, print_error) {
 TEST_F(Shell_error_printing, print_diag) {
   reset_shell();
   wipe_all();
-  _interactive_shell->print_diag("test");
+  current_console()->print_diag("test");
   EXPECT_EQ("test", output_handler.std_err);
   wipe_all();
-  _interactive_shell->print_diag("test\n");
+  current_console()->print_diag("test\n");
   EXPECT_EQ("test\n", output_handler.std_err);
 }
 

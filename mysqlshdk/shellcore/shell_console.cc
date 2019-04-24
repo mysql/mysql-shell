@@ -245,30 +245,38 @@ Shell_console::~Shell_console() {
   shcore::Logger::singleton()->detach_log_hook(log_hook);
 }
 
+void Shell_console::dump_json(const char *tag, const std::string &s) const {
+  m_ideleg->print(m_ideleg->user_data, json_obj(tag, s).c_str());
+}
+
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json) const {
   using Print_func = void (*)(void *, const char *);
   Print_func print =
       stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_diag;
 
-  if (format_json) {
-    std::string tag = stream == Output_stream::STDOUT ? "info" : "error";
-    std::string output = use_json() ? json_obj(tag.c_str(), text) : text;
-    print(m_ideleg->user_data, output.c_str());
+  // format_json=false means bypass JSON wrapping
+  if (use_json() && format_json) {
+    const char *tag = stream == Output_stream::STDOUT ? "info" : "error";
+    dump_json(tag, text);
   } else {
     print(m_ideleg->user_data, text.c_str());
   }
 }
 
 void Shell_console::print(const std::string &text) const {
-  raw_print(text, Output_stream::STDOUT);
+  if (use_json()) {
+    if (!text.empty()) dump_json("info", text);
+  } else {
+    raw_print(text, Output_stream::STDOUT);
+  }
 }
 
 void Shell_console::println(const std::string &text) const {
-  if (use_json() && !text.empty()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
+  if (use_json()) {
+    if (!text.empty()) dump_json("info", text);
   } else {
-    m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+    raw_print(text + "\n", Output_stream::STDOUT);
   }
 }
 
@@ -286,7 +294,7 @@ std::string format(const std::string &text) {
 void Shell_console::print_diag(const std::string &text) const {
   std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", ftext).c_str());
+    dump_json("error", ftext);
   } else {
     m_ideleg->print_diag(m_ideleg->user_data, ftext.c_str());
   }
@@ -300,8 +308,7 @@ void Shell_console::print_diag(const std::string &text) const {
 void Shell_console::print_error(const std::string &text) const {
   std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print_error(m_ideleg->user_data,
-                          json_obj("error", ftext).c_str());
+    dump_json("error", ftext);
   } else {
     m_ideleg->print_error(
         m_ideleg->user_data,
@@ -317,9 +324,9 @@ void Shell_console::print_error(const std::string &text) const {
 void Shell_console::print_warning(const std::string &text) const {
   std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("warning", ftext).c_str());
+    dump_json("warning", ftext);
   } else {
-    m_ideleg->print(
+    m_ideleg->print_error(
         m_ideleg->user_data,
         (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
   }
@@ -333,9 +340,9 @@ void Shell_console::print_warning(const std::string &text) const {
 void Shell_console::print_note(const std::string &text) const {
   std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("note", ftext).c_str());
+    dump_json("note", ftext);
   } else {
-    m_ideleg->print(
+    m_ideleg->print_error(
         m_ideleg->user_data,
         (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
   }
@@ -349,11 +356,11 @@ void Shell_console::print_note(const std::string &text) const {
 void Shell_console::print_info(const std::string &text) const {
   std::string ftext = format(text);
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("info", ftext).c_str());
+    dump_json("info", ftext);
   } else {
-    m_ideleg->print(m_ideleg->user_data, (ftext + "\n").c_str());
+    m_ideleg->print_error(m_ideleg->user_data, (ftext + "\n").c_str());
   }
-  if (g_dont_log == 0) {
+  if (g_dont_log == 0 && !text.empty()) {
     g_dont_log++;
     log_debug("%s", ftext.c_str());
     g_dont_log--;
@@ -593,7 +600,6 @@ shcore::Prompt_result Shell_console::prompt_password(
 void Shell_console::print_value(const shcore::Value &value,
                                 const std::string &tag) const {
   std::string output;
-  bool add_new_line = true;
   // When using JSON output ALL must be JSON
   if (use_json()) {
     // If no tag is provided, prints the JSON representation of the Value
@@ -605,10 +611,12 @@ void Shell_console::print_value(const shcore::Value &value,
         output = json_obj(tag.c_str(), value.get_string());
       else
         output = json_obj(tag.c_str(), value);
-
-      add_new_line = false;
     }
+
+    m_ideleg->print(m_ideleg->user_data, output.c_str());
   } else {
+    bool add_new_line = true;
+
     if (tag == "error" && value.type == shcore::Map) {
       output = "ERROR";
       shcore::Value::Map_type_ref error_map = value.as_map();
@@ -633,14 +641,14 @@ void Shell_console::print_value(const shcore::Value &value,
     } else {
       output = value.descr(true);
     }
+
+    if (add_new_line) output += "\n";
+
+    if (tag == "error")
+      m_ideleg->print_diag(m_ideleg->user_data, output.c_str());
+    else
+      m_ideleg->print(m_ideleg->user_data, output.c_str());
   }
-
-  if (add_new_line) output += "\n";
-
-  if (tag == "error")
-    m_ideleg->print_diag(m_ideleg->user_data, output.c_str());
-  else
-    m_ideleg->print(m_ideleg->user_data, output.c_str());
 }
 
 std::shared_ptr<IPager> Shell_console::enable_pager() {

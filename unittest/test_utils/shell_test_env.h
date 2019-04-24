@@ -262,6 +262,11 @@ inline std::string makered(const std::string &s) {
   return "\x1b[31m" + s + "\x1b[0m";
 }
 
+inline std::string makelred(const std::string &s) {
+  if (!g_test_color_output) return s;
+  return "\x1b[91m" + s + "\x1b[0m";
+}
+
 inline std::string makeredbg(const std::string &s) {
   if (!g_test_color_output) return s;
   return "\x1b[41m" + s + "\x1b[0m";
@@ -270,6 +275,11 @@ inline std::string makeredbg(const std::string &s) {
 inline std::string makeblue(const std::string &s) {
   if (!g_test_color_output) return s;
   return "\x1b[36m" + s + "\x1b[0m";
+}
+
+inline std::string makelblue(const std::string &s) {
+  if (!g_test_color_output) return s;
+  return "\x1b[94m" + s + "\x1b[0m";
 }
 
 inline std::string makegreen(const std::string &s) {

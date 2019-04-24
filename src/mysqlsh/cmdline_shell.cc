@@ -54,6 +54,14 @@
 #define fileno _fileno
 #define snprintf _snprintf
 #define write _write
+
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+
 #endif
 
 extern char *mysh_get_tty_password(const char *opt_message);
@@ -165,6 +173,11 @@ void write_to_console(int fd, const char *text) {
     p += bytes_written;
   }
 }
+
+void print_diag(const std::string &s) { current_console()->print_diag(s); }
+
+void println(const std::string &s = "") { current_console()->println(s); }
+
 }  // namespace
 
 REGISTER_HELP(CMD_HISTORY_BRIEF, "View and edit command line history.");
@@ -282,6 +295,8 @@ void Command_line_shell::quiet_print() {
   if (!_backup_delegate.print) {
     _backup_delegate.print = _delegate->print;
     _delegate->print = &Command_line_shell::deleg_disable_print;
+    _backup_delegate.print_error = _delegate->print_error;
+    _delegate->print_error = &Command_line_shell::deleg_disable_print_error;
   }
 }
 
@@ -295,10 +310,18 @@ void Command_line_shell::restore_print() {
     _delegate->print = _backup_delegate.print;
     _backup_delegate.print = nullptr;
 
+    _delegate->print_error = _backup_delegate.print_error;
+    _backup_delegate.print_error = nullptr;
+
     // If printing information is not disabled. prints cached information
     if (options().quiet_start != Shell_options::Quiet_start::SUPRESS_INFO) {
-      _delegate->print(_delegate->user_data, _full_output.str().c_str());
-      _full_output.str("");
+      for (const auto &s : _full_output) {
+        if (s.first == STDOUT_FILENO)
+          _delegate->print(_delegate->user_data, s.second.c_str());
+        else
+          _delegate->print_error(_delegate->user_data, s.second.c_str());
+      }
+      _full_output.clear();
     }
   }
 }
@@ -399,7 +422,7 @@ bool Command_line_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
 
 bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
   if (args.size() == 1) {
-    _history.dump([this](const std::string &s) { println(s); });
+    _history.dump([](const std::string &s) { println(s); });
   } else if (args[1] == "clear") {
     if (args.size() == 2) {
       _history.clear();
@@ -522,7 +545,13 @@ bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
 
 void Command_line_shell::deleg_disable_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  self->_full_output << text;
+  self->_full_output.emplace_back(STDOUT_FILENO, text);
+}
+
+void Command_line_shell::deleg_disable_print_error(void *cdata,
+                                                   const char *text) {
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
+  self->_full_output.emplace_back(STDERR_FILENO, text);
 }
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
@@ -536,7 +565,7 @@ void Command_line_shell::deleg_print(void *cdata, const char *text) {
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    write_to_console(fileno(stdout), text);
+    write_to_console(fileno(stderr), text);
     self->_output_printed = true;
   }
 }

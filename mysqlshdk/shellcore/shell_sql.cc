@@ -280,7 +280,7 @@ void Shell_sql::execute(const std::string &sql) {
 }
 
 void Shell_sql::print_exception(const shcore::Exception &e) {
-  // Sends a description of the exception data to the error handler wich will
+  // Sends a description of the exception data to the error handler which will
   // define the final format.
   shcore::Value exception(e.error());
   mysqlsh::current_console()->print_value(exception, "error");

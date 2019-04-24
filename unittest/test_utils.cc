@@ -97,10 +97,17 @@ void Shell_test_output_handler::deleg_print_error(void *user_data,
                                                   const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
-  target->full_output << makered(text) << std::endl;
+  // Note: print_error() should send output to stderr instead of stdout and
+  // thus, be removed in favour of print_diag(). However, we keep print_error()
+  // and print_diag() separate, so that we can make print_error() send output
+  // to stderr in the real shell app, while in tests it sends output to
+  // stdout. This is for backwards compatibility in how tests are checked.
+
+  target->full_output << text << std::endl;
 
   if (target->debug || g_test_trace_scripts)
-    std::cout << makered(text) << std::endl;
+    std::cout << (shcore::str_beginswith(text, "ERROR") ? makelred(text) : text)
+              << std::endl;
 
   target->std_out.append(text);
 }

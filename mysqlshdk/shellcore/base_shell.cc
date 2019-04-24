@@ -48,6 +48,12 @@
 
 namespace mysqlsh {
 
+namespace {
+void print_diag(const std::string &s) { current_console()->print_diag(s); }
+
+void println(const std::string &s) { current_console()->println(s); }
+}  // namespace
+
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
                        shcore::Interpreter_delegate *custom_delegate)
     : m_shell_options{cmdline_options},
@@ -378,14 +384,6 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
   return lang_initialized;
 }
 
-void Base_shell::print(const std::string &str) {
-  m_console_handler.get()->print(str);
-}
-
-void Base_shell::println(const std::string &str) {
-  m_console_handler.get()->println(str);
-}
-
 /**
  * Print output after the shell initialization is done (after Copyright info)
  * @param str text to be printed.
@@ -394,21 +392,6 @@ void Base_shell::println_deferred(const std::string &str) {
   // This can't be called once the deferred output is flusehd
   assert(_deferred_output != nullptr);
   _deferred_output->append(str + "\n");
-}
-
-// This function now calls the console one, which will print the error
-// but to the STDOUT, not used ATM as all the previous calls were moved
-// to print_diag() for further analysis.
-void Base_shell::print_error(const std::string &error) {
-  m_console_handler.get()->print_error(error);
-}
-
-void Base_shell::print_diag(const std::string &error) {
-  m_console_handler.get()->print_diag(error);
-}
-
-void Base_shell::print_warning(const std::string &message) {
-  m_console_handler.get()->print_warning(message);
 }
 
 void Base_shell::clear_input() {
