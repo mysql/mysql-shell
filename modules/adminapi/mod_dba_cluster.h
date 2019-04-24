@@ -130,7 +130,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value check_instance_state(const std::string &instance_def);
   shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);
   shcore::Value check_instance_state(
-      const mysqlshdk::db::Connection_options &coptions);
+      const mysqlshdk::db::Connection_options &instance_def);
   void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);

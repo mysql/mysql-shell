@@ -970,7 +970,7 @@ None Cluster::check_instance_state(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::check_instance_state(
-    const Connection_options &instance_def) {
+    const mysqlshdk::db::Connection_options &instance_def) {
   assert_valid("checkInstanceState");
 
   return m_impl->check_instance_state(instance_def);
