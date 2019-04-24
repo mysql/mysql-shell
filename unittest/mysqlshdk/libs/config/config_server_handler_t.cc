@@ -558,9 +558,10 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying bool value setting (with context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_bool", nullable<bool>(true), "notExistBool");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
-                      "Unable to set value 'true' for 'notExistBool': Unknown "
-                      "system variable 'not_exit_bool'");
+    EXPECT_THROW_LIKE(
+        cfg_h.apply(), std::runtime_error,
+        "Unable to set value 'true' for 'notExistBool': localhost:" +
+            _mysql_port + ": Unknown system variable 'not_exit_bool'");
   }
 
   {
@@ -575,9 +576,10 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying int value setting (with context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_int", nullable<int64_t>(1234), "notExistInt");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
-                      "Unable to set value '1234' for 'notExistInt': Unknown "
-                      "system variable 'not_exit_int'");
+    EXPECT_THROW_LIKE(
+        cfg_h.apply(), std::runtime_error,
+        "Unable to set value '1234' for 'notExistInt': localhost:" +
+            _mysql_port + ": Unknown system variable 'not_exit_int'");
   }
 
   {
@@ -593,9 +595,10 @@ TEST_F(Config_server_handler_test, apply_errors) {
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_string", nullable<std::string>("mystr"),
               "notExistString");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
-                      "Unable to set value 'mystr' for 'notExistString': "
-                      "Unknown system variable 'not_exit_string'");
+    EXPECT_THROW_LIKE(
+        cfg_h.apply(), std::runtime_error,
+        "Unable to set value 'mystr' for 'notExistString': localhost:" +
+            _mysql_port + ": Unknown system variable 'not_exit_string'");
   }
 }
 

@@ -280,7 +280,7 @@ void Session::close() {
     if (_session->is_open()) {
       _session->close();
     }
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_warning("Error occurred closing session: %s", e.what());
   }
 
@@ -1010,7 +1010,7 @@ shcore::Value::Map_type_ref Session::get_status() {
     // (*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
 
     // SAFE UPDATES
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
@@ -1056,7 +1056,7 @@ void Session::kill_query() {
   try {
     session->connect(_connection_options);
     session->query(shcore::sqlstring("kill query ?", 0) << cid);
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
   }
 }

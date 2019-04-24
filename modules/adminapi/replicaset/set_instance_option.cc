@@ -122,11 +122,9 @@ void Set_instance_option::ensure_target_member_online() {
         shcore::make_unique<mysqlshdk::mysql::Instance>(session);
 
     // Set the metadata address to use if instance is reachable.
-    m_address_in_metadata =
-        mysqlshdk::mysql::get_report_host(*m_target_instance) + ":" +
-        std::to_string(m_instance_cnx_opts.get_port());
+    m_address_in_metadata = m_target_instance->get_canonical_address();
     log_debug("Successfully connected to instance");
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
 
     throw shcore::Exception::runtime_error(

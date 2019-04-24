@@ -38,6 +38,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -53,13 +54,6 @@
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
-
-#include "scripting/object_factory.h"
-#include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
-#include "utils/utils_net.h"
-#include "utils/utils_sqlstring.h"
-
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -68,8 +62,13 @@
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "scripting/object_factory.h"
+#include "shellcore/utils_help.h"
 
 /*
   Sessions used by AdminAPI
@@ -428,7 +427,7 @@ void Dba::set_member(const std::string &prop, shcore::Value value) {
     try {
       int verbosity = value.as_int();
       _provisioning_interface->set_verbose(verbosity);
-    } catch (shcore::Exception &e) {
+    } catch (const shcore::Exception &e) {
       throw shcore::Exception::value_error(
           "Invalid value for property 'verbose', use either boolean or integer "
           "value.");
@@ -556,7 +555,7 @@ void Dba::connect_to_target_group(
         if (owns_target_member_session) target_member_session->close();
         target_member_session = session;
         group_session = session;
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         throw shcore::Exception::runtime_error(
             std::string("Unable to find a primary member in the cluster: ") +
             e.what());
@@ -651,7 +650,7 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       try {
         cluster_name = args.string_at(0);
         default_cluster = false;
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         throw shcore::Exception::argument_error(
             std::string("Invalid cluster name: ") + e.what());
       }
@@ -666,7 +665,7 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       // primary or connectToPrimary:false was given
       connect_to_target_group({}, &metadata, &group_session,
                               connect_to_primary);
-    } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+    } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
       auto console = mysqlsh::current_console();
 
       // Print warning in case a cluster error is found (e.g., no quorum).
@@ -691,7 +690,7 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
     return shcore::Value(
         get_cluster(default_cluster ? nullptr : cluster_name.c_str(), metadata,
                     group_session));
-  } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+  } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
     if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum)
       throw shcore::Exception::runtime_error(
           get_function_name("getCluster") +
@@ -958,7 +957,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
   Cluster_check_info state;
   try {
     state = check_preconditions(group_session, "createCluster");
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     std::string error(e.what());
     if (error.find("already in an InnoDB cluster") != std::string::npos) {
       /*
@@ -1049,26 +1048,23 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 
   try {
     bool force = false;
-    bool clear_read_only = false;
+    mysqlshdk::utils::nullable<bool> clear_read_only;
+    bool interactive = current_shell_options()->get().wizards;
 
     // Map with the options
-    shcore::Value::Map_type_ref options = args.map_at(0);
-
-    shcore::Argument_map opt_map(*options);
-
-    opt_map.ensure_keys({}, {"force", "clearReadOnly"}, "the options");
-
-    if (opt_map.has_key("force")) force = opt_map.bool_at("force");
-
-    if (opt_map.has_key("clearReadOnly"))
-      clear_read_only = opt_map.bool_at("clearReadOnly");
+    Unpack_options(args.map_at(0))
+        .optional("force", &force)
+        .optional("clearReadOnly", &clear_read_only)
+        .end();
 
     if (force) {
+      mysqlshdk::mysql::Instance instance(group_session);
+
       // Check if super_read_only is turned off and disable it if required
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only);
+      validate_super_read_only(instance, clear_read_only, interactive);
 
       metadata::uninstall(metadata->get_session());
     } else {
@@ -2002,7 +1998,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   std::string cluster_name;
   try {
     bool default_cluster = false;
-    bool clear_read_only = false;
+    mysqlshdk::utils::nullable<bool> clear_read_only;
+    bool interactive = current_shell_options()->get().wizards;
 
     if (args.size() == 0) {
       default_cluster = true;
@@ -2098,6 +2095,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       metadata->load_cluster(cluster_name, cluster->impl());
     }
 
+    mysqlshdk::mysql::Instance group_instance(group_session);
+
     if (cluster) {
       // Set the cluster as return value
       ret_val =
@@ -2107,10 +2106,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       default_replicaset = cluster->impl()->get_default_replicaset();
 
       // Get get instance address in metadata.
-      mysqlshdk::mysql::Instance group_instance(group_session);
-      std::string group_md_address =
-          mysqlshdk::mysql::get_report_host(group_instance) + ":" +
-          std::to_string(current_session_options.get_port());
+      std::string group_md_address = group_instance.get_canonical_address();
 
       // 2. Ensure that the current session instance exists on the Metadata
       // Schema
@@ -2135,7 +2131,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           // Get the instance metadata address (reported host).
           md_address = mysqlsh::dba::get_report_host_address(
               instance_def, current_session_options);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
               "Invalid value '" + value + "' for 'removeInstances': " + error);
@@ -2164,7 +2160,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           // Get the instance metadata address (reported host).
           md_address = mysqlsh::dba::get_report_host_address(
               instance_def, current_session_options);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
               "Invalid value '" + value + "' for 'rejoinInstances': " + error);
@@ -2238,7 +2234,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     // "removeInstances" 5.2 If the current session instance doesn't have the
     // GTID superset, error out with that information and including on the
     // message the instance with the GTID superset
-    validate_instances_gtid_reboot_cluster(cluster, options, group_session);
+    validate_instances_gtid_reboot_cluster(cluster, options, group_instance);
 
     // 6. Set the current session instance as the seed instance of the Cluster
     {
@@ -2246,7 +2242,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only);
+      validate_super_read_only(group_instance, clear_read_only, interactive);
 
       Group_replication_options gr_options(Group_replication_options::NONE);
 
@@ -2354,8 +2350,6 @@ Dba::get_replicaset_instances_status(
   std::vector<std::pair<std::string, std::string>> instances_status;
   std::string instance_address, conn_status;
 
-  // TODO(alfredo) This should be in the Cluster object
-
   log_info("Checking instance status for cluster '%s'",
            cluster->impl()->get_name().c_str());
 
@@ -2369,8 +2363,7 @@ Dba::get_replicaset_instances_status(
   mysqlshdk::mysql::Instance group_instance(
       cluster->impl()->get_group_session());
   std::string active_session_md_address =
-      mysqlshdk::mysql::get_report_host(group_instance) + ":" +
-      std::to_string(current_session_options.get_port());
+      group_instance.get_canonical_address();
 
   if (options) {
     // Check if the password is specified on the options and if not prompt it
@@ -2400,7 +2393,7 @@ Dba::get_replicaset_instances_status(
           instance_address.c_str());
       auto session = get_session(connection_options);
       session->close();
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       conn_status = e.what();
       log_warning("Could not open connection to %s: %s.",
                   instance_address.c_str(), e.what());
@@ -2492,6 +2485,8 @@ void Dba::validate_instances_status_reboot_cluster(
   }
 
   // Verify all the remaining online instances for their status
+  // TODO- this should just get a list of instances, the status check
+  // is redundant
   std::vector<std::pair<std::string, std::string>> instances_status =
       get_replicaset_instances_status(cluster, options);
 
@@ -2515,7 +2510,7 @@ void Dba::validate_instances_status_reboot_cluster(
       log_info("Opening a new session to the instance: %s",
                instance_address.c_str());
       session = get_session(connection_options);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       throw shcore::Exception::runtime_error("Could not open connection to " +
                                              instance_address + "");
     }
@@ -2541,122 +2536,83 @@ void Dba::validate_instances_status_reboot_cluster(
 void Dba::validate_instances_gtid_reboot_cluster(
     std::shared_ptr<Cluster> cluster,
     const shcore::Value::Map_type_ref &options,
-    const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) {
-  /* GTID verification is done by verifying which instance has the GTID
-   * superset.the In order to do so, a union of the global gtid executed and the
-   * received transaction set must be done using:
-   *
-   * CREATE FUNCTION GTID_UNION(g1 TEXT, g2 TEXT)
-   *  RETURNS TEXT DETERMINISTIC
-   *  RETURN CONCAT(g1,',',g2);
-   *
-   * Instance 1:
-   *
-   * A: select @@GLOBAL.GTID_EXECUTED
-   * B: SELECT RECEIVED_TRANSACTION_SET FROM
-   *    performance_schema.replication_connection_status where
-   * CHANNEL_NAME="group_replication_applier";
-   *
-   * Total = A + B (union)
-   *
-   * SELECT GTID_SUBSET("Total_instance1", "Total_instance2")
-   */
-
-  std::pair<std::string, std::string> most_updated_instance;
+    const mysqlshdk::mysql::IInstance &target_instance) {
   std::shared_ptr<mysqlshdk::db::ISession> session;
-  std::string active_session_address;
+  auto console = current_console();
 
   // get the current session information
-  auto current_session_options = instance_session->get_connection_options();
-
-  // Get the current session instance address
-  active_session_address = current_session_options.as_uri(only_transport());
+  auto current_session_options = target_instance.get_connection_options();
 
   if (options) {
     mysqlsh::set_user_from_map(&current_session_options, options);
     mysqlsh::set_password_from_map(&current_session_options, options);
   }
 
-  // Get the cluster instances and their status
-  std::vector<std::pair<std::string, std::string>> instances_status =
-      get_replicaset_instances_status(cluster, options);
+  std::vector<Instance_gtid_info> instance_gtids;
+  {
+    Instance_gtid_info info;
+    info.server = target_instance.get_canonical_address();
+    info.gtid_executed =
+        mysqlshdk::mysql::get_executed_gtid_set(target_instance, true);
+    instance_gtids.push_back(info);
+  }
 
-  // Get @@GLOBAL.GTID_EXECUTED
-  std::string gtid_executed_current;
-  get_server_variable(instance_session, "GLOBAL.GTID_EXECUTED",
-                      &gtid_executed_current);
+  // Get the cluster instances
+  std::vector<Instance_definition> instances =
+      cluster->impl()->get_default_replicaset()->get_instances_from_metadata();
 
-  std::string msg = "The current session instance GLOBAL.GTID_EXECUTED is: " +
-                    gtid_executed_current;
-  log_info("%s", msg.c_str());
-
-  // Create a pair vector to store all the GTID_EXECUTED
-  std::vector<std::pair<std::string, std::string>> gtids;
-
-  // Insert the current session info
-  gtids.emplace_back(active_session_address, gtid_executed_current);
-
-  // Update most_updated_instance with the current session instance value
-  most_updated_instance =
-      std::make_pair(active_session_address, gtid_executed_current);
-
-  for (const auto &value : instances_status) {
-    std::string instance_address = value.first;
-    std::string instance_status = value.second;
-
-    // if the status is not empty it means the connection failed
-    // so we skip this instance
-    if (!instance_status.empty()) continue;
+  for (const auto &inst : instances) {
+    if (inst.endpoint == instance_gtids[0].server) continue;
 
     auto connection_options =
-        shcore::get_connection_options(instance_address, false);
+        shcore::get_connection_options(inst.endpoint, false);
     connection_options.set_user(current_session_options.get_user());
     connection_options.set_password(current_session_options.get_password());
 
     // Connect to the instance to obtain the GLOBAL.GTID_EXECUTED
     try {
       log_info("Opening a new session to the instance for gtid validations %s",
-               instance_address.c_str());
+               inst.endpoint.c_str());
       session = get_session(connection_options);
-    } catch (std::exception &e) {
-      throw shcore::Exception::runtime_error("Could not open a connection to " +
-                                             instance_address + ": " +
-                                             e.what() + ".");
+    } catch (const std::exception &e) {
+      log_warning("Could not open a connection to %s: %s",
+                  inst.endpoint.c_str(), e.what());
+      continue;
     }
 
-    std::string gtid_executed;
-
-    // Get @@GLOBAL.GTID_EXECUTED
-    get_server_variable(session, "GLOBAL.GTID_EXECUTED", &gtid_executed);
-
-    // Close the session
-    session->close();
-
-    std::string msg = "The instance: '" + instance_address +
-                      "' GLOBAL.GTID_EXECUTED is: " + gtid_executed;
-    log_info("%s", msg.c_str());
-
-    // Add to the pair vector of gtids
-    gtids.emplace_back(instance_address, gtid_executed);
+    Instance_gtid_info info;
+    info.server = inst.endpoint;
+    info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(
+        mysqlshdk::mysql::Instance(session), true);
+    instance_gtids.push_back(info);
   }
 
-  // Calculate the most up-to-date instance
-  // TODO(miguel): calculate the Total GTID executed. See comment above
-  for (auto &value : gtids) {
-    // Compare the gtid's: SELECT GTID_SUBSET("Total_instance1",
-    // "Total_instance2")
-    if (!is_gtid_subset(instance_session, value.second,
-                        most_updated_instance.second))
-      most_updated_instance = value;
+  std::vector<Instance_gtid_info> primary_candidates;
+
+  try {
+    primary_candidates =
+        filter_primary_candidates(target_instance, instance_gtids);
+
+    // Returned list should have at least 1 element
+    assert(!primary_candidates.empty());
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_DATA_INCONSISTENT_ERRANT_TRANSACTIONS) {
+      console->print_error(e.what());
+      // TODO(alfredo) - suggest a way to recover from this scenario
+    }
+    throw;
   }
 
   // Check if the most updated instance is not the current session instance
-  if (!(most_updated_instance.first == active_session_address)) {
+  if (std::find_if(primary_candidates.begin(), primary_candidates.end(),
+                   [&instance_gtids](const Instance_gtid_info &c) {
+                     return c.server == instance_gtids[0].server;
+                   }) == primary_candidates.end()) {
     throw shcore::Exception::runtime_error(
         "The active session instance isn't the most updated "
         "in comparison with the ONLINE instances of the Cluster's "
         "metadata. Please use the most up to date instance: '" +
-        most_updated_instance.first + "'.");
+        primary_candidates.front().server + "'.");
   }
 }
 

@@ -40,12 +40,12 @@ class ProvisioningInterface;
  * (e.g. no checks for schema objects).
  *
  * @param target_instance the target to check (sysvars must be cached)
- * @param mp mp object instance
+ * @param full if false, executes a reduced set of tests.
  *
  * Throws an exception if checks fail.
  */
 void ensure_instance_configuration_valid(
-    const mysqlshdk::mysql::IInstance &target_instance);
+    const mysqlshdk::mysql::IInstance &target_instance, bool full = true);
 
 /**
  * Validates the permissions of the user running the operation.

@@ -129,7 +129,7 @@ bool Configure_instance::check_config_path_for_update() {
     // If path exists (or if it's OK to create it), check if it's also writable
     try {
       shcore::check_file_writable_or_throw(m_mycnf_path);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       if (m_interactive) {
         console->print_warning("mycnfPath is not writable: " + m_mycnf_path +
                                ": " + e.what());
@@ -164,7 +164,7 @@ bool Configure_instance::check_config_path_for_update() {
       try {
         shcore::check_file_writable_or_throw(m_output_mycnf_path);
         break;
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         // If invalid option is given, we error out
         console->print_error("outputMycnfPath is not writable: " +
                              m_output_mycnf_path + ": " + e.what());
@@ -294,6 +294,7 @@ void Configure_instance::create_admin_user() {
         log_info("Cloning current user account %s@%s as %s",
                  m_current_user.c_str(), m_current_host.c_str(),
                  m_cluster_admin.c_str());
+        mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance);
         mysqlshdk::mysql::clone_user(
             m_target_instance->get_session(), m_current_user, m_current_host,
             admin_user, admin_user_host, *m_cluster_admin_password);
@@ -303,7 +304,7 @@ void Configure_instance::create_admin_user() {
         create_cluster_admin_user(m_target_instance->get_session(),
                                   m_cluster_admin, *m_cluster_admin_password);
       }
-    } catch (shcore::Exception &err) {
+    } catch (const shcore::Exception &err) {
       std::string error_msg = "Error creating clusterAdmin account: '" +
                               m_cluster_admin + "', with error: " + err.what();
       throw shcore::Exception::runtime_error(error_msg);
@@ -369,7 +370,7 @@ void Configure_instance::ensure_instance_address_usable() {
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  checks::validate_host_address(m_target_instance, true);
+  checks::validate_host_address(*m_target_instance, 2);
 }
 
 void Configure_instance::ensure_configuration_change_possible(
@@ -470,7 +471,6 @@ void Configure_instance::prepare() {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
     m_target_instance = new mysqlshdk::mysql::Instance(session);
-    m_target_instance->cache_global_sysvars();
 
     m_local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
@@ -580,6 +580,8 @@ void Configure_instance::prepare() {
     // Verify the need to disable super-read-only
     // due to the need to create the clusterAdmin account (and others)
     // Handle clear_read_only interaction
+    // TODO(alfredo) - this should be replace with validate_super_read_only(),
+    // the separation between prepare() and execute() isn't so important anymore
     if (m_clear_read_only.is_null() && m_interactive &&
         m_create_cluster_admin) {
       console->println();
@@ -656,15 +658,13 @@ bool Configure_instance::clear_super_read_only() {
   // instance in an incorrect state
 
   // Handle clear_read_only interaction
-  bool super_read_only = validate_super_read_only(
-      m_target_instance->get_session(), m_clear_read_only == true);
-
+  bool super_read_only =
+      validate_super_read_only(*m_target_instance, m_clear_read_only, false);
   // If super_read_only was disabled, print the information
   if (super_read_only) {
-    auto session_address = m_target_instance->get_session()->uri(
-        mysqlshdk::db::uri::formats::only_transport());
     mysqlsh::current_console()->print_info(
-        "Disabled super_read_only on the instance '" + session_address + "'");
+        "Disabled super_read_only on the instance '" +
+        m_target_instance->descr() + "'");
     return true;
   }
   return false;
@@ -674,10 +674,9 @@ void Configure_instance::restore_super_read_only() {
   // If we disabled super_read_only we must enable it back
   // also confirm that the initial status was 1/ON
   if (m_clear_read_only == true) {
-    auto session_address = m_target_instance->get_session()->uri(
-        mysqlshdk::db::uri::formats::only_transport());
     mysqlsh::current_console()->print_info(
-        "Enabling super_read_only on the instance '" + session_address + "'");
+        "Enabling super_read_only on the instance '" +
+        m_target_instance->descr() + "'");
     m_target_instance->set_sysvar("super_read_only", "ON",
                                   mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }

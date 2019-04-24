@@ -70,7 +70,7 @@ static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
     case CTRL_BREAK_EVENT:
       try {
         shcore::Interrupts::interrupt();
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         log_error("Unhandled exception in SIGINT handler: %s", e.what());
       }
       // Don't let the default handler terminate us
@@ -121,7 +121,7 @@ static void handle_ctrlc_signal(int sig) {
   int errno_save = errno;
   try {
     shcore::Interrupts::interrupt();
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_error("Unhandled exception in SIGINT handler: %s", e.what());
   }
   if (shcore::Interrupts::propagates_interrupt()) {
@@ -514,7 +514,7 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
           std::cerr << "NOTE: --redirect-primary ignored because target is "
                        "already a PRIMARY\n";
         }
-      } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+      } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
         std::cerr << "While handling --redirect-primary:\n";
         if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
           std::cerr << "ERROR: The cluster appears to be under a partial "
@@ -536,7 +536,7 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
           std::cerr << "NOTE: --redirect-secondary ignored because target is "
                        "already a SECONDARY\n";
         }
-      } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+      } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
         std::cerr << "While handling --redirect-secondary:\n";
         if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
           std::cerr << "ERROR: The cluster appears to be under a partial "
@@ -755,7 +755,7 @@ int main(int argc, char **argv) {
           // If redirect is requested, then reconnect to the right instance
           ret_val = handle_redirect(shell, options);
           if (ret_val != 0) return ret_val;
-        } catch (mysqlshdk::db::Error &e) {
+        } catch (const mysqlshdk::db::Error &e) {
           std::string error = "MySQL Error ";
           error.append(std::to_string(e.code()));
 
@@ -767,17 +767,17 @@ int main(int argc, char **argv) {
           mysqlsh::current_console()->print_error(error);
 
           return 1;
-        } catch (shcore::Exception &e) {
+        } catch (const shcore::Exception &e) {
           std::cerr << e.format() << "\n";
           return 1;
-        } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+        } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
           try {
             mysqlsh::dba::translate_cluster_exception("");
-          } catch (std::exception &e) {
+          } catch (const std::exception &e) {
             std::cerr << e.what() << "\n";
             return 1;
           }
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           std::cerr << e.what() << "\n";
           ret_val = 1;
           goto end;
@@ -816,7 +816,7 @@ int main(int argc, char **argv) {
       if (options.default_cluster_set && !shell_cli_operation) {
         try {
           default_cluster = shell->set_default_cluster(options.default_cluster);
-        } catch (shcore::Exception &e) {
+        } catch (const shcore::Exception &e) {
           mysqlsh::current_console()->print_warning(
               "Option --cluster requires a session to a member of a InnoDB "
               "cluster.");

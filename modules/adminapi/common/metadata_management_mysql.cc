@@ -71,7 +71,7 @@ Version installed_version(std::shared_ptr<mysqlshdk::db::ISession> session) {
     auto row = result->fetch_one_or_throw();
 
     return Version(row->get_int(0), row->get_int(1), row->get_int(2));
-  } catch (mysqlshdk::db::Error &error) {
+  } catch (const mysqlshdk::db::Error &error) {
     if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
       throw;
     return Version();
@@ -174,7 +174,7 @@ void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session) {
           });
 
       log_info("Succeeded");
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       log_error("Error executing metadata schema upgrade script: %s", e.what());
       log_info("Attempting to restore original schema version from backup...");
     }

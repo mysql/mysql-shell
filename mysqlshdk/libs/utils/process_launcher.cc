@@ -629,7 +629,7 @@ void Process::do_start() {
       }
 
       redirect_input_output(fd_in, fd_out, redirect_stderr);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       fprintf(stderr, "Exception while preparing the child process: %s\n",
               e.what());
       fflush(stderr);

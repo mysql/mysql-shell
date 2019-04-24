@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -342,7 +342,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
       auto row = result->fetch_one();
       EXPECT_TRUE(kill_sent);
       EXPECT_EQ("1", row->get_as_string(0));
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       FAIL() << e.what();
     }
     thd.join();
@@ -443,7 +443,7 @@ TEST_F(Interrupt_mysqlx, sql_x) {
       shcore::Value row = result->fetch_one({});
       EXPECT_TRUE(kill_sent);
       EXPECT_EQ("1", row.as_object<mysqlsh::Row>()->get_member(0).repr());
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       FAIL() << e.what();
     }
     thd.join();
@@ -471,7 +471,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
       auto result = std::static_pointer_cast<mysqlsh::mysqlx::SqlResult>(
           session->raw_execute_sql("select * from mysql.user where sleep(1)"));
       FAIL() << "Did not get expected exception\n";
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       EXPECT_STREQ("Query execution was interrupted", e.what());
     }
     thd.join();

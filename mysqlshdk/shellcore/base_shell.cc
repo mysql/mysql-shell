@@ -148,7 +148,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       if (stream && stream.peek() != std::ifstream::traits_type::eof())
         process_file(*i, {*i});
     }
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     error += "\n";
     print_diag(error);
@@ -422,7 +422,7 @@ void Base_shell::process_line(const std::string &line) {
     } catch (shcore::Exception &exc) {
       m_console_handler.get()->print_value(shcore::Value(exc.error()), "error");
       to_history = _input_buffer;
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
       print_diag(error);

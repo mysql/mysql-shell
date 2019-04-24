@@ -11,7 +11,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 
@@ -55,24 +55,22 @@ Do you want to disable super_read_only and continue? [y/N]:
 //@ prepare create_cluster.read_only_no_flag_prompt_no
 ||
 
-//@<OUT> create_cluster.read_only_no_flag_prompt_no
-Instance configuration is suitable.
-
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
-For more information see:
-https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
-
-NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
-
-1 open session(s) of 'root@localhost'.
-
-Do you want to disable super_read_only and continue? [y/N]:
-
-//@<ERR> create_cluster.read_only_no_flag_prompt_no
-Dba.createCluster: Cancelled (RuntimeError)
+//@ create_cluster.read_only_no_flag_prompt_no
+|A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.|
+||
+|The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system|
+|variable set to protect it from inadvertent updates from applications. You must|
+|first unset it to be able to perform any changes to this instance.|
+|For more information see:|
+|https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.|
+||
+|NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.|
+|You may want to kill these sessions to prevent them from performing unexpected updates:|
+||
+|1 open session(s) of 'root@localhost'.|
+||
+|Do you want to disable super_read_only and continue? [y/N]:|
+||Dba.createCluster: Cancelled (RuntimeError)
 
 //@ prepare create_cluster.read_only_invalid_flag_value
 ||
@@ -90,7 +88,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 

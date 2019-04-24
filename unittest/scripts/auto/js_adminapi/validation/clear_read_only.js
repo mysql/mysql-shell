@@ -7,7 +7,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
@@ -24,7 +24,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
@@ -46,7 +46,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'admin'@'%' for admin
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
@@ -62,7 +62,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'admin'@'%' for admin
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
@@ -74,7 +74,7 @@ first unset it to be able to perform any changes to this instance.
 Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ Dba_drop_metadata.clear_read_only_invalid
-||Dba.dropMetadataSchema: Argument 'clearReadOnly' is expected to be a bool
+||Dba.dropMetadataSchema: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
 
 //@<OUT> Dba_drop_metadata.clear_read_only_unset

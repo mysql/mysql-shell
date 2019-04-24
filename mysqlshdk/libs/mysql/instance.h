@@ -31,6 +31,7 @@
 #include <tuple>
 #include <vector>
 
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -50,6 +51,20 @@ enum class Var_qualifier {
   PERSIST_ONLY,
 };
 
+struct Auth_options {
+  std::string user;
+  mysqlshdk::utils::nullable<std::string> password;
+  db::Ssl_options ssl_options;
+
+  void get(const mysqlshdk::db::Connection_options &copts);
+  void set(mysqlshdk::db::Connection_options *copts) const;
+};
+
+inline bool operator==(const Auth_options &a, const Auth_options &b) {
+  return a.user == b.user && a.password == b.password &&
+         a.ssl_options == b.ssl_options;
+}
+
 /**
  * This interface defines the low level instance operations to be available.
  */
@@ -62,11 +77,10 @@ class IInstance {
   virtual int get_canonical_port() const = 0;
   virtual std::string get_canonical_address() const = 0;
 
-  virtual void cache_global_sysvars(bool force_refresh = false) = 0;
-  virtual utils::nullable<std::string> get_cached_global_sysvar(
-      const std::string &name) const = 0;
-  virtual utils::nullable<bool> get_cached_global_sysvar_as_bool(
-      const std::string &name) const = 0;
+  virtual const std::string &get_uuid() const = 0;
+  virtual const std::string &get_group_name() const = 0;
+
+  virtual void refresh() = 0;
 
   virtual utils::nullable<bool> get_sysvar_bool(
       const std::string &name,
@@ -123,6 +137,45 @@ class IInstance {
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
 
   virtual void suppress_binary_log(bool) = 0;
+
+ public:
+  // Convenience interface for session
+  virtual std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::string &sql, bool buffered = false) const = 0;
+
+  virtual void execute(const std::string &sql) const = 0;
+
+  template <typename... Args>
+  inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
+      const std::string &sql, const Args &... args) const {
+    return query(shcore::sqlformat(sql, args...));
+  }
+
+  template <typename... Args>
+  inline void executef(const std::string &sql, const Args &... args) const {
+    execute(shcore::sqlformat(sql, args...));
+  }
+
+  template <typename... Args>
+  inline std::string queryf_one_string(int32_t column_index,
+                                       const std::string &default_if_null,
+                                       const std::string &sql,
+                                       const Args &... args) const {
+    auto result = query(shcore::sqlformat(sql, args...));
+    if (auto row = result->fetch_one())
+      return row->get_string(column_index, default_if_null);
+    return default_if_null;
+  }
+
+  template <typename... Args>
+  inline int64_t queryf_one_int(int32_t column_index, int64_t default_if_null,
+                                const std::string &sql,
+                                const Args &... args) const {
+    auto result = query(shcore::sqlformat(sql, args...));
+    if (auto row = result->fetch_one())
+      return row->get_int(column_index, default_if_null);
+    return default_if_null;
+  }
 };
 
 struct Suppress_binary_log {
@@ -148,11 +201,12 @@ class Instance : public IInstance {
   std::string get_canonical_address() const override;
   int get_canonical_port() const override;
 
-  void cache_global_sysvars(bool force_refresh = false) override;
-  utils::nullable<std::string> get_cached_global_sysvar(
-      const std::string &name) const override;
-  utils::nullable<bool> get_cached_global_sysvar_as_bool(
-      const std::string &name) const override;
+  const std::string &get_uuid() const override;
+  const std::string &get_group_name() const override;
+
+  // Clears cached values, forcing all methods (except for those that have
+  // values that cannot change) to query the DB again, if they use a cache.
+  void refresh() override;
 
   utils::nullable<bool> get_sysvar_bool(
       const std::string &name,
@@ -228,11 +282,20 @@ class Instance : public IInstance {
 
   void suppress_binary_log(bool flag) override;
 
+ public:
+  std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::string &sql, bool buffered = false) const override;
+
+  void execute(const std::string &sql) const override;
+
  private:
   std::shared_ptr<db::ISession> _session;
   mutable mysqlshdk::utils::Version _version;
   mutable std::string m_version_compile_os;
-  std::map<std::string, utils::nullable<std::string>> _global_sysvars;
+  mutable std::string m_uuid;
+  mutable std::string m_group_name;
+  mutable std::string m_hostname;
+  mutable int m_port = 0;
   int m_sql_binlog_suppress_count = 0;
 
   const std::string &get_version_compile_os() const;

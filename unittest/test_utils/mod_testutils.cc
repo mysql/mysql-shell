@@ -94,7 +94,7 @@
 //   as original
 
 extern int g_test_trace_scripts;
-extern bool g_test_color_output;
+extern int g_test_color_output;
 
 namespace tests {
 
@@ -137,7 +137,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
-  expose("stopSandbox", &Testutils::stop_sandbox, "port", "?password");
+  expose("stopSandbox", &Testutils::stop_sandbox, "port", "?options");
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port");
 
@@ -198,6 +198,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("createFile", &Testutils::create_file, "path", "content");
   expose("enableExtensible", &Testutils::enable_extensible);
   expose("dbugSet", &Testutils::dbug_set, "dbug");
+  expose("dprint", &Testutils::dprint, "s");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -1063,12 +1064,19 @@ void Testutils::start_sandbox(int port) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-Undefined Testutils::stopSandbox(Integer port);
+Undefined Testutils::stopSandbox(Integer port, Object options);
 #elif DOXYGEN_PY
-None Testutils::stop_sandbox(int port);
+None Testutils::stop_sandbox(int port, dict options);
 #endif
 ///@}
-void Testutils::stop_sandbox(int port, const std::string &pass) {
+void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
+  std::string pass;
+  bool wait = false;
+  shcore::Option_unpacker(opts)
+      .optional("wait", &wait)
+      .optional("password", &pass)
+      .end();
+
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     shcore::Value::Array_type_ref errors;
@@ -1077,6 +1085,8 @@ void Testutils::stop_sandbox(int port, const std::string &pass) {
     if (errors && !errors->empty())
       std::cerr << "During stop of " << port << ": "
                 << shcore::Value(errors).descr() << "\n";
+
+    if (wait) wait_sandbox_dead(port);
   }
 }
 
@@ -2056,6 +2066,27 @@ None Testutils::expect_password(str prompt, str password);
 void Testutils::expect_password(const std::string &prompt,
                                 const std::string &text) {
   _feed_password(prompt, text);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Prints a string for debugging, without affecting the checked test output.
+ *
+ * Output is enabled if tracing is enabled.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::dprint(String s);
+#elif DOXYGEN_PY
+None Testutils::dprint(str s);
+#endif
+///@}
+void Testutils::dprint(const std::string &s) {
+#ifdef ENABLE_SESSION_RECORDING
+  fprintf(stderr, "%s\n", s.c_str());
+#else
+  if (g_test_trace_scripts && _test_env) _test_env->debug_print(makegreen(s));
+#endif
 }
 
 std::string Testutils::fetch_captured_stdout(bool eat_one) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -139,7 +139,7 @@ std::string ShellBaseSession::sub_query_placeholders(
         }
       } catch (Exception &e) {
         throw;
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         throw Exception::argument_error(shcore::str_format(
             "%s while substituting placeholder value at index #%i", e.what(),
             i));
@@ -148,7 +148,7 @@ std::string ShellBaseSession::sub_query_placeholders(
     }
     try {
       return squery.str();
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       throw Exception::argument_error(
           "Insufficient number of values for placeholders in query");
     }

@@ -67,7 +67,7 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
 
       // If reached here it means there were no errors
       retry_count = 0;
-    } catch (mysqlshdk::db::Error &err) {
+    } catch (const mysqlshdk::db::Error &err) {
       auto e = shcore::Exception::mysql_error_with_code_and_state(
           err.what(), err.code(), err.sqlstate());
 
@@ -182,7 +182,7 @@ void MetadataStorage::insert_cluster(
   try {
     auto result = execute_sql(query);
     cluster->set_id(result->get_auto_increment_value());
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     if (e.what() == "Duplicate entry '" + cluster->get_name() +
                         "' for key 'cluster_name'") {
       log_debug("DBA: A Cluster with the name '%s' already exists",
@@ -643,7 +643,7 @@ bool MetadataStorage::get_cluster_from_query(
 
       return true;
     }
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     std::string error = e.what();
 
     if (error ==

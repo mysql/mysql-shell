@@ -56,6 +56,72 @@ void on_session_close(std::shared_ptr<mysqlshdk::db::ISession> session) {
     }
   }
 }
+
+class Devutil : public mysqlsh::Extensible_object {
+ public:
+  Devutil(shcore::IShell_core *owner)
+      : mysqlsh::Extensible_object("devutil", "devutil", true), m_shell(owner) {
+    expose("query", &Devutil::query_mock, "sql");
+  }
+
+  void query_mock(const std::string &query) {
+    if (!m_shell->get_dev_session()) {
+      throw std::runtime_error("Shell is not connected");
+    }
+    std::shared_ptr<mysqlshdk::db::ISession> session =
+        m_shell->get_dev_session()->get_core_session();
+
+    auto result = session->querys(query.c_str(), query.size());
+
+    std::string output = "->expect_query(R\"*(";
+    output.append(query);
+    output.append(")*\")\n.then_return({{\"\", {");
+    bool first = true;
+    for (const auto &col : result->get_metadata()) {
+      if (!first) output.append(", ");
+      first = false;
+      output.append("\"").append(col.get_column_label()).append("\"");
+    }
+    output.append("}, {");
+    first = true;
+    for (const auto &col : result->get_metadata()) {
+      if (!first) output.append(", ");
+      first = false;
+      output.append("Type::").append(mysqlshdk::db::to_string(col.get_type()));
+    }
+    output.append("}, {");
+    first = true;
+    while (auto row = result->fetch_one()) {
+      if (first)
+        output.append("{");
+      else
+        output.append(", {");
+      first = false;
+      for (size_t i = 0; i < row->num_fields(); i++) {
+        if (i > 0) output.append(", ");
+        if (row->is_null(i)) {
+          output.append("\"___NULL___\"");
+        } else if (mysqlshdk::db::is_string_type(row->get_type(i))) {
+          std::string s = row->get_as_string(i);
+          s = shcore::str_replace(s, "\\", "\\\\");
+          s = shcore::str_replace(s, "\n", "\\n");
+          s = shcore::str_replace(s, "\"", "\\\"");
+          output.append("\"").append(s).append("\"");
+        } else {
+          output.append("\"").append(row->get_as_string(i)).append("\"");
+        }
+      }
+      output.append("}");
+    }
+    output.append("}}})");
+
+    std::cout << output << "\n";
+  }
+
+ private:
+  shcore::IShell_core *m_shell;
+};
+
 }  // namespace
 
 void handle_debug_options(int *argc, char ***argv) {
@@ -159,13 +225,14 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
                            mysqlshdk::db::replay::g_replay_mode ==
                                mysqlshdk::db::replay::Mode::Replay,
                            shell, g_mysqlsh_path));
-
   if (mysqlshdk::db::replay::g_replay_mode !=
       mysqlshdk::db::replay::Mode::Direct)
     testutil->set_sandbox_snapshot_dir(
         mysqlshdk::db::replay::current_recording_dir());
-
   shell->set_global_object("testutil", testutil);
+
+  std::shared_ptr<Devutil> devutil(new Devutil(shell->shell_context().get()));
+  shell->set_global_object("devutil", devutil);
 }
 
 void finalize_debug_shell(mysqlsh::Command_line_shell *shell) {
@@ -181,4 +248,5 @@ void finalize_debug_shell(mysqlsh::Command_line_shell *shell) {
   g_open_sessions.clear();
 
   shell->set_global_object("testutil", {});
+  shell->set_global_object("devutil", {});
 }

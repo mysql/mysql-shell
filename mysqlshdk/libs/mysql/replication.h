@@ -26,12 +26,191 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlshdk {
 namespace mysql {
+
+struct Replication_channel {
+  struct Error {
+    int code = 0;
+    std::string message;
+    std::string timestamp;
+  };
+
+  struct Receiver {
+    enum State { ON, OFF, CONNECTING };
+    State state = OFF;
+    std::string thread_state;
+    Error last_error;
+  };
+
+  struct Coordinator {
+    enum State { NONE, ON, OFF };
+    State state = NONE;
+    std::string thread_state;
+    Error last_error;
+  };
+
+  struct Applier {
+    enum State { ON, OFF };
+    State state = OFF;
+    std::string thread_state;
+    Error last_error;
+    uint64_t last_applied_trx_delay =
+        0;  // time between original_commit and apply_end, in ns
+  };
+
+  std::string channel_name;
+  std::string user;
+  std::string host;
+  int port = 0;
+  std::string group_name;
+
+  std::string source_uuid;
+  std::string last_heartbeat_timestamp;
+
+  // IO thread status
+  Receiver receiver;
+  // Coordinator thread status (only if parallel applier used)
+  Coordinator coordinator;
+  // Applier thread status (only 1 unless parallel applier used)
+  std::vector<Applier> appliers;
+
+  enum Status {
+    OFF,               // all threads are OFF (and with no error)
+    ON,                // all threads are ON
+    RECEIVER_OFF,      // receiver thread OFF
+    APPLIER_OFF,       // applier threads OFF
+    CONNECTING,        // connection thread still connecting
+    CONNECTION_ERROR,  // connection thread has error or is stopped
+    APPLIER_ERROR      // applier thread(s) have error or is stopped
+  };
+
+  Status status() const;
+};
+
+struct Slave_host {
+  std::string host;
+  int port = 0;
+  std::string uuid;
+};
+
+std::string to_string(Replication_channel::Receiver::State state);
+std::string to_string(Replication_channel::Coordinator::State state);
+std::string to_string(Replication_channel::Applier::State state);
+std::string to_string(const Replication_channel::Error &error);
+
+std::string format_status(const Replication_channel &channel,
+                          bool verbose = false);
+
+/**
+ * Gets status information for a replication channel.
+ *
+ * @return false if the channel does not exist.
+ */
+bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
+                        const std::string &channel_name,
+                        Replication_channel *out_channel);
+
+/**
+ * Return status list of all replication channels (masters) at the given
+ * instance.
+ */
+std::vector<Replication_channel> get_incoming_channels(
+    const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Returns list of all replication channels (slaves) from the given instance.
+ */
+std::vector<Slave_host> get_slaves(const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Wait for the named replication channel to either switch from the CONNECTING
+ * state, an error appears or timeout.
+ *
+ * @param slave - the instance to monitor
+ * @param channel_name - the name of the replication channel to monitor
+ * @param timeout - timeout in seconds
+ */
+Replication_channel wait_replication_done_connecting(
+    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name,
+    int timeout);
+
+/**
+ * Returns GTID_EXECUTED set from the server.
+ *
+ * @param include_received - if true, will include GTID sets that were received
+ * but not yet applied, across all channels.
+ */
+std::string get_executed_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                                  bool include_received = false);
+
+/**
+ * Returns GTID_PURGED set from the server.
+ */
+std::string get_purged_gtid_set(const mysqlshdk::mysql::IInstance &server);
+
+/**
+ * Returns GTID set received by a specific channel.
+ */
+std::string get_received_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                                  const std::string &channel_name);
+
+/**
+ * Returns an upper bound of the number of transactions in the given GTID set.
+ *
+ * Can be used to give a rough estimate of the number of transactions, which
+ * should be accurate if there are no gaps in GTID ranges.
+ *
+ * Note that this function will not detect duplicates in the set.
+ */
+size_t estimate_gtid_set_size(const std::string &gtid_set);
+
+enum class Gtid_set_relation {
+  EQUAL,       // a = b
+  CONTAINS,    // a contains b (and a <> b)
+  CONTAINED,   // b contains a (and a <> b)
+  INTERSECTS,  // some GTIDs in common
+  DISJOINT     // nothing in common
+};
+
+Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,
+                                    const std::string &gtidset_a,
+                                    const std::string &gtidset_b,
+                                    std::string *out_missing_from_a = nullptr,
+                                    std::string *out_missing_from_b = nullptr);
+
+enum class Replica_gtid_state {
+  NEW,            // Replica is new (gtid_executed is empty)
+  IDENTICAL,      // GTID set identical to master
+  RECOVERABLE,    // GTID set is missing transactions, but can be recovered
+  IRRECOVERABLE,  // GTID set is missing purged transactions
+  DIVERGED        // GTID sets have diverged
+};
+
+/**
+ * Checks the transaction state of a replica in relation to another instance
+ * (its master).
+ *
+ * If include_received is true, transactions that were received (relay_log)
+ * are included in the calculations.
+ */
+Replica_gtid_state check_replica_gtid_state(
+    const mysqlshdk::mysql::IInstance &master,
+    const mysqlshdk::mysql::IInstance &slave, bool include_received,
+    std::string *out_missing_gtids = nullptr,
+    std::string *out_errant_gtids = nullptr);
+
+Replica_gtid_state check_replica_gtid_state(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &master_gtidset, const std::string &master_purged_gtidset,
+    const std::string &slave_gtidset, std::string *out_missing_gtids = nullptr,
+    std::string *out_errant_gtids = nullptr);
 
 /**
  * Wait until the given GTID set is applied on the target instance.
@@ -93,23 +272,6 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
  * @return an integer with a random between 1 and 4294967295.
  */
 int64_t generate_server_id();
-
-/**
- * Get the host name used for replication.
- *
- * In more details, this function returns the value for the variable
- * 'report_host' if not empty, otherwise the value of the 'hostname' variable
- * is returned.
- *
- * @param instance target instance to retrieve the report host value.
- * @return string with the value used for 'report_host' if not empty, otherwise
- *         the 'hostname' value.
- *
- * @throw std::runtime_error if a value is defined for report_host (not NULL)
- *        and it is empty.
- */
-std::string get_report_host(const mysqlshdk::mysql::IInstance &instance,
-                            bool *out_is_report_host_set = nullptr);
 
 /**
  * Checks if the asynchronous (master-slave) replication channels and threads

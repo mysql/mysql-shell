@@ -62,7 +62,7 @@ struct PyShMethodObject {
 void translate_python_exception(const std::string &context = "") {
   try {
     throw;
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     PyObject *err = PyTuple_New(2);
     PyTuple_SET_ITEM(err, 0, PyInt_FromLong(e.code()));
     PyTuple_SET_ITEM(err, 1, PyString_FromString(e.what()));
@@ -228,7 +228,7 @@ static int object_init(PyShObjObject *self, PyObject *args,
     try {
       self->object = new Object_bridge_ref();
       self->cache = new PyMemberCache();
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
@@ -438,7 +438,7 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
    */
   try {
     std::shared_ptr<shcore::Function_base> func = method.as_function();
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc, "member is not a function");
     return NULL;
   }

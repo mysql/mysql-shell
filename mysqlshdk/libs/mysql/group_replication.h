@@ -95,14 +95,14 @@ Topology_mode to_topology_mode(const std::string &mode);
 struct Member {
   // Address of the member
   std::string host;
-  // GR port of the member
-  int gr_port;
+  // port of the member
+  int port = 0;
   // member_id aka server_uuid of the member
   std::string uuid;
   // State of the member
   Member_state state = Member_state::MISSING;
   // Role of the member (primary vs secondary)
-  Member_role role;
+  Member_role role = Member_role::SECONDARY;
   // Version of the member
   std::string version;
 };
@@ -154,7 +154,9 @@ bool is_member(const mysqlshdk::mysql::IInstance &instance,
                const std::string &group_name);
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance);
 std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
-                                bool *out_single_primary_mode = nullptr);
+                                bool *out_single_primary_mode = nullptr,
+                                bool *out_has_quorum = nullptr,
+                                std::string *out_group_view_id = nullptr);
 
 bool is_primary(const mysqlshdk::mysql::IInstance &instance);
 
@@ -166,7 +168,9 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            Member_state *out_member_state,
                            std::string *out_member_id,
                            std::string *out_group_name,
-                           bool *out_single_primary_mode);
+                           bool *out_single_primary_mode,
+                           bool *out_has_quorum = nullptr,
+                           bool *out_is_primary = nullptr);
 
 std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
                                    bool *out_single_primary_mode);

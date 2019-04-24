@@ -31,6 +31,7 @@
 #include "utils/process_launcher.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_lexing.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
@@ -65,9 +66,10 @@ class Test_debugger {
     m_console.reset(new mysqlsh::Shell_console(&m_deleg));
   }
 
-  void enable() {
+  void enable(bool step) {
     println("Enabling...");
     m_enabled = true;
+    m_stepping = step;
   }
 
   void on_test_begin(Shell_core_test_wrapper *test) { m_test = test; }
@@ -76,17 +78,23 @@ class Test_debugger {
     m_shell = shell;
   }
 
-  Action will_execute(int lnum, const std::string &code) {
+  Action will_execute(const std::string &source, int lnum,
+                      const std::string &code) {
+    if (m_main_source.empty()) m_main_source = source;
+
     // Line containing //BREAK in the script will enter cmd loop
     if (m_enabled) {
       if (m_stepping) {
+        if (source != m_main_source && m_skip_include) {
+          // skip over include files
+          return Action::Continue;
+        }
         m_stepping = false;
         return interact();
       } else if (shcore::str_strip(code) == "//BREAK") {
         println("//BREAK hit");
         return interact();
       }
-      return Action::Continue;
     }
     return Action::Continue;
   }
@@ -128,14 +136,20 @@ class Test_debugger {
 
   bool handle_command(const std::string &cmd, bool *exit_interactive) {
     if (cmd == "\\next") {
-      println("Execute until next...");
       m_stepping = true;
+      m_skip_include = true;
+      *exit_interactive = true;
+      return true;
+    } else if (cmd == "\\step") {
+      m_stepping = true;
+      m_skip_include = false;
       *exit_interactive = true;
       return true;
     } else if (cmd == "\\dhelp") {
       std::cout << "TDB Help\n"
                 << "--------\n"
-                << "\\next execute next\n"
+                << "\\next line (skip INCLUDE)\n"
+                << "\\step line (enter INCLUDE)\n"
                 << "\\cont continue execution\n"
                 << "\\abort let test fail (when handling validation failures)\n"
                 << "\\quit exit\n"
@@ -146,14 +160,17 @@ class Test_debugger {
   }
 
   Action interact(bool abortable = false) {
-    if (abortable)
-      println(
-          "Entering interactive loop... \\cont to continue, ^D or \\abort to "
-          "exit. \\dhelp for debugger help");
-    else
-      println(
-          "Entering interactive loop... \\cont or ^D to continue. \\dhelp for "
-          "debugger help");
+    if (m_first_interact) {
+      if (abortable)
+        println(
+            "Entering interactive loop... \\cont to continue, ^D or \\abort to "
+            "exit. \\dhelp for debugger help");
+      else
+        println(
+            "Entering interactive loop... \\cont or ^D to continue. \\dhelp "
+            "for debugger help");
+      m_first_interact = false;
+    }
 
     // save stdout and stderr contents
     std::string std_err = m_test->output_handler.std_err;
@@ -196,6 +213,13 @@ class Test_debugger {
         break;
       }
 
+      if (cmd == "") {
+        // re-execute last command
+        cmd = m_last_cmd;
+      } else {
+        m_last_cmd = cmd;
+      }
+
       if (cmd == "\\cont") {
         result = Action::Continue;
         break;
@@ -215,8 +239,12 @@ class Test_debugger {
   bool m_enabled = false;
   bool m_break_on_throw = false;
   bool m_stepping = false;
+  bool m_skip_include = false;
   bool m_exit_on_test_error = false;
+  bool m_first_interact = true;
   Shell_core_test_wrapper *m_test = nullptr;
+  std::string m_last_cmd;
+  std::string m_main_source;
 
   std::shared_ptr<mysqlsh::Shell_console> m_console;
   shcore::Interpreter_delegate m_deleg;
@@ -234,9 +262,9 @@ void init_tdb() {
   if (!g_tdb) g_tdb = new mysqlsh::Test_debugger();
 }
 
-void enable_tdb() {
+void enable_tdb(bool step) {
   init_tdb();
-  g_tdb->enable();
+  g_tdb->enable(step);
 }
 
 void fini_tdb() {
@@ -469,7 +497,8 @@ bool Shell_script_tester::validate(const std::string &context,
       if (!validations[valindex]->code.empty()) {
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
-          ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+          ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                         _chunks[chunk_id].code[0].first)
               << makered("\tUnexpected Error: " + original_std_err) << "\n";
           return false;
         }
@@ -501,7 +530,8 @@ bool Shell_script_tester::validate(const std::string &context,
 
       // Validates unexpected error
       if (!expect_failures && !original_std_err.empty()) {
-        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+        ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                       _chunks[chunk_id].code[0].first)
             << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
             << makered("\tUnexpected Error: ") << original_std_err << "\n";
         return false;
@@ -519,7 +549,7 @@ bool Shell_script_tester::validate(const std::string &context,
             auto pos = original_std_out.find(out, out_position);
             if (pos == std::string::npos) {
               if (out_position == 0) {
-                ADD_FAILURE_AT(_filename.c_str(),
+                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\nwith validation at "
@@ -528,7 +558,7 @@ bool Shell_script_tester::validate(const std::string &context,
                     << makeyellow("\tSTDOUT actual: ") + original_std_out
                     << "\n";
               } else {
-                ADD_FAILURE_AT(_filename.c_str(),
+                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\nwith validation at "
@@ -546,6 +576,7 @@ bool Shell_script_tester::validate(const std::string &context,
               out_position = pos + out.length();
             }
           } else {
+            SCOPED_TRACE(_chunks[chunk_id].source);
             if (!validate_line_by_line(
                     context, chunk_id, "STDOUT", out,
                     validations[valindex]->def->stream == "PROTOCOL"
@@ -570,7 +601,8 @@ bool Shell_script_tester::validate(const std::string &context,
           pos = original_std_out.find(out);
 
         if (pos != std::string::npos) {
-          ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+          ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                         _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
               << "with validation at " << validations[valindex]->def->linenum
               << "\n"
@@ -592,7 +624,7 @@ bool Shell_script_tester::validate(const std::string &context,
             auto pos = original_std_err.find(error, err_position);
             if (pos == std::string::npos) {
               if (err_position == 0) {
-                ADD_FAILURE_AT(_filename.c_str(),
+                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\n"
@@ -602,7 +634,7 @@ bool Shell_script_tester::validate(const std::string &context,
                     << makeyellow("\tSTDERR actual: ") + original_std_err
                     << "\n";
               } else {
-                ADD_FAILURE_AT(_filename.c_str(),
+                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\n"
@@ -621,6 +653,7 @@ bool Shell_script_tester::validate(const std::string &context,
               err_position = pos + error.length();
             }
           } else {
+            SCOPED_TRACE(_chunks[chunk_id].source);
             if (!validate_line_by_line(context, chunk_id, "STDERR", error,
                                        original_std_err,
                                        _chunks[chunk_id].code[0].first,
@@ -632,7 +665,8 @@ bool Shell_script_tester::validate(const std::string &context,
     }
 
     if (validations.empty()) {
-      ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+      ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                     _chunks[chunk_id].code[0].first)
           << makered("MISSING VALIDATIONS FOR CHUNK ")
           << _chunks[chunk_id].def->line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
@@ -645,12 +679,14 @@ bool Shell_script_tester::validate(const std::string &context,
   } else {
     // There were errors
     if (!original_std_err.empty()) {
-      ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+      ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                     _chunks[chunk_id].code[0].first)
           << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
           << makered("\tUnexpected Error: ") + original_std_err << "\n";
     } else if (!optional && _chunks.find(chunk_id) != _chunks.end()) {
       // The error is that there are no validations
-      ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+      ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                     _chunks[chunk_id].code[0].first)
           << makered("MISSING VALIDATIONS FOR CHUNK ")
           << _chunks[chunk_id].def->line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
@@ -678,17 +714,33 @@ void Shell_script_tester::validate_interactive(const std::string &script) {
     }
   } catch (std::exception &e) {
     std::string error = e.what();
-    FAIL() << makered("Unexpected exception excuting test script: ") << e.what()
-           << "\n";
+    FAIL() << makered("Unexpected exception executing test script: ")
+           << e.what() << "\n";
   }
 }
 
+static bool is_identifier_assignment(const std::string &s) {
+  std::string::size_type p = 0, pp;
+  p = mysqlshdk::utils::span_keyword(s, p);
+  if (p == 0) return false;
+  p = mysqlshdk::utils::span_spaces(s, p);
+  if (s[p] != '=') return false;
+  ++p;
+  pp = mysqlshdk::utils::span_spaces(s, p);
+  pp = mysqlshdk::utils::span_keyword(s, pp);
+  if (pp == p) return false;
+  if (s[pp] == ';') ++pp;
+  if (pp < s.size()) return false;
+  return true;
+}
+
 bool Shell_script_tester::load_source_chunks(const std::string &path,
-                                             std::istream &stream) {
-  Chunk_t chunk;
-  chunk.def->id = "__global__";
-  chunk.def->validation_id = "__global__";
-  chunk.def->validation = ValidationType::Optional;
+                                             std::istream &stream,
+                                             const std::string &prefix) {
+  std::string last_id;
+
+  auto last_chunk = [this, &last_id]() { return &_chunks.at(last_id); };
+
   int linenum = 0;
   bool ret_val = true;
 
@@ -701,49 +753,115 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
 
     std::shared_ptr<Chunk_definition> chunk_def = load_chunk_definition(line);
     if (chunk_def) {
+      if (!prefix.empty()) {
+        chunk_def->id = prefix + chunk_def->id;
+        chunk_def->validation_id = prefix + chunk_def->validation_id;
+      }
+
       // Full Script Context Validation is supported by defining context
       // validation at the __global__ scope.
-      // The way to do it is with an anonymous chunk with the context validation
-      // i.e.
+      // The way to do it is with an anonymous chunk with the context
+      // validation i.e.
       // #@ {<context validation>}
       if (chunk_def->id.empty()) {
-        if (chunk.def->id == "__global__" &&
+        if ((last_id.empty() || last_id == prefix + "__global__") &&
             !context_enabled(chunk_def->context)) {
           ADD_SKIPPED_TEST(line);
           ret_val = false;
         }
       } else {
         chunk_def->linenum = linenum;
-        add_source_chunk(path, chunk);
+
+        last_id = chunk_def->id;
 
         // Starts the new chunk
-        chunk = Chunk_t();
-        chunk.def = chunk_def;
+        {
+          Chunk_t chunk;
+          chunk.source = path;
+          chunk.def = chunk_def;
+          add_source_chunk(path, chunk);
+        }
+      }
+
+      // Handle include files... we make them look like chunks even if they
+      // aren't to make it obvious the previous chunk is over
+      if (str_beginswith(line, "//@ INCLUDE ")) {
+        // Syntax:
+        //@ INCLUDE file.inc
+        //@ INCLUDE tag file.inc
+        auto tokens = str_split(line, " ", -1, true);
+        if (tokens.size() > 2) {
+          std::string include = tokens[2];
+          std::string tag;
+          if (tokens.size() > 3) {
+            tag = tokens[2];
+            include = tokens[3];
+          }
+
+          std::string inc_path =
+              shcore::path::join_path(shcore::path::dirname(path), include);
+          std::ifstream inc_stream(inc_path.c_str());
+
+          if (!inc_stream.fail()) {
+            std::string namespc =
+                std::get<0>(shcore::path::split_extension(include));
+            if (!tag.empty()) namespc = tag + "::" + namespc;
+            load_source_chunks(include, inc_stream, namespc + "::");
+          } else {
+            ADD_FAILURE_AT(path.c_str(), linenum - 1)
+                << makered("Could not load include file " + inc_path) << "\n";
+          }
+        } else {
+          ADD_FAILURE_AT(path.c_str(), linenum - 1)
+              << makered("Invalid INCLUDE directive") << "\n";
+        }
       }
     } else {
       // Only adds the lines that are NO snippet specifier
-      if (line.find("//! [") != 0) chunk.code.push_back({linenum, line});
+      if (line.find("//! [") != 0) {
+        if (last_id.empty()) {
+          // Add __global__ at the 1st line we find
+          Chunk_t chunk;
+          chunk.source = path;
+          chunk.def->id = last_id = prefix + "__global__";
+          chunk.def->validation_id = prefix + "__global__";
+          chunk.def->validation = ValidationType::Optional;
+          chunk.code.push_back({linenum, line});
+          add_source_chunk(path, chunk);
+        } else {
+          // To simplify validation error handling and reporting, we limit
+          // what can appear in an INCLUDE chunk to:
+          // - comments
+          // - empty space
+          // - identifier assignments (x = y)
+          if (str_beginswith(last_chunk()->def->id, "INCLUDE ")) {
+            if (!line.empty() && !str_beginswith(line, "//") &&
+                !is_identifier_assignment(line)) {
+              ADD_FAILURE_AT(path.c_str(), linenum - 1)
+                  << makered("No code allowed after an //@ INCLUDE directive")
+                  << "\n";
+            }
+          }
+          last_chunk()->code.push_back({linenum, line});
+        }
+      }
     }
   }
-
-  // Inserts the remaining code chunk
-  add_source_chunk(path, chunk);
 
   return ret_val;
 }
 
 void Shell_script_tester::add_source_chunk(const std::string &path,
                                            const Chunk_t &chunk) {
-  if (!chunk.code.empty()) {
-    if (_chunks.find(chunk.def->id) == _chunks.end()) {
-      _chunks[chunk.def->id] = chunk;
-      _chunk_order.push_back(chunk.def->id);
-    } else {
-      ADD_FAILURE_AT(path.c_str(), chunk.code[0].first - 1)
-          << makered("REDEFINITION OF CHUNK: \"") + chunk.def->line << "\"\n"
-          << "\tInitially defined at line: "
-          << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
-    }
+  if (_chunks.find(chunk.def->id) == _chunks.end()) {
+    _chunks[chunk.def->id] = chunk;
+    _chunk_order.push_back(chunk.def->id);
+  } else {
+    ADD_FAILURE_AT(path.c_str(), chunk.def->linenum - 1)
+        << makered("REDEFINITION OF CHUNK: \"") + chunk.source << ":"
+        << chunk.def->line << "\"\n"
+        << "\tInitially defined at " << _chunks[chunk.def->id].source << ":"
+        << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
   }
 }
 
@@ -903,7 +1021,8 @@ void Shell_script_tester::load_validations(const std::string &path) {
         // the same order the chunks were loaded
         if (chunk_verification) {
           // Ensures the found validation is for a valid chunk
-          if (_chunks.find(current_val_def->id) == _chunks.end()) {
+          if (_chunks.find(current_val_def->id) == _chunks.end() &&
+              !g_generate_validation_file) {
             ADD_FAILURE_AT(path.c_str(), line_no)
                 << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
                 << current_val_def->line << "\n"
@@ -935,7 +1054,8 @@ void Shell_script_tester::load_validations(const std::string &path) {
               if (index == _chunk_validations.end()) {
                 ADD_FAILURE_AT(path.c_str(), line_no)
                     << makered("CHUNK REFERENCES AN UNEXISTING VALIDATION")
-                    << current_chunk->def->line << "\n"
+                    << current_chunk->source << ":" << current_chunk->def->line
+                    << "\n"
                     << "\tLINE: " << line_no << "\n";
               }
             }
@@ -948,17 +1068,19 @@ void Shell_script_tester::load_validations(const std::string &path) {
             match = current_val_def->id == current_chunk->def->id;
           }
 
-          if (!optional && !match) {
+          if (!optional && !match && !g_generate_validation_file) {
             ADD_FAILURE_AT(path.c_str(), line_no)
                 << makered("EXPECTED VALIDATIONS FOR CHUNK ")
-                << current_chunk->def->line << "\n"
+                << current_chunk->source << ":" << current_chunk->def->line
+                << "\n"
                 << "INSTEAD FOUND FOR CHUNK " << current_val_def->line << "\n"
                 << "\tLINE: " << line_no << "\n";
             skip_chunk = true;
             continue;
           }
 
-          if (chunk_index >= _chunk_order.size()) {
+          if (chunk_index >= _chunk_order.size() &&
+              !g_generate_validation_file) {
             ADD_FAILURE_AT(path.c_str(), line_no)
                 << makered("UNEXPECTED VALIDATIONS FOR CHUNK ")
                 << current_val_def->line << "\n"
@@ -1073,21 +1195,28 @@ void Shell_script_tester::execute_script(const std::string &path,
         // Prints debugging information
         _cout.str("");
         _cout.clear();
+        if (str_beginswith(_chunk_order[index], "INCLUDE ")) {
+          std::string chunk_log = _chunk_order[index];
+          std::string splitter(chunk_log.length(), '=');
+          output_handler.debug_print(makelblue(splitter));
+          output_handler.debug_print(makelblue(chunk_log));
+          output_handler.debug_print(makelblue(splitter));
+        } else {
+          std::string chunk_log = "CHUNK: " + _chunk_order[index];
+          std::string splitter(chunk_log.length(), '-');
+          output_handler.debug_print(makeyellow(splitter));
+          output_handler.debug_print(makeyellow(chunk_log));
+          output_handler.debug_print(makeyellow(splitter));
+        }
 
         // Gets the chunks for the next id
         auto &chunk = _chunks[_chunk_order[index]];
-
-        std::string chunk_log = "CHUNK: " + chunk.def->line;
-        std::string splitter(chunk_log.length(), '-');
-        output_handler.debug_print(makeyellow(splitter));
-        output_handler.debug_print(makeyellow(chunk_log));
-        output_handler.debug_print(makeyellow(splitter));
 
         bool enabled;
         try {
           enabled = context_enabled(chunk.def->context);
         } catch (const std::invalid_argument &e) {
-          ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
+          ADD_FAILURE_AT(chunk.source.c_str(), chunk.code[0].first)
               << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
           break;
@@ -1096,7 +1225,8 @@ void Shell_script_tester::execute_script(const std::string &path,
         // Executes the file line by line
         if (enabled) {
           _custom_context = "while executing chunk \"" + chunk.def->line +
-                            "\" at line " + std::to_string(chunk.def->linenum);
+                            "\" at " + chunk.source + ":" +
+                            std::to_string(chunk.def->linenum);
           set_scripting_context();
           auto &code = chunk.code;
           std::string full_statement;
@@ -1105,7 +1235,7 @@ void Shell_script_tester::execute_script(const std::string &path,
 
             full_statement.append(line);
             // Execution context is at line (statement actually) level
-            _custom_context = path + "@[" + _chunk_order[index] + "][" +
+            _custom_context = chunk.source + "@[" + _chunk_order[index] + "][" +
                               std::to_string(chunk.code[chunk_item].first) +
                               ":" + full_statement + "]";
 
@@ -1114,9 +1244,10 @@ void Shell_script_tester::execute_script(const std::string &path,
 
             if (testutil)
               testutil->set_test_execution_context(
-                  _filename, code[chunk_item].first, this);
+                  chunk.source.c_str(), code[chunk_item].first, this);
 
-            if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
+            if (g_tdb->will_execute(chunk.source, chunk.code[chunk_item].first,
+                                    line) ==
                 mysqlsh::Test_debugger::Action::Skip_execute) {
               continue;
             }
@@ -1143,7 +1274,6 @@ void Shell_script_tester::execute_script(const std::string &path,
             }
           }
 
-          execute("");
           execute("");
 
           if (g_generate_validation_file) {
@@ -1341,7 +1471,8 @@ void Shell_script_tester::validate_chunks(const std::string &path,
               testutil->set_test_execution_context(
                   _filename, (code[chunk_item].first), this);
 
-            if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
+            if (g_tdb->will_execute(chunk.source, chunk.code[chunk_item].first,
+                                    line) ==
                 mysqlsh::Test_debugger::Action::Skip_execute) {
               continue;
             }

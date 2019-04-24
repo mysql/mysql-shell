@@ -7,7 +7,7 @@
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(>=8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root'@'%' for root
 
 NOTE: Some configuration options need to be fixed:
@@ -35,7 +35,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(<8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root'@'%' for root
 
 NOTE: Some configuration options need to be fixed:
@@ -66,7 +66,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root2'@'%' for root2
 
 NOTE: Some configuration options need to be fixed:
@@ -101,7 +101,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root2'@'%' for root2
 
 NOTE: Some configuration options need to be fixed:
@@ -147,7 +147,7 @@ Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root5'@'%' for root5
 
 NOTE: Some configuration options need to be fixed:
@@ -167,7 +167,7 @@ Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root5'@'%' for root5
 
 NOTE: Some configuration options need to be fixed:
@@ -206,7 +206,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
@@ -242,7 +242,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 //@<OUT> Interactive_dba_configure_local_instance where we pass the configuration file path via wizard. (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -272,7 +272,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 //@<OUT> Confirm that changes were applied to config file (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+

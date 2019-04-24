@@ -155,7 +155,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void validate_instances_gtid_reboot_cluster(
       std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,
-      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session);
+      const mysqlshdk::mysql::IInstance &target_instance);
   std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
     return _provisioning_interface;
   }

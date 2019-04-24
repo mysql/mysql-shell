@@ -242,8 +242,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (_connection_options.has(kConnectTimeout)) {
     connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
   }
-  xcl::XError error = _mysql->set_mysql_option(
-      xcl::XSession::Mysqlx_option::Connect_timeout, connect_timeout);
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Connect_timeout,
+                           connect_timeout);
+  // Set read timeout
+  if (_connection_options.has(kNetReadTimeout)) {
+    int64_t read_timeout = std::stoi(_connection_options.get(kNetReadTimeout));
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Read_timeout,
+                             read_timeout);
+  }
 
   auto handler_id = _mysql->get_protocol().add_notice_handler(
       [this](xcl::XProtocol *, const bool,
@@ -631,9 +637,11 @@ void XSession_impl::store_error_and_throw(const Error &error,
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
-void Session::set_factory_function(
+std::function<std::shared_ptr<Session>()> Session::set_factory_function(
     std::function<std::shared_ptr<Session>()> factory) {
+  auto old = g_session_factory;
   g_session_factory = factory;
+  return old;
 }
 
 std::shared_ptr<Session> Session::create() {

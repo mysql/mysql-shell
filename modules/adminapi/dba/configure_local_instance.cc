@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,7 +65,6 @@ void Configure_local_instance::prepare() {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
     m_target_instance = new mysqlshdk::mysql::Instance(session);
-    m_target_instance->cache_global_sysvars();
 
     m_local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());

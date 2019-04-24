@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_H_
 
 #include "types_common.h"
 
@@ -36,6 +36,9 @@
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk_export.h"
+
+// For error codes used by the shell
+#define SHERR_FIRST 50000
 
 namespace shcore {
 /** Basic types that can be passed around code in different languages.
@@ -355,6 +358,15 @@ typedef Value::Array_type_ref Array_t;
 inline Dictionary_t make_dict() {
   return Value::Map_type_ref(new Value::Map_type());
 }
+
+template <typename... Arg>
+inline Dictionary_t make_dict(const std::string &key,
+                              const shcore::Value &value, Arg... args) {
+  Dictionary_t dict = make_dict(args...);
+  dict->set(key, value);
+  return dict;
+}
+
 inline Array_t make_array() {
   return Value::Array_type_ref(new Value::Array_type());
 }
@@ -364,6 +376,7 @@ class SHCORE_PUBLIC Exception : public std::exception {
 
  public:
   explicit Exception(const std::shared_ptr<Value::Map_type> e);
+  Exception(const std::string &message, int code);
 
   virtual ~Exception() noexcept {}
 
@@ -400,19 +413,19 @@ class SHCORE_PUBLIC Exception : public std::exception {
   bool is_attribute() const;
   bool is_value() const;
   bool is_type() const;
-  bool is_server() const;
   bool is_mysql() const;
+  bool is_mysqlsh() const;
   bool is_parser() const;
 
   virtual const char *what() const noexcept;
 
   const char *type() const noexcept;
 
-  int64_t code() const noexcept;
+  int code() const noexcept;
 
   std::shared_ptr<Value::Map_type> error() const { return _error; }
 
-  std::string format();
+  std::string format() const;
 };
 
 class SHCORE_PUBLIC Argument_list {
@@ -536,6 +549,22 @@ struct value_type_for_native<uint64_t> {
   static const Value_type type = UInteger;
 
   static uint64_t extract(const Value &value) { return value.as_uint(); }
+};
+template <>
+struct value_type_for_native<int> {
+  static const Value_type type = Integer;
+
+  static int extract(const Value &value) {
+    return static_cast<int>(value.as_int());
+  }
+};
+template <>
+struct value_type_for_native<unsigned int> {
+  static const Value_type type = UInteger;
+
+  static unsigned int extract(const Value &value) {
+    return static_cast<unsigned int>(value.as_uint());
+  }
 };
 template <>
 struct value_type_for_native<double> {
@@ -800,4 +829,4 @@ typedef std::shared_ptr<Function_base> Function_base_ref;
 bool my_strnicmp(const char *c1, const char *c2, size_t n);
 }  // namespace shcore
 
-#endif  // _TYPES_H_
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_H_

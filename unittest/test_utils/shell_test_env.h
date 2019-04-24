@@ -41,7 +41,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 extern "C" const char *g_argv0;
 extern int g_test_trace_scripts;
 extern bool g_test_fail_early;
-extern bool g_test_color_output;
+extern int g_test_color_output;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 
 #define SKIP_UNLESS_DIRECT_MODE()                                   \
@@ -137,6 +137,10 @@ class Shell_test_env : public ::testing::Test {
       std::unique_ptr<mysqlshdk::db::IRow> source);
 
   void inject_port_check_result(const std::string &host, int port, bool result);
+
+  virtual void debug_print(const std::string &s) {
+    fprintf(stderr, "%s\n", s.c_str());
+  }
 
  protected:
   static std::string _host;  //!< localhost
@@ -259,12 +263,18 @@ inline std::string makebold(const std::string &s) {
 
 inline std::string makered(const std::string &s) {
   if (!g_test_color_output) return s;
-  return "\x1b[31m" + s + "\x1b[0m";
+  if (g_test_color_output == 2)
+    return "\x1b[38;5;161m" + s + "\x1b[0m";
+  else
+    return "\x1b[31m" + s + "\x1b[0m";
 }
 
 inline std::string makelred(const std::string &s) {
   if (!g_test_color_output) return s;
-  return "\x1b[91m" + s + "\x1b[0m";
+  if (g_test_color_output == 2)
+    return "\x1b[38;5;210m" + s + "\x1b[0m";
+  else
+    return "\x1b[91m" + s + "\x1b[0m";
 }
 
 inline std::string makeredbg(const std::string &s) {

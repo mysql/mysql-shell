@@ -1375,21 +1375,25 @@ TEST_F(Group_replication_test, is_protocol_upgrade_required) {
 
   mock_session
       ->expect_query(
-          "SELECT member_id, member_state, member_host, member_port, "
-          "member_role, member_version, @@group_replication_single_primary_mode"
-          " FROM performance_schema.replication_group_members")
+          "SELECT m.member_id, m.member_state, m.member_host, m.member_port, "
+          "m.member_role, m.member_version, s.view_id, "
+          "@@group_replication_single_primary_mode single_primary FROM "
+          "performance_schema.replication_group_members m LEFT JOIN "
+          "performance_schema.replication_group_member_stats s   ON "
+          "m.member_id = s.member_id      AND s.channel_name = "
+          "'group_replication_applier' ORDER BY m.member_id")
       .then_return(
           {{"",
-            {"member_id, member_state, member_host, member_port, member_role, "
-             "member_version, @@group_replication_single_primary_mode"},
+            {"member_id", "member_state", "member_host", "member_port",
+             "member_role", "member_version", "view_id", "single_primary"},
             {Type::String, Type::String, Type::String, Type::String,
-             Type::String, Type::String, Type::UInteger},
+             Type::String, Type::String, Type::String, Type::UInteger},
             {{"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544d", "ONLINE", "T480", "3310",
-              "PRIMARY", "8.0.16", "1"},
+              "PRIMARY", "8.0.16", "11111-", "1"},
              {"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544e", "ONLINE", "T480", "3320",
-              "SECONDARY", "8.0.16", "1"},
+              "SECONDARY", "8.0.16", "11111-", "1"},
              {"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544f", "ONLINE", "T480", "3330",
-              "SECONDARY", "8.0.15", "1"}}}});
+              "SECONDARY", "8.0.15", "11111-", "1"}}}});
 
   EXPECT_CALL(*mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.16")));
@@ -1427,21 +1431,25 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
 
   mock_session
       ->expect_query(
-          "SELECT member_id, member_state, member_host, member_port, "
-          "member_role, member_version, @@group_replication_single_primary_mode"
-          " FROM performance_schema.replication_group_members")
+          "SELECT m.member_id, m.member_state, m.member_host, m.member_port, "
+          "m.member_role, m.member_version, s.view_id, "
+          "@@group_replication_single_primary_mode single_primary FROM "
+          "performance_schema.replication_group_members m LEFT JOIN "
+          "performance_schema.replication_group_member_stats s   ON "
+          "m.member_id = s.member_id      AND s.channel_name = "
+          "'group_replication_applier' ORDER BY m.member_id")
       .then_return(
           {{"",
-            {"member_id, member_state, member_host, member_port, member_role, "
-             "member_version, @@group_replication_single_primary_mode"},
+            {"member_id", "member_state", "member_host", "member_port",
+             "member_role", "member_version", "view_id", "single_primary"},
             {Type::String, Type::String, Type::String, Type::String,
-             Type::String, Type::String, Type::UInteger},
+             Type::String, Type::String, Type::String, Type::UInteger},
             {{"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544d", "ONLINE", "T480", "3310",
-              "PRIMARY", "8.0.15", "1"},
+              "PRIMARY", "8.0.15", "11111-", "1"},
              {"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544e", "ONLINE", "T480", "3320",
-              "SECONDARY", "8.0.15", "1"},
+              "SECONDARY", "8.0.15", "11111-", "1"},
              {"2aebeab3-39d1-11e9-b4e9-9ed7ce0b544f", "ONLINE", "T480", "3330",
-              "SECONDARY", "8.0.16", "1"}}}});
+              "SECONDARY", "8.0.16", "11111-", "1"}}}});
 
   EXPECT_CALL(*mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.16")));

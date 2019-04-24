@@ -236,7 +236,7 @@ int ProvisioningInterface::execute_mysqlprovision(
           shcore::Value raw_data;
           try {
             raw_data = shcore::Value::parse(buf);
-          } catch (shcore::Exception &e) {
+          } catch (const shcore::Exception &e) {
             std::string error = e.what();
             error += ": ";
             error += buf;
@@ -376,7 +376,7 @@ int ProvisioningInterface::exec_sandbox_op(
       shcore::ensure_dir_exists(dir);
 
       kwargs["sandbox_base_dir"] = shcore::Value(dir);
-    } catch (std::runtime_error &error) {
+    } catch (const std::runtime_error &error) {
       log_warning("DBA: Unable to create default sandbox directory at %s.",
                   dir.c_str());
     }

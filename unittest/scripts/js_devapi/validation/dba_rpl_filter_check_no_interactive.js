@@ -2,19 +2,38 @@
 ||
 
 //@## Dba: create_cluster fails with binlog-do-db
-||Invalid 'binlog-do-db' settings, metadata cannot be excluded. Remove binlog filters or include the 'mysql_innodb_cluster_metadata' database in the 'binlog-do-db' option.
+||instance has binlog filters configured, but they are not supported in InnoDB clusters.
 
 //@# Dba: create_cluster fails with binlog-ignore-db
-||Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. Remove binlog filters or the 'mysql_innodb_cluster_metadata' database from the 'binlog-ignore-db' option.
+||instance has binlog filters configured, but they are not supported in InnoDB clusters.
 
-//@# Dba: create_cluster succeed with binlog-do-db
+//@# Dba: create_cluster fails with global repl filter {VER(>=8.0.11)}
+||instance has global replication filters configured, but they are not supported in InnoDB clusters.
+||instance has global replication filters configured, but they are not supported in InnoDB clusters.
+
+//@# Dba: create_cluster fails with repl filter {VER(>=8.0.11)}
+||instance has replication filters configured, but they are not supported in InnoDB clusters.
+||instance has replication filters configured, but they are not supported in InnoDB clusters.
+
+//@# Dba: create_cluster succeed without binlog-do-db nor repl filter
 |<Cluster:testCluster>|
 
 //@# Dba: add_instance fails with binlog-do-db
-||Invalid 'binlog-do-db' settings, metadata cannot be excluded. Remove binlog filters or include the 'mysql_innodb_cluster_metadata' database in the 'binlog-do-db' option.
+||instance has binlog filters configured, but they are not supported in InnoDB clusters.
 
 //@# Dba: add_instance fails with binlog-ignore-db
-||Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. Remove binlog filters or the 'mysql_innodb_cluster_metadata' database from the 'binlog-ignore-db' option.
+||instance has binlog filters configured, but they are not supported in InnoDB clusters.
+
+//@# Dba: add_instance fails with global repl filter {VER(>=8.0.11)}
+||instance has global replication filters configured, but they are not supported in InnoDB clusters.
+||instance has global replication filters configured, but they are not supported in InnoDB clusters.
+
+//@# Dba: add_instance fails with repl filter {VER(>=8.0.11)}
+||instance has replication filters configured, but they are not supported in InnoDB clusters.
+||instance has replication filters configured, but they are not supported in InnoDB clusters.
+
+//@# Dba: add_instance succeeds without repl filter
+||
 
 //@ Finalization
 ||

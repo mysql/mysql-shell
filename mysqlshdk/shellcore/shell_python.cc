@@ -139,7 +139,7 @@ bool Shell_python::is_module(const std::string &file_name) {
     WillEnterPython lock;
 
     ret_val = _py->is_module(file_name);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")
             .append(file_name)
@@ -166,7 +166,7 @@ void Shell_python::execute_module(const std::string &file_name) {
     ret_val = _py->execute_module(file_name, _owner->get_input_args());
 
     _result_processor(ret_val, ret_val.type == shcore::Undefined);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")
             .append(file_name)

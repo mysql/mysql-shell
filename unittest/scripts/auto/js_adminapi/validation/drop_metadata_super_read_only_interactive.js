@@ -33,7 +33,7 @@ Cancelled
 ||
 
 //@# Interactive_dba_drop_metadata_schemaread_only_invalid_flag_value
-||Dba.dropMetadataSchema: Argument 'clearReadOnly' is expected to be a bool
+||Dba.dropMetadataSchema: Argument 'clearReadOnly' is expected to be a bool (TypeError)
 
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_flag_true
 ||

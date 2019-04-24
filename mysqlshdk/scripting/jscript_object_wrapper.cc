@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,7 +69,7 @@ class Method_collectable : public Collectable<Object_bridge> {
 v8::Local<v8::Value> translate_exception(JScript_context *context) {
   try {
     throw;
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     return context->shcore_value_to_v8_value(shcore::Value(
         shcore::Exception::mysql_error_with_code(e.what(), e.code()).error()));
   } catch (Exception &e) {
@@ -165,7 +165,7 @@ void JScript_object_wrapper::handler_getter(
         info.GetIsolate()->ThrowException(
             self->_context->shcore_value_to_v8_value(Value(exc.error())));
       // fallthrough
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       info.GetIsolate()->ThrowException(
           v8_string(info.GetIsolate(), exc.what()));
     }
@@ -208,7 +208,7 @@ void JScript_object_wrapper::handler_setter(
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(
         self->_context->shcore_value_to_v8_value(Value(exc.error())));
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     info.GetIsolate()->ThrowException(v8_string(info.GetIsolate(), exc.what()));
   }
 }
@@ -283,7 +283,7 @@ void JScript_object_wrapper::handler_igetter(
     } catch (Exception &exc) {
       info.GetIsolate()->ThrowException(
           self->_context->shcore_value_to_v8_value(Value(exc.error())));
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       info.GetIsolate()->ThrowException(
           v8_string(info.GetIsolate(), exc.what()));
     }
@@ -312,7 +312,7 @@ void JScript_object_wrapper::handler_isetter(
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(
         self->_context->shcore_value_to_v8_value(Value(exc.error())));
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     info.GetIsolate()->ThrowException(v8_string(info.GetIsolate(), exc.what()));
   }
 }
@@ -428,7 +428,7 @@ void JScript_method_wrapper::call(
     if (jsexc.IsEmpty())
       jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
     args.GetIsolate()->ThrowException(jsexc);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     args.GetIsolate()->ThrowException(v8_string(args.GetIsolate(), exc.what()));
   }
 }

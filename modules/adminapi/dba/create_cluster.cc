@@ -159,8 +159,8 @@ void Create_cluster::resolve_ssl_mode() {
     m_gr_opts.ssl_mode = dba::kMemberSSLModeAuto;
   }
 
-  std::string new_ssl_mode = resolve_cluster_ssl_mode(
-      m_target_instance->get_session(), *m_gr_opts.ssl_mode);
+  std::string new_ssl_mode =
+      resolve_cluster_ssl_mode(*m_target_instance, *m_gr_opts.ssl_mode);
 
   if (new_ssl_mode != *m_gr_opts.ssl_mode) {
     m_gr_opts.ssl_mode = new_ssl_mode;
@@ -264,7 +264,7 @@ void Create_cluster::prepare() {
     }
 
     // Check replication filters before creating the Metadata.
-    validate_replication_filters(m_target_instance->get_session());
+    validate_replication_filters(*m_target_instance);
 
     // Resolve the SSL Mode to use to configure the instance.
     resolve_ssl_mode();
@@ -274,17 +274,14 @@ void Create_cluster::prepare() {
         *m_target_instance, m_target_instance->get_session());
 
     // Get the address used by GR for the added instance (used in MD).
-    int instance_port = m_target_instance->get_connection_options().get_port();
-    std::string host_in_metadata =
-        mysqlshdk::mysql::get_report_host(*m_target_instance);
-    m_address_in_metadata =
-        host_in_metadata + ":" + std::to_string(instance_port);
+    m_address_in_metadata = m_target_instance->get_canonical_address();
 
     // Resolve GR local address.
     // NOTE: Must be done only after getting the report_host used by GR and for
     //       the metadata;
     m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
-        m_gr_opts.local_address, host_in_metadata, instance_port);
+        m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
+        m_target_instance->get_canonical_port());
 
     // Generate the GR group name (if needed).
     if (m_gr_opts.group_name.is_null()) {
@@ -316,9 +313,8 @@ void Create_cluster::prepare() {
   // NOTE: this is left for last to avoid setting super_read_only to true
   // and right before some execution failure of the command leaving the
   // instance in an incorrect state
-  validate_super_read_only(
-      m_target_instance->get_session(),
-      m_clear_read_only.is_null() ? false : *m_clear_read_only);
+  validate_super_read_only(*m_target_instance, m_clear_read_only,
+                           m_interactive);
 
   if (!m_adopt_from_gr) {
     // Set the internal configuration object: read/write configs from the
@@ -477,10 +473,8 @@ shcore::Value Create_cluster::execute() {
     tx.commit();
 
     // Set default_replicaset group name
-    std::string group_replication_group_name =
-        get_gr_replicaset_group_name(m_target_instance->get_session());
     cluster->impl()->get_default_replicaset()->set_group_name(
-        group_replication_group_name);
+        m_target_instance->get_group_name());
 
     // Insert instance into the metadata.
     if (m_adopt_from_gr) {

@@ -50,7 +50,7 @@ set_sysvar(session, "super_read_only", 1);
 // The answer to the prompt about continuing cleaning up the read only
 testutil.expectPrompt("*", "n");
 
-//@<OUT> create_cluster.read_only_no_flag_prompt_no
+//@ create_cluster.read_only_no_flag_prompt_no
 // Since no expectation is set for create_cluster, a call to it would raise
 // an exception
 var c = dba.createCluster('dev');

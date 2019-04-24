@@ -178,7 +178,7 @@ shcore::Value Cluster_impl::status(bool extended, bool query_members) {
 
 shcore::Value Cluster_impl::options(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
-  auto state = check_preconditions("options");
+  check_preconditions("options");
 
   bool all = false;
   // Retrieves optional options

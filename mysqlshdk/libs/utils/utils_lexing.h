@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -217,7 +217,9 @@ inline size_t span_keyword(const std::string &s, size_t offset) {
   assert(offset < s.length());
 
   if (std::isalpha(s[offset]) || s[offset] == '_') {
-    return s.find_first_not_of(internal::k_keyword_chars, offset + 1);
+    size_t p = s.find_first_not_of(internal::k_keyword_chars, offset + 1);
+    if (p == std::string::npos) p = s.length();
+    return p;
   } else {
     return offset;
   }

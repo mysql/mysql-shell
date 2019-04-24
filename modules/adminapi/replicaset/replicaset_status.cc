@@ -142,7 +142,7 @@ void Replicaset_status::connect_to_members() {
       try {
         m_member_sessions[inst.classic_endpoint] =
             mysqlshdk::db::mysql::open_session(opts);
-      } catch (mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &e) {
         m_member_connect_errors[inst.classic_endpoint] = e.format();
       }
     }
@@ -745,8 +745,9 @@ shcore::Value Replicaset_status::execute() {
   {
     auto group_session = m_cluster->get_group_session();
 
-    auto state = get_replication_group_state(
-        group_session, get_gr_instance_type(group_session));
+    auto state =
+        get_replication_group_state(mysqlshdk::mysql::Instance(group_session),
+                                    get_gr_instance_type(group_session));
 
     bool warning = (state.source_state != ManagedInstance::OnlineRW &&
                     state.source_state != ManagedInstance::OnlineRO);

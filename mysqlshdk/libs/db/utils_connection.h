@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,6 +80,7 @@ constexpr const char kAuthMethod[] = "auth-method";
 constexpr const char kGetServerPublicKey[] = "get-server-public-key";
 constexpr const char kServerPublicKeyPath[] = "server-public-key-path";
 constexpr const char kConnectTimeout[] = "connect-timeout";
+constexpr const char kNetReadTimeout[] = "net-read-timeout";
 constexpr const char kCompression[] = "compression";
 
 constexpr const char kSslModeDisabled[] = "disabled";

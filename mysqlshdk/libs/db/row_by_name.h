@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,11 +117,27 @@ class Row_ref_by_name {
     return ref()->get_string(field_index(field));
   }
 
+  std::string get_string(const std::string &field,
+                         const std::string &default_if_null) const {
+    if (is_null(field)) return default_if_null;
+    return ref()->get_string(field_index(field));
+  }
+
   int64_t get_int(const std::string &field) const {
     return ref()->get_int(field_index(field));
   }
 
+  int64_t get_int(const std::string &field, int64_t default_if_null) const {
+    if (is_null(field)) return default_if_null;
+    return ref()->get_int(field_index(field));
+  }
+
   uint64_t get_uint(const std::string &field) const {
+    return ref()->get_uint(field_index(field));
+  }
+
+  uint64_t get_uint(const std::string &field, uint64_t default_if_null) const {
+    if (is_null(field)) return default_if_null;
     return ref()->get_uint(field_index(field));
   }
 

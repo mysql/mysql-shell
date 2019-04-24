@@ -824,7 +824,7 @@ void copy_dir(const std::string &from, const std::string &to) {
         copy_dir(path::join_path(from, name), path::join_path(to, name));
       else
         copy_file(path::join_path(from, name), path::join_path(to, name));
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
       if (errno != ENOENT) throw;
     }
     return true;

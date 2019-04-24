@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ void validate_bad_uri(const std::string &connstring, const std::string &error) {
       SCOPED_TRACE("MISSING ERROR: " + error);
       FAIL();
     }
-  } catch (std::invalid_argument &err) {
+  } catch (const std::invalid_argument &err) {
     std::string found_error(err.what());
 
     if (error.empty()) {
@@ -151,7 +151,7 @@ void validate_uri(
         ASSERT_STREQ(atts.c_str(), data.get(att.first).c_str());
       }
     }
-  } catch (std::invalid_argument &err) {
+  } catch (const std::invalid_argument &err) {
     std::string found_error(err.what());
 
     SCOPED_TRACE("UNEXPECTED ERROR: " + found_error);

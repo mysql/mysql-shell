@@ -85,6 +85,7 @@ typedef std::pair<size_t, std::string> Chunk_line_t;
 
 struct Chunk_t {
   Chunk_t() { def.reset(new Chunk_definition()); }
+  std::string source;
   std::vector<Chunk_line_t> code;
   std::shared_ptr<Chunk_definition> def;
   bool is_validation_optional() const {
@@ -161,7 +162,6 @@ class Shell_script_tester : public Crud_test_wrapper {
   std::map<std::string, Chunk_t> _chunks;
   std::vector<std::string> _chunk_order;
   std::map<std::string, Chunk_validations> _chunk_validations;
-  std::map<std::string, int> _chunk_to_line;
 
   void execute_script(const std::string &path = "", bool in_chunks = false,
                       bool is_pre_script = false);
@@ -180,7 +180,8 @@ class Shell_script_tester : public Crud_test_wrapper {
 
   std::shared_ptr<Chunk_definition> load_chunk_definition(
       const std::string &line);
-  bool load_source_chunks(const std::string &path, std::istream &stream);
+  bool load_source_chunks(const std::string &path, std::istream &stream,
+                          const std::string &prefix = "");
   void add_source_chunk(const std::string &path, const Chunk_t &chunk);
   void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
                       const std::vector<std::string> &source);

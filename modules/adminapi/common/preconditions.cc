@@ -226,6 +226,8 @@ Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
   validate_group_session(group_session);
 
+  mysqlshdk::mysql::Instance group_instance(group_session);
+
   Cluster_check_info state;
   // TODO(ak) make get_gr_instance_type() check the metadata of the MD server
   // instead
@@ -233,7 +235,7 @@ Cluster_check_info get_cluster_check_info(
   // active session
   try {
     state.source_type = get_gr_instance_type(group_session);
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
       throw;
     } else {
@@ -247,7 +249,7 @@ Cluster_check_info get_cluster_check_info(
       state.source_type == GRInstanceType::InnoDBCluster) {
     // Retrieves the instance cluster statues from the perspective of the
     // active session (The Metadata Session)
-    state = get_replication_group_state(group_session, state.source_type);
+    state = get_replication_group_state(group_instance, state.source_type);
   } else {
     state.quorum = ReplicationQuorum::Normal;
     state.source_state = ManagedInstance::Offline;

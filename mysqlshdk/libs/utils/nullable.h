@@ -100,6 +100,7 @@ class nullable {
 }  // namespace utils
 
 using null_string = utils::nullable<std::string>;
+using null_bool = utils::nullable<bool>;
 
 }  // namespace mysqlshdk
 #endif /* __CORELIBS_UTILS_NULLABLE_H__ */

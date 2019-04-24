@@ -456,7 +456,7 @@ std::string ReplicaSet::get_cluster_group_seeds(
           instance_address.c_str());
       session = establish_mysql_session(target_coptions,
                                         current_shell_options()->get().wizards);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       // Do not issue an error if we are unable to connect to the instance,
       // it might have failed in the meantime, just skip the use of its GR
       // local address.
@@ -519,25 +519,28 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Before rejoining an instance we must also verify if the group has quorum
   // and if the gr plugin is active otherwise we may end up hanging the system
 
+  mysqlshdk::mysql::Instance instance;
+
   // Validate 'group_replication_group_name'
-  std::string md_host;
   {
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_def->uri_endpoint().c_str());
       session = establish_mysql_session(*instance_def,
                                         current_shell_options()->get().wizards);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       std::string err_msg = "Could not open connection to '" +
                             instance_def->uri_endpoint() + "': " + e.what();
       throw shcore::Exception::runtime_error(err_msg);
     }
 
     // Get instance address in metadata.
-    mysqlshdk::mysql::Instance target_instance(session);
-    md_host = mysqlshdk::mysql::get_report_host(target_instance);
-    std::string md_address =
-        md_host + ":" + std::to_string(instance_def->get_port());
+    instance = mysqlshdk::mysql::Instance(session);
+
+    // Perform quick config checks
+    ensure_instance_configuration_valid(instance, false);
+
+    std::string md_address = instance.get_canonical_address();
 
     // Check if the instance is part of the Metadata
     if (!_metadata_storage->is_instance_on_replicaset(get_id(), md_address)) {
@@ -548,7 +551,7 @@ shcore::Value ReplicaSet::rejoin_instance(
       throw shcore::Exception::runtime_error(message);
     }
 
-    gr_options.check_option_values(target_instance.get_version());
+    gr_options.check_option_values(instance.get_version());
 
     if (!validate_replicaset_group_name(session, get_group_name())) {
       std::string nice_error =
@@ -570,32 +573,34 @@ shcore::Value ReplicaSet::rejoin_instance(
   // instance.
 
   // Get the seed instance
-  mysqlshdk::db::Connection_options seed_instance(pick_seed_instance());
+  {
+    mysqlshdk::db::Connection_options seed_instance(pick_seed_instance());
 
-  // To be able to establish a session to the seed instance we need a username
-  // and password. Taking into consideration the assumption that all instances
-  // of the cluster use the same credentials we can obtain the ones of the
-  // current target group session
+    // To be able to establish a session to the seed instance we need a username
+    // and password. Taking into consideration the assumption that all instances
+    // of the cluster use the same credentials we can obtain the ones of the
+    // current target group session
 
-  seed_instance.set_login_options_from(
-      cluster->get_group_session()->get_connection_options());
+    seed_instance.set_login_options_from(
+        cluster->get_group_session()->get_connection_options());
 
-  // Establish a session to the seed instance
-  try {
-    log_info("Opening a new session to seed instance: %s",
-             seed_instance.uri_endpoint().c_str());
-    seed_session = establish_mysql_session(
-        seed_instance, current_shell_options()->get().wizards);
-  } catch (std::exception &e) {
-    throw shcore::Exception::runtime_error("Could not open a connection to " +
-                                           seed_instance.uri_endpoint() + ": " +
-                                           e.what() + ".");
+    // Establish a session to the seed instance
+    try {
+      log_info("Opening a new session to seed instance: %s",
+               seed_instance.uri_endpoint().c_str());
+      seed_session = establish_mysql_session(
+          seed_instance, current_shell_options()->get().wizards);
+    } catch (const std::exception &e) {
+      throw shcore::Exception::runtime_error("Could not open a connection to " +
+                                             seed_instance.uri_endpoint() +
+                                             ": " + e.what() + ".");
+    }
   }
+  auto seed_instance = mysqlshdk::mysql::Instance(seed_session);
 
   // Verify if the instance is running asynchronous (master-slave) replication
   {
     auto console = mysqlsh::current_console();
-    auto instance = mysqlshdk::mysql::Instance(session);
 
     log_debug(
         "Checking if instance '%s' is running asynchronous (master-slave) "
@@ -620,12 +625,11 @@ shcore::Value ReplicaSet::rejoin_instance(
     log_info(
         "Verifying if the group_replication plugin is active on the seed "
         "instance %s",
-        seed_instance.uri_endpoint().c_str());
+        seed_instance.descr().c_str());
 
-    std::string plugin_status =
-        get_plugin_status(seed_session, "group_replication");
+    auto plugin_status = seed_instance.get_plugin_status("group_replication");
 
-    if (plugin_status != "ACTIVE") {
+    if (plugin_status.get_safe() != "ACTIVE") {
       throw shcore::Exception::runtime_error(
           "Cannot rejoin instance. The seed instance doesn't have "
           "group-replication active.");
@@ -636,9 +640,8 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Bug#26870329
   {
     // get server_uuid from the instance that we're trying to rejoin
-    if (!validate_instance_rejoinable(session, _metadata_storage, _id)) {
+    if (!validate_instance_rejoinable(instance, _metadata_storage, _id)) {
       // instance not missing, so throw an error
-      auto instance = mysqlshdk::mysql::Instance(session);
       auto member_state =
           mysqlshdk::gr::to_string(mysqlshdk::gr::get_member_state(instance));
       std::string nice_error_msg = "Cannot rejoin instance '" +
@@ -652,7 +655,6 @@ shcore::Value ReplicaSet::rejoin_instance(
   {
     // Check if instance was doing auto-rejoin and let the user know that the
     // rejoin operation will override the auto-rejoin
-    auto instance = mysqlshdk::mysql::Instance(session);
     bool is_running_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
     if (is_running_rejoin) {
       console->print_info(
@@ -670,13 +672,11 @@ shcore::Value ReplicaSet::rejoin_instance(
   {
     std::string replication_user, replication_user_pwd;
 
-    // Check replication filters before creating the Metadata.
-    validate_replication_filters(session);
-
     std::string new_ssl_mode;
     // Resolve the SSL Mode to use to configure the instance.
-    new_ssl_mode =
-        resolve_instance_ssl_mode(session, seed_session, *gr_options.ssl_mode);
+    new_ssl_mode = resolve_instance_ssl_mode(
+        instance, mysqlshdk::mysql::Instance(seed_session),
+        *gr_options.ssl_mode);
     if (gr_options.ssl_mode.is_null() || new_ssl_mode != *gr_options.ssl_mode) {
       gr_options.ssl_mode = new_ssl_mode;
       log_warning("SSL mode used to configure the instance: '%s'",
@@ -766,8 +766,8 @@ shcore::Value ReplicaSet::rejoin_instance(
     // NOTE: Must be done only after getting the report_host used by GR and for
     //       the metadata;
     gr_options.local_address = mysqlsh::dba::resolve_gr_local_address(
-        gr_options.local_address, md_host,
-        target_instance.get_connection_options().get_port());
+        gr_options.local_address, target_instance.get_canonical_hostname(),
+        target_instance.get_canonical_port());
 
     // Set a Config object for the target instance (required to configure GR).
     std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(
@@ -781,7 +781,7 @@ shcore::Value ReplicaSet::rejoin_instance(
                                   replication_user, replication_user_pwd,
                                   gr_options, replicaset_count, cfg.get());
     log_info("The instance '%s' was successfully rejoined on the cluster.",
-             seed_instance.uri_endpoint().c_str());
+             seed_instance.descr().c_str());
   }
   return ret_val;
 }
@@ -951,7 +951,7 @@ void ReplicaSet::remove_replication_users(
 
     instance.set_sysvar("sql_log_bin", static_cast<const int64_t>(1),
                         mysqlshdk::mysql::Var_qualifier::SESSION);
-  } catch (shcore::Exception &err) {
+  } catch (const shcore::Exception &err) {
     throw;
   }
 
@@ -1074,7 +1074,7 @@ void unpack_auto_instances_list(
         }
 
         instances_list->push_back(cnx_opt);
-      } catch (std::exception &err) {
+      } catch (const std::exception &err) {
         std::string error(err.what());
         throw shcore::Exception::argument_error(
             "Invalid value '" + value.descr() + "' for '" + option_name +
@@ -1186,121 +1186,49 @@ void ReplicaSet::add_instance_metadata(
 
   MetadataStorage::Transaction tx(_metadata_storage);
 
-  int xport = -1;
-  std::string local_gr_address;
-
-  std::string joiner_host;
-
   // Check if the instance was already added
   std::string instance_address = instance_definition.as_uri(only_transport());
-
-  std::string mysql_server_uuid;
-  std::string reported_host;
 
   log_debug("Connecting to '%s' to query for metadata information...",
             instance_address.c_str());
   // Get the required data from the joining instance to store in the metadata:
-  // - server UUID, reported_host,
-  {
-    int port = -1;
-    std::shared_ptr<mysqlshdk::db::ISession> classic;
-    std::string joiner_user;
-    try {
-      classic = establish_mysql_session(instance_definition,
-                                        current_shell_options()->get().wizards);
+  // - server UUID, reported_host, etc
+  std::shared_ptr<mysqlshdk::db::ISession> classic;
+  try {
+    classic = establish_mysql_session(instance_definition,
+                                      current_shell_options()->get().wizards);
+  } catch (const shcore::Exception &e) {
+    std::stringstream ss;
+    ss << "Error opening session to '" << instance_address << "': " << e.what();
+    log_warning("%s", ss.str().c_str());
 
-      auto options = classic->get_connection_options();
-      port = options.get_port();
-      joiner_host = options.get_host();
-      instance_address = options.as_uri(only_transport());
-      joiner_user = options.get_user();
-    } catch (shcore::Exception &e) {
-      std::stringstream ss;
-      ss << "Error opening session to '" << instance_address
-         << "': " << e.what();
-      log_warning("%s", ss.str().c_str());
-
-      // Check if we're adopting a GR cluster, if so, it could happen that
-      // we can't connect to it because root@localhost exists but root@hostname
-      // doesn't (GR keeps the hostname in the members table)
-      if (e.is_mysql() && e.code() == 1045) {  // access denied
-        std::stringstream se;
-        se << "Access denied connecting to new instance " << instance_address
-           << ".\n"
-           << "Please ensure all instances in the same group/replicaset have"
-              " the same password for account '"
-              ""
-           << joiner_user
-           << "' and that it is accessible from the host mysqlsh is running "
-              "from.";
-        throw shcore::Exception::runtime_error(se.str());
-      }
-      throw shcore::Exception::runtime_error(ss.str());
+    // Check if we're adopting a GR cluster, if so, it could happen that
+    // we can't connect to it because root@localhost exists but root@hostname
+    // doesn't (GR keeps the hostname in the members table)
+    if (e.is_mysql() && e.code() == 1045) {  // access denied
+      std::stringstream se;
+      se << "Access denied connecting to new instance " << instance_address
+         << ".\n"
+         << "Please ensure all instances in the same group/replicaset have"
+            " the same password for account '"
+            ""
+         << instance_definition.get_user()
+         << "' and that it is accessible from the host mysqlsh is running "
+            "from.";
+      throw shcore::Exception::runtime_error(se.str());
     }
-
-    {
-      // Query UUID of the member and its public hostname
-      auto result = classic->query("SELECT @@server_uuid");
-      auto row = result->fetch_one();
-      if (row) {
-        mysql_server_uuid = row->get_as_string(0);
-      } else {
-        throw shcore::Exception::runtime_error(
-            "@@server_uuid could not be queried");
-      }
-    }
-
-    // Get the MySQL X port.
-    try {
-      auto result = classic->query("SELECT @@mysqlx_port");
-      auto xport_row = result->fetch_one();
-      if (xport_row) xport = xport_row->get_int(0);
-    } catch (std::exception &e) {
-      log_info(
-          "The X plugin is not enabled on instance '%s'. No value will be "
-          "assumed for the X protocol address.",
-          classic->get_connection_options().uri_endpoint().c_str());
-    }
-
-    // Get the local GR host data.
-    get_server_variable(classic, "group_replication_local_address",
-                        &local_gr_address, false);
-
-    // Get the reported host.
-    {
-      mysqlshdk::mysql::Instance target_instance(classic);
-      reported_host = mysqlshdk::mysql::get_report_host(target_instance);
-      target_instance.close_session();
-
-      if (reported_host != joiner_host) {
-        log_info(
-            "Using reported host '%s' instead of '%s' to store in the "
-            "metadata.",
-            reported_host.c_str(), joiner_host.c_str());
-
-        // Update the instance_address with the reported host value to store
-        // in the metadata.
-        instance_address = reported_host + ":" + std::to_string(port);
-      }
-    }
+    throw shcore::Exception::runtime_error(ss.str());
   }
 
-  std::string instance_xaddress;
-  if (xport != -1)
-    instance_xaddress = reported_host + ":" + std::to_string(xport);
+  mysqlshdk::mysql::Instance target_instance(classic);
 
-  Instance_definition instance;
+  Instance_definition instance(query_instance_info(target_instance));
 
-  instance.role = "HA";
-  instance.endpoint = instance_address;
-  instance.xendpoint = instance_xaddress;
-  instance.grendpoint = local_gr_address;
-  instance.uuid = mysql_server_uuid;
-
-  instance.label = label.empty() ? instance_address : label;
+  if (!label.empty()) instance.label = label;
 
   // Add the host to the metadata.
-  uint32_t host_id = _metadata_storage->insert_host(reported_host, "", "");
+  uint32_t host_id = _metadata_storage->insert_host(
+      target_instance.get_canonical_hostname(), "", "");
 
   instance.host_id = host_id;
   instance.replicaset_id = get_id();
@@ -1364,6 +1292,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   // TODO(miguel): test if the instance if part of the current cluster, for the
   // scenario of restoring a cluster quorum from another
 
+  mysqlshdk::mysql::Instance target_instance;
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
   // Metadata (BUG #26159339)
@@ -1374,17 +1303,16 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
       session = establish_mysql_session(instance_def,
                                         current_shell_options()->get().wizards);
       instance_def = session->get_connection_options();
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
 
+    target_instance = mysqlshdk::mysql::Instance(session);
+
     // Get instance address in metadata.
-    mysqlshdk::mysql::Instance target_instance(session);
-    std::string md_address =
-        mysqlshdk::mysql::get_report_host(target_instance) + ":" +
-        std::to_string(instance_def.get_port());
+    std::string md_address = target_instance.get_canonical_address();
 
     // Check if the instance belongs to the ReplicaSet on the Metadata
     if (!_metadata_storage->is_instance_on_replicaset(rset_id, md_address)) {
@@ -1418,7 +1346,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   if (instance_type != GRInstanceType::Standalone &&
       instance_type != GRInstanceType::StandaloneWithMetadata) {
-    state = get_replication_group_state(session, instance_type);
+    state = get_replication_group_state(target_instance, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&
         state.source_state != ManagedInstance::OnlineRO) {
@@ -1444,7 +1372,6 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   }
 
   // Check if there is quorum to issue an error.
-  mysqlshdk::mysql::Instance target_instance(session);
   if (mysqlshdk::gr::has_quorum(target_instance, nullptr, nullptr)) {
     mysqlsh::current_console()->print_error(
         "Cannot perform operation on an healthy cluster because it can only "
@@ -1483,18 +1410,18 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           instance_host.c_str());
       instance_session = establish_mysql_session(
           target_coptions, current_shell_options()->get().wizards);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
       session->close();
       throw;
     }
 
-    std::string group_peer_instance_xcom_address;
-
     // Get @@group_replication_local_address
-    get_server_variable(instance_session, "group_replication_local_address",
-                        &group_peer_instance_xcom_address);
+    std::string group_peer_instance_xcom_address =
+        mysqlshdk::mysql::Instance(instance_session)
+            .get_sysvar_string("group_replication_local_address")
+            .get_safe();
 
     group_peers.append(group_peer_instance_xcom_address);
     group_peers.append(",");
@@ -1507,19 +1434,19 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     // Remove the trailing comma of group_peers
     if (group_peers.back() == ',') group_peers.pop_back();
 
-    log_info("Setting the group_replication_force_members at instance %s",
+    log_info("Setting group_replication_force_members at instance %s",
              instance_address.c_str());
 
     // Setting the group_replication_force_members will force a new group
     // membership, triggering the necessary actions from GR upon being set to
     // force the quorum. Therefore, the variable can be cleared immediately
     // after it is set.
-    set_global_variable(session, "group_replication_force_members",
-                        group_peers);
+    target_instance.set_sysvar("group_replication_force_members", group_peers);
 
     // Clear group_replication_force_members at the end to allow GR to be
     // restarted later on the instance (without error).
-    set_global_variable(session, "group_replication_force_members", "");
+    target_instance.set_sysvar("group_replication_force_members",
+                               std::string());
 
     session->close();
   }
@@ -1627,7 +1554,7 @@ void ReplicaSet::rejoin_instances(
                           "cluster's default replicaset.";
         log_warning("%s", msg.c_str());
         rejoin_instance(&connection_options, shcore::Value::Map_type_ref());
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         log_error("Failed to rejoin instance: %s", e.what());
       }
     }
@@ -1838,7 +1765,7 @@ void ReplicaSet::execute_in_members(
           instance_address.c_str());
       instance_session = establish_mysql_session(
           target_coptions, current_shell_options()->get().wizards);
-    } catch (mysqlshdk::db::Error &e) {
+    } catch (const mysqlshdk::db::Error &e) {
       if (ignore_network_conn_errors && e.code() == kNetworkConnRefused) {
         log_error("Could not open connection to '%s': %s, but ignoring it.",
                   instance_address.c_str(), e.what());
@@ -1848,7 +1775,7 @@ void ReplicaSet::execute_in_members(
                   instance_address.c_str(), e.what());
         throw;
       }
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;

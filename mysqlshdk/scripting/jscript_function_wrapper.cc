@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,7 +88,7 @@ void JScript_function_wrapper::call(
     if (jsexc.IsEmpty())
       jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
     args.GetIsolate()->ThrowException(jsexc);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     args.GetIsolate()->ThrowException(v8_string(args.GetIsolate(), exc.what()));
   }
 }

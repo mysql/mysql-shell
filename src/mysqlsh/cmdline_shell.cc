@@ -371,7 +371,7 @@ void Command_line_shell::load_prompt_theme(const std::string &path) {
       try {
         shcore::Value theme(shcore::Value::parse(buffer.str().c_str()));
         _prompt.set_theme(theme);
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         log_warning("Error loading prompt theme '%s': %s", path.c_str(),
                     e.what());
         print_diag(shcore::str_format("Error loading prompt theme '%s': %s\n",
@@ -510,7 +510,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
             if (last > _history.last_entry()) last = _history.last_entry();
             _history.del(first, last);
           }
-        } catch (std::invalid_argument &) {
+        } catch (const std::invalid_argument &) {
           print_diag(
               "\\history delete requires entry number or range to be deleted");
         }

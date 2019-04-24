@@ -31,6 +31,7 @@
 #include <string>
 #include <utility>
 
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
@@ -149,33 +150,63 @@ bool is_group_replication_option_supported(
   }
 }
 
-/*
- * Check the existence of replication filters that do not exclude the
- * metadata from being replicated.
- * Raise an exception if invalid replication filters are found.
- */
-void validate_replication_filters(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  shcore::Value status = get_master_status(session);
-  auto status_map = status.as_map();
+void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
+  // SHOW MASTER STATUS includes info about binlog filters, which filter
+  // events from being written to the binlog, at the master
+  auto result = instance.query("SHOW MASTER STATUS");
 
-  std::string binlog_do_db = status_map->get_string("BINLOG_DO_DB");
+  while (auto row = result->fetch_one()) {
+    if (!row->get_string(2, "").empty() || !row->get_string(3, "").empty())
+      throw shcore::Exception(
+          instance.descr() +
+              ": instance has binlog filters configured, but they are "
+              "not supported in InnoDB clusters.",
+          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+  }
 
-  if (!binlog_do_db.empty() &&
-      binlog_do_db.find("mysql_innodb_cluster_metadata") == std::string::npos)
-    throw shcore::Exception::runtime_error(
-        "Invalid 'binlog-do-db' settings, metadata cannot be excluded. Remove "
-        "binlog filters or include the 'mysql_innodb_cluster_metadata' "
-        "database in the 'binlog-do-db' option.");
+  // replication_applier_filters and replication_applier_global_filters
+  // have info about replication filters, which filters what's applied from
+  // the relay log at a slave
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
+    bool has_global_filter = false;
+    bool has_filter = false;
+    try {
+      if (instance.queryf_one_int(
+              0, 0,
+              "SELECT count(*) "
+              "FROM performance_schema.replication_applier_global_filters "
+              "WHERE filter_rule <> ''") > 0) {
+        has_global_filter = true;
+      }
 
-  std::string binlog_ignore_db = status_map->get_string("BINLOG_IGNORE_DB");
+      if (instance.queryf_one_int(0, 0,
+                                  "SELECT count(*) FROM "
+                                  "performance_schema.replication_applier_"
+                                  "filters "
+                                  "WHERE filter_rule <> ''") > 0) {
+        has_filter = true;
+      }
+    } catch (std::exception &e) {
+      log_warning("Error querying for replication filters at %s: %s",
+                  instance.descr().c_str(), e.what());
+    }
 
-  if (binlog_ignore_db.find("mysql_innodb_cluster_metadata") !=
-      std::string::npos)
-    throw shcore::Exception::runtime_error(
-        "Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. "
-        "Remove binlog filters or the 'mysql_innodb_cluster_metadata' "
-        "database from the 'binlog-ignore-db' option.");
+    if (has_global_filter) {
+      throw shcore::Exception(instance.descr() +
+                                  ": instance has global replication filters "
+                                  "configured, but they are "
+                                  "not supported in InnoDB clusters.",
+                              SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+    }
+
+    if (has_filter) {
+      throw shcore::Exception(
+          instance.descr() +
+              ": instance has replication filters configured, but they are "
+              "not supported in InnoDB clusters.",
+          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+    }
+  }
 }
 
 /** Count how many accounts there are with the given username, excluding
@@ -458,26 +489,25 @@ void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
  *   - If SSL mode is not supported and member_ssl_mode is REQUIRED
  */
 std::string resolve_cluster_ssl_mode(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::mysql::IInstance &instance,
     const std::string &member_ssl_mode) {
   std::string ret_val;
   std::string have_ssl;
 
-  get_server_variable(session, "global.have_ssl", &have_ssl);
+  have_ssl = *instance.get_sysvar_string("have_ssl");
 
   // The instance supports SSL
   if (!shcore::str_casecmp(have_ssl.c_str(), "YES")) {
     // memberSslMode is DISABLED
     if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED")) {
-      int require_secure_transport = 0;
-      get_server_variable(session, "GLOBAL.require_secure_transport",
-                          &require_secure_transport);
+      bool require_secure_transport =
+          *instance.get_sysvar_bool("require_secure_transport");
 
       if (require_secure_transport) {
         throw shcore::Exception::argument_error(
             "The instance "
             "'" +
-            session->uri() +
+            instance.descr() +
             "' requires secure connections, to create the "
             "cluster either turn off require_secure_transport or use the "
             "memberSslMode option with 'REQUIRED' value.");
@@ -496,7 +526,7 @@ std::string resolve_cluster_ssl_mode(
       throw shcore::Exception::argument_error(
           "The instance "
           "'" +
-          session->uri() +
+          instance.descr() +
           "' does not have SSL enabled, to create the "
           "cluster either use an instance with SSL enabled, remove the "
           "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
@@ -530,15 +560,14 @@ std::string resolve_cluster_ssl_mode(
  *   - Cluster has SSL disabled and the instance has require_secure_transport ON
  */
 std::string resolve_instance_ssl_mode(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    std::shared_ptr<mysqlshdk::db::ISession> psession,
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::IInstance &pinstance,
     const std::string &member_ssl_mode) {
   std::string ret_val;
   std::string gr_ssl_mode;
 
   // Checks how memberSslMode was configured on the cluster
-  get_server_variable(psession, "global.group_replication_ssl_mode",
-                      &gr_ssl_mode);
+  gr_ssl_mode = *pinstance.get_sysvar_string("group_replication_ssl_mode");
 
   // The cluster REQUIRES SSL
   if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
@@ -547,7 +576,7 @@ std::string resolve_instance_ssl_mode(
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) enabled. "
           "To add the instance '" +
-          session->uri() +
+          instance.descr() +
           "' to the cluster either "
           "disable SSL on the cluster, remove the memberSslMode option or use "
           "it with any of 'AUTO' or 'REQUIRED'.");
@@ -555,12 +584,12 @@ std::string resolve_instance_ssl_mode(
     // Now checks if SSL is actually supported on the instance
     std::string have_ssl;
 
-    get_server_variable(session, "global.have_ssl", &have_ssl);
+    have_ssl = *instance.get_sysvar_string("have_ssl");
 
     // SSL is not supported on the instance
     if (shcore::str_casecmp(have_ssl.c_str(), "YES")) {
       throw shcore::Exception::runtime_error(
-          "Instance '" + session->uri() +
+          "Instance '" + instance.descr() +
           "' does not support SSL and cannot "
           "join a cluster with SSL (encryption) enabled. "
           "Enable SSL support on the instance and try again, otherwise it can "
@@ -577,19 +606,18 @@ std::string resolve_instance_ssl_mode(
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) disabled. "
           "To add the instance '" +
-          session->uri() +
+          instance.descr() +
           "' to the cluster either "
           "enable SSL on the cluster, remove the memberSslMode option or use "
           "it with any of 'AUTO' or 'DISABLED'.");
 
     // If the instance session requires SSL connections, then it can's
     // Join a cluster with SSL disabled
-    int secure_transport_required = 0;
-    get_server_variable(session, "global.require_secure_transport",
-                        &secure_transport_required);
+    bool secure_transport_required =
+        *instance.get_sysvar_bool("require_secure_transport");
     if (secure_transport_required) {
       throw shcore::Exception::runtime_error(
-          "The instance '" + session->uri() +
+          "The instance '" + instance.descr() +
           "' is configured to require a "
           "secure transport but the cluster has SSL disabled. To add the "
           "instance to the cluster, either turn OFF the "
@@ -908,6 +936,7 @@ void SHCORE_PUBLIC validate_label(const std::string &label) {
   return;
 }
 
+namespace {
 /*
  * Gets Group Replication Group Name variable: group_replication_group_name
  *
@@ -928,6 +957,7 @@ std::string get_gr_replicaset_group_name(
   }
   return group_name;
 }
+}  // namespace
 
 /**
  * Validates if the current session instance 'group_replication_group_name'
@@ -960,71 +990,88 @@ bool validate_replicaset_group_name(
  * Check for the value of super-read-only and any open sessions
  * to the instance and raise an exception if super_read_only is turned on.
  *
- * @param session object which represents the session to the instance
- * @param clear_read_only boolean value used to confirm that
- * super_read_only must be disabled
+ * @param instance
+ * @param clear_read_only if true, will clear SRO if false, throws error
+ * @param interactive if true and if clear_read_only is null, will prompt
+ * whether to clear SRO
  *
- * @return a boolean value indicating the status of super_read_only
+ * @returns true if super_read_only was disabled
  */
-bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
-                              bool clear_read_only) {
-  int super_read_only = 0;
-  // TODO(alfredo) - there are 4 slightly different copies of this snippet...
-  get_server_variable(session, "super_read_only", &super_read_only, false);
+bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
+                              mysqlshdk::utils::nullable<bool> clear_read_only,
+                              bool interactive) {
+  int super_read_only = *instance.get_sysvar_bool("super_read_only");
+  bool super_read_only_changed = false;
 
   if (super_read_only) {
     auto console = mysqlsh::current_console();
 
-    if (clear_read_only) {
-      auto session_address =
-          session->uri(mysqlshdk::db::uri::formats::only_transport());
-      log_info("Disabling super_read_only on the instance '%s'",
-               session_address.c_str());
-      set_global_variable(session, "super_read_only", "OFF");
-    } else {
-      auto session_options = session->get_connection_options();
+    const std::string error_message = mysqlsh::fit_screen(
+        "The MySQL instance at '" + instance.descr() +
+        "' currently has the super_read_only system variable set to "
+        "protect it from inadvertent updates from applications. You must "
+        "first unset it to be able to perform any changes to this "
+        "instance.\n"
+        "For more information see: https://dev.mysql.com/doc/refman/en/"
+        "server-system-variables.html#sysvar_super_read_only.");
 
-      auto session_address =
-          session_options.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
-      console->print_error(mysqlsh::fit_screen(
-          "The MySQL instance at '" + session_address +
-          "' currently has "
-          "the super_read_only system variable set to protect it from "
-          "inadvertent updates from applications. You must first unset it to "
-          "be "
-          "able to perform any changes to this instance.\n"
-          "For more information see: https://dev.mysql.com/doc/refman/en/"
-          "server-system-variables.html#sysvar_super_read_only."));
-
+    auto show_open_sessions = [&](const std::string &message) {
       // Get the list of open session to the instance
-      std::vector<std::pair<std::string, int>> open_sessions;
-      open_sessions = get_open_sessions(session);
-
+      std::vector<std::pair<std::string, int>> open_sessions =
+          get_open_sessions(instance.get_session());
       if (!open_sessions.empty()) {
-        console->println(
-            "If you unset super_read_only you should consider closing the "
-            "following: ");
-
-        for (auto &value : open_sessions) {
-          std::string account = value.first;
-          int open_sessions = value.second;
-
-          console->println(std::to_string(open_sessions) +
-                           " open session(s) of '" + account + "'. ");
+        console->print_note(message);
+        for (const auto &value : open_sessions) {
+          console->print_info(std::to_string(value.second) +
+                              " open session(s) of '" + value.first + "'. \n");
         }
       }
+    };
+
+    if (clear_read_only.is_null() && interactive) {
+      console->print_info(error_message);
+      console->print_info();
+
+      show_open_sessions(
+          "There are open sessions to '" + instance.descr() +
+          "'.\n"
+          "You may want to kill these sessions to prevent them from "
+          "performing unexpected updates: \n");
+
+      if (console->confirm(
+              "Do you want to disable super_read_only and continue?",
+              mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::NO) {
+        console->println();
+        throw shcore::Exception::runtime_error(
+            "Server in SUPER_READ_ONLY mode");
+      } else {
+        console->println();
+        clear_read_only = true;
+      }
+    }
+
+    if (clear_read_only.get_safe()) {
+      log_info("Disabling super_read_only on the instance '%s'",
+               instance.descr().c_str());
+      instance.set_sysvar("super_read_only", false);
+      super_read_only_changed = true;
+    } else {
+      console->print_error(error_message);
+
+      show_open_sessions(
+          "If you unset super_read_only you should consider closing the "
+          "following: ");
 
       throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
     }
   }
-  return super_read_only;
+  return super_read_only_changed;
 }
 
 /*
  * Checks if an instance can be rejoined to a given ReplicaSet.
  *
- * @param session Object which represents the session to the instance
+ * @param instance
  * @param metadata Metadata object which represents the session to the metadata
  * storage
  * @param rs_id The ReplicaSet id
@@ -1033,11 +1080,10 @@ bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
  * ReplicaSet and false otherwise.
  */
 bool validate_instance_rejoinable(
-    std::shared_ptr<mysqlshdk::db::ISession> instance_session,
+    const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
-  std::string instance_uuid;
-  // get server_uuid from the instance that we're trying to rejoin
-  get_server_variable(instance_session, "server_uuid", &instance_uuid);
+  std::string instance_uuid = instance.get_uuid();
+
   // get the list of missing instances
   std::vector<MissingInstanceInfo> missing_instances_list =
       get_unavailable_instances(metadata, rs_id);
@@ -1381,7 +1427,7 @@ bool prompt_full_account(std::string *out_account) {
 
         if (out_account) *out_account = create_user;
         break;
-      } catch (std::runtime_error &) {
+      } catch (const std::runtime_error &) {
         console->println(
             "`" + create_user +
             "` is not a valid account name. Must be user[@host] or "
@@ -1479,8 +1525,8 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
   // Get the status of super_read_only in order to verify if we need to
   // prompt the user to disable it
-  mysqlshdk::utils::nullable<bool> super_read_only = instance.get_sysvar_bool(
-      "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  mysqlshdk::utils::nullable<bool> super_read_only =
+      instance.get_sysvar_bool("super_read_only");
 
   // If super_read_only is not null and enabled
   if (*super_read_only) {
@@ -1724,15 +1770,6 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
   }
 }
 
-std::string get_canonical_instance_address(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  auto result = session->query("SELECT coalesce(@@report_host, @@hostname)");
-  if (auto row = result->fetch_one()) {
-    return row->get_string(0);
-  }
-  throw std::logic_error("Unable to query instance address");
-}
-
 void validate_connection_options(
     const Connection_options &options,
     std::function<shcore::Exception(const std::string &)> factory) {
@@ -1764,7 +1801,7 @@ void validate_connection_options(
 
     try {
       mysqlshdk::utils::Net::resolve_hostname_ipv4(host);
-    } catch (mysqlshdk::utils::net_error &error) {
+    } catch (const mysqlshdk::utils::net_error &error) {
       throw_exception("unable to resolve the IPv4 address");
     }
   }
@@ -1796,13 +1833,12 @@ std::string get_report_host_address(
     log_debug("Successfully connected to instance");
 
     // Get the instance report host value.
-    md_address = mysqlshdk::mysql::get_report_host(target_instance) + ":" +
-                 std::to_string(target_cnx_opts.get_port());
+    md_address = target_instance.get_canonical_address();
 
     session->close();
     log_debug("Closed connection to the instance '%s'.",
               instance_address.c_str());
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     log_debug("Failed to connect to instance '%s': %s",
               instance_address.c_str(), err.what());
   }
@@ -1996,6 +2032,56 @@ std::string resolve_gr_local_address(
 
   // Return the final local address value to use for GR.
   return local_host + ":" + std::to_string(local_port);
+}
+
+std::vector<Instance_gtid_info> filter_primary_candidates(
+    const mysqlshdk::mysql::IInstance &server,
+    const std::vector<Instance_gtid_info> &gtid_info) {
+  using mysqlshdk::mysql::Gtid_set_relation;
+
+  std::vector<Instance_gtid_info> candidates;
+
+  if (gtid_info.empty()) return candidates;
+
+  const Instance_gtid_info *freshest_instance = nullptr;
+
+  for (const auto &inst : gtid_info) {
+    Gtid_set_relation rel;
+
+    if (!freshest_instance)
+      rel = Gtid_set_relation::CONTAINED;
+    else
+      rel = mysqlshdk::mysql::compare_gtid_sets(
+          server, freshest_instance->gtid_executed, inst.gtid_executed);
+
+    switch (rel) {
+      // Conflicting GTID sets
+      case Gtid_set_relation::DISJOINT:
+      case Gtid_set_relation::INTERSECTS:
+        throw shcore::Exception(
+            "Conflicting transaction sets between " +
+                freshest_instance->server + " and " + inst.server,
+            SHERR_DBA_DATA_INCONSISTENT_ERRANT_TRANSACTIONS);
+
+      case Gtid_set_relation::CONTAINED:
+        // this has more transactions than the best candidate
+        candidates.clear();
+        candidates.push_back(inst);
+        freshest_instance = &inst;
+        break;
+
+      case Gtid_set_relation::EQUAL:
+        // this has the same tx set as the best candidate(s)
+        candidates.push_back(inst);
+        break;
+
+      case Gtid_set_relation::CONTAINS:
+        // this has fewer transactions than the best candidate
+        break;
+    }
+  }
+
+  return candidates;
 }
 
 }  // namespace dba

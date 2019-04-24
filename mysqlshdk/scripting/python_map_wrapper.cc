@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -124,7 +124,7 @@ static PyObject *dict_update(PyShDictObject *self, PyObject *arg) {
 
   try {
     value = ctx->pyobj_to_shcore_value(arg);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -198,7 +198,7 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg) {
         shcore::Value::Map_type *map = self->map->get();
         (*map)[key] = ctx->pyobj_to_shcore_value(def);
         return def;
-      } catch (std::exception &exc) {
+      } catch (const std::exception &exc) {
         Python_context::set_python_error(exc);
       }
     }
@@ -226,14 +226,14 @@ static int dict_init(PyShDictObject *self, PyObject *args,
     try {
       self->map->reset(
           static_cast<Value::Map_type *>(PyCObject_AsVoidPtr(valueptr)));
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
   } else {
     try {
       self->map = new Value::Map_type_ref();
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
@@ -267,7 +267,7 @@ static PyObject *dict_subscript(PyShDictObject *self, PyObject *key) {
 
   try {
     return ctx->shcore_value_to_pyobj((self->map->get()->find(k))->second);
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
   }
   return NULL;
@@ -296,12 +296,12 @@ static int dict_as_subscript(PyShDictObject *self, PyObject *key,
         Value v = ctx->pyobj_to_shcore_value(value);
         shcore::Value::Map_type *map = self->map->get();
         (*map)[k] = v;
-      } catch (std::exception &exc) {
+      } catch (const std::exception &exc) {
         Python_context::set_python_error(exc);
       }
     }
     return 0;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
   }
   return -1;

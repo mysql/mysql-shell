@@ -313,6 +313,18 @@ TEST(UtilsString, join) {
   EXPECT_EQ("a,b", str_join(s.begin(), s.end(), ","));
 }
 
+TEST(UtilsString, join_f) {
+  struct Info {
+    std::string s;
+  };
+  std::vector<Info> l;
+  l.push_back(Info{"foo"});
+  l.push_back(Info{"bar"});
+  l.push_back(Info{"baz"});
+
+  EXPECT_EQ("foo,bar,baz", str_join(l, ",", [](const Info &i) { return i.s; }));
+}
+
 TEST(UtilsString, replace) {
   EXPECT_EQ("", str_replace("", "", ""));
 

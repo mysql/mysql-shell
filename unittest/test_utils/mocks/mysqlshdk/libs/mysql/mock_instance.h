@@ -42,6 +42,13 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD0(get_canonical_hostname, std::string());
   MOCK_CONST_METHOD0(get_canonical_port, int());
   MOCK_CONST_METHOD0(get_canonical_address, std::string());
+  MOCK_CONST_METHOD0(get_uuid, const std::string &());
+  MOCK_CONST_METHOD0(get_group_name, const std::string &());
+
+  MOCK_METHOD0(refresh, void());
+
+  MOCK_CONST_METHOD1(
+      query, std::shared_ptr<mysqlshdk::db::IResult>(const std::string &));
 
   MOCK_METHOD1(cache_global_sysvars, void(bool));
   MOCK_CONST_METHOD1(
@@ -109,6 +116,11 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
                      mysqlshdk::utils::nullable<bool>());
 
   MOCK_METHOD1(suppress_binary_log, void(bool));
+
+  MOCK_CONST_METHOD2(query, std::shared_ptr<mysqlshdk::db::IResult>(
+                                const std::string &, bool));
+
+  MOCK_CONST_METHOD1(execute, void(const std::string &));
 };
 }  // namespace mysql
 }  // namespace mysqlshdk

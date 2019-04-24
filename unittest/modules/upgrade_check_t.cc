@@ -803,7 +803,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   args.push_back(shcore::Value(_mysql_uri));
   try {
     util.check_for_server_upgrade(args);
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }
@@ -931,7 +931,7 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     d1.Parse(output_handler.std_out.c_str());
     ASSERT_FALSE(d.HasParseError());
     ASSERT_TRUE(d.IsObject());
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }

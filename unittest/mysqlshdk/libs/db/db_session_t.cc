@@ -230,5 +230,18 @@ TEST_F(Db_tests, auto_close) {
   } while (switch_proto());
 }
 
+TEST_F(Db_tests, connect_read_timeout) {
+  auto connection_options = shcore::get_connection_options(uri());
+
+  connection_options.set_unchecked("net-read-timeout", "1000");
+
+  EXPECT_NO_THROW(session->connect(connection_options));
+
+  EXPECT_NO_THROW(session->execute("SELECT SLEEP(0)"));
+
+  EXPECT_THROW_LIKE(session->execute("SELECT SLEEP(2)"), mysqlshdk::db::Error,
+                    "Lost connection to MySQL server during query");
+}
+
 }  // namespace db
 }  // namespace mysqlshdk

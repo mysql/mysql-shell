@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,9 @@ class Fake_result {
   std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
   void add_row(const std::vector<std::string> &data);
   void add_warning(const mysqlshdk::db::Warning &warning);
+  std::shared_ptr<mysqlshdk::db::Field_names> field_names() const {
+    return m_field_names;
+  }
 
  private:
   size_t _index;
@@ -58,6 +61,7 @@ class Fake_result {
   std::vector<std::string> _names;
   std::vector<mysqlshdk::db::Type> _types;
   std::vector<std::unique_ptr<mysqlshdk::db::IRow>> _records;
+  std::shared_ptr<mysqlshdk::db::Field_names> m_field_names;
 
   std::vector<std::unique_ptr<mysqlshdk::db::Warning>> _warnings;
 };
@@ -103,11 +107,9 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_execution_time, unsigned long());
   MOCK_CONST_METHOD0(get_info, std::string());
   MOCK_CONST_METHOD0(get_gtids, const std::vector<std::string> &());
-  MOCK_CONST_METHOD0(field_names,
-                     std::shared_ptr<mysqlshdk::db::Field_names>());
-
   MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());
 
+  virtual std::shared_ptr<mysqlshdk::db::Field_names> field_names() const;
   virtual const mysqlshdk::db::IRow *fetch_one();
   virtual std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
 

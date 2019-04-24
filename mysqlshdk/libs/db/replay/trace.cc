@@ -343,7 +343,7 @@ void Trace_writer::serialize_result(
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
     _stream << buffer.GetString() << ",\n";
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Exception serializing result trace: " << e.what() << "\n";
     throw;
   }

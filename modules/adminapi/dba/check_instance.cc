@@ -64,7 +64,7 @@ void Check_instance::check_instance_address() {
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  checks::validate_host_address(m_target_instance, !m_silent);
+  checks::validate_host_address(*m_target_instance, m_silent ? 1 : 2);
 }
 
 bool Check_instance::check_schema_compatibility() {
@@ -157,7 +157,6 @@ void Check_instance::prepare() {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
     m_target_instance = new mysqlshdk::mysql::Instance(session);
-    m_target_instance->cache_global_sysvars();
   }
 
   std::string target = m_target_instance->descr();

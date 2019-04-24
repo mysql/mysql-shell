@@ -159,7 +159,7 @@ void Prompt_manager::set_theme(const shcore::Value &theme) {
     if (variables) {
       load_variables(variables);
     }
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     theme_ = old_theme;
     throw std::runtime_error(std::string("Error loading prompt theme: ") +
                              e.what());
@@ -191,7 +191,7 @@ void Prompt_manager::load_variables(const shcore::Value::Map_type_ref &vars) {
           throw std::logic_error("invalid match rule type");
         }
       }
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       throw std::runtime_error("Error loading variable definition " +
                                var.first + ": " + e.what());
     }
@@ -287,7 +287,7 @@ void Prompt_manager::apply_classes(
               class_defs->get_map(class_name));
           attributes->load(class_def);
           break;
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           throw std::runtime_error("Error in class " + class_name +
                                    " of prompt theme: " + e.what());
         }
@@ -348,7 +348,7 @@ std::string Prompt_manager::get_prompt(Variables_map *vars,
     update(std::bind(&Prompt_manager::do_apply_vars, this,
                      std::placeholders::_1, vars, query_var, 0));
     return renderer_.render();
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_error("Error processing prompt: %s", e.what());
     return std::string("(Error in prompt theme: ") + e.what() + ")>";
   }

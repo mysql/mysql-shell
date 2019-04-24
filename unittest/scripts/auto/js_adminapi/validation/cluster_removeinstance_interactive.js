@@ -335,13 +335,13 @@ false
 }
 
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
 //@ Error removing stopped instance on port2 (no prompt if force is used)
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
 //@ Error removing stopped instance on port2
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
 //@ Remove stopped instance on port2 with force option
 ||
@@ -350,10 +350,10 @@ false
 false
 
 //@<OUT> Remove unreachable instance (interactive: false, force: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false, force: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: false, force: true) - success
 NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
@@ -426,27 +426,27 @@ true
 ||
 
 //@<OUT> Remove unreachable instance (interactive: true, force: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: true, force: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer NO) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Remove unreachable instance (interactive: true, answer NO) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(Missing)' (RuntimeError)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer YES) - success
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(Missing)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.

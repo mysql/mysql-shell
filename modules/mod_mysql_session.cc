@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -699,7 +699,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       // SAFE UPDATES
     }
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
@@ -758,7 +758,7 @@ void ClassicSession::kill_query() {
     kill_session->execute("kill query " + std::to_string(cid));
 
     kill_session->close();
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
   }
 }

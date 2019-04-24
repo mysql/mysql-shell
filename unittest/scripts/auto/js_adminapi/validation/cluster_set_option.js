@@ -43,7 +43,7 @@ Setting the value of 'memberWeight' to '25' in all ReplicaSet members ...
 Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet.
 
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
-Cluster.setOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
+Cluster.setOption: <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
 
 //@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all ReplicaSet members ...

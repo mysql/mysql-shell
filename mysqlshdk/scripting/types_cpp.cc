@@ -482,9 +482,9 @@ Value Cpp_object_bridge::call_function(
       auto error = e.error();
       (*error)["message"] = shcore::Value(scope + ": " + e.what());
       throw;
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
       throw shcore::Exception::runtime_error(scope + ": " + e.what());
-    } catch (std::logic_error &e) {
+    } catch (const std::logic_error &e) {
       throw shcore::Exception::logic_error(scope + ": " + e.what());
     } catch (...) {
       throw;
@@ -807,13 +807,13 @@ Value Cpp_function::invoke(const Argument_list &args) {
   } catch (shcore::Exception &e) {
     // shcore::Exception can be thrown by bridges
     throw;
-  } catch (std::invalid_argument &e) {
+  } catch (const std::invalid_argument &e) {
     throw Exception::argument_error(e.what());
-  } catch (std::logic_error &e) {
+  } catch (const std::logic_error &e) {
     throw Exception::logic_error(e.what());
-  } catch (std::runtime_error &e) {
+  } catch (const std::runtime_error &e) {
     throw Exception::runtime_error(e.what());
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     throw Exception::logic_error(std::string("Uncaught exception: ") +
                                  e.what());
   }

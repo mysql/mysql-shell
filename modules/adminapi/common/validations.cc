@@ -26,6 +26,7 @@
 #include <string>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -34,26 +35,35 @@ namespace mysqlsh {
 namespace dba {
 
 void ensure_instance_configuration_valid(
-    const mysqlshdk::mysql::IInstance &target_instance) {
+    const mysqlshdk::mysql::IInstance &target_instance, bool full) {
   auto console = mysqlsh::current_console();
 
-  console->println("Validating instance at " + target_instance.descr() + "...");
+  shcore::Value result;
 
-  Check_instance check(target_instance.get_connection_options(), "", true);
-  check.prepare();
-  shcore::Value result = check.execute();
-  check.finish();
+  if (full) {
+    console->println("Validating instance at " + target_instance.descr() +
+                     "...");
 
-  if (result.as_map()->at("status").get_string() == "ok") {
-    console->println("Instance configuration is suitable.");
+    Check_instance check(target_instance.get_connection_options(), "", true);
+    check.prepare();
+    result = check.execute();
+    check.finish();
+
+    if (!result || result.as_map()->at("status").get_string() == "ok") {
+      console->println("Instance configuration is suitable.");
+    } else {
+      console->print_error(
+          "Instance must be configured and validated with "
+          "dba.<<<checkInstanceConfiguration>>>() and "
+          "dba.<<<configureInstance>>>() "
+          "before it can be used in an InnoDB cluster.");
+      throw shcore::Exception::runtime_error("Instance check failed");
+    }
   } else {
-    console->print_error(
-        "Instance must be configured and validated with "
-        "dba.<<<checkInstanceConfiguration>>>() and "
-        "dba.<<<configureInstance>>>() "
-        "before it can be used in an InnoDB cluster.");
-    throw shcore::Exception::runtime_error("Instance check failed");
+    checks::validate_host_address(target_instance, 0);
   }
+
+  validate_replication_filters(target_instance);
 }
 
 void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance) {

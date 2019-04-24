@@ -107,6 +107,11 @@ void skip_whitespace(const char **pc) {
 
 Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {}
 
+Exception::Exception(const std::string &message, int code) {
+  _error = shcore::make_dict("type", Value("MYSQLSH"), "message",
+                             Value(message), "code", Value(code));
+}
+
 Exception Exception::argument_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
@@ -218,10 +223,10 @@ const char *Exception::type() const noexcept {
   return "Exception";
 }
 
-int64_t Exception::code() const noexcept {
+int Exception::code() const noexcept {
   if ((*_error).find("code") != (*_error).end()) {
     try {
-      return (*_error)["code"].as_int();
+      return static_cast<int>((*_error)["code"].as_int());
     } catch (...) {
       return 0;  // as it's not int
     }
@@ -241,13 +246,13 @@ bool Exception::is_value() const { return strcmp(type(), "ValueError") == 0; }
 
 bool Exception::is_type() const { return strcmp(type(), "TypeError") == 0; }
 
-bool Exception::is_server() const { return strcmp(type(), "Server") == 0; }
-
 bool Exception::is_mysql() const { return strcmp(type(), "MySQL Error") == 0; }
+
+bool Exception::is_mysqlsh() const { return strcmp(type(), "MYSQLSH") == 0; }
 
 bool Exception::is_parser() const { return strcmp(type(), "ParserError") == 0; }
 
-std::string Exception::format() {
+std::string Exception::format() const {
   std::string error_message;
 
   std::string type = _error->get_string("type", "");
@@ -259,8 +264,11 @@ std::string Exception::format() {
   if (!message.empty()) {
     if (!type.empty()) error_message += type;
 
-    if (code != -1) {
-      error_message += " " + std::to_string(code);
+    if (code != -1 && !is_mysqlsh()) {  // don't show shell error codes for now
+      if (is_mysql() || is_mysqlsh())
+        error_message += "-" + std::to_string(code);
+      else
+        error_message += " " + std::to_string(code);
       if (!state.empty()) error_message += " (" + state + ")";
     }
 

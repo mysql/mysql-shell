@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,10 +39,17 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "mysqlshdk_export.h"
-#include "scripting/shexcept.h"  // FIXME: for db error exception.. move it here
 
 namespace mysqlshdk {
 namespace db {
+
+inline bool is_mysql_client_error(int code) {
+  return code >= 2000 && code <= 2999;
+}
+
+inline bool is_mysql_server_error(int code) {
+  return !is_mysql_client_error(code) && code > 0 && code < 50000;
+}
 
 class Error : public std::runtime_error {
  public:
@@ -64,7 +71,7 @@ class Error : public std::runtime_error {
   }
 
  private:
-  int code_;
+  int code_ = 0;
   std::string sqlstate_;
 };
 
@@ -111,13 +118,13 @@ class SHCORE_PUBLIC ISession {
    * auto result = session->queryf("SELECT * FROM tbl WHERE id = ?", my_id);
    */
   template <typename... Args>
-  std::shared_ptr<IResult> queryf(const std::string &sql,
-                                  const Args &... args) {
+  inline std::shared_ptr<IResult> queryf(const std::string &sql,
+                                         const Args &... args) {
     return query(shcore::sqlformat(sql, args...));
   }
 
   template <typename... Args>
-  void executef(const std::string &sql, const Args &... args) {
+  inline void executef(const std::string &sql, const Args &... args) {
     execute(shcore::sqlformat(sql, args...));
   }
 

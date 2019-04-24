@@ -113,6 +113,9 @@ class Auto_script_js : public Shell_js_script_tester,
           "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
+      code = shcore::str_format("var __endpoint%i = '%s:%i';", i + 1,
+                                hostname().c_str(), _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
       code = shcore::str_format(
           "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
           hostname().c_str(), _mysql_sandbox_ports[i]);

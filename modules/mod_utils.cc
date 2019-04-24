@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -369,7 +369,7 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
 
   try {
     session->connect(copy);
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     if (connection_error.empty()) {
       throw;
     } else {

@@ -3,7 +3,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected

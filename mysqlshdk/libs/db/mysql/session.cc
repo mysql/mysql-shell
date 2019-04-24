@@ -31,6 +31,10 @@
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
+#ifdef _WIN32
+typedef unsigned int uint;
+#endif
+
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
@@ -89,18 +93,31 @@ void Session_impl::connect(
       ((_connection_options.has_host() &&
         _connection_options.get_host() == ".") ||
        _connection_options.has_pipe())) {
-    unsigned int pipe = MYSQL_PROTOCOL_PIPE;
+    uint pipe = MYSQL_PROTOCOL_PIPE;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
   }
 #endif
 
-  // Sets the connection timeout
-  int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
-  if (_connection_options.has(kConnectTimeout)) {
-    connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+  {  // Sets the connection timeout (comes in milliseconds, must be in seconds)
+    uint connect_timeout = mysqlshdk::db::k_default_connect_timeout;
+
+    // TODO(alfredo) Hack for connections to fail fast during testing. Should be
+    // replaced by a global defaultConnectTimeout option in the shell.
+    connect_timeout = DBUG_EVALUATE_IF("contimeout", 1, connect_timeout);
+
+    if (_connection_options.has(kConnectTimeout)) {
+      connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+    }
     connect_timeout = std::ceil(connect_timeout / 1000.0);
+    mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
   }
-  mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
+
+  if (_connection_options.has(kNetReadTimeout)) {
+    uint read_timeout = std::stoi(_connection_options.get(kNetReadTimeout));
+
+    read_timeout = std::ceil(read_timeout / 1000.0);
+    mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &read_timeout);
+  }
 
   if (_connection_options.has_compression() &&
       _connection_options.get_compression())
@@ -341,9 +358,11 @@ std::vector<std::string> Session_impl::get_last_gtids() const {
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
-void Session::set_factory_function(
+std::function<std::shared_ptr<Session>()> Session::set_factory_function(
     std::function<std::shared_ptr<Session>()> factory) {
+  auto old = g_session_factory;
   g_session_factory = factory;
+  return old;
 }
 
 std::shared_ptr<Session> Session::create() {

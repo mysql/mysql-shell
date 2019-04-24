@@ -563,7 +563,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
           md_address = mysqlsh::dba::get_report_host_address(instance_def,
                                                              group_cnx_opts);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
               "Invalid value '" + instance +
@@ -606,7 +606,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
           md_address = mysqlsh::dba::get_report_host_address(instance_def,
                                                              group_cnx_opts);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           std::string error(e.what());
           throw shcore::Exception::argument_error(
               "Invalid value '" + instance +
@@ -1010,9 +1010,9 @@ bool Global_dba::prompt_super_read_only(
 
   // Get the status of super_read_only in order to verify if we need to
   // prompt the user to disable it
-  int super_read_only = 0;
-  mysqlsh::dba::get_server_variable(session, "super_read_only",
-                                    &super_read_only, false);
+  bool super_read_only = mysqlshdk::mysql::Instance(session)
+                             .get_sysvar_bool("super_read_only")
+                             .get_safe();
 
   if (super_read_only) {
     println(mysqlsh::fit_screen(

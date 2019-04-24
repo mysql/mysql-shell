@@ -68,7 +68,7 @@ bool g_test_parallel_execution = false;
 int g_test_trace_scripts = 0;
 int g_test_default_verbosity = 0;
 bool g_test_fail_early = false;
-bool g_test_color_output = false;
+int g_test_color_output = 0;
 
 // Default trace set (MySQL version) to be used for replay mode
 mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
@@ -610,6 +610,10 @@ int main(int argc, char **argv) {
   g_test_color_output = _isatty(_fileno(stdout));
 #else
   g_test_color_output = isatty(STDOUT_FILENO) != 0;
+  if (g_test_color_output && getenv("TERM") &&
+      strcmp(getenv("TERM"), "xterm-256color") == 0) {
+    g_test_color_output = 2;
+  }
 #endif
 
   // Ignore broken pipe signal from broken connections
@@ -673,6 +677,7 @@ int main(int argc, char **argv) {
   bool got_filter = false;
   bool tdb = false;
   bool only_failures = false;
+  bool tdb_step = false;
   std::string tracedir;
   std::string target;
 
@@ -729,6 +734,11 @@ int main(int argc, char **argv) {
       tdb = true;
       g_test_trace_scripts = 1;
       g_test_fail_early = true;
+    } else if (strcmp(argv[index], "--tdb-step") == 0) {
+      tdb = true;
+      tdb_step = true;
+      g_test_trace_scripts = 1;
+      g_test_fail_early = true;
     } else if (strcmp(argv[index], "--profile-scripts") == 0) {
       g_profile_test_scripts = true;
     } else if (strcmp(argv[index], "--show-skipped") == 0) {
@@ -736,7 +746,7 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[index], "--only-failures") == 0) {
       only_failures = true;
     } else if (strcmp(argv[index], "--gtest_color=yes") == 0) {
-      g_test_color_output = true;
+      g_test_color_output = 1;
     } else if (!shcore::str_beginswith(argv[index], "--gtest_") &&
                strcmp(argv[index], "--help") != 0) {
       std::cerr << "Invalid option " << argv[index] << "\n";
@@ -748,8 +758,8 @@ int main(int argc, char **argv) {
     setup_test_environment();
 
     if (tdb) {
-      extern void enable_tdb();
-      enable_tdb();
+      extern void enable_tdb(bool);
+      enable_tdb(tdb_step);
     }
 
     if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,13 @@
 namespace testing {
 Fake_result::Fake_result(const std::vector<std::string> &names,
                          const std::vector<mysqlshdk::db::Type> &types)
-    : _index(0), _windex(0), _names(names), _types(types) {}
+    : _index(0), _windex(0), _names(names), _types(types) {
+  m_field_names.reset(
+      new mysqlshdk::db::Field_names(std::vector<mysqlshdk::db::Column>()));
+  for (const auto &n : names) {
+    m_field_names->add(n);
+  }
+}
 
 const mysqlshdk::db::IRow *Fake_result::fetch_one() {
   if (_index < _records.size()) return _records[_index++].get();
@@ -75,6 +81,12 @@ void Fake_result::add_warning(const mysqlshdk::db::Warning &warning) {
 Mock_result::Mock_result() : _index(0) {
   ON_CALL(*this, next_resultset())
       .WillByDefault(Invoke(this, &Mock_result::fake_next_resultset));
+}
+
+std::shared_ptr<mysqlshdk::db::Field_names> Mock_result::field_names() const {
+  if (_index < _results.size()) return _results[_index]->field_names();
+
+  return {};
 }
 
 const mysqlshdk::db::IRow *Mock_result::fetch_one() {

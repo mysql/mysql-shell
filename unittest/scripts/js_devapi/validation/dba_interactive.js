@@ -60,7 +60,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
@@ -77,7 +77,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
@@ -95,7 +95,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -110,7 +110,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> fo
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -126,7 +126,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -157,7 +157,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -250,7 +250,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Co
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -277,7 +277,7 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Co
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
@@ -308,7 +308,7 @@ Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': C
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
@@ -329,7 +329,7 @@ Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': C
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 

@@ -90,7 +90,7 @@ void Shell_sql::kill_query(uint64_t conn_id,
     mysqlsh::current_console()->print("-- query aborted\n");
 
     kill_session->close();
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     mysqlsh::current_console()->print(std::string("-- error aborting query: ") +
                                       e.what() + "\n");
   }
@@ -121,7 +121,7 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
 
         timer.stage_end();
         info.ellapsed_seconds = timer.total_seconds_ellapsed();
-      } catch (mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &e) {
         Interrupts::pop_handler();
         auto exc = shcore::Exception::mysql_error_with_code_and_state(
             e.what(), e.code(), e.sqlstate());

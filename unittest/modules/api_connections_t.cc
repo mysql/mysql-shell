@@ -109,7 +109,8 @@ class Api_connections : public Shell_js_script_tester {
                    "mysql_native_password by 'root'");
     session->close();
 
-    testutil->stop_sandbox(port, "root");
+    testutil->stop_sandbox(
+        port, shcore::make_dict("password", shcore::Value("root")));
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
     testutil->change_sandbox_conf(port, "default_authentication_plugin",
                                   "mysql_native_password", "mysqld");

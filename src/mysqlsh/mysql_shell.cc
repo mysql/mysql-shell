@@ -847,7 +847,7 @@ void Mysql_shell::connect(
     println("Recreating schema " + schema_name + "...");
     try {
       new_session->drop_schema(schema_name);
-    } catch (shcore::Exception &e) {
+    } catch (const shcore::Exception &e) {
       if (e.is_mysql() && e.code() == 1008) {
         // ignore DB doesn't exist error
       } else {
@@ -871,13 +871,13 @@ void Mysql_shell::connect(
                      ->query("select concat(@@version, ' ', @@version_comment)")
                      ->fetch_one()
                      ->get_string(0);
-    } catch (mysqlshdk::db::Error &e) {
+    } catch (const mysqlshdk::db::Error &e) {
       // ignore password expired errors
       if (e.code() == ER_MUST_CHANGE_PASSWORD) {
       } else {
         throw;
       }
-    } catch (shcore::Exception &e) {
+    } catch (const shcore::Exception &e) {
       // ignore password expired errors
       if (e.is_mysql() && e.code() == ER_MUST_CHANGE_PASSWORD) {
       } else {
@@ -1125,9 +1125,9 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
     if (!error && !options.uri.empty()) {
       try {
         connect(options.connection_options());
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         print_diag(std::string(e.format()) + "\n");
-      } catch (mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &e) {
         std::string msg;
         if (e.sqlstate() && *e.sqlstate())
           msg = shcore::str_format("MySQL Error %i (%s): %s", e.code(),
@@ -1135,7 +1135,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
         else
           msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
         print_diag(msg + "\n");
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         print_diag(std::string(e.what()) + "\n");
       }
     }
@@ -1365,9 +1365,9 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
           request_prompt_variables_update();
           refresh_completion();
         }
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         error = e.format();
-      } catch (mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &e) {
         error = shcore::Exception::mysql_error_with_code(e.what(), e.code())
                     .format();
       }
@@ -1409,7 +1409,7 @@ void Mysql_shell::refresh_schema_completion(bool force) {
           "Press ^C to stop.");
       try {
         _provider_sql->refresh_schema_cache(session);
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         print_diag(
             shcore::str_format(
                 "Error during auto-completion cache update: %s\n", e.what())
@@ -1432,7 +1432,7 @@ void Mysql_shell::refresh_completion(bool force) {
     if (session) {
       try {
         current_schema = session->get_current_schema();
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         handle_error(e);
         return;
       }
@@ -1447,7 +1447,7 @@ void Mysql_shell::refresh_completion(bool force) {
           _provider_sql->refresh_name_cache(session, current_schema,
                                             nullptr,  // &table_names,
                                             true);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           handle_error(e);
         }
       }
@@ -1597,7 +1597,7 @@ void Mysql_shell::process_line(const std::string &line) {
       _input_mode == shcore::Input_state::Ok) {
     try {
       handled_as_command = do_shell_command(line);
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
       print_diag(error);
@@ -1699,7 +1699,7 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
       try {
         session->connect(co);
         ret_val = true;
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         ret_val = false;
       }
       if (!ret_val) {

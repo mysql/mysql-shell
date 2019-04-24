@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,41 +39,18 @@ GRInstanceType get_gr_instance_type(
     std::shared_ptr<mysqlshdk::db::ISession> connection);
 void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
                           int *port, std::string *datadir);
-SlaveReplicationState get_slave_replication_state(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &slave_executed);
+
 Cluster_check_info get_replication_group_state(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    GRInstanceType source_type);
-ManagedInstance::State SHCORE_PUBLIC
-get_instance_state(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                   const std::string &address);
-bool is_server_on_replication_group(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &uuid);
-std::string get_plugin_status(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &plugin_name);
-bool SHCORE_PUBLIC get_server_variable(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &name, std::string *value, bool throw_on_error = true);
-bool SHCORE_PUBLIC get_server_variable(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &name, int *value, bool throw_on_error = true);
-void set_global_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, const std::string &value);
-bool get_status_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, std::string *value,
-                         bool throw_on_error = true);
-bool is_gtid_subset(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                    const std::string &subset, const std::string &set);
-shcore::Value get_master_status(
-    std::shared_ptr<mysqlshdk::db::ISession> connection);
+    const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type);
+
 std::vector<std::string> get_peer_seeds(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &instance_host);
 std::vector<std::pair<std::string, int>> get_open_sessions(
     std::shared_ptr<mysqlshdk::db::ISession> connection);
+
+Instance_definition query_instance_info(
+    const mysqlshdk::mysql::IInstance &instance);
 }  // namespace dba
 }  // namespace mysqlsh
 

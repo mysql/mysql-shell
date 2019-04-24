@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,8 @@ void Mock_session::then_throw() {
 std::shared_ptr<mysqlshdk::db::IResult> Mock_session::querys(
     const char *sql, size_t length, bool /*buffered*/) {
   std::string s(sql, length);
+  if (_queries.empty()) throw std::logic_error("Unexpected query: " + s);
+
   // Ensures the expected query got received
   EXPECT_EQ(s, _queries[0]);
 

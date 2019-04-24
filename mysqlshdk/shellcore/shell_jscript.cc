@@ -55,7 +55,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
     try {
       std::tie(result, got_error) = _js->execute(
           code, _owner->get_input_source(), _owner->get_input_args());
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       mysqlsh::current_console()->print_diag(exc.what());
     }
   }

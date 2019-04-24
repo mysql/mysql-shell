@@ -233,6 +233,47 @@ inline std::vector<std::string> str_split(
   return ret_val;
 }
 
+/**
+ * Split the given input string and call the functor for each token.
+ *
+ * @param input the string to be split
+ * @param f a functor called once for each split string. If its return value
+ *   is false, the splitting is interrupted.
+ * @param separator_chars String containing characters wherein the input string
+ *   is split on any of the characters
+ * @param maxsplit max number of parts to break into or -1 for no limit
+ * @param compress Boolean value which when true ensures consecutive separators
+ *   do not generate new elements in the split
+ *
+ * @returns false if f returns false, true otherwise
+ */
+inline bool str_itersplit(const std::string &input,
+                          const std::function<bool(const std::string &s)> &f,
+                          const std::string &separator_chars = " \r\n\t",
+                          int maxsplit = -1, bool compress = false) {
+  size_t index = 0, new_find = 0;
+  const size_t end = input.size();
+
+  while (new_find < end) {
+    if (maxsplit--)
+      new_find = input.find_first_of(separator_chars, index);
+    else
+      new_find = std::string::npos;
+
+    if (new_find != std::string::npos) {
+      // When compress is enabled, consecutive separators
+      // do not generate new elements
+      if (new_find > index || !compress || new_find == 0)
+        if (!f(input.substr(index, new_find - index))) return false;
+
+      index = new_find + 1;
+    } else {
+      if (!f(input.substr(index))) return false;
+    }
+  }
+  return true;
+}
+
 /** Strip a string out of blank chars */
 std::string SHCORE_PUBLIC str_strip(const std::string &s,
                                     const std::string &chars = " \r\n\t");
@@ -268,8 +309,7 @@ std::string SHCORE_PUBLIC str_format(const char *formats, ...);
 #endif
 
 template <typename Iter>
-std::string SHCORE_PUBLIC str_join(Iter begin, Iter end,
-                                   const std::string &sep) {
+inline std::string str_join(Iter begin, Iter end, const std::string &sep) {
   std::string s;
   if (begin != end) {
     s.append(*begin);
@@ -281,9 +321,31 @@ std::string SHCORE_PUBLIC str_join(Iter begin, Iter end,
   return s;
 }
 
+template <typename Iter>
+inline std::string str_join(
+    Iter begin, Iter end, const std::string &sep,
+    std::function<std::string(const typename Iter::value_type &i)> f) {
+  std::string s;
+  if (begin != end) {
+    s.append(f(*begin));
+    while (++begin != end) {
+      s.append(sep);
+      s.append(f(*begin));
+    }
+  }
+  return s;
+}
+
 template <typename C>
-std::string SHCORE_PUBLIC str_join(const C &container, const std::string &sep) {
+inline std::string str_join(const C &container, const std::string &sep) {
   return str_join(container.begin(), container.end(), sep);
+}
+
+template <typename C>
+inline std::string str_join(
+    const C &container, const std::string &sep,
+    std::function<std::string(const typename C::value_type &i)> f) {
+  return str_join(container.begin(), container.end(), sep, f);
 }
 
 std::string SHCORE_PUBLIC str_replace(const std::string &s,

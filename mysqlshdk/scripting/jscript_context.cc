@@ -354,7 +354,7 @@ struct JScript_context::JScript_context_impl {
                                                     self->convert_args(args)));
       if (result)
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(result));
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       isolate->ThrowException(v8_string(isolate, e.what()));
     }
   }
@@ -388,7 +388,7 @@ struct JScript_context::JScript_context_impl {
       try {
         args.GetReturnValue().Set(v8_string(
             isolate, self->types.v8_value_to_shcore_value(args[0]).repr()));
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
@@ -406,7 +406,7 @@ struct JScript_context::JScript_context_impl {
       try {
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(
             Value::parse(to_string(isolate, args[0]))));
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
@@ -423,7 +423,7 @@ struct JScript_context::JScript_context_impl {
     } else {
       try {
         args.GetReturnValue().Set(self->types.type_info(args[0]));
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
@@ -450,7 +450,7 @@ struct JScript_context::JScript_context_impl {
                                                                      "json");
         else
           text += self->types.v8_value_to_shcore_value(args[i]).descr(true);
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         isolate->ThrowException(v8_string(isolate, e.what()));
         break;
       }
@@ -510,7 +510,7 @@ struct JScript_context::JScript_context_impl {
           args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(
               shcore::Value(std::dynamic_pointer_cast<Object_bridge>(module))));
         }
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
@@ -1160,7 +1160,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
     } else {
       try {
         return {v8_value_to_shcore_value(result.ToLocalChecked()), false};
-      } catch (std::exception &exc) {
+      } catch (const std::exception &exc) {
         // we used to let the exception bubble up, but somehow, exceptions
         // thrown from v8_value_to_shcore_value() aren't being caught from
         // main.cc, leading to a crash due to unhandled exception.. so we catch

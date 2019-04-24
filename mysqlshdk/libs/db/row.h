@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,6 +60,22 @@ class SHCORE_PUBLIC IRow {
   virtual std::pair<const char *, size_t> get_string_data(
       uint32_t index) const = 0;
   virtual uint64_t get_bit(uint32_t index) const = 0;
+
+  inline std::string get_string(uint32_t index,
+                                const std::string &default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_string(index);
+  }
+
+  inline int64_t get_int(uint32_t index, int64_t default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_int(index);
+  }
+
+  inline uint64_t get_uint(uint32_t index, uint64_t default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_uint(index);
+  }
 
   virtual ~IRow() {}
 };

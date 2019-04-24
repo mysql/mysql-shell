@@ -8,7 +8,7 @@
 true
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -59,7 +59,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 }
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -77,7 +77,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -120,7 +120,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
@@ -155,7 +155,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -181,7 +181,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
@@ -243,7 +243,7 @@ NOTE: Please restart the MySQL server and try again.
 //@<OUT> FR5 Configure instance not valid for InnoDB cluster, with interaction enabled {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
@@ -297,7 +297,7 @@ Please restart MySQL manually
 //@<OUT> ET_10 - Call dba.configuereInstance() with interactive flag set to true and using clusterAdmin {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'clusterAdminAccount'@'%' for clusterAdminAccount
 Password for new account: Confirm password:
 NOTE: Some configuration options need to be fixed:
@@ -320,7 +320,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'newClusterAdminAccount'@'%' for newClusterAdminAccount
 Password for new account: Confirm password:
 NOTE: Some configuration options need to be fixed:

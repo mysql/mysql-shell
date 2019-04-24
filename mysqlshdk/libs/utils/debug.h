@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include "my_dbug.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -136,6 +137,16 @@ class Debug_object_for {
 
 bool debug_object_dump_report(bool verbose);
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if __has_builtin(__builtin_trap)
+#define DEBUG_TRAP __builtin_trap()
+#else
+#define DEBUG_TRAP abort()
+#endif
+
 #else  // NDEBUG
 
 #define DEBUG_OBJ_FOR_CLASS_(klass)
@@ -172,9 +183,79 @@ bool debug_object_dump_report(bool verbose);
   do {                            \
   } while (0)
 
+#define DEBUG_TRAP \
+  do {             \
+  } while (0)
+
 #endif  // NDEBUG
 
 }  // namespace debug
 }  // namespace shcore
+
+// Right now, this is in mysql-trunk only, remove once DBUG_TRACE hits
+// our target branch
+#if !defined(DBUG_PRETTY_FUNCTION) && !defined(DBUG_OFF)
+
+#if defined(__GNUC__)
+// GCC, Clang, and compatible compilers.
+#define DBUG_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#elif defined(__FUNCSIG__)
+// For MSVC; skips the __cdecl. (__PRETTY_FUNCTION__ in GCC is not a
+// preprocessor constant, but __FUNCSIG__ in MSVC is.)
+#define DBUG_PRETTY_FUNCTION strchr(__FUNCSIG__, ' ') + 1
+#else
+// Standard C++; does not include the class name.
+#define DBUG_PRETTY_FUNCTION __func__
+#endif
+
+/**
+  A RAII helper to do DBUG_ENTER / DBUG_RETURN for you automatically. Use
+  like this:
+
+   int foo() {
+     DBUG_TRACE;
+     return 42;
+   }
+ */
+class AutoDebugTrace {
+ public:
+  AutoDebugTrace(const char *function, const char *filename, int line) {
+    // Remove the return type, if it's there.
+    const char *begin = strchr(function, ' ');
+    if (begin != nullptr) {
+      function = begin + 1;
+    }
+
+    // Cut it off at the first parenthesis; the argument list is
+    // often too long to be interesting.
+    const char *end = strchr(function, '(');
+
+    if (end == nullptr) {
+      _db_enter_(function, filename, line, &m_stack_frame);
+    } else {
+      _db_enter_(function, /* end - function, */ filename, line,
+                 &m_stack_frame);
+    }
+  }
+
+  ~AutoDebugTrace() { _db_return_(0, &m_stack_frame); }
+
+ private:
+  _db_stack_frame_ m_stack_frame;
+};
+
+#undef DBUG_TRACE
+#define DBUG_TRACE \
+  AutoDebugTrace _db_trace(DBUG_PRETTY_FUNCTION, __FILE__, __LINE__)
+
+#else
+
+#undef DBUG_TRACE
+
+#define DBUG_TRACE \
+  do {             \
+  } while (0)
+
+#endif
 
 #endif  // MYSQLSHDK_LIBS_UTILS_DEBUG_H_

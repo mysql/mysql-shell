@@ -37,7 +37,29 @@
 namespace mysqlshdk {
 namespace mysql {
 
+void Auth_options::get(const mysqlshdk::db::Connection_options &copts) {
+  user = copts.get_user();
+  password = copts.has_password()
+                 ? mysqlshdk::utils::nullable<std::string>{copts.get_password()}
+                 : mysqlshdk::utils::nullable<std::string>{nullptr};
+  ssl_options = copts.get_ssl_options();
+}
+
+void Auth_options::set(mysqlshdk::db::Connection_options *copts) const {
+  copts->set_user(user);
+  if (password.is_null())
+    copts->clear_password();
+  else
+    copts->set_password(*password);
+  copts->set_ssl_options(ssl_options);
+}
+
 Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {}
+
+void Instance::refresh() {
+  m_uuid.clear();
+  m_group_name.clear();
+}
 
 std::string Instance::descr() const {
   return _session->get_connection_options().as_uri(
@@ -45,44 +67,51 @@ std::string Instance::descr() const {
 }
 
 std::string Instance::get_canonical_hostname() const {
-  // returns the hostname that should be used to reach this instance
-  auto result = _session->query("SELECT COALESCE(@@report_host, @@hostname)");
-  auto row = result->fetch_one();
-  return row->get_as_string(0);
+  if (m_hostname.empty()) {
+    // returns the hostname that should be used to reach this instance
+    auto result = query("SELECT COALESCE(@@report_host, @@hostname)");
+    auto row = result->fetch_one();
+    m_hostname = row->get_as_string(0);
+  }
+  return m_hostname;
 }
 
 int Instance::get_canonical_port() const {
-  // returns the hostname that should be used to reach this instance
-  auto result = _session->query("SELECT COALESCE(@@report_port, @@port)");
-  auto row = result->fetch_one();
-  return row->is_null(0) ? 0 : row->get_int(0);
+  if (m_port == 0) {
+    // returns the hostname that should be used to reach this instance
+    auto result = query("SELECT COALESCE(@@report_port, @@port)");
+    auto row = result->fetch_one();
+    m_port = row->is_null(0) ? 0 : row->get_int(0);
+  }
+  return m_port;
 }
 
 std::string Instance::get_canonical_address() const {
   // returns the canonical address that should be used to reach this instance in
   // the format: canonical_hostname + ':' + canonical_port
-  std::string addr = get_canonical_hostname();
-  addr += ":";
-  addr += std::to_string(get_canonical_port());
-
-  return addr;
+  if (m_hostname.empty() || m_port == 0) {
+    auto result = query(
+        "SELECT COALESCE(@@report_host, @@hostname),"
+        "  COALESCE(@@report_port, @@port)");
+    auto row = result->fetch_one_or_throw();
+    m_hostname = row->get_string(0, "");
+    m_port = row->get_int(1);
+  }
+  return m_hostname + ":" + std::to_string(m_port);
 }
 
-void Instance::cache_global_sysvars(bool force_refresh) {
-  if (force_refresh || _global_sysvars.empty())
-    _global_sysvars = get_system_variables({}, Var_qualifier::GLOBAL);
+const std::string &Instance::get_uuid() const {
+  if (m_uuid.empty()) {
+    m_uuid = queryf_one_string(0, "", "SELECT @@server_uuid");
+  }
+  return m_uuid;
 }
 
-utils::nullable<std::string> Instance::get_cached_global_sysvar(
-    const std::string &name) const {
-  if (_global_sysvars.empty()) {
-    throw std::logic_error("cache_global_sysvars() not called yet");
+const std::string &Instance::get_group_name() const {
+  if (m_group_name.empty()) {
+    m_group_name = get_sysvar_string("group_replication_group_name").get_safe();
   }
-  const auto it = _global_sysvars.find(name);
-  if (it != _global_sysvars.end()) {
-    return it->second;
-  }
-  return {};
+  return m_group_name;
 }
 
 namespace {
@@ -101,13 +130,6 @@ bool sysvar_to_bool(const std::string &name, const std::string &str_value) {
   return ret_val;
 }
 }  // namespace
-
-utils::nullable<bool> Instance::get_cached_global_sysvar_as_bool(
-    const std::string &name) const {
-  auto value = get_cached_global_sysvar(name);
-  if (value) return sysvar_to_bool(name, *value);
-  return {};
-}
 
 utils::nullable<bool> Instance::get_sysvar_bool(
     const std::string &name, const Var_qualifier scope) const {
@@ -173,7 +195,7 @@ void Instance::set_sysvar(const std::string &name, const std::string &value,
   set_stmt << name;
   set_stmt << value;
   set_stmt.done();
-  _session->execute(set_stmt);
+  execute(set_stmt);
 }
 
 /**
@@ -197,7 +219,7 @@ void Instance::set_sysvar_default(const std::string &name,
   shcore::sqlstring set_stmt = shcore::sqlstring(set_stmt_fmt.c_str(), 0);
   set_stmt << name;
   set_stmt.done();
-  _session->execute(set_stmt);
+  execute(set_stmt);
 }
 
 /**
@@ -223,7 +245,7 @@ void Instance::set_sysvar(const std::string &name, const int64_t value,
   set_stmt << name;
   set_stmt << value;
   set_stmt.done();
-  _session->execute(set_stmt);
+  execute(set_stmt);
 }
 
 /**
@@ -250,7 +272,7 @@ void Instance::set_sysvar(const std::string &name, const bool value,
   set_stmt << name;
   set_stmt << str_value;
   set_stmt.done();
-  _session->execute(set_stmt);
+  execute(set_stmt);
 }
 
 std::map<std::string, utils::nullable<std::string>>
@@ -287,12 +309,12 @@ Instance::get_system_variables(const std::vector<std::string> &names,
 
     query.done();
 
-    result = _session->query(query);
+    result = this->query(query);
   } else {
     if (scope == Var_qualifier::GLOBAL)
-      result = _session->query("SHOW GLOBAL VARIABLES");
+      result = query("SHOW GLOBAL VARIABLES");
     else if (scope == Var_qualifier::SESSION)
-      result = _session->query("SHOW SESSION VARIABLES");
+      result = query("SHOW SESSION VARIABLES");
     else
       throw std::runtime_error(
           "Invalid variable scope to get variables value, "
@@ -331,7 +353,7 @@ Instance::get_system_variables_like(const std::string &pattern,
   query.done();
 
   std::shared_ptr<db::IResult> result;
-  result = _session->query(query);
+  result = this->query(query);
 
   auto row = result->fetch_one();
   while (row) {
@@ -381,7 +403,7 @@ bool Instance::has_variable_compiled_value(const std::string &name) const {
       shcore::sqlstring(variable_default_stmt_fmt, 0);
   variable_default_stmt << name;
   variable_default_stmt.done();
-  auto resultset = _session->query(variable_default_stmt);
+  auto resultset = query(variable_default_stmt);
   auto row = resultset->fetch_one();
   if (row)
     return row->get_string(0) == "COMPILED";
@@ -410,7 +432,7 @@ utils::nullable<std::string> Instance::get_plugin_status(
       shcore::sqlstring(plugin_state_stmt_fmt.c_str(), 0);
   plugin_state_stmt << plugin_name;
   plugin_state_stmt.done();
-  auto resultset = _session->query(plugin_state_stmt);
+  auto resultset = query(plugin_state_stmt);
   auto row = resultset->fetch_one();
   if (row)
     return utils::nullable<std::string>(row->get_string(0));
@@ -421,7 +443,8 @@ utils::nullable<std::string> Instance::get_plugin_status(
 
 const std::string &Instance::get_version_compile_os() const {
   if (m_version_compile_os.empty()) {
-    m_version_compile_os = *get_sysvar_string("version_compile_os");
+    m_version_compile_os =
+        *get_sysvar_string("version_compile_os", Var_qualifier::GLOBAL);
   }
   return m_version_compile_os;
 }
@@ -454,8 +477,8 @@ void Instance::install_plugin(const std::string &plugin_name) const {
     stmt << plugin_name;
     stmt << plugin_lib;
     stmt.done();
-    _session->execute(stmt);
-  } catch (std::exception &err) {
+    execute(stmt);
+  } catch (const std::exception &err) {
     // Install plugin failed.
     throw std::runtime_error("error installing plugin '" + plugin_name +
                              "': " + err.what());
@@ -476,8 +499,8 @@ void Instance::uninstall_plugin(const std::string &plugin_name) const {
   stmt.done();
   // Uninstall the plugin.
   try {
-    _session->execute(stmt);
-  } catch (std::exception &err) {
+    execute(stmt);
+  } catch (const std::exception &err) {
     // Uninstall plugin failed.
     throw std::runtime_error("error uninstalling plugin '" + plugin_name +
                              "': " + err.what());
@@ -504,13 +527,13 @@ void Instance::create_user(
     const {
   // Create the user
   static const std::string create_stmt_fmt =
-      "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*(*/ ? /*)*/";
+      "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/";
   shcore::sqlstring create_stmt = shcore::sqlstring(create_stmt_fmt.c_str(), 0);
   create_stmt << user;
   create_stmt << host;
   create_stmt << pwd;
   create_stmt.done();
-  _session->execute(create_stmt);
+  execute(create_stmt);
 
   // Grant privileges
   for (size_t i = 0; i < grants.size(); i++) {
@@ -522,7 +545,7 @@ void Instance::create_user(
     grant_stmt << user;
     grant_stmt << host;
     grant_stmt.done();
-    _session->execute(grant_stmt);
+    execute(grant_stmt);
   }
 }
 
@@ -541,7 +564,7 @@ void Instance::drop_user(const std::string &user, const std::string &host,
   drop_stmt << user;
   drop_stmt << host;
   drop_stmt.done();
-  _session->execute(drop_stmt);
+  execute(drop_stmt);
 }
 
 /**
@@ -566,7 +589,7 @@ void Instance::drop_users_with_regexp(const std::string &regexp) const {
       shcore::sqlstring(users_to_drop_stmt_fmt.c_str(), 0);
   users_to_drop_stmt << regexp;
   users_to_drop_stmt.done();
-  auto resultset = _session->query(users_to_drop_stmt);
+  auto resultset = query(users_to_drop_stmt);
   auto row = resultset->fetch_one();
   std::vector<std::string> user_accounts;
   while (row) {
@@ -576,7 +599,7 @@ void Instance::drop_users_with_regexp(const std::string &regexp) const {
   // Remove all matching users.
   std::string drop_stmt = "DROP USER IF EXISTS ";
   for (std::string user_account : user_accounts)
-    _session->execute(drop_stmt + user_account);
+    execute(drop_stmt + user_account);
 }
 
 /**
@@ -595,8 +618,8 @@ std::unique_ptr<User_privileges> Instance::get_user_privileges(
 bool Instance::is_read_only(bool super) const {
   // Check if the member is not read_only
   std::shared_ptr<mysqlshdk::db::IResult> result(
-      _session->query(super ? "select @@super_read_only"
-                            : "select @@read_only or @@super_read_only"));
+      query(super ? "select @@super_read_only"
+                  : "select @@read_only or @@super_read_only"));
   const mysqlshdk::db::IRow *row(result->fetch_one());
   if (row) {
     return (row->get_int(0) != 0);
@@ -620,7 +643,7 @@ utils::Version Instance::get_version() const {
  */
 void Instance::get_current_user(std::string *current_user,
                                 std::string *current_host) const {
-  auto result = _session->query("SELECT CURRENT_USER()");
+  auto result = query("SELECT CURRENT_USER()");
   auto row = result->fetch_one();
   std::string current_account = row->get_string(0);
   shcore::split_account(current_account, current_user, current_host, true);
@@ -644,8 +667,8 @@ bool Instance::user_exists(const std::string &username,
 
   // Query to check if the user exists
   try {
-    _session->queryf("SHOW GRANTS FOR ?@?", username, host);
-  } catch (mysqlshdk::db::Error &err) {
+    queryf("SHOW GRANTS FOR ?@?", username, host);
+  } catch (const mysqlshdk::db::Error &err) {
     log_debug("=> %s", err.what());
     // the current_account doesn't have enough privileges to execute the query
     if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
@@ -687,15 +710,27 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
 
 void Instance::suppress_binary_log(bool flag) {
   if (flag) {
-    if (m_sql_binlog_suppress_count == 0)
-      _session->execute("SET SESSION sql_log_bin=0");
+    if (m_sql_binlog_suppress_count == 0) execute("SET SESSION sql_log_bin=0");
     m_sql_binlog_suppress_count++;
   } else {
     if (m_sql_binlog_suppress_count <= 0)
       throw std::logic_error("mismatched call to suppress_binary_log()");
     m_sql_binlog_suppress_count--;
-    if (m_sql_binlog_suppress_count == 0)
-      _session->execute("SET SESSION sql_log_bin=0");
+    if (m_sql_binlog_suppress_count == 0) execute("SET SESSION sql_log_bin=1");
+  }
+}
+
+std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
+                                                        bool buffered) const {
+  return get_session()->query(sql, buffered);
+}
+
+void Instance::execute(const std::string &sql) const {
+  try {
+    get_session()->execute(sql);
+  } catch (const mysqlshdk::db::Error &e) {
+    throw mysqlshdk::db::Error((descr() + ": " + e.what()).c_str(), e.code(),
+                               e.sqlstate());
   }
 }
 

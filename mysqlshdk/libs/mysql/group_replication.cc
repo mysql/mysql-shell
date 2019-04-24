@@ -226,7 +226,7 @@ bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
         "    = @@server_uuid");
     auto row = resultset->fetch_one();
     return (row && row->get_int(0)) != 0;
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     log_warning("Error checking if member is primary: %s (%i)", e.what(),
                 e.code());
     if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
@@ -319,80 +319,101 @@ Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
  * @param instance session object to connect to the target instance.
  * @param out_single_primary_mode if not NULL, assigned to true if group is
  *        single primary
+ * @param out out_has_quorum if not NULL, assigned to true if the instance
+ *        is part of a majority group.
+ * @param out out_group_view_id if not NULL, assigned to the view_id
  *
  * @return A list of GR_member objects corresponding to the current known
  *         members of the group (from the point of view of the specified
  *         instance).
  */
 std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
-                                bool *out_single_primary_mode) {
+                                bool *out_single_primary_mode,
+                                bool *out_has_quorum,
+                                std::string *out_group_view_id) {
   std::vector<Member> members;
+  size_t online_members = 0;
+  std::shared_ptr<db::IResult> result;
+  const char *query;
 
   // 8.0.2 added member_role and member_version columns
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
-    std::shared_ptr<db::IResult> result(instance.get_session()->query(
-        "SELECT member_id, member_state, member_host, member_port, "
-        "member_role, member_version, @@group_replication_single_primary_mode "
-        "FROM performance_schema.replication_group_members"));
-    {
-      const db::IRow *row = result->fetch_one();
-      if (!row || row->get_string(4).empty()) {
-        // no members listed or empty role
-        log_debug(
-            "Query to replication_group_members from '%s' returned invalid "
-            "data",
-            instance.get_session()->get_connection_options().as_uri().c_str());
-        if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance))
-          throw std::runtime_error(
-              "Instance '" + instance.get_connection_options().uri_endpoint() +
-              "' does not seem to belong to any replication group but "
-              "is currently running auto-rejoin.");
-        else
-          throw std::runtime_error(
-              "Instance '" + instance.get_connection_options().uri_endpoint() +
-              "' does not seem to belong to any replication group");
-      }
-      while (row) {
-        Member member;
-        member.uuid = row->get_string(0);
-        member.state = to_member_state(row->get_string(1));
-        member.host = row->get_string(2);
-        member.gr_port = row->get_int(3);
-        member.role = to_member_role(row->get_string(4));
-        member.version = row->get_string(5);
-        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(6);
-        members.push_back(member);
-
-        row = result->fetch_one();
-      }
-    }
+    query =
+        "SELECT m.member_id, m.member_state, m.member_host, m.member_port,"
+        " m.member_role, m.member_version, s.view_id,"
+        " @@group_replication_single_primary_mode single_primary"
+        " FROM performance_schema.replication_group_members m"
+        " LEFT JOIN performance_schema.replication_group_member_stats s"
+        "   ON m.member_id = s.member_id"
+        "      AND s.channel_name = 'group_replication_applier'"
+        " ORDER BY m.member_id";
   } else {
     // query the old way
-    std::shared_ptr<db::IResult> result(instance.get_session()->query(
-        "SELECT member_id, member_state, member_host, member_port,"
+    query =
+        "SELECT m.member_id, m.member_state, m.member_host, m.member_port,"
         "   IF(NOT @@group_replication_single_primary_mode OR"
-        "     member_id = (select variable_value"
+        "     m.member_id = (select variable_value"
         "       from performance_schema.global_status"
         "       where variable_name = 'group_replication_primary_member'),"
         "   'PRIMARY', 'SECONDARY') as member_role,"
-        "    @@group_replication_single_primary_mode"
-        " FROM performance_schema.replication_group_members"));
-    {
-      const db::IRow *row = result->fetch_one();
-      while (row) {
-        Member member;
-        member.uuid = row->get_string(0);
-        member.state = to_member_state(row->get_string(1));
-        member.host = row->get_string(2);
-        member.gr_port = row->get_int(3);
-        member.role = to_member_role(row->get_string(4));
-        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(5);
-        members.push_back(member);
-
-        row = result->fetch_one();
-      }
-    }
+        "    NULL as member_version, s.view_id,"
+        "    @@group_replication_single_primary_mode single_primary"
+        " FROM performance_schema.replication_group_members m"
+        " LEFT JOIN performance_schema.replication_group_member_stats s"
+        "   ON m.member_id = s.member_id"
+        "     AND s.channel_name = 'group_replication_applier'"
+        " ORDER BY m.member_id";
   }
+
+  try {
+    result = instance.query(query);
+  } catch (const mysqlshdk::db::Error &e) {
+    log_error("Error querying GR member information: %s", e.format().c_str());
+    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
+      return {};
+    }
+    throw;
+  }
+
+  db::Row_ref_by_name row = result->fetch_one_named();
+  if (!row || row.get_string("member_role").empty()) {
+    // no members listed or empty role
+    log_debug(
+        "Query to replication_group_members from '%s' did not return "
+        "group membership data",
+        instance.descr().c_str());
+
+    throw std::runtime_error(
+        "Group replication does not seem to be active in instance '" +
+        instance.descr() + "'");
+  }
+
+  while (row) {
+    Member member;
+    member.uuid = row.get_string("member_id");
+    member.state = to_member_state(row.get_string("member_state"));
+    member.host = row.get_string("member_host");
+    member.port = row.get_int("member_port");
+    member.role = to_member_role(row.get_string("member_role"));
+    member.version = row.get_string("member_version", "");
+    if (out_single_primary_mode)
+      *out_single_primary_mode = row.get_int("single_primary");
+    if (out_group_view_id && !row.is_null("view_id")) {
+      *out_group_view_id = row.get_string("view_id");
+    }
+    members.push_back(member);
+
+    if (member.state == Member_state::ONLINE ||
+        member.state == Member_state::RECOVERING)
+      online_members++;
+
+    row = result->fetch_one_named();
+  }
+
+  assert(!out_group_view_id || !out_group_view_id->empty());
+
+  if (out_has_quorum) *out_has_quorum = online_members > members.size() / 2;
+
   return members;
 }
 
@@ -408,19 +429,31 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
  * @param  out_member_id           set to the server_uuid of the member
  * @param  out_group_name          set to the name of the group of the member
  * @param  out_single_primary_mode set to true if group is single primary
+ * @param  out_has_quorum          set to true if the member is part of a quorum
+ * @param  out_is_primary          set to true if the member is a primary
  * @return                         false if the instance is not part of a group
  */
 bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            Member_state *out_member_state,
                            std::string *out_member_id,
                            std::string *out_group_name,
-                           bool *out_single_primary_mode) {
+                           bool *out_single_primary_mode, bool *out_has_quorum,
+                           bool *out_is_primary) {
   try {
     std::shared_ptr<db::IResult> result(instance.get_session()->query(
-        "SELECT @@group_replication_group_name, "
-        "   @@group_replication_single_primary_mode, "
-        "   @@server_uuid, "
-        "   member_state "
+        "SELECT @@group_replication_group_name group_name, "
+        " @@group_replication_single_primary_mode single_primary, "
+        " @@server_uuid, "
+        " member_state, "
+        " (SELECT "
+        "   sum(IF(member_state in ('ONLINE', 'RECOVERING'), 1, 0)) > sum(1)/2 "
+        "  FROM performance_schema.replication_group_members) has_quorum,"
+        " COALESCE(/*!80002 member_role = 'PRIMARY', NULL AND */"
+        "     NOT @@group_replication_single_primary_mode OR"
+        "     member_id = (select variable_value"
+        "       from performance_schema.global_status"
+        "       where variable_name = 'group_replication_primary_member')"
+        " ) is_primary"
         " FROM performance_schema.replication_group_members"
         " WHERE member_id = @@server_uuid"));
     const db::IRow *row = result->fetch_one();
@@ -431,14 +464,17 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
       if (out_member_id) *out_member_id = row->get_string(2);
       if (out_member_state)
         *out_member_state = to_member_state(row->get_string(3));
+      if (out_has_quorum)
+        *out_has_quorum = row->is_null(4) ? false : row->get_int(4) != 0;
+      if (out_is_primary) *out_is_primary = row->get_int(5, 0);
       return true;
     }
     return false;
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     log_error("Error while querying for group_replication info: %s", e.what());
     if (e.code() == ER_BAD_DB_ERROR || e.code() == ER_NO_SUCH_TABLE ||
         e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
-      // if GR plugin is not installed, we get unknwon sysvar
+      // if GR plugin is not installed, we get unknown sysvar
       // if server doesn't have pfs, we get BAD_DB
       // if server has pfs but not the GR tables, we get NO_SUCH_TABLE
       return false;
@@ -489,7 +525,7 @@ mysqlshdk::utils::Version get_group_protocol_version(
             "No rows returned when querying the version of Group Replication "
             "communication protocol.");
       }
-    } catch (mysqlshdk::db::Error &error) {
+    } catch (const mysqlshdk::db::Error &error) {
       throw shcore::Exception::mysql_error_with_code_and_state(
           error.what(), error.code(), error.sqlstate());
     }
@@ -510,7 +546,7 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
     log_debug("Executing UDF: %s", query.c_str());
 
     instance.get_session()->query(query);
-  } catch (mysqlshdk::db::Error &error) {
+  } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
@@ -788,7 +824,7 @@ void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
   try {
     auto session = instance.get_session();
     session->execute(change_master_stmt);
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     throw std::runtime_error{
         "Cannot set Group Replication recovery user to '" + rpl_user +
         "'. Error executing CHANGE MASTER statement: " + err.what()};
@@ -829,7 +865,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
   try {
     auto session = instance.get_session();
     session->execute("START GROUP_REPLICATION");
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     // Try to set the group_replication_bootstrap_group to OFF if the
     // statement to start GR failed and only then throw the error.
     try {
@@ -1293,7 +1329,7 @@ bool is_group_replication_delayed_starting(
                    "'thread/group_rpl/THD_delayed_initialization'")
                ->fetch_one()
                ->get_uint(0) != 0;
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     log_warning("Error checking GR state: %s", e.what());
     return false;
   }
@@ -1419,8 +1455,8 @@ void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
 
   try {
     log_debug("Executing UDF: %s", query.str().c_str());
-    instance.get_session()->query(query);
-  } catch (mysqlshdk::db::Error &error) {
+    instance.query(query);
+  } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
@@ -1431,8 +1467,8 @@ void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance) {
 
   try {
     log_debug("Executing UDF: %s", query.c_str());
-    instance.get_session()->query(query);
-  } catch (mysqlshdk::db::Error &error) {
+    instance.query(query);
+  } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
@@ -1454,33 +1490,30 @@ void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
 
   try {
     log_debug("Executing UDF: %s", query.c_str());
-    instance.get_session()->query(query);
-  } catch (mysqlshdk::db::Error &error) {
+    instance.query(query);
+  } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
 }
 
 bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
-  auto session = instance.get_session();
   bool result = false;
-  if (session) {
-    try {
-      auto row =
-          session
-              ->query(
-                  "SELECT PROCESSLIST_STATE FROM performance_schema.threads "
-                  "WHERE NAME = 'thread/group_rpl/THD_autorejoin'")
-              ->fetch_one();
-      // if the query doesn't return empty, then auto-rejoin is running.
-      result = row != nullptr;
-    } catch (const std::exception &e) {
-      log_error("Error checking GR auto-rejoin procedure state: %s", e.what());
-      throw;
-    }
-  } else {
-    throw(std::runtime_error("Session no longer exists."));
+
+  try {
+    auto row =
+        instance
+            .query(
+                "SELECT PROCESSLIST_STATE FROM performance_schema.threads "
+                "WHERE NAME = 'thread/group_rpl/THD_autorejoin'")
+            ->fetch_one();
+    // if the query doesn't return empty, then auto-rejoin is running.
+    result = row != nullptr;
+  } catch (const std::exception &e) {
+    log_error("Error checking GR auto-rejoin procedure state: %s", e.what());
+    throw;
   }
+
   return result;
 }
 

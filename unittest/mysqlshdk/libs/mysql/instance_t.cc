@@ -938,7 +938,7 @@ TEST_F(Instance_test, create_user) {
   EXPECT_CALL(
       session,
       execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
-              "BY /*(*/ 'test_pwd' /*)*/"));
+              "BY /*((*/ 'test_pwd' /*))*/"));
   EXPECT_CALL(session, execute("GRANT SELECT, INSERT, UPDATE ON test_db.* "
                                "TO 'test_user'@'test_host'"));
   EXPECT_CALL(session,
@@ -957,7 +957,7 @@ TEST_F(Instance_test, create_user) {
   EXPECT_CALL(
       session,
       execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
-              "BY /*(*/ 'dba_pwd' /*)*/"));
+              "BY /*((*/ 'dba_pwd' /*))*/"));
   EXPECT_CALL(
       session,
       execute("GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION"));
@@ -969,7 +969,7 @@ TEST_F(Instance_test, create_user) {
   EXPECT_CALL(
       session,
       execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
-              "BY /*(*/ 'test_pwd' /*)*/"))
+              "BY /*((*/ 'test_pwd' /*))*/"))
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(
@@ -978,7 +978,7 @@ TEST_F(Instance_test, create_user) {
   EXPECT_CALL(
       session,
       execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
-              "BY /*(*/ 'dba_pwd' /*)*/"))
+              "BY /*((*/ 'dba_pwd' /*))*/"))
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(
@@ -1185,24 +1185,6 @@ TEST_F(Instance_test, drop_users_with_regexp) {
   _session->close();
 }
 
-TEST_F(Instance_test, cached_sysvars) {
-  EXPECT_CALL(session, connect(_connection_options));
-  _session->connect(_connection_options);
-  mysqlshdk::mysql::Instance instance(_session);
-
-  session.expect_query("SHOW GLOBAL VARIABLES")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String, Type::String},
-                     {{"autocommit", "ON"}, {"warning_count", "0"}}}});
-
-  instance.cache_global_sysvars();
-  EXPECT_EQ("ON", *instance.get_cached_global_sysvar("autocommit"));
-
-  EXPECT_CALL(session, close());
-  _session->close();
-}
-
 TEST_F(Instance_test, get_system_variables_like) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
@@ -1335,6 +1317,20 @@ TEST_F(Instance_test, is_set_persist_supported) {
 
   EXPECT_CALL(session, close());
   _session->close();
+}
+
+TEST_F(Instance_test, suppress_binary_log) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  EXPECT_CALL(session, execute("SET SESSION sql_log_bin=0"));
+  instance.suppress_binary_log(true);
+  instance.suppress_binary_log(true);
+
+  instance.suppress_binary_log(false);
+  EXPECT_CALL(session, execute("SET SESSION sql_log_bin=1"));
+  instance.suppress_binary_log(false);
 }
 
 }  // namespace testing

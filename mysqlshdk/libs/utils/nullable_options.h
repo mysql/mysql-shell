@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,7 @@ class SHCORE_PUBLIC Nullable_options {
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
   void set(const std::string &name, const char *value = nullptr,
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
+  void set_unchecked(const std::string &name, const char *value = nullptr);
   void set_default(const std::string &name, const char *value = nullptr);
   bool has_default(const std::string &name) const;
   std::string get_default(const std::string &name) const;

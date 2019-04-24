@@ -161,7 +161,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 class SHCORE_PUBLIC Session : public ISession,
                               public std::enable_shared_from_this<Session> {
  public:
-  static void set_factory_function(
+  static std::function<std::shared_ptr<Session>()> set_factory_function(
       std::function<std::shared_ptr<Session>()> factory);
 
   static std::shared_ptr<Session> create();

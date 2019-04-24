@@ -431,7 +431,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   // Get group seeds information from metadata.
   // NOTE: Need to use the reported host to get the correct information from
   //       the MetaData.
-  std::string reported_host = mysqlshdk::mysql::get_report_host(instance);
+  std::string reported_host = instance.get_canonical_hostname();
   Connection_options cnx_opts = instance.get_connection_options();
   cnx_opts.clear_host();  // Clear first to avoid error for being already set.
   cnx_opts.set_host(reported_host);

@@ -292,6 +292,10 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   // during SetUp()
   bool _delay_reset_shell = false;
 
+  virtual void debug_print(const std::string &s) {
+    output_handler.debug_print(s);
+  }
+
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_log() { output_handler.wipe_log(); }

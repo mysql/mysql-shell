@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,12 +163,12 @@ splitdrive(const std::string &path) {
     std::string first_two_chars, third_char;
     try {
       first_two_chars = norm_path.substr(0, 2);
-    } catch (std::out_of_range &) {
+    } catch (const std::out_of_range &) {
       first_two_chars = "";
     }
     try {
       third_char = norm_path.substr(2, 1);
-    } catch (std::out_of_range &) {
+    } catch (const std::out_of_range &) {
       third_char = "";
     }
     if (first_two_chars == std::string(2, '\\') && third_char != "\\") {

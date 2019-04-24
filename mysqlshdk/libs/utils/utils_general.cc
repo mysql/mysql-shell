@@ -793,7 +793,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
 
         try_quoting = !quoted;
       }
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
       // In case of error parsing, tries quoting
       try_quoting = auto_quote_hosts;
     }

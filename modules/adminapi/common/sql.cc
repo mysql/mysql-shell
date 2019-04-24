@@ -27,7 +27,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -55,7 +56,7 @@ GRInstanceType get_gr_instance_type(
                   connection->get_connection_options().as_uri().c_str());
       }
     }
-  } catch (mysqlshdk::db::Error &error) {
+  } catch (const mysqlshdk::db::Error &error) {
     auto e = shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
 
@@ -93,7 +94,7 @@ GRInstanceType get_gr_instance_type(
                     connection->get_connection_options().as_uri().c_str());
         }
       }
-    } catch (mysqlshdk::db::Error &error) {
+    } catch (const mysqlshdk::db::Error &error) {
       log_debug("Error querying metadata: %s: %i %s",
                 connection->get_connection_options().as_uri().c_str(),
                 error.code(), error.what());
@@ -138,399 +139,59 @@ void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
   *datadir = row->get_string(1);
 }
 
-SlaveReplicationState get_slave_replication_state(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &slave_executed) {
-  SlaveReplicationState ret_val;
-
-  if (slave_executed.empty()) {
-    ret_val = SlaveReplicationState::New;
-  } else {
-    std::string query;
-    query =
-        shcore::sqlstring("select gtid_subset(?, @@global.gtid_executed)", 0)
-        << slave_executed;
-
-    auto result = connection->query(query);
-    auto row = result->fetch_one();
-
-    int slave_is_subset = row->get_int(0);
-
-    if (1 == slave_is_subset) {
-      // If purged has more gtids than the executed on the slave
-      // it means some data will not be recoverable
-      query =
-          shcore::sqlstring("select gtid_subtract(@@global.gtid_purged, ?)", 0)
-          << slave_executed;
-
-      result = connection->query(query);
-      row = result->fetch_one();
-
-      std::string missed = row->get_string(0);
-
-      if (missed.empty())
-        ret_val = SlaveReplicationState::Recoverable;
-      else
-        ret_val = SlaveReplicationState::Irrecoverable;
-    } else {
-      // If slave executed gtids are not a subset of master's it means the
-      // slave has own data not valid for the cluster where it is being checked
-      ret_val = SlaveReplicationState::Diverged;
-    }
-  }
-
-  return ret_val;
-}
-
 // This function will return the Group Replication State as seen from an
 // instance within the group.
 // For that reason, this function should be called ONLY when the instance has
 // been validated to be NOT Standalone
 Cluster_check_info get_replication_group_state(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    GRInstanceType source_type) {
+    const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type) {
   Cluster_check_info ret_val;
 
   // Sets the source instance type
   ret_val.source_type = source_type;
 
-  // Gets the session uuid + the master uuid
-  std::string uuid_query(
-      "SELECT @@server_uuid, VARIABLE_VALUE FROM "
-      "performance_schema.global_status WHERE VARIABLE_NAME = "
-      "'group_replication_primary_member';");
+  mysqlshdk::gr::Member_state member_state;
+  std::string member_id;
+  std::string group_name;
+  bool single_primary_mode = false;
+  bool has_quorum = false;
+  bool is_primary = false;
 
-  auto result = connection->query(uuid_query);
-  auto row = result->fetch_one();
-  if (!row) {
-    log_warning(
-        "Query on performance_schema.global_status returned no rows. Probably "
-        "missing privileges");
-    throw std::runtime_error(
-        "Error querying GR state. Probably insufficient privileges.");
-  }
-  ret_val.source = row->get_string(0);
-  ret_val.master = row->get_string(1);
-
-  // Gets the cluster instance status count
-  std::string instance_state_query(
-      "SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
-      "WHERE MEMBER_ID = '" +
-      ret_val.source + "'");
-  result = connection->query(instance_state_query);
-  row = result->fetch_one();
-  if (!row) {
-    log_warning(
-        "Query on performance_schema.replication_group_members returned no "
-        "rows. Probably missing privileges");
-    throw std::runtime_error(
-        "Error querying GR state. Probably insufficient privileges.");
+  if (!mysqlshdk::gr::get_group_information(
+          connection, &member_state, &member_id, &group_name,
+          &single_primary_mode, &has_quorum, &is_primary)) {
+    // GR not running (shouldn't happen)
+    member_state = mysqlshdk::gr::Member_state::OFFLINE;
   }
 
-  std::string state = row->get_string(0);
-
-  if (state == "ONLINE") {
-    // On multiPrimary the primary member status is empty
-    if (ret_val.master.empty() || ret_val.source == ret_val.master)
-      ret_val.source_state = ManagedInstance::State::OnlineRW;
-    else
-      ret_val.source_state = ManagedInstance::State::OnlineRO;
-  } else if (state == "RECOVERING") {
-    ret_val.source_state = ManagedInstance::State::Recovering;
-  } else if (state == "OFFLINE") {
-    ret_val.source_state = ManagedInstance::State::Offline;
-  } else if (state == "UNREACHABLE") {
-    ret_val.source_state = ManagedInstance::State::Unreachable;
-  } else if (state == "ERROR") {
-    ret_val.source_state = ManagedInstance::State::Error;
+  switch (member_state) {
+    case mysqlshdk::gr::Member_state::ONLINE:
+      if (is_primary)
+        ret_val.source_state = ManagedInstance::State::OnlineRW;
+      else
+        ret_val.source_state = ManagedInstance::State::OnlineRO;
+      break;
+    case mysqlshdk::gr::Member_state::RECOVERING:
+      ret_val.source_state = ManagedInstance::State::Recovering;
+      break;
+    case mysqlshdk::gr::Member_state::OFFLINE:
+    case mysqlshdk::gr::Member_state::MISSING:
+      ret_val.source_state = ManagedInstance::State::Offline;
+      break;
+    case mysqlshdk::gr::Member_state::ERROR:
+      ret_val.source_state = ManagedInstance::State::Error;
+      break;
+    case mysqlshdk::gr::Member_state::UNREACHABLE:
+      ret_val.source_state = ManagedInstance::State::Unreachable;
+      break;
   }
 
-  // Gets the cluster instance status count
-  // The quorum is said to be true if #UNREACHABLE_NODES < (TOTAL_NODES/2)
-  std::string state_count_query(
-      "SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS "
-      "UNREACHABLE,  COUNT(*) AS TOTAL FROM "
-      "performance_schema.replication_group_members");
-
-  result = connection->query(state_count_query);
-  row = result->fetch_one();
-  int unreachable_count = row->get_int(0);
-  int instance_count = row->get_int(1);
-
-  if (unreachable_count >= (static_cast<double>(instance_count) / 2))
+  if (!has_quorum)
     ret_val.quorum = ReplicationQuorum::State::Quorumless;
   else
     ret_val.quorum = ReplicationQuorum::State::Normal;
 
   return ret_val;
-}
-
-/**
- * Get the state of the instance identified by the specified address.
- *
- * @param connection Connection to the cluster instance that is going to be
- *                   used to obtain the status of the target instance.
- *                   It can be any (alive) instance in the cluster that is not
- *                   the target instance to check.
- * @param address string in the format <host>:<port> with the address that
- *                identifies the target cluster instance to obtain its state.
- * @return ManagedInstance::State corresponding to the current state of the
- *         instance identified by the given address from the point of view
- *         of the instance used for the connection argument.
- */
-ManagedInstance::State get_instance_state(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &address) {
-  // Get the primary uuid
-  std::string uuid_query(
-      "SELECT variable_value "
-      "FROM performance_schema.global_status "
-      "WHERE variable_name = 'group_replication_primary_member'");
-  auto result = connection->query(uuid_query);
-  auto row = result->fetch_one();
-  std::string primary_uuid = row->get_string(0);
-
-  // Get the state information of the instance with the given address.
-  shcore::sqlstring query = shcore::sqlstring(
-      "SELECT mysql_server_uuid, instance_name, member_state "
-      "FROM mysql_innodb_cluster_metadata.instances "
-      "LEFT JOIN performance_schema.replication_group_members "
-      "ON `mysql_server_uuid`=`member_id` "
-      "WHERE addresses->'$.mysqlClassic' = ?",
-      0);
-  query << address;
-  query.done();
-
-  result = connection->query(query);
-  row = result->fetch_one();
-  if (!row) {
-    throw shcore::Exception::runtime_error(
-        "Unable to retrieve status information for the instance '" + address +
-        "'. The instance might no longer be part of the cluster.");
-  }
-  std::string instance_uuid = row->get_as_string(0);
-  std::string state = row->get_as_string(2);
-
-  if (state.compare("ONLINE") == 0) {
-    // For multiPrimary the primary uuid is empty
-    if (primary_uuid.empty() || primary_uuid.compare(instance_uuid) == 0)
-      return ManagedInstance::State::OnlineRW;
-    else
-      return ManagedInstance::State::OnlineRO;
-  } else if (state.compare("RECOVERING") == 0) {
-    return ManagedInstance::State::Recovering;
-  } else if (state.compare("OFFLINE") == 0) {
-    return ManagedInstance::State::Offline;
-  } else if (state.compare("UNREACHABLE") == 0) {
-    return ManagedInstance::State::Unreachable;
-  } else if (state.compare("ERROR") == 0) {
-    return ManagedInstance::State::Error;
-  } else if (state.compare("NULL") == 0) {
-    return ManagedInstance::State::Missing;
-  } else {
-    throw shcore::Exception::runtime_error("The instance '" + address +
-                                           "' has an unexpected status: '" +
-                                           state + "'.");
-  }
-}
-
-std::string get_plugin_status(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &plugin_name) {
-  std::string query, status;
-  query = shcore::sqlstring(
-              "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE "
-              "PLUGIN_NAME = ?",
-              0)
-          << plugin_name;
-
-  // Any error will bubble up right away
-  auto result = connection->query(query);
-
-  // Selects the PLUGIN_STATUS value
-  auto row = result->fetch_one();
-
-  if (row)
-    status = row->get_string(0);
-  else
-    throw shcore::Exception::runtime_error("'" + plugin_name +
-                                           "' could not be queried");
-
-  return status;
-}
-
-// This function verifies if a server with the given UUID is part
-// Of the replication group members using connection
-bool is_server_on_replication_group(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &uuid) {
-  std::string query;
-  query = shcore::sqlstring(
-              "select count(*) from "
-              "performance_schema.replication_group_members where "
-              "member_id = ?",
-              0)
-          << uuid;
-
-  // Any error will bubble up right away
-  auto result = connection->query(query);
-
-  // Selects the PLUGIN_STATUS value
-  auto row = result->fetch_one();
-
-  int count;
-  if (row)
-    count = row->get_int(0);
-  else
-    throw shcore::Exception::runtime_error(
-        "Unable to verify Group Replication "
-        "membership");
-
-  return count == 1;
-}
-
-bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, std::string *value,
-                         bool throw_on_error) {
-  assert(value);
-
-  bool ret_val = true;
-  std::string query = "SELECT @@" + name;
-
-  try {
-    auto result = connection->query(query);
-    auto row = result->fetch_one();
-
-    if (row)
-      *value = row->get_string(0);
-    else
-      ret_val = false;
-  } catch (mysqlshdk::db::Error &error) {
-    if (throw_on_error) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
-    } else {
-      log_warning("Unable to read server variable '%s': %s", name.c_str(),
-                  error.what());
-      ret_val = false;
-    }
-  }
-
-  return ret_val;
-}
-
-bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, int *value,
-                         bool throw_on_error) {
-  assert(value);
-
-  bool ret_val = true;
-  std::string query = "SELECT @@" + name;
-
-  try {
-    auto result = connection->query(query);
-    auto row = result->fetch_one();
-
-    if (row)
-      *value = row->get_int(0);
-    else
-      ret_val = false;
-  } catch (mysqlshdk::db::Error &error) {
-    if (throw_on_error) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
-    } else {
-      log_warning("Unable to read server variable '%s': %s", name.c_str(),
-                  error.what());
-      ret_val = false;
-    }
-  }
-
-  return ret_val;
-}
-
-void set_global_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, const std::string &value) {
-  std::string query, query_raw = "SET GLOBAL " + name + " = ?";
-  query = shcore::sqlstring(query_raw.c_str(), 0) << value;
-
-  connection->execute(query);
-}
-
-bool get_status_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name, std::string *value,
-                         bool throw_on_error) {
-  assert(value);
-
-  bool ret_val = false;
-  std::string query = "SHOW STATUS LIKE '" + name + "'";
-
-  try {
-    auto result = connection->query(query);
-    auto row = result->fetch_one();
-
-    if (row) {
-      *value = row->get_string(1);
-      ret_val = true;
-    }
-  } catch (mysqlshdk::db::Error &error) {
-    if (throw_on_error)
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
-  }
-
-  if (!ret_val && throw_on_error)
-    throw shcore::Exception::runtime_error("'" + name +
-                                           "' could not be queried");
-
-  return ret_val;
-}
-
-bool is_gtid_subset(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                    const std::string &subset, const std::string &set) {
-  int ret_val = 0;
-  std::string query = shcore::sqlstring("SELECT GTID_SUBSET(?, ?)", 0)
-                      << subset << set;
-
-  try {
-    auto result = connection->query(query);
-    auto row = result->fetch_one();
-
-    if (row) ret_val = row->get_int(0);
-  } catch (mysqlshdk::db::Error &error) {
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        error.what(), error.code(), error.sqlstate());
-  }
-
-  return (ret_val == 1);
-}
-
-/*
- * Get the master status information of the server and return a Map with the
- * retrieved information:
- * - FILE
- * - POSITION
- * - BINLOG_DO_DB
- * - BINLOG_IGNORE_DB
- * - EXECUTED_GTID_SET
- */
-// NOTE(rennox): This function should NOT return a schore::Value, either a tuple
-// or a struct should be used
-shcore::Value get_master_status(
-    std::shared_ptr<mysqlshdk::db::ISession> connection) {
-  shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
-  std::string query = "SHOW MASTER STATUS";
-  auto result = connection->query(query);
-  auto row = result->fetch_one();
-
-  if (row) {
-    (*status)["FILE"] = shcore::Value(row->get_string(0));
-    (*status)["POSITION"] = shcore::Value(row->get_int(1));
-    (*status)["BINLOG_DO_DB"] = shcore::Value(row->get_string(2));
-    (*status)["BINLOG_IGNORE_DB"] = shcore::Value(row->get_string(3));
-    (*status)["EXECUTED_GTID_SET"] = shcore::Value(row->get_string(4));
-  }
-  return shcore::Value(status);
 }
 
 /*
@@ -576,7 +237,7 @@ std::vector<std::string> get_peer_seeds(
       }
       row = result->fetch_one();
     }
-  } catch (mysqlshdk::db::Error &error) {
+  } catch (const mysqlshdk::db::Error &error) {
     log_warning("Unable to retrieve group seeds for instance '%s': %s",
                 instance_host.c_str(), error.what());
   }
@@ -608,6 +269,47 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
   }
 
   return ret;
+}
+
+Instance_definition query_instance_info(
+    const mysqlshdk::mysql::IInstance &instance) {
+  int xport = -1;
+  std::string local_gr_address;
+
+  // Get the required data from the joining instance to store in the metadata
+
+  // Get the MySQL X port.
+  try {
+    xport = instance.queryf_one_int(0, -1, "SELECT @@mysqlx_port");
+  } catch (const std::exception &e) {
+    log_info(
+        "The X plugin is not enabled on instance '%s'. No value will be "
+        "assumed for the X protocol address.",
+        instance.descr().c_str());
+  }
+
+  // Get the local GR host data.
+  try {
+    local_gr_address =
+        instance.get_sysvar_string("group_replication_local_address")
+            .get_safe("");
+  } catch (const std::exception &e) {
+  }
+
+  Instance_definition instance_def;
+
+  instance_def.role = "HA";
+  instance_def.endpoint = instance.get_canonical_address();
+  if (xport != -1)
+    instance_def.xendpoint =
+        instance.get_canonical_hostname() + ":" + std::to_string(xport);
+  instance_def.grendpoint = local_gr_address;
+  instance_def.uuid = instance.get_uuid();
+
+  // default label
+  instance_def.label = instance_def.endpoint;
+
+  return instance_def;
 }
 }  // namespace dba
 }  // namespace mysqlsh

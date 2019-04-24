@@ -211,8 +211,25 @@ bool is_group_replication_option_supported(
     const std::map<std::string, Option_availability> &options_map =
         k_global_replicaset_supported_options);
 
-void validate_replication_filters(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
+/*
+ * Check the existence of replication filters and throws an exception if any
+ * are found.
+ *
+ * GR does not support filters:
+ * https://dev.mysql.com/doc/refman/8.0/en/replication-options-slave.html
+ * Global replication filters cannot be used on a MySQL server instance that is
+ * configured for Group Replication, because filtering transactions on some
+ * servers would make the group unable to reach agreement on a consistent state.
+ * Channel specific replication filters can be used on replication channels that
+ * are not directly involved with Group Replication, such as where a group
+ * member also acts as a replication slave to a master that is outside the
+ * group. They cannot be used on the group_replication_applier or
+ * group_replication_recovery channels.
+ *
+ * In AR, we also forbid filters in channels we manage.
+ */
+void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance);
+
 std::pair<int, int> find_cluster_admin_accounts(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts);
@@ -224,11 +241,11 @@ void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
                                const std::string &username,
                                const std::string &password);
 std::string SHCORE_PUBLIC
-resolve_cluster_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
+resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                          const std::string &member_ssl_mode);
 std::string SHCORE_PUBLIC
-resolve_instance_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
-                          std::shared_ptr<mysqlshdk::db::ISession> psession,
+resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                          const mysqlshdk::mysql::IInstance &pinstance,
                           const std::string &member_ssl_mode);
 std::vector<std::string> get_instances_gr(
     const std::shared_ptr<MetadataStorage> &metadata);
@@ -238,20 +255,20 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 std::vector<MissingInstanceInfo> get_unavailable_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-std::string SHCORE_PUBLIC
-get_gr_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session);
+
 bool SHCORE_PUBLIC
 validate_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session,
                                const std::string &group_name);
-bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
-                              bool clear_read_only);
+
+bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
+                              mysqlshdk::utils::nullable<bool> clear_read_only,
+                              bool interactive);
+
 bool validate_instance_rejoinable(
-    std::shared_ptr<mysqlshdk::db::ISession> instance_session,
+    const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
-std::string get_canonical_instance_address(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
 
 // AdminAPI interactive handling specific methods
 std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance);
@@ -358,21 +375,46 @@ std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
     const std::string &report_host, int port);
 
+struct Instance_gtid_info {
+  std::string server;
+  std::string gtid_executed;
+};
+
+/**
+ * Return list of instances that could become a PRIMARY.
+ *
+ * Given a list of instances with GTID set data, returns all instances that
+ * have the most transactions, except for those that have purged transactions
+ * needed by others.
+ *
+ * An exception will be thrown if any instance with a conflicting transaction
+ * set is found.
+ *
+ * @param server - a server in which GTID set operations will be evaluated.
+ * The server doesn't need to be related to the candidates being checked.
+ * @param gtid_info - a list of candidates instances with their @@GTID_EXECUTED
+ * data.
+ * @returns list of instances that could become a PRIMARY.
+ */
+std::vector<Instance_gtid_info> filter_primary_candidates(
+    const mysqlshdk::mysql::IInstance &server,
+    const std::vector<Instance_gtid_info> &gtid_info);
+
 inline void translate_cluster_exception(std::string operation) {
   if (!operation.empty()) operation.append(": ");
   try {
     throw;
-  } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+  } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
     throw shcore::Exception::runtime_error(operation + e.format());
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     auto error = e.error();
     (*error)["message"] = shcore::Value(operation + e.what());
     throw shcore::Exception(error);
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-  } catch (std::runtime_error &e) {
+  } catch (const std::runtime_error &e) {
     throw shcore::Exception::runtime_error(operation + e.what());
-  } catch (std::logic_error &e) {
+  } catch (const std::logic_error &e) {
     throw shcore::Exception::logic_error(operation + e.what());
   } catch (...) {
     throw;

@@ -64,25 +64,29 @@ class Replayer_impl {
 
   std::string filter_query(const std::string &sql) {
     // This will filter out parts of a query marked with a /*(*/ and /*)*/
+    // /*((*/ /*))*/ is to be used for passwords and is also stripped by
+    // Instance::query() for logging purposes.
+    //
     // Example:
     // CREATE USER /*(*/ user5432543232@localhost /*)*/
-    //    IDENTIFIED BY /*(*/ 'randompassword423424' /*)*/;
+    //    IDENTIFIED BY /*((*/ 'randompassword423424' /*))*/;
     // Becomes:
     // CREATE USER
     //    IDENTIFIED BY ;
-    static const char k_begin_ignore[] = "/*(*/";
-    static const char k_end_ignore[] = "/*)*/";
-    std::string s = sql;
-    auto begin = s.find(k_begin_ignore);
-    while (begin != std::string::npos) {
-      auto end = s.find(k_end_ignore, begin);
-      if (end != std::string::npos)
-        s = s.substr(0, begin) + s.substr(end + sizeof(k_end_ignore) - 1);
-      else
-        s = s.substr(0, begin);
-      begin = s.find(k_begin_ignore);
-    }
-    return s;
+    auto strip = [](std::string s, const char *begin_tag, const char *end_tag) {
+      auto begin = s.find(begin_tag);
+      size_t end_tag_len = strlen(end_tag);
+      while (begin != std::string::npos) {
+        auto end = s.find(end_tag, begin);
+        if (end != std::string::npos)
+          s = s.substr(0, begin) + s.substr(end + end_tag_len);
+        else
+          s = s.substr(0, begin);
+        begin = s.find(begin_tag);
+      }
+      return s;
+    };
+    return strip(strip(sql, "/*(*/", "/*)*/"), "/*((*/", "/*))*/");
   }
 
   std::string do_query(const std::string &sql_) {

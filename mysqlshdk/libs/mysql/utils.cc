@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,11 +112,6 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
                         shcore::quote_identifier(new_host);
 
   // create user
-  // IMPORTANT: Binary logging must be disabled when using this function to
-  // create users for dba. configureInstance() (only place where it is used
-  // currently), otherwise it will create an errand transaction and instances
-  // will fail to join a cluster.
-  session->execute("SET sql_log_bin = 0");
   session->executef("CREATE USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*(*/ ? /*)*/",
                     new_user, new_host, password);
 
@@ -140,7 +135,6 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
     for (const auto &grant : grants) {
       session->execute(grant);
     }
-    session->execute("SET sql_log_bin = 1");
   }
 }
 
@@ -253,7 +247,7 @@ void create_user_with_random_password(
     try {
       inst.create_user(user, hosts.front(), *out_password, grants);
       break;
-    } catch (mysqlshdk::db::Error &e) {
+    } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
       // We regenerate the password to retry

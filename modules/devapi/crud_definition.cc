@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,7 @@ Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner)
                "data");
     add_method("execute", std::bind(&Crud_definition::execute, this, _1),
                "data");
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     // Invalid typecast exception is the only option
     // The exception is recreated with a more explicit message
     throw shcore::Exception::argument_error(
@@ -105,7 +105,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
         // don't propagate
         return false;
       }
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       log_warning("Exception trying to kill query: %s", e.what());
     }
     return true;

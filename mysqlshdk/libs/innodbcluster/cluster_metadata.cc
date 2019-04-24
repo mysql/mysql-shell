@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,7 +56,7 @@ bool Metadata_mysql::exists() {
       // Enough that the table exists for now
       return true;
     }
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &e) {
     if (e.code() == ER_BAD_DB_ERROR || e.code() == ER_NO_SUCH_TABLE) {
       return false;
     }

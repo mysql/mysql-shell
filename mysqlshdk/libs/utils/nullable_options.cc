@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,6 +69,11 @@ bool Nullable_options::has_value(const std::string &name) const {
   return !_options.at(name).is_null();
 }
 
+void Nullable_options::set_unchecked(const std::string &name,
+                                     const char *value) {
+  _options[name] = value;
+}
+
 void Nullable_options::set(const std::string &name, const std::string &value,
                            Set_mode mode) {
   // The option is meant to be created
@@ -131,7 +136,7 @@ std::string Nullable_options::get_default(const std::string &name) const {
 }
 
 const std::string &Nullable_options::get_value(const std::string &name) const {
-  if (!has(name)) throw_invalid_option(name);
+  //  if (!has(name)) throw_invalid_option(name);
 
   if (!has_value(name)) throw_no_value(name);
 

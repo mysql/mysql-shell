@@ -41,7 +41,8 @@ class ProvisioningInterface;  // NOLINT
 
 namespace checks {
 
-void validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose);
+void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
+                           int verbose);
 
 bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
 

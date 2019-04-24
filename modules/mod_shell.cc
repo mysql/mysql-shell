@@ -32,6 +32,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
+#include "scripting/shexcept.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/shell_resultset_dumper.h"
@@ -783,7 +784,7 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   try {
     _shell_core->get_dev_session()->reconnect();
     ret_val = true;
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     ret_val = false;
   }
 

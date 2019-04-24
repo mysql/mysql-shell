@@ -86,11 +86,12 @@ class Testutils : public mysqlsh::Extensible_object {
   List catFile(String path);
   List wipeFileContents(String path);
   Undefined dbugSet(String s);
+  Undefined dprint(String s);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
   None start_sandbox(int port);
-  None stop_sandbox(int port);
+  None stop_sandbox(int port, Dictionary options);
   None kill_sandbox(int port);
   None restart_sandbox(int port);
   None change_sandbox_conf(int port, str option, str value, str section);
@@ -123,6 +124,7 @@ class Testutils : public mysqlsh::Extensible_object {
   list cat_file(str path);
   list wipe_file_contents(str path);
   None dbug_set(str s);
+  None dprint(str s);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -170,7 +172,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
-  void stop_sandbox(int port, const std::string &pass = "");
+  void stop_sandbox(int port, const shcore::Dictionary_t &opts = {});
   void kill_sandbox(int port, bool quiet = false);
 
   void restart_sandbox(int port);
@@ -225,6 +227,8 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string cat_file(const std::string &path);
 
   void wipe_file_contents(const std::string &path);
+
+  void dprint(const std::string &s);
 
  public:
   // These should produce test failure output similar to that of gtest,

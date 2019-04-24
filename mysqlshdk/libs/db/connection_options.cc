@@ -404,7 +404,7 @@ std::string Connection_options::as_uri(
 bool Connection_options::operator==(const Connection_options &other) const {
   return Nullable_options::operator==(other) &&
          _ssl_options == other._ssl_options &&
-         _extra_options == other._extra_options;
+         _extra_options == other._extra_options && _port == other._port;
 }
 
 bool Connection_options::operator!=(const Connection_options &other) const {

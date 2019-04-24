@@ -436,7 +436,7 @@ std::string Oci_setup::load_private_key(const std::string &path,
 
     m_data[kKeyFile] = path;
     m_data[kFingerprint] = fingerprint;
-  } catch (std::runtime_error &err) {
+  } catch (const std::runtime_error &err) {
     error = err.what();
   }
 

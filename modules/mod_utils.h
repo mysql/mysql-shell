@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -86,7 +87,7 @@ class Unpack_options : public shcore::Option_unpacker {
       if (value.type == shcore::String) {
         try {
           *out_value = Connection_options(value.get_string());
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
           throw shcore::Exception::argument_error(
               std::string("Invalid value for option ") + name + ": " +
               e.what());
@@ -94,7 +95,7 @@ class Unpack_options : public shcore::Option_unpacker {
         // } else if (value.type == shcore::Map) {
         //   try {
         //     *out_value = get_connection_options();
-        //   } catch (std::exception& e) {
+        //   } catch (const std::exception& e) {
         //     throw shcore::Exception::argument_error(
         //         std::string("Invalid value for option ") + name + ": " +
         //         e.what());

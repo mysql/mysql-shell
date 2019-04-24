@@ -323,7 +323,7 @@ Python_context *Python_context::get() {
 Python_context *Python_context::get_and_check() {
   try {
     return Python_context::get();
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(
         PyExc_SystemError,
         std::string("Could not get SHELL context: ") + exc.what());

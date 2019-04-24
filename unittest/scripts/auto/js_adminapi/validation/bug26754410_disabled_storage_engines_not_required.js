@@ -10,7 +10,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
 
@@ -25,6 +25,6 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.

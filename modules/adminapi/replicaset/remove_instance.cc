@@ -31,6 +31,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -54,15 +55,24 @@ Remove_instance::Remove_instance(
 
 Remove_instance::~Remove_instance() { delete m_target_instance; }
 
-void Remove_instance::ensure_instance_belong_to_replicaset(
+Instance_definition Remove_instance::ensure_instance_belong_to_replicaset(
     const std::string &address) {
   // Check if the instance exists on the ReplicaSet
   log_debug("Checking if the instance %s belongs to the replicaset",
             address.c_str());
-  bool is_instance_on_md =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset.get_id(), address);
+
+  bool is_instance_on_md;
+
+  Instance_definition instance_def;
+  try {
+    instance_def =
+        m_replicaset.get_cluster()->get_metadata_storage()->get_instance(
+            address);
+    is_instance_on_md = true;
+  } catch (const std::exception &e) {
+    log_warning("Couldn't get metadata for %s: %s", address.c_str(), e.what());
+    is_instance_on_md = false;
+  }
 
   if (!is_instance_on_md) {
     mysqlsh::current_console()->print_error(
@@ -78,6 +88,7 @@ void Remove_instance::ensure_instance_belong_to_replicaset(
                           m_replicaset.get_name() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
+  return instance_def;
 }
 
 void Remove_instance::ensure_not_last_instance_in_replicaset() {
@@ -122,25 +133,36 @@ void Remove_instance::undo_remove_instance_metadata(
       instance_def);
 }
 
-void Remove_instance::find_failure_cause(const std::exception &err) {
+void Remove_instance::find_failure_cause(const std::exception &err,
+                                         const Instance_definition &md) {
   // Check the state of the instance (from the cluster perspective) to assess
   // the possible cause of the failure.
-  ManagedInstance::State state = get_instance_state(
-      m_replicaset.get_cluster()->get_metadata_storage()->get_session(),
-      m_instance_address);
+  std::vector<mysqlshdk::gr::Member> members(
+      mysqlshdk::gr::get_members(mysqlshdk::mysql::Instance(
+          m_replicaset.get_cluster()->get_metadata_storage()->get_session())));
+
+  auto it = std::find_if(
+      members.begin(), members.end(),
+      [&md](const mysqlshdk::gr::Member &m) { return m.uuid == md.uuid; });
+
+  mysqlshdk::gr::Member_state state;
+  if (it == members.end())
+    state = mysqlshdk::gr::Member_state::MISSING;
+  else
+    state = it->state;
 
   auto console = mysqlsh::current_console();
 
   // Print and throw a different error depending if the instance state is known
   // and expected to be unreachable.
-  if (state == ManagedInstance::Unreachable ||
-      state == ManagedInstance::Missing) {
+  if (state == mysqlshdk::gr::Member_state::MISSING ||
+      state == mysqlshdk::gr::Member_state::UNREACHABLE) {
     // Only print an error if the force option was not used (or is false).
     if (m_force.is_null() || *m_force == false) {
       std::string message =
           "The instance '" + m_instance_address +
           "' cannot be removed because it is on a '" +
-          ManagedInstance::describe(state) +
+          mysqlshdk::gr::to_string(state) +
           "' state. Please bring the instance back ONLINE and try to remove "
           "it again. If the instance is permanently not reachable, ";
       if (m_interactive && m_force.is_null()) {
@@ -157,7 +179,7 @@ void Remove_instance::find_failure_cause(const std::exception &err) {
       console->print_error(message);
     }
     std::string err_msg = "The instance '" + m_instance_address + "' is '" +
-                          ManagedInstance::describe(state) + "'";
+                          mysqlshdk::gr::to_string(state) + "'";
     throw shcore::Exception::runtime_error(err_msg);
   } else {
     console->print_error(
@@ -234,7 +256,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
       // established session
       m_target_instance_protocol_upgrade =
           shcore::make_unique<mysqlshdk::mysql::Instance>(session);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       throw shcore::Exception::runtime_error(
           std::string("Unable to establish a session to the cluster member: ") +
           e.what());
@@ -293,33 +315,35 @@ void Remove_instance::prepare() {
       m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
   }
 
+  // Make sure the target instance is not set if an connection error occurs.
+  m_target_instance = nullptr;
+
   // Try to establish a connection to the target instance, although it might
   // fail if the instance is OFFLINE.
   // NOTE: Connection required to perform some last validations if the target
   //       instance is available.
   log_debug("Connecting to instance '%s'", m_instance_address.c_str());
-  std::shared_ptr<mysqlshdk::db::ISession> session;
   try {
-    session = mysqlshdk::db::mysql::Session::create();
+    auto session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
     m_target_instance = new mysqlshdk::mysql::Instance(session);
     log_debug("Successfully connected to instance");
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     log_warning("Failed to connect to %s: %s",
                 m_instance_cnx_opts.uri_endpoint().c_str(), err.what());
-    // Make sure the target instance is not set if an connection error occurs.
-    m_target_instance = nullptr;
+
+    // Before anything, check if the instance actually belongs to the
+    // cluster, since it wouldn't make sense to ask about removing a
+    // bogus instance from the metadata.
+    Instance_definition metadata(
+        ensure_instance_belong_to_replicaset(m_address_in_metadata));
+
     // Find error cause to print more information about before prompt in
     // interactive mode.
     try {
-      find_failure_cause(err);
-    } catch (std::exception &err) {
+      find_failure_cause(err, metadata);
+    } catch (const std::exception &err) {
       log_warning("%s", err.what());
-
-      // Before anything, check if the instance actually belongs to the
-      // cluster, since it wouldn't make sense to ask about removing a
-      // bogus instance from the metadata.
-      ensure_instance_belong_to_replicaset(m_address_in_metadata);
 
       // Ask the user if in interactive is used and 'force' option was not used.
       if (m_interactive && m_force.is_null()) {
@@ -344,10 +368,10 @@ void Remove_instance::prepare() {
   // the provided instance connection address.
   if (m_target_instance) {
     m_address_in_metadata = m_target_instance->get_canonical_address();
-  }
 
-  // Ensure instance belong to replicaset.
-  ensure_instance_belong_to_replicaset(m_address_in_metadata);
+    // Ensure instance belong to replicaset.
+    ensure_instance_belong_to_replicaset(m_address_in_metadata);
+  }
 
   // Ensure instance is not the last in the replicaset.
   // Should be called after we know there's any chance the instance actually
@@ -389,7 +413,7 @@ shcore::Value Remove_instance::execute() {
     // JOB: Sync transactions with the cluster.
     try {
       m_replicaset.get_cluster()->sync_transactions(*m_target_instance);
-    } catch (std::exception &err) {
+    } catch (const std::exception &err) {
       // Skip error if force=true, otherwise revert instance remove from MD and
       // issue error.
       if (m_force.is_null() || *m_force == false) {
@@ -454,7 +478,7 @@ shcore::Value Remove_instance::execute() {
                                                     *m_target_instance, true);
 
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
-    } catch (std::exception &err) {
+    } catch (const std::exception &err) {
       log_error("Instance '%s' failed to leave the ReplicaSet: %s",
                 m_instance_address.c_str(), err.what());
       // Only add the metadata back if the force option was not used.
@@ -465,7 +489,7 @@ shcore::Value Remove_instance::execute() {
         undo_remove_instance_metadata(instance_def);
         // If leave replicaset failed and force was not used then check the
         // possible cause of the failure and report it if found.
-        find_failure_cause(err);
+        find_failure_cause(err, instance_def);
       }
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-replicaset error.

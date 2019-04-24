@@ -39,8 +39,6 @@ enum GRInstanceType {
   Unknown = 1 << 4
 };
 
-enum class SlaveReplicationState { New, Recoverable, Diverged, Irrecoverable };
-
 struct NewInstanceInfo {
   std::string member_id;
   std::string host;
@@ -82,12 +80,6 @@ enum State {
 struct Cluster_check_info {
   // The state of the cluster from the quorum point of view
   ReplicationQuorum::State quorum;
-
-  // The UIUD of the master instance
-  std::string master;
-
-  // The UUID of the instance from which the data was consulted
-  std::string source;
 
   // The configuration type of the instance from which the data was consulted
   GRInstanceType source_type;

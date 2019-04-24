@@ -69,5 +69,14 @@ TEST_F(Utils_file_test, exists) {
   }
 }
 
+TEST_F(Utils_file_test, create_directory) {
+  const auto dir = path::join_path(s_test_folder, "foo");
+
+  ASSERT_FALSE(path_exists(dir));
+  EXPECT_NO_THROW(create_directory(path::join_path(dir, "bar/baz"), true));
+  EXPECT_NO_THROW(remove_directory(dir, true));
+  ASSERT_FALSE(path_exists(dir));
+}
+
 }  // namespace test
 }  // namespace shcore

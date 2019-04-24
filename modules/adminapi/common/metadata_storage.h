@@ -159,7 +159,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
     ~Transaction() {
       try {
         if (_md) _md->rollback();
-      } catch (std::exception &e) {
+      } catch (const std::exception &e) {
         log_error("Error implicitly rolling back transaction: %s", e.what());
       }
     }

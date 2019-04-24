@@ -200,55 +200,75 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
  * sandbox, detected by checking that the name of the datadir is sandboxdata.
  *
  * @param  instance target instance with cached global sysvars
- * @param  verbose  if true, additional informational messages are shown
+ * @param  verbose  if 1 additional informational messages are shown, if 2
+ * further explanations are provided
  * @throw  an exception if the host name configuration is not suitable
  */
-void validate_host_address(mysqlshdk::mysql::IInstance *instance,
-                           bool verbose) {
+void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
+                           int verbose) {
   auto console = mysqlsh::current_console();
 
   bool report_host_set;
-  std::string address;
-  try {
-    address = mysqlshdk::mysql::get_report_host(*instance, &report_host_set);
-    if (report_host_set) {
-      log_debug("Target has report_host=%s", address.c_str());
-    } else {
-      log_debug("Target has report_host=NULL");
-      log_debug("Target has hostname=%s", address.c_str());
-    }
-  } catch (const std::exception &err) {
-    console->print_error("Invalid 'report_host' value for instance '" +
-                         instance->descr() +
-                         "'. The value cannot be empty if defined.");
-    throw;
+  std::string hostname;
+  std::string report_host;
+  int port;
+
+  auto result = instance.query(
+      "SELECT @@hostname, @@report_host, COALESCE(@@report_port, @@port)");
+  auto row = result->fetch_one_or_throw();
+  hostname = row->get_string(0);
+  report_host = row->get_string(1, "");
+  report_host_set = !row->is_null(1);
+  port = row->get_int(2);
+
+  if (report_host_set) {
+    log_debug("Target has report_host=%s", report_host.c_str());
+    log_debug("Target has hostname=%s", hostname.c_str());
+    hostname = report_host;
+  } else {
+    log_debug("Target has report_host=NULL");
+    log_debug("Target has hostname=%s", hostname.c_str());
   }
 
-  console->println();
-  console->print_info("This instance reports its own address as " +
-                      mysqlshdk::textui::bold(address));
-  if (!report_host_set && verbose) {
-    console->println(
-        "Clients and other cluster members will communicate with it through "
-        "this address by default. "
-        "If this is not correct, the report_host MySQL "
-        "system variable should be changed.");
+  if (report_host_set && report_host.empty()) {
+    console->print_error("Invalid 'report_host' value for instance '" +
+                         instance.descr() +
+                         "'. The value cannot be empty if defined.");
+    // NOTE: The value for report_host can be set to an empty string which is
+    // invalid. If defined the report_host value should not be an empty
+    // string, otherwise it is used by replication as an empty string "".
+    throw std::runtime_error(
+        "The value for variable 'report_host' cannot be empty.");
+  }
+
+  if (verbose > 0) {
+    console->println();
+    console->print_info(
+        "This instance reports its own address as " +
+        mysqlshdk::textui::bold(hostname + ":" + std::to_string(port)));
+    if (!report_host_set && verbose > 1) {
+      console->print_info(
+          "Clients and other cluster members will communicate with it through "
+          "this address by default. "
+          "If this is not correct, the report_host MySQL "
+          "system variable should be changed.");
+    }
   }
 
   // Validate the IP of the hostname used for GR.
   // IP address '127.0.1.1' is not supported by GCS leading to errors.
   // NOTE: This IP is set by default in Debian platforms.
-  std::string seed_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(address);
+  std::string seed_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
   if (seed_ip == "127.0.1.1") {
     console->print_error(
-        "Cannot use host '" + address + "' for instance '" + instance->descr() +
+        "Cannot use host '" + hostname + "' for instance '" + instance.descr() +
         "' because it resolves to an IP address (127.0.1.1) that does not "
         "match a real network interface, thus it is not supported by the Group "
         "Replication communication layer. Change your system settings and/or "
         "set the MySQL server 'report_host' variable to a hostname that "
         "resolves to a supported IP address.");
 
-    throw std::runtime_error("Invalid host/IP '" + address +
+    throw std::runtime_error("Invalid host/IP '" + hostname +
                              "' resolves to '127.0.1.1' which is not "
                              "supported by Group Replication.");
   }
@@ -418,11 +438,16 @@ void ensure_instance_not_belong_to_cluster(
   if (type != GRInstanceType::Standalone &&
       type != GRInstanceType::StandaloneWithMetadata) {
     // Retrieves the new instance UUID
-    mysqlshdk::utils::nullable<std::string> uuid = instance.get_sysvar_string(
-        "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    std::string uuid = instance.get_uuid();
 
     // Verifies if this UUID is part of the current replication group
-    if (is_server_on_replication_group(cluster_session, *uuid)) {
+    std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
+        mysqlshdk::mysql::Instance(cluster_session)));
+
+    if (std::find_if(members.begin(), members.end(),
+                     [&uuid](const mysqlshdk::gr::Member &member) {
+                       return member.uuid == uuid;
+                     }) != members.end()) {
       if (type == GRInstanceType::InnoDBCluster) {
         log_debug("Instance '%s' already managed by InnoDB cluster",
                   instance.descr().c_str());

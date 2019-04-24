@@ -152,8 +152,9 @@ shcore::Value Replicaset_describe::execute() {
   {
     auto group_session = m_cluster->get_group_session();
 
-    auto state = get_replication_group_state(
-        group_session, get_gr_instance_type(group_session));
+    auto state =
+        get_replication_group_state(mysqlshdk::mysql::Instance(group_session),
+                                    get_gr_instance_type(group_session));
 
     bool warning = (state.source_state != ManagedInstance::OnlineRW &&
                     state.source_state != ManagedInstance::OnlineRO);

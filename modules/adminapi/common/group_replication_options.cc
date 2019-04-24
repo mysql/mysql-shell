@@ -296,7 +296,7 @@ void validate_ip_whitelist_option(const std::string &ip_whitelist,
       if (hostnames_supported) {
         try {
           mysqlshdk::utils::Net::resolve_hostname_ipv4(value);
-        } catch (mysqlshdk::utils::net_error &error) {
+        } catch (const mysqlshdk::utils::net_error &error) {
           throw shcore::Exception::argument_error(
               "Invalid value for ipWhitelist '" + value +
               "': address does "

@@ -63,11 +63,9 @@ void Check_instance_state::ensure_target_instance_reachable() {
         shcore::make_unique<mysqlshdk::mysql::Instance>(session);
 
     // Set the metadata address to use if instance is reachable.
-    m_address_in_metadata =
-        mysqlshdk::mysql::get_report_host(*m_target_instance) + ":" +
-        std::to_string(m_instance_cnx_opts.get_port());
+    m_address_in_metadata = m_target_instance->get_canonical_address();
     log_debug("Successfully connected to instance");
-  } catch (std::exception &err) {
+  } catch (const std::exception &err) {
     console->print_error("Failed to connect to instance: " +
                          std::string(err.what()));
 
@@ -129,30 +127,32 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
       m_replicaset.get_cluster()->get_group_session();
 
   // Get the target instance gtid_executed
-  std::string instance_gtid_executed;
-  get_server_variable(m_target_instance->get_session(), "GLOBAL.GTID_EXECUTED",
-                      &instance_gtid_executed);
+  std::string instance_gtid_executed =
+      mysqlshdk::mysql::get_executed_gtid_set(*m_target_instance, true);
 
   // Check the gtid state in regards to the cluster_session
-  SlaveReplicationState state =
-      get_slave_replication_state(cluster_session, instance_gtid_executed);
+  mysqlshdk::mysql::Replica_gtid_state state =
+      mysqlshdk::mysql::check_replica_gtid_state(
+          mysqlshdk::mysql::Instance(cluster_session), *m_target_instance, true,
+          nullptr, nullptr);
 
   std::string reason;
   std::string status;
   switch (state) {
-    case SlaveReplicationState::Diverged:
+    case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
       status = "error";
       reason = "diverged";
       break;
-    case SlaveReplicationState::Irrecoverable:
+    case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
       status = "error";
       reason = "lost_transactions";
       break;
-    case SlaveReplicationState::Recoverable:
+    case mysqlshdk::mysql::Replica_gtid_state::RECOVERABLE:
+    case mysqlshdk::mysql::Replica_gtid_state::IDENTICAL:
       status = "ok";
       reason = "recoverable";
       break;
-    case SlaveReplicationState::New:
+    case mysqlshdk::mysql::Replica_gtid_state::NEW:
       status = "ok";
       reason = "new";
       break;

@@ -104,7 +104,8 @@ class Remove_instance : public Command_interface {
    * Verify if the instance belongs to the replicaset, otherwise it cannot be
    * removed.
    */
-  void ensure_instance_belong_to_replicaset(const std::string &address);
+  Instance_definition ensure_instance_belong_to_replicaset(
+      const std::string &address);
 
   /**
    * Verify if it is the last instance in the replicaset, otherwise it cannot
@@ -145,11 +146,13 @@ class Remove_instance : public Command_interface {
    * or connection failure, print a user-friendly message to the console, and
    * throw a more appropriate exception.
    *
-   * @param err Initial exception that captures the failure that occured.
+   * @param err Initial exception that captures the failure that occurred.
+   * @param md Metadata record for the instance being removed.
    * @throw the appropriate shcore::Exception after validating the possible
    * cause of the failure.
    */
-  void find_failure_cause(const std::exception &err);
+  void find_failure_cause(const std::exception &err,
+                          const Instance_definition &md);
 
   /**
    * Auxiliar method to prompt the to use the 'force' option if the instance is

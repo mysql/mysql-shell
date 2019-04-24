@@ -70,7 +70,7 @@ void Replicaset_options::connect_to_members() {
       try {
         m_member_sessions[inst.classic_endpoint] =
             mysqlshdk::db::mysql::open_session(opts);
-      } catch (mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &e) {
         m_member_connect_errors[inst.classic_endpoint] = e.format();
       }
     }

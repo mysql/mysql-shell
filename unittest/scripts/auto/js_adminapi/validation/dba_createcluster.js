@@ -27,7 +27,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 <<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
@@ -50,9 +50,9 @@ one server failure.
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
-||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
-||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -191,9 +191,9 @@ group_replication_start_on_boot = ON
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
-||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
-||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
@@ -298,14 +298,14 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> BUG#29246110: check instance error with non supported host.
-This instance reports its own address as 127.0.1.1
+This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
 ERROR: Cannot use host '127.0.1.1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: check instance error with non supported host.
 Dba.checkInstanceConfiguration: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported by Group Replication. (RuntimeError)
 
 //@<OUT> BUG#29246110: createCluster error with non supported host.
-This instance reports its own address as 127.0.1.1
+This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
 ERROR: Cannot use host '127.0.1.1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: createCluster error with non supported host.
@@ -315,7 +315,7 @@ Dba.createCluster: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is 
 ||
 
 //@<OUT> BUG#29246110: add instance error with non supported host.
-This instance reports its own address as 127.0.1.1
+This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
 ERROR: Cannot use host '127.0.1.1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: add instance error with non supported host.
@@ -328,10 +328,10 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
 
 //@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
@@ -368,7 +368,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<hostname>>>
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
 <<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>

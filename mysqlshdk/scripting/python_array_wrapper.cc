@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,14 +51,14 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
     try {
       self->array->reset(
           static_cast<Value::Array_type *>(PyCObject_AsVoidPtr(valueptr)));
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
   } else {
     try {
       self->array = new Value::Array_type_ref();
-    } catch (std::exception &exc) {
+    } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
@@ -89,7 +89,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index) {
 
   try {
     return ctx->shcore_value_to_pyobj(self->array->get()->at(index));
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     return NULL;
   }
@@ -114,7 +114,7 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value) {
     else
       array->insert(array->begin() + index, ctx->pyobj_to_shcore_value(value));
     return 0;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
 
@@ -177,7 +177,7 @@ PyObject *list_append(PyShListObject *self, PyObject *v) {
   try {
     self->array->get()->push_back(ctx->pyobj_to_shcore_value(v));
     Py_RETURN_NONE;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -198,7 +198,7 @@ PyObject *list_insert(PyShListObject *self, PyObject *args) {
 
     array->insert(array->begin() + i, ctx->pyobj_to_shcore_value(value));
     Py_RETURN_NONE;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -220,7 +220,7 @@ PyObject *list_remove(PyShListObject *self, PyObject *v) {
 
     std::remove(array->begin(), array->end(), ctx->pyobj_to_shcore_value(v));
     Py_RETURN_NONE;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -231,7 +231,7 @@ PyObject *list_remove_all(PyShListObject *self) {
   try {
     self->array->get()->clear();
     Py_RETURN_NONE;
-  } catch (std::exception &exc) {
+  } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }

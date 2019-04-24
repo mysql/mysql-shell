@@ -177,7 +177,8 @@ TEST_F(Dba_replicaset_test, bug28219398) {
     auto instance_type = mysqlsh::dba::get_gr_instance_type(session);
 
     mysqlsh::dba::Cluster_check_info state =
-        mysqlsh::dba::get_replication_group_state(session, instance_type);
+        mysqlsh::dba::get_replication_group_state(
+            mysqlshdk::mysql::Instance(session), instance_type);
 
     session->close();
 

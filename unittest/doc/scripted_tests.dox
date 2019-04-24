@@ -440,4 +440,24 @@ The wildcard token may be used only once per line. The \ref multi_value match
 can be combined with the wildcard token, however the resulting line must contain
 only one such token.
 
+\subsubsection includes Include Files
+
+Test snippets that must be executed multiple times under different scenarios
+can be isolated in separate include files, which are executed as part of a
+larger test script, through //@ INCLUDE <filename.inc> 
+
+//@ INCLUDE will start a new validation section, that will contain the named
+file. The scoped is the same as the main test file. 
+
+The //@ INCLUDE line can also contain a string before the filename, so that
+unique section headers are possible even if the same file is included multiple
+times in the same test, as in:
+
+\code
+//@ INCLUDE test1 test_this.inc
+//@ INCLUDE test2 test_this.inc
+//@ INCLUDE test3 test_this.inc
+\endcode
+
+Note that code is not allowed after an //@ INCLUDE directive.
 */

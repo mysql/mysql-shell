@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 
 namespace mysqlsh {
