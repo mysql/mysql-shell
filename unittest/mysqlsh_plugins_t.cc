@@ -38,7 +38,7 @@ namespace tests {
 #define unsetenv(var) _putenv(var "=")
 #endif
 
-class Mysqlsh_plugins_test : public Command_line_test {
+class Mysqlsh_extension_test : public Command_line_test {
  protected:
   void SetUp() override {
     Command_line_test::SetUp();
@@ -183,9 +183,9 @@ class Mysqlsh_plugins_test : public Command_line_test {
   static const char k_file[];
 };
 
-const char Mysqlsh_plugins_test::k_file[] = "plugin_test";
+const char Mysqlsh_extension_test::k_file[] = "plugin_test";
 
-class Mysqlsh_reports_test : public Mysqlsh_plugins_test {
+class Mysqlsh_reports_test : public Mysqlsh_extension_test {
  protected:
   std::string get_plugin_folder_name() const override { return "init.d"; }
 };
@@ -244,8 +244,9 @@ shell.register_report('fourth_py', 'print', report);
 }
 
 TEST_F(Mysqlsh_reports_test, WL11263_TSF8_2) {
-  // WL11263_TSF8_2 - Try to use registered plugin files that doesn't exist
-  // nymore in the Shell config path, call the report and analyze the behaviour.
+  // WL11263_TSF8_2 - Try to use registered plugin files that doesn't
+  // anymore in the Shell config path, call the report and analyze the
+  // behaviour.
 
   // create JS plugin file
   write_plugin("plugin.js", R"(function js_report(s) {
@@ -310,9 +311,9 @@ TEST_F(Mysqlsh_reports_test, WL11263_TSF8_3) {
   add_test("\\show", "Available reports: query.");
 
   // log file should contain information about erroneous plugin files
-  add_expected_js_log("Failed to compile JS plugin");
+  add_expected_js_log("Error loading JavaScript file");
   add_expected_js_log("cpp_as.js");
-  add_expected_py_log("Error while executing Python plugin");
+  add_expected_py_log("Error loading Python file");
   add_expected_py_log("cpp_as.py");
 
   // erase the log file
@@ -321,6 +322,10 @@ TEST_F(Mysqlsh_reports_test, WL11263_TSF8_3) {
   // run the test
   run();
   // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Found errors loading startup files, for more details look at "
+      "the log at:");
+
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   wipe_out();
 
@@ -407,10 +412,10 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
               "Unknown report: undefined_py_report");
 
   // log file should contain information about erroneous plugin files
-  add_expected_js_log("Error while executing JS plugin");
+  add_expected_js_log("Error loading JavaScript file");
   add_expected_js_log("plugin.js");
   add_expected_js_log("undefined_js_report is not defined");
-  add_expected_py_log("Error while executing Python plugin");
+  add_expected_py_log("Error loading Python file");
   add_expected_py_log("plugin.py");
   add_expected_py_log("name 'undefined_py_report' is not defined");
 
@@ -420,6 +425,10 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
   // run the test
   run();
   // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Found errors loading startup files, for more details look at "
+      "the log at:");
+
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   wipe_out();
 
@@ -427,4 +436,226 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
   validate_log();
 }
 
+class Mysqlsh_plugin_test : public Mysqlsh_extension_test {
+ public:
+  std::string get_plugin_folder() const {
+    return shcore::path::join_path(shcore::get_share_folder(),
+                                   get_plugin_folder_name());
+  }
+
+  std::string get_user_plugin_folder() const {
+    return shcore::path::join_path(shcore::get_user_config_path(),
+                                   get_plugin_folder_name());
+  }
+
+  void write_plugin(const std::string &name, const std::string &contents,
+                    const std::string &extension) {
+    shcore::create_directory(
+        shcore::path::join_path(get_plugin_folder(), name));
+    shcore::create_file(
+        shcore::path::join_path(get_plugin_folder(), name, "init" + extension),
+        contents);
+  }
+
+  void write_user_plugin(const std::string &name, const std::string &contents,
+                         const std::string &extension) {
+    shcore::create_directory(
+        shcore::path::join_path(get_user_plugin_folder(), name));
+    shcore::create_file(shcore::path::join_path(get_user_plugin_folder(), name,
+                                                "init" + extension),
+                        contents);
+  }
+
+  void delete_plugin(const std::string &name) {
+    auto path = shcore::path::join_path(get_plugin_folder(), name);
+    if (shcore::is_folder(path)) {
+      shcore::remove_directory(path);
+    }
+  }
+
+  void delete_user_plugin(const std::string &name) {
+    auto path = shcore::path::join_path(get_user_plugin_folder(), name);
+    if (shcore::is_folder(path)) {
+      shcore::remove_directory(path);
+    }
+  }
+
+ protected:
+  std::string get_plugin_folder_name() const override { return "plugins"; }
+};
+
+TEST_F(Mysqlsh_plugin_test, WL13051_OK) {
+  // create first-js plugin, which defines a custom report
+  write_plugin("first-js", R"(function report(s) {
+  println('first JS report');
+  return {'report' : []};
+}
+
+shell.registerReport('first_js', 'print', report);
+)", ".js");
+
+  // create second-js plugin - which defines a new global object
+  write_user_plugin("second-js", R"(function sample() {
+  println('first object defined in JS');
+}
+var obj = shell.createExtensionObject();
+shell.addExtensionObjectMember(obj, "testFunction", sample);
+shell.registerGlobal('jsObject', obj);
+)", ".js");
+
+  // create third-py plugin, which defines a custom report
+  write_plugin("third-py", R"(def report(s):
+  print('third PY report');
+  return {'report' : []};
+
+shell.register_report('third_py', 'print', report);
+)", ".py");
+
+  // create fourth-py plugin - which defines a new global object
+  write_user_plugin("fourth-py", R"(def describe():
+  print('first object defined in PY')
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "selfDescribe", describe);
+shell.register_global('pyObject', obj);
+)", ".py");
+
+  // check if first_js report is available
+  add_js_test("\\show first_js", "first JS report");
+  // check if jsObject.testFunction was properly registered in JS
+  add_js_test("jsObject.testFunction()", "first object defined in JS");
+  // check if jsObject.test_function was properly registered in PY
+  add_py_test("\\py", "Switching to Python mode...");
+  add_py_test("jsObject.test_function()", "first object defined in JS");
+  // check if third_py report is available
+  add_py_test("\\show third_py", "third PY report");
+  // check if pyObject.self_describe was properly registered in PY
+  add_py_test("pyObject.self_describe()", "first object defined in PY");
+  // check if pyObject.selfDescribe was properly registered in JS
+  add_js_test("\\js", "Switching to JavaScript mode...");
+  add_js_test("pyObject.selfDescribe()", "first object defined in PY");
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+  wipe_out();
+
+  delete_plugin("first-js");
+  delete_user_plugin("second-js");
+  delete_plugin("third-py");
+  delete_user_plugin("fourth-py");
+}
+
+TEST_F(Mysqlsh_plugin_test, WL13051_multiple_init_files) {
+  // create first JS plugin file
+  write_plugin("error-one", R"(function report(s) {
+  println('first JS report');
+  return {'report' : []};
+}
+
+shell.registerReport('first_js', 'print', report);
+)", ".js");
+
+  write_plugin("error-one", R"(function report(s) {
+  println('first JS report');
+  return {'report' : []};
+}
+
+shell.registerReport('first_js', 'print', report);
+)", ".py");
+
+  // check if first JS report is available
+
+  add_js_test("\\show first_js", "Unknown report: first_js");
+
+  add_expected_js_log(
+      "Warning: Found multiple plugin initialization files for plugin "
+      "'error-one'");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Found multiple plugin initialization files for plugin "
+      "'error-one'");
+  wipe_out();
+
+  validate_log();
+
+  delete_plugin("error-one");
+}
+
+TEST_F(Mysqlsh_plugin_test, WL13051_no_init_files) {
+  // Create folder in the plugins directory
+  shcore::create_directory(
+      shcore::path::join_path(get_plugin_folder(), "invalid-plugin"));
+
+  add_expected_js_log(
+      "Warning: Missing initialization file for plugin "
+      "'invalid-plugin'");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Missing initialization file for plugin "
+      "'invalid-plugin'");
+  wipe_out();
+
+  validate_log();
+
+  delete_plugin("invalid-plugin");
+}
+
+TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_js_plugin) {
+  // create first JS plugin file
+  write_plugin("error-two", R"(function report(s) {
+  println('first JS report';  // <-- The error
+  return {'report' : []};
+}
+
+shell.registerReport('first_js', 'print', report);
+)", ".js");
+
+  add_expected_js_log("Error loading JavaScript file");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Found errors loading plugins, for more details look at "
+      "the log at:");
+  wipe_out();
+
+  validate_log();
+
+  delete_plugin("error-two");
+}
+
+TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_py_plugin) {
+  // create first JS plugin file
+  write_plugin("error-two", R"(def report(s):
+  print ("first PY report"  // <-- The error
+  return {"report" : []};
+}
+
+shell.register_report('first_py', 'print', report);
+)", ".py");
+
+  add_expected_py_log("Error loading Python file");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: Found errors loading plugins, for more details look at "
+      "the log at:");
+  wipe_out();
+
+  validate_log();
+
+  delete_plugin("error-two");
+}
 }  // namespace tests

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,7 @@ class SHCORE_PUBLIC JScript_context {
   std::string to_string(v8::Local<v8::Value> obj);
 
   std::string translate_exception(const v8::TryCatch &exc, bool interactive);
-  void load_plugin(const std::string &file_name);
+  bool load_plugin(const std::string &file_name);
 
  private:
   struct JScript_context_impl;

@@ -99,8 +99,6 @@ void Base_shell::finish_init() {
   _completer.add_provider(
       shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::SQL),
       _provider_sql);
-
-  load_plugins();
 }
 
 // load scripts for standard locations in order to be able to implement standard
@@ -608,64 +606,6 @@ void Base_shell::set_global_object(
   } else {
     _shell->set_global(name, shcore::Value(), modes);
   }
-}
-
-void Base_shell::load_plugins() {
-  const auto initial_mode = _shell->interactive_mode();
-  const std::string plugin_directories[] = {
-      shcore::path::join_path(shcore::get_user_config_path(), "init.d")};
-  // mode, extension, files to load
-  std::vector<std::tuple<shcore::IShell_core::Mode, const char *,
-                         std::vector<std::string>>>
-      languages;
-
-#ifdef HAVE_V8
-  languages.emplace_back(shcore::IShell_core::Mode::JavaScript, ".js",
-                         std::vector<std::string>());
-#endif  // HAVE_V8
-#ifdef HAVE_PYTHON
-  languages.emplace_back(shcore::IShell_core::Mode::Python, ".py",
-                         std::vector<std::string>());
-#endif  // HAVE_PYTHON
-
-  // iterate over directories, find files to load
-  for (const auto &dir : plugin_directories) {
-    if (shcore::is_folder(dir)) {
-      shcore::iterdir(dir, [&languages, &dir](const std::string &name) {
-        const auto full_path = shcore::path::join_path(dir, name);
-
-        // make sure it's a file, not a directory
-        if (shcore::is_file(full_path)) {
-          for (auto &language : languages) {
-            // check extension, ignoring case
-            if (shcore::str_iendswith(name, std::get<1>(language))) {
-              std::get<2>(language).emplace_back(full_path);
-            }
-          }
-        }
-
-        return true;
-      });
-    }
-  }
-
-  // if plugins are found, switch to the appropriate mode and load all files
-  for (const auto &language : languages) {
-    const auto &mode = std::get<0>(language);
-    const auto &files_to_load = std::get<2>(language);
-
-    if (!files_to_load.empty()) {
-      switch_shell_mode(mode, {}, true);
-
-      for (const auto &file : files_to_load) {
-        log_debug("--------> loading %s", file.c_str());
-        _shell->load_plugin(file);
-      }
-    }
-  }
-
-  // switch back to the initial mode
-  switch_shell_mode(initial_mode, {}, true);
 }
 
 }  // namespace mysqlsh

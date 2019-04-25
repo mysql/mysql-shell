@@ -164,29 +164,34 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
 }
 
 bool Shell_core::switch_mode(Mode mode) {
+  assert(mode != Mode::None);
   // Updates the shell help mode
   m_help.set_mode(mode);
 
   if (_mode != mode) {
     _mode = mode;
-    if (_langs.find(_mode) == _langs.end()) {
-      switch (_mode) {
-        case Mode::None:
-          break;
-        case Mode::SQL:
-          init_sql();
-          break;
-        case Mode::JavaScript:
-          init_js();
-          break;
-        case Mode::Python:
-          init_py();
-          break;
-      }
-    }
+    init_mode(_mode);
     return true;
   }
   return false;
+}
+
+void Shell_core::init_mode(Mode mode) {
+  if (_langs.find(mode) == _langs.end()) {
+    switch (mode) {
+      case Mode::None:
+        break;
+      case Mode::SQL:
+        init_sql();
+        break;
+      case Mode::JavaScript:
+        init_js();
+        break;
+      case Mode::Python:
+        init_py();
+        break;
+    }
+  }
 }
 
 void Shell_core::init_sql() { _langs[Mode::SQL] = new Shell_sql(this); }
@@ -305,8 +310,12 @@ void Shell_core::execute_module(const std::string &file_name,
   _langs[_mode]->execute_module(file_name);
 }
 
-void Shell_core::load_plugin(const std::string &file_name) {
-  _langs[_mode]->load_plugin(file_name);
+bool Shell_core::load_plugin(Mode mode, const std::string &file_name) {
+  assert(mode != Mode::None);
+
+  init_mode(mode);
+
+  return _langs[mode]->load_plugin(file_name);
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

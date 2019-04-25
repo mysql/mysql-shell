@@ -614,6 +614,8 @@ static void finalize_shell(mysqlsh::Command_line_shell *shell) {
 #ifdef ENABLE_SESSION_RECORDING
   finalize_debug_shell(shell);
 #endif
+  // Calls restore print to make the cached output to get printed
+  shell->restore_print();
 
   // shell needs to be destroyed before global_end() is called, because it
   // needs to call destructors of JS contexts before V8 is shut down

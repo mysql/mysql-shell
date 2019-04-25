@@ -131,7 +131,9 @@ class SHCORE_PUBLIC Shell_language {
    *
    * @param file_name - full path to the file which is going to be loaded.
    */
-  virtual void load_plugin(const std::string &UNUSED(file_name)) {}
+  virtual bool load_plugin(const std::string &UNUSED(file_name)) {
+    return true;
+  }
 
   Shell_command_handler *command_handler() { return &_shell_command_handler; }
 
@@ -199,9 +201,10 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   /**
    * Loads the specified plugin file using the current scripting language.
    *
+   * @param mode - The language in which the plugin should be loaded.
    * @param file_name - full path to the file which is going to be loaded.
    */
-  void load_plugin(const std::string &file_name);
+  bool load_plugin(Mode mode, const std::string &file_name);
 
   virtual void clear_input();
 
@@ -226,6 +229,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   mysqlsh::IConsole *m_console;
   void init_sql();
   void init_js();
+  void init_mode(Mode mode);
 
  private:
   Object_registry *_registry;

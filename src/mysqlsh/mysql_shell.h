@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,6 +76,28 @@ class Mysql_shell : public mysqlsh::Base_shell {
   shcore::Shell_command_handler *command_handler() {
     return shell_context()->command_handler();
   }
+
+  using File_list =
+      std::map<shcore::IShell_core::Mode, std::vector<std::string>>;
+  void load_files(const File_list &file_list, const std::string &context);
+
+  /**
+   * Gets all the startup files for the supported scripting languages at:
+   *
+   * - ${MYSQLSH_USER_CONFIG_HOME}/init.d
+   */
+  void get_startup_scripts(File_list *list);
+  /**
+   * Gets the plugin initialization files  for the supported languages.
+   *
+   * Iterates through known plugin directories and loads plugins based on their
+   * init file extension. Checks following directories:
+   *
+   * - <INSTALL_ROOT>/share/plugins
+   * - ${MYSQLSH_USER_CONFIG_HOME}/plugins
+   */
+  void get_plugins(File_list *list);
+  void finish_init() override;
 
  protected:
   static void set_sql_safe_for_logging(const std::string &patterns);

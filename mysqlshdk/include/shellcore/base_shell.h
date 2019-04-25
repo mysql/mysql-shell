@@ -129,15 +129,6 @@ class SHCORE_PUBLIC Base_shell {
 
   void update_prompt_variables();
 
-  /**
-   * Loads all the plugin files for all the supported scripting languages.
-   *
-   * Iterates through known plugin directories and loads files based on their
-   * extension. Checks following directories:
-   * - ${MYSQLSH_USER_CONFIG_HOME}//init.d
-   */
-  void load_plugins();
-
   shcore::Interpreter_delegate _delegate;
   Prompt_variables_update_type m_pending_update =
       Prompt_variables_update_type::UPDATE;

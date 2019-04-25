@@ -100,9 +100,11 @@ class Command_line_shell : public Mysql_shell,
   static char *readline(const char *prompt);
 
   static void deleg_print(void *self, const char *text);
+  static void deleg_delayed_print(void *self, const char *text);
   static void deleg_disable_print(void *self, const char *text);
-  static void deleg_disable_print_error(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
+  static void deleg_delayed_print_error(void *self, const char *text);
+  static void deleg_disable_print_error(void *self, const char *text);
   static void deleg_print_diag(void *self, const char *text);
   static shcore::Prompt_result deleg_prompt(void *self, const char *text,
                                             std::string *ret);
@@ -123,6 +125,7 @@ class Command_line_shell : public Mysql_shell,
 
   shcore::Interpreter_delegate _backup_delegate;
   std::vector<std::pair<int, std::string>> _full_output;
+  std::vector<std::pair<int, std::string>> _delayed_output;
   Prompt_manager _prompt;
   bool _output_printed;
   const std::string m_default_pager;

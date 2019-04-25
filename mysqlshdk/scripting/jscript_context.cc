@@ -1322,7 +1322,8 @@ std::string JScript_context::translate_exception(const v8::TryCatch &exc,
   return format_exception(get_v8_exception_data(exc, interactive));
 }
 
-void JScript_context::load_plugin(const std::string &file_name) {
+bool JScript_context::load_plugin(const std::string &file_name) {
+  bool ret_val = true;
   // load the file
   std::string source;
 
@@ -1344,7 +1345,9 @@ void JScript_context::load_plugin(const std::string &file_name) {
 
     if (script.IsEmpty()) {
       _impl->delete_context(new_context);
-      log_error("Failed to compile JS plugin '%s'", file_name.c_str());
+      ret_val = false;
+      log_error("Error loading JavaScript file '%s':\n\t%s", file_name.c_str(),
+                "Failed to compile.");
     } else {
       auto result = script.ToLocalChecked()->Run(new_context);
 
@@ -1354,19 +1357,25 @@ void JScript_context::load_plugin(const std::string &file_name) {
       _impl->store_context(new_context);
 
       if (result.IsEmpty()) {
+        ret_val = false;
         if (try_catch.HasCaught()) {
-          log_error("Error while executing JS plugin '%s':\n%s",
-                    file_name.c_str(),
-                    translate_exception(try_catch, false).c_str());
+          log_error(
+              "Error loading JavaScript file '%s':\n\tExecution failed: %s",
+              file_name.c_str(), translate_exception(try_catch, false).c_str());
         } else {
-          log_error("Unknown error while executing JS plugin '%s'",
+          log_error("Error loading JavaScript file '%s':\n\tUnknown error",
                     file_name.c_str());
         }
       }
     }
   } else {
-    log_error("Failed to load JS plugin '%s'", file_name.c_str());
+    ret_val = false;
+    log_error(
+        "Error loading JavaScript file '%s':\n\tFailed opening the file: %s",
+        file_name.c_str(), errno_to_string(errno).c_str());
   }
+
+  return ret_val;
 }
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data) {

@@ -1125,6 +1125,41 @@ For help on a specific topic use: \? <topic>
 
 e.g.: \? ALTER TABLE
 
+#@<OUT> Help on plugins
+The MySQL Shell allows extending its base functionality through the creation of
+plugins.
+
+An plugin is a folder containing the code that provides the functionality to be
+made available on the MySQL Shell.
+
+User defined plugins should be located at plugins folder at the following
+paths:
+
+- Windows: %AppData%\MySQL\mysqlsh\plugins
+- Others: ~/.mysqlsh/plugins
+
+A plugin must contain an init file which is the entry point to load the
+extension:
+
+- init.js for plugins written in JavaScript.
+- init.py for plugins written in Python.
+
+On startup, the shell traverses the folders inside of the *plugins* folder
+searching for the plugin init file. The init file will be loaded on the
+corresponding context (JavaScript or Python).
+
+Use Cases
+
+The main use cases for MySQL Shell plugins include:
+
+- Definition of shell reports to be used with the \show and \watch Shell
+  Commands.
+- Definition of new Global Objects with user defined functionality.
+
+For additional information on shell reports execute: \? reports
+
+For additional information on extension objects execute: \? extension objects
+
 #@<OUT> Help on extension objects
 The MySQL Shell allows for an extension of its base functionality by using
 special objects called Extension Objects.

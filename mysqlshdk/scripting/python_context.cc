@@ -1173,14 +1173,17 @@ Value Python_context::execute_module(const std::string &file_name,
   return ret_val;
 }
 
-void Python_context::load_plugin(const std::string &file_name) {
+bool Python_context::load_plugin(const std::string &file_name) {
+  bool ret_val = true;
   WillEnterPython lock;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   const auto file = fopen(file_name.c_str(), "r");
 
   if (nullptr == file) {
-    log_error("Failed to load Python plugin '%s'", file_name.c_str());
+    ret_val = false;
+    log_error("Error loading Python file '%s':\n\tFailed opening the file: %s",
+              file_name.c_str(), errno_to_string(errno).c_str());
   } else {
     // copy globals, so executed scripts does not pollute global namespace
     PyObject *globals = PyDict_Copy(_globals);
@@ -1190,13 +1193,15 @@ void Python_context::load_plugin(const std::string &file_name) {
                      Py_file_input, globals, nullptr, true);
 
     if (nullptr == result) {
-      log_error("Error while executing Python plugin '%s':\n%s",
+      ret_val = false;
+      log_error("Error loading Python file '%s':\n\tExecution failed: %s",
                 file_name.c_str(), fetch_and_clear_exception().c_str());
     }
 
     Py_XDECREF(result);
     Py_XDECREF(globals);
   }
+  return ret_val;
 }
 
 std::string Python_context::fetch_and_clear_exception() {

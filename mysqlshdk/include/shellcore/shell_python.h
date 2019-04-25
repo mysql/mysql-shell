@@ -49,7 +49,7 @@ class Shell_python : public Shell_language {
 
   bool is_module(const std::string &file_name) override;
   void execute_module(const std::string &file_name) override;
-  void load_plugin(const std::string &file_name) override;
+  bool load_plugin(const std::string &file_name) override;
 
   std::shared_ptr<Python_context> python_context() { return _py; }
 

@@ -176,8 +176,8 @@ void Shell_python::execute_module(const std::string &file_name) {
   }
 }
 
-void Shell_python::load_plugin(const std::string &file_name) {
-  _py->load_plugin(file_name);
+bool Shell_python::load_plugin(const std::string &file_name) {
+  return _py->load_plugin(file_name);
 }
 
 void Shell_python::clear_input() {

@@ -118,7 +118,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool is_module(const std::string &file_name);
   Value execute_module(const std::string &file_name,
                        const std::vector<std::string> &argv);
-  void load_plugin(const std::string &file_name);
+  bool load_plugin(const std::string &file_name);
 
   Value pyobj_to_shcore_value(PyObject *value);
   PyObject *shcore_value_to_pyobj(const Value &value);

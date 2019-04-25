@@ -222,6 +222,9 @@ shell.connect(__mysqluripwd)
 \? connection
 session.close()
 
+#@ Help on plugins
+\? plugins
+
 #@ Help on extension objects
 \? extension objects
 

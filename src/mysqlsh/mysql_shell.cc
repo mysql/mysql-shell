@@ -61,7 +61,9 @@
 #include "src/mysqlsh/commands/command_show.h"
 #include "src/mysqlsh/commands/command_watch.h"
 #include "utils/debug.h"
+#include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
@@ -641,6 +643,142 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
 }
 
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
+
+void Mysql_shell::finish_init() {
+  Base_shell::finish_init();
+
+  File_list startup_files;
+  get_startup_scripts(&startup_files);
+  load_files(startup_files, "startup files");
+
+  File_list plugins;
+  get_plugins(&plugins);
+  load_files(plugins, "plugins");
+}
+
+void Mysql_shell::load_files(const File_list &file_list,
+                             const std::string &context) {
+  // if plugins are found, switch to the appropriate mode and load all files
+  bool load_failed = false;
+  log_info("Loading %s...", context.c_str());
+  for (const auto &files : file_list) {
+    const auto &mode = files.first;
+    const auto &files_to_load = files.second;
+
+    if (!files_to_load.empty()) {
+      for (const auto &file : files_to_load) {
+        log_info("- %s", file.c_str());
+        if (!_shell->load_plugin(mode, file)) {
+          load_failed = true;
+        }
+      }
+    }
+  }
+
+  if (load_failed) {
+    auto msg = shcore::str_format(
+        "Found errors loading %s, for more details look at the log at: %s",
+        context.c_str(), shcore::Logger::singleton()->logfile_name().c_str());
+    current_console()->print_warning(msg);
+  }
+}
+
+void Mysql_shell::get_startup_scripts(File_list *file_list) {
+  std::string dir =
+      shcore::path::join_path(shcore::get_user_config_path(), "init.d");
+
+  // iterate over directories, find files to load
+  if (shcore::is_folder(dir)) {
+    shcore::iterdir(dir, [&dir, file_list](const std::string &name) {
+      const auto full_path = shcore::path::join_path(dir, name);
+
+      // make sure it's a file, not a directory
+      if (shcore::is_file(full_path)) {
+        if (shcore::str_iendswith(name, ".js")) {
+#ifdef HAVE_V8
+          (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
+              full_path);
+#else
+        log_warning("Ignoring startup script at '%s', JavaScript is not "
+                    "available.", full_path.c_str());
+#endif  // HAVE_V8
+        } else if (shcore::str_iendswith(name, ".py")) {
+#ifdef HAVE_PYTHON
+          (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
+              full_path);
+#else
+          log_warning("Ignoring startup script at '%s', Python is not"
+                      " available.", full_path.c_str());
+#endif
+        }
+      }
+
+      return true;
+    });
+  }
+}
+
+void Mysql_shell::get_plugins(File_list *file_list) {
+  const auto initial_mode = _shell->interactive_mode();
+  const std::string plugin_directories[] = {
+      shcore::path::join_path(shcore::get_share_folder(), "plugins"),
+      shcore::path::join_path(shcore::get_user_config_path(), "plugins")};
+
+  // A plugin is contained in a folder inside of the pre-defined "plugin"
+  // directories, and it contains strictly one of the initialization files.
+  // This loop identifies the valid plugins to be loaded.
+  for (const auto &dir : plugin_directories) {
+    if (shcore::is_folder(dir)) {
+      shcore::iterdir(dir, [&dir, file_list](const std::string &name) {
+        const auto plugin_dir = shcore::path::join_path(dir, name);
+
+        if (shcore::is_folder(plugin_dir)) {
+          auto init_js = shcore::path::join_path(plugin_dir, "init.js");
+          auto init_py = shcore::path::join_path(plugin_dir, "init.py");
+
+          bool is_js = shcore::is_file(init_js);
+          bool is_py = shcore::is_file(init_py);
+
+          std::string msg;
+          if (is_js && is_py) {
+            auto msg = shcore::str_format(
+                "Found multiple plugin initialization files for plugin "
+                "'%s' at %s, ignoring plugin.",
+                name.c_str(), plugin_dir.c_str());
+            current_console()->print_warning(msg);
+          } else if (is_js) {
+#ifdef HAVE_V8
+            (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
+                init_js);
+#else
+            log_warning("Ignoring plugin at '%s', JavaScript is not available.",
+                        plugin_dir.c_str());
+#endif
+          } else if (is_py) {
+#ifdef HAVE_PYTHON
+            (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
+                init_py);
+#else
+            log_warning("Ignoring plugin at '%s', Python is not available.",
+                        plugin_dir.c_str());
+#endif
+          } else {
+            auto msg = shcore::str_format(
+                "Missing initialization file for plugin "
+                "'%s' at %s, ignoring plugin.",
+                name.c_str(), plugin_dir.c_str());
+            current_console()->print_warning(msg);
+          }
+        }
+
+        return true;
+      });
+    }
+  }
+
+  // switch back to the initial mode
+  switch_shell_mode(initial_mode, {}, true);
+}
 
 void Mysql_shell::print_connection_message(mysqlsh::SessionType type,
                                            const std::string &uri,
