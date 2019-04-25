@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 def get_members(object):
   all_exports = dir(object)
@@ -82,14 +83,14 @@ def validate_crud_functions(crud, expected):
 			missing.append(exp_funct)
 
 	if len(missing) == 0:
-		print ("All expected functions are available\n")
+		print("All expected functions are available\n")
 	else:
-		print "Missing Functions:", missing
+		print("Missing Functions:", missing)
 
 	if len(actual) == 0 or (len(actual) == 1 and actual[0] == 'help'):
-		print "No additional functions are available\n"
+		print("No additional functions are available\n")
 	else:
-		print "Extra Func tions:", actual
+		print("Extra Functions:", actual)
 
 def validate_members(object, expected_members):
   all_members = dir(object)

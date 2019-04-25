@@ -1,5 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
+from __future__ import print_function
 from mysqlsh import mysql
 
 mySession = mysql.get_classic_session(__uripwd)
@@ -52,29 +53,29 @@ result = mySession.run_sql('insert into buffer_table values("angel", 14, "male")
 
 #@ Resultset has_data() False
 result = mySession.run_sql('use js_shell_test')
-print 'has_data():', result.has_data()
+print('has_data():', result.has_data())
 
 #@ Resultset has_data() True
 result = mySession.run_sql('select * from buffer_table')
-print 'has_data():', result.has_data()
+print('has_data():', result.has_data())
 
 
 #@ Resultset get_columns()
 metadata = result.get_columns()
 
-print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].column_name
-print 'Second Field:', metadata[1].column_name
-print 'Third Field:', metadata[2].column_name
+print('Field Number:', len(metadata))
+print('First Field:', metadata[0].column_name)
+print('Second Field:', metadata[1].column_name)
+print('Third Field:', metadata[2].column_name)
 
 
 #@ Resultset columns
 metadata = result.columns
 
-print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].column_name
-print 'Second Field:', metadata[1].column_name
-print 'Third Field:', metadata[2].column_name
+print('Field Number:', len(metadata))
+print('First Field:', metadata[0].column_name)
+print('Second Field:', metadata[1].column_name)
+print('Third Field:', metadata[2].column_name)
 
 #@<> Resultset row members
 result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
@@ -89,27 +90,27 @@ validate_members(row, [
   'age'])
 
 #@ Resultset row index access
-print "Name with index: %s" % row[0]
-print "Age with index: %s" % row[1]
-print "Length with index: %s" % row[2]
-print "Gender with index: %s" % row[3]
+print("Name with index: %s" % row[0])
+print("Age with index: %s" % row[1])
+print("Length with index: %s" % row[2])
+print("Gender with index: %s" % row[3])
 
 #@ Resultset row get_field access
-print "Name with get_field: %s" % row.get_field('alias')
-print "Age with get_field: %s" % row.get_field('age')
-print "Length with get_field: %s" % row.get_field('length')
-print "Unable to get gender from alias: %s" % row.get_field('alias')
+print("Name with get_field: %s" % row.get_field('alias'))
+print("Age with get_field: %s" % row.get_field('age'))
+print("Length with get_field: %s" % row.get_field('length'))
+print("Unable to get gender from alias: %s" % row.get_field('alias'))
 
 #@ Resultset property access
-print "Name with property: %s" % row.alias
-print "Age with property: %s" % row.age
-print "Unable to get length with property: %s" %  row.length
+print("Name with property: %s" % row.alias)
+print("Age with property: %s" % row.age)
+print("Unable to get length with property: %s" %  row.length)
 
 #@ Resultset row as object
 result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
 object = result.fetch_one_object();
-print "Name with property: %s" % object.alias
-print "Age with property: %s" % object["age"]
-print object
+print("Name with property: %s" % object.alias)
+print("Age with property: %s" % object["age"])
+print(object)
 
 mySession.close()

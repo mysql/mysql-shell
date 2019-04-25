@@ -52,6 +52,7 @@ except:
     testutil = None
 
 LISTENING_PORT_CHECK_TIMEOUT=5
+PY2 = int(sys.version[0]) == 2
 
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
@@ -319,8 +320,11 @@ def run_subprocess(cmd_str, **kwargs):
     """
     _LOGGER.debug("Spawning subprocess with command '%s'", cmd_str)
     if os.name == "nt":
-        # on windows we can use the string directly
-        cmd_list = cmd_str.encode('mbcs')
+        if PY2:
+            # on windows we can use the string directly
+            cmd_list = cmd_str.encode('mbcs')
+        else:
+            cmd_list = cmd_str
         # create process without a console window (also detaching from our console)
         CREATE_NO_WINDOW = 0x08000000
         # create process in a new group, otherwise pressing CTRL-C in the
@@ -335,9 +339,12 @@ def run_subprocess(cmd_str, **kwargs):
             kwargs['stdout'] = None
             kwargs['stderr'] = None
     else:
-        # shlex.split() does not fully support UTF-8.
-        cmd_list = map(
-            lambda s: s, shlex.split(cmd_str.encode('utf-8')))
+        if PY2:
+            # shlex.split() does not fully support UTF-8.
+            enc_cmd_str = cmd_str.encode('utf-8')
+        else:
+            enc_cmd_str = cmd_str
+        cmd_list = map(lambda s: s, shlex.split(enc_cmd_str))
     proc = subprocess.Popen(cmd_list, **kwargs)
     return proc
 
@@ -422,10 +429,13 @@ def fs_encode(value):
     :param value: value (non-ascii) to encode.
     :return: encoded value according to the default system codec.
     """
-    if os.name == "nt":
-        return value.encode('mbcs')
+    if PY2:
+        if os.name == "nt":
+            return value.encode('mbcs')
+        else:
+            return value.encode('utf-8')
     else:
-        return value.encode('utf-8')
+        return value
 
 
 def fs_decode(value):
@@ -439,7 +449,10 @@ def fs_decode(value):
     :param value: value (non-ascii) to decode.
     :return: decoded value according to the default system codec.
     """
-    if os.name == "nt":
-        return value.decode('mbcs')
+    if PY2:
+        if os.name == "nt":
+            return value.decode('mbcs')
+        else:
+            return value.decode('utf-8')
     else:
-        return value.decode('utf-8')
+        return value

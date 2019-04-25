@@ -57,15 +57,14 @@ class Shell_python : public Shell_language {
   std::string get_continued_input_context() override;
 
  private:
-  static int check_signals(void *);
+  void abort() noexcept;
+
   std::shared_ptr<Python_context> _py;
   std::function<void(shcore::Value, bool)> _result_processor;
   Input_state m_last_input_state;
-  long _pending_interrupt_thread;
-  bool _aborted = false;
-
-  void abort(long tid) noexcept;
+  bool m_aborted = false;
 };
-};  // namespace shcore
+
+}  // namespace shcore
 
 #endif

@@ -57,25 +57,25 @@ class ShellRunScript : public Shell_core_test_wrapper {
                         "select 'end';\n");
 
     shcore::create_file("good_int.py",
-                        "print 1\n"
-                        "print 2\n"
+                        "print(1)\n"
+                        "print(2)\n"
                         "if 1:\n"
-                        "  print 3\n"
+                        "  print(3)\n"
                         "\n"
-                        "print 'end'\n");
+                        "print('end')\n");
     shcore::create_file("good.py",
-                        "print 1\n"
-                        "print 2\n"
+                        "print(1)\n"
+                        "print(2)\n"
                         "if 1:\n"
-                        "  print 3\n"
-                        "print 'end'\n");
+                        "  print(3)\n"
+                        "print('end')\n");
     shcore::create_file("bad.py",
-                        "print 1\n"
+                        "print(1)\n"
                         "raise Exception()\n"
-                        "print 'end'\n");
+                        "print('end')\n");
     shcore::create_file("badsyn.py",
                         "   if:\n"
-                        "print 'end'\n");
+                        "print('end')\n");
 
     shcore::create_file("good.js",
                         "println(1);\n"
@@ -151,25 +151,25 @@ world'; select 3;
 select error;)*");
 
     shcore::create_file("good_int.py",
-                        "print 1\n"
-                        "print 2\n"
+                        "print(1)\n"
+                        "print(2)\n"
                         "if 1:\n"
-                        "  print 3\n"
+                        "  print(3)\n"
                         "\n"
-                        "print 'end'\n");
+                        "print('end')\n");
     shcore::create_file("good.py",
-                        "print 1\n"
-                        "print 2\n"
+                        "print(1)\n"
+                        "print(2)\n"
                         "if 1:\n"
-                        "  print 3\n"
-                        "print 'end'\n");
+                        "  print(3)\n"
+                        "print('end')\n");
     shcore::create_file("bad.py",
-                        "print 1\n"
+                        "print(1)\n"
                         "raise Exception()\n"
-                        "print 'end'\n");
+                        "print('end')\n");
     shcore::create_file("badsyn.py",
                         "   if:\n"
-                        "print 'end'\n");
+                        "print('end')\n");
 
     shcore::create_file("good.js",
                         "println(1);\n"
@@ -203,7 +203,7 @@ select error;)*");
                         "try:\n"
                         "  session.run_sql('kill ?', [session.run_sql('select "
                         "connection_id()').fetch_one()[0]]);\n"
-                        "except Exception, err:\n"
+                        "except Exception as err:\n"
                         "  pass\n\n"
                         "session.run_sql('select 1');\n"
                         "session.run_sql('select 1');\n");
@@ -213,7 +213,7 @@ select error;)*");
                         "  session.sql('kill ?').bind([session.sql('select "
                         "connection_id()').execute().fetch_one()[0]])."
                         "execute();\n"
-                        "except Exception, err:\n"
+                        "except Exception as err:\n"
                         "  pass\n\n"
                         "session.sql('select 1').execute();\n"
                         "session.sql('select 1').execute();\n");

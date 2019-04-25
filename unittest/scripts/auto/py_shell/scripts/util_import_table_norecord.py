@@ -15,7 +15,7 @@ def wait_for_server(uri):
                 return True
             os.sleep(sleep_time)
         except Exception as error:
-            print error
+            print(error)
 
 #<>@ Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }),
@@ -50,6 +50,7 @@ session.run_sql("""CREATE TABLE `cities` (`ID` int(11) NOT NULL AUTO_INCREMENT, 
 session.run_sql('SET GLOBAL local_infile = false');
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": target_schema, "table": 'cities' }),
     "Invalid preconditions")
+
 EXPECT_STDOUT_CONTAINS("The 'local_infile' global system variable must be set to ON in the target server, after the server is verified to be trusted.")
 
 
@@ -153,6 +154,7 @@ util.import_table(__import_data_path + '/primer-dataset-id.json', {
     "schema": target_schema, "table": 'document_store',
     "columns": ['doc'], "fieldsTerminatedBy": '\n', "fieldsEnclosedBy": '',
     "fieldsEscapedBy": '', "linesTerminatedBy": '\n', "bytesPerChunk": '20M', "threads": 1})
+
 EXPECT_STDOUT_CONTAINS("wl12193.document_store: Records: 25359  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/primer-dataset-id.json' (11.29 MB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 0  Warnings: 0")
@@ -160,6 +162,7 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_st
 util.import_table(__import_data_path + '/primer-dataset-id.json', {
     "schema": target_schema, "table": 'document_store',
     "columns": ['doc'], "dialect": 'json', "bytesPerChunk": '20M'})
+
 EXPECT_STDOUT_CONTAINS("wl12193.document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359")
 EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000001' for key 'PRIMARY'")
 EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000002' for key 'PRIMARY'")
@@ -175,6 +178,7 @@ util.import_table(__import_data_path + '/world_x_cities.dump', {
     "schema": target_schema, "table": 'cities',
     "bytesPerChunk": '1'
 })
+
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 1523  Deleted: 0  Skipped: 1523  Warnings: 1523")
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 2556  Deleted: 0  Skipped: 2556  Warnings: 2556")
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")

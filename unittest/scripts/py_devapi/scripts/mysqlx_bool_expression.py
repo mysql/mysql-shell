@@ -1,6 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -28,7 +28,7 @@ true_expr = [
 
 for i in true_expr:
   r = coll.find().fields([i]).execute().fetch_one()
-  print i, " => ", r[i]
+  print(i, " => ", r[i])
 
 #@ Expression evaluation (false)
 false_expr = [
@@ -42,7 +42,7 @@ false_expr = [
 
 for i in false_expr:
   r = coll.find().fields([i]).execute().fetch_one()
-  print i, " => ", r[i]
+  print(i, " => ", r[i])
 
 #@ Expression evaluation (filter)
 filter_expr = [
@@ -54,7 +54,7 @@ filter_expr = [
 ]
 
 for i in filter_expr:
-  print i, " => ", coll.find(i).execute().fetch_all()
+  print(i, " => ", coll.find(i).execute().fetch_all())
 
 #-----------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@ fr1_cases_tbl = [
 
 #@ IN basic - collection find
 for i in fr1_cases:
-  print i
+  print(i)
   movies.find(i).execute().fetch_all()
   movies.find().sort([i]).execute().fetch_all()
   #movies.find().fields([i]).groupBy([i]).having(i).execute().fetch_all()
@@ -126,35 +126,35 @@ movies.find('1-5/2*2 > 3-2/1*2 IN [true, false]').execute().fetch_all()
 
 #@ IN basic - collection modify
 for i in fr1_cases:
-  print i
+  print(i)
   mySession.start_transaction()
   movies.modify(i).unset("bogus").execute()
   mySession.rollback()
 
 #@ IN basic - collection remove
 for i in fr1_cases:
-  print i
+  print(i)
   mySession.start_transaction()
   movies.remove(i).execute()
   mySession.rollback()
 
 #@ IN basic - table select
 for i in fr1_cases_tbl:
-  print i
+  print(i)
   tabl.select().where(i).execute().fetch_all()
   tabl.select().order_by([i]).execute().fetch_all()
   # tabl.select([i]).groupBy([i]).having(i).execute().fetch_all()
 
 #@ IN basic - table update
 for i in fr1_cases_tbl:
-  print i
+  print(i)
   mySession.start_transaction()
   tabl.update().set("doc", mysqlx.expr("doc")).where(i).execute()
   mySession.rollback()
 
 #@ IN basic - table delete
 for i in fr1_cases_tbl:
-  print i
+  print(i)
   mySession.start_transaction()
   tabl.delete().where(i).execute()
   mySession.rollback()
@@ -176,7 +176,7 @@ fr2_cases = [
 
 # These test that boolean expressions are evaluated the way they're supposed to
 for i in fr2_cases:
-  print i
+  print(i)
   movies.find().fields([i]).execute().fetch_all()
 
 #@ WL10848 F3 - If the right side operand of the IN operator is a comma separated list of expressions enclosed in parenthesis -- like ('foo', 'bar', 'baz', current_date()) -- the expression must translate to the existing SQL IN operator
@@ -187,7 +187,7 @@ fr3_cases = [
 ]
 
 for i in fr3_cases:
-  print i
+  print(i)
   movies.find().fields([i]).execute().fetch_all()
 
 #@ WL10848 F4 - If any of the operands is the SQL NULL value (like when a document field that does not exist), the operation evaluates to NULL
@@ -201,7 +201,7 @@ fr4_cases = [
 ]
 
 for i in fr4_cases:
-  print i
+  print(i)
   movies.find().fields([i]).execute().fetch_all()
 
 #@ WL10848 F5 - The result of the evaluation of the IN operator is a boolean value. The operation evaluates to TRUE if the left side operand is contained in the right side and FALSE otherwise
@@ -212,7 +212,7 @@ fr5_cases = [
 ]
 
 for i in fr5_cases:
-  print i
+  print(i)
   movies.find().fields([i]).execute().fetch_all()
 
 
@@ -224,7 +224,7 @@ fr6_cases = [
 ]
 
 for i in fr6_cases:
-  print i
+  print(i)
   movies.find().fields([i]).execute().fetch_all()
 
 # WL10848 F7 - extras

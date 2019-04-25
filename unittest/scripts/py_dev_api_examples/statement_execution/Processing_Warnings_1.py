@@ -3,9 +3,9 @@ from mysqlsh import mysqlx
 def process_warnings(result):
   if result.get_warnings_count():
     for warning in result.get_warnings():
-      print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
+      print('Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message))
   else:
-    print "No warnings were returned.\n"
+    print("No warnings were returned.\n")
 
 
 # Connect to server

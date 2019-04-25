@@ -75,8 +75,8 @@ class Rest_service_test : public ::testing::Test {
       s_test_server->set_create_process_group();
 #endif  // _WIN32
       s_test_server->start();
-      // wait till server is ready
-      shcore::sleep_ms(1000);
+      // wait till server is ready - some test servers are really slow...
+      shcore::sleep_ms(2000);
 
       s_test_server_address = "https://127.0.0.1:" + port_number;
 

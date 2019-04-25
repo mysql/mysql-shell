@@ -1,5 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -93,9 +94,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
-print 'Updated Angel:', result.affected_items_count, '\n'
+print('Updated Angel:', result.affected_items_count, '\n')
 result=crud.bind('data', 'carol').execute()
-print 'Updated Carol:', result.affected_items_count, '\n'
+print('Updated Carol:', result.affected_items_count, '\n')
 
 
 # ----------------------------------------------
@@ -173,99 +174,99 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 
 #@# CollectionModify: Set Execution
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute()
-print 'Set Affected Rows:', result.affected_items_count, '\n'
+print('Set Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@# CollectionModify: Set Execution Binding Array
 result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer', 'dance', 'reading']).execute()
-print 'Set Affected Rows:', result.affected_items_count, '\n'
+print('Set Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print dir(doc)
-print doc.hobbies[0]
-print doc.hobbies[1]
-print doc.hobbies[2]
+print(dir(doc))
+print(doc.hobbies[0])
+print(doc.hobbies[1])
+print(doc.hobbies[2])
 
 #@ CollectionModify: Simple Unset Execution
 result = collection.modify('name = "brian"').unset('last_name').execute()
-print 'Unset Affected Rows:', result.affected_items_count, '\n'
+print('Unset Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@ CollectionModify: List Unset Execution
 result = collection.modify('name = "brian"').unset(['alias', 'age']).execute()
-print 'Unset Affected Rows:', result.affected_items_count, '\n'
+print('Unset Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@ CollectionModify: Merge Execution
 result = collection.modify('name = "brian"').merge({'last_name':'black', "age":15, 'alias':'bri', 'girlfriends':['martha', 'karen']}).execute()
-print 'Merge Affected Rows:', result.affected_items_count, '\n'
+print('Merge Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print "Brian's last_name:",  doc.last_name, '\n'
-print "Brian's age:",  doc.age, '\n'
-print "Brian's alias:",  doc.alias, '\n'
-print "Brian's first girlfriend:",  doc.girlfriends[0], '\n'
-print "Brian's second girlfriend:",  doc.girlfriends[1], '\n'
+print("Brian's last_name:",  doc.last_name, '\n')
+print("Brian's age:",  doc.age, '\n')
+print("Brian's alias:",  doc.alias, '\n')
+print("Brian's first girlfriend:",  doc.girlfriends[0], '\n')
+print("Brian's second girlfriend:",  doc.girlfriends[1], '\n')
 
 #@ CollectionModify: array_append Execution
 result = collection.modify('name = "brian"').array_append('girlfriends','cloe').execute()
-print 'Array Append Affected Rows:', result.affected_items_count, '\n'
+print('Array Append Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print "Brian's girlfriends:", len(doc.girlfriends)
-print "Brian's last:", doc.girlfriends[2]
+print("Brian's girlfriends:", len(doc.girlfriends))
+print("Brian's last:", doc.girlfriends[2])
 
 #@ CollectionModify: array_insert Execution
 result = collection.modify('name = "brian"').array_insert('girlfriends[1]','samantha').execute()
-print 'Array Insert Affected Rows:', result.affected_items_count, '\n'
+print('Array Insert Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print "Brian's girlfriends:", len(doc.girlfriends), '\n'
-print "Brian's second:", doc.girlfriends[1], '\n'
+print("Brian's girlfriends:", len(doc.girlfriends), '\n')
+print("Brian's second:", doc.girlfriends[1], '\n')
 
 #@ CollectionModify: array_delete Execution
 result = collection.modify('name = "brian"').array_delete('girlfriends[2]').execute()
-print 'Array Delete Affected Rows:', result.affected_items_count, '\n'
+print('Array Delete Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
-print "Brian's girlfriends:", len(doc.girlfriends), '\n'
-print "Brian's third:", doc.girlfriends[2], '\n'
+print("Brian's girlfriends:", len(doc.girlfriends), '\n')
+print("Brian's third:", doc.girlfriends[2], '\n')
 
 #@ CollectionModify: sorting and limit Execution
 result = collection.modify('age = 15').set('sample', 'in_limit').sort(['name']).limit(2).execute()
-print 'Affected Rows:', result.affected_items_count, '\n'
+print('Affected Rows:', result.affected_items_count, '\n')
 
 result = collection.find('age = 15').sort(['name']).execute()
 
 #@ CollectionModify: sorting and limit Execution - 1
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@ CollectionModify: sorting and limit Execution - 2
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@ CollectionModify: sorting and limit Execution - 3
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@ CollectionModify: sorting and limit Execution - 4
 doc = result.fetch_one()
-print dir(doc)
+print(dir(doc))
 
 #@<OUT> CollectionModify: Patch initial documents
 collection.find('gender="female"')

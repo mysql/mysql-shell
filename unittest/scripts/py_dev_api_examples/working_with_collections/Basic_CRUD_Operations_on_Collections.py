@@ -25,7 +25,7 @@ docs = myColl.find('name like :param1 AND age < :param2') \
 
 # Print document
 doc = docs.fetch_one()
-print doc
+print(doc)
 
 # Drop the collection
 myDb.drop_collection('my_collection')

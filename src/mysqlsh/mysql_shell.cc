@@ -1636,7 +1636,7 @@ void Mysql_shell::process_sql_result(
           dumper.start_object();
           std::stringstream ss(to_string(cols[i]));
           std::string line;
-          while (getline(ss, line)) {
+          while (std::getline(ss, line)) {
             auto sep = line.find(":");
             assert(sep + 1 < line.length());
             dumper.append_string(line.substr(0, sep));

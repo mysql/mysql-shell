@@ -22,6 +22,7 @@
  */
 #include "scripting/python_context.h"
 
+#include <signal.h>
 #include <exception>
 
 #include "mysqlshdk/include/shellcore/console.h"
@@ -38,7 +39,6 @@
 #include "modules/mod_utils.h"
 
 #ifdef _WINDOWS
-#include <signal.h>
 #include <windows.h>
 #endif
 
@@ -48,6 +48,119 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 extern const char *g_mysqlsh_path;
 
 namespace shcore {
+
+namespace {
+
+#ifdef IS_PY3K
+
+using PY_CHAR_T = wchar_t;
+#define PY_CHAR_T_LITERAL(x) L##x
+#define COPY_PY_CHAR_T(dst, src, n) mbstowcs(dst, src, n)
+
+std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
+  std::vector<std::wstring> out;
+
+  for (const auto &s : in) {
+    out.emplace_back(s.length(), PY_CHAR_T_LITERAL('#'));
+    COPY_PY_CHAR_T(&out.back()[0], s.c_str(), out.back().length());
+  }
+
+  return out;
+}
+
+#else  // !IS_PY3K
+
+using PY_CHAR_T = char;
+#define PY_CHAR_T_LITERAL(x) x
+#define COPY_PY_CHAR_T(dst, src, n) strncpy(dst, src, n)
+
+const std::vector<std::string> &to_py_char_t(
+    const std::vector<std::string> &in) {
+  return in;
+}
+
+#endif  // !IS_PY3K
+
+void set_python_home(const std::string &home) {
+  if (!home.empty()) {
+    static PY_CHAR_T path[1000];
+
+    if (home.length() > array_size(path) - 1) {
+      throw std::runtime_error("Python home path too long");
+    }
+
+    COPY_PY_CHAR_T(path, home.c_str(), array_size(path) - 1);
+    Py_SetPythonHome(path);
+  }
+}
+
+void set_program_name() {
+  static PY_CHAR_T name[1000];
+  COPY_PY_CHAR_T(name, g_mysqlsh_path, array_size(name) - 1);
+  Py_SetProgramName(name);
+}
+
+PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
+#ifdef IS_PY3K
+  PyModuleDef *moduledef = new PyModuleDef{
+      PyModuleDef_HEAD_INIT,
+      nullptr,
+      nullptr,
+      -1,  // module does not support sub-interpreters, it has global state
+      members,
+      nullptr,
+      nullptr,
+      nullptr,
+      [](void *module) {
+        auto definition = PyModule_GetDef(static_cast<PyObject *>(module));
+
+        PyDict_DelItemString(PyImport_GetModuleDict(), definition->m_name);
+        delete[] definition->m_name;
+        delete definition;
+      }};
+
+  const auto length = name.length();
+  auto copied_name = new char[length + 1];
+  strncpy(copied_name, name.c_str(), length);
+  copied_name[length] = '\0';
+  moduledef->m_name = copied_name;
+
+  const auto module = PyModule_Create(moduledef);
+
+  // create ModuleSpec to indicate it's a built-in module
+  {
+    const auto machinery = PyImport_ImportModule("importlib.machinery");
+
+    if (machinery) {
+      const auto modulespec = PyObject_GetAttrString(machinery, "ModuleSpec");
+
+      if (modulespec) {
+        const auto args = Py_BuildValue("(ss)", name.c_str(), nullptr);
+        const auto kwargs = Py_BuildValue("{s:s}", "origin", "built-in");
+
+        const auto spec = PyObject_Call(modulespec, args, kwargs);
+        PyDict_SetItemString(PyModule_GetDict(module), "__spec__", spec);
+
+        Py_XDECREF(spec);
+        Py_XDECREF(kwargs);
+        Py_XDECREF(args);
+        Py_XDECREF(modulespec);
+      }
+
+      Py_XDECREF(machinery);
+    }
+  }
+
+  // module needs to be added to the sys.modules
+  PyDict_SetItemString(PyImport_GetModuleDict(), moduledef->m_name, module);
+  return module;
+#else   // !IS_PY3K
+  return Py_InitModule(name.c_str(), members);
+#endif  // !IS_PY3K
+}
+
+};  // namespace
+
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
 
@@ -80,42 +193,43 @@ class Python_init_singleton final {
  private:
   Python_init_singleton() : m_local_initialization(false) {
     if (!Py_IsInitialized()) {
+      std::string home;
 #ifdef _WIN32
+#define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
       Py_NoSiteFlag = 1;
 
-      char *env_value;
+      const auto env_value = getenv("PYTHONHOME");
 
       // If PYTHONHOME is available, honors it
-      env_value = getenv("PYTHONHOME");
       if (env_value) {
-        log_info("Setting PythonHome to %s from PYTHONHOME", env_value);
-        Py_SetPythonHome(env_value);
+        log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+        home = env_value;
       } else {
         // If not will associate what should be the right path in
         // a standard distribution
-        std::string python_path;
-        python_path = shcore::get_mysqlx_home_path();
+        std::string python_path = shcore::get_mysqlx_home_path();
+
         if (!python_path.empty()) {
-          python_path.append("\\lib\\Python2.7");
+          python_path =
+              shcore::path::join_path(python_path, "lib", "Python" MAJOR_MINOR);
         } else {
           // Not a standard distribution
           python_path = shcore::get_binary_folder();
-          python_path.append("\\Python2.7");
+          python_path =
+              shcore::path::join_path(python_path, "Python" MAJOR_MINOR);
         }
-        static char path[1000];
-        if (python_path.size() >= sizeof(path) - 1)
-          throw std::runtime_error("mysqlsh path too long");
-        snprintf(path, sizeof(path), "%s", python_path.c_str());
-        log_info("Setting PythonHome to %s", path);
-        Py_SetPythonHome(path);
+
+        log_info("Setting Python home to '%s'", python_path.c_str());
+        home = python_path;
       }
+#undef MAJOR_MINOR
 #else  // !_WIN32
-      char *env_value;
+      const auto env_value = getenv("PYTHONHOME");
+
       // If PYTHONHOME is available, honors it
-      env_value = getenv("PYTHONHOME");
       if (env_value) {
-        log_info("Setting PythonHome to %s from PYTHONHOME", env_value);
-        Py_SetPythonHome(env_value);
+        log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+        home = env_value;
       } else {
 #if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
         // This flag prevents site.py from being imported, which depends
@@ -123,44 +237,71 @@ class Python_init_singleton final {
         Py_NoSiteFlag = 1;
         // If not will associate what should be the right path in
         // a standard distribution
-        std::string python_path;
-        python_path = shcore::path::join_path(shcore::get_mysqlx_home_path(),
-                                              "lib/mysqlsh");
+        std::string python_path = shcore::path::join_path(
+            shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
         if (shcore::is_folder(python_path)) {
           // Override the system Python install with the bundled one
-          static char path[1000];
-          if (python_path.size() >= sizeof(path) - 1)
-            throw std::runtime_error("mysqlsh path too long");
-          snprintf(path, sizeof(path), "%s", python_path.c_str());
-          log_info("Setting PythonHome to %s", path);
-          Py_SetPythonHome(path);
+          log_info("Setting Python home to '%s'", python_path.c_str());
+          home = python_path;
         }
 #endif
       }
 #endif  // !_WIN32
-      Py_SetProgramName(const_cast<char *>(g_mysqlsh_path));
+      set_python_home(home);
+      set_program_name();
       Py_InitializeEx(0);
 
-#ifdef _WIN32
       // Initialize the signal module, so we can use PyErr_SetInterrupt().
-      // We don't want that module to overwrite the default signal handler,
-      // hence we store and restore the current one. This will give us
-      // an initialized module with python callback for SIGINT set, but with no
-      // python signal handler, meaning that notification about CTRL-C has to be
-      // delivered to python.
+      //
+      // Python 3.5+ uses PyErr_CheckSignals() to double check if time.sleep()
+      // was interrupted and continues to sleep if that function returns 0.
+      // PyErr_CheckSignals() returns non-zero if a signal was raised (either
+      // via PyErr_SetInterrupt() or Python's signal handler) AND if the call to
+      // the Python callback set for the raised signal results in an exception.
+      //
+      // The initialization of signal module installs its own handler for
+      // a signal only if it's currently set to SIG_DFL. In case of SIGINT it
+      // will then also set the Python callback to signal.default_int_handler,
+      // which generates KeyboardInterrupt when called. Since on non-Windows
+      // platforms we have our own SIGINT handler, the initialization of signal
+      // module is not going to install a handler and Python callback will
+      // remain to be set to None. If PyErr_CheckSignals() was called with such
+      // setup (after a previous call to PyErr_SetInterrupt() to raise the
+      // SIGINT signal, since Python's signal handler was not installed), it
+      // would return non-zero, but the exception would be "'NoneType' object is
+      // not callable".
+      //
+      // If we set the Python callback after the signal module is initialized
+      // (i.e.: signal.signal(signal.SIGINT, signal.default_int_handler)),
+      // we will lose our capability to detect SIGINT (i.e. in JS), as Python's
+      // implementation which sets that callback overwrites current (our) signal
+      // handler with its own.
+      //
+      // In order to overcome these issues, we proceed as follows:
+      //  1. Set the SIGINT handler to SIG_DFL, store the previous handler.
+      //  2. Initialize the signal module, it will install its own SIGINT
+      //     handler and set the callback to signal.default_int_handler.
+      //  3. Restore the previous handler, overwriting Python's signal handler.
+      // This will give us an initialized signal module with Python callback for
+      // SIGINT set, but with no Python signal handler. We can continue to use
+      // our own signal handler, and deliver the CTRL-C notification to Python
+      // via PyErr_SetInterrupt().
+      //
+      // Python 2 @ Windows:
       // Initializing the signal module early and in a controlled way will also
       // prevent an issue when user imports this module and calls time.sleep().
-      // In that case sleep cannot be interrupted by CTRL-C, because signal
-      // module will overwrite the default signal handler and the mechanism
-      // used by python 2.7 to wake up will not work.
+      // In that case sleep cannot be interrupted by CTRL-C, because the
+      // initialization of signal module will overwrite the default signal
+      // handler and the mechanism used by Python 2.7 to wake up will not work.
       {
         const auto prev_signal = signal(SIGINT, SIG_DFL);
         PyOS_InitInterrupts();
         signal(SIGINT, prev_signal);
       }
-#endif
-      char *argv[] = {(char *)""};
+
+      PY_CHAR_T *argv[] = {(PY_CHAR_T *)PY_CHAR_T_LITERAL("")};
       PySys_SetArgvEx(1, argv, 0);
+
       m_local_initialization = true;
     }
   }
@@ -322,7 +463,11 @@ Python_context *Python_context::get() {
   if (!ctx)
     throw std::runtime_error("SHELL context not found in Python runtime");
 
+#ifdef IS_PY3K
+  return static_cast<Python_context *>(PyCapsule_GetPointer(ctx, nullptr));
+#else
   return static_cast<Python_context *>(PyCObject_AsVoidPtr(ctx));
+#endif
 }
 
 Python_context *Python_context::get_and_check() {
@@ -354,13 +499,14 @@ PyObject *Python_context::get_shell_python_support_module() {
 
 void Python_context::set_argv(const std::vector<std::string> &argv) {
   if (!argv.empty()) {
-    std::vector<const char *> argvv;
+    const auto &input = to_py_char_t(argv);
+    std::vector<const PY_CHAR_T *> argvv;
 
-    for (const std::string &s : argv) argvv.push_back(s.c_str());
+    for (const auto &s : input) argvv.push_back(s.c_str());
 
     argvv.push_back(nullptr);
 
-    PySys_SetArgv(argv.size(), const_cast<char **>(argvv.data()));
+    PySys_SetArgv(argv.size(), const_cast<PY_CHAR_T **>(argvv.data()));
   }
 }
 
@@ -498,13 +644,12 @@ void Python_context::get_members_of(
   if (members && PySequence_Check(members)) {
     for (int i = 0, c = PySequence_Size(members); i < c; i++) {
       PyObject *m = PySequence_ITEM(members, i);
-      if (m && PyString_Check(m)) {
-        const char *s = PyString_AsString(m);
-        if (*s != '_') {
-          PyObject *mem = PyObject_GetAttrString(object, s);
-          out_keys->push_back(std::make_pair(PyCallable_Check(mem), s));
-          Py_XDECREF(mem);
-        }
+      std::string s;
+
+      if (m && pystring_to_string(m, &s) && s[0] != '_') {
+        PyObject *mem = PyObject_GetAttrString(object, s.c_str());
+        out_keys->push_back(std::make_pair(PyCallable_Check(mem), s));
+        Py_XDECREF(mem);
       }
       Py_XDECREF(m);
     }
@@ -522,8 +667,9 @@ std::vector<std::pair<bool, std::string>> Python_context::list_globals() {
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   while (PyDict_Next(_globals, &pos, &key, &obj)) {
-    keys.push_back(
-        std::make_pair(PyCallable_Check(obj), PyString_AsString(key)));
+    std::string key_string;
+    pystring_to_string(key, &key_string);
+    keys.push_back(std::make_pair(PyCallable_Check(obj), key_string));
   }
 
   // get __builtins__
@@ -549,6 +695,7 @@ PyObject *Python_context::get_global_py(const std::string &value) {
 }
 
 void Python_context::set_global(const std::string &name, const Value &value) {
+  WillEnterPython lock;
   PyObject *p = _types.shcore_value_to_pyobj(value);
   assert(p != nullptr);
   // incs ref
@@ -635,42 +782,45 @@ void Python_context::set_python_error(PyObject *obj,
 }
 
 bool Python_context::pystring_to_string(PyObject *strobject,
-                                        std::string &ret_string, bool convert) {
+                                        std::string *result, bool convert) {
   if (PyUnicode_Check(strobject)) {
     PyObject *ref = PyUnicode_AsUTF8String(strobject);
+
     if (ref) {
-      char *s;
-      Py_ssize_t len;
-      PyString_AsStringAndSize(ref, &s, &len);
-      if (s)
-        ret_string = std::string(s, len);
-      else
-        ret_string = "";
+      bool ret = pystring_to_string(ref, result, false);
       Py_DECREF(ref);
-      return true;
+      return ret;
     }
+
     return false;
   }
 
+#ifdef IS_PY3K
+  if (PyBytes_Check(strobject)) {
+#else   // !IS_PY3K
   if (PyString_Check(strobject)) {
+#endif  // !IS_PY3K
     char *s;
     Py_ssize_t len;
+#ifdef IS_PY3K
+    PyBytes_AsStringAndSize(strobject, &s, &len);
+#else   // !IS_PY3K
     PyString_AsStringAndSize(strobject, &s, &len);
+#endif  // !IS_PY3K
     if (s)
-      ret_string = std::string(s, len);
+      *result = std::string(s, len);
     else
-      ret_string = "";
+      *result = "";
     return true;
   }
 
-  /*
-   * If ret_string is not a string, we can choose if we want to convert it to
-   * string with PyObject_str() or return an error
-   */
+  // If strobject is not a string, we can choose if we want to convert it to
+  // string with PyObject_str() or return an error
   if (convert) {
     PyObject *str = PyObject_Str(strobject);
+
     if (str) {
-      bool ret = pystring_to_string(str, ret_string, false);
+      bool ret = pystring_to_string(str, result, false);
       Py_DECREF(str);
       return ret;
     }
@@ -715,7 +865,7 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
       } else {
         return NULL;
       }
-    } else if (!ctx->pystring_to_string(o, text, true)) {
+    } else if (!pystring_to_string(o, &text, true)) {
       return NULL;
     }
   }
@@ -913,8 +1063,7 @@ void Python_context::register_mysqlsh_module() {
   // Registers the mysqlsh module/package, at least for now this exists
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
-  PyMethodDef py_mysqlsh_members[] = {{NULL, NULL, 0, NULL}};
-  _shell_mysqlsh_module = Py_InitModule("mysqlsh", py_mysqlsh_members);
+  _shell_mysqlsh_module = py_register_module("mysqlsh", nullptr);
 
   if (_shell_mysqlsh_module == NULL)
     throw std::runtime_error(
@@ -934,12 +1083,11 @@ void Python_context::register_mysqlsh_module() {
     std::shared_ptr<shcore::Module_base> module =
         std::dynamic_pointer_cast<shcore::Module_base>(module_obj);
 
-    PyMethodDef py_members[] = {{NULL, NULL, 0, NULL}};
-
     // The modules will be registered in python as __<name>__
     // But exposed in the mysqlsh module as the original name
     std::string module_name = "__" + name + "__";
-    PyObject *py_module_ref = Py_InitModule(module_name.c_str(), py_members);
+
+    PyObject *py_module_ref = py_register_module(module_name, nullptr);
 
     if (py_module_ref == NULL)
       throw std::runtime_error("Error initializing the '" + name +
@@ -991,7 +1139,7 @@ void Python_context::register_mysqlsh_module() {
 }
 
 void Python_context::register_shell_stderr_module() {
-  PyObject *module = Py_InitModule("shell_stderr", ShellStdErrMethods);
+  PyObject *module = py_register_module("shell_stderr", ShellStdErrMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1000,7 +1148,7 @@ void Python_context::register_shell_stderr_module() {
 }
 
 void Python_context::register_shell_stdout_module() {
-  PyObject *module = Py_InitModule("shell_stdout", ShellStdOutMethods);
+  PyObject *module = py_register_module("shell_stdout", ShellStdOutMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1009,7 +1157,7 @@ void Python_context::register_shell_stdout_module() {
 }
 
 void Python_context::register_shell_stdin_module() {
-  PyObject *module = Py_InitModule("shell_stdin", ShellStdInMethods);
+  PyObject *module = py_register_module("shell_stdin", ShellStdInMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1019,7 +1167,7 @@ void Python_context::register_shell_stdin_module() {
 
 void Python_context::register_shell_python_support_module() {
   PyObject *module =
-      Py_InitModule("shell_python_support", ShellPythonSupportMethods);
+      py_register_module("shell_python_support", ShellPythonSupportMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1027,8 +1175,15 @@ void Python_context::register_shell_python_support_module() {
   _shell_python_support_module = module;
 
   // add the context ptr
-  PyObject *context_object =
+  PyObject *context_object;
+#ifdef IS_PY3K
+  context_object = PyCapsule_New(this, nullptr, nullptr);
+  PyCapsule_SetContext(context_object, &SHELLTypeSignature);
+#else
+  context_object =
       PyCObject_FromVoidPtrAndDesc(this, &SHELLTypeSignature, NULL);
+#endif
+
   if (context_object != NULL)
     PyModule_AddObject(module, "__SHELL__", context_object);
 
@@ -1044,8 +1199,8 @@ void Python_context::register_shell_python_support_module() {
   PyModule_AddStringConstant(module, "FUNCTION",
                              shcore::type_name(Function).c_str());
 
-  init_shell_list_type();
   init_shell_dict_type();
+  init_shell_list_type();
   init_shell_object_type();
   init_shell_function_type();
 }
@@ -1053,18 +1208,46 @@ void Python_context::register_shell_python_support_module() {
 bool Python_context::is_module(const std::string &file_name) {
   bool ret_val = false;
 
-  PyObject *argv0 = NULL, *importer = NULL;
+  PyObject *argv0 = PyString_FromString(file_name.c_str());
+  PyObject *importer = PyImport_GetImporter(argv0);
 
-  ret_val =
-      ((argv0 = PyString_FromString(file_name.c_str())) &&
-       (importer = PyImport_GetImporter(argv0)) && (importer != Py_None) &&
-       (importer->ob_type != &PyNullImporter_Type));
+  if (importer && (importer != Py_None)) {
+#ifdef IS_PY3K
+    // Importers are returned for any existing directory, even if it's not
+    // a module. Call method on an importer to double check if it really is
+    // module.
+    static constexpr auto s_find_spec = "find_spec";
+    PyObject *find_spec = nullptr;
+
+    if (PyObject_HasAttrString(importer, s_find_spec)) {
+      find_spec = PyObject_GetAttrString(importer, s_find_spec);
+    } else {
+      // old style importers don't have find_spec() method
+      find_spec = PyObject_GetAttrString(importer, "find_module");
+    }
+
+    // use the same name as in execute_module() method (__main__)
+    PyObject *runargs = Py_BuildValue("(s)", "__main__");
+    PyObject *result = PyObject_Call(find_spec, runargs, nullptr);
+
+    ret_val = result && (result != Py_None);
+
+    Py_XDECREF(result);
+    Py_XDECREF(runargs);
+    Py_XDECREF(find_spec);
+
+#else   // !IS_PY3K
+    ret_val = Py_TYPE(importer) != &PyNullImporter_Type;
+#endif  // !IS_PY3K
+  }
 
   Py_XDECREF(argv0);
   Py_XDECREF(importer);
+
   if (PyErr_Occurred()) {
     PyErr_Print();
   }
+
   return ret_val;
 }
 
@@ -1259,14 +1442,12 @@ std::string Python_context::fetch_and_clear_exception() {
 
     {
       PyObject *str = PyObject_Str(value);
-      exception = PyString_AsString(str);
+      pystring_to_string(str, &exception);
       Py_XDECREF(str);
     }
 
     if (nullptr != tb) {
-      PyObject *traceback_module_name = PyString_FromString("traceback");
-      PyObject *traceback_module = PyImport_Import(traceback_module_name);
-      Py_DECREF(traceback_module_name);
+      PyObject *traceback_module = PyImport_ImportModule("traceback");
 
       if (nullptr != traceback_module) {
         PyObject *format_exception =
@@ -1280,7 +1461,9 @@ std::string Python_context::fetch_and_clear_exception() {
             exception = "\n";
 
             for (Py_ssize_t c = PyList_Size(backtrace), i = 0; i < c; ++i) {
-              exception += PyString_AsString(PyList_GetItem(backtrace, i));
+              std::string item;
+              pystring_to_string(PyList_GetItem(backtrace, i), &item);
+              exception += item;
             }
           }
 

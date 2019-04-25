@@ -24,7 +24,9 @@
 #ifndef _PYTHON_CONTEXT_H_
 #define _PYTHON_CONTEXT_H_
 
-#include "python_utils.h"
+// keep the include order as is, otherwise we hit the Python issue 10910 (macOS)
+
+#include "scripting/python_utils.h"
 
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
@@ -35,6 +37,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "scripting/python_type_conversion.h"
 
 namespace shcore {
@@ -134,8 +137,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   static void set_python_error(const std::exception &exc,
                                const std::string &location = "");
   static void set_python_error(PyObject *obj, const std::string &location);
-  bool pystring_to_string(PyObject *strobject, std::string &ret_string,
-                          bool convert = false);
+  static bool pystring_to_string(PyObject *strobject, std::string *result,
+                                 bool convert = false);
 
   AutoPyObject get_shell_list_class();
   AutoPyObject get_shell_dict_class();

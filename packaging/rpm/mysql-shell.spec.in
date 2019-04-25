@@ -37,13 +37,15 @@ License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
 
+%if 0%{!?bundled_python:1}
 # Most runtime deps the RPM build tools figures out, like the dependency
-# on "libpython2.7.so". But it can't know about the dependency on the
+# on "libpythonVER.so". But it can't know about the dependency on the
 # standard Python modules, i.e. almost all of a normal Python install
 %if 0%{?suse_version}
-Requires:       python-base
+Requires:       python3-base >= 3.4.3
 %else
-Requires:       python2
+Requires:       python3 >= 3.4.3
+%endif
 %endif
 
 BuildRequires:  cmake
@@ -51,14 +53,18 @@ BuildRequires:  cmake
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
 %endif
-%if 0%{?fedora} || 0%{?rhel} >= 8
-BuildRequires:  python2-devel
+%if 0%{?bundled_python:1}
+# Override __python, else "/usr/lib/rpm/brp-python-bytecompile"
+# will use "/usr/bin/python" and may fail
+%global __python %{bundled_python}/bin/python
 %else
-BuildRequires:  python-devel
+BuildRequires:  python3-devel >= 3.4.3
 %endif
 %if 0%{!?static}
 BuildRequires:  mysql-devel
+%if 0%{!?bundled_openssl:1}
 BuildRequires:  openssl-devel
+%endif
 BuildRequires:  libcurl-devel
 #BuildRequires:  v8-devel
 #BuildRequires:  v8-python
@@ -117,6 +123,12 @@ cmake .. \
       -DPROTOBUF_LIBRARY_DEBUG="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a"\
     %endif
 %endif
+%if 0%{?bundled_openssl:1}
+    -DBUNDLED_OPENSSL_DIR="%{bundled_openssl}" \
+%endif
+%if 0%{?bundled_python:1}
+    -DBUNDLED_PYTHON_DIR="%{bundled_python}" \
+%endif
     -DHAVE_PYTHON=1 \
 
 # Supported V8 versions are limited, disable
@@ -154,6 +166,17 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_datadir}/mysqlsh/upgrade_checker.msg
 %{_datadir}/mysqlsh/Docs/INFO_SRC
 %{_datadir}/mysqlsh/Docs/INFO_BIN
+%if 0%{?bundled_openssl:1}
+%{_prefix}/lib/mysqlsh/libcrypto*
+%{_prefix}/lib/mysqlsh/libssl*
+%endif
+%if 0%{?bundled_python:1}
+%{_prefix}/lib/mysqlsh/include/python*
+%{_prefix}/lib/mysqlsh/lib/python*
+%if 0%{?bundled_shared_python:1}
+%{_prefix}/lib/mysqlsh/libpython*
+%endif
+%endif
 
 %changelog
 * Thu May 16 2019 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 8.0.17-1

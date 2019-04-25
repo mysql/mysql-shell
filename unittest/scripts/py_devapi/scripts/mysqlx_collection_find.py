@@ -1,5 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -75,9 +76,9 @@ result = crud.limit(1).bind('data', 'adam').execute()
 validate_crud_functions(crud, ['limit', 'offset', 'skip', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
-print result.fetch_one().name + '\n'
+print(result.fetch_one().name + '\n')
 result=crud.bind('data', 'alma').execute()
-print result.fetch_one().name + '\n'
+print(result.fetch_one().name + '\n')
 
 
 # ----------------------------------------------
@@ -151,29 +152,29 @@ crud = collection.find('name = :data and age > :years').bind('years', 5).execute
 #@ Collection.Find All
 //! [CollectionFind: All Records]
 records = collection.find().execute().fetch_all()
-print "All:", len(records), "\n"
+print("All:", len(records), "\n")
 //! [CollectionFind: All Records]
 
 #@ Collection.Find Filtering
 //! [CollectionFind: Filtering]
 records = collection.find('gender = "male"').execute().fetch_all()
-print "Males:", len(records), "\n"
+print("Males:", len(records), "\n")
 
 records = collection.find('gender = "female"').execute().fetch_all()
-print "Females:", len(records), "\n"
+print("Females:", len(records), "\n")
 //! [CollectionFind: Filtering]
 
 records = collection.find('age = 13').execute().fetch_all()
-print "13 Years:", len(records), "\n"
+print("13 Years:", len(records), "\n")
 
 records = collection.find('age = 14').execute().fetch_all()
-print "14 Years:", len(records), "\n"
+print("14 Years:", len(records), "\n")
 
 records = collection.find('age < 17').execute().fetch_all()
-print "Under 17:", len(records), "\n"
+print("Under 17:", len(records), "\n")
 
 records = collection.find('name like "a%"').execute().fetch_all()
-print "Names With A:", len(records), "\n"
+print("Names With A:", len(records), "\n")
 
 #@ Collection.Find Field Selection
 result = collection.find().fields(['name','age']).execute()
@@ -184,9 +185,9 @@ record = result.fetch_one()
 columns = record.keys()
 
 # Keys come in alphabetic order
-print '1-Metadata Length:', len(columns), '\n'
-print '1-Metadata Field:', columns[1], '\n'
-print '1-Metadata Field:', columns[0], '\n'
+print('1-Metadata Length:', len(columns), '\n')
+print('1-Metadata Field:', columns[1], '\n')
+print('1-Metadata Field:', columns[0], '\n')
 
 result = collection.find().fields(['age']).execute()
 record = result.fetch_one()
@@ -196,59 +197,59 @@ all_members = dir(record)
 # using keys()
 columns = record.keys()
 
-print '2-Metadata Length:', len(columns), '\n'
-print '2-Metadata Field:', columns[0], '\n'
+print('2-Metadata Length:', len(columns), '\n')
+print('2-Metadata Field:', columns[0], '\n')
 
 #@ Collection.Find Sorting
 //! [CollectionFind: Sorting]
 records = collection.find().sort(['name']).execute().fetch_all()
-for index in xrange(7):
-  print 'Find Asc', index, ':', records[index].name, '\n'
+for index in range(7):
+  print('Find Asc', index, ':', records[index].name, '\n')
 
 records = collection.find().sort(['name desc']).execute().fetch_all()
-for index in xrange(7):
-	print 'Find Desc', index, ':', records[index].name, '\n'
+for index in range(7):
+	print('Find Desc', index, ':', records[index].name, '\n')
 //! [CollectionFind: Sorting]
 
 #@ Collection.Find Limit and Offset
 //! [CollectionFind: Limit and Offset]
 records = collection.find().limit(4).execute().fetch_all()
-print 'Limit-Offset 0 :', len(records), '\n'
+print('Limit-Offset 0 :', len(records), '\n')
 
-for index in xrange(8):
+for index in range(8):
 	records = collection.find().limit(4).offset(index + 1).execute().fetch_all()
-	print 'Limit-Offset', index + 1, ':', len(records), '\n'
+	print('Limit-Offset', index + 1, ':', len(records), '\n')
 //! [CollectionFind: Limit and Offset]
 
 #@ Collection.Find Parameter Binding
 //! [CollectionFind: Parameter Binding]
 records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetch_all()
-print 'Find Binding Length:', len(records), '\n'
-print 'Find Binding Name:', records[0].name, '\n'
+print('Find Binding Length:', len(records), '\n')
+print('Find Binding Name:', records[0].name, '\n')
 //! [CollectionFind: Parameter Binding]
 
 #@ Collection.Find Field Selection Using Field List
 //! [CollectionFind: Field Selection List]
 result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
 record = result.fetch_one();
-print "First Name: %s\n" % record.FirstName
-print "Age: %s\n" % record.Age
+print("First Name: %s\n" % record.FirstName)
+print("Age: %s\n" % record.Age)
 //! [CollectionFind: Field Selection List]
 
 #@ Collection.Find Field Selection Using Field Parameters
 //! [CollectionFind: Field Selection Parameters]
 result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
 record = result.fetch_one();
-print "First Name: %s\n" % record.FirstName
-print "Age: %s\n" % record.Age
+print("First Name: %s\n" % record.FirstName)
+print("Age: %s\n" % record.Age)
 //! [CollectionFind: Field Selection Parameters]
 
 #@ Collection.Find Field Selection Using Projection Expression
 //! [CollectionFind: Field Selection Projection]
 result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
 record = result.fetch_one();
-print "First Name: %s\n" % record.FirstName
-print "In Three Years: %s\n" % record.InThreeYears
+print("First Name: %s\n" % record.FirstName)
+print("In Three Years: %s\n" % record.InThreeYears)
 //! [CollectionFind: Field Selection Projection]
 
 #@<> WL12813 Collection.Find Collection

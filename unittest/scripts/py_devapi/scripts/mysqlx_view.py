@@ -1,5 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -14,26 +15,26 @@ result = mySession.sql('create view view1 (my_name) as select name from table1')
 view = mySession.get_schema('js_shell_test').get_table('view1')
 
 #@ Testing view name retrieving
-print 'get_name(): ' + view.get_name()
-print 'name: ' + view.name
+print('get_name(): ' + view.get_name())
+print('name: ' + view.name)
 
 
 #@ Testing session retrieving
-print 'get_session():', view.get_session()
-print 'session:', view.session
+print('get_session():', view.get_session())
+print('session:', view.session)
 
 #@ Testing view schema retrieving
-print 'get_schema():', view.get_schema()
-print 'schema:', view.schema
+print('get_schema():', view.get_schema())
+print('schema:', view.schema)
 
 
 #@ Testing existence
-print 'Valid:', view.exists_in_database()
+print('Valid:', view.exists_in_database())
 mySession.sql('drop view view1').execute()
-print 'Invalid:', view.exists_in_database()
+print('Invalid:', view.exists_in_database())
 
 #@ Testing view check
-print 'Is View:', view.is_view()
+print('Is View:', view.is_view())
 
 # Closes the session
 mySession.drop_schema('js_shell_test')

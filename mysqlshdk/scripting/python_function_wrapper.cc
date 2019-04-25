@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,7 @@ void translate_python_exception(const std::string &context = "");
 static void method_dealloc(PyShFuncObject *self) {
   delete self->func;
 
-  self->ob_type->tp_free(self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 static PyObject *method_call(PyShFuncObject *self, PyObject *args,
@@ -109,8 +109,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args,
 }
 
 static PyTypeObject PyShFuncObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "builtin_function_or_method",  // char *tp_name; /* For printing, in format
                                    // "<module>.<name>" */
     sizeof(PyShFuncObject),
@@ -185,14 +184,18 @@ static PyTypeObject PyShFuncObjectType = {
     0,  //  PyObject *tp_cache;
     0,  //  PyObject *tp_subclasses;
     0,  //  PyObject *tp_weaklist;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
 void Python_context::init_shell_function_type() {
-  PyShFuncObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShFuncObjectType) < 0) {
     throw std::runtime_error(
         "Could not initialize Shcore Function type in python");

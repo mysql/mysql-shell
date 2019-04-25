@@ -843,7 +843,7 @@ class Server(object):
             if self.ssl and parameters['ssl-ca']:
                 parameters['ssl-mode'] = "VERIFY_CA"
 
-            if not parameters.has_key("ssl-mode"):
+            if not "ssl-mode" in parameters:
                 parameters['ssl-mode'] = "PREFERRED"
             db_conn = mysqlsh.mysql.get_classic_session(parameters)
             # Return MySQL connection object.

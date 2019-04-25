@@ -16,6 +16,6 @@ myDocs = myColl.find('name like :param').limit(1).bind('param', 'S%').execute()
 
 # Print document
 document = myDocs.fetch_one()
-print document
+print(document)
 
 mySession.close()

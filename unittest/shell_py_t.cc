@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,26 +45,26 @@ TEST_F(Shell_python, stdin_read) {
 
   output_handler.feed_to_prompt("TEST");
 
-  execute("print sys.stdin.read(2).upper()");
+  execute("print(sys.stdin.read(2).upper())");
   MY_EXPECT_STDOUT_CONTAINS("TE");
   output_handler.wipe_all();
 
-  execute("print sys.stdin.read(3).upper()");
+  execute("print(sys.stdin.read(3).upper())");
   MY_EXPECT_STDOUT_CONTAINS("ST\n");
   output_handler.wipe_all();
 
   output_handler.feed_to_prompt("TEST STRING");
-  execute("print sys.stdin.readline().upper()");
+  execute("print(sys.stdin.readline().upper())");
   MY_EXPECT_STDOUT_CONTAINS("TEST STRING");
   output_handler.wipe_all();
 
   output_handler.feed_to_prompt("text");
-  execute("print raw_input('Enter text: ').upper()");
+  execute("print(raw_input('Enter text: ').upper())");
   MY_EXPECT_STDOUT_CONTAINS("Enter text:");
   MY_EXPECT_STDOUT_CONTAINS("TEXT");
 }
 
-// help() doesn't work in Windows because Python 2.7 doens't like
+// help() doesn't work in Windows because Python 2.7 doesn't like
 // cp65001, it also does not work in linux when embedded (generic packages)
 #if !defined(_WIN32) && HAVE_PYTHON == 1
 TEST_F(Shell_python, help) {
@@ -79,7 +79,8 @@ TEST_F(Shell_python, help) {
   output_handler.feed_to_prompt("spam");
   output_handler.feed_to_prompt("");
   execute("help()");
-  MY_EXPECT_STDOUT_CONTAINS("no Python documentation found for 'spam'");
+  // "No Python ..." if PY_VERSION_HEX >= 0x03050000, else "no Python ..."
+  MY_EXPECT_STDOUT_CONTAINS("o Python documentation found for 'spam'");
   MY_EXPECT_STDOUT_CONTAINS(
       "You are now leaving help and returning to the Python interpreter");
 }

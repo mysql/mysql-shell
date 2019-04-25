@@ -46,9 +46,15 @@ if(WITH_TESTS)
                 ${CMAKE_SOURCE_DIR}/
                 ${CMAKE_SOURCE_DIR}/src
                 ${MYSQL_INCLUDE_DIRS}
-                ${GMOCK_INCLUDE_DIRS}
-                ${PYTHON_INCLUDE_DIR}
-                ${V8_INCLUDE_DIR})
+                ${GMOCK_INCLUDE_DIRS})
+
+    if(HAVE_V8)
+      include_directories("${V8_INCLUDE_DIR}")
+    endif()
+
+    if(HAVE_PYTHON)
+      include_directories("${PYTHON_INCLUDE_DIRS}")
+    endif()
 
     add_subdirectory(mysql-secret-store-plaintext)
     add_subdirectory(sample-pager)
@@ -108,9 +114,8 @@ if(WITH_TESTS)
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp)
 
-    add_executable(run_unit_tests ${mysqlsh_tests_SRC})
-    set_target_properties(run_unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
-    fix_target_output_directory(run_unit_tests "${INSTALL_BINDIR}")
+    add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
+
     add_dependencies(run_unit_tests
             shellfe
             api_modules
@@ -142,24 +147,6 @@ if(WITH_TESTS)
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                         ${CMAKE_SOURCE_DIR}/samples/prompt/
                         $<TARGET_FILE_DIR:run_unit_tests>/)
-
-    # Fix lookup path for OpenSSL dylibs
-    IF(APPLE)
-      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-      add_custom_command(TARGET run_unit_tests POST_BUILD
-        COMMAND install_name_tool -change
-                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-                $<TARGET_FILE:run_unit_tests>
-        COMMAND install_name_tool -change
-                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-                $<TARGET_FILE:run_unit_tests>
-      )
-    ENDIF()
-
-    IF(OPENSSL_TO_BUNDLE_DIR AND NOT APPLE AND NOT WIN32)
-       SET_PROPERTY(TARGET run_unit_tests PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
-       SET_PROPERTY(TARGET run_unit_tests PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
-    ENDIF()
 
     if(HAVE_V8)
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})

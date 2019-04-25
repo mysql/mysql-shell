@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,12 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+#ifdef IS_PY3K
+#define PyString_FromString PyUnicode_FromString
+#define PyInt_Check PyLong_Check
+#define PyInt_FromLong PyLong_FromLong
+#endif  // IS_PY3K
 
 // Must be placed when Python code will be called
 struct WillEnterPython {

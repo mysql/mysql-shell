@@ -570,7 +570,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
     while (!stream.eof()) {
       std::string line;
 
-      std::getline(stream, line);
+      shcore::getline(stream, line);
 
       // When processing JavaScript files, validates the very first line to
       // start with #! If that's the case, it is replaced by a comment indicator

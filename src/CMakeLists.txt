@@ -68,10 +68,8 @@ endif()
 
 add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
 
-add_executable(mysqlsh ${mysqlsh_SRC})
+add_shell_executable(mysqlsh "${mysqlsh_SRC}")
 ADD_STAN_TARGET(mysqlsh mysqlsh/main.cc)
-set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
-fix_target_output_directory(mysqlsh "${INSTALL_BINDIR}")
 
 set(mysqlsh_SRC
   ${mysqlsh_SRC}
@@ -79,9 +77,7 @@ set(mysqlsh_SRC
   mysqlsh/debug_shell.cc
 )
 
-add_executable(mysqlshrec ${mysqlsh_SRC})
-set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
-fix_target_output_directory(mysqlshrec "${INSTALL_BINDIR}")
+add_shell_executable(mysqlshrec "${mysqlsh_SRC}" TRUE)
 target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
 
 # Last, to make -lrt -lpthread last, v8 needs it
@@ -105,8 +101,6 @@ target_link_libraries(mysqlshrec
     ${MYSQL_EXTRA_LIBRARIES}
 )
 
-INSTALL(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
-
 ### Bundling of OpenSSL libraries (if needed)
 if(OPENSSL_TO_BUNDLE_DIR)
   IF(WIN32)
@@ -120,17 +114,6 @@ if(OPENSSL_TO_BUNDLE_DIR)
   ELSEIF(APPLE)
     message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
 
-    IF(WITH_TESTS)
-      add_custom_command(TARGET mysqlshrec POST_BUILD
-        COMMAND install_name_tool -change
-                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-                $<TARGET_FILE:mysqlshrec>
-        COMMAND install_name_tool -change
-                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-                $<TARGET_FILE:mysqlshrec>
-      )
-    ENDIF()
-
     # Copy the OpenSSL libraries to the build dir
     ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
@@ -138,16 +121,6 @@ if(OPENSSL_TO_BUNDLE_DIR)
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
       COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
-
-    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND install_name_tool -change
-              "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-              $<TARGET_FILE:mysqlsh>
-      COMMAND install_name_tool -change
-              "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-              $<TARGET_FILE:mysqlsh>
-    )
 
     # Install/bundle the OpenSSL libraries including the soft links
     INSTALL(FILES
@@ -159,12 +132,6 @@ if(OPENSSL_TO_BUNDLE_DIR)
       COMPONENT main
     )
   ELSE() # Linux
-    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-    SET_PROPERTY(TARGET mysqlsh    PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
-    SET_PROPERTY(TARGET mysqlshrec PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
-    SET_PROPERTY(TARGET mysqlsh PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
-    SET_PROPERTY(TARGET mysqlshrec PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
-
     # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
     ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
@@ -195,8 +162,8 @@ IF(HAVE_PYTHON)
   if(WIN32)
     remove_definitions(-DUNICODE)
     IF(PYTHON_LIBRARY_PATH)
-      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" COMPONENT main)
+      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" COMPONENT main)
     ENDIF()
 
     # This should be there for both MD and non MD windows builds
@@ -218,19 +185,39 @@ IF(HAVE_PYTHON)
     # Copy the Python runtime
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python2.7/lib)
+                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/lib)
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python2.7/DLLs)
+                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
   elseif(BUNDLED_PYTHON_DIR)
-    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python2.7" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main
-              PATTERN "lib/python2.7/test" EXCLUDE)
-    INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/python2.7/pyconfig.h"
-            DESTINATION "${INSTALL_LIBDIR}/include/python2.7" COMPONENT main)
+    GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
+    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main
+              PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
+    INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
+            DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
 
     # Copy to build dir to allow testing
     add_custom_command(TARGET mysqlsh POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${BUNDLED_PYTHON_DIR}/lib/python2.7" "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python2.7")
+                      "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
+                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}")
+
+    if(BUNDLED_SHARED_PYTHON)
+      if(APPLE)
+        set(_PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}")
+      else()
+        file(GLOB _PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}.*")
+      endif()
+
+      INSTALL(FILES
+        "${_PYTHON_SHARED_LIB}"
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT main
+      )
+
+      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${_PYTHON_SHARED_LIB}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
+    endif()
   endif()
 ENDIF(HAVE_PYTHON)

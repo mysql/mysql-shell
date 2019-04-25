@@ -207,10 +207,9 @@ class Completer_frontend : public Shell_core_test_wrapper {
     execute("del globals()['db2']");
     wipe_all();
     execute("sys.version.split(' ')[0]");
-    if (output_handler.std_out.find("2.6") != std::string::npos)
-      _python26 = true;
+    m_python_version = output_handler.std_out;
   }
-  bool _python26 = false;
+  std::string m_python_version;
 
  public:
   std::pair<std::string, std::vector<std::string>> complete(
@@ -1186,19 +1185,21 @@ TEST_F(Completer_frontend, py_shell) {
   // a dynamically created global var
   execute("testobj = {'key_one':1, 'another_key': 2}");
   EXPECT_AFTER_TAB("testo", "testobj");
-  strv dict_options;
-  if (_python26)
-    dict_options = {"clear()",      "copy()",   "fromkeys()",  "get()",
-                    "has_key()",    "items()",  "iteritems()", "iterkeys()",
-                    "itervalues()", "keys()",   "pop()",       "popitem()",
-                    "setdefault()", "update()", "values()"};
-  else
-    dict_options = {"clear()",      "copy()",      "fromkeys()",  "get()",
-                    "has_key()",    "items()",     "iteritems()", "iterkeys()",
-                    "itervalues()", "keys()",      "pop()",       "popitem()",
-                    "setdefault()", "update()",    "values()",    "viewitems()",
-                    "viewkeys()",   "viewvalues()"};
-  EXPECT_AFTER_TAB_TAB("testobj.", strv(dict_options));
+  std::set<std::string> dict_options = {
+      "clear()", "copy()",    "fromkeys()",   "get()",    "items()", "keys()",
+      "pop()",   "popitem()", "setdefault()", "update()", "values()"};
+  if (shcore::str_beginswith(m_python_version, "2.")) {
+    dict_options.emplace("has_key()");
+    dict_options.emplace("iteritems()");
+    dict_options.emplace("iterkeys()");
+    dict_options.emplace("itervalues()");
+  }
+  if (shcore::str_beginswith(m_python_version, "2.7")) {
+    dict_options.emplace("viewitems()");
+    dict_options.emplace("viewkeys()");
+    dict_options.emplace("viewvalues()");
+  }
+  EXPECT_AFTER_TAB_TAB("testobj.", dict_options);
   EXPECT_AFTER_TAB("testobj.k", "testobj.keys()");
   EXPECT_TAB_DOES_NOTHING("testobj.key_one");
 

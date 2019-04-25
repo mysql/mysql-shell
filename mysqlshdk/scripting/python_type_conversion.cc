@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,9 +68,11 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
         PyErr_Clear();
         PyObject *obj_repr = PyObject_Repr(py);
         if (obj_repr) {
-          const char *s = PyString_AsString(obj_repr);
+          std::string s;
 
-          if (s) retval = Value(s);
+          if (Python_context::pystring_to_string(obj_repr, &s)) {
+            retval = Value(s);
+          }
 
           Py_DECREF(obj_repr);
         }
@@ -88,9 +90,11 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       PyErr_Clear();
       PyObject *obj_repr = PyObject_Repr(py);
       if (obj_repr) {
-        const char *s = PyString_AsString(obj_repr);
+        std::string s;
 
-        if (s) retval = Value(s);
+        if (Python_context::pystring_to_string(obj_repr, &s)) {
+          retval = Value(s);
+        }
 
         Py_DECREF(obj_repr);
       }
@@ -98,20 +102,23 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       retval = Value(value);
     }
 #if PY_VERSION_HEX >= 0x2060000
-  } else if (PyByteArray_Check(py))
+  } else if (PyByteArray_Check(py)) {
     return Value(PyByteArray_AsString(py), PyByteArray_Size(py));
-#endif
-  else if (PyString_Check(py))
+#endif  // PY_VERSION_HEX >= 0x2060000
+#ifdef IS_PY3K
+  } else if (PyBytes_Check(py)) {
+    return Value(PyBytes_AsString(py), PyBytes_Size(py));
+#else   // !IS_PY3K
+  } else if (PyString_Check(py)) {
     return Value(PyString_AsString(py), PyString_Size(py));
-  else if (PyUnicode_Check(py)) {
+#endif  // !IS_PY3K
+  } else if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here
     // before calling recursively or always allow NULL
     PyObject *ref = PyUnicode_AsUTF8String(py);
     retval = pyobj_to_shcore_value(ref);
     Py_DECREF(ref);
-  }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime ||
-     // generic_object) {
-  else if (PyList_Check(py)) {
+  } else if (PyList_Check(py)) {
     std::shared_ptr<Value::Array_type> array(new Value::Array_type);
 
     for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++) {
@@ -134,10 +141,12 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(py, &pos, &key, &value)) {
-      // The key may be anything (not necesarily a string)
+      // The key may be anything (not necessarily a string)
       // so we get the string representation of whatever it is
       PyObject *key_repr = PyObject_Str(key);
-      (*map)[PyString_AsString(key_repr)] = pyobj_to_shcore_value(value);
+      std::string key_repr_string;
+      Python_context::pystring_to_string(key_repr, &key_repr_string);
+      (*map)[key_repr_string] = pyobj_to_shcore_value(value);
 
       Py_DECREF(key_repr);
     }
@@ -163,10 +172,12 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       return Value(function);
     } else {
       PyObject *obj_repr = PyObject_Repr(py);
-      const char *s = PyString_AsString(obj_repr);
+      std::string s;
       Value ret_val;
 
-      if (s) ret_val = Value(s);
+      if (Python_context::pystring_to_string(obj_repr, &s)) {
+        ret_val = Value(s);
+      }
 
       Py_DECREF(obj_repr);
 
@@ -177,6 +188,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
             "Cannot convert Python value to internal value");
     }
   }
+  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object
 
   return retval;
 }

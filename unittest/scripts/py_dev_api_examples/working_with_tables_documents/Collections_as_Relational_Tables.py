@@ -7,5 +7,5 @@ result = customers.select(["doc->'$.name'", "doc->'$.last_name'"]).where("doc->'
 
 record = result.fetch_one()
 
-print "Name : %s\n"  % record[0]
-print "Last Name : %s\n"  % record[1]
+print("Name : %s\n"  % record[0])
+print("Last Name : %s\n"  % record[1])

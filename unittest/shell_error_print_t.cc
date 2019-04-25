@@ -59,11 +59,17 @@ TEST_F(Shell_error_printing, python_stack) {
 
   wipe_all();
   execute("1/0");
+#ifdef IS_PY3K
+#define ERROR_MSG "division by zero"
+#else
+#define ERROR_MSG "integer division or modulo by zero"
+#endif
   EXPECT_EQ(
       "Traceback (most recent call last):\n"
       "  File \"<string>\", line 1, in <module>\n"
-      "ZeroDivisionError: integer division or modulo by zero\n",
+      "ZeroDivisionError: " ERROR_MSG "\n",
       output_handler.std_err);
+#undef ERROR_MSG
 
   wipe_all();
   execute("raise KeyboardInterrupt()");

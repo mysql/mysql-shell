@@ -1,4 +1,4 @@
-print myColl.find('name = "adam"').execute().fetch_one().parent_name|adam|
-print myColl.find('name = "charles"').execute().fetch_one().parent_name|charles|
+print(myColl.find('name = "adam"').execute().fetch_one().parent_name)|adam|
+print(myColl.find('name = "charles"').execute().fetch_one().parent_name)|charles|
 testSession.close()||
 testSession = None||

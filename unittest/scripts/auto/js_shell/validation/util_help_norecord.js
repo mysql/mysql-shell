@@ -282,7 +282,7 @@ identity.list_compartments(config['tenancy']).data
 compartment = identity.list_compartments(config['tenancy']).data[0]
 images = compute.list_images(compartment.id).data
 for image in images:
-  print image.display_name
+  print(image.display_name)
       Assignes the first compartment of the tenancy to the compartment
       variable, featches the available OS images for the compartment and prints
       a list of their names.

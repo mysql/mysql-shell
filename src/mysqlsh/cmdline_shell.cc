@@ -856,7 +856,7 @@ void Command_line_shell::command_loop() {
           mysqlsh::current_console()->raw_print(
               prompt(), mysqlsh::Output_stream::STDOUT, false);
         }
-        if (!std::getline(std::cin, cmd)) {
+        if (!shcore::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
             _interrupted = false;
             continue;

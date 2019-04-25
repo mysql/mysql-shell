@@ -174,8 +174,8 @@ TEST_F(Mysqlsh_misc, autocompletion_options) {
 
 TEST_F(Mysqlsh_misc, autodetect_script_type) {
   shcore::create_file("bla.js", "println('JavaScript works');\n");
-  shcore::create_file("bla.py", "print 'Python works'\n");
-  shcore::create_file("py.foo", "print 'Python works!'\n");
+  shcore::create_file("bla.py", "print('Python works')\n");
+  shcore::create_file("py.foo", "print('Python works!')\n");
   shcore::create_file("js.foo", "println('JS works!')\n");
   shcore::create_file("bla.sql", "select 'SQL works';\n");
 

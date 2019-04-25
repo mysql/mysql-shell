@@ -1,5 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -34,30 +35,30 @@ validate_members(collection, [
   'replace_one'])
 
 #@ Testing collection name retrieving
-print 'get_name(): ' + collection.get_name()
-print 'name: ' + collection.name
+print('get_name(): ' + collection.get_name())
+print('name: ' + collection.name)
 
 #@ Testing session retrieving
-print 'get_session():', collection.get_session()
-print 'session:', collection.session
+print('get_session():', collection.get_session())
+print('session:', collection.session)
 
 #@ Testing collection schema retrieving
-print 'get_schema():', collection.get_schema()
-print 'schema:', collection.schema
+print('get_schema():', collection.get_schema())
+print('schema:', collection.schema)
 
 #@ Testing dropping index {VER(>=8.0.11)}
 collection.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}]});
-print collection.drop_index('_name')
-print collection.drop_index('_name')
-print collection.drop_index('not_an_index')
+print(collection.drop_index('_name'))
+print(collection.drop_index('_name'))
+print(collection.drop_index('not_an_index'))
 
 #@ Testing dropping index using execute {VER(>=8.0.11)}
 collection.drop_index('_name').execute()
 
 #@ Testing existence
-print 'Valid:', collection.exists_in_database()
+print('Valid:', collection.exists_in_database())
 mySession.get_schema('py_shell_test').drop_collection('collection1')
-print 'Invalid:', collection.exists_in_database()
+print('Invalid:', collection.exists_in_database())
 
 #================= add_or_replace_one ======================
 #@ add_or_replace_one parameter error conditions
@@ -222,14 +223,14 @@ collection.count(1)
 
 #@ WL12412-TS1_2: Count returns correct number of documents
 count = collection.count()
-print "Initial Document Count: %d" % count
+print("Initial Document Count: %d" % count)
 
 collection.add({"_id" : "001", "sample": "document1"})
 collection.add({"_id" : "002", "sample": "document2"})
 collection.add({"_id" : "003", "sample": "document3"})
 
 count = collection.count()
-print "Final Document Count: %d" % count
+print("Final Document Count: %d" % count)
 
 #@ WL12412-TS2_1: Count throws error on unexisting collection
 schema.drop_collection('count_collection')

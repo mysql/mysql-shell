@@ -1093,4 +1093,14 @@ void Sigint_event::wait(uint32_t ms) {
 
 #endif  // _WIN32
 
+std::istream &getline(std::istream &in, std::string &out) {
+  if (std::getline(in, out)) {
+    if (!out.empty() && out.back() == '\r') {
+      out.pop_back();
+    }
+  }
+
+  return in;
+}
+
 }  // namespace shcore

@@ -245,6 +245,12 @@ lexical_cast(const S &data) {
 }
 
 /**
+ * Wrapper for the std::getline() function which removes the last character
+ * if it's carriage return.
+ */
+std::istream &getline(std::istream &in, std::string &out);
+
+/**
  * Temporary implementation for make_unique
  * Should be deleted when we migrate to C++14
  */

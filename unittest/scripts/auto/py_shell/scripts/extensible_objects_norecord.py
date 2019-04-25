@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Object Registration
 testutil.enable_extensible()
 
@@ -15,7 +17,7 @@ testutil.enable_extensible()
 
 #@ Register, function(string)
 def f1(data):
-  print "Python Function Definition: ", data
+  print("Python Function Definition: ", data)
 
 shell.add_extension_object_member(testutil.sample_module_p_y, "stringFunction", f1,
                           {
@@ -48,9 +50,9 @@ testutil.sample_module_p_y.string_function("one")
 #@ Register, function(dictionary)
 def f2(data=None):
   if data:
-    print "Function data: ", data['myOption']
+    print("Function data: ", data['myOption'])
   else:
-    print "No function data available"
+    print("No function data available")
 
 shell.add_extension_object_member(testutil.sample_module_p_y, "dictFunction", f2,
                           {
@@ -94,7 +96,7 @@ testutil.sample_module_p_y.dict_function({"myOption": "test"})
 
 #@ Register, function(Session)
 def f3(data):
-  print "Active Session:", data
+  print("Active Session:", data)
 
 shell.add_extension_object_member(testutil.sample_module_p_y, "objectFunction1", f3,
                           {
@@ -129,7 +131,7 @@ session.close()
 
 #@ Register, function(Session and ClassicSession)
 def f4(data):
-  print "Active Session:", data
+  print("Active Session:", data)
 
 shell.add_extension_object_member(testutil.sample_module_p_y, "objectFunction2", f4,
                           {
@@ -370,5 +372,5 @@ shell.add_extension_object_member(testutil.sample_module_p_y, "function", f5,
 
 
 def f6(data):
-  print "Some random data:", data
+  print("Some random data:", data)
 

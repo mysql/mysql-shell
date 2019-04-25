@@ -55,7 +55,7 @@ if(HAVE_V8)
 endif()
 
 if(HAVE_PYTHON)
-  include_directories("${PYTHON_INCLUDE_DIR}")
+  include_directories("${PYTHON_INCLUDE_DIRS}")
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
         provider_python.cc

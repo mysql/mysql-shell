@@ -651,6 +651,9 @@ int main(int argc, char **argv) {
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
   if (!locale) log_error("Failed to set locale to en_US.UTF-8");
+  // set the environment variable as well, this ensures that locale is not
+  // reset using setlocale(LC_XXX, "") call by any of our dependencies
+  putenv(const_cast<char *>("LC_ALL=en_US.UTF-8"));
 #endif  // _WIN32
 
   int ret_val = 0;

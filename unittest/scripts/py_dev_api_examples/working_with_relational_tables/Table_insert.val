@@ -1,5 +1,5 @@
 tstRes = myTable.select().order_by(['name']).execute()||
-print tstRes.fetch_one().name|Jack|
-print tstRes.fetch_one().name|Mike|
+print(tstRes.fetch_one().name)|Jack|
+print(tstRes.fetch_one().name)|Mike|
 testSession.close()||
 testSession = None||

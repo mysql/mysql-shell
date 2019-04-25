@@ -402,8 +402,8 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
     });
     wipe_all();
     EXPECT_NO_THROW(
-        execute("session.run_sql('select * from mysql.user where sleep(42)')\n"
-                "print('FAILED')\n"));
+        execute("session.run_sql('select * from mysql.user where sleep(42)');"
+                "print('FAILED')"));
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
     MY_EXPECT_STDERR_CONTAINS("KeyboardInterrupt");
     thd.join();
@@ -1023,7 +1023,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     thd.join();
     session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
-    execute("print 'flush'");  // this will flush any pending async callbacks
+    execute("print('flush')");  // this will flush any pending async callbacks
     wipe_all();
   }
 
@@ -1040,7 +1040,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     thd.join();
     session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
-    execute("print 'flush'");  // this will flush any pending async callbacks
+    execute("print('flush')");  // this will flush any pending async callbacks
     wipe_all();
   }
 
@@ -1076,16 +1076,23 @@ TEST_F(Interrupt_mysql, javascript) {
 TEST_F(Interrupt_mysql, python) {
   // Test case for FR4 Py
   execute("\\py");
+  execute("import time");
+#ifdef IS_PY3K
+  execute("xrange = range");
+#endif
+  execute(
+      "def sleep():\n"
+      "  for i in xrange(1000000000): time.sleep(0.1)");
   std::thread thd([this]() {
     output_wait("READY", 3);
     shcore::Interrupts::interrupt();
   });
   wipe_all();
+  // execute() allows only for single_input as specified in Python's Grammar
   EXPECT_NO_THROW(
-      execute("print 'READY'\n"
-              "import time\n"
-              "for i in xrange(1000000000): time.sleep(0.1)\n"
-              "print 'FAILED'\n\n"));
+      execute("print('READY');"
+              "sleep();"
+              "print('FAILED')"));
   MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
   thd.join();
 }

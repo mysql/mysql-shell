@@ -1,5 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -43,9 +44,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
-print 'Deleted donna:', result.affected_items_count, '\n'
+print('Deleted donna:', result.affected_items_count, '\n')
 result=crud.bind('data', 'alma').execute()
-print 'Deleted alma:', result.affected_items_count, '\n'
+print('Deleted alma:', result.affected_items_count, '\n')
 
 
 # ----------------------------------------------
@@ -85,28 +86,28 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 #@ CollectionRemove: remove under condition
 //! [CollectionRemove: remove under condition]
 result = collection.remove('age = 15').execute()
-print 'Affected Rows:', result.affected_items_count, '\n'
+print('Affected Rows:', result.affected_items_count, '\n')
 
 docs = collection.find().execute().fetch_all()
-print 'Records Left:', len(docs), '\n'
+print('Records Left:', len(docs), '\n')
 //! [CollectionRemove: remove under condition]
 
 #@ CollectionRemove: remove with binding
 //! [CollectionRemove: remove with binding]
 result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()
-print 'Affected Rows:', result.affected_items_count, '\n'
+print('Affected Rows:', result.affected_items_count, '\n')
 //! [CollectionRemove: remove with binding]
 
 docs = collection.find().execute().fetch_all()
-print 'Records Left:', len(docs), '\n'
+print('Records Left:', len(docs), '\n')
 
 #@ CollectionRemove: full remove
 //! [CollectionRemove: full remove]
 result = collection.remove('1').execute()
-print 'Affected Rows:', result.affected_items_count, '\n'
+print('Affected Rows:', result.affected_items_count, '\n')
 
 docs = collection.find().execute().fetch_all()
-print 'Records Left:', len(docs), '\n'
+print('Records Left:', len(docs), '\n')
 //! [CollectionRemove: full remove]
 
 # Cleanup

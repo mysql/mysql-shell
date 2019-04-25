@@ -5,4 +5,4 @@ myResult = myTable.select(['name', 'age']) \
 myRows = myResult.fetch_all()
 
 for row in myRows:
-  print "%s is %s years old." % (row.name, row.age)
+  print("%s is %s years old." % (row.name, row.age))

@@ -23,7 +23,12 @@
 #
 
 from __future__ import print_function
-import BaseHTTPServer
+
+try:
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+except:
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+
 import base64
 import json
 import os
@@ -32,10 +37,14 @@ import ssl
 import sys
 import time
 import traceback
-import urlparse
+
+try:
+    from urllib.parse import parse_qsl, urlparse
+except:
+    from urlparse import parse_qsl, urlparse
 
 
-class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class TestRequestHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def __init__(self, *args, **kwargs):
@@ -47,8 +56,7 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         }
 
         try:
-            return BaseHTTPServer.BaseHTTPRequestHandler.__init__(
-                self, *args, **kwargs)
+            return BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
         except Exception as e:
             self.log_message(traceback.format_exc())
 
@@ -89,21 +97,19 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def handle_basic(self, args):
         user = args[0]
         password = args[1]
-        authorization = self.headers.getheader('Authorization', 'Basic ')
+        authorization = self.getheader('Authorization', 'Basic ')
         authenticated = ('%s:%s' % (user, password)) == base64.b64decode(
-            authorization[6:])
+            authorization[6:]).decode('ascii')
         self.reply(200 if authenticated else 401,
                    {'authentication': 'OK' if authenticated else 'NO'})
         return True
 
     def handle_headers(self, args):
-        self.reply(
-            extra_headers=urlparse.parse_qsl(
-                urlparse.urlparse(self.path).query))
+        self.reply(extra_headers=parse_qsl(urlparse(self.path).query))
         return True
 
     def invoke_handler(self):
-        for path, handler in self._handlers.iteritems():
+        for path, handler in self._handlers.items():
             m = re.match(path, self.path)
             if m:
                 return handler(m.groups())
@@ -118,7 +124,7 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         response = {}
         response['method'] = self.command
         response['path'] = self.path
-        response['headers'] = dict(self.headers)
+        response['headers'] = self.getheaders()
         response['data'], response['json'] = self.get_request_body()
         response.update(extra_response)
         response = json.dumps(response)
@@ -133,26 +139,36 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
 
         if self.command != 'HEAD':
-            self.wfile.write(response)
+            self.wfile.write(response.encode('ascii'))
 
     def get_request_body(self):
-        content_length = int(self.headers.getheader('Content-Length', 0))
+        content_length = int(self.getheader('Content-Length', 0))
         content = None
         json_content = None
 
         if content_length > 0:
-            content = self.rfile.read(content_length)
+            content = self.rfile.read(content_length).decode('ascii')
 
-            if self.headers.getheader('Content-Type',
-                                      'unknown') == 'application/json':
+            if self.getheader('Content-Type', 'unknown') == 'application/json':
                 json_content = json.loads(content)
 
         return content, json_content
 
     def log_message(self, format, *args):
-        BaseHTTPServer.BaseHTTPRequestHandler.log_message(self, format, *args)
+        BaseHTTPRequestHandler.log_message(self, format, *args)
         sys.stderr.flush()
 
+    def getheader(self, name, default):
+        if hasattr(self.headers, 'getheader'):
+            return self.headers.getheader(name, default)
+        else:
+            return self.headers.get(name, default)
+
+    def getheaders(self):
+        headers = {}
+        for k, v in dict(self.headers).items():
+            headers[k.lower()] = v
+        return headers
 
 def usage():
     print('Usage:')
@@ -162,7 +178,7 @@ def usage():
 
 
 def test_server(port):
-    server = BaseHTTPServer.HTTPServer(('127.0.0.1', port), TestRequestHandler)
+    server = HTTPServer(('127.0.0.1', port), TestRequestHandler)
     ssl_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ssl')
     server.socket = ssl.wrap_socket(
         server.socket,

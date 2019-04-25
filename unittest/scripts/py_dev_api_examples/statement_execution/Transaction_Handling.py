@@ -21,10 +21,10 @@ try:
     # Commit the transaction if everything went well
     session.commit()
     
-    print 'Data inserted successfully.'
-except Exception, err:
+    print('Data inserted successfully.')
+except Exception as err:
     # Rollback the transaction in case of an error
     session.rollback()
     
     # Printing the error message
-    print 'Data could not be inserted: %s' % str(err)
+    print('Data could not be inserted: %s' % str(err))

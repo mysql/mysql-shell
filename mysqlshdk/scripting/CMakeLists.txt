@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -22,9 +22,7 @@
 include_directories(
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/common/uuid/include
-    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
-    ${PYTHON_INCLUDE_DIR}
-    ${V8_INCLUDE_DIR})
+    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 
 set(SCRIPTING_SOURCES
     common.cc
@@ -39,6 +37,7 @@ set(SCRIPTING_SOURCES
 # Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.
 if(HAVE_V8)
+  include_directories("${V8_INCLUDE_DIR}")
   # Loads the core.js file
   FILE(READ "${CMAKE_SOURCE_DIR}/mysqlshdk/scripts/core.js" JS_CORE_MODULE)
 
@@ -67,6 +66,7 @@ if(HAVE_V8)
 endif()
 
 if(HAVE_PYTHON)
+  include_directories("${PYTHON_INCLUDE_DIRS}")
   set(PYTHON_SCRIPTING_SOURCES
     types_python.cc
     python_array_wrapper.cc

@@ -208,7 +208,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
 #ifdef HAVE_V8
   std::string print_stmt = "println('secret');";
 #else
-  std::string print_stmt = "print 'secret';";
+  std::string print_stmt = "print('secret')";
 #endif
 
   // SQL filter only applies to SQL mode
@@ -219,9 +219,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
 
 #ifdef HAVE_V8
   shell.process_line("\\py");
-  shell.process_line("print 'secret'");
+  shell.process_line("print('secret')");
   EXPECT_EQ(1, linenoiseHistorySize());
-  EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(0));
+  EXPECT_STREQ("print('secret')", linenoiseHistoryLine(0));
 #endif
 
   // unset filter via shell options
@@ -692,8 +692,8 @@ TEST_F(Shell_history, check_history_source_py) {
 
   std::ofstream of;
   of.open("test_source.py");
-  of << "print 1;\n";
-  of << "print 2;\n";
+  of << "print(1)\n";
+  of << "print(2)\n";
   of.close();
 
   EXPECT_NO_THROW(shell.load_state());

@@ -24,6 +24,6 @@ myResult = mySession.sql("SELECT @my_var").execute()
 
 # Gets the row and prints the first column
 row = myResult.fetch_one()
-print row[0]
+print(row[0])
 
 mySession.close()

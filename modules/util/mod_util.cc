@@ -894,7 +894,7 @@ REGISTER_HELP(
     "compartment = identity.list_compartments(config['tenancy']).data[0]\n"
     "images = compute.list_images(compartment.id).data\n"
     "for image in images:\n"
-    "  print image.display_name"
+    "  print(image.display_name)"
     "@endcode");
 REGISTER_HELP(OCI_EXAMPLE2_DESC,
               "Assignes the first compartment of the tenancy to the "

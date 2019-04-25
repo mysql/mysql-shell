@@ -137,7 +137,7 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
       while (!stream.eof()) {
         std::string line;
 
-        std::getline(stream, line);
+        shcore::getline(stream, line);
         data.append(line).append("\n");
       }
     } else {

@@ -31,6 +31,7 @@ the creation of MySQL sandbox instances.
 """
 
 # pylint: disable=wrong-import-position,wrong-import-order
+import io
 import logging
 import os
 import signal
@@ -43,6 +44,11 @@ from mysql_gadgets.command.sandbox import create_sandbox, stop_sandbox, \
     kill_sandbox, delete_sandbox, start_sandbox, SANDBOX, SANDBOX_CREATE, \
     SANDBOX_DELETE, SANDBOX_KILL, SANDBOX_START, SANDBOX_STOP
 from mysql_gadgets.exceptions import GadgetError
+
+PY2 = int(sys.version[0]) == 2
+
+if not PY2:
+    unicode = str
 
 # get script name
 try:
@@ -65,12 +71,21 @@ def main():
 
     # Read options from stdin
     data = ""
+
+    if PY2:
+        stdin = sys.stdin
+    else:
+        # Python3 expects the stdin to be ASCII encoded, while Shell writes the
+        # UTF-8 encoded input. Wrapping the buffer allows to automatially decode
+        # the input.
+        stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+
     while True:
-        line = sys.stdin.readline()
+        line = stdin.readline()
         if line == ".\n":
             break
         data += line
-    shell_options = json.loads(data.decode('utf-8'))
+    shell_options = json.loads(data.decode('utf-8') if PY2 else data)
     cmd_options = shell_options[0]
     del shell_options[0]
 

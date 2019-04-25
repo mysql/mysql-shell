@@ -1,5 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -70,9 +71,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
-print result.fetch_one().name + '\n'
+print(result.fetch_one().name + '\n')
 result=crud.bind('data', 'alma').execute()
-print result.fetch_one().name + '\n'
+print(result.fetch_one().name + '\n')
 
 
 # ----------------------------------------------
@@ -141,32 +142,32 @@ records
 
 #@ Table.Select All
 records = table.select().execute().fetch_all()
-print "All:", len(records), "\n"
+print("All:", len(records), "\n")
 
 #@ Table.Select Filtering
 records = table.select().where('gender = "male"').execute().fetch_all()
-print "Males:", len(records), "\n"
+print("Males:", len(records), "\n")
 
 records = table.select().where('gender = "female"').execute().fetch_all()
-print "Females:", len(records), "\n"
+print("Females:", len(records), "\n")
 
 records = table.select().where('age = 13').execute().fetch_all()
-print "13 Years:", len(records), "\n"
+print("13 Years:", len(records), "\n")
 
 records = table.select().where('age = 14').execute().fetch_all()
-print "14 Years:", len(records), "\n"
+print("14 Years:", len(records), "\n")
 
 records = table.select().where('age < 17').execute().fetch_all()
-print "Under 17:", len(records), "\n"
+print("Under 17:", len(records), "\n")
 
 records = table.select().where('name like "a%"').execute().fetch_all()
-print "Names With A:", len(records), "\n"
+print("Names With A:", len(records), "\n")
 
 records = table.select().where('name LIKE "a%"').execute().fetch_all()
-print "Names With A:", len(records), "\n"
+print("Names With A:", len(records), "\n")
 
 records = table.select().where('NOT (age = 14)').execute().fetch_all()
-print "Not 14 Years:", len(records), "\n"
+print("Not 14 Years:", len(records), "\n")
 
 #@ Table.Select Field Selection
 result = table.select(['name','age']).execute()
@@ -181,9 +182,9 @@ for member in all_members:
 
 # In python, members are returned in alphabetic order
 # We print the requested members here (get_length and getField are members too)
-print '1-Metadata Length:', len(columns), '\n'
-print '1-Metadata Field:', columns[5], '\n'
-print '1-Metadata Field:', columns[0], '\n'
+print('1-Metadata Length:', len(columns), '\n')
+print('1-Metadata Field:', columns[5], '\n')
+print('1-Metadata Field:', columns[0], '\n')
 
 result = table.select(['age']).execute()
 record = result.fetch_one()
@@ -198,31 +199,31 @@ for member in all_members:
 
 # In python, members are returned in alphabetic order
 # We print the requested members here (get_length and getField are members too)
-print '2-Metadata Length:', len(columns), '\n'
-print '2-Metadata Field:', columns[0], '\n'
+print('2-Metadata Length:', len(columns), '\n')
+print('2-Metadata Field:', columns[0], '\n')
 
 #@ Table.Select Sorting
 records = table.select().order_by(['name']).execute().fetch_all()
-for index in xrange(7):
-	print 'Select Asc', index, ':', records[index].name, '\n'
+for index in range(7):
+	print('Select Asc', index, ':', records[index].name, '\n')
 
 records = table.select().order_by(['name desc']).execute().fetch_all()
-for index in xrange(7):
-	print 'Select Desc', index, ':', records[index].name, '\n'
+for index in range(7):
+	print('Select Desc', index, ':', records[index].name, '\n')
 
 #@ Table.Select Limit and Offset
 records = table.select().limit(4).execute().fetch_all()
-print 'Limit-Offset 0 :', len(records), '\n'
+print('Limit-Offset 0 :', len(records), '\n')
 
-for index in xrange(7):
+for index in range(7):
 	records = table.select().limit(4).offset(index + 1).execute().fetch_all()
-	print 'Limit-Offset', index + 1, ':', len(records), '\n'
+	print('Limit-Offset', index + 1, ':', len(records), '\n')
 
 #@ Table.Select Parameter Binding through a View
 view = schema.get_table('view1');
 records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetch_all()
-print 'Select Binding Length:', len(records), '\n'
-print 'Select Binding Name:', records[0].my_name, '\n'
+print('Select Binding Length:', len(records), '\n')
+print('Select Binding Name:', records[0].my_name, '\n')
 
 #@ Table.Select Basic vertical output
 shell.options.resultFormat = "vertical"
@@ -252,8 +253,8 @@ table.insert({"value": 12}).execute()
 table.insert({"value": 12345}).execute()
 table.insert({"value": 123456789}).execute()
 records = table.select().execute().fetch_all()
-for index in xrange(4):
-  print 'Variable value :', records[index].value, '\n'
+for index in range(4):
+  print('Variable value :', records[index].value, '\n')
 
 #@ Table.Select Zerofill field display
 mySession.sql('select * from table2')

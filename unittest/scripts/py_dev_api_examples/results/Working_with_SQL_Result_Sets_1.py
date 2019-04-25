@@ -4,11 +4,11 @@ if res.has_data():
     
     row = res.fetch_one()
     if row:
-        print 'List of row available for fetching.'
+        print('List of row available for fetching.')
         while row:
-            print row
+            print(row)
             row = res.fetch_one()
     else:
-        print 'Empty list of rows.'
+        print('Empty list of rows.')
 else:
-    print 'No row result.'
+    print('No row result.')

@@ -48,6 +48,9 @@ from mysql_gadgets.common.config_parser import (create_option_file,
 from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets import exceptions, MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 
+if sys.version_info[0] >= 3:
+    unicode = str
+
 # get module logger
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
@@ -663,13 +666,18 @@ def create_sandbox(**kwargs):
         _, stderr = create_ssl_rsa_files_proc.communicate()
         # if the return code is not 0, an error occurred. Raise an exception
         # and show it if the ignore_ssl_error flag was not used.
-        if create_ssl_rsa_files_proc.returncode and not ignore_ssl_error:
-            raise exceptions.GadgetError(
+        if create_ssl_rsa_files_proc.returncode:
+            message = (
                 "Unable to create SSL/RSA files. mysql_ssl_rsa_setup exited "
-                "with error code '{0}' and message: '{1}'. You can use the "
-                "option to ignore SSL errors to skip the use of SSL.".format(
+                "with error code '{0}' and message: '{1}'.".format(
                     create_ssl_rsa_files_proc.returncode, stderr.strip()))
-        elif not create_ssl_rsa_files_proc.returncode:
+            if ignore_ssl_error:
+                _LOGGER.warning(message)
+            else:
+                raise exceptions.GadgetError(
+                    "{0}. You can use the option to ignore SSL errors to skip "
+                    "the use of SSL.".format(message))
+        else:
             # if the process ran without any errors
             _LOGGER.debug("SSL/RSA files created.")
     else:

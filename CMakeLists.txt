@@ -131,6 +131,7 @@ INCLUDE(version.cmake)
 ###
 
 INCLUDE(install_macros)
+INCLUDE(exeutils)
 INCLUDE(libutils)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
@@ -160,9 +161,32 @@ IF (WITH_OCI)
 ENDIF()
 
 if(HAVE_PYTHON)
+  IF(NOT USE_PYTHON_VERSION)
+    SET(USE_PYTHON_VERSION "3.4.3")
+  ENDIF()
+
+  FUNCTION(GET_PYTHON_VERSION python_dir output_var)
+    FILE(GLOB_RECURSE patch_level "${python_dir}/patchlevel.h")
+
+    IF(patch_level AND EXISTS "${patch_level}")
+      FILE(STRINGS "${patch_level}" python_version_str
+           REGEX "^#define[ \t]+PY_VERSION[ \t]+\"[^\"]+\"")
+      STRING(REGEX REPLACE "^#define[ \t]+PY_VERSION[ \t]+\"([^\"]+)\".*" "\\1"
+                           python_version_str "${python_version_str}")
+      SET(${output_var} "${python_version_str}" PARENT_SCOPE)
+    ELSE()
+      MESSAGE(FATAL_ERROR "Couldn't find patchlevel.h in ${python_dir}")
+    ENDIF()
+  ENDFUNCTION()
+
+  FUNCTION(GET_MAJOR_MINOR python_ver output_var)
+    STRING(REGEX REPLACE "^([0-9]+)\\.([0-9]+).*" "\\1.\\2" python_ver "${python_ver}")
+    SET(${output_var} ${python_ver} PARENT_SCOPE)
+  ENDFUNCTION()
+
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
-    FIND_PACKAGE(PythonLibs 2.6)
+    FIND_PACKAGE(PythonLibs "${USE_PYTHON_VERSION}" REQUIRED)
     # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
     # By default they take the value of PB2WORKDIR and PYTHON_SOURCENAME env vars
     IF(NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
@@ -171,7 +195,7 @@ if(HAVE_PYTHON)
     ENDIF()
 
     IF(NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
-      GET_FILENAME_COMPONENT(PYTHON_PATH ${PYTHON_INCLUDE_DIR} DIRECTORY)
+      GET_FILENAME_COMPONENT(PYTHON_PATH ${PYTHON_INCLUDE_DIRS} DIRECTORY)
       GET_FILENAME_COMPONENT(PYTHON_FOLDER ${PYTHON_PATH} NAME)
       GET_FILENAME_COMPONENT(PYTHON_PATH ${PYTHON_PATH} DIRECTORY)
     ENDIF()
@@ -183,11 +207,35 @@ if(HAVE_PYTHON)
     ENDIF()
   ELSEIF(BUNDLED_PYTHON_DIR)
     # If we're using a Python build for bundling, ensure we build against it too
-    SET(PYTHON_INCLUDE_DIR "${BUNDLED_PYTHON_DIR}/include/python2.7")
-    SET(PYTHON_LIBRARIES "${BUNDLED_PYTHON_DIR}/lib/libpython2.7.a")
-    SET(PYTHONLIBS_VERSION_STRING "2.7")
+    GET_PYTHON_VERSION("${BUNDLED_PYTHON_DIR}" PYTHONLIBS_VERSION_STRING)
+    GET_MAJOR_MINOR("${PYTHONLIBS_VERSION_STRING}" PYTHONLIBS_MAJOR_MINOR)
+    FIND_PATH(PYTHON_INCLUDE_DIRS
+      NAMES
+        Python.h
+      HINTS
+        "${BUNDLED_PYTHON_DIR}/include"
+      PATH_SUFFIXES
+        python${PYTHONLIBS_MAJOR_MINOR}mu
+        python${PYTHONLIBS_MAJOR_MINOR}m
+        python${PYTHONLIBS_MAJOR_MINOR}u
+        python${PYTHONLIBS_MAJOR_MINOR}
+      NO_DEFAULT_PATH
+    )
+    FIND_LIBRARY(PYTHON_LIBRARIES
+      NAMES
+        python${PYTHONLIBS_MAJOR_MINOR}mu
+        python${PYTHONLIBS_MAJOR_MINOR}m
+        python${PYTHONLIBS_MAJOR_MINOR}u
+        python${PYTHONLIBS_MAJOR_MINOR}
+      HINTS
+        "${BUNDLED_PYTHON_DIR}/lib"
+      NO_DEFAULT_PATH
+    )
+    IF(NOT PYTHON_LIBRARIES MATCHES ".*\\.a$")
+      SET(BUNDLED_SHARED_PYTHON "YES")
+    ENDIF()
   ELSE()
-    FIND_PACKAGE(PythonLibs 2.6)
+    FIND_PACKAGE(PythonLibs "${USE_PYTHON_VERSION}" REQUIRED)
   ENDIF()
 endif()
 
@@ -224,12 +272,24 @@ IF(PYTHONLIBS_FOUND OR BUNDLED_PYTHON_DIR)
     add_definitions(-DHAVE_PYTHON=1) # 1 means normal (or windows)
   ENDIF()
   message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
-  message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
+  message(STATUS "PYTHON_INCLUDE_DIRS: ${PYTHON_INCLUDE_DIRS}")
   message(STATUS "PYTHON_LIRARIES: ${PYTHON_LIBRARIES}")
 
-  IF(NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0"))
-    MESSAGE(FATAL_ERROR "Python support requires Python 2.6 or 2.7")
+  IF(NOT PYTHONLIBS_VERSION_STRING)
+    MESSAGE(FATAL_ERROR "Couldn't detect Python's version")
   ENDIF()
+
+  # supported Python versions: ((v >= 2.6) && (v < 3.0)) || (v >= 3.4.3)
+  IF(NOT((NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "2.6") AND (PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0")) OR NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.4.3")))
+    MESSAGE(FATAL_ERROR "Python support requires Python 2.6, 2.7, 3.4.3 or greater")
+  ENDIF()
+
+  IF(NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0"))
+    ADD_DEFINITIONS(-DIS_PY3K)
+  ENDIF()
+
+  GET_MAJOR_MINOR("${PYTHONLIBS_VERSION_STRING}" PYTHONLIBS_MAJOR_MINOR)
+  message(STATUS "Python major.minor: ${PYTHONLIBS_MAJOR_MINOR}")
 
   # TODO: Temporary flag indicating python is static as well
   # Proper logic should be added to correctly configure this
@@ -360,7 +420,7 @@ INCLUDE_DIRECTORIES(
             ${PROTOBUF_INCLUDE_DIRS})
 
 IF(HAVE_PYTHON)
-  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
 ENDIF()
 
 ###
@@ -434,8 +494,8 @@ IF(WITH_OCI)
   INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_SHAREDIR}/oci_sdk/ COMPONENT main DESTINATION ${INSTALL_SHAREDIR}/oci_sdk)
   ADD_DEFINITIONS(-DWITH_OCI)
 
-  IF (APPLE)
-    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIB ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/*_openssl.so)
+  IF(BUNDLED_OPENSSL_DIR AND APPLE)
+    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIB ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
     EXECUTE_PROCESS(COMMAND install_name_tool -change
             "${CRYPTO_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
             ${OCI_OPEN_SSL_LIB})

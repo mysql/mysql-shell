@@ -212,7 +212,13 @@ TEST_F(Python, basic) {
   // handled as String representation
   py->execute_interactive("a = 18446744073709551615999", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.repr(), "\"18446744073709551615999L\"");
+#ifdef IS_PY3K
+#define VALUE_SUFFIX ""
+#else
+#define VALUE_SUFFIX "L"
+#endif
+  ASSERT_EQ(result.repr(), "\"18446744073709551615999" VALUE_SUFFIX "\"");
+#undef VALUE_SUFFIX
   ASSERT_EQ(result.type, shcore::Value_type::String);
 
   py->execute_interactive("a = -1", cont);

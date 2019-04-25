@@ -34,6 +34,8 @@
 
 #include <string>
 
+#include "scripting/python_utils.h"
+
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 using namespace shcore;
@@ -55,13 +57,7 @@ static PyObject *dict_dir(PyShDictObject *self, PyObject *) {
   return members;
 }
 
-static PyObject *dict_keys(PyShDictObject *self, PyObject *args) {
-  if (args) {
-    Python_context::set_python_error(PyExc_ValueError,
-                                     "method takes no arguments");
-    return NULL;
-  }
-
+static PyObject *dict_keys(PyShDictObject *self, PyObject *) {
   PyObject *list = PyList_New(self->map->get()->size());
 
   Py_ssize_t i = 0;
@@ -72,13 +68,7 @@ static PyObject *dict_keys(PyShDictObject *self, PyObject *args) {
   return list;
 }
 
-static PyObject *dict_items(PyShDictObject *self, PyObject *args) {
-  if (args) {
-    Python_context::set_python_error(PyExc_ValueError,
-                                     "method takes no arguments");
-    return NULL;
-  }
-
+static PyObject *dict_items(PyShDictObject *self, PyObject *) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
@@ -95,12 +85,7 @@ static PyObject *dict_items(PyShDictObject *self, PyObject *args) {
   return list;
 }
 
-static PyObject *dict_values(PyShDictObject *self, PyObject *args) {
-  if (args) {
-    Python_context::set_python_error(PyExc_ValueError,
-                                     "method takes no arguments");
-    return NULL;
-  }
+static PyObject *dict_values(PyShDictObject *self, PyObject *) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
@@ -121,10 +106,12 @@ static PyObject *dict_has_key(PyShDictObject *self, PyObject *arg) {
     return NULL;
   }
 
-  const char *key_to_find = PyString_AsString(arg);
+  std::string key_to_find;
   bool found = false;
 
-  if (key_to_find) found = self->map->get()->has_key(key_to_find);
+  if (Python_context::pystring_to_string(arg, &key_to_find)) {
+    found = self->map->get()->has_key(key_to_find);
+  }
 
   return PyBool_FromLong(found);
 }
@@ -243,8 +230,13 @@ static int dict_init(PyShDictObject *self, PyObject *args,
 
   if (valueptr) {
     try {
+#ifdef IS_PY3K
+      self->map->reset(
+          static_cast<Value::Map_type *>(PyCapsule_GetPointer(valueptr, NULL)));
+#else
       self->map->reset(
           static_cast<Value::Map_type *>(PyCObject_AsVoidPtr(valueptr)));
+#endif
     } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
@@ -263,7 +255,7 @@ static int dict_init(PyShDictObject *self, PyObject *args,
 static void dict_dealloc(PyShDictObject *self) {
   delete self->map;
 
-  self->ob_type->tp_free(self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 static Py_ssize_t dict_length(PyShDictObject *self) {
@@ -271,15 +263,13 @@ static Py_ssize_t dict_length(PyShDictObject *self) {
 }
 
 static PyObject *dict_subscript(PyShDictObject *self, PyObject *key) {
-  AutoPyObject tmp;
-  if (PyUnicode_Check(key)) key = tmp = PyUnicode_AsUTF8String(key);
+  std::string k;
 
-  if (!PyString_Check(key)) {
+  if (!Python_context::pystring_to_string(key, &k)) {
     Python_context::set_python_error(PyExc_KeyError,
                                      "shell.Dict key must be a string");
     return NULL;
   }
-  const char *k = PyString_AsString(key);
 
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
@@ -299,15 +289,13 @@ static PyObject *dict_subscript(PyShDictObject *self, PyObject *key) {
 
 static int dict_as_subscript(PyShDictObject *self, PyObject *key,
                              PyObject *value) {
-  AutoPyObject tmp;
-  if (PyUnicode_Check(key)) key = tmp = PyUnicode_AsUTF8String(key);
+  std::string k;
 
-  if (!PyString_Check(key)) {
+  if (!Python_context::pystring_to_string(key, &k)) {
     Python_context::set_python_error(PyExc_KeyError,
                                      "shell.Dict key must be a string");
     return -1;
   }
-  const char *k = PyString_AsString(key);
 
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return -1;
@@ -332,13 +320,9 @@ static int dict_as_subscript(PyShDictObject *self, PyObject *key,
 }
 
 static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
-  AutoPyObject tmp;
-  if (PyUnicode_Check(attr_name))
-    attr_name = tmp = PyUnicode_AsUTF8String(attr_name);
+  std::string attrname;
 
-  if (PyString_Check(attr_name)) {
-    const char *attrname = PyString_AsString(attr_name);
-
+  if (Python_context::pystring_to_string(attr_name, &attrname)) {
     PyObject *object;
     if ((object = PyObject_GenericGetAttr((PyObject *)self, attr_name)))
       return object;
@@ -452,13 +436,13 @@ static PyMethodDef PyShDictMethods[] = {
     //{"__getitem__", (PyCFunction)dict_subscript, METH_O|METH_COEXIST,
     // getitem_doc},
     {"__dir__", (PyCFunction)dict_dir, METH_NOARGS, nullptr},
-    {"keys", (PyCFunction)dict_keys, 0, NULL},
-    {"items", (PyCFunction)dict_items, 0, NULL},
-    {"values", (PyCFunction)dict_values, 0, NULL},
-    {"has_key", (PyCFunction)dict_has_key, 0, NULL},
-    {"update", (PyCFunction)dict_update, 0, NULL},
-    {"get", (PyCFunction)dict_get, METH_VARARGS, NULL},
-    {"setdefault", (PyCFunction)dict_setdefault, 0, NULL},
+    {"keys", (PyCFunction)dict_keys, METH_NOARGS, nullptr},
+    {"items", (PyCFunction)dict_items, METH_NOARGS, nullptr},
+    {"values", (PyCFunction)dict_values, METH_NOARGS, nullptr},
+    {"has_key", (PyCFunction)dict_has_key, METH_O, nullptr},
+    {"update", (PyCFunction)dict_update, METH_O, nullptr},
+    {"get", (PyCFunction)dict_get, METH_VARARGS, nullptr},
+    {"setdefault", (PyCFunction)dict_setdefault, METH_VARARGS, nullptr},
     {NULL, NULL, 0, NULL}};
 
 static PyMappingMethods PyShDictObject_as_mapping = {
@@ -468,8 +452,7 @@ static PyMappingMethods PyShDictObject_as_mapping = {
 };
 
 static PyTypeObject PyShDictObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shell.Dict",  // char *tp_name; /* For printing, in format
                    // "<module>.<name>" */
     sizeof(PyShDictObject),
@@ -544,14 +527,18 @@ static PyTypeObject PyShDictObjectType = {
     0,  // PyObject *tp_cache;
     0,  // PyObject *tp_subclasses;
     0,  // PyObject *tp_weakdict;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
 void Python_context::init_shell_dict_type() {
-  PyShDictObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShDictObjectType) < 0) {
     throw std::runtime_error("Could not initialize Shcore Map type in python");
   }

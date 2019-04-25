@@ -22,4 +22,4 @@ myResult = myTable.select(['_id', 'name', 'birthday']) \
   .bind('age', 20).execute()
 
 # Print result
-print myResult.fetch_all()
+print(myResult.fetch_all())

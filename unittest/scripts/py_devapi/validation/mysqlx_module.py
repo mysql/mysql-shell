@@ -1,11 +1,27 @@
-#@ mysqlx module: exports
-|Exported Items: 6|
-|get_session: <type 'builtin_function_or_method'>|
-|expr: <type 'builtin_function_or_method'>|
-|dateValue: <type 'builtin_function_or_method'>|
-|help: <type 'builtin_function_or_method'>|
-|Type: <mysqlx.Type>|
-|LockContention: <mysqlx.LockContention>|
+#@<OUT> mysqlx module: exports
+Exported Items: 6
+?{__is_python_3}
+get_session: <class 'builtin_function_or_method'>
+
+expr: <class 'builtin_function_or_method'>
+
+dateValue: <class 'builtin_function_or_method'>
+
+help: <class 'builtin_function_or_method'>
+?{}
+?{not __is_python_3}
+get_session: <type 'builtin_function_or_method'>
+
+expr: <type 'builtin_function_or_method'>
+
+dateValue: <type 'builtin_function_or_method'>
+
+help: <type 'builtin_function_or_method'>
+?{}
+
+Type: <mysqlx.Type>
+
+LockContention: <mysqlx.LockContention>
 
 #@# mysqlx module: expression errors
 ||TypeError: expr() takes 1 arguments (0 given)

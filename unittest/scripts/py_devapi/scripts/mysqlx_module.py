@@ -1,3 +1,4 @@
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 # The tests assume the next variables have been put in place
@@ -19,14 +20,14 @@ for member in all_members:
   if not member.startswith('__'):
     exports.append(member)
 
-print 'Exported Items:', len(exports)
+print('Exported Items:', len(exports))
 
-print 'get_session:', type(mysqlx.get_session), '\n'
-print 'expr:', type(mysqlx.expr), '\n'
-print 'dateValue:', type(mysqlx.date_value), '\n'
-print 'help:', type(mysqlx.date_value), '\n'
-print 'Type:', mysqlx.Type, '\n'
-print 'LockContention:', mysqlx.LockContention, '\n'
+print('get_session:', type(mysqlx.get_session), '\n')
+print('expr:', type(mysqlx.expr), '\n')
+print('dateValue:', type(mysqlx.date_value), '\n')
+print('help:', type(mysqlx.date_value), '\n')
+print('Type:', mysqlx.Type, '\n')
+print('LockContention:', mysqlx.LockContention, '\n')
 
 #@# mysqlx module: expression errors
 expr = mysqlx.expr()
@@ -34,7 +35,7 @@ expr = mysqlx.expr(5)
 
 #@ mysqlx module: expression
 expr = mysqlx.expr('5+6')
-print expr
+print(expr)
 
 #@ mysqlx module: date_value() diffrent parameters
 mysqlx.date_value(2025, 10, 15);

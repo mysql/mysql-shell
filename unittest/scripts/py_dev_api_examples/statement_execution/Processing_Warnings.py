@@ -24,17 +24,17 @@ try:
     # handle warnings
     if reply.warnings_count:
       for warning in result.get_warnings():
-        print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
+        print('Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message))
     
-    print 'Data inserted successfully.'
-except Exception, err:
+    print('Data inserted successfully.')
+except Exception as err:
     # Rollback the transaction in case of an error
     reply = mySession.rollback()
     
     # handle warnings
     if reply.warnings_count:
       for warning in result.get_warnings():
-        print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
+        print('Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message))
     
     # Printing the error message
-    print 'Data could not be inserted: %s' % str(err)
+    print('Data could not be inserted: %s' % str(err))

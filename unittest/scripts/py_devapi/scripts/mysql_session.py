@@ -1,5 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
+from __future__ import print_function
 from mysqlsh import mysql
 
 #@<> Session: validating members
@@ -52,7 +53,7 @@ res3 = classicSession.run_sql('insert into sample values ("jack")');
 classicSession.rollback();
 
 result = classicSession.run_sql('select * from sample');
-print 'Inserted Documents:', len(result.fetch_all());
+print('Inserted Documents:', len(result.fetch_all()));
 
 #@ ClassicSession: Transaction handling: commit
 //! [ClassicSession: SQL execution example]
@@ -69,7 +70,7 @@ classicSession.commit();
 //! [ClassicSession: SQL execution example]
 
 result = classicSession.run_sql('select * from sample');
-print 'Inserted Documents:', len(result.fetch_all());
+print('Inserted Documents:', len(result.fetch_all()));
 
 #@ ClassicSession: date handling
 classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");

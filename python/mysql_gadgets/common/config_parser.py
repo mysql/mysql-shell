@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -52,13 +52,13 @@ PY2 = int(sys.version[0]) == 2
 # pylint: disable=E0012, C0413, C0411
 if PY2:
     from ConfigParser import (RawConfigParser, NoOptionError, NoSectionError,
-                              Error, MissingSectionHeaderError,
-                              ParsingError)
+                              Error, MissingSectionHeaderError, ParsingError)
 else:
-    from configparser import (ConfigParser as RawConfigParser, NoOptionError,
-                              NoSectionError, Error, MissingSectionHeaderError,
+    from configparser import (RawConfigParser, NoOptionError, NoSectionError,
+                              Error, MissingSectionHeaderError,
                               DuplicateSectionError, SectionProxy,
                               DuplicateOptionError)
+    unicode = str
 
 DEFAULT_EXTENSIONS = {
     'nt': ('ini', 'cnf'),

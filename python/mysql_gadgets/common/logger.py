@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@ import mysqlsh
 from mysql_gadgets.exceptions import GadgetLogError
 
 shell = mysqlsh.globals.shell
+PY2 = int(sys.version[0]) == 2
 
 # Custom logging level.
 STEP_LOG_LEVEL_NAME = 'STEP'
@@ -77,75 +78,27 @@ class CustomLevelLogger(logging.getLoggerClass()):
 
     def step(self, msg, *args, **kwargs):
         """Log message of STEP severity."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for step(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(STEP_LOG_LEVEL_VALUE):
-            sys.stdout.write(
-                u"%s\n" % {"type": "STEP",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("INFO", "mysqlprovision: " + msg % args)
+        self.log(STEP_LOG_LEVEL_VALUE, msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
         """Log message of DEBUG severity (function overwrite)."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for debug(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(logging.DEBUG):
-            sys.stdout.write(
-                u"%s\n" % {"type": "DEBUG",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("DEBUG", "mysqlprovision: " + msg % args)
+        self.log(logging.DEBUG, msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
         """Log message of INFO severity (function overwrite)."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for info(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(logging.INFO):
-            sys.stdout.write(
-                u"%s\n" % {"type": "INFO",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("INFO", "mysqlprovision: " + msg % args)
+        self.log(logging.INFO, msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
         """Log message of WARNING severity (function overwrite)."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for warning(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(logging.WARNING):
-            sys.stdout.write(
-                u"%s\n" % {"type": "WARNING",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("WARNING", "mysqlprovision: " + msg % args)
+        self.log(logging.WARNING, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
         """Log message of ERROR severity (function overwrite)."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for error(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(logging.ERROR):
-            sys.stderr.write(
-                u"%s\n" % {"type": "ERROR",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("ERROR", "mysqlprovision: " + msg % args)
+        self.log(logging.ERROR, msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
         """Log message of CRITICAL severity (function overwrite)."""
-        if kwargs:
-            raise GadgetLogError("Invalid use of logging parameters. kwargs "
-                                 "not supported for critical(): "
-                                 "{0}".format(kwargs))
-        if self.isEnabledFor(logging.CRITICAL):
-            sys.stderr.write(
-                u"%s\n" % {"type": "ERROR",
-                           "msg": (msg % args).encode('utf-8')})
-        shell.log("ERROR", "mysqlprovision: " + msg % args)
+        self.log(logging.CRITICAL, msg, *args, **kwargs)
 
     def log(self, level, msg, *args, **kwargs):
         """ Log message of any severity (function overwrite). """
@@ -153,16 +106,24 @@ class CustomLevelLogger(logging.getLoggerClass()):
             raise GadgetLogError("Invalid use of logging parameters. kwargs "
                                  "not supported for log(): "
                                  "{0}".format(kwargs))
-        levelname = logging.getLevelName(level)
+        levellog = levelname = logging.getLevelName(level)
+
         if levelname == "CRITICAL":
-            levelname = "ERROR"
+            levellog = levelname = "ERROR"
+        if levelname == STEP_LOG_LEVEL_NAME:
+            levellog = "INFO"
+
+        formatted_msg = msg % args
+
         if self.isEnabledFor(level):
             if level >= logging.ERROR:
-                sys.stderr.write(
-                    u"%s\n" % {"type": levelname,
-                               "msg": (msg % args).encode('utf-8')})
+                output = sys.stderr
             else:
-                sys.stdout.write(
-                    u"%s\n" % {"type": levelname,
-                               "msg": (msg % args).encode('utf-8')})
-        shell.log(levelname, "mysqlprovision: " + msg % args)
+                output = sys.stdout
+            output.write(
+                u"%s\n" % {
+                    "type": levelname,
+                    "msg":
+                    formatted_msg.encode('utf-8') if PY2 else formatted_msg
+                })
+        shell.log(levellog, "mysqlprovision: " + formatted_msg)

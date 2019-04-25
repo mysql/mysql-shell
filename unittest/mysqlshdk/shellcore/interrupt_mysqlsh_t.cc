@@ -290,7 +290,7 @@ TEST_F(Interrupt_mysqlsh, py_cli) {
   kill_on_ready();
 
   int rc = execute({_mysqlsh, "--py", "-e",
-                    "import time; print 'ready'; time.sleep(10)", nullptr});
+                    "import time; print('ready'); time.sleep(10)", nullptr});
   EXPECT_EQ(130, rc);
 }
 

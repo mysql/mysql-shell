@@ -49,8 +49,13 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
 
   if (valueptr) {
     try {
+#ifdef IS_PY3K
+      self->array->reset(static_cast<Value::Array_type *>(
+          PyCapsule_GetPointer(valueptr, NULL)));
+#else
       self->array->reset(
           static_cast<Value::Array_type *>(PyCObject_AsVoidPtr(valueptr)));
+#endif
     } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
@@ -69,7 +74,7 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
 void list_dealloc(PyShListObject *self) {
   delete self->array;
 
-  self->ob_type->tp_free(self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 Py_ssize_t list_length(PyShListObject *self) {
@@ -227,7 +232,7 @@ PyObject *list_remove(PyShListObject *self, PyObject *v) {
   return NULL;
 }
 
-PyObject *list_remove_all(PyShListObject *self) {
+PyObject *list_remove_all(PyShListObject *self, PyObject *) {
   try {
     self->array->get()->clear();
     Py_RETURN_NONE;
@@ -276,8 +281,7 @@ static PySequenceMethods PyShListObject_as_sequence = {
 };
 
 static PyTypeObject PyShListObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "List",  // char *tp_name; /* For printing, in format "<module>.<name>" */
     sizeof(PyShListObject),
     0,  // int tp_basicsize, tp_itemsize; /* For allocation */
@@ -351,14 +355,18 @@ static PyTypeObject PyShListObjectType = {
     0,  // PyObject *tp_cache;
     0,  // PyObject *tp_subclasses;
     0,  // PyObject *tp_weaklist;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
 void Python_context::init_shell_list_type() {
-  PyShListObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShListObjectType) < 0) {
     throw Exception::runtime_error(
         "Could not initialize Shcore Array type in python");

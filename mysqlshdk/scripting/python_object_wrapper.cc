@@ -119,8 +119,7 @@ static PyObject *method_call(PyShMethodObject *self, PyObject *args,
 }
 
 static PyTypeObject PyShMethodObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shcore.ObjectMethod",  // char *tp_name; /* For printing, in format
                             // "<module>.<name>" */
     sizeof(PyShMethodObject),
@@ -195,9 +194,14 @@ static PyTypeObject PyShMethodObjectType = {
     0,  //  PyObject *tp_cache;
     0,  //  PyObject *tp_subclasses;
     0,  //  PyObject *tp_weaklist;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
@@ -244,7 +248,7 @@ static void object_dealloc(PyShObjObject *self) {
   delete self->object;
   delete self->cache;
 
-  self->ob_type->tp_free(self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 static int object_compare(PyShObjObject *self, PyShObjObject *other) {
@@ -252,6 +256,9 @@ static int object_compare(PyShObjObject *self, PyShObjObject *other) {
 
   return 1;
 }
+
+static PyObject *object_rich_compare(PyShObjObject *self, PyObject *other,
+                                     int op);
 
 static PyObject *object_printable(PyShObjObject *self) {
   PyObject *ret_val;
@@ -268,8 +275,9 @@ static PyObject *object_printable(PyShObjObject *self) {
 }
 
 static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
-  if (PyString_Check(attr_name)) {
-    const char *attrname = PyString_AsString(attr_name);
+  std::string attrname;
+
+  if (Python_context::pystring_to_string(attr_name, &attrname)) {
     PyObject *object;
     if ((object = PyObject_GenericGetAttr((PyObject *)self, attr_name)))
       return object;
@@ -280,7 +288,9 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
 
     shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
-    if (cobj->has_method_advanced(attrname)) return wrap_method(cobj, attrname);
+    if (cobj->has_method_advanced(attrname)) {
+      return wrap_method(cobj, attrname.c_str());
+    }
 
     shcore::Value member;
     bool error_handled = false;
@@ -312,10 +322,11 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
 
 static int object_setattro(PyShObjObject *self, PyObject *attr_name,
                            PyObject *attr_value) {
-  if (PyString_Check(attr_name)) {
+  std::string attrname;
+
+  if (Python_context::pystring_to_string(attr_name, &attrname)) {
     std::shared_ptr<Cpp_object_bridge> cobj(
         std::static_pointer_cast<Cpp_object_bridge>(*self->object));
-    const char *attrname = PyString_AsString(attr_name);
     shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
     if (cobj->has_member_advanced(attrname)) {
@@ -339,7 +350,8 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name,
       return 0;
     }
 
-    PyErr_Format(PyExc_AttributeError, "unknown attribute '%s'", attrname);
+    PyErr_Format(PyExc_AttributeError, "unknown attribute '%s'",
+                 attrname.c_str());
   }
   return -1;
 }
@@ -403,10 +415,11 @@ static PyObject *call_object_method(
 
 static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
   PyObject *method_name;
+  std::string method_name_string;
   shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
   if (PyTuple_Size(args) < 1 || !(method_name = PyTuple_GetItem(args, 0)) ||
-      !PyString_Check(method_name)) {
+      !Python_context::pystring_to_string(method_name, &method_name_string)) {
     Python_context::set_python_error(
         PyExc_TypeError, "1st argument must be name of method to call");
     return NULL;
@@ -414,8 +427,7 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
   std::shared_ptr<Cpp_object_bridge> cobj(
       std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-  const Value method =
-      cobj->get_member_advanced(PyString_AsString(method_name));
+  const Value method = cobj->get_member_advanced(method_name_string);
   if (!method) {
     Python_context::set_python_error(PyExc_TypeError, "invalid method");
     return NULL;
@@ -533,8 +545,7 @@ static PyMappingMethods PyShObjMappingMethods = {
 };
 
 static PyTypeObject PyShObjObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shell.Object",  // char *tp_name; /* For printing, in format
                      // "<module>.<name>" */
     sizeof(PyShObjObject),
@@ -546,8 +557,12 @@ static PyTypeObject PyShObjObjectType = {
     0,                           // printfunc tp_print;
     0,                           // getattrfunc tp_getattr;
     0,                           // setattrfunc tp_setattr;
-    (cmpfunc)object_compare,     //  cmpfunc tp_compare;
-    0,                           // (reprfunc)dict_repr, // reprfunc tp_repr;
+#ifdef IS_PY3K
+    0,  //  PyAsyncMethods *tp_as_async; // void *tp_reserved;
+#else
+    (cmpfunc)object_compare,  //  cmpfunc tp_compare;
+#endif
+    0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
 
     /* Method suites for standard classes */
 
@@ -580,7 +595,7 @@ static PyTypeObject PyShObjObjectType = {
 
     /* Assigned meaning in release 2.1 */
     /* rich comparisons */
-    0,  // richcmpfunc tp_richcompare;
+    (richcmpfunc)object_rich_compare,  // richcmpfunc tp_richcompare;
 
     /* weak reference enabler */
     0,  // long tp_weakdictoffset;
@@ -609,15 +624,19 @@ static PyTypeObject PyShObjObjectType = {
     0,  // PyObject *tp_cache;
     0,  // PyObject *tp_subclasses;
     0,  // PyObject *tp_weakdict;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
 static PyTypeObject PyShObjIndexedObjectType = {
-    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-    0,
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shell.Object",  // char *tp_name; /* For printing, in format
                      // "<module>.<name>" */
     sizeof(PyShObjObject),
@@ -629,8 +648,12 @@ static PyTypeObject PyShObjIndexedObjectType = {
     0,                           // printfunc tp_print;
     0,                           // getattrfunc tp_getattr;
     0,                           // setattrfunc tp_setattr;
-    (cmpfunc)object_compare,     //  cmpfunc tp_compare;
-    0,                           // (reprfunc)dict_repr, // reprfunc tp_repr;
+#ifdef IS_PY3K
+    0,  //  PyAsyncMethods *tp_as_async; // void *tp_reserved;
+#else
+    (cmpfunc)object_compare,  //  cmpfunc tp_compare;
+#endif
+    0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
 
     /* Method suites for standard classes */
 
@@ -663,7 +686,7 @@ static PyTypeObject PyShObjIndexedObjectType = {
 
     /* Assigned meaning in release 2.1 */
     /* rich comparisons */
-    0,  // richcmpfunc tp_richcompare;
+    (richcmpfunc)object_rich_compare,  // richcmpfunc tp_richcompare;
 
     /* weak reference enabler */
     0,  // long tp_weakdictoffset;
@@ -692,15 +715,35 @@ static PyTypeObject PyShObjIndexedObjectType = {
     0,  // PyObject *tp_cache;
     0,  // PyObject *tp_subclasses;
     0,  // PyObject *tp_weakdict;
-    0,  // tp_del
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+    0   // tp_del
+#if PY_VERSION_HEX >= 0x02060000
+    ,
     0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
 #endif
 };
 
+static PyObject *object_rich_compare(PyShObjObject *self, PyObject *other,
+                                     int op) {
+  if (Py_EQ == op) {
+    const auto type = Py_TYPE(other);
+
+    if (type == &PyShObjObjectType || type == &PyShObjIndexedObjectType) {
+      if (object_compare(self, (PyShObjObject *)other) == 0) {
+        Py_RETURN_TRUE;
+      }
+    }
+    Py_RETURN_FALSE;
+  } else {
+    return Py_INCREF(Py_NotImplemented), Py_NotImplemented;
+  }
+}
+
 void Python_context::init_shell_object_type() {
   // Initializes the normal object
-  PyShObjObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShObjObjectType) < 0) {
     throw std::runtime_error(
         "Could not initialize Shcore Object type in python");
@@ -714,7 +757,6 @@ void Python_context::init_shell_object_type() {
       PyModule_GetDict(get_shell_python_support_module()), "Object");
 
   // Initializes the indexed object
-  PyShObjIndexedObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShObjIndexedObjectType) < 0) {
     throw std::runtime_error(
         "Could not initialize Shcore Indexed Object type in python");

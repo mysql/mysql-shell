@@ -4,5 +4,5 @@ res = myColl.find('name like :name').bind('name','S%').execute()
 
 doc = res.fetch_one()
 while doc:
-        print doc
+        print(doc)
         doc = res.fetch_one()

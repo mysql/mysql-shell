@@ -145,10 +145,10 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
         p.stdin.flush()
         globalvar.last_search = str(command[1])
         allXshellSession = allXshellSession + globalvar.last_search
-        found = str(read_til_getShell(p))
+        found = str(read_til_getShell(p)).replace('\r\n', '\n')
         allFound.append(found)
         ###  I JUST CHANGE THE AND INSTEAD OR
-        if found.find(command[1], 0, len(found)) == -1 or found.find("FAILED", 0, len(found)) >= 0:  ### changed and/or
+        if found.find(command[1].replace('\r\n', '\n'), 0, len(found)) == -1 or found.find("FAILED", 0, len(found)) >= 0:  ### changed and/or
             if os.getenv("TEST_DEBUG"):
                 print "\n".join(allFound)
                 import traceback
@@ -172,7 +172,7 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
     #if found.find(command[1], 0, len(found)) == -1 or found.find("FAILED", 0, len(found)) >= 0:
     #    return found + "\n\r NOT FOUND: [ "+str(command[1])+" ]"
     #return RESULTS
-    found = stdout.find(bytearray(command[1],"ascii"), 0, len(stdout))
+    found = stdout.replace('\r\n', '\n').find(bytearray(command[1].replace('\r\n', '\n'), "ascii"), 0, len(stdout))
     allFound.append(found)
     if found == -1 and x_cmds.__len__() != 0 :
         #return "FAILED SEARCHING: "+globalvar.last_search+" , STDOUT: "+ str(stdout)+", STDERR: "+ str(stderr)

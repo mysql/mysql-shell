@@ -1,5 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+from __future__ import print_function
 from mysqlsh import mysqlx
 
 mySession = mysqlx.get_session(__uripwd)
@@ -49,31 +50,31 @@ validate_members(schema, [
     'collection1'])
 
 #@ Testing schema name retrieving
-print 'get_name(): ' + schema.get_name()
-print 'name: ' + schema.name
+print('get_name(): ' + schema.get_name())
+print('name: ' + schema.name)
 
 #@ Testing schema.get_session
-print 'get_session():',schema.get_session()
+print('get_session():',schema.get_session())
 
 #@ Testing schema.session
-print 'session:', schema.session
+print('session:', schema.session)
 
 #@ Testing schema schema retrieving
-print 'get_schema():', schema.get_schema()
-print 'schema:', schema.schema
+print('get_schema():', schema.get_schema())
+print('schema:', schema.schema)
 
 #@ Testing tables, views and collection retrieval
 mySchema = mySession.get_schema('js_shell_test')
-print 'get_tables():', mySchema.get_tables()[0]
-print 'get_collections():', mySchema.get_collections()[0]
+print('get_tables():', mySchema.get_tables()[0])
+print('get_collections():', mySchema.get_collections()[0])
 
 #@ Testing specific object retrieval
-print 'Retrieving a Table:', mySchema.get_table('table1')
-print '.<table>:', mySchema.table1
-print 'Retrieving a View:', mySchema.get_table('view1')
-print '.<view>:', mySchema.view1
-print 'get_collection():', mySchema.get_collection('collection1')
-print '.<collection>:', mySchema.collection1
+print('Retrieving a Table:', mySchema.get_table('table1'))
+print('.<table>:', mySchema.table1)
+print('Retrieving a View:', mySchema.get_table('view1'))
+print('.<view>:', mySchema.view1)
+print('get_collection():', mySchema.get_collection('collection1'))
+print('.<collection>:', mySchema.collection1)
 
 #@# Testing specific object retrieval: unexisting objects
 mySchema.get_table('unexisting')
@@ -84,32 +85,32 @@ mySchema.get_table('')
 mySchema.get_collection('')
 
 #@ Retrieving collection as table
-print 'get_collection_as_table():', mySchema.get_collection_as_table('collection1')
+print('get_collection_as_table():', mySchema.get_collection_as_table('collection1'))
 
 #@ Query collection as table
-print 'get_collection_as_table().select():', mySchema.get_collection_as_table('collection1').select().execute()
+print('get_collection_as_table().select():', mySchema.get_collection_as_table('collection1').select().execute())
 
 #@ Collection creation
 collection = schema.create_collection('my_sample_collection')
-print 'create_collection():', collection
+print('create_collection():', collection)
 
 #@ Testing dropping existing schema objects
-print mySchema.get_collection('collection1')
-print mySchema.drop_collection('collection1')
+print(mySchema.get_collection('collection1'))
+print(mySchema.drop_collection('collection1'))
 
 #@ Testing dropped objects are actually dropped
 mySchema.get_collection('collection1')
 
 #@ Testing dropping non-existing schema objects
-print mySchema.drop_collection('non_existing_collection')
+print(mySchema.drop_collection('non_existing_collection'))
 
 #@ Testing drop functions using execute
 mySchema.drop_collection('collection1').execute()
 
 #@ Testing existence
-print 'Valid:', schema.exists_in_database()
+print('Valid:', schema.exists_in_database())
 mySession.drop_schema('js_shell_test')
-print 'Invalid:', schema.exists_in_database()
+print('Invalid:', schema.exists_in_database())
 
 #@ Testing name shadowing: setup
 mySession.create_schema('py_db_object_shadow');
@@ -132,58 +133,58 @@ schema = mySession.get_schema('py_db_object_shadow');
 print(schema.name)
 
 #@ Testing name shadowing: getName
-print schema.get_name()
+print(schema.get_name())
 
 #@ Testing name shadowing: schema
-print schema.schema
+print(schema.schema)
 
 #@ Testing name shadowing: getSchema
-print schema.get_schema()
+print(schema.get_schema())
 
 #@ Testing name shadowing: session
-print schema.session
+print(schema.session)
 
 #@ Testing name shadowing: getSession
-print schema.get_session()
+print(schema.get_session())
 
 #@ Testing name shadowing: another
-print schema.another
+print(schema.another)
 
 #@ Testing name shadowing: get_collection('another')
-print schema.get_collection('another')
+print(schema.get_collection('another'))
 
 #@ Testing name shadowing: get_table('name')
-print schema.get_table('name')
+print(schema.get_table('name'))
 
 #@ Testing name shadowing: get_collection('schema')
-print schema.get_collection('schema')
+print(schema.get_collection('schema'))
 
 #@ Testing name shadowing: get_table('session')
-print schema.get_table('session')
+print(schema.get_table('session'))
 
 #@ Testing name shadowing: get_collection('getTable')
-print schema.get_collection('getTable')
+print(schema.get_collection('getTable'))
 
 #@ Testing name shadowing: getTable (not a python function)
 if lower_case_table_names == 1:
-    print schema.gettable
+    print(schema.gettable)
 else:
-    print schema.getTable
+    print(schema.getTable)
 
 #@ Testing name shadowing: get_table('get_table')
-print schema.get_table('get_table')
+print(schema.get_table('get_table'))
 
 #@ Testing name shadowing: get_collection('getCollection')
-print schema.get_collection('getCollection')
+print(schema.get_collection('getCollection'))
 
 #@ Testing name shadowing: getCollection (not a python function)
 if lower_case_table_names == 1:
-    print schema.getcollection
+    print(schema.getcollection)
 else:
-    print schema.getCollection
+    print(schema.getCollection)
 
 #@ Testing name shadowing: get_table('get_collection')
-print schema.get_table('get_collection')
+print(schema.get_table('get_collection'))
 
 mySession.drop_schema('py_db_object_shadow')
 
