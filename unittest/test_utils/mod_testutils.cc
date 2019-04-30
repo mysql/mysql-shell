@@ -154,8 +154,6 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
   expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
 
-  expose("injectPortCheckResult", &Testutils::inject_port_check_result, "host",
-         "port", "result");
   expose("isTcpPortListening", &Testutils::is_tcp_port_listening, "host",
          "port");
 
@@ -735,27 +733,6 @@ void Testutils::snapshot_sandbox_conf(int port) {
                   << sandbox_cnf_path << "\n";
     }
   }
-}
-
-///@{
-/**
- * Overrides the result of one call to Net::is_port_listening()
- */
-#if DOXYGEN_JS
-Undefined Testutils::injectPortCheckResult(String host, Integer port,
-                                           Boolean result);
-#elif DOXYGEN_PY
-None Testutils::inject_port_check_result(str host, int port, bool result);
-#endif
-///@}
-void Testutils::inject_port_check_result(const std::string &host, int port,
-                                         bool result) {
-#ifndef ENABLE_SESSION_RECORDING
-  if (!_test_env) throw std::logic_error("Not supported outside a test");
-  _test_env->inject_port_check_result(host, port, result);
-#else
-  throw std::logic_error("Not supported outside a test");
-#endif
 }
 
 ///@{
