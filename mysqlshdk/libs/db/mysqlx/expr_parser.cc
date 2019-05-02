@@ -879,7 +879,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::comp_expr() {
 /*
  * ilri_expr ::= comp_expr [ NOT ] (( IS [ NOT ] comp_expr ) | ( IN
  * paren_expr_list ) | ( LIKE comp_expr [ ESCAPE comp_expr ] ) | ( BETWEEN
- * comp_expr AND comp_expr ) | ( REGEXP comp_expr )
+ * comp_expr AND comp_expr ) | ( REGEXP comp_expr ) | (OVERLAPS comp_expr)
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr() {
   std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
@@ -934,6 +934,10 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr() {
       params->AddAllocated(comp_expr().release());
     } else if (_tokenizer.cur_token_type_is(Token::REGEXP)) {
       _tokenizer.consume_token(Token::REGEXP);
+      params->AddAllocated(lhs.release());
+      params->AddAllocated(comp_expr().release());
+    } else if (_tokenizer.cur_token_type_is(Token::OVERLAPS)) {
+      _tokenizer.consume_token(Token::OVERLAPS);
       params->AddAllocated(lhs.release());
       params->AddAllocated(comp_expr().release());
     } else {

@@ -289,6 +289,47 @@ collection.find('like LIKE :like').bind('like', '%bar').execute()
 // Collection.Find, nested like as column, operand and placeholder
 collection.find('nested.`like` LIKE :like').bind('like', '%bar').execute()
 
+//@<> WL12767 Collection.Find Collection
+collection = schema.createCollection('wl12767')
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA01', "name":"one", "list": [1,2,3], "overlaps": [4,5,6] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA02', "name":"two", "list": [1,2,3], "overlaps": [3,4,5] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA03', "name":"three", "list": [1,2,3], "overlaps": [1,2,3,4,5,6] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA04', "name":"four", "list": [1,2,3,4,5,6], "overlaps": [4,5,6] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA05', "name":"five", "list": [1,2,3], "overlaps": [1,3,5] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA06', "name":"six", "list": [1,2,3], "overlaps": [7,8,9] }).execute()
+result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA07', "name":"seven", "list": [1,3,5], "overlaps": [2,4,6] }).execute()
+
+//@ WL12767-TS1_1-01
+// WL12767-TS6_1
+collection.find("`overlaps` overlaps `list`").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-02 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+// WL12767-TS3_1
+collection.find("overlaps overlaps list").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-03 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+collection.find("`list` overlaps `overlaps`").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-04 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+// WL12767-TS3_1
+collection.find("list overlaps overlaps").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-05 {VER(>=8.0.17)}
+collection.find("`overlaps` not overlaps `list`").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-06 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+// WL12767-TS2_1
+// WL12767-TS3_1
+collection.find("overlaps not OVERLAPS list").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-07 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+collection.find("`list` not overlaps `overlaps`").fields(["name"]).execute()
+
+//@ WL12767-TS1_1-08 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+// WL12767-TS2_1
+// WL12767-TS3_1
+collection.find("list not OvErLaPs overlaps").fields(["name"]).execute()
+
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

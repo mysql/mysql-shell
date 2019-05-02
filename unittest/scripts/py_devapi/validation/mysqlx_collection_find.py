@@ -273,3 +273,34 @@
     }
 }
 4 documents in set [[*]]
+
+#@ WL12767-TS1_1-01 {VER(<8.0.17)}
+||MySQL Error (5150): Invalid operator overlaps
+
+#@<OUT> WL12767-TS1_1-01 {VER(>=8.0.17)}
+{
+    "name": "two"
+}
+{
+    "name": "three"
+}
+{
+    "name": "four"
+}
+{
+    "name": "five"
+}
+4 documents in set ([[*]] sec)
+
+#@<OUT> WL12767-TS1_1-05
+{
+    "name": "one"
+}
+{
+    "name": "six"
+}
+{
+    "name": "seven"
+}
+3 documents in set ([[*]] sec)
+

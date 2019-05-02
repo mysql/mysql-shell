@@ -54,6 +54,7 @@ static const std::map<int, std::string> TokenName(
         {Token::LSQBRACKET, "["},
         {Token::RSQBRACKET, "]"},
         {Token::BETWEEN, "BETWEEN"},
+        {Token::OVERLAPS, "OVERLAPS"},
         {Token::TRUE_, "TRUE"},
         {Token::T_NULL, "NULL"},
         {Token::FALSE_, "FALSE"},
@@ -138,6 +139,7 @@ Tokenizer::Maps::Maps() {
   reserved_words["in"] = Token::IN_;
   reserved_words["regexp"] = Token::REGEXP;
   reserved_words["between"] = Token::BETWEEN;
+  reserved_words["overlaps"] = Token::OVERLAPS;
   reserved_words["interval"] = Token::INTERVAL;
   reserved_words["escape"] = Token::ESCAPE;
   reserved_words["div"] = Token::DIV;
@@ -195,6 +197,7 @@ Tokenizer::Maps::Maps() {
   operator_names["xor"] = "xor";
   operator_names["is"] = "is";
   operator_names["between"] = "between";
+  operator_names["overlaps"] = "overlaps";
   operator_names["in"] = "in";
   operator_names["like"] = "like";
   operator_names["!="] = "!=";

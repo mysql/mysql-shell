@@ -479,6 +479,19 @@ TEST(Expr_parser_tests, keywords_in_expressions) {
                           "[10, 1, 10, 10, 2, 10]",
                           "NOT ( $.between BETWEEN $.between AND $.between)",
                           "NOT ( between BETWEEN between AND between)"),
+          std::make_tuple("`overlaps` overlaps `overlaps`", "[19, 84, 19]",
+                          "($.overlaps OVERLAPS $.overlaps)",
+                          "(overlaps OVERLAPS overlaps)"),
+          std::make_tuple("overlaps overlaps overlaps", "[84, 84, 84]",
+                          "($.overlaps OVERLAPS $.overlaps)",
+                          "(overlaps OVERLAPS overlaps)"),
+          std::make_tuple("`overlaps` not overlaps `overlaps`",
+                          "[19, 1, 84, 19]",
+                          "NOT ( ($.overlaps OVERLAPS $.overlaps))",
+                          "NOT ( (overlaps OVERLAPS overlaps))"),
+          std::make_tuple("overlaps not overlaps overlaps", "[84, 1, 84, 84]",
+                          "NOT ( ($.overlaps OVERLAPS $.overlaps))",
+                          "NOT ( (overlaps OVERLAPS overlaps))"),
           std::make_tuple("`regexp` regexp :regexp", "[19, 17, 79, 17]",
                           "($.regexp REGEXP :0)", "(regexp REGEXP :0)"),
           std::make_tuple("regexp regexp :regexp", "[17, 17, 79, 17]",
@@ -503,6 +516,20 @@ TEST(Expr_parser_tests, keywords_in_expressions) {
     parse_and_assert_expr(std::get<0>(tup), std::get<1>(tup), std::get<3>(tup));
   }
 }  // namespace expr_parser_tests
+
+// WL12767-TS4_1
+TEST(Expr_parser_tests, overlaps_negative) {
+  std::vector<std::string> input{"overlaps `field`", "`field` overlaps",
+                                 "overlaps overlaps"};
+
+  for (const auto &value : input) {
+    std::unique_ptr<Expr_parser> p;
+    SCOPED_TRACE(value);
+    p.reset(new Expr_parser(value, true));
+    std::unique_ptr<Mysqlx::Expr::Expr> e;
+    EXPECT_THROW(e = p->expr(), Parser_error);
+  }
+}
 
 };  // namespace expr_parser_tests
 };  // namespace shcore

@@ -117,7 +117,8 @@ class Token {
     LCURLY = 80,
     RCURLY = 81,
     ARROW = 82,
-    QUOTE = 83
+    QUOTE = 83,
+    OVERLAPS = 84,
   };
 
   Token(Token::TokenType type, const std::string &text, int cur_pos);
