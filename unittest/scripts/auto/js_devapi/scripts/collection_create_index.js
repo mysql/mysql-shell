@@ -248,4 +248,50 @@ coll.createIndex('myIntField', {fields: [{field: '$.numeric', type: 'DATETIME'}]
 coll.createIndex('myField', {fields: [{field: '$.myField', type: 'TEXT(10)'}], type:'SPATIAL'})
 
 //@ Create an index specifiying INDEX as the index type for a spatial data type (WL10858-ET_3)
-coll.createIndex('myField', {fields: [{field: '$.myField', type: 'GEOJSON', required: true, options: 2, srid: 4326}], type:'INDEX'})
+coll.createIndex('myField', { fields: [{ field: '$.myField', type: 'GEOJSON', required: true, options: 2, srid: 4326 }], type: 'INDEX' })
+
+//@<> Create an array index for VALID data types  {VER(>=8.0.17)}
+var coll = schema.createCollection('array_index_collection');
+types = ['BINARY(10)', 'CHAR(10)', 'DATE', 'DATETIME', 'TIME', 'DECIMAL', 'DECIMAL(5)', 'DECIMAL(5,3)', 'SIGNED', 'SIGNED INTEGER', 'UNSIGNED', 'UNSIGNED INTEGER']
+for (index in types) {
+  context = "Testing array index for '" + types[index] + "'";
+  EXPECT_NO_THROWS(function() {
+    coll.createIndex('myField', { fields: [{ field: '$.myField', type: types[index], array: true }], type: 'INDEX' });
+    coll.dropIndex('myField');
+  }, context);
+}
+
+//@<> Create index for INVALID data types with array set to FALSE  {VER(>=8.0.17)}
+types = ['INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'INTEGER', 'BIGINT', 'REAL', 'FLOAT', 'DOUBLE', 'NUMERIC', 'TIMESTAMP', 'TEXT(10)']
+for (index in types) {
+  context = "Testing array index for '" + types[index] + "'";
+  EXPECT_NO_THROWS(function() {
+    coll.createIndex('myField', { fields: [{ field: '$.myField', type: types[index], array: false }], type: 'INDEX' });
+    coll.dropIndex('myField');
+  }, context);
+}
+
+//@<> Create an array index for INVALID data types  {VER(>=8.0.17)}
+types = ['INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'INTEGER', 'BIGINT', 'REAL', 'FLOAT', 'DOUBLE', 'NUMERIC', 'TIMESTAMP', 'TEXT(10)', 'GEOJSON']
+for (index in types) {
+  error = "Invalid or unsupported type specification for array index '" + types[index] + "'";
+  EXPECT_THROWS(function() {
+    coll.createIndex('myField', { fields: [{ field: '$.myField', type: types[index], array: true }], type: 'INDEX' });
+  }, error);
+}
+
+//@<> Create an array index with multiple array fields {VER(>=8.0.17)}
+EXPECT_THROWS(function() {
+  coll.createIndex('myField', { fields: [{ field: '$.myField', type: 'DATE', array: true }, { field: '$.myField1', type: 'DATE', array: true }], type: 'INDEX' });
+}, "This version of MySQL doesn't yet support 'more than one multi-valued key part per index'");
+
+//@<> Create NON array index in field with array data {VER(>=8.0.17)}
+coll.add({ myField: ["one", "two"] }).execute()
+EXPECT_THROWS(function() {
+  coll.createIndex('myField', { fields: [{ field: '$.myField', type: 'CHAR(10)'}], type: 'INDEX' });
+}, "Data too long for column");
+
+//@<> Create array index in field with array data {VER(>=8.0.17)}
+EXPECT_NO_THROWS(function() {
+  coll.createIndex('myField', { fields: [{ field: '$.myField', type: 'CHAR(10)', array: true}], type: 'INDEX' });
+}, "Creating array index in array column");

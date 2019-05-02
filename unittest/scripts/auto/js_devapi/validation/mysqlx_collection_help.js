@@ -217,7 +217,8 @@ DESCRIPTION
         type     : <type>,
         required : <boolean>,
         options  : <uint>,
-        srid     : <uint>
+        srid     : <uint>,
+        array    : <boolean>
       }
 
       - field: string, the full document path to the document member or field
@@ -231,9 +232,14 @@ DESCRIPTION
       - options: uint, (optional) special option flags for use when decoding
         GEOJSON data.
       - srid: uint, (optional) srid value for use when decoding GEOJSON data.
+      - array: bool, (optional) true if the field is an array.
 
-      The 'options' and 'srid' fields in IndexField can and must be present
-      only if 'type' is set to 'GEOJSON'.
+      The 'options' and 'srid' fields can and must be present only if 'type' is
+      set to 'GEOJSON'.
+
+      The 'array' field can only be present if 'type' is any of: BINARY(N),
+      CHAR(N), DATE, DATETIME, TIME, DECIMAL(M[,D]), SIGNED [INTEGER] or
+      UNSIGNED [INTEGER].
 
 //@<OUT> Help on dropIndex
 NAME

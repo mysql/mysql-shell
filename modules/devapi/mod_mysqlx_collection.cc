@@ -779,7 +779,8 @@ A single index_field description consists of the following fields:
   type     : <type>,
   required : <boolean>,
   options  : <uint>,
-  srid     : <uint>
+  srid     : <uint>,
+  array    : <boolean>
 }
 @endcode
 
@@ -793,9 +794,13 @@ document. defaults to false, except for GEOJSON where it defaults to true.
 @li options: uint, (optional) special option flags for use when decoding GEOJSON
 data.
 @li srid: uint, (optional) srid value for use when decoding GEOJSON data.
+@li array: bool, (optional) true if the field is an array.
 
-The 'options' and 'srid' fields in IndexField can and must be present only if
-'type' is set to 'GEOJSON'.
+The 'options' and 'srid' fields can and must be present only if 'type' is set to
+'GEOJSON'.
+
+The 'array' field can only be present if 'type' is any of: BINARY(N), CHAR(N),
+DATE, DATETIME, TIME, DECIMAL(M[,D]), SIGNED [INTEGER] or UNSIGNED [INTEGER].
 )*");
 
 /**

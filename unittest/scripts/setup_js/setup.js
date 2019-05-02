@@ -234,6 +234,14 @@ function EXPECT_THROWS(func, etext) {
   }
 }
 
+function EXPECT_NO_THROWS(func, context) {
+  try {
+    func();
+  } catch (err) {
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + err.message + "</red>");
+  }
+}
+
 function EXPECT_OUTPUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
