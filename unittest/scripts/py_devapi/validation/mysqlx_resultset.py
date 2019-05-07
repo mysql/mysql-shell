@@ -97,6 +97,10 @@
 |Result 1 Record 4: jack|
 |Result 2 Record 4: carol|
 
+#@<OUT> Row as object on SQL
+{"age": 15, "name": "adam"}
+{"gender": "female", "name": "alma"}
+
 #@ Resultset buffering on CRUD
 |Result 1 Field 1: name|
 |Result 1 Field 2: age|
@@ -115,6 +119,10 @@
 
 |Result 1 Record 4: jack|
 |Result 2 Record 4: carol|
+
+#@<OUT> Row as object on CRUD
+{"age": 15, "name": "adam"}
+{"gender": "female", "name": "alma"}
 
 #@ Resultset table
 |7|

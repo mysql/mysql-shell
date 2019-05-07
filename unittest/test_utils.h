@@ -157,6 +157,7 @@ class Shell_test_output_handler {
 
   void set_internal(bool value) { m_internal = value; }
   void set_answers_to_stdout(bool value) { m_answers_to_stdout = value; }
+  void set_errors_to_stderr(bool value) { m_errors_on_stderr = value; }
 
  protected:
   static shcore::Logger *_logger;
@@ -164,6 +165,7 @@ class Shell_test_output_handler {
   static void log_hook(const shcore::Logger::Log_entry &entry, void *);
   bool m_internal;
   bool m_answers_to_stdout;
+  bool m_errors_on_stderr;
 };
 
 #define MY_EXPECT_STDOUT_CONTAINS(x, ...)                           \

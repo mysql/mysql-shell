@@ -69,6 +69,12 @@ result.help('fetchOne');
 //@ Help on fetchOne, \? [USE:Help on fetchOne]
 \? RowResult.fetchOne
 
+//@ Help on fetchOneObject
+result.help('fetchOneObject');
+
+//@ Help on fetchOneObject, \? [USE:Help on fetchOneObject]
+\? RowResult.fetchOneObject
+
 //@ Help on getAffectedItemsCount
 result.help('getAffectedItemsCount');
 

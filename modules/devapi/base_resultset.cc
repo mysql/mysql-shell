@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,6 +44,45 @@ REGISTER_HELP(COLUMN_BRIEF,
               "Represents the metadata for a column in a result.");
 bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
+}
+
+std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {
+  std::unique_ptr<mysqlsh::Row> ret_val;
+
+  auto result = get_result();
+  auto columns = get_column_names();
+  if (result && columns) {
+    const mysqlshdk::db::IRow *row = result->fetch_one();
+    if (row) {
+      ret_val = shcore::make_unique<mysqlsh::Row>(columns, *row);
+    }
+  }
+
+  return ret_val;
+}
+
+REGISTER_HELP_FUNCTION_TEXT(BASERESULT_FETCHONEOBJECT, R"*(
+Retrieves the next Row on the result and returns it as an object.
+
+@returns A dictionary containing the row information.
+
+The column names will be used as keys in the returned dictionary and the column
+data will be used as the key values.
+
+If a column is a valid identifier it will be accessible as an object attribute
+as @<dict@>.@<column@>.
+
+If a column is not a valid identifier, it will be accessible as a dictionary
+key as @<dict@>[@<column@>].
+)*");
+shcore::Dictionary_t ShellBaseResult::fetch_one_object() const {
+  shcore::Dictionary_t ret_val;
+
+  auto row = fetch_one_row();
+  if (row) {
+    ret_val = row->as_object();
+  }
+  return ret_val;
 }
 
 Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
@@ -197,6 +236,16 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
   }
 
   value_array = get_row_values(row);
+}
+
+shcore::Dictionary_t Row::as_object() {
+  auto ret_val = shcore::make_dict();
+
+  for (size_t index = 0; index < names->size(); index++) {
+    ret_val->emplace(names->at(index), value_array.at(index));
+  }
+
+  return ret_val;
 }
 
 std::string &Row::append_descr(std::string &s_out, int indent,

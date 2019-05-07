@@ -820,6 +820,9 @@ FUNCTIONS
       fetch_one()
             Retrieves the next Row on the RowResult.
 
+      fetch_one_object()
+            Retrieves the next Row on the result and returns it as an object.
+
       get_affected_items_count()
             The the number of affected items for the last operation.
 
@@ -993,6 +996,9 @@ FUNCTIONS
       rollback_to(name)
             Rolls back the transaction to the named savepoint without
             terminating the transaction.
+
+      run_sql(query[, args])
+            Executes a query and returns the corresponding SqlResult object.
 
       set_current_schema(name)
             Sets the current schema for this session, and returns the schema

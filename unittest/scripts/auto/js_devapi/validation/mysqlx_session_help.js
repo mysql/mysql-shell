@@ -78,6 +78,9 @@ FUNCTIONS
             Rolls back the transaction to the named savepoint without
             terminating the transaction.
 
+      runSql(query[, args])
+            Executes a query and returns the corresponding SqlResult object.
+
       setCurrentSchema(name)
             Sets the current schema for this session, and returns the schema
             object for it.
@@ -319,6 +322,26 @@ DESCRIPTION
       the given savepoint was defined will be removed.
 
       It is an error calling this operation with an unexisting savepoint.
+
+//@<OUT> Help on runSql
+NAME
+      runSql - Executes a query and returns the corresponding SqlResult object.
+
+SYNTAX
+      <Session>.runSql(query[, args])
+
+WHERE
+      query: the SQL query to execute against the database.
+      args: List of literals to use when replacing ? placeholders in the query
+            string.
+
+RETURNS
+       An SqlResult object.
+
+EXCEPTIONS
+      LogicError if there's no open session.
+
+      ArgumentError if the parameters are invalid.
 
 //@<OUT> Help on setCurrentSchema
 NAME

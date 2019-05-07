@@ -162,6 +162,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
  public:
   void SetUpOnce() override {
+    output_handler.set_errors_to_stderr(true);
     run_script_classic(
         {"create schema if not exists zzz;",
          "create schema if not exists zombie;",
@@ -349,7 +350,16 @@ class Completer_frontend : public Shell_core_test_wrapper {
       if (result.descr() == "False") return;
     } else {
       execute_noerr("var tmpvar = " + expr);
-      ASSERT_EQ("", output_handler.std_err);
+      // Only deprecation errors are bypassed on the function calls
+      if (!output_handler.std_err.empty()) {
+        if (output_handler.std_err.find("is deprecated") == std::string::npos) {
+          FAIL() << "Only deprecation errors are allowed on autocompletion "
+                    "tests, found: "
+                 << output_handler.std_err.c_str() << "\n";
+        }
+      }
+      wipe_all();
+
       execute_noerr(
           "['m.Array', 'm.Map', 'String', 'Integer', "
           "'Boolean'].indexOf(type(tmpvar)) >= 0");
@@ -911,7 +921,7 @@ TEST_F(Completer_frontend, js_devapi_table) {
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().execute().fe",
                    DB_PRODUCTTABLE ".select().execute().fetch");
   EXPECT_AFTER_TAB_TAB(DB_PRODUCTTABLE ".select().execute().fetch",
-                       strv({"fetchAll()", "fetchOne()"}));
+                       strv({"fetchAll()", "fetchOne()", "fetchOneObject()"}));
 
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().bind().s");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().bind(.s");
@@ -1033,7 +1043,8 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
       {"setSavepoint", "('name')"},
       {"rollbackTo", "('name')"},
       {"releaseSavepoint", "('name')"},
-      {"rollback", "()"}};
+      {"rollback", "()"},
+      {"runSql", "('select 1')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 
   std::vector<std::pair<std::string, std::string>> db_calls{
@@ -1409,8 +1420,9 @@ TEST_F(Completer_frontend, py_devapi_table) {
                    DB_PRODUCTTABLE ".select().group_by().having()");
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().execute().fe",
                    DB_PRODUCTTABLE ".select().execute().fetch_");
-  EXPECT_AFTER_TAB_TAB(DB_PRODUCTTABLE ".select().execute().fetch_",
-                       strv({"fetch_all()", "fetch_one()"}));
+  EXPECT_AFTER_TAB_TAB(
+      DB_PRODUCTTABLE ".select().execute().fetch_",
+      strv({"fetch_all()", "fetch_one()", "fetch_one_object()"}));
 
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().bind().s");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().bind(.s");

@@ -42,7 +42,7 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern bool g_profile_test_scripts;
 
 Shell_test_output_handler::Shell_test_output_handler()
-    : m_internal(false), m_answers_to_stdout(false) {
+    : m_internal(false), m_answers_to_stdout(false), m_errors_on_stderr(false) {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
@@ -102,14 +102,19 @@ void Shell_test_output_handler::deleg_print_error(void *user_data,
   // and print_diag() separate, so that we can make print_error() send output
   // to stderr in the real shell app, while in tests it sends output to
   // stdout. This is for backwards compatibility in how tests are checked.
-
+  //
+  // Update: Now it is possible to make the print_error() send the text to
+  // stderr as the shell by calling output_handler.set_errors_to_stderr(...)
   target->full_output << text << std::endl;
 
   if (target->debug || g_test_trace_scripts)
     std::cout << (shcore::str_beginswith(text, "ERROR") ? makelred(text) : text)
               << std::endl;
 
-  target->std_out.append(text);
+  if (target->m_errors_on_stderr)
+    target->std_err.append(text);
+  else
+    target->std_out.append(text);
 }
 
 void Shell_test_output_handler::deleg_print_diag(void *user_data,

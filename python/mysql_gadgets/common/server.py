@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -973,7 +973,7 @@ class Server(object):
                     _LOGGER.debug("MySQL query: %s", query_to_log)
                 else:
                     _LOGGER.debug("MySQL query: %s", query_str)
-                cur = MySQLUtilsCursorResult(self.db_conn.query(query_str))
+                cur = MySQLUtilsCursorResult(self.db_conn.run_sql(query_str))
             else:
                 if query_to_log:
                     _LOGGER.debug("MySQL query: %s, params %s", query_to_log,
@@ -981,7 +981,7 @@ class Server(object):
                 else:
                     _LOGGER.debug("MySQL query: %s, params %s", query_str,
                                   params)
-                cur = MySQLUtilsCursorResult(self.db_conn.query(query_str, params))
+                cur = MySQLUtilsCursorResult(self.db_conn.run_sql(query_str, params))
         except mysqlsh.DBError as err:
             # if any exception happened, mask  the query_str that will be
             # shown in the exception messages
@@ -1043,7 +1043,7 @@ class Server(object):
             # No results (not a SELECT)
             try:
                 if do_commit:
-                    self.db_conn.query("commit")
+                    self.db_conn.run_sql("commit")
             except mysqlsh.DBError as err:
                 if query_to_log:
                     query_str = query_to_log
@@ -1064,7 +1064,7 @@ class Server(object):
             raise GadgetCnxError(
                 "You must call connect before commit.", server=self)
 
-        self.db_conn.query("commit")
+        self.db_conn.run_sql("commit")
 
     def rollback(self):
         """Perform a ROLLBACK.
@@ -1076,7 +1076,7 @@ class Server(object):
             raise GadgetCnxError(
                 "You must call connect before rollback.", server=self)
 
-        self.db_conn.query("rollback")
+        self.db_conn.run_sql("rollback")
 
     def show_server_variable(self, variable):
         """Get the variable information using SHOW VARIABLES statement.
@@ -1687,7 +1687,7 @@ class QueryKillerThread(threading.Thread):
                     # Get process information from threads table when available
                     # (for versions > 5.6.1), since it does not require a mutex
                     # and has minimal impact on server performance.
-                    cur = MySQLUtilsCursorResult(self._connection.query(
+                    cur = MySQLUtilsCursorResult(self._connection.run_sql(
                         "SELECT processlist_id "
                         "FROM performance_schema.threads"
                         " WHERE processlist_command='Query'"
@@ -1706,7 +1706,7 @@ class QueryKillerThread(threading.Thread):
                     # connector-python,since it will hang waiting for the
                     #  query to return.
                     if process_id:
-                        self._connection.query("KILL {0}".format(process_id))
+                        self._connection.run_sql("KILL {0}".format(process_id))
                 except mysqlsh.DBError as err:
                     # Hold error to raise at the end.
                     connector_error = err

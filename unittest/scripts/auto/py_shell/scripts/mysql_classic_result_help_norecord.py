@@ -92,6 +92,15 @@ classicresult.help('fetch_one')
 #@ global help for fetch_one[USE:classicresult.fetch_one]
 \help ClassicResult.fetch_one
 
+#@ classicresult.fetch_one_object
+classicresult.help('fetch_one_object')
+
+#@ global ? for fetch_one_object[USE:classicresult.fetch_one_object]
+\? ClassicResult.fetch_one_object
+
+#@ global help for fetch_one_object[USE:classicresult.fetch_one_object]
+\help ClassicResult.fetch_one_object
+
 #@ classicresult.get_affected_items_count
 classicresult.help('get_affected_items_count')
 

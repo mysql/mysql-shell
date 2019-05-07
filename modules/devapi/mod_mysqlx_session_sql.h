@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,7 +59,11 @@ class SqlExecute : public Dynamic_object,
   explicit SqlExecute(std::shared_ptr<Session> owner);
   std::string class_name() const override { return "SqlExecute"; }
   shcore::Value sql(const shcore::Argument_list &args);
+  inline void set_sql(const std::string &sql) { _sql = sql; };
   shcore::Value bind(const shcore::Argument_list &args);
+  inline void add_bind(const shcore::Value &value) {
+    _parameters.push_back(value);
+  }
   virtual shcore::Value execute(const shcore::Argument_list &args);
 
  private:

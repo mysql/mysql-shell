@@ -163,6 +163,15 @@ session.help('rollback_to')
 #@ global help for rollback_to[USE:session.rollback_to]
 \help Session.rollback_to
 
+#@ session.run_sql
+session.help('run_sql')
+
+#@ global ? for run_sql[USE:session.run_sql]
+\? Session.run_sql
+
+#@ global help for run_sql[USE:session.run_sql]
+\help Session.run_sql
+
 #@ session.set_current_schema
 session.help('set_current_schema')
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <string>
 #include "modules/devapi/base_constants.h"
+#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/libs/db/charset.h"
@@ -66,6 +67,7 @@ ClassicResult::ClassicResult(
                                        const shcore::Argument_list &) const) &
                                        ClassicResult::fetch_one,
                                    this, _1));
+  expose("fetchOneObject", &ClassicResult::_fetch_one_object);
   add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(
                                        const shcore::Argument_list &) const) &
                                        ClassicResult::fetch_all,
@@ -124,11 +126,10 @@ shcore::Value ClassicResult::fetch_one(
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   try {
-    if (_result) {
-      const mysqlshdk::db::IRow *row = _result->fetch_one();
-      if (row) {
-        ret_val = shcore::Value::wrap(new mysqlsh::Row(_column_names, *row));
-      }
+    auto row = fetch_one_row();
+
+    if (row) {
+      ret_val = shcore::Value::wrap(row.release());
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
@@ -138,6 +139,27 @@ shcore::Value ClassicResult::fetch_one(
 
 const mysqlshdk::db::IRow *ClassicResult::fetch_one() const {
   return _result->fetch_one();
+}
+
+REGISTER_HELP_FUNCTION(fetchOneObject, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_BRIEF,
+              "${BASERESULT_FETCHONEOBJECT_BRIEF}");
+REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_RETURNS,
+              "${BASERESULT_FETCHONEOBJECT_RETURNS}");
+REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_DETAIL,
+              "${BASERESULT_FETCHONEOBJECT_DETAIL}");
+/**
+ * $(BASERESULT_FETCHONEOBJECT_BRIEF)
+ *
+ * $(BASERESULT_FETCHONEOBJECT)
+ */
+#if DOXYGEN_JS
+Dictionary ClassicResult::fetchOneObject() {}
+#elif DOXYGEN_PY
+dict ClassicResult::fetch_one_object() {}
+#endif
+shcore::Dictionary_t ClassicResult::_fetch_one_object() {
+  return ShellBaseResult::fetch_one_object();
 }
 
 // Documentation of nextDataSet function

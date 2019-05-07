@@ -74,6 +74,15 @@ rowresult.help('fetch_one')
 #@ global help for fetch_one[USE:rowresult.fetch_one]
 \help RowResult.fetch_one
 
+#@ rowresult.fetch_one_object
+rowresult.help('fetch_one_object')
+
+#@ global ? for fetch_one_object[USE:rowresult.fetch_one_object]
+\? RowResult.fetch_one_object
+
+#@ global help for fetch_one_object[USE:rowresult.fetch_one_object]
+\help RowResult.fetch_one_object
+
 #@ rowresult.get_affected_items_count
 rowresult.help('get_affected_items_count')
 

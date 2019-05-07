@@ -62,6 +62,9 @@ FUNCTIONS
       fetch_one()
             Retrieves the next Row on the ClassicResult.
 
+      fetch_one_object()
+            Retrieves the next Row on the result and returns it as an object.
+
       get_affected_items_count()
             The the number of affected items for the last operation.
 
@@ -203,6 +206,27 @@ SYNTAX
 
 RETURNS
        A Row object representing the next record in the result.
+
+#@<OUT> classicresult.fetch_one_object
+NAME
+      fetch_one_object - Retrieves the next Row on the result and returns it as
+                         an object.
+
+SYNTAX
+      <ClassicResult>.fetch_one_object()
+
+RETURNS
+       A dictionary containing the row information.
+
+DESCRIPTION
+      The column names will be used as keys in the returned dictionary and the
+      column data will be used as the key values.
+
+      If a column is a valid identifier it will be accessible as an object
+      attribute as <dict>.<column>.
+
+      If a column is not a valid identifier, it will be accessible as a
+      dictionary key as <dict>[<column>].
 
 #@<OUT> classicresult.get_affected_items_count
 NAME

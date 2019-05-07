@@ -9,8 +9,14 @@ result = table.insert().values('foo', 'foo', '{"like":"foo", "nested":{"like":"f
 //@ WL12813 SQL Test 01
 session.sql('SELECT * FROM wl12813 WHERE `like` = "foo"').execute()
 
+//@ WL12766 SQL Test 01 [USE:WL12813 SQL Test 01]
+session.runSql('SELECT * FROM wl12813 WHERE `like` = "foo"')
+
 //@ WL12813 SQL Test 02 [USE:WL12813 SQL Test 01]
 session.sql('SELECT * FROM wl12813 WHERE `like` = ?').bind('foo').execute()
+
+//@ WL12766 SQL Test 02 [USE:WL12813 SQL Test 01]
+session.runSql('SELECT * FROM wl12813 WHERE `like` = ?', ['foo'])
 
 //@ WL12813 SQL Test 03 [USE:WL12813 SQL Test 01]
 session.sql('SELECT * FROM wl12813 WHERE doc->>"$.like" = "foo"').execute()
@@ -29,6 +35,13 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = "foo"').
 
 //@ WL12813 SQL Test 08 [USE:WL12813 SQL Test 01]
 session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').bind('foo').execute()
+
+//@ WL12813 SQL Test With Error (missing placeholder)
+session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').execute()
+
+//@ WL12766 SQL Test With Error (missing placeholder) [USE:WL12813 SQL Test With Error (missing placeholder)]
+session.runSql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?')
+
 
 //@<> Finalizing
 session.dropSchema('session_sql');

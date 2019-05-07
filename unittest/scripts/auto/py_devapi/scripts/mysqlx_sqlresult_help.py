@@ -92,6 +92,15 @@ sqlresult.help('fetch_one')
 #@ global help for fetch_one[USE:sqlresult.fetch_one]
 \help SqlResult.fetch_one
 
+#@ sqlresult.fetch_one_object
+sqlresult.help('fetch_one_object')
+
+#@ global ? for fetch_one_object[USE:sqlresult.fetch_one_object]
+\? SqlResult.fetch_one_object
+
+#@ global help for fetch_one_object[USE:sqlresult.fetch_one_object]
+\help SqlResult.fetch_one_object
+
 #@ sqlresult.get_affected_items_count
 sqlresult.help('get_affected_items_count')
 

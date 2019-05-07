@@ -31,6 +31,7 @@ validateMember(members, 'get_column_names')
 validateMember(members, 'get_columns')
 validateMember(members, 'get_info')
 validateMember(members, 'fetch_one')
+validateMember(members, 'fetch_one_object')
 validateMember(members, 'fetch_all')
 validateMember(members, 'has_data')
 validateMember(members, 'next_data_set')
@@ -111,5 +112,12 @@ print "Unable to get gender from alias: %s" % row.get_field('alias')
 print "Name with property: %s" % row.alias
 print "Age with property: %s" % row.age
 print "Unable to get length with property: %s" %  row.length
+
+#@ Resultset row as object
+result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
+object = result.fetch_one_object();
+print "Name with property: %s" % object.alias
+print "Age with property: %s" % object["age"]
+print object
 
 mySession.close()

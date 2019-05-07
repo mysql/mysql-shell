@@ -69,3 +69,14 @@
 |Name with property: jack|
 |Age with property: 17|
 |Unable to get length with property: 4|
+
+//@<OUT> Resultset row as objects
+Alias with property: jack
+Age as item: 17
+
+{
+    "age": 17, 
+    "alias": "jack", 
+    "length": 17
+}
+

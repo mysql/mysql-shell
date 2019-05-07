@@ -180,6 +180,8 @@ void Session::init() {
   add_method("quoteName", std::bind(&Session::quote_name, this, _1), "name",
              shcore::String);
 
+  expose("runSql", &Session::run_sql, "query", "?args");
+
   _schemas.reset(new shcore::Value::Map_type);
 
   // Prepares the cache handling
@@ -1253,6 +1255,50 @@ shcore::Value Session::sql(const shcore::Argument_list &args) {
       new SqlExecute(std::static_pointer_cast<Session>(shared_from_this())));
 
   return sql_execute->sql(args);
+}
+
+REGISTER_HELP_FUNCTION(runSql, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_RUNSQL, R"*(
+Executes a query and returns the corresponding SqlResult object.
+
+@param query the SQL query to execute against the database.
+@param args Optional list of literals to use when replacing ? placeholders in
+the query string.
+
+@returns An SqlResult object.
+
+@throw LogicError if there's no open session.
+@throw ArgumentError if the parameters are invalid.
+)*");
+/**
+ * $(SESSION_RUNSQL_BRIEF)
+ *
+ * $(SESSION_RUNSQL)
+ */
+
+#if DOXYGEN_JS
+SqlResult Session::runSql(String query, Array args) {}
+#elif DOXYGEN_PY
+SqlResult Session::run_sql(str query, list args) {}
+#endif
+shcore::Value Session::run_sql(const std::string sql,
+                               const shcore::Array_t &bound_args) {
+  // Will return the result of the SQL execution
+  // In case of error will be Undefined
+  if (!_session || !_session->is_open())
+    throw Exception::logic_error("Not connected.");
+
+  Interruptible intr(this);
+  std::shared_ptr<SqlExecute> sql_execute(std::make_shared<SqlExecute>(
+      std::static_pointer_cast<Session>(shared_from_this())));
+  sql_execute->set_sql(sql);
+  if (bound_args) {
+    for (const auto &value : *bound_args) {
+      sql_execute->add_bind(value);
+    }
+  }
+
+  return sql_execute->execute({});
 }
 
 REGISTER_HELP_PROPERTY(uri, Session);

@@ -81,6 +81,12 @@ result.help('fetchOne');
 //@ Help on fetchOne, \? [USE:Help on fetchOne]
 \? SqlResult.fetchOne
 
+//@ Help on fetchOneObject
+result.help('fetchOneObject');
+
+//@ Help on fetchOneObject, \? [USE:Help on fetchOneObject]
+\? SqlResult.fetchOneObject
+
 //@ Help on getAffectedItemsCount
 result.help('getAffectedItemsCount');
 

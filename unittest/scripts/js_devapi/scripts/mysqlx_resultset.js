@@ -26,6 +26,7 @@ validateMember(sqlMembers, 'getColumnCount');
 validateMember(sqlMembers, 'getColumnNames');
 validateMember(sqlMembers, 'getColumns');
 validateMember(sqlMembers, 'fetchOne');
+validateMember(sqlMembers, 'fetchOneObject');
 validateMember(sqlMembers, 'fetchAll');
 validateMember(sqlMembers, 'hasData');
 validateMember(sqlMembers, 'nextDataSet');
@@ -79,6 +80,7 @@ validateMember(rowResultMembers, 'getColumnCount');
 validateMember(rowResultMembers, 'getColumnNames');
 validateMember(rowResultMembers, 'getColumns');
 validateMember(rowResultMembers, 'fetchOne');
+validateMember(rowResultMembers, 'fetchOneObject');
 validateMember(rowResultMembers, 'fetchAll');
 
 //@ DocResult member validation
@@ -133,11 +135,11 @@ print("Result 1 Field 2:", metadata1[1].columnName);
 print("Result 2 Field 1:", metadata2[0].columnName);
 print("Result 2 Field 2:", metadata2[1].columnName);
 
-var record1 = result1.fetchOne();
-var record2 = result2.fetchOne();
+var object1 = result1.fetchOneObject();
+var object2 = result2.fetchOneObject();
 
-print("Result 1 Record 1:", record1.name);
-print("Result 2 Record 1:", record2.name);
+print("Result 1 Record 1:", object1.name);
+print("Result 2 Record 1:", object2["name"]);
 
 var record1 = result1.fetchOne();
 var record2 = result2.fetchOne();
@@ -156,6 +158,10 @@ var record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);
+
+//@ Rows as objects in SQL
+println(object1)
+println(object2)
 
 //@ Resultset buffering on CRUD
 
@@ -171,11 +177,11 @@ print("Result 1 Field 2:", metadata1[1].columnName);
 print("Result 2 Field 1:", metadata2[0].columnName);
 print("Result 2 Field 2:", metadata2[1].columnName);
 
-var record1 = result1.fetchOne();
-var record2 = result2.fetchOne();
+var object1 = result1.fetchOneObject();
+var object2 = result2.fetchOneObject();
 
-print("Result 1 Record 1:", record1.name);
-print("Result 2 Record 1:", record2.name);
+print("Result 1 Record 1:", object1.name);
+print("Result 2 Record 1:", object2["name"]);
 
 var record1 = result1.fetchOne();
 var record2 = result2.fetchOne();
@@ -194,6 +200,11 @@ var record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);
+
+//@ Rows as objects in CRUD
+println(object1)
+println(object2)
+
 
 //@ Resultset table
 print(table.select(["count(*)"]).execute().fetchOne()[0]);

@@ -115,6 +115,12 @@ mySession.help('rollBackTo');
 //@ Session rollBackTo, \? [USE:Help on rollBackTo]
 \? Session.rollBackTo
 
+//@ Help on runSql
+mySession.help('runSql');
+
+//@ Session runSql, \? [USE:Help on runSql]
+\? Session.runSql
+
 //@ Help on setCurrentSchema
 mySession.help('setCurrentSchema');
 

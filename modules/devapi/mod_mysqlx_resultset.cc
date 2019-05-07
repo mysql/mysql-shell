@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -629,6 +629,7 @@ RowResult::RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
 
   add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1));
   add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1));
+  expose("fetchOneObject", &RowResult::_fetch_one_object);
 
   _column_names.reset(new std::vector<std::string>());
   for (auto &cmd : _result->get_metadata())
@@ -642,8 +643,9 @@ shcore::Value RowResult::get_member(const std::string &prop) const {
   } else if (prop == "columnNames") {
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
-    for (auto &cmd : _result->get_metadata())
-      array->push_back(shcore::Value(cmd.get_column_label()));
+    for (auto &column : *_column_names) {
+      array->push_back(shcore::Value(column));
+    }
 
     ret_val = shcore::Value(array);
   } else if (prop == "columns")
@@ -697,9 +699,6 @@ List RowResult::getColumnNames() {}
 #elif DOXYGEN_PY
 list RowResult::get_column_names() {}
 #endif
-std::vector<std::string> RowResult::get_column_names() const {
-  return *_column_names;
-}
 
 // Documentation of getColumns function
 REGISTER_HELP_PROPERTY(columns, RowResult);
@@ -831,16 +830,35 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   try {
-    if (_result) {
-      const mysqlshdk::db::IRow *row = _result->fetch_one();
-      if (row) {
-        ret_val = shcore::Value::wrap(new mysqlsh::Row(_column_names, *row));
-      }
+    auto row = fetch_one_row();
+    if (row) {
+      ret_val = shcore::Value::wrap(row.release());
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
 
   return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(fetchOneObject, RowResult);
+REGISTER_HELP(ROWRESULT_FETCHONEOBJECT_BRIEF,
+              "${BASERESULT_FETCHONEOBJECT_BRIEF}");
+REGISTER_HELP(ROWRESULT_FETCHONEOBJECT_RETURNS,
+              "${BASERESULT_FETCHONEOBJECT_RETURNS}");
+REGISTER_HELP(ROWRESULT_FETCHONEOBJECT_DETAIL,
+              "${BASERESULT_FETCHONEOBJECT_DETAIL}");
+/**
+ * $(BASERESULT_FETCHONEOBJECT_BRIEF)
+ *
+ * $(BASERESULT_FETCHONEOBJECT)
+ */
+#if DOXYGEN_JS
+Dictionary RowResult::fetchOneObject() {}
+#elif DOXYGEN_PY
+dict RowResult::fetch_one_object() {}
+#endif
+shcore::Dictionary_t RowResult::_fetch_one_object() {
+  return ShellBaseResult::fetch_one_object();
 }
 
 // Documentation of fetchAll function

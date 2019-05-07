@@ -26,6 +26,7 @@ validateMember(sqlMembers, 'get_column_count')
 validateMember(sqlMembers, 'get_column_names')
 validateMember(sqlMembers, 'get_columns')
 validateMember(sqlMembers, 'fetch_one')
+validateMember(sqlMembers, 'fetch_one_object')
 validateMember(sqlMembers, 'fetch_all')
 validateMember(sqlMembers, 'has_data')
 validateMember(sqlMembers, 'next_data_set')
@@ -137,11 +138,11 @@ print "Result 2 Field 1:", metadata2[0].column_name
 print "Result 2 Field 2:", metadata2[1].column_name
 
 
-record1 = result1.fetch_one()
-record2 = result2.fetch_one()
+object1 = result1.fetch_one_object()
+object2 = result2.fetch_one_object()
 
-print "Result 1 Record 1:", record1.name
-print "Result 2 Record 1:", record2.name
+print "Result 1 Record 1:", object1.name
+print "Result 2 Record 1:", object2["name"]
 
 record1 = result1.fetch_one()
 record2 = result2.fetch_one()
@@ -161,9 +162,11 @@ record2 = result2.fetch_one()
 print "Result 1 Record 4:", record1.name
 print "Result 2 Record 4:", record2.name
 
+#@ Row as object on SQL
+print object1
+print object2
 
 #@ Resultset buffering on CRUD
-
 result1 = table.select(['name', 'age']).where('gender = :gender').order_by(['name']).bind('gender','male').execute()
 result2 = table.select(['name', 'gender']).where('age < :age').order_by(['name']).bind('age',15).execute()
 
@@ -177,11 +180,11 @@ print "Result 2 Field 1:", metadata2[0].column_name
 print "Result 2 Field 2:", metadata2[1].column_name
 
 
-record1 = result1.fetch_one()
-record2 = result2.fetch_one()
+object1 = result1.fetch_one_object()
+object2 = result2.fetch_one_object()
 
-print "Result 1 Record 1:", record1.name
-print "Result 2 Record 1:", record2.name
+print "Result 1 Record 1:", object1.name
+print "Result 2 Record 1:", object2["name"]
 
 record1 = result1.fetch_one()
 record2 = result2.fetch_one()
@@ -200,6 +203,10 @@ record2 = result2.fetch_one()
 
 print "Result 1 Record 4:", record1.name
 print "Result 2 Record 4:", record2.name
+
+#@ Row as object on CRUD
+print object1
+print object2
 
 #@ Resultset table
 print table.select(["count(*)"]).execute().fetch_one()[0]

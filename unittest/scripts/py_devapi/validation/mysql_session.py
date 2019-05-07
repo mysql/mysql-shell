@@ -66,4 +66,9 @@
 
 
 #@<OUT> ClassicSession: query placeholders
+WARNING: 'query' is deprecated, use ClassicSession.run_sql instead.
++-------+------+
 | hello | 1234 |
++-------+------+
+| hello | 1234 |
++-------+------+

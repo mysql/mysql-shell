@@ -192,36 +192,24 @@ shcore::Value ClassicSession::_run_sql(const std::string &function,
   return ret_val;
 }
 
-// Documentation of runSql function
 REGISTER_HELP_FUNCTION(runSql, ClassicSession);
-REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF,
-              "Executes a query and returns the "
-              "corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM,
-              "@param query the SQL query to "
-              "execute against the database.");
-REGISTER_HELP(
-    CLASSICSESSION_RUNSQL_PARAM1,
-    "@param args Optional list of "
-    "literals to use when replacing ? placeholders in the query string.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS,
-              "@returns A ClassicResult "
-              "object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION,
-              "@exception An exception is "
-              "thrown if an error occurs on the SQL execution.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_RUNSQL, R"*(
+Executes a query and returns the corresponding ClassicResult object.
 
-//! $(CLASSICSESSION_RUNSQL_BRIEF)
-#if DOXYGEN_CPP
-//! \param args should contain the SQL query to execute against the database.
-#else
-//! $(CLASSICSESSION_RUNSQL_PARAM)
-//! $(CLASSICSESSION_RUNSQL_PARAM1)
-#endif
+@param query the SQL query to execute against the database.
+@param args Optional list of literals to use when replacing ? placeholders in
+the query string.
+
+@returns A ClassicResult object.
+
+@throw LogicError if there's no open session.
+@throw ArgumentError if the parameters are invalid.
+
+)*");
 /**
- * $(CLASSICSESSION_RUNSQL_RETURNS)
+ * $(CLASSICSESSION_RUNSQL_BRIEF)
  *
- * $(CLASSICSESSION_RUNSQL_EXCEPTION)
+ * $(CLASSICSESSION_RUNSQL)
  */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::runSql(String query, Array args) {}
@@ -236,6 +224,7 @@ REGISTER_HELP_FUNCTION(query, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF,
               "Executes a query and returns the "
               "corresponding ClassicResult object.");
+
 REGISTER_HELP(CLASSICSESSION_QUERY_PARAM,
               "@param query the SQL query string "
               "to execute, with optional ? placeholders");
@@ -250,6 +239,13 @@ REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION,
               "@exception An exception is "
               "thrown if an error occurs on the SQL execution.");
 
+REGISTER_HELP(CLASSICSESSION_QUERY_DETAIL,
+              "${CLASSICSESSION_QUERY_DEPRECATED}");
+
+REGISTER_HELP(CLASSICSESSION_QUERY_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<runSql>>></b> function instead.");
+
 //! $(CLASSICSESSION_QUERY_BRIEF)
 #if DOXYGEN_CPP
 //! \param args should contain the SQL query to execute against the database.
@@ -261,6 +257,8 @@ REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION,
  * $(CLASSICSESSION_QUERY_RETURNS)
  *
  * $(CLASSICSESSION_QUERY_EXCEPTION)
+ *
+ * $(CLASSICSESSION_QUERY_DEPRECATED)
  */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::query(String query, Array args = []) {}
@@ -268,6 +266,10 @@ ClassicResult ClassicSession::query(String query, Array args = []) {}
 ClassicResult ClassicSession::query(str query, list args = []) {}
 #endif
 Value ClassicSession::query(const shcore::Argument_list &args) {
+  auto console = mysqlsh::current_console();
+  console->print_warning("'query' is deprecated, use " +
+                         get_function_name("runSql") + " instead.");
+
   return _run_sql("query", args);
 }
 

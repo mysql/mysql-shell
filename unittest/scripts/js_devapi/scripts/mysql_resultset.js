@@ -31,6 +31,7 @@ validateMember(members, 'getColumnNames');
 validateMember(members, 'getColumns');
 validateMember(members, 'getInfo');
 validateMember(members, 'fetchOne');
+validateMember(members, 'fetchOneObject');
 validateMember(members, 'fetchAll');
 validateMember(members, 'hasData');
 validateMember(members, 'nextDataSet');
@@ -100,5 +101,13 @@ println("Unable to get gender from alias: " +  row.getField('alias'));
 println("Name with property: " +  row.alias);
 println("Age with property: " +  row.age);
 println("Unable to get length with property: " +  row.length);
+
+//@ Resultset row as objects
+var result = mySession.runSql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
+var object = result.fetchOneObject();
+println("Alias with property: " +  object.alias);
+println("Age as item: " +  object['age']);
+println()
+println(object)
 
 mySession.close()

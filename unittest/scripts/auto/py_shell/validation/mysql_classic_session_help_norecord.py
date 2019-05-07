@@ -35,6 +35,9 @@ FUNCTIONS
             Executes a query and returns the corresponding ClassicResult
             object.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the run_sql function instead.
+
       rollback()
             Discards all the operations executed after a call to
             startTransaction().
@@ -122,6 +125,10 @@ WHERE
 RETURNS
        A ClassicResult object.
 
+DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 run_sql function instead.
+
 #@<OUT> session.rollback
 NAME
       rollback - Discards all the operations executed after a call to
@@ -155,6 +162,11 @@ WHERE
 
 RETURNS
        A ClassicResult object.
+
+EXCEPTIONS
+      LogicError if there's no open session.
+
+      ArgumentError if the parameters are invalid.
 
 #@<OUT> session.start_transaction
 NAME

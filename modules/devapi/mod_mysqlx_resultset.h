@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,7 +93,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   str get_execution_time();
 #endif
 
-  virtual mysqlshdk::db::IResult *get_result() { return _result.get(); };
+  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); };
 
  protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
@@ -194,19 +194,23 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
   shcore::Value fetch_all(const shcore::Argument_list &args) const;
-
+  shcore::Dictionary_t _fetch_one_object();
   virtual shcore::Value get_member(const std::string &prop) const;
 
   virtual std::string class_name() const { return "RowResult"; }
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
+  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
+    return _column_names;
+  }
+
   // C++ Interface
   int64_t get_column_count() const;
-  std::vector<std::string> get_column_names() const;
   shcore::Value::Array_type_ref get_columns() const;
 
 #if DOXYGEN_JS
   Row fetchOne();
+  Dictionary fetchOneObject();
   List fetchAll();
 
   Integer columnCount;  //!< Same as getColumnCount()
@@ -218,6 +222,7 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
   List getColumns();
 #elif DOXYGEN_PY
   Row fetch_one();
+  dict fetch_one_object();
   list fetch_all();
 
   int column_count;   //!< Same as get_column_count()
@@ -254,10 +259,6 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
   int64_t get_affected_row_count() const;
   int64_t get_auto_increment_value() const;
   bool hasData();
-
-  // TODO: Enable it once the way to have a reference to the unmanaged object is
-  // found
-  // bool nextDataSet() const;
 
 #if DOXYGEN_JS
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()

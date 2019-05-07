@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   Integer warningsCount;  //!< Same as getWarningsCount()
 
   Row fetchOne();
+  Dictionary fetchOneObject();
   List fetchAll();
   Integer getAffectedItemsCount();
   Integer getAffectedRowCount();
@@ -114,6 +115,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   int warnings_count;  //!< Same as get_warnings_count()
 
   Row fetch_one();
+  dict fetch_one_object();
   list fetch_all();
   int get_affected_items_count();
   int get_affected_row_count();
@@ -144,13 +146,17 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 
   shcore::Value has_data(const shcore::Argument_list &args) const;
   virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
+  shcore::Dictionary_t _fetch_one_object();
   virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
   virtual shcore::Value next_data_set(const shcore::Argument_list &args);
   virtual shcore::Value next_result(const shcore::Argument_list &args);
 
   shcore::Value::Array_type_ref get_columns() const;
 
-  virtual mysqlshdk::db::IResult *get_result() { return _result.get(); };
+  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); };
+  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
+    return _column_names;
+  }
 
  private:
   std::shared_ptr<mysqlshdk::db::mysql::Result> _result;

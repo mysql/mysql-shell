@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,14 +39,22 @@
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
+class Row;
 // This is the Shell Common Base Class for all the resultset classes
 class ShellBaseResult : public shcore::Cpp_object_bridge {
  public:
   virtual bool operator==(const Object_bridge &other) const;
-  virtual mysqlshdk::db::IResult *get_result() = 0;
+  virtual mysqlshdk::db::IResult *get_result() const = 0;
+  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
+    return {};
+  }
   bool is_result() const { return class_name() == "Result"; }
   bool is_doc_result() const { return class_name() == "DocResult"; }
   bool is_row_result() const { return class_name() == "RowResult"; }
+
+  std::unique_ptr<mysqlsh::Row> fetch_one_row() const;
+
+  shcore::Dictionary_t fetch_one_object() const;
 };
 
 /**
@@ -298,6 +306,8 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   virtual bool is_indexed() const { return true; }
 
   void add_item(const std::string &key, shcore::Value value);
+
+  shcore::Dictionary_t as_object();
 };
 }  // namespace mysqlsh
 
