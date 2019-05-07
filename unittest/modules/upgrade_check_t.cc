@@ -453,6 +453,31 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
 }
 
+TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 17))
+    SKIP_TEST(
+        "This test requires running against MySQL server version 5.7-8.0.16");
+  PrepareTestDatabase("aaa_circular_directory");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_circular_directory_check();
+  EXPECT_EQ(0,
+            strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
+                   "upgrading-from-previous-series.html#upgrade-innodb-changes",
+                   check->get_doc_link()));
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_TRUE(issues.empty());
+
+  EXPECT_NO_THROW(
+      session->execute("CREATE TABLESPACE circular ADD DATAFILE "
+                       "'mysql/../circular.ibd' ENGINE=INNODB;"));
+  EXPECT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_EQ(1, issues.size());
+  EXPECT_EQ("circular", issues[0].schema);
+  EXPECT_NO_THROW(session->execute("drop tablespace circular"));
+}
+
 TEST_F(MySQL_upgrade_check_test, removed_functions) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
@@ -747,6 +772,28 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
   ASSERT_TRUE(issues.empty());
 }
 
+TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("mysql_non_native_partitioning");
+  auto check = Sql_upgrade_check::get_nonnative_partitioning_check();
+  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
+                      "upgrading-from-previous-series.html#upgrade-"
+                      "configuration-changes",
+                      check->get_doc_link()));
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(
+      session->execute("create table part(i integer) engine=myisam partition "
+                       "by range(i) (partition p0 values less than (1000), "
+                       "partition p1 values less than MAXVALUE);"));
+  EXPECT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_TRUE(issues.size() == 1 && issues[0].table == "part");
+}
+
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
@@ -762,7 +809,7 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
                        "by range(i) (partition p0 values less than (1000), "
                        "partition p1 values less than MAXVALUE);"));
   EXPECT_NO_THROW(issues = check.run(session, opts));
-  EXPECT_TRUE(issues.size() == 1 && issues[0].table == "part");
+  EXPECT_TRUE(issues.empty());
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {

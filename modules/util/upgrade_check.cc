@@ -120,7 +120,7 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
   shcore::Translation_writer writer(filename);
 
   const char *oracle_copyright =
-      "Copyright (c) 2017, " PACKAGE_YEAR
+      "Copyright (c) 2018, " PACKAGE_YEAR
       ", Oracle and/or its affiliates. All rights "
       "reserved.\n\n"
       "This program is free software; you can redistribute it and/or modify\n"
@@ -264,18 +264,19 @@ Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "oldTemporalCheck", "Usage of old temporal type",
-      {"SELECT table_schema, table_name,column_name,column_type "
-       "FROM information_schema.columns WHERE column_type LIKE "
-       "'timestamp /* 5.5 binary format */';"},
+      std::vector<std::string>{
+          "SELECT table_schema, table_name,column_name,column_type "
+          "FROM information_schema.columns WHERE column_type LIKE "
+          "'timestamp /* 5.5 binary format */';"},
       Upgrade_issue::ERROR,
       "Following table columns use a deprecated and no longer supported "
       "timestamp disk storage format. They must be converted to the new format "
       "before upgrading. It can by done by rebuilding the table using 'ALTER "
       "TABLE <table_name> FORCE' command",
-      nullptr, {"SET show_old_temporals = ON;"},
-      {"SET show_old_temporals = OFF;"}));
+      nullptr, std::forward_list<std::string>{"SET show_old_temporals = ON;"},
+      std::forward_list<std::string>{"SET show_old_temporals = OFF;"});
 }
 
 namespace {
@@ -293,43 +294,44 @@ Sql_upgrade_check::get_reserved_keywords_check() {
       "'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', "
       "'RANK', 'RECURSIVE', 'ROW', 'ROWS', "
       "'ROW_NUMBER', 'SYSTEM', 'WINDOW');";
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "reservedKeywordsCheck",
       "Usage of db objects with names conflicting with reserved keywords "
       "in 8.0",
-      {"select SCHEMA_NAME, 'Schema name' as WARNING from "
-       "INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME in " +
-           keywords,
-       "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' as WARNING FROM "
-       "INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE != 'VIEW' and "
-       "TABLE_NAME "
-       "in " +
-           keywords,
-       "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, 'Column "
-       "name' as WARNING FROM information_schema.columns WHERE "
-       "TABLE_SCHEMA "
-       "not in ('information_schema', 'performance_schema') and "
-       "COLUMN_NAME "
-       "in " +
-           keywords,
-       "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
-       "FROM "
-       "INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_NAME in " +
-           keywords,
-       "SELECT TABLE_SCHEMA, TABLE_NAME, 'View name' as WARNING FROM "
-       "INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME in " +
-           keywords,
-       "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'Routine name' as WARNING "
-       "FROM "
-       "INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME in " +
-           keywords,
-       "SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
-       "INFORMATION_SCHEMA.EVENTS WHERE EVENT_NAME in " +
-           keywords},
+      std::vector<std::string>{
+          "select SCHEMA_NAME, 'Schema name' as WARNING from "
+          "INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME in " +
+              keywords,
+          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' as WARNING FROM "
+          "INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE != 'VIEW' and "
+          "TABLE_NAME "
+          "in " +
+              keywords,
+          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, 'Column "
+          "name' as WARNING FROM information_schema.columns WHERE "
+          "TABLE_SCHEMA "
+          "not in ('information_schema', 'performance_schema') and "
+          "COLUMN_NAME "
+          "in " +
+              keywords,
+          "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
+          "FROM "
+          "INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_NAME in " +
+              keywords,
+          "SELECT TABLE_SCHEMA, TABLE_NAME, 'View name' as WARNING FROM "
+          "INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME in " +
+              keywords,
+          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'Routine name' as WARNING "
+          "FROM "
+          "INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME in " +
+              keywords,
+          "SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
+          "INFORMATION_SCHEMA.EVENTS WHERE EVENT_NAME in " +
+              keywords},
       Upgrade_issue::WARNING,
       "The following objects have names that conflict with reserved keywords "
       "that are new to 8.0. Ensure queries sent by your applications use "
-      "`quotes` when referring to them or they will result in errors."));
+      "`quotes` when referring to them or they will result in errors.");
 }
 
 namespace {
@@ -339,21 +341,23 @@ bool UNUSED_VARIABLE(register_reserved) = Upgrade_check::register_check(
 
 /// In this check we are only interested if any such table/database exists
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_utf8mb3_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "utf8mb3Check", "Usage of utf8mb3 charset",
-      {"select SCHEMA_NAME, concat(\"schema's default character set: \",  "
-       "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
-       "SCHEMA_NAME not in ('information_schema', 'performance_schema', 'sys') "
-       "and DEFAULT_CHARACTER_SET_NAME in ('utf8', 'utf8mb3');",
-       "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat(\"column's "
-       "default character set: \",CHARACTER_SET_NAME) from "
-       "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
-       "'utf8mb3') and TABLE_SCHEMA not in ('sys', 'performance_schema', "
-       "'information_schema', 'mysql');"},
+      std::vector<std::string>{
+          "select SCHEMA_NAME, concat(\"schema's default character set: \",  "
+          "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
+          "SCHEMA_NAME not in ('information_schema', 'performance_schema', "
+          "'sys') "
+          "and DEFAULT_CHARACTER_SET_NAME in ('utf8', 'utf8mb3');",
+          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat(\"column's "
+          "default character set: \",CHARACTER_SET_NAME) from "
+          "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
+          "'utf8mb3') and TABLE_SCHEMA not in ('sys', 'performance_schema', "
+          "'information_schema', 'mysql');"},
       Upgrade_issue::WARNING,
       "The following objects use the utf8mb3 character set. It is recommended "
       "to convert them to use utf8mb4 instead, for improved Unicode "
-      "support."));
+      "support.");
 }
 
 namespace {
@@ -362,31 +366,28 @@ bool UNUSED_VARIABLE(register_utf8mb3) = Upgrade_check::register_check(
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "mysqlSchemaCheck",
       "Table names in the mysql schema conflicting with new tables in 8.0",
-      {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema "
-       "in "
-       "8.0' as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
-       "LOWER(TABLE_SCHEMA) = 'mysql' and LOWER(TABLE_NAME) IN "
-       "('catalogs', 'character_sets', 'collations', 'column_type_elements', "
-       "'columns', "
-       "'dd_properties', 'events', 'foreign_key_column_usage', "
-       "'foreign_keys', 'index_column_usage', 'index_partitions', "
-       "'index_stats', "
-       "'indexes', 'parameter_type_elements', 'parameters', 'routines', "
-       "'schemata', "
-       "'st_spatial_reference_systems', 'table_partition_values', "
-       "'table_partitions', 'table_stats', 'tables', 'tablespace_files', "
-       "'tablespaces', 'triggers', 'view_routine_usage', "
-       "'view_table_usage', 'component', 'default_roles', 'global_grants', "
-       "'innodb_ddl_log', 'innodb_dynamic_metadata', 'password_history', "
-       "'role_edges');"},
+      std::vector<std::string>{
+          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema "
+          "in 8.0' as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
+          "LOWER(TABLE_SCHEMA) = 'mysql' and LOWER(TABLE_NAME) IN "
+          "('catalogs', 'character_sets', 'collations', 'column_type_elements',"
+          " 'columns', 'dd_properties', 'events', 'foreign_key_column_usage', "
+          "'foreign_keys', 'index_column_usage', 'index_partitions', "
+          "'index_stats', 'indexes', 'parameter_type_elements', 'parameters', "
+          "'routines', 'schemata', 'st_spatial_reference_systems', "
+          "'table_partition_values', 'table_partitions', 'table_stats', "
+          "'tables', 'tablespace_files', 'tablespaces', 'triggers', "
+          "'view_routine_usage', 'view_table_usage', 'component', "
+          "'default_roles', 'global_grants', 'innodb_ddl_log', "
+          "'innodb_dynamic_metadata', 'password_history', 'role_edges');"},
       Upgrade_issue::ERROR,
       "The following tables in mysql schema have names that will conflict with "
       "the ones introduced in 8.0 version. They must be renamed or removed "
       "before upgrading (use RENAME TABLE command). This may also entail "
-      "changes to applications that use the affected tables."));
+      "changes to applications that use the affected tables.");
 }
 
 namespace {
@@ -396,38 +397,37 @@ bool UNUSED_VARIABLE(register_mysql_schema) = Upgrade_check::register_check(
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_innodb_rowformat_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "innodbRowFormatCheck", "InnoDB tables with non-default row format",
-      {"select table_schema, table_name, row_format from "
-       "information_schema.tables where engine = 'innodb' "
-       "and row_format != 'Dynamic';"},
+      std::vector<std::string>{
+          "select table_schema, table_name, row_format from "
+          "information_schema.tables where engine = 'innodb' "
+          "and row_format != 'Dynamic';"},
       Upgrade_issue::WARNING,
-      "The following tables use a non-default InnoDB row format"));
+      "The following tables use a non-default InnoDB row format");
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "zerofillCheck", "Usage of use ZEROFILL/display length type attributes",
-      {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
-       "information_schema.columns "
-       "where TABLE_SCHEMA not in ('sys', 'performance_schema', "
-       "'information_schema', 'mysql') and (COLUMN_TYPE REGEXP 'zerofill' or "
-       "(COLUMN_TYPE like 'tinyint%' and COLUMN_TYPE not like 'tinyint(4)%' "
-       "and COLUMN_TYPE not like 'tinyint(3) unsigned%') or"
-       "(COLUMN_TYPE like 'smallint%' and COLUMN_TYPE not like "
-       "'smallint(6)%' and COLUMN_TYPE not like 'smallint(5) unsigned%') or "
-       "(COLUMN_TYPE like 'mediumint%' and COLUMN_TYPE not like "
-       "'mediumint(9)%' and COLUMN_TYPE not like 'mediumint(8) "
-       "unsigned%') or "
-       "(COLUMN_TYPE like 'int%' and COLUMN_TYPE not like "
-       "'int(11)%' and COLUMN_TYPE not like 'int(10) "
-       "unsigned%') or "
-       "(COLUMN_TYPE like 'bigint%' and COLUMN_TYPE not like "
-       "'bigint(20)%'));"},
+      std::vector<std::string>{
+          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
+          "information_schema.columns where TABLE_SCHEMA not in ('sys', "
+          "'performance_schema', 'information_schema', 'mysql') and "
+          "(COLUMN_TYPE REGEXP 'zerofill' or (COLUMN_TYPE like 'tinyint%' and "
+          "COLUMN_TYPE not like 'tinyint(4)%' and COLUMN_TYPE not like "
+          "'tinyint(3) unsigned%') or (COLUMN_TYPE like 'smallint%' and "
+          "COLUMN_TYPE not like 'smallint(6)%' and COLUMN_TYPE not like "
+          "'smallint(5) unsigned%') or (COLUMN_TYPE like 'mediumint%' and "
+          "COLUMN_TYPE not like 'mediumint(9)%' and COLUMN_TYPE not like "
+          "'mediumint(8) unsigned%') or (COLUMN_TYPE like 'int%' and "
+          "COLUMN_TYPE not like 'int(11)%' and COLUMN_TYPE not like 'int(10) "
+          "unsigned%') or (COLUMN_TYPE like 'bigint%' and COLUMN_TYPE not like "
+          "'bigint(20)%'));"},
       Upgrade_issue::NOTICE,
       "The following table columns specify a ZEROFILL/display length "
       "attributes. "
-      "Please be aware that they will be ignored in MySQL 8.0"));
+      "Please be aware that they will be ignored in MySQL 8.0");
 }
 
 // Zerofill is still available in 8.0.11
@@ -437,19 +437,47 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
 //}
 
 std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_nonnative_partitioning_check() {
+  return shcore::make_unique<Sql_upgrade_check>(
+      "nonNativePartitioningCheck",
+      "Partitioned tables using engines with non native partitioning",
+      std::vector<std::string>{
+          "select table_schema, table_name, concat(engine, ' engine does not "
+          "support native partitioning') from information_schema.Tables where "
+          "create_options like '%partitioned%' and upper(engine) not in "
+          "('INNODB', 'NDB', 'NDBCLUSTER');"},
+      Upgrade_issue::ERROR,
+      "In MySQL 8.0 storage engine is responsible for providing its own "
+      "partitioning handler, and the MySQL server no longer provides generic "
+      "partitioning support. InnoDB and NDB are the only storage engines that "
+      "provide a native partitioning handler that is supported in MySQL 8.0. A "
+      "partitioned table using any other storage engine must be altered—either "
+      "to convert it to InnoDB or NDB, or to remove its partitioning—before "
+      "upgrading the server, else it cannot be used afterwards.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_nonnative_partitioning) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_nonnative_partitioning_check),
+        "8.0.11");
+}
+
+std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_foreign_key_length_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "foreignKeyLengthCheck",
       "Foreign key constraint names longer than 64 characters",
-      {"select table_schema, table_name, 'Foreign key longer than 64 "
-       "characters' as description from information_schema.tables where "
-       "table_name in (select left(substr(id,instr(id,'/')+1), "
-       "instr(substr(id,instr(id,'/')+1),'_ibfk_')-1) from "
-       "information_schema.innodb_sys_foreign where "
-       "length(substr(id,instr(id,'/')+1))>64);"},
+      std::vector<std::string>{
+          "select table_schema, table_name, 'Foreign key longer than 64 "
+          "characters' as description from information_schema.tables where "
+          "table_name in (select left(substr(id,instr(id,'/')+1), "
+          "instr(substr(id,instr(id,'/')+1),'_ibfk_')-1) from "
+          "information_schema.innodb_sys_foreign where "
+          "length(substr(id,instr(id,'/')+1))>64);"},
       Upgrade_issue::ERROR,
       "The following tables must be altered to have constraint names shorter "
-      "than 64 characters (use ALTER TABLE)."));
+      "than 64 characters (use ALTER TABLE).");
 }
 
 namespace {
@@ -459,16 +487,19 @@ bool UNUSED_VARIABLE(register_foreing_key) = Upgrade_check::register_check(
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "maxdbFlagCheck", "Usage of obsolete MAXDB sql_mode flag",
-      {"select routine_schema, routine_name, concat(routine_type, ' uses "
-       "obsolete MAXDB sql_mode') from information_schema.routines where "
-       "find_in_set('MAXDB', sql_mode);",
-       "select event_schema, event_name, 'EVENT uses obsolete MAXDB sql_mode' "
-       "from information_schema.EVENTS where find_in_set('MAXDB', sql_mode);",
-       "select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
-       "sql_mode' from information_schema.TRIGGERS where find_in_set('MAXDB', "
-       "sql_mode);"},
+      std::vector<std::string>{
+          "select routine_schema, routine_name, concat(routine_type, ' uses "
+          "obsolete MAXDB sql_mode') from information_schema.routines where "
+          "find_in_set('MAXDB', sql_mode);",
+          "select event_schema, event_name, 'EVENT uses obsolete MAXDB "
+          "sql_mode' "
+          "from information_schema.EVENTS where find_in_set('MAXDB', "
+          "sql_mode);",
+          "select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
+          "sql_mode' from information_schema.TRIGGERS where "
+          "find_in_set('MAXDB', sql_mode);"},
       Upgrade_issue::WARNING,
       "The following DB objects have the obsolete MAXDB option persisted for "
       "sql_mode, which will be cleared during upgrade to 8.0. It "
@@ -476,7 +507,7 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
       "used inside object's definition, and this in turn can change the "
       "behavior in case of dates earlier than 1970 or later than 2037. If this "
       "is a concern, please redefine these objects so that they do not rely on "
-      "the MAXDB flag before running the upgrade to 8.0."));
+      "the MAXDB flag before running the upgrade to 8.0.");
 }
 
 namespace {
@@ -507,11 +538,11 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
         mode, mode));
   }
 
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "sqlModeFlagCheck", "Usage of obsolete sql_mode flags",
       std::move(queries), Upgrade_issue::NOTICE,
       "The following DB objects have obsolete options persisted for sql_mode, "
-      "which will be cleared during upgrade to 8.0."));
+      "which will be cleared during upgrade to 8.0.");
 }
 
 namespace {
@@ -567,8 +598,7 @@ class Enum_set_element_length_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_enum_set_element_length_check() {
-  return std::unique_ptr<Sql_upgrade_check>(
-      new Enum_set_element_length_check());
+  return shcore::make_unique<Enum_set_element_length_check>();
 }
 
 namespace {
@@ -581,32 +611,33 @@ bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
     const mysqlshdk::utils::Version &ver) {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "partitionedTablesInSharedTablespaceCheck",
       "Usage of partitioned tables in shared tablespaces",
-      {ver < Version(8, 0, 0)
-           ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
-             "concat('Partition ', PARTITION_NAME, "
-             "' is in shared tablespace ', TABLESPACE_NAME) "
-             "as description FROM "
-             "information_schema.PARTITIONS WHERE "
-             "PARTITION_NAME IS NOT NULL AND "
-             "(TABLESPACE_NAME IS NOT NULL AND "
-             "TABLESPACE_NAME!='innodb_file_per_table');"
-           : "select SUBSTRING_INDEX(it.name, '/', 1), "
-             "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
-             "concat('Partition ', SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, "
-             "'/', -1), '#', -1), ' is in shared tablespce ', itb.name) from "
-             "information_schema.INNODB_TABLES it, "
-             "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
-             "itb.space and it.name like '%#P#%' and it.space_type != "
-             "'Single';"},
+      std::vector<std::string>{
+          ver < Version(8, 0, 0)
+              ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
+                "concat('Partition ', PARTITION_NAME, "
+                "' is in shared tablespace ', TABLESPACE_NAME) "
+                "as description FROM "
+                "information_schema.PARTITIONS WHERE "
+                "PARTITION_NAME IS NOT NULL AND "
+                "(TABLESPACE_NAME IS NOT NULL AND "
+                "TABLESPACE_NAME!='innodb_file_per_table');"
+              : "select SUBSTRING_INDEX(it.name, '/', 1), "
+                "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
+                "concat('Partition ', SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, "
+                "'/', -1), '#', -1), ' is in shared tablespce ', itb.name) "
+                "from information_schema.INNODB_TABLES it, "
+                "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
+                "itb.space and it.name like '%#P#%' and it.space_type != "
+                "'Single';"},
       Upgrade_issue::ERROR,
       "The following tables have partitions in shared tablespaces. Before "
       "upgrading to 8.0 they need to be moved to file-per-table tablespace. "
       "You can do this by running query like 'ALTER TABLE table_name "
       "REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30) "
-      "TABLESPACE=innodb_file_per_table);'"));
+      "TABLESPACE=innodb_file_per_table);'");
 }
 
 namespace {
@@ -616,6 +647,32 @@ bool UNUSED_VARIABLE(register_sharded_tablespaces) =
                       get_partitioned_tables_in_shared_tablespaces_check,
                   std::placeholders::_1),
         "8.0.11", "8.0.13");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_circular_directory_check() {
+  return shcore::make_unique<Sql_upgrade_check>(
+      "circularDirectoryCheck",
+      "Circular directory references in tablespace data file paths",
+      std::vector<std::string>{
+          "SELECT tablespace_name, concat('circular reference in datafile "
+          "path: "
+          R"(\'', file_name, '\'') FROM INFORMATION_SCHEMA.FILES where )"
+          R"(file_type='TABLESPACE' and (file_name rlike '[^\\.]/\\.\\./' or )"
+          R"(file_name rlike '[^\\.]\\\\\\.\\.\\\\');)"},
+      Upgrade_issue::ERROR,
+      "Following tablespaces contain circular directory references (e.g. the "
+      "reference '/../') in data file paths which as of MySQL 8.0.17 are not "
+      "permitted by the CREATE TABLESPACE ... ADD DATAFILE clause. An "
+      "exception to the restriction exists on Linux, where a circular "
+      "directory reference is permitted if the preceding directory is a "
+      "symbolic link. To avoid upgrade issues, remove any circular directory "
+      "references from tablespace data file paths before upgrading.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(circular_directory_check) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_circular_directory_check), "8.0.17");
 }
 
 class Removed_functions_check : public Sql_upgrade_check {
@@ -770,7 +827,7 @@ class Removed_functions_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_removed_functions_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Removed_functions_check());
+  return shcore::make_unique<Removed_functions_check>();
 }
 
 namespace {
@@ -849,7 +906,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_groupby_asc_syntax_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Groupby_asc_syntax_check());
+  return shcore::make_unique<Groupby_asc_syntax_check>();
 }
 
 namespace {
@@ -1131,10 +1188,11 @@ bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
 // clang-format off
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_schema_inconsistency_check() {
-  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+  return shcore::make_unique<Sql_upgrade_check>(
       "schemaInconsistencyCheck",
       "Schema inconsistencies resulting from file removal or corruption",
-      {"select A.schema_name, A.table_name, \"present in INFORMATION_SCHEMA's "
+      std::vector<std::string>{
+       "select A.schema_name, A.table_name, \"present in INFORMATION_SCHEMA's "
        "INNODB_SYS_TABLES table but missing from TABLES table\" from (select "
        "distinct "
        replace_in_SQL("substring_index(NAME, '/',1)")
@@ -1149,7 +1207,7 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
       Upgrade_issue::ERROR,
       "Following tables show signs that either table datadir directory or frm "
       "file was removed/corrupted. Please check server logs, examine datadir "
-      "to detect the issue and fix it before upgrade"));
+      "to detect the issue and fix it before upgrade");
 }
 // clang-format on
 
@@ -1198,6 +1256,13 @@ std::vector<Upgrade_issue> Check_table_command::run(
       issue.schema = pair.first;
       issue.table = pair.second;
       issue.description = row->get_string(3);
+
+      // Native partitioning warning has been promoted to error in context of
+      // upgrade to 8.0 and is handled by the separate check
+      if (issue.description.find("use native partitioning instead.") !=
+              std::string::npos &&
+          issue.level == Upgrade_issue::WARNING)
+        continue;
       issues.push_back(issue);
     }
   }
@@ -1208,7 +1273,7 @@ std::vector<Upgrade_issue> Check_table_command::run(
 namespace {
 bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
     [](const Version &, const Version &) {
-      return std::unique_ptr<Upgrade_check>(new Check_table_command());
+      return shcore::make_unique<Check_table_command>();
     },
     Upgrade_check::ALL_VERSIONS);
 }

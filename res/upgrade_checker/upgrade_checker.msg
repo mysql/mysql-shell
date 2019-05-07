@@ -76,6 +76,20 @@ https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
 * mysqlSchemaCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prerequisites
 
+* nonNativePartitioningCheck.title
+# Partitioned tables using engines with non native partitioning
+
+* nonNativePartitioningCheck.description
+# Error: In MySQL 8.0 storage engine is responsible for providing its own partitioning handler, and
+# the MySQL server no longer provides generic partitioning support. InnoDB and NDB are the only
+# storage engines that provide a native partitioning handler that is supported in MySQL 8.0. A
+# partitioned table using any other storage engine must be altered—either to convert it to InnoDB
+# or NDB, or to remove its partitioning—before upgrading the server, else it cannot be used
+# afterwards.
+
+* nonNativePartitioningCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-configuration-changes
+
 * foreignKeyLengthCheck.title
 # Foreign key constraint names longer than 64 characters
 
@@ -131,6 +145,19 @@ https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
 
 * partitionedTablesInSharedTablespaceCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
+
+* circularDirectoryCheck.title
+# Circular directory references in tablespace data file paths
+
+* circularDirectoryCheck.description
+# Error: Following tablespaces contain circular directory references (e.g. the reference '/../') in
+# data file paths which as of MySQL 8.0.17 are not permitged by the CREATE TABLESPACE ... ADD
+# DATAFILE clause. An exception to the restriction exists on Linux, where a circular directory
+# reference is permitted if the preceding directory is a symbolic link. To avoid upgrade issues,
+# remove any circular directory references from tablespace data file paths before upgrading.
+
+* circularDirectoryCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-innodb-changes
 
 * removedFunctionsCheck.title
 # Usage of removed functions

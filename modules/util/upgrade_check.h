@@ -137,6 +137,7 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
   static std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
   static std::unique_ptr<Sql_upgrade_check> get_zerofill_check();
+  static std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check();
   static std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check();
   static std::unique_ptr<Sql_upgrade_check> get_old_temporal_check();
   static std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check();
@@ -146,6 +147,7 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check>
   get_partitioned_tables_in_shared_tablespaces_check(
       const mysqlshdk::utils::Version &ver);
+  static std::unique_ptr<Sql_upgrade_check> get_circular_directory_check();
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
   static std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
