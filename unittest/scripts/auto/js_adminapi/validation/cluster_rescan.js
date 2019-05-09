@@ -631,6 +631,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<member_address3>>>": {
@@ -638,6 +639,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -733,6 +735,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -740,6 +743,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -836,6 +840,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -843,6 +848,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -908,6 +914,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -944,6 +951,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -951,6 +959,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -1046,6 +1055,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -1053,6 +1063,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },

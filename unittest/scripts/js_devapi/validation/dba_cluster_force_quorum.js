@@ -73,14 +73,14 @@ Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instanc
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
@@ -127,14 +127,14 @@ WARNING: Cluster has no quorum and cannot process write transactions: 1 out of 2
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
+                "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
+                "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

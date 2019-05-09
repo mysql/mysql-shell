@@ -147,9 +147,11 @@ function json_find_key(json, key) {
         return o;
     } else if (type(json[k]) == 'Array' || type(json[k]) == 'm.Array') {
       for (var i in json[k]) {
-        var o = json_find_key(json[k][i], key);
-        if (o != undefined)
-          return o;
+        if (type(json[k][i]) != "String") {
+          var o = json_find_key(json[k][i], key);
+          if (o != undefined)
+            return o;
+        }
       }
     }
   }

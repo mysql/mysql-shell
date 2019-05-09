@@ -29,10 +29,10 @@
 namespace mysqlsh {
 namespace dba {
 
-Cluster_status::Cluster_status(const Cluster_impl &cluster,
-                               mysqlshdk::utils::nullable<bool> extended,
-                               mysqlshdk::utils::nullable<bool> query_member)
-    : m_cluster(cluster), m_extended(extended), m_query_members(query_member) {}
+Cluster_status::Cluster_status(
+    const Cluster_impl &cluster,
+    const mysqlshdk::utils::nullable<uint64_t> &extended)
+    : m_cluster(cluster), m_extended(extended) {}
 
 Cluster_status::~Cluster_status() {}
 
@@ -43,8 +43,7 @@ shcore::Value Cluster_status::get_replicaset_status(
   shcore::Value ret;
 
   // Create the Replicaset_status command and execute it.
-  Replicaset_status op_replicaset_status(replicaset, m_extended,
-                                         m_query_members);
+  Replicaset_status op_replicaset_status(replicaset, m_extended);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope(
       [&op_replicaset_status]() { op_replicaset_status.finish(); });

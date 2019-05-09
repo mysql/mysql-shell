@@ -90,6 +90,33 @@ Add_instance::~Add_instance() {
   }
 }
 
+void Add_instance::ensure_instance_version_compatibility() const {
+  // Get the lowest server version of the online members of the cluster.
+  mysqlshdk::utils::Version lowest_cluster_version =
+      m_replicaset.get_cluster()->get_lowest_instance_version();
+
+  try {
+    // Check instance version compatibility according to Group Replication.
+    mysqlshdk::gr::check_instance_version_compatibility(*m_target_instance,
+                                                        lowest_cluster_version);
+  } catch (const std::runtime_error &err) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + m_instance_address +
+        "' to cluster: instance version is incompatible with the cluster.");
+    throw;
+  }
+
+  // Print a warning if the instance is only read compatible.
+  if (mysqlshdk::gr::is_instance_only_read_compatible(*m_target_instance,
+                                                      lowest_cluster_version)) {
+    auto console = mysqlsh::current_console();
+    console->print_warning("The instance '" + m_instance_address +
+                           "' is only read compatible with the cluster, thus "
+                           "it will join the cluster in R/O mode.");
+  }
+}
+
 /**
  * Resolves SSL mode based on the given options.
  *
@@ -196,6 +223,11 @@ void Add_instance::prepare() {
       is_group_replication_option_supported(m_target_instance->get_version(),
                                             kExpelTimeout)) {
     m_gr_opts.exit_state_action = "READ_ONLY";
+  }
+
+  if (!m_seed_instance) {
+    // Check instance version compatibility with cluster.
+    ensure_instance_version_compatibility();
   }
 
   // Resolve the SSL Mode to use to configure the instance.

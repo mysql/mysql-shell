@@ -41,6 +41,43 @@ Cluster.status: The cluster 'cluster' is no longer registered in the Metadata. (
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
+//@<OUT> WL#13084 - TSF2_1: status show accurate mode based on super_read_only.
+{
+    "clusterName": "cluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "REQUIRED",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+}
+
 //@<OUT> Status cluster with 2 instances having one of them a non-default label
 {
     "clusterName": "cluster",
@@ -174,3 +211,16 @@ Cluster.status: The cluster 'cluster' is no longer registered in the Metadata. (
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
+
+
+//@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (true).
+WARNING: The 'queryMembers' option is deprecated. Please use the 'extended' option with value 3 instead.
+
+Enabling 'queryMembers' sets 'extended' to 3.
+
+{
+
+//@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (false).
+WARNING: The 'queryMembers' option is deprecated. Please use the 'extended' option instead.
+
+{

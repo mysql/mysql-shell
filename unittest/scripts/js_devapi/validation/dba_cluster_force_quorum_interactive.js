@@ -67,14 +67,14 @@
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
@@ -122,14 +122,14 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
+                "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
+                "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

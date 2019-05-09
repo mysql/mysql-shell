@@ -32,6 +32,7 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
@@ -608,15 +609,30 @@ This function describes the status of the cluster including its ReplicaSets and
 Instances. The following options may be given to control the amount of
 information gathered and returned.
 
-@li extended: if true, includes information about transactions processed by
-connection and applier, as well as groupName and memberId values.
+@li extended: verbosity level of the command output.
 @li queryMembers: if true, connect to each Instance of the ReplicaSets to query
 for more detailed stats about the replication machinery.
+
+@attention The queryMembers option will be removed in a future release. Please
+use the extended option instead.
+
+The extended option supports Integer or Boolean values:
+
+@li 0: disables the command verbosity (default);
+@li 1: includes information about the Group Protocol Version, Group name,
+       cluster member UUIDs, cluster member roles and states as reported by
+       Group Replication and the list of fenced system variables;
+@li 2: includes information about transactions processed by connection and
+       applier;
+@li 3: includes more detailed stats about the replication machinery of each
+       cluster member;
+@li Boolean: equivalent to assign either 0 (false) or 1 (true).
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
 @throw RuntimeError in the following scenarios:
-@li If the InnoDB Cluster topology mode does not match the current Group Replication configuration.
+@li If the InnoDB Cluster topology mode does not match the current Group
+    Replication configuration.
 @li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
@@ -635,16 +651,45 @@ shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  bool query_members = false;
-  bool extended = false;
+  mysqlshdk::utils::nullable<bool> query_members;
+  uint64_t extended = 0;  // By default 0 (false).
 
   // Retrieves optional options
+  // NOTE: Booleans are accepted as UInteger: false = 0, true = 1;
   Unpack_options(options)
       .optional("extended", &extended)
       .optional("queryMembers", &query_members)
       .end();
 
-  return m_impl->status(extended, query_members);
+  // Validate extended option UInteger [0, 3] or Boolean.
+  if (extended > 3) {
+    throw shcore::Exception::argument_error(
+        "Invalid value '" + std::to_string(extended) +
+        "' for option 'extended'. It must be an integer in the range [0, 3].");
+  }
+
+  // The queryMembers option is deprecated.
+  if (!query_members.is_null()) {
+    auto console = mysqlsh::current_console();
+
+    std::string specific_value = (*query_members) ? " with value 3" : "";
+    console->print_warning(
+        "The 'queryMembers' option is deprecated. "
+        "Please use the 'extended' option" +
+        specific_value + " instead.");
+    console->println();
+
+    // Currently, the queryMembers option overrides the extended option when
+    // set to true. Thus, this behaviour is maintained until the option is
+    // removed, but that information is now showed to users (to be more clear).
+    if (*query_members) {
+      extended = 3;
+      console->print_info("Enabling 'queryMembers' sets 'extended' to 3.");
+      console->println();
+    }
+  }
+
+  return m_impl->status(extended);
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);

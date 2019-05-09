@@ -1476,4 +1476,215 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
   EXPECT_EQ(out_protocol_version, mysqlshdk::utils::Version());
 }
 
+TEST_F(Group_replication_test, check_instance_version_compatibility) {
+  using mysqlshdk::db::Type;
+  using mysqlshdk::utils::Version;
+  using mysqlshdk::utils::nullable;
+
+  auto test = [](const nullable<bool> &gr_allow_lower_version_join,
+                 const Version &instance_version,
+                 const Version &lowest_cluster_version, bool is_compatible) {
+    std::string compatible = (is_compatible) ? "COMPATIBLE" : "NOT COMPATIBLE";
+
+    std::string str_gr_allow_lower_version_join;
+    std::vector<std::vector<std::string>> rows_gr_allow_lower_version_join;
+
+    if (gr_allow_lower_version_join.is_null()) {
+      str_gr_allow_lower_version_join = "NULL";
+      rows_gr_allow_lower_version_join = {};
+    } else {
+      if (*gr_allow_lower_version_join) {
+        str_gr_allow_lower_version_join = "ON";
+        rows_gr_allow_lower_version_join = {
+            {"group_replication_allow_local_lower_version_join", "ON"}};
+      } else {
+        str_gr_allow_lower_version_join = "ON";
+        rows_gr_allow_lower_version_join = {
+            {"group_replication_allow_local_lower_version_join", "OFF"}};
+      }
+    }
+
+    SCOPED_TRACE("Test version " + compatible + ":  instance version '" +
+                 instance_version.get_base() + "', lower cluster version '" +
+                 lowest_cluster_version.get_base() +
+                 "', gr_allow_lower_version_join '" +
+                 str_gr_allow_lower_version_join + "'");
+
+    std::shared_ptr<Mock_session> mock_session =
+        std::make_shared<Mock_session>();
+    mysqlshdk::mysql::Instance instance{mock_session};
+
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('group_replication_allow_local_lower_version_join')")
+        .then_return({{"",
+                       {"Variable_name", "Value"},
+                       {Type::String, Type::String},
+                       rows_gr_allow_lower_version_join}});
+
+    if (gr_allow_lower_version_join.is_null() ||
+        !*gr_allow_lower_version_join) {
+      EXPECT_CALL(*mock_session, get_server_version())
+          .WillOnce(Return(instance_version));
+    }
+
+    if (is_compatible) {
+      EXPECT_NO_THROW(mysqlshdk::gr::check_instance_version_compatibility(
+          instance, lowest_cluster_version));
+    } else {
+      std::string major, str_instance_version, str_cluster_version;
+      if (instance_version <= mysqlshdk::utils::Version(8, 0, 16)) {
+        major = "major ";
+        str_instance_version = std::to_string(instance_version.get_major());
+        str_cluster_version =
+            std::to_string(lowest_cluster_version.get_major());
+      } else {
+        major = "";
+        str_instance_version = instance_version.get_base();
+        str_cluster_version = lowest_cluster_version.get_base();
+      }
+
+      EXPECT_THROW_LIKE(mysqlshdk::gr::check_instance_version_compatibility(
+                            instance, lowest_cluster_version),
+                        std::runtime_error,
+                        "Instance " + major + "version '" +
+                            str_instance_version +
+                            "' cannot be lower than the "
+                            "cluster lowest " +
+                            major + "version '" + str_cluster_version + "'.");
+    }
+  };
+
+  // Test: group_replication_allow_local_lower_version_join = ON
+  // - Version compatible, independently of the cluster lowest version.
+  test(nullable<bool>(true), Version(8, 0, 1), Version(8, 0, 20), true);
+  test(nullable<bool>(true), Version(5, 7, 0), Version(5, 7, 50), true);
+  test(nullable<bool>(true), Version(8, 0, 21), Version(8, 0, 20), true);
+  test(nullable<bool>(true), Version(5, 7, 51), Version(5, 7, 50), true);
+
+  // Test: group_replication_allow_local_lower_version_join = OFF
+  //       instance_version <= 8.0.16
+  // Version compatible, if MAJOR(version) >= MAJOR(lowest_cluster_version)
+  test(nullable<bool>(false), Version(8, 0, 16), Version(8, 0, 16), true);
+  test(nullable<bool>(false), Version(8, 0, 15), Version(8, 0, 16), true);
+
+  // Test: group_replication_allow_local_lower_version_join = OFF
+  //       instance_version <= 8.0.16
+  // Version incompatible, if MAJOR(version) < MAJOR(lowest_cluster_version)
+  test(nullable<bool>(false), Version(5, 7, 26), Version(8, 0, 16), false);
+
+  // Test: group_replication_allow_local_lower_version_join = OFF
+  //       instance_version > 8.0.16
+  // Version compatible, if version >= lowest_cluster_version
+  test(nullable<bool>(false), Version(8, 0, 17), Version(8, 0, 17), true);
+  test(nullable<bool>(false), Version(8, 0, 18), Version(8, 0, 17), true);
+
+  // Test: group_replication_allow_local_lower_version_join = OFF
+  //       instance_version > 8.0.16
+  // Version incompatible, if version < lowest_cluster_version
+  test(nullable<bool>(false), Version(8, 0, 17), Version(8, 0, 18), false);
+
+  // Test: group_replication_allow_local_lower_version_join is not defined
+  //       instance_version <= 8.0.16
+  // Version compatible, if MAJOR(version) >= MAJOR(lowest_cluster_version)
+  test(nullable<bool>(), Version(8, 0, 16), Version(8, 0, 16), true);
+  test(nullable<bool>(), Version(8, 0, 15), Version(8, 0, 16), true);
+
+  // Test: group_replication_allow_local_lower_version_join is not defined
+  //       instance_version <= 8.0.16
+  // Version incompatible, if MAJOR(version) < MAJOR(lowest_cluster_version)
+  test(nullable<bool>(), Version(5, 7, 26), Version(8, 0, 16), false);
+
+  // Test: group_replication_allow_local_lower_version_join is not defined
+  //       instance_version > 8.0.16
+  // Version compatible, if version >= lowest_cluster_version
+  test(nullable<bool>(), Version(8, 0, 17), Version(8, 0, 17), true);
+  test(nullable<bool>(), Version(8, 0, 18), Version(8, 0, 17), true);
+
+  // Test: group_replication_allow_local_lower_version_join is not defined.
+  //       instance_version > 8.0.16
+  // Version incompatible, if version < lowest_cluster_version
+  test(nullable<bool>(), Version(8, 0, 17), Version(8, 0, 18), false);
+}
+
+TEST_F(Group_replication_test, is_instance_only_read_compatible) {
+  using mysqlshdk::db::Type;
+  using mysqlshdk::utils::Version;
+  using mysqlshdk::utils::nullable;
+
+  auto test = [](const Version &instance_version,
+                 const Version &lowest_cluster_version,
+                 bool is_only_read_compatible) {
+    std::string read_compatible = (is_only_read_compatible)
+                                      ? "ONLY R/O COMPATIBLE"
+                                      : "NOT ONLY R/O COMPATIBLE";
+
+    SCOPED_TRACE("Test " + read_compatible + ":  instance version '" +
+                 instance_version.get_base() + "', lower cluster version '" +
+                 lowest_cluster_version.get_base() + "'.");
+
+    std::shared_ptr<Mock_session> mock_session =
+        std::make_shared<Mock_session>();
+    mysqlshdk::mysql::Instance instance{mock_session};
+
+    EXPECT_CALL(*mock_session, get_server_version())
+        .WillOnce(Return(instance_version));
+
+    if (is_only_read_compatible) {
+      EXPECT_TRUE(mysqlshdk::gr::is_instance_only_read_compatible(
+          instance, lowest_cluster_version));
+    } else {
+      EXPECT_FALSE(mysqlshdk::gr::is_instance_only_read_compatible(
+          instance, lowest_cluster_version));
+    }
+  };
+
+  // Test: instance_version >= 8.0.16 and lowest_cluster_version >= 8.0.0
+  // Only read compatible, if version > lowest_cluster_version
+  test(Version(8, 0, 16), Version(8, 0, 0), true);
+  test(Version(8, 0, 17), Version(8, 0, 0), true);
+  test(Version(8, 0, 16), Version(8, 0, 15), true);
+  test(Version(8, 0, 17), Version(8, 0, 16), true);
+  test(Version(8, 0, 17), Version(8, 0, 16), true);
+
+  // Test: instance_version >= 8.0.16 and lowest_cluster_version >= 8.0.0
+  // Not only read compatible, if version <= lowest_cluster_version
+  test(Version(8, 0, 16), Version(8, 0, 16), false);
+  test(Version(8, 0, 16), Version(8, 0, 17), false);
+  test(Version(8, 0, 17), Version(8, 0, 17), false);
+  test(Version(8, 0, 17), Version(8, 0, 18), false);
+
+  // Test: instance_version < 8.0.16
+  // Not only read compatible, independently of the lowest_cluster_version
+  test(Version(8, 0, 15), Version(8, 0, 0), false);
+  test(Version(8, 0, 15), Version(8, 0, 15), false);
+  test(Version(8, 0, 15), Version(8, 0, 16), false);
+  test(Version(8, 0, 15), Version(5, 7, 26), false);
+  test(Version(8, 0, 0), Version(8, 0, 0), false);
+  test(Version(8, 0, 0), Version(8, 0, 15), false);
+  test(Version(8, 0, 0), Version(8, 0, 16), false);
+  test(Version(8, 0, 0), Version(5, 7, 26), false);
+  test(Version(5, 7, 26), Version(8, 0, 0), false);
+  test(Version(5, 7, 26), Version(8, 0, 15), false);
+  test(Version(5, 7, 26), Version(8, 0, 16), false);
+  test(Version(5, 7, 26), Version(5, 7, 26), false);
+  test(Version(5, 7, 26), Version(5, 7, 25), false);
+  test(Version(5, 7, 26), Version(5, 7, 27), false);
+
+  // Test: lowest_cluster_version < 8.0.0
+  // Not only read compatible, independently of the instance_version
+  test(Version(8, 0, 16), Version(5, 99, 99), false);
+  test(Version(8, 0, 0), Version(5, 99, 99), false);
+  test(Version(8, 0, 17), Version(5, 99, 99), false);
+  test(Version(5, 99, 99), Version(5, 99, 99), false);
+  test(Version(5, 7, 26), Version(5, 99, 99), false);
+  test(Version(8, 0, 16), Version(5, 7, 26), false);
+  test(Version(8, 0, 0), Version(5, 7, 26), false);
+  test(Version(8, 0, 17), Version(5, 7, 26), false);
+  test(Version(5, 7, 27), Version(5, 7, 26), false);
+  test(Version(5, 7, 26), Version(5, 7, 26), false);
+  test(Version(5, 7, 25), Version(5, 7, 26), false);
+}
+
 }  // namespace testing

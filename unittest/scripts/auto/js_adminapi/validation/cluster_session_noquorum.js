@@ -23,6 +23,7 @@
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
@@ -56,6 +57,7 @@
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
@@ -90,6 +92,7 @@
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
@@ -128,6 +131,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
@@ -154,6 +158,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
@@ -188,6 +193,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
@@ -226,6 +232,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {

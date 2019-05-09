@@ -37,8 +37,7 @@ namespace dba {
 class Cluster_status : public Command_interface {
  public:
   Cluster_status(const Cluster_impl &cluster,
-                 mysqlshdk::utils::nullable<bool> m_extended,
-                 mysqlshdk::utils::nullable<bool> m_query_members);
+                 const mysqlshdk::utils::nullable<uint64_t> &extended);
 
   ~Cluster_status() override;
 
@@ -75,7 +74,7 @@ class Cluster_status : public Command_interface {
 
  private:
   const Cluster_impl &m_cluster;
-  mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
+  mysqlshdk::utils::nullable<uint64_t> m_extended;
 
   shcore::Value get_replicaset_status(const ReplicaSet &replicaset);
 };

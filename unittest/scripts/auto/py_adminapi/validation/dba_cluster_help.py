@@ -959,10 +959,24 @@ DESCRIPTION
       ReplicaSets and Instances. The following options may be given to control
       the amount of information gathered and returned.
 
-      - extended: if true, includes information about transactions processed by
-        connection and applier, as well as groupName and memberId values.
+      - extended: verbosity level of the command output.
       - queryMembers: if true, connect to each Instance of the ReplicaSets to
         query for more detailed stats about the replication machinery.
+
+      ATTENTION: The queryMembers option will be removed in a future release.
+                 Please use the extended option instead.
+
+      The extended option supports Integer or Boolean values:
+
+      - 0: disables the command verbosity (default);
+      - 1: includes information about the Group Protocol Version, Group name,
+        cluster member UUIDs, cluster member roles and states as reported by
+        Group Replication and the list of fenced system variables;
+      - 2: includes information about transactions processed by connection and
+        applier;
+      - 3: includes more detailed stats about the replication machinery of each
+        cluster member;
+      - Boolean: equivalent to assign either 0 (false) or 1 (true).
 
 EXCEPTIONS
       MetadataError in the following scenarios:

@@ -1333,4 +1333,69 @@ TEST_F(Instance_test, suppress_binary_log) {
   instance.suppress_binary_log(false);
 }
 
+TEST_F(Instance_test, get_fence_sysvars) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // No fence sysvars enabled.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{"",
+                     {"@@read_only", "@@super_read_only", "@@offline_mode"},
+                     {Type::String, Type::String, Type::String},
+                     {{"0", "0", "0"}}}});
+  std::vector<std::string> res = instance.get_fence_sysvars();
+  EXPECT_TRUE(res.empty());
+
+  // All fence sysvars enabled.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{"",
+                     {"@@read_only", "@@super_read_only", "@@offline_mode"},
+                     {Type::String, Type::String, Type::String},
+                     {{"1", "1", "1"}}}});
+  res = instance.get_fence_sysvars();
+  EXPECT_FALSE(res.empty());
+  EXPECT_THAT(res, ElementsAre("read_only", "super_read_only", "offline_mode"));
+
+  // read_only enabled.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{"",
+                     {"@@read_only", "@@super_read_only", "@@offline_mode"},
+                     {Type::String, Type::String, Type::String},
+                     {{"1", "0", "0"}}}});
+  res = instance.get_fence_sysvars();
+  EXPECT_FALSE(res.empty());
+  EXPECT_THAT(res, ElementsAre("read_only"));
+
+  // super_read_only enabled.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{"",
+                     {"@@read_only", "@@super_read_only", "@@offline_mode"},
+                     {Type::String, Type::String, Type::String},
+                     {{"0", "1", "0"}}}});
+  res = instance.get_fence_sysvars();
+  EXPECT_FALSE(res.empty());
+  EXPECT_THAT(res, ElementsAre("super_read_only"));
+
+  // offline_mode enabled.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{"",
+                     {"@@read_only", "@@super_read_only", "@@offline_mode"},
+                     {Type::String, Type::String, Type::String},
+                     {{"0", "0", "1"}}}});
+  res = instance.get_fence_sysvars();
+  EXPECT_FALSE(res.empty());
+  EXPECT_THAT(res, ElementsAre("offline_mode"));
+
+  // Error if no rows are returned.
+  session.expect_query("SELECT @@read_only, @@super_read_only, @@offline_mode")
+      .then_return({{
+          "",
+          {"@@read_only", "@@super_read_only", "@@offline_mode"},
+          {Type::String, Type::String, Type::String},
+          {}  // No records.
+      }});
+  EXPECT_THROW(instance.get_fence_sysvars(), std::logic_error);
+}
+
 }  // namespace testing

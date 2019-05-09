@@ -89,27 +89,131 @@ function json_check(json, template, allowed_missing, allowed_unexpected) {
     }
 }
 
-const extended_status_templ_80 = {
+const base_status_templ_80 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+    "name": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "status": "",
+                "version": "<<<__version>>>"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": ""
+};
+
+const base_status_templ_57 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "name": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "status": ""
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": ""
+};
+
+const extended_1_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
-        "name": "", 
+        "name": "",
         "groupName": "",
         "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
+        "ssl": "",
+        "status": "",
+        "statusText": "",
         "topology": {
             "": {
-                "address": "", 
+                "address": "",
+                "fenceSysVars": [],
                 "memberId": "",
-                "mode": "", 
-                "readReplicas": {}, 
-                "role": "", 
-                "status": "", 
-                "version": "<<<__version>>>", 
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "status": "",
+                "version": "<<<__version>>>"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": ""
+};
+
+const extended_1_status_templ_57 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "status": "",
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": ""
+};
+
+const extended_2_status_templ_80 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "status": "",
                 "transactions": {
-                    "appliedCount": 0, 
+                    "appliedCount": 0,
                     "checkedCount": 0, 
                     "committedAllMembers": "", 
                     "conflictsDetectedCount": 0, 
@@ -118,7 +222,8 @@ const extended_status_templ_80 = {
                     "lastConflictFree": "", 
                     "proposedCount": 0, 
                     "rollbackCount": 0
-                }
+                },
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -126,7 +231,7 @@ const extended_status_templ_80 = {
     "groupInformationSourceMember": ""
 };
 
-const extended_status_templ_57 = {
+const extended_2_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
@@ -138,8 +243,11 @@ const extended_status_templ_57 = {
         "statusText": "", 
         "topology": {
             "": {
-                "address": "", 
+                "address": "",
+                "fenceSysVars": [],
                 "memberId": "",
+                "memberRole": "",
+                "memberState": "",
                 "mode": "", 
                 "readReplicas": {}, 
                 "role": "", 
@@ -165,6 +273,7 @@ const extended_status_templ_57 = {
 const full_status_templ = {
     "clusterName": "",
     "defaultReplicaSet": {
+        "GRProtocolVersion": "",
         "name": "", 
         "groupName": "",
         "primary": "",
@@ -174,8 +283,10 @@ const full_status_templ = {
         "topology": {
             "": {
                 "address": "",
-                "autoRejoinRunning": false,
+                "fenceSysVars": [],
                 "memberId": "",
+                "memberRole": "",
+                "memberState": "",
                 "mode": "", 
                 "readReplicas": {}, 
                 "role": "", 
@@ -297,91 +408,142 @@ const coordinator_status_templ = {
 
 //---
 
+//@<> Errors using invalid options and values.
+// Invalid option.
+EXPECT_THROWS(function(){cluster.status({wrong_option: true})}, "Cluster.status: Invalid options: wrong_option");
+// Invalid value type string for extended.
+EXPECT_THROWS(function(){cluster.status({extended: ""})}, "Cluster.status: Option 'extended' UInteger expected, but value is String");
+// Invalid value type (negative) integer for extended.
+EXPECT_THROWS(function(){cluster.status({extended: -1})}, "Cluster.status: Option 'extended' UInteger expected, but Integer value is out of range");
+// Invalid value (out of range) for extended.
+EXPECT_THROWS(function(){cluster.status({extended: 4})}, "Cluster.status: Invalid value '4' for option 'extended'. It must be an integer in the range [0, 3].");
+// Invalid value type float for extended.
+EXPECT_THROWS(function(){cluster.status({extended: 1.5})}, "Option 'extended' UInteger expected, but Float value is out of range");
+// Invalid value type string for queryMembers.
+EXPECT_THROWS(function(){cluster.status({queryMembers: ""})}, "Cluster.status: Option 'queryMembers' Bool expected, but value is String");
+
+
+//@<> WL#13084 - TSF4_2: extended: 1 provides the following information:
+// - Group Protocol Version;
+// - Group name (UUID);
+// - Each cluster member UUID;
+// - Role of the cluster member as reported by GR;
+// - Status of the cluster member as reported by Group Replication;
+// - A list with the enabled fencing sysvars (read_only, super_read_only, offline_mode);
+var stat = cluster.status({extended: 1});
+var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
+EXPECT_NE(undefined, gr_protocol_version);
+var group_name = json_find_key(stat, "groupName");
+EXPECT_NE(undefined, group_name);
+var member_id = json_find_key(stat, "memberId");
+EXPECT_NE(undefined, member_id);
+var member_role = json_find_key(stat, "memberRole");
+EXPECT_NE(undefined, member_role);
+var member_state = json_find_key(stat, "memberState");
+EXPECT_NE(undefined, member_state);
+var fence_sys_vars = json_find_key(stat, "fenceSysVars");
+EXPECT_NE(undefined, fence_sys_vars);
+
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0)}
+json_check(stat, extended_1_status_templ_80);
+
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 5.7 {VER(<8.0)}
+json_check(stat, extended_1_status_templ_57);
+
+//@<> WL#13084 - TSF4_2: extended: 1 is the same as extended: true
+var stat_ext_true = cluster.status({extended: true});
+EXPECT_EQ(stat, stat_ext_true);
+
 //@<> Basics
 
 // TS1_3	Verify that information about additional transactions stats is printed when using cluster.status() and the option extended is set to true.
 // TS1_6	Validate that the information about number of transactions processed by each member of the group is printed under a sub-object named transactions.
 
-var stat = cluster.status({extended:true});
+var stat = cluster.status({extended:2});
 
-//@<> 8.0 execution {VER(>=8.0)}
-json_check(stat, extended_status_templ_80);
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0)}
+json_check(stat, extended_2_status_templ_80);
 
-//@<> 5.7 execution {VER(<8.0)}
-json_check(stat, extended_status_templ_57);
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
+json_check(stat, extended_2_status_templ_57);
+
+//@<> WL#13084 - TSF4_3: extended: 2 also includes the transaction information.
+var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
+EXPECT_NE(undefined, gr_protocol_version);
+var group_name = json_find_key(stat, "groupName");
+EXPECT_NE(undefined, group_name);
+var member_id = json_find_key(stat, "memberId");
+EXPECT_NE(undefined, member_id);
+var member_role = json_find_key(stat, "memberRole");
+EXPECT_NE(undefined, member_role);
+var member_state = json_find_key(stat, "memberState");
+EXPECT_NE(undefined, member_state);
+var fence_sys_vars = json_find_key(stat, "fenceSysVars");
+EXPECT_NE(undefined, fence_sys_vars);
+var transactions = json_find_key(stat, "transactions");
+EXPECT_NE(undefined, transactions);
 
 // TS_E4	Validate that when calling cluster.status() with extended and queryMembers options set to false, information about additional transactions stats is not printed.
-var stat = cluster.status({extended:true, queryMembers:false});
+var stat = cluster.status({extended:2, queryMembers:false});
 
 //@<> 8.0 execution 2 {VER(>=8.0)}
-json_check(stat, extended_status_templ_80);
+json_check(stat, extended_2_status_templ_80);
 
 //@<> 5.7 execution 2 {VER(<8.0)}
-json_check(stat, extended_status_templ_57);
+json_check(stat, extended_2_status_templ_57);
 
 // TS_E2	Verify that giving no boolean values to the new dictionary options throws an exception when calling cluster.status().
-EXPECT_THROWS(function(){cluster.status({extended:"yes", queryMembers:"maybe"})}, "Option 'extended' Bool expected, but value is String");
+EXPECT_THROWS(function(){cluster.status({extended:"yes", queryMembers:"maybe"})}, "Option 'extended' UInteger expected, but value is String");
 
 // TS1_2 - Verify that information about additional transactions stats is not printed when using cluster.status() and the option extended is not given or is set to false.
 //@<> F2- default 8.0 {VER(>=8.0)}
 var stat = cluster.status();
-json_check(stat, {
-    "clusterName": "",
-    "defaultReplicaSet": {
-        "name": "", 
-        "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
-        "topology": {
-            "": {
-                "address": "", 
-                "mode": "", 
-                "readReplicas": {}, 
-                "role": "", 
-                "status": "",
-                "version": ""
-            }
-        },
-        "topologyMode": "Single-Primary"
-    }, 
-    "groupInformationSourceMember": ""});
+json_check(stat, base_status_templ_80);
 
 //@<> F2- default 5.7 {VER(<8.0)}
 var stat = cluster.status();
-json_check(stat, {
-    "clusterName": "",
-    "defaultReplicaSet": {
-        "name": "", 
-        "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
-        "topology": {
-            "": {
-                "address": "", 
-                "mode": "", 
-                "readReplicas": {}, 
-                "role": "", 
-                "status": "",
-                "version": ""
-            }
-        },
-        "topologyMode": "Single-Primary"
-    }, 
-    "groupInformationSourceMember": ""});
+json_check(stat, base_status_templ_57);
 
-//@<> F3- queryMembers 
+//@<> F3- queryMembers (deprecated and replaced by extended: 3)
 // TS1_5	Verify that information about additional transactions stats is printed by each member of the group when using cluster.status() and the option queryMembers is set to true.
 // TS4_1	Verify that the I/O thread and applied workers information is added to the status of a member when calling cluster.status().
 // TS7_1	Verify that information about the regular transaction processed is added to the status of a member that is Online when calling cluster.status().
 // TS10_1	Validate that information about member_id/server_uuid and GR group name is added to the output when calling cluster.status() if brief is set to false.
-var stat = cluster.status({queryMembers: true});
+// WL#13084 - TSF4_4: extended: 3 includes transactions information (same as queryMembers: true).
+var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ);
 
+// WL#13084 - TSF4_4: extended: 3 includes additional replication information.
+var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
+EXPECT_NE(undefined, gr_protocol_version);
+var group_name = json_find_key(stat, "groupName");
+EXPECT_NE(undefined, group_name);
+var member_id = json_find_key(stat, "memberId");
+EXPECT_NE(undefined, member_id);
+var member_role = json_find_key(stat, "memberRole");
+EXPECT_NE(undefined, member_role);
+var member_state = json_find_key(stat, "memberState");
+EXPECT_NE(undefined, member_state);
+var fence_sys_vars = json_find_key(stat, "fenceSysVars");
+EXPECT_NE(undefined, fence_sys_vars);
+var transactions = json_find_key(stat, "transactions");
+EXPECT_NE(undefined, transactions);
+var connection = json_find_key(stat, "connection");
+EXPECT_NE(undefined, connection);
+var workers = json_find_key(stat, "workers");
+EXPECT_NE(undefined, workers);
+
 // TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false.
-var stat = cluster.status({queryMembers: true, extended:false});
-json_check(stat, full_status_templ);
+var stat_qm = cluster.status({queryMembers: true, extended:false});
+json_check(stat_qm, full_status_templ);
+
+//@<> WL#13084 - TSF5_2: extended: 3 is the same as queryMembers: true.
+var stat_ext_3 = cluster.status({queryMembers: true});
+EXPECT_EQ(stat, stat_ext_3);
+
+// If the option queryMembers is set to true, it takes precedence over extended option overriding the used value to 3.
+var stat_qm_true_ext_2 = cluster.status({queryMembers: true, extended: 2});
+EXPECT_EQ(stat, stat_qm_true_ext_2);
 
 // With 2 members
 cluster.addInstance(__sandbox_uri2);
@@ -389,14 +551,15 @@ cluster.addInstance(__sandbox_uri2);
 // TS6_1	Verify that information about the recovery process is added to the status of a member that is on Recovery status when calling cluster.status().
 
 //@<> F7- Check that recovery stats are there 5.7 {VER(<8.0)}
-var stat = cluster.status({extended:true});
-json_check(stat, extended_status_templ_57);
+var stat = cluster.status({extended:2});
+json_check(stat, extended_2_status_templ_57);
 
 //@<> F7- Check that recovery stats are there 8.0 {VER(>=8.0)}
-var stat = cluster.status({extended:true});
-json_check(stat, extended_status_templ_80);
+var stat = cluster.status({extended:2});
+json_check(stat, extended_2_status_templ_80);
 
-var stat = cluster.status({queryMembers:true});
+var stat = cluster.status({extended:3});
+println(stat);
 EXPECT_EQ("RECOVERING", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)["status"]);
 var allowed_missing = ["appliedCount", "checkedCount", "committedAllMembers", "conflictsDetectedCount", "inApplierQueueCount", "inQueueCount", "lastConflictFree", "proposedCount", "rollbackCount"];
 // currentlyQueueing only appears if the worker is currently processing a tx
@@ -407,7 +570,8 @@ json_check(recovery, transaction_status_templ, allowed_missing);
 // Wait recovery to finish
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-var stat = cluster.status({queryMembers:true});
+var stat = cluster.status({extended:3});
+println(stat);
 var recovery = json_find_key(stat, "recovery");
 EXPECT_FALSE(recovery);
 
@@ -415,7 +579,7 @@ EXPECT_FALSE(recovery);
 // TS_3_1	Verify that a shellConnectError is added to the status of a member if the shell can't connect to it when calling cluster.status().
 testutil.stopSandbox(__mysql_sandbox_port2);
 
-var stat = cluster.status({queryMembers:true});
+var stat = cluster.status({extended:3});
 var loc = json_find_key(stat, hostname+":" + __mysql_sandbox_port2);
 EXPECT_NE(undefined, loc["shellConnectError"]);
 
@@ -424,7 +588,7 @@ EXPECT_NE(undefined, loc["shellConnectError"]);
 cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-var stat = cluster.status({queryMembers:true});
+var stat = cluster.status({extended:3});
 var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];
 EXPECT_NE(undefined, tx["connection"]);
 EXPECT_NE(undefined, tx["coordinator"]);
@@ -452,7 +616,7 @@ cluster.rejoinInstance(__sandbox_uri2);
 
 testutil.waitForConnectionErrorInRecovery(__mysql_sandbox_port2, 1045);
 
-var stat = cluster.status({queryMembers:true});
+var stat = cluster.status({extended:3});
 println(stat);
 // TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
 var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");

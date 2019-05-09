@@ -162,12 +162,12 @@ shcore::Value Cluster_impl::describe(void) {
   return op_describe.execute();
 }
 
-shcore::Value Cluster_impl::status(bool extended, bool query_members) {
+shcore::Value Cluster_impl::status(uint64_t extended) {
   // Throw an error if the cluster has already been dissolved
   check_preconditions("status");
 
   // Create the Cluster_status command and execute it.
-  Cluster_status op_status(*this, extended, query_members);
+  Cluster_status op_status(*this, extended);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_status]() { op_status.finish(); });
   // Prepare the Cluster_status command execution (validations).
@@ -349,6 +349,33 @@ void Cluster_impl::sync_transactions(
         "instance '" +
         instance_address + "'");
   }
+}
+
+mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
+  // Get the server version of the current cluster instance and initialize
+  // the lowest cluster session.
+  mysqlshdk::mysql::Instance cluster_instance(get_group_session());
+  mysqlshdk::utils::Version lowest_version = cluster_instance.get_version();
+
+  // Get address of the cluster instance to skip it in the next step.
+  std::string cluster_instance_address =
+      cluster_instance.get_canonical_address();
+
+  // Get the lowest server version from the available cluster instances.
+  get_default_replicaset()->execute_in_members(
+      {"'ONLINE'", "'RECOVERING'"},
+      get_group_session()->get_connection_options(), {cluster_instance_address},
+      [&lowest_version](
+          const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+        mysqlshdk::mysql::Instance instance(session);
+        mysqlshdk::utils::Version version = instance.get_version();
+        if (version < lowest_version) {
+          lowest_version = version;
+        }
+        return true;
+      });
+
+  return lowest_version;
 }
 
 }  // namespace dba

@@ -94,11 +94,9 @@ inline bool set_ts(shcore::Dictionary_t dict, const std::string &prop,
 }  // namespace
 
 Replicaset_status::Replicaset_status(
-    const ReplicaSet &replicaset, mysqlshdk::utils::nullable<bool> extended,
-    mysqlshdk::utils::nullable<bool> query_members)
-    : m_replicaset(replicaset),
-      m_extended(extended),
-      m_query_members(query_members) {}
+    const ReplicaSet &replicaset,
+    const mysqlshdk::utils::nullable<uint64_t> &extended)
+    : m_replicaset(replicaset), m_extended(extended) {}
 
 Replicaset_status::~Replicaset_status() {}
 
@@ -121,9 +119,9 @@ void Replicaset_status::prepare() {
 
   m_instances = m_replicaset.get_instances();
 
-  if (!m_query_members.is_null() && *m_query_members) {
-    connect_to_members();
-  }
+  // Always connect to members to be able to get an accurate mode, based on
+  // their super_ready_only value.
+  connect_to_members();
 }
 
 void Replicaset_status::connect_to_members() {
@@ -534,21 +532,46 @@ void Replicaset_status::feed_metadata_info(
   (*dict)["role"] = shcore::Value(info.role);
 }
 
-void Replicaset_status::feed_member_info(shcore::Dictionary_t dict,
-                                         const mysqlshdk::gr::Member &member) {
+void Replicaset_status::feed_member_info(
+    shcore::Dictionary_t dict, const mysqlshdk::gr::Member &member,
+    const mysqlshdk::utils::nullable<bool> &super_read_only,
+    const std::vector<std::string> &fence_sysvars,
+    bool is_auto_rejoin_running) {
   (*dict)["readReplicas"] = shcore::Value(shcore::make_dict());
 
-  if (!m_extended.is_null() && *m_extended) {
+  if (!m_extended.is_null() && *m_extended >= 1) {
+    // Set fenceSysVars array.
+    shcore::Array_t fence_array = shcore::make_array();
+    for (const auto &sysvar : fence_sysvars) {
+      fence_array->push_back(shcore::Value(sysvar));
+    }
+
+    (*dict)["fenceSysVars"] = shcore::Value(fence_array);
+
     (*dict)["memberId"] = shcore::Value(member.uuid);
+    (*dict)["memberRole"] =
+        shcore::Value(mysqlshdk::gr::to_string(member.role));
+    (*dict)["memberState"] =
+        shcore::Value(mysqlshdk::gr::to_string(member.state));
   }
+
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
-  if (member.state != mysqlshdk::gr::Member_state::ONLINE) {
+
+  // Set the instance mode (read-only or read-write).
+  if (super_read_only.is_null()) {
+    // super_read_only is null if it could not be obtained from the instance.
     (*dict)["mode"] = shcore::Value("n/a");
   } else {
-    (*dict)["mode"] = shcore::Value(
-        member.role == mysqlshdk::gr::Member_role::PRIMARY && !m_no_quorum
-            ? "R/W"
-            : "R/O");
+    // Set mode to read-only if there is no quorum otherwise according to the
+    // instance super_read_only value.
+    (*dict)["mode"] =
+        shcore::Value((m_no_quorum || *super_read_only) ? "R/O" : "R/W");
+  }
+
+  // Display autoRejoinRunning attribute by default for each member, but only
+  // if running (true).
+  if (is_auto_rejoin_running) {
+    (*dict)["autoRejoinRunning"] = shcore::Value(is_auto_rejoin_running);
   }
 
   if (!member.version.empty()) {
@@ -589,26 +612,41 @@ shcore::Dictionary_t Replicaset_status::get_topology(
     shcore::Dictionary_t member = shcore::make_dict();
     mysqlshdk::gr::Member minfo(get_member(inst.uuid));
 
-    if (!m_query_members.is_null() && *m_query_members) {
-      mysqlshdk::mysql::Instance instance(
-          m_member_sessions[inst.classic_endpoint]);
+    mysqlshdk::mysql::Instance instance(
+        m_member_sessions[inst.classic_endpoint]);
 
-      if (instance.get_session()) {
-        collect_local_status(
-            member, instance,
-            minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
-        (*member)["autoRejoinRunning"] =
-            shcore::Value(mysqlshdk::gr::is_running_gr_auto_rejoin(instance));
-      } else {
-        (*member)["shellConnectError"] =
-            shcore::Value(m_member_connect_errors[inst.classic_endpoint]);
+    mysqlshdk::utils::nullable<bool> super_read_only;
+    std::vector<std::string> fence_sysvars;
+    bool auto_rejoin = false;
+
+    if (instance.get_session()) {
+      // Get super_read_only value of each instance to set the mode accurately.
+      super_read_only = instance.get_sysvar_bool("super_read_only");
+
+      // Check if auto-rejoin is running.
+      auto_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
+
+      if (!m_extended.is_null()) {
+        if (*m_extended >= 1) {
+          fence_sysvars = instance.get_fence_sysvars();
+        }
+
+        if (*m_extended >= 3) {
+          collect_local_status(
+              member, instance,
+              minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
+        }
       }
+    } else {
+      (*member)["shellConnectError"] =
+          shcore::Value(m_member_connect_errors[inst.classic_endpoint]);
     }
 
     feed_metadata_info(member, inst);
-    feed_member_info(member, minfo);
+    feed_member_info(member, minfo, super_read_only, fence_sysvars,
+                     auto_rejoin);
 
-    if ((!m_extended.is_null() && *m_extended) &&
+    if ((!m_extended.is_null() && *m_extended >= 2) &&
         member_stats.find(inst.uuid) != member_stats.end()) {
       shcore::Dictionary_t mdict = member;
 
@@ -661,7 +699,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
 
   mysqlshdk::mysql::Instance group_instance(group_session);
 
-  if (!m_extended.is_null() && *m_extended) {
+  if (!m_extended.is_null() && *m_extended >= 1) {
     (*ret)["groupName"] = shcore::Value(m_replicaset.get_group_name());
 
     try {
@@ -749,10 +787,10 @@ shcore::Value Replicaset_status::execute() {
         get_replication_group_state(mysqlshdk::mysql::Instance(group_session),
                                     get_gr_instance_type(group_session));
 
-    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                    state.source_state != ManagedInstance::OnlineRO);
+    bool show_warning = (state.source_state != ManagedInstance::OnlineRW &&
+                         state.source_state != ManagedInstance::OnlineRO);
 
-    if (warning) {
+    if (show_warning) {
       std::string warning =
           "The cluster description may be inaccurate as it was generated from "
           "an instance in ";

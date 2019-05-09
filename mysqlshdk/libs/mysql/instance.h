@@ -51,6 +51,10 @@ enum class Var_qualifier {
   PERSIST_ONLY,
 };
 
+// Define the fence sysvar list.
+const std::vector<std::string> k_fence_sysvars{"read_only", "super_read_only",
+                                               "offline_mode"};
+
 struct Auth_options {
   std::string user;
   mysqlshdk::utils::nullable<std::string> password;
@@ -135,6 +139,8 @@ class IInstance {
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
+
+  virtual std::vector<std::string> get_fence_sysvars() const = 0;
 
   virtual void suppress_binary_log(bool) = 0;
 
@@ -279,6 +285,8 @@ class Instance : public IInstance {
    *         'persisted_globals_load' is disabled, and null if not supported.
    */
   utils::nullable<bool> is_set_persist_supported() const override;
+
+  std::vector<std::string> get_fence_sysvars() const override;
 
   void suppress_binary_log(bool flag) override;
 

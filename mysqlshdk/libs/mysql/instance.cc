@@ -708,6 +708,32 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
   }
 }
 
+std::vector<std::string> Instance::get_fence_sysvars() const {
+  std::vector<std::string> result;
+
+  // Create the query to get the fence sysvars.
+  std::string str_query = "SELECT";
+  for (auto it = k_fence_sysvars.cbegin(); it != k_fence_sysvars.cend(); ++it) {
+    if (it != k_fence_sysvars.cbegin()) str_query.append(",");
+    str_query.append(" @@" + *it);
+  }
+
+  // Execute the query and add all the enabled sysvars to the result list.
+  auto resultset = _session->query(str_query);
+  auto row = resultset->fetch_one();
+  if (row) {
+    for (size_t i = 0; i < k_fence_sysvars.size(); ++i) {
+      if (row->get_int(i) != 0) {
+        result.push_back(k_fence_sysvars.at(i));
+      }
+    }
+    return result;
+  } else {
+    throw std::logic_error(
+        "No result return from query for get_fence_sysvars()");
+  }
+}
+
 void Instance::suppress_binary_log(bool flag) {
   if (flag) {
     if (m_sql_binlog_suppress_count == 0) execute("SET SESSION sql_log_bin=0");

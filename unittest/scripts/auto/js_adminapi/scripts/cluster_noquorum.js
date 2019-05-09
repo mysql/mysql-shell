@@ -25,6 +25,7 @@ cluster.checkInstanceState(__sandbox_uri3);
 cluster.rescan();
 
 //@ status (OK)
+// WL#13084 - TSF3_1: mode is 'R/O' if there is no quorum on reachable members.
 cluster.status();
 
 //@ describe (OK)

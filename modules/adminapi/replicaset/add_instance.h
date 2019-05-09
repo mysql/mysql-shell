@@ -135,6 +135,7 @@ class Add_instance : public Command_interface {
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
+  void ensure_instance_version_compatibility() const;
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
   void handle_replication_user();

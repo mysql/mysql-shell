@@ -67,7 +67,7 @@
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
+                "mode": <<<(__version_num>=80012)?"\"R/O\"":"\"R/W\"">>>,
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

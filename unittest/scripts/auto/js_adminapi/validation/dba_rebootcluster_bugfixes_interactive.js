@@ -115,7 +115,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
+                "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

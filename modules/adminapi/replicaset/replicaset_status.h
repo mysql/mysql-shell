@@ -43,8 +43,7 @@ typedef std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
 class Replicaset_status : public Command_interface {
  public:
   Replicaset_status(const ReplicaSet &replicaset,
-                    mysqlshdk::utils::nullable<bool> extended,
-                    mysqlshdk::utils::nullable<bool> query_members);
+                    const mysqlshdk::utils::nullable<uint64_t> &extended);
 
   ~Replicaset_status() override;
 
@@ -86,7 +85,7 @@ class Replicaset_status : public Command_interface {
  private:
   const ReplicaSet &m_replicaset;
   Cluster_impl *m_cluster;
-  mysqlshdk::utils::nullable<bool> m_extended, m_query_members;
+  mysqlshdk::utils::nullable<uint64_t> m_extended;
 
   std::vector<ReplicaSet::Instance_info> m_instances;
   std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
@@ -132,7 +131,10 @@ class Replicaset_status : public Command_interface {
                           const ReplicaSet::Instance_info &info);
 
   void feed_member_info(shcore::Dictionary_t dict,
-                        const mysqlshdk::gr::Member &member);
+                        const mysqlshdk::gr::Member &member,
+                        const mysqlshdk::utils::nullable<bool> &super_read_only,
+                        const std::vector<std::string> &fence_sysvars,
+                        bool is_auto_rejoin_running);
 
   void feed_member_stats(shcore::Dictionary_t dict,
                          const mysqlshdk::db::Row_by_name &stats);

@@ -1517,5 +1517,50 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
   return result;
 }
 
+void check_instance_version_compatibility(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::Version lowest_cluster_version) {
+  mysqlshdk::utils::nullable<bool> gr_allow_lower_version_join =
+      instance.get_sysvar_bool(
+          "group_replication_allow_local_lower_version_join");
+
+  // If gr_allow_lower_version_join is NULL then it means the variable is not
+  // available, e.g., if the GR plugin is not installed which happens by default
+  // on 5.7 servers. In that case, we apply the expected behaviour for the
+  // default variable value (false).
+  if (gr_allow_lower_version_join.is_null() || !*gr_allow_lower_version_join) {
+    mysqlshdk::utils::Version version = instance.get_version();
+
+    if (version <= mysqlshdk::utils::Version(8, 0, 16)) {
+      if (version.get_major() < lowest_cluster_version.get_major()) {
+        throw std::runtime_error(
+            "Instance major version '" + std::to_string(version.get_major()) +
+            "' cannot be lower than the cluster lowest major version '" +
+            std::to_string(lowest_cluster_version.get_major()) + "'.");
+      }
+    } else {
+      if (version < lowest_cluster_version) {
+        throw std::runtime_error(
+            "Instance version '" + version.get_base() +
+            "' cannot be lower than the cluster lowest version '" +
+            lowest_cluster_version.get_base() + "'.");
+      }
+    }
+  }
+}
+
+bool is_instance_only_read_compatible(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::Version lowest_cluster_version) {
+  mysqlshdk::utils::Version version = instance.get_version();
+
+  if (version >= mysqlshdk::utils::Version(8, 0, 16) &&
+      lowest_cluster_version.get_major() >= 8 &&
+      version > lowest_cluster_version) {
+    return true;
+  }
+  return false;
+}
+
 }  // namespace gr
 }  // namespace mysqlshdk

@@ -246,6 +246,7 @@ true
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -494,6 +495,7 @@ group_replication_start_on_boot = ON
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },
@@ -610,6 +612,7 @@ group_replication_start_on_boot = ON
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -617,6 +620,7 @@ group_replication_start_on_boot = ON
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },

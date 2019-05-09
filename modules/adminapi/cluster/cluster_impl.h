@@ -108,7 +108,7 @@ class Cluster_impl {
   // to have already been done.
   shcore::Value describe();
   shcore::Value options(const shcore::Dictionary_t &options);
-  shcore::Value status(bool extended, bool query_members);
+  shcore::Value status(uint64_t extended);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   void add_instance(const Connection_options &instance_def,
                     const shcore::Dictionary_t &options);
@@ -174,6 +174,16 @@ class Cluster_impl {
                            const std::string &option,
                            const shcore::Value &value);
   shcore::Value check_instance_state(const Connection_options &instance_def);
+
+  /**
+   * Get the lowest server version of the cluster members.
+   *
+   * The version information is obtained from available (ONLINE and RECOVERING)
+   * members, ignoring not available instances.
+   *
+   * @return Version object of the lowest instance version in the cluster.
+   */
+  mysqlshdk::utils::Version get_lowest_instance_version() const;
 };
 
 }  // namespace dba

@@ -442,6 +442,45 @@ void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
  */
 bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance);
 
+/**
+ * Check the instance version compatibility to join Group Replication.
+ *
+ *  The compatibility of the instance version is determined based on the
+ *  instance group_replication_allow_local_lower_version_join value and its
+ *  version compared to the lowest version of the members in the cluster.
+ *
+ *  For more information see:
+ *  WL#13084 (AdminAPI: Handling of cross-version policies)
+ *
+ * @param instance Instance to use to perform the check.
+ * @param lowest_cluster_version Version object with the lowest server version
+ *                               in the cluster to join.
+ */
+void check_instance_version_compatibility(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::Version lowest_cluster_version);
+
+/**
+ * Check if the instance is only read compatible.
+ *
+ * Instance that are exclusively read compatible can join the cluster but only
+ * in read-only mode, even if joining a multi-primary cluster. This can be
+ * determined by comparing the instance version with the lowest version of the
+ * members in the cluster.
+ *
+ *  For more information see:
+ *  WL#13084 (AdminAPI: Handling of cross-version policies)
+ *
+ * @param instance Instance to use to perform the check.
+ * @param lowest_cluster_version Version object with the lowest server version
+ *                               in the cluster to join.
+ * @return boolean indicating if the instance can only join the cluster in
+ *         read-only mode (true).
+ */
+bool is_instance_only_read_compatible(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::utils::Version lowest_cluster_version);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

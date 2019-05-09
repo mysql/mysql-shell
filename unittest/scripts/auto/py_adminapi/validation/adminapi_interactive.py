@@ -601,6 +601,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -608,6 +609,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
             }
         },
@@ -647,6 +649,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
@@ -654,6 +657,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "(MISSING)"
             }
         },

@@ -69,6 +69,7 @@
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
+                "shellConnectError": "[[*]]",
                 "status": "UNREACHABLE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
         },
