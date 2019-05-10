@@ -32,6 +32,8 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
+extern bool g_test_parallel_execution;
+
 namespace tests {
 
 #ifdef _WIN32
@@ -484,7 +486,11 @@ class Mysqlsh_plugin_test : public Mysqlsh_extension_test {
   std::string get_plugin_folder_name() const override { return "plugins"; }
 };
 
-TEST_F(Mysqlsh_plugin_test, WL13051_OK) {
+TEST_F(Mysqlsh_plugin_test, WL13051_OK_shell_plugins) {
+  if (g_test_parallel_execution) {
+    SKIP_TEST("Skipping tests for parallel execution.");
+  }
+
   // create first-js plugin, which defines a custom report
   write_plugin("first-js", R"(function report(s) {
   println('first JS report');
@@ -492,15 +498,6 @@ TEST_F(Mysqlsh_plugin_test, WL13051_OK) {
 }
 
 shell.registerReport('first_js', 'print', report);
-)", ".js");
-
-  // create second-js plugin - which defines a new global object
-  write_user_plugin("second-js", R"(function sample() {
-  println('first object defined in JS');
-}
-var obj = shell.createExtensionObject();
-shell.addExtensionObjectMember(obj, "testFunction", sample);
-shell.registerGlobal('jsObject', obj);
 )", ".js");
 
   // create third-py plugin, which defines a custom report
@@ -511,6 +508,29 @@ shell.registerGlobal('jsObject', obj);
 shell.register_report('third_py', 'print', report);
 )", ".py");
 
+  // check if first_js report is available
+  add_js_test("\\show first_js", "first JS report");
+  add_py_test("\\py", "Switching to Python mode...");
+  add_py_test("\\show third_py", "third PY report");
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+  wipe_out();
+
+  delete_plugin("first-js");
+  delete_plugin("third-py");
+}
+
+TEST_F(Mysqlsh_plugin_test, WL13051_OK_user_plugins) {
+  // create second-js plugin - which defines a new global object
+  write_user_plugin("second-js", R"(function sample() {
+  println('first object defined in JS');
+}
+var obj = shell.createExtensionObject();
+shell.addExtensionObjectMember(obj, "testFunction", sample);
+shell.registerGlobal('jsObject', obj);
+)", ".js");
+
   // create fourth-py plugin - which defines a new global object
   write_user_plugin("fourth-py", R"(def describe():
   print('first object defined in PY')
@@ -520,15 +540,11 @@ shell.add_extension_object_member(obj, "selfDescribe", describe);
 shell.register_global('pyObject', obj);
 )", ".py");
 
-  // check if first_js report is available
-  add_js_test("\\show first_js", "first JS report");
   // check if jsObject.testFunction was properly registered in JS
   add_js_test("jsObject.testFunction()", "first object defined in JS");
   // check if jsObject.test_function was properly registered in PY
   add_py_test("\\py", "Switching to Python mode...");
   add_py_test("jsObject.test_function()", "first object defined in JS");
-  // check if third_py report is available
-  add_py_test("\\show third_py", "third PY report");
   // check if pyObject.self_describe was properly registered in PY
   add_py_test("pyObject.self_describe()", "first object defined in PY");
   // check if pyObject.selfDescribe was properly registered in JS
@@ -540,15 +556,13 @@ shell.register_global('pyObject', obj);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   wipe_out();
 
-  delete_plugin("first-js");
   delete_user_plugin("second-js");
   delete_plugin("third-py");
-  delete_user_plugin("fourth-py");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_multiple_init_files) {
   // create first JS plugin file
-  write_plugin("error-one", R"(function report(s) {
+  write_user_plugin("error-one", R"(function report(s) {
   println('first JS report');
   return {'report' : []};
 }
@@ -556,7 +570,7 @@ TEST_F(Mysqlsh_plugin_test, WL13051_multiple_init_files) {
 shell.registerReport('first_js', 'print', report);
 )", ".js");
 
-  write_plugin("error-one", R"(function report(s) {
+  write_user_plugin("error-one", R"(function report(s) {
   println('first JS report');
   return {'report' : []};
 }
@@ -583,13 +597,13 @@ shell.registerReport('first_js', 'print', report);
 
   validate_log();
 
-  delete_plugin("error-one");
+  delete_user_plugin("error-one");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_no_init_files) {
   // Create folder in the plugins directory
   shcore::create_directory(
-      shcore::path::join_path(get_plugin_folder(), "invalid-plugin"));
+      shcore::path::join_path(get_user_plugin_folder(), "invalid-plugin"));
 
   add_expected_js_log(
       "Warning: Missing initialization file for plugin "
@@ -606,12 +620,12 @@ TEST_F(Mysqlsh_plugin_test, WL13051_no_init_files) {
 
   validate_log();
 
-  delete_plugin("invalid-plugin");
+  delete_user_plugin("invalid-plugin");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_js_plugin) {
   // create first JS plugin file
-  write_plugin("error-two", R"(function report(s) {
+  write_user_plugin("error-two", R"(function report(s) {
   println('first JS report';  // <-- The error
   return {'report' : []};
 }
@@ -631,12 +645,12 @@ shell.registerReport('first_js', 'print', report);
 
   validate_log();
 
-  delete_plugin("error-two");
+  delete_user_plugin("error-two");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_py_plugin) {
   // create first JS plugin file
-  write_plugin("error-two", R"(def report(s):
+  write_user_plugin("error-two", R"(def report(s):
   print ("first PY report"  // <-- The error
   return {"report" : []};
 }
@@ -656,6 +670,6 @@ shell.register_report('first_py', 'print', report);
 
   validate_log();
 
-  delete_plugin("error-two");
+  delete_user_plugin("error-two");
 }
 }  // namespace tests

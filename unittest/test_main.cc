@@ -63,6 +63,7 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
 bool g_generate_validation_file = false;
+bool g_test_parallel_execution = false;
 
 int g_test_trace_scripts = 0;
 int g_test_default_verbosity = 0;
@@ -269,6 +270,10 @@ static void detect_mysql_environment(int port, const char *pwd) {
       std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
       exit(1);
     }
+  }
+
+  if (getenv("PARATRACE")) {
+    g_test_parallel_execution = true;
   }
 
   // MYSQL_HOSTNAME corresponds to whatever is returned by gethostbyname,
