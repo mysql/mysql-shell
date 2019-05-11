@@ -32,7 +32,7 @@ using mysqlshdk::db::replay::Mode;
 extern const char *g_mysqlsh_path;
 
 // Needed by testutil
-bool g_test_color_output = false;
+int g_test_color_output = 0;
 int g_test_trace_scripts = 0;
 
 namespace {
