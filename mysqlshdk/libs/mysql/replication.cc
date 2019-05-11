@@ -485,11 +485,12 @@ Replica_gtid_state check_replica_gtid_state(
     const mysqlshdk::mysql::IInstance &master,
     const mysqlshdk::mysql::IInstance &slave, bool include_received,
     std::string *out_missing_gtids, std::string *out_errant_gtids) {
-  return check_replica_gtid_state(
-      master, get_executed_gtid_set(master, include_received),
-      get_purged_gtid_set(master),
-      get_executed_gtid_set(slave, include_received), out_missing_gtids,
-      out_errant_gtids);
+  auto master_gtid = get_executed_gtid_set(master, include_received);
+  auto master_purged_gtid = get_purged_gtid_set(master);
+  auto slave_gtid = get_executed_gtid_set(slave, include_received);
+  return check_replica_gtid_state(master, master_gtid, master_purged_gtid,
+                                  slave_gtid, out_missing_gtids,
+                                  out_errant_gtids);
 }
 
 Replica_gtid_state check_replica_gtid_state(

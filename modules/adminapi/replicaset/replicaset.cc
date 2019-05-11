@@ -765,9 +765,10 @@ shcore::Value ReplicaSet::rejoin_instance(
     // Resolve GR local address.
     // NOTE: Must be done only after getting the report_host used by GR and for
     //       the metadata;
+    int port = target_instance.get_canonical_port();
+    std::string hostname = target_instance.get_canonical_hostname();
     gr_options.local_address = mysqlsh::dba::resolve_gr_local_address(
-        gr_options.local_address, target_instance.get_canonical_hostname(),
-        target_instance.get_canonical_port());
+        gr_options.local_address, hostname, port);
 
     // Set a Config object for the target instance (required to configure GR).
     std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(
