@@ -565,13 +565,13 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\sql", "CMD_SQL",
       [this](const std::vector<std::string> &args) -> bool {
+        std::string command = shcore::str_strip(args[0]);
         const auto command_pos =
-            args.empty() ? std::string::npos : args[0].find(' ');
-        std::string command =
-            command_pos != std::string::npos &&
-                    command_pos + 1 < args[0].length()
-                ? shcore::str_strip(args[0].substr(command_pos + 1))
-                : std::string();
+            command.empty() ? std::string::npos : command.find(' ');
+        command = command_pos != std::string::npos &&
+                          command_pos + 1 < command.length()
+                      ? command.substr(command_pos + 1)
+                      : std::string();
 
         if (!command.empty() && !_shell->get_dev_session()) {
           print_diag("ERROR: Not connected.");

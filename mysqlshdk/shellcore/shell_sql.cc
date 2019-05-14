@@ -273,10 +273,18 @@ void Shell_sql::execute(const std::string &sql) {
     session = s->get_core_session();
   }
 
-  if (!s || !session || !session->is_open())
+  if (!s || !session || !session->is_open()) {
     print_exception(shcore::Exception::logic_error("Not connected."));
-  else
+  } else {
+    for (const std::string d :
+         {";", "\\G", "\\g", get_main_delimiter().c_str()}) {
+      if (shcore::str_endswith(sql, d)) {
+        process_sql(sql.c_str(), sql.length() - d.length(), d, 0, session);
+        return;
+      }
+    }
     process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session);
+  }
 }
 
 void Shell_sql::print_exception(const shcore::Exception &e) {

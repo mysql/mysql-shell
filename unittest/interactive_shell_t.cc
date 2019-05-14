@@ -2513,15 +2513,24 @@ TEST_F(Interactive_shell_test, sql_command) {
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   wipe_all();
 
+  execute("\\sql select * from t1 where s=\"foo\"\\G");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "*************************** 1. row ***************************");
+  wipe_all();
+
   execute("\\sql select d from t1;");
   MY_EXPECT_STDERR_CONTAINS("Unknown column 'd' in 'field list'");
   wipe_all();
 
-  execute("\\sql show tables");
+  execute("    \\sql show tables");
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   wipe_all();
 
-  execute("\\sql drop database sqlcommandtest;");
+  execute("\\sql show tables\\g");
+  MY_EXPECT_STDOUT_CONTAINS("1 row in set");
+  wipe_all();
+
+  execute("\\sql drop database sqlcommandtest\\G");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 1 row affected");
   wipe_all();
 
