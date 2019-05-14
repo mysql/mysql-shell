@@ -69,7 +69,7 @@ testutil.expectPrompt("Please select an option [1]: ", "1");
 testutil.expectPrompt("Account Host:", "%");
 //accept configuration changes
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "Y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 dba.configureLocalInstance(__sandbox_uri1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);

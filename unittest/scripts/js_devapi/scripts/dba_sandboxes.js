@@ -39,3 +39,16 @@ dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 
 
 //@ Delete sandbox in dir with non-ascii characters.
 try_delete_sandbox(__mysql_sandbox_port1, test_dir);
+
+//@ SETUP BUG@29725222 add restart support to sandboxes {VER(>= 8.0.17)}
+testutil.deploySandbox(__mysql_sandbox_port1, 'root');
+session = shell.connect(__sandbox_uri1);
+
+//@ BUG@29725222 test that restart works {VER(>= 8.0.17)}
+session.runSql("RESTART");
+testutil.waitSandboxAlive(__mysql_sandbox_port1);
+session = shell.connect(__sandbox_uri1);
+
+//@ TEARDOWN BUG@29725222 add restart support to sandboxes {VER(>= 8.0.17)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

@@ -266,9 +266,7 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-Restarting MySQL...
-ERROR: Remote restart of MySQL server failed: MySQL Error 3707 (HY000): Restart server failed (mysqld is not managed by supervisor process).
-Please restart MySQL manually
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ FR5 TEARDOWN {VER(>=8.0.11)}
 ||
@@ -350,9 +348,7 @@ Cluster admin user 'newClusterAdminAccount'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-Restarting MySQL...
-ERROR: Remote restart of MySQL server failed: MySQL Error 3707 (HY000): Restart server failed (mysqld is not managed by supervisor process).
-Please restart MySQL manually
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set
 ||

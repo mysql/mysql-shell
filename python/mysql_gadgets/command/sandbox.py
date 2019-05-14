@@ -34,6 +34,12 @@ import shutil
 import subprocess
 import sys
 
+try:
+    from ctypes import cdll
+    _CURRENT_ANSI_CODE_PAGE = cdll.kernel32.GetACP()
+except:
+    _CURRENT_ANSI_CODE_PAGE = 1252
+
 from mysql_gadgets.common import tools, server
 from mysql_gadgets.common.constants import PATH_ENV_VAR
 from mysql_gadgets.common.config_parser import (create_option_file,
@@ -49,11 +55,21 @@ _LOGGER = logging.getLogger(__name__)
 _CREATE_SANDBOX_CMD = (u"{mysqld_path} --defaults-file={config_file} "
                        u"--initialize-insecure")
 _START_SERVER_CMD = u"{mysqld_path} --defaults-file={config_file}"
+_START_SERVER_CMD_UNIX = (
+    u"export MYSQLD_PARENT_PID=$$\nexport MYSQLD_RESTART_EXIT=16\n\n"
+    u"while true ; do\n  {start_server_cmd} $*\n  "
+    u"if [ $? -ne $MYSQLD_RESTART_EXIT ]; then\n    break\n  fi\ndone"
+    u"".format(start_server_cmd=_START_SERVER_CMD))
+_START_SERVER_CMD_WIN = (
+    u"chcp {code_page}\nset MYSQLD_PARENT_PID=1\nset MYSQLD_RESTART_EXIT=16\n\n:while\n"
+    u"{start_server_cmd} \nIF %ERRORLEVEL% EQU %MYSQLD_RESTART_EXIT% (\n"
+    u"  goto :while\n)\nEXIT /B %ERRORLEVEL%"
+    u"".format(start_server_cmd=_START_SERVER_CMD, code_page=_CURRENT_ANSI_CODE_PAGE))
 _STOP_SERVER_CMD = (u"{mysqladmin_path} --defaults-file={config_file} "
                     u"shutdown -p")
 _CREATE_RSA_SSL_FILES_CMD = u"{mysql_ssl_rsa_setup_path} --datadir={datadir}"
-_WIN_SCRIPT = u"@echo off\necho {message} & {content}\n"
-_UNIX_SCRIPT = u"#!/bin/sh\n\necho '{message}'; {content}\n"
+_WIN_SCRIPT = u"@echo off\necho {message}\n{content}\n"
+_UNIX_SCRIPT = u"#!/bin/bash\n\necho '{message}'\n{content}\n"
 
 # Timeout to wait for mysqld to start listening to connections
 SANDBOX_TIMEOUT = 30
@@ -115,25 +131,25 @@ def _create_start_script(script_name, script_path, mysqld, config_file):
     if os.name == "nt":
         script_contents = _WIN_SCRIPT.format(
             message="Starting MySQL sandbox",
-            # prefix 'START "" /b' is used to run command on the background
-            content="START \"\" /b " + _START_SERVER_CMD)
+            content=_START_SERVER_CMD_WIN)
         # add windows script extension
         start_path += ".bat"
     else:
         script_contents = _UNIX_SCRIPT.format(
             message="Starting MySQL sandbox",
-            # suffix " &" is used to run command on the background
-            content=_START_SERVER_CMD + " &")
+            content=_START_SERVER_CMD_UNIX)
         # add unix script extension
         start_path += ".sh"
+
+    script_contents = script_contents.format(
+        mysqld_path=tools.shell_quote(os.path.normpath(mysqld)),
+        config_file=tools.shell_quote(os.path.normpath(config_file)))
 
     _LOGGER.debug("Creating start script on '%s'", start_path)
     enc_start_path = tools.fs_encode(start_path)
     try:
         with open(enc_start_path, "w") as f:
-            f.write(tools.fs_encode(script_contents.format(
-                mysqld_path=tools.shell_quote(mysqld),
-                config_file=tools.shell_quote(config_file))))
+            f.write(tools.fs_encode(script_contents))
     except Exception as err:
         raise exceptions.GadgetError("Unable to create start script for "
                                      "sandbox instance", cause=err)
@@ -611,13 +627,16 @@ def create_sandbox(**kwargs):
     if os.name == "nt":
         os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
 
-    init_proc = tools.run_subprocess(create_cmd, shell=False, close_fds=True)
-    init_proc.wait()
+    init_proc = tools.run_subprocess(create_cmd, shell=False,
+                                     stderr=subprocess.PIPE)
+    _, stderr = init_proc.communicate()
     if init_proc.returncode != 0:
         raise exceptions.GadgetError(
             "Error initializing MySQL sandbox '{0}'. Initialize process "
-            "failed with return code '{1}'.".format(port,
-                                                    init_proc.returncode))
+            "failed with return code '{1}' and message: '{2}'.".format(
+                port,
+                init_proc.returncode,
+                stderr.strip()))
 
     _LOGGER.debug("Creating SSL/RSA files.")
     enc_datadir = tools.fs_encode(datadir)
@@ -678,49 +697,48 @@ def create_sandbox(**kwargs):
             raise exceptions.GadgetError(
                 "Unable to start the MySQL sandbox. Port '{0}' on which "
                 "the sandbox runs was already in use.".format(port))
-        start_cmd = _START_SERVER_CMD.format(
-            mysqld_path=tools.shell_quote(local_mysqld_path),
-            config_file=tools.shell_quote(os.path.normpath(optf_path)))
 
-        # If we are running the script as root , the --user=root option is
-        # needed
+        start_cmd = tools.shell_quote(start_path)
+
         if os.name == "posix" and getpass.getuser() == "root":
-            start_cmd = "{0} --user=root".format(start_cmd)
-
-        # Fake PID to avoid the server starting the monitoring process
-        if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
-
+            # If we are running the script as root , the --user=root option is
+            # needed
+            start_cmd = "{0} {1}".format(start_cmd,
+                                         tools.shell_quote("--user=root"))
         _LOGGER.debug("Launching mysqld")
-        server_proc = tools.run_subprocess(start_cmd, close_fds=True)
-        # wait until server is listening on the given port
-        i = 0
-        _LOGGER.debug("Waiting for MySQL sandbox to start listening for "
-                      "connections on port '%i'", port)
-        while i < timeout:
-            if not tools.is_listening("localhost", port):
-                time.sleep(1)
-                i += 1
-            else:
-                # port is listening, break out of loop
-                _LOGGER.debug("MySQL sandbox is listening for connections on "
-                              "port '%i'", port)
-                break
-        else:
-            # timeout occurred, send signal to terminate process
-            try:
-                server_proc.terminate()
-            except Exception as err:
-                raise exceptions.GadgetError(
-                    "Timeout waiting for mysqld process with pid '{0}' to "
-                    "start and we got error '{1} "
-                    "while trying to terminate it. You might need to "
-                    "terminate it manually.".format(server_proc.pid, str(err)))
-            else:
-                # server was successfully terminated
-                raise exceptions.GadgetError(
-                    "Timeout waiting for mysqld process with pid '{0}' "
-                    "to start.".format(server_proc.pid))
+        with open(os.devnull, "r") as devnull_in:
+            with open(os.devnull, "w") as devnull_out:
+                server_proc = tools.run_subprocess(
+                    start_cmd, stdin=devnull_in, stdout=devnull_out,
+                    stderr=devnull_out, close_fds=True)
+                # wait until server is listening on the given port
+                i = 0
+                _LOGGER.debug("Waiting for MySQL sandbox to start listening "
+                              "for connections on port '%i'", port)
+                while i < timeout:
+                    if not tools.is_listening("localhost", port):
+                        time.sleep(1)
+                        i += 1
+                    else:
+                        # port is listening, break out of loop
+                        _LOGGER.debug("MySQL sandbox is listening for "
+                                      "connections on port '%i'", port)
+                        break
+                else:
+                    # timeout occurred, send signal to terminate process
+                    try:
+                        server_proc.terminate()
+                    except Exception as err:
+                        raise exceptions.GadgetError(
+                            "Timeout waiting for mysqld process with pid '{0}'"
+                            " to start and we got error '{1} while trying to "
+                            "terminate it. You might need to terminate it "
+                            "manually.".format(server_proc.pid, str(err)))
+                    else:
+                        # server was successfully terminated
+                        raise exceptions.GadgetError(
+                            "Timeout waiting for mysqld process with pid "
+                            "'{0}' to start.".format(server_proc.pid))
 
     # Change root password if one was provided
     # start the server
@@ -740,51 +758,52 @@ def create_sandbox(**kwargs):
                     "root password. Port '{0}' on which the sandbox runs was "
                     "already in use.".format(port))
 
-        start_cmd = _START_SERVER_CMD.format(
-            mysqld_path=tools.shell_quote(local_mysqld_path),
-            config_file=tools.shell_quote(os.path.normpath(optf_path)))
+        start_cmd = tools.shell_quote(start_path)
 
-        # If we are running the script as root , the --user=root option is
-        # needed
         if os.name == "posix" and getpass.getuser() == "root":
-            start_cmd = "{0} --user=root".format(start_cmd)
-
-        # Fake PID to avoid the server starting the monitoring process
-        if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
+            # If we are running the script as root , the --user=root option is
+            # needed
+            start_cmd = "{0} {1}".format(start_cmd,
+                                         tools.shell_quote("--user=root"))
 
         _LOGGER.debug("Launching mysqld to change the root password")
-        server_proc = tools.run_subprocess(start_cmd, close_fds=True)
-        # wait until server is listening on the given port
-        i = 0
-        _LOGGER.debug("Waiting for MySQL sandbox to start listening for "
-                      "connections on port '%i'", port)
-        while i < timeout:
-            if not tools.is_listening("localhost", port):
-                time.sleep(1)
-                i += 1
-            else:
-                # port is listening, break out of loop
-                _LOGGER.debug("MySQL sandbox is listening for connections on "
-                              "port '%i'", port)
-                break
-        else:
-            # timeout occurred, send signal to terminate process
-            try:
-                server_proc.terminate()
-            except Exception as err:
-                raise exceptions.GadgetError(
-                    "Timeout waiting for mysqld process with pid '{0}' used "
-                    "to change root password to start and we got error '{1} "
-                    "while trying to terminate it. You might need to "
-                    "terminate it manually.".format(server_proc.pid, str(err))
-                )
-            else:
-                # server was successfully terminated
-                raise exceptions.GadgetError(
-                    "Timeout waiting for mysqld process with pid '{0}' used "
-                    "to change root password to start.".format(server_proc.pid)
-                )
+        with open(os.devnull, "r") as devnull_in:
+            with open(os.devnull, "w") as devnull_out:
+                server_proc = tools.run_subprocess(
+                    start_cmd, stdin=devnull_in, stdout=devnull_out,
+                    stderr=devnull_out, close_fds=True)
+                # wait until server is listening on the given port
+                i = 0
+                _LOGGER.debug("Waiting for MySQL sandbox to start listening "
+                              "for connections on port '%i'", port)
+                while i < timeout:
+                    if not tools.is_listening("localhost", port):
+                        time.sleep(1)
+                        i += 1
+                    else:
+                        # port is listening, break out of loop
+                        _LOGGER.debug("MySQL sandbox is listening for "
+                                      "connections on port '%i'", port)
+                        break
+                else:
+                    # timeout occurred, send signal to terminate process
+                    try:
+                        server_proc.terminate()
+                    except Exception as err:
+                        raise exceptions.GadgetError(
+                            "Timeout waiting for mysqld process with pid '{0}'"
+                            " used to change root password to start and we got"
+                            " error '{1} while trying to terminate it. You "
+                            "might need to terminate it manually."
+                            "".format(server_proc.pid, str(err))
+                        )
+                    else:
+                        # server was successfully terminated
+                        raise exceptions.GadgetError(
+                            "Timeout waiting for mysqld process with pid '{0}'"
+                            " used to change root password to start."
+                            "".format(server_proc.pid)
+                        )
 
         # server is now listening, connect to it and change root password
         s = server.Server({"conn_info": "root@localhost:{0}".format(port)})
@@ -1005,16 +1024,21 @@ def start_sandbox(**kwargs):
         file_handle = os.open(enc_lock_file_path, flags)
         os.close(file_handle)
 
-        start_cmd = _START_SERVER_CMD.format(
-            mysqld_path=tools.shell_quote(mysqld_path),
-            config_file=tools.shell_quote(os.path.normpath(optf_path)))
+        # Create the start script since testutils sandbox operations copy over
+        # the start script from the boilerplate directory and that will have the
+        # path to the mysqld binary hardcoded (so we need to update the script
+        # so it points to a correct mysqld binary).
+        start_path = _create_start_script("start", sandbox_dir, mysqld_path,
+                                          optf_path)
+        start_cmd = tools.shell_quote(start_path)
 
-        # If we are running the script as root , the --user=root option
-        # is needed
         if os.name == "posix" and getpass.getuser() == "root":
             _LOGGER.warning(
                 "Starting a sandbox as root is not recommended.")
-            start_cmd = "{0} --user=root".format(start_cmd)
+            # If we are running the script as root , the --user=root option is
+            # needed
+            start_cmd = "{0} {1}".format(start_cmd,
+                                         tools.shell_quote("--user=root"))
 
         error_log_path = os.path.normpath(
             mysql_opt_parser.get("mysqld", "log_error"))
@@ -1030,12 +1054,11 @@ def start_sandbox(**kwargs):
             error_log_end_pos = 0
             error_log_size = 0
 
-        # Fake PID to avoid the server starting the monitoring process
-        if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
-
-        server_proc = tools.run_subprocess(start_cmd, shell=False,
-                                           close_fds=True)
+        with open(os.devnull, "r") as devnull_in:
+            with open(os.devnull, "w") as devnull_out:
+                server_proc = tools.run_subprocess(
+                    start_cmd, stdin=devnull_in, stdout=devnull_out,
+                    stderr=devnull_out, close_fds=True)
         started_at = time.time()
         started_ok = False
         _LOGGER.debug("Waiting for MySQL sandbox to start listening for "
@@ -1297,7 +1320,8 @@ def kill_sandbox(**kwargs):
             # there is a process listening on the specified port, but there is
             # no pid file so emmit a warning and do nothing
             _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
-                            "but a pid file was still found. Removing it.", port)
+                            "but a pid file was still found. Removing it.",
+                            port)
             try:
                 os.unlink(enc_pidf_path)
             except OSError as err:

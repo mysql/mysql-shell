@@ -187,7 +187,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 // Also covers: ET_3 and ET_9
 testutil.expectPrompt("Please select an option [1]: ", "3");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 dba.configureInstance(__sandbox_uri1, {interactive: true});
 
 //@ FR5 TEARDOWN {VER(>=8.0.11)}
@@ -258,7 +258,7 @@ dba.configureInstance(root_uri1, {interactive: false});
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "clusterAdminAccount"});
 
 // ET_12 - Super read-only enabled and 'clearReadOnly' is not set with interactive is ENABLED
@@ -270,7 +270,7 @@ EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "newClusterAdminAccount"});
 session.close();
@@ -282,7 +282,7 @@ EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2", clearReadOnly: true});
 
 //@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set 5.7 {VER(<8.0.11)}

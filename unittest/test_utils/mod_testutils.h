@@ -177,6 +177,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void restart_sandbox(int port);
 
+  void wait_sandbox_alive(int port);
+
   void snapshot_sandbox_conf(int port);
   void begin_snapshot_sandbox_error_log(int port);
   void end_snapshot_sandbox_error_log(int port);

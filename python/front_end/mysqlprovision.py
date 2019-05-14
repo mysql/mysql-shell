@@ -70,7 +70,7 @@ def main():
         if line == ".\n":
             break
         data += line
-    shell_options = json.loads(fs_decode(data))
+    shell_options = json.loads(data.decode('utf-8'))
     cmd_options = shell_options[0]
     del shell_options[0]
 

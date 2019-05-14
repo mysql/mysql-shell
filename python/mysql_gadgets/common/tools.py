@@ -39,6 +39,7 @@ import os
 import signal
 import socket
 import subprocess
+import sys
 
 from mysql_gadgets.common.constants import QUOTE_CHAR
 from mysql_gadgets.common.logger import CustomLevelLogger
@@ -320,10 +321,19 @@ def run_subprocess(cmd_str, **kwargs):
     if os.name == "nt":
         # on windows we can use the string directly
         cmd_list = cmd_str.encode('mbcs')
+        # create process without a console window (also detaching from our console)
+        CREATE_NO_WINDOW = 0x08000000
         # create process in a new group, otherwise pressing CTRL-C in the
         # current console will kill the created process
         kwargs['creationflags'] = kwargs.get(
-            'creationflags', 0) | subprocess.CREATE_NEW_PROCESS_GROUP
+            'creationflags', 0) | subprocess.CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+        kwargs['close_fds'] = kwargs.get('close_fds', False)
+        # on Windows 'close_fds' closes all descriptors, including standard
+        # input/output/error, redirection in this case cannot be used
+        if kwargs['close_fds'] and sys.version_info[:2] < (3, 7):
+            kwargs['stdin'] = None
+            kwargs['stdout'] = None
+            kwargs['stderr'] = None
     else:
         # shlex.split() does not fully support UTF-8.
         cmd_list = map(

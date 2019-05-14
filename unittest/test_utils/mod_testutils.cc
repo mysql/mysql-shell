@@ -113,6 +113,7 @@ std::string get_mysqld_version() {
 }  // namespace
 
 constexpr int k_wait_sandbox_dead_timeout = 120;
+constexpr int k_wait_sandbox_alive_timeout = 120;
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_wait_delayed_gr_start_timeout = 300;
 constexpr int k_max_start_sandbox_retries = 5;
@@ -140,7 +141,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("stopSandbox", &Testutils::stop_sandbox, "port", "?options");
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port");
-
+  expose("waitSandboxAlive", &Testutils::wait_sandbox_alive, "port");
   expose("snapshotSandboxConf", &Testutils::snapshot_sandbox_conf, "port");
   expose("beginSnapshotSandboxErrorLog",
          &Testutils::begin_snapshot_sandbox_error_log, "port");
@@ -1254,6 +1255,27 @@ void Testutils::wait_sandbox_dead(int port) {
 #endif
 
   log_info("Finished waiting");
+}
+
+void Testutils::wait_sandbox_alive(int port) {
+  log_info("Waiting for sandbox (%d) to accept connections...", port);
+  int retries = (k_wait_sandbox_alive_timeout * 1000) / 500;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  while (retries > 0) {
+    try {
+      session = connect_to_sandbox(port);
+    } catch (const std::exception &err) {
+      --retries;
+      shcore::sleep_ms(500);
+      continue;
+    }
+    session->close();
+    break;
+  }
+  if (retries <= 0) {
+    throw std::runtime_error("Timeout waiting for sandbox " +
+                             std::to_string(port) + " to accept connections");
+  }
 }
 
 bool Testutils::is_port_available_for_sandbox_to_bind(int port) const {

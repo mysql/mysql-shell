@@ -1,3 +1,9 @@
+//@ Deploy instances (with invalid server_id).
+||
+
+//@ Deploy instances (with invalid server_id in 8.0). {VER(>=8.0.3)}
+||
+
 //@<OUT> checkInstanceConfiguration with server_id error. {VER(>=8.0.11)}
 {
     "config_errors": [
@@ -185,4 +191,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 //@ Clean-up deployed instances.
+||
+
+//@ Clean-up deployed instances (with invalid server_id in 8.0). {VER(>=8.0.3)}
 ||

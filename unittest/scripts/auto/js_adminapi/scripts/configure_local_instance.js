@@ -49,7 +49,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root5', clusterAdminPassword:'root', clearReadOnly: true});
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_port1+"' currently has the super_read_only");
@@ -68,7 +68,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_p
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root6', clusterAdminPassword:'root', clearReadOnly: false})}, "Server in SUPER_READ_ONLY mode");
 
 EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' is valid for Cluster usage");
@@ -123,4 +123,20 @@ testutil.expectPrompt("Do you want to perform the required configuration changes
 dba.configureLocalInstance(__sandbox_uri1, {interactive:true, mycnfPath:mycnf_path});
 
 //@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17)}
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "y");
+dba.configureLocalInstance(__sandbox_uri1, {interactive: true});
+
+//@<OUT> Confirm changes were applied and everything is fine BUG#29725222 {VER(>= 8.0.17)}
+testutil.waitSandboxAlive(__mysql_sandbox_port1)
+dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
+
+//@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
 testutil.destroySandbox(__mysql_sandbox_port1);
