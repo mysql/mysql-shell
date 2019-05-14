@@ -210,10 +210,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB c
 
 //@# Dba: configureLocalInstance not enough privileges {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
-|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
-|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
-|Missing privileges on schema 'sys': SELECT.|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 

@@ -275,16 +275,14 @@ namespace {
  */
 
 // Global privs needed for managing cluster instances
-const std::set<std::string> k_global_privileges{"RELOAD",
-                                                "SHUTDOWN",
-                                                "PROCESS",
-                                                "FILE",
-                                                "SUPER",
-                                                "REPLICATION SLAVE",
-                                                "REPLICATION CLIENT",
-                                                "CREATE USER"};
+// BUG#29743910: clusterAdmin needs SELECT on *.* for tables compliance check.
+const std::set<std::string> k_global_privileges{
+    "RELOAD",     "SHUTDOWN", "PROCESS",           "FILE",
+    "SELECT",     "SUPER",    "REPLICATION SLAVE", "REPLICATION CLIENT",
+    "CREATE USER"};
 
 // Schema privileges needed on the metadata schema
+// NOTE: SELECT *.* required (BUG#29743910), thus no longer needed here.
 const std::set<std::string> k_metadata_schema_privileges{
     "ALTER",
     "ALTER ROUTINE",
@@ -300,20 +298,20 @@ const std::set<std::string> k_metadata_schema_privileges{
     "INSERT",
     "LOCK TABLES",
     "REFERENCES",
-    "SELECT",
     "SHOW VIEW",
     "TRIGGER",
     "UPDATE"};
 
 // Schema privileges needed on the mysql schema
-const std::set<std::string> k_mysql_schema_privileges{"SELECT", "INSERT",
-                                                      "UPDATE", "DELETE"};
+// NOTE: SELECT *.* required (BUG#29743910), thus no longer needed here.
+const std::set<std::string> k_mysql_schema_privileges{"INSERT", "UPDATE",
+                                                      "DELETE"};
 
 // list of (schema, [privilege]) pairs, with the required privileges on each
 // schema
+// NOTE: SELECT *.* required (BUG#29743910), thus no longer needed for 'sys'.
 const std::map<std::string, std::set<std::string>> k_schema_grants{
     {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
-    {"sys", {"SELECT"}},
     {"mysql", k_mysql_schema_privileges}  // need for mysql.plugin,
                                           // mysql.user others
 };
@@ -326,19 +324,23 @@ const std::map<std::string, std::set<std::string>> k_schema_grants{
 // See:
 // https://dev.mysql.com/doc/refman/8.0/en/performance-schema-system-variable-tables.html
 const std::map<std::string, std::map<std::string, std::set<std::string>>>
-    k_table_grants{
-        {"performance_schema",
-         {
-             {"replication_applier_configuration", {"SELECT"}},
-             {"replication_applier_status", {"SELECT"}},
-             {"replication_applier_status_by_coordinator", {"SELECT"}},
-             {"replication_applier_status_by_worker", {"SELECT"}},
-             {"replication_connection_configuration", {"SELECT"}},
-             {"replication_connection_status", {"SELECT"}},
-             {"replication_group_member_stats", {"SELECT"}},
-             {"replication_group_members", {"SELECT"}},
-             {"threads", {"SELECT"}},  // used in code
-         }}};
+    k_table_grants{};
+
+// NOTE: SELECT *.* required (BUG#29743910), thus the following SELECT
+//       privileges on specific tables are no longer required:
+//    k_table_grants{
+//        {"performance_schema",
+//         {
+//             {"replication_applier_configuration", {"SELECT"}},
+//             {"replication_applier_status", {"SELECT"}},
+//             {"replication_applier_status_by_coordinator", {"SELECT"}},
+//             {"replication_applier_status_by_worker", {"SELECT"}},
+//             {"replication_connection_configuration", {"SELECT"}},
+//             {"replication_connection_status", {"SELECT"}},
+//             {"replication_group_member_stats", {"SELECT"}},
+//             {"replication_group_members", {"SELECT"}},
+//             {"threads", {"SELECT"}},  // used in code
+//         }}};
 
 }  // namespace
 

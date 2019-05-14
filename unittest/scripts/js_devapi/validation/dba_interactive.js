@@ -206,10 +206,9 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 1 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
-|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
-|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
-|Missing privileges on schema 'sys': SELECT.|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
@@ -219,10 +218,9 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 2 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
-|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
-|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
-|Missing privileges on schema 'sys': SELECT.|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
@@ -232,10 +230,9 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 3 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
-|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
-|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
-|Missing privileges on schema 'sys': SELECT.|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
@@ -359,19 +356,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 
 //@# Check if all missing privileges are reported for user with no privileges {VER(<8.0.0)}
 |ERROR: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER.|
-|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
-|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
-|Missing privileges on schema 'sys': SELECT.|
-|Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT.|
-|Missing privileges on table 'performance_schema.replication_applier_status': SELECT.|
-|Missing privileges on table 'performance_schema.replication_applier_status_by_coordinator': SELECT.|
-|Missing privileges on table 'performance_schema.replication_applier_status_by_worker': SELECT.|
-|Missing privileges on table 'performance_schema.replication_connection_configuration': SELECT.|
-|Missing privileges on table 'performance_schema.replication_connection_status': SELECT.|
-|Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT.|
-|Missing privileges on table 'performance_schema.replication_group_members': SELECT.|
-|Missing privileges on table 'performance_schema.threads': SELECT.|
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 

@@ -11,6 +11,7 @@
 | RELOAD             | YES          |
 | REPLICATION CLIENT | YES          |
 | REPLICATION SLAVE  | YES          |
+| SELECT             | YES          |
 | SHUTDOWN           | YES          |
 | SUPER              | YES          |
 +--------------------+--------------+
@@ -21,7 +22,6 @@
 +-------------------------+--------------+-------------------------------+
 | DELETE                  | YES          | mysql                         |
 | INSERT                  | YES          | mysql                         |
-| SELECT                  | YES          | mysql                         |
 | UPDATE                  | YES          | mysql                         |
 | ALTER                   | YES          | mysql_innodb_cluster_metadata |
 | ALTER ROUTINE           | YES          | mysql_innodb_cluster_metadata |
@@ -37,27 +37,13 @@
 | INSERT                  | YES          | mysql_innodb_cluster_metadata |
 | LOCK TABLES             | YES          | mysql_innodb_cluster_metadata |
 | REFERENCES              | YES          | mysql_innodb_cluster_metadata |
-| SELECT                  | YES          | mysql_innodb_cluster_metadata |
 | SHOW VIEW               | YES          | mysql_innodb_cluster_metadata |
 | TRIGGER                 | YES          | mysql_innodb_cluster_metadata |
 | UPDATE                  | YES          | mysql_innodb_cluster_metadata |
-| SELECT                  | YES          | sys                           |
 +-------------------------+--------------+-------------------------------+
 
 //@<OUT> check table privileges of cluster admin
-+----------------+--------------+--------------------+-------------------------------------------+
-| PRIVILEGE_TYPE | IS_GRANTABLE | TABLE_SCHEMA       | TABLE_NAME                                |
-+----------------+--------------+--------------------+-------------------------------------------+
-| SELECT         | YES          | performance_schema | replication_applier_configuration         |
-| SELECT         | YES          | performance_schema | replication_applier_status                |
-| SELECT         | YES          | performance_schema | replication_applier_status_by_coordinator |
-| SELECT         | YES          | performance_schema | replication_applier_status_by_worker      |
-| SELECT         | YES          | performance_schema | replication_connection_configuration      |
-| SELECT         | YES          | performance_schema | replication_connection_status             |
-| SELECT         | YES          | performance_schema | replication_group_members                 |
-| SELECT         | YES          | performance_schema | replication_group_member_stats            |
-| SELECT         | YES          | performance_schema | threads                                   |
-+----------------+--------------+--------------------+-------------------------------------------+
+Empty set ([[*]])
 
 //@ cluster admin should be able to create another cluster admin
 |Cluster admin user 'ca2'@'%' created.|
