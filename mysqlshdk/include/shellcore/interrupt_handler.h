@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@ static constexpr int kMax_interrupt_handlers = 8;
 
 class Interrupt_helper {
  public:
+  virtual ~Interrupt_helper() = default;
   virtual void setup() = 0;
   virtual void block() = 0;
   virtual void unblock(bool clean_pending) = 0;

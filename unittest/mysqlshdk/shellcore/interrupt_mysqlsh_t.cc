@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils.h"
@@ -179,6 +180,18 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
         << "select 'fail';\n";
       f.close();
     }
+    {
+      std::ofstream f("test_show.py");
+      f << "print('ready')\n"
+        << "\\show query SELECT SLEEP(10)\n";
+      f.close();
+    }
+    {
+      std::ofstream f("test_watch.py");
+      f << "print('ready')\n"
+        << "\\watch query --interval=10 SELECT SLEEP(10)\n";
+      f.close();
+    }
   }
 
   static void TearDownTestCase() {
@@ -197,6 +210,9 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     shcore::delete_file("test_jsonimport_big.json");
 
     shcore::delete_file("test_query.sql");
+
+    shcore::delete_file("test_show.py");
+    shcore::delete_file("test_watch.py");
   }
 
   void kill_on_ready() { kill_on_message("ready"); }
@@ -570,6 +586,33 @@ TEST_F(Interrupt_mysqlsh, json_import) {
   TEST_INTERRUPT_ON_MSG_SCRIPT_I(_uri.c_str(), "--py", "test_jsonimport.py",
                                  "Importing from file ");
 #endif
+}
+
+TEST_F(Interrupt_mysqlsh, command_show_watch) {
+  static constexpr auto expected = R"*(+-----------+
+| SLEEP(10) |
++-----------+
+| 1         |
++-----------+)*";
+
+  for (const auto &command : {"test_show.py", "test_watch.py"}) {
+    for (const auto &session : {_mysql_uri, _uri}) {
+      SCOPED_TRACE(shcore::str_format("Executing '%s' via '%s'", command,
+                                      session.c_str()));
+      mysqlshdk::utils::Profile_timer timer;
+      kill_on_ready();
+
+      timer.stage_begin("execution");
+      execute({_mysqlsh, session.c_str(), "--py", "--interactive", nullptr},
+              nullptr, command);
+      timer.stage_end();
+
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
+      EXPECT_LT(timer.total_seconds_ellapsed(), 5.0);
+
+      kill_thread.join();
+    }
+  }
 }
 
 }  // namespace mysqlsh

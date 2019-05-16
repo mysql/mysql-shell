@@ -40,7 +40,7 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
   } else {
     const auto new_args = parse_arguments(args);
 
-    bool iterrupted = false;
+    volatile bool iterrupted = false;
     shcore::Interrupt_handler inth(
         [&iterrupted]() { return (iterrupted = true); });
 
@@ -67,7 +67,9 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
 
       Command_show::execute(new_args);
 
-      shcore::sleep_ms(interval);
+      if (!iterrupted) {
+        shcore::sleep_ms(interval);
+      }
     }
 
     return true;

@@ -854,6 +854,8 @@ void Shell_script_tester::add_source_chunk(const std::string &path,
                                            const Chunk_t &chunk) {
   if (_chunks.find(chunk.def->id) == _chunks.end()) {
     _chunks[chunk.def->id] = chunk;
+    // normalize Windows paths
+    _chunks[chunk.def->id].source = str_replace(chunk.source, "\\", "/");
     _chunk_order.push_back(chunk.def->id);
   } else {
     ADD_FAILURE_AT(path.c_str(), chunk.def->linenum - 1)

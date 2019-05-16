@@ -859,7 +859,7 @@ std::string make_account(const std::string &user, const std::string &host) {
 
 void sleep_ms(uint32_t ms) {
 #ifdef _WIN32
-  Sleep(ms);
+  Sigint_event::get().wait(ms);
 #else
   usleep(ms * 1000);
 #endif
@@ -1071,6 +1071,24 @@ std::string SHCORE_PUBLIC last_error_to_string(DWORD code) {
   }
 
   return ret;
+}
+
+Sigint_event::Sigint_event() {
+  m_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+}
+
+Sigint_event::~Sigint_event() { CloseHandle(m_event); }
+
+Sigint_event &Sigint_event::get() {
+  static Sigint_event instance;
+  return instance;
+}
+
+void Sigint_event::notify() { SetEvent(m_event); }
+
+void Sigint_event::wait(uint32_t ms) {
+  ResetEvent(m_event);
+  WaitForSingleObjectEx(m_event, ms, FALSE);
 }
 
 #endif  // _WIN32

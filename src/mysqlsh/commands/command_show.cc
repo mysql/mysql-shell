@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <algorithm>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 
 namespace mysqlsh {
 
@@ -34,8 +35,15 @@ bool Command_show::execute(const std::vector<std::string> &args) {
     // no arguments -> display available reports
     list_reports();
   } else {
+    const auto session = _shell->get_dev_session();
+    shcore::Interrupt_handler inth([&session]() {
+      if (session) {
+        session->kill_query();
+      }
+      return true;
+    });
     current_console()->print(m_reports->call_report(
-        args[1], _shell->get_dev_session(), {args.begin() + 2, args.end()}));
+        args[1], session, {args.begin() + 2, args.end()}));
   }
 
   return true;

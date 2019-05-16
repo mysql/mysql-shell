@@ -64,41 +64,50 @@ static mysqlsh::Command_line_shell *g_shell_ptr;
 #define isatty _isatty
 #define snprintf _snprintf
 
-static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
-  switch (fdwCtrlType) {
-    case CTRL_C_EVENT:
-    case CTRL_BREAK_EVENT:
-      try {
-        shcore::Interrupts::interrupt();
-      } catch (const std::exception &e) {
-        log_error("Unhandled exception in SIGINT handler: %s", e.what());
-      }
-      // Don't let the default handler terminate us
-      return TRUE;
-    case CTRL_CLOSE_EVENT:
-    case CTRL_LOGOFF_EVENT:
-    case CTRL_SHUTDOWN_EVENT:
-      // TODO: Add proper exit handling if needed
-      break;
-  }
-  /* Pass signal to the next control handler function. */
-  return FALSE;
-}
-
 class Interrupt_helper : public shcore::Interrupt_helper {
  public:
-  virtual void setup() {
+  void setup() override {
     // if we're being executed using CreateProcess() with
     // CREATE_NEW_PROCESS_GROUP flag set, an implicit call to
     // SetConsoleCtrlHandler(NULL, TRUE) is made, need to revert that
     SetConsoleCtrlHandler(nullptr, FALSE);
     // set our own handler
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
+    SetConsoleCtrlHandler(windows_ctrl_handler, TRUE);
   }
 
-  virtual void block() {}
+  void block() override {}
 
-  virtual void unblock(bool clear_pending) {}
+  void unblock(bool) override {}
+
+ private:
+  static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
+    switch (fdwCtrlType) {
+      case CTRL_C_EVENT:
+      case CTRL_BREAK_EVENT:
+        interrupt();
+        // Don't let the default handler terminate us
+        return TRUE;
+      case CTRL_CLOSE_EVENT:
+      case CTRL_LOGOFF_EVENT:
+      case CTRL_SHUTDOWN_EVENT:
+        // TODO: Add proper exit handling if needed
+        break;
+    }
+    // Pass signal to the next control handler function.
+    return FALSE;
+  }
+
+  static void interrupt() {
+    try {
+      // we're being called from another thread, first notify the interrupt
+      // handlers, so they update their state before main thread resumes
+      shcore::Interrupts::interrupt();
+      // notify the event, potentially waking up the main thread
+      shcore::Sigint_event::get().notify();
+    } catch (const std::exception &e) {
+      log_error("Unhandled exception in SIGINT handler: %s", e.what());
+    }
+  }
 };
 
 #else  // !WIN32
