@@ -68,6 +68,10 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 @PRODUCT@
 a query and administration shell client and framework.
 
+%if 0%{?suse_version}
+%debug_package
+%endif
+
 %prep
 %setup -q -n %{name}-@MYSH_VERSION@-src
 
@@ -148,6 +152,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_datadir}/mysqlsh/Docs/INFO_BIN
 
 %changelog
+* Thu May 16 2019 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 8.0.17-1
+- Enable debug binaries for sles12 and opensuse15
+
 * Mon Oct 8 2018 Rene Ramirez <j.rene.ramirez@oracle.com> - 8.0.14
 - Update to use mysql server bundled protobuf if no specific is defined.
 
