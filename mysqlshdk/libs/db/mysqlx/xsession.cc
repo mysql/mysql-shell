@@ -35,6 +35,9 @@
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
+// Server:plugin/x/ngs/include/ngs/ngs_error.h
+#define ER_X_CAPABILITY_NOT_FOUND 5002
+
 namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
@@ -216,6 +219,28 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
 
+  bool user_defined_connection_attributes = false;
+  if (_connection_options.is_connection_attributes_enabled()) {
+    auto attrs = _mysql->get_connect_attrs();
+    attrs.emplace_back("program_name", xcl::Argument_value{"mysqlsh"});
+
+    if (!_connection_options.get_connection_attributes().empty()) {
+      user_defined_connection_attributes = true;
+
+      for (const auto &att : _connection_options.get_connection_attributes()) {
+        std::string attribute = att.first;
+        std::string value;
+        if (!att.second.is_null()) {
+          value = *att.second;
+        }
+
+        attrs.emplace_back(attribute, xcl::Argument_value{value});
+      }
+    }
+    _mysql->set_capability(xcl::XSession::Capability_session_connect_attrs,
+                           attrs);
+  }
+
   // If a specific authentication type was given, it is used
   if (_connection_options.has(mysqlshdk::db::kAuthMethod)) {
     _mysql->set_mysql_option(
@@ -334,6 +359,21 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
                             "' seems to speak the classic MySQL protocol";
       message.append(" (").append(err.what()).append(")");
       store_error_and_throw(Error(message.c_str(), CR_MALFORMED_PACKET));
+    } else if (!user_defined_connection_attributes &&
+               err.error() == ER_X_CAPABILITY_NOT_FOUND &&
+               strstr(err.what(), "session_connect_attrs")) {
+      log_warning(
+          "Server does not support connection attributes, retrying with then "
+          "disabled: (%d) %s",
+          err.error(), err.what());
+
+      // When connection attributes is not supported, and the user did not
+      // explicitly request the registration of connection attributes, a second
+      // connection attempt with them disabled will be done.
+      mysqlshdk::db::Connection_options connection_data(data);
+      connection_data.set(kConnectionAttributes, "false");
+      connect(connection_data);
+      return;
     } else {
       if (!xproto_errors.empty()) {
         auto e = xproto_errors.back();

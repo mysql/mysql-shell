@@ -132,20 +132,22 @@ class Api_connections : public Shell_js_script_tester {
 int Api_connections::_sb_port = 0;
 
 TEST_F(Api_connections, ssl_enabled_require_secure_transport_off) {
-  validate_chunks("api_connections.js",
-                  "api_connections_ssl_on_secure_transport_off.val");
+  execute("var secure_transport='off';");
+  validate_interactive("api_connections.js");
 }
 
 TEST_F(Api_connections, ssl_enabled_require_secure_transport_on) {
   // Turns the require_secure_transport variable ON
+  execute("var secure_transport = 'on';");
   execute("var uri = 'root:root@localhost:" + _my_port + "';");
   execute("var testSession = mysql.getClassicSession(uri);");
   execute("testSession.runSql('set global require_secure_transport=ON;');");
+  execute("testSession.close();");
 
-  validate_chunks("api_connections.js",
-                  "api_connections_ssl_on_secure_transport_on.val");
+  validate_interactive("api_connections.js");
 
   // Turns the require_secure_transport variable OFF
+  execute("var testSession = mysql.getClassicSession(uri);");
   execute("testSession.runSql('set global require_secure_transport=OFF;');");
   execute("testSession.close();");
 }
@@ -153,11 +155,12 @@ TEST_F(Api_connections, ssl_enabled_require_secure_transport_on) {
 TEST_F(Api_connections, ssl_disabled) {
   disable_ssl_on_instance(_sb_port, "unsecure");
 
+  execute("var secure_transport='disabled';");
   execute("var __my_user = 'unsecure';");
 
   shcore::sleep_ms(5000);
 
-  validate_chunks("api_connections.js", "api_connections_ssl_off.val");
+  validate_interactive("api_connections.js");
 }
 
 }  // namespace tests

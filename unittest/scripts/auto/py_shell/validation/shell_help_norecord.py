@@ -253,6 +253,8 @@ DESCRIPTION
         value of 0 disables the connection timeout.
       - compression: Enable/disable compression in client/server protocol,
         valid values: "true", "false", "1", and "0".
+      - connection-attributes: List of connection attributes to be registered
+        at the PERFORMANCE_SCHEMA connection attributes tables.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -890,6 +892,8 @@ The following options are valid for use either in a URI or in a dictionary:
   the connection timeout.
 - compression: Enable/disable compression in client/server protocol, valid
   values: "true", "false", "1", and "0".
+- connection-attributes: List of connection attributes to be registered at the
+  PERFORMANCE_SCHEMA connection attributes tables.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -962,6 +966,38 @@ The tls-version option accepts the following values:
 - TLSv1
 - TLSv1.1
 - TLSv1.2 (Supported only on commercial packages)
+
+Connection Attributes
+
+Connection attributes are key-value pairs to be sent to the server at connect
+time. They are stored at the following PERFORMANCE_SCHEMA tables:
+
+- session_account_connect_attrs: attributes for the current session, and other
+  sessions associated with the session account.
+- session_connect_attrs: attributes for all sessions.
+
+These attributes should be defined when creating a session and are immutable
+during the life-time of the session.
+
+To define connection attributes on a URI, the connection-attributes should be
+defined as part of the URI as follows:
+
+root@localhost:port/schema?connection-attributes=[att1=value1,att2=val2,...]
+
+Note that the characters used for the attribute name and value must follow the
+URI standard, this is, if the character is not allowed it must be percent
+encoded.
+
+To define connection attributes when creating a session using a dictionary the
+connection-attributes option should be defined, its value can be set in the
+following formats:
+
+- Array of "key=value" pairs.
+- Dictionary containing the key-value pairs.
+
+Note that the connection-attribute values are expected to be strings, if other
+data type is used in the dictionary, the string representation of the used data
+will be stored on the database.
 
 URL Encoding
 
@@ -1019,6 +1055,8 @@ The following options are valid for use either in a URI or in a dictionary:
   the connection timeout.
 - compression: Enable/disable compression in client/server protocol, valid
   values: "true", "false", "1", and "0".
+- connection-attributes: List of connection attributes to be registered at the
+  PERFORMANCE_SCHEMA connection attributes tables.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1092,6 +1130,38 @@ The tls-version option accepts the following values:
 - TLSv1.1
 - TLSv1.2 (Supported only on commercial packages)
 
+Connection Attributes
+
+Connection attributes are key-value pairs to be sent to the server at connect
+time. They are stored at the following PERFORMANCE_SCHEMA tables:
+
+- session_account_connect_attrs: attributes for the current session, and other
+  sessions associated with the session account.
+- session_connect_attrs: attributes for all sessions.
+
+These attributes should be defined when creating a session and are immutable
+during the life-time of the session.
+
+To define connection attributes on a URI, the connection-attributes should be
+defined as part of the URI as follows:
+
+root@localhost:port/schema?connection-attributes=[att1=value1,att2=val2,...]
+
+Note that the characters used for the attribute name and value must follow the
+URI standard, this is, if the character is not allowed it must be percent
+encoded.
+
+To define connection attributes when creating a session using a dictionary the
+connection-attributes option should be defined, its value can be set in the
+following formats:
+
+- Array of "key=value" pairs.
+- Dictionary containing the key-value pairs.
+
+Note that the connection-attribute values are expected to be strings, if other
+data type is used in the dictionary, the string representation of the used data
+will be stored on the database.
+
 URL Encoding
 
 URL encoded values only accept alphanumeric characters and the next symbols:
@@ -1128,6 +1198,39 @@ The following topics were found at the SQL Syntax category:
 For help on a specific topic use: \? <topic>
 
 e.g.: \? ALTER TABLE
+
+#@<OUT> Help on connection attributes
+Connection Attributes
+
+Connection attributes are key-value pairs to be sent to the server at connect
+time. They are stored at the following PERFORMANCE_SCHEMA tables:
+
+- session_account_connect_attrs: attributes for the current session, and other
+  sessions associated with the session account.
+- session_connect_attrs: attributes for all sessions.
+
+These attributes should be defined when creating a session and are immutable
+during the life-time of the session.
+
+To define connection attributes on a URI, the connection-attributes should be
+defined as part of the URI as follows:
+
+root@localhost:port/schema?connection-attributes=[att1=value1,att2=val2,...]
+
+Note that the characters used for the attribute name and value must follow the
+URI standard, this is, if the character is not allowed it must be percent
+encoded.
+
+To define connection attributes when creating a session using a dictionary the
+connection-attributes option should be defined, its value can be set in the
+following formats:
+
+- Array of "key=value" pairs.
+- Dictionary containing the key-value pairs.
+
+Note that the connection-attribute values are expected to be strings, if other
+data type is used in the dictionary, the string representation of the used data
+will be stored on the database.
 
 #@<OUT> Help on plugins
 The MySQL Shell allows extending its base functionality through the creation of
@@ -1300,7 +1403,7 @@ WHERE
               json/array, json/pretty. Default is table.
 
 RETURNS
-       Nothing
+       The number of printed rows
 
 DESCRIPTION
       This function shows a resultset object returned by a DB Session query in

@@ -69,11 +69,6 @@ bool Nullable_options::has_value(const std::string &name) const {
   return !_options.at(name).is_null();
 }
 
-void Nullable_options::set_unchecked(const std::string &name,
-                                     const char *value) {
-  _options[name] = value;
-}
-
 void Nullable_options::set(const std::string &name, const std::string &value,
                            Set_mode mode) {
   // The option is meant to be created

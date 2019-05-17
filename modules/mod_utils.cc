@@ -89,7 +89,7 @@ mysqlshdk::db::Connection_options get_connection_options(
         throw std::invalid_argument("Host value cannot be an empty string.");
       }
 
-      ret_val.set(option.first, {host});
+      ret_val.set(option.first, host);
     } else if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
       ret_val.set_port(connection_map.int_at(option.first));
     } else if (ret_val.compare(option.first, mysqlshdk::db::kSocket) == 0) {
@@ -108,10 +108,31 @@ mysqlshdk::db::Connection_options get_connection_options(
         mysqlshdk::db::Connection_options::throw_invalid_connect_timeout(
             connection_map.at(option.first).descr());
       } else {
-        ret_val.set(option.first, {connection_map.at(option.first).descr()});
+        ret_val.set(option.first, connection_map.at(option.first).descr());
+      }
+    } else if (ret_val.compare(option.first,
+                               mysqlshdk::db::kConnectionAttributes) == 0) {
+      if (option.second.type == shcore::Map) {
+        // Supports connection-attributes: {key:val, key:val, ...}
+        auto map = option.second.as_map();
+        for (const auto &entry : *map) {
+          ret_val.set_connection_attribute(entry.first, entry.second.descr());
+        }
+      } else if (option.second.type == shcore::Array) {
+        // Supports connection-attributes: ["key=val", "key=val", ...]
+        auto array = option.second.as_array();
+        std::vector<std::string> values;
+        for (const auto &entry : *array) {
+          values.push_back(entry.descr());
+        }
+        ret_val.set_connection_attributes(values);
+      } else {
+        // Supports connection-attributes=false|true|1|0
+        ret_val.set(mysqlshdk::db::kConnectionAttributes,
+                    option.second.descr());
       }
     } else {
-      ret_val.set(option.first, {connection_map.string_at(option.first)});
+      ret_val.set(option.first, connection_map.string_at(option.first));
     }
   }
   return ret_val;
@@ -297,6 +318,20 @@ shcore::Value::Map_type_ref get_connection_map(
     }
   }
 
+  if (connection_options.is_connection_attributes_enabled()) {
+    auto conn_atts = connection_options.get_connection_attributes();
+
+    if (conn_atts.size()) {
+      auto attributes = shcore::make_dict();
+      for (auto &option : conn_atts) {
+        (*attributes)[option.first] = shcore::Value(*option.second);
+      }
+      (*map)[mysqlshdk::db::kConnectionAttributes] = shcore::Value(attributes);
+    }
+  } else {
+    (*map)[mysqlshdk::db::kConnectionAttributes] = shcore::Value::False();
+  }
+
   return map;
 }
 
@@ -344,8 +379,8 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
         copy.clear_scheme();
         copy.set_scheme("mysql");
 
-        // Since this is an unexpected error, we store the message to be logged
-        // in case the classic session connection fails too
+        // Since this is an unexpected error, we store the message to be
+        // logged in case the classic session connection fails too
         if (code == CR_SERVER_GONE_ERROR)
           connection_error.append("X protocol error: ").append(e.what());
       } else {
@@ -434,7 +469,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
           copy.clear_password();
           shcore::Credential_manager::get().remove_password(copy);
           log_info(
-              "Connection to \"%s\" could not be established using the stored "
+              "Connection to \"%s\" could not be established using the "
+              "stored "
               "password: %s. "
               "Invalid password has been erased.",
               copy.as_uri(mysqlshdk::db::uri::formats::user_transport())
@@ -499,7 +535,8 @@ void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
   // Default value for convertBsonOid is the value of convertBsonTypes
   options->convert_bson_id = options->convert_bson_types;
 
-  // convertBsonOid is independent, can be used even if convertBsonTypes is off
+  // convertBsonOid is independent, can be used even if convertBsonTypes is
+  // off
   unpacker->optional("convertBsonOid", &(*options).convert_bson_id);
 
   // convertBsonOid unlocks extractOidTime

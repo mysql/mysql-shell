@@ -132,9 +132,6 @@ class Auto_script_js : public Shell_js_script_tester,
            _mysql_port + "';";
     exec_and_out_equals(code);
 
-    code = "var __os_type = '" + shcore::to_string(shcore::get_os_type()) + "'";
-    exec_and_out_equals(code);
-
     code = "var __system_user = '" + shcore::get_system_user() + "';";
     exec_and_out_equals(code);
 

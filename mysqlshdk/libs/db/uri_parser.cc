@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -600,32 +600,36 @@ void Uri_parser::parse_attribute(const std::pair<size_t, size_t> &range,
   size_t to_skip = attribute.length() + (has_value ? 1 : 0);
   (*offset) += to_skip;
 
-  if (has_value)
-    _data->set(attribute, parse_values({*offset, range.second}, offset));
-  else
-    _data->set(attribute, {});
+  if (has_value) {
+    if (is_value_array({*offset, range.second})) {
+      _data->set(attribute, parse_values(offset));
+    } else {
+      _data->set(attribute, parse_value({*offset, range.second}, offset, "&"));
+    }
+  } else {
+    _data->set(attribute, "");
+  }
 }
 
-std::vector<std::string> Uri_parser::parse_values(
-    const std::pair<size_t, size_t> &range, size_t *offset) {
+bool Uri_parser::is_value_array(const std::pair<size_t, size_t> &range) {
+  auto closing = _input.find(']');
+  return _input[range.first] == '[' && closing != std::string::npos &&
+         closing <= range.second;
+}
+
+std::vector<std::string> Uri_parser::parse_values(size_t *offset) {
   std::vector<std::string> ret_val;
 
   auto closing = _input.find(']');
-  if (_input[range.first] == '[' && closing != std::string::npos &&
-      closing <= range.second) {
-    while (_input[*offset] != ']') {
-      // Next is a delimiter
-      (*offset)++;
-      std::string value = parse_value({*offset, closing - 1}, offset, ",]");
-      ret_val.push_back(value);
-    }
-
-    // Skips the closing ]
+  while (_input[*offset] != ']') {
+    // Next is a delimiter
     (*offset)++;
-  } else {
-    auto value = parse_value(range, offset, "&");
+    std::string value = parse_value({*offset, closing - 1}, offset, ",]");
     ret_val.push_back(value);
   }
+
+  // Skips the closing ]
+  (*offset)++;
 
   return ret_val;
 }

@@ -1397,137 +1397,6 @@ void Shell_script_tester::execute_script(const std::string &path,
   }
 }
 
-void Shell_script_tester::validate_chunks(const std::string &path,
-                                          const std::string &val_path,
-                                          const std::string &pre_path) {
-  try {
-    // If no path is provided then executes the setup script
-    std::string script(_new_format ? NEW_TEST_SCRIPT(path) : TEST_SCRIPT(path));
-    std::ifstream stream(script.c_str());
-
-    if (!stream.fail()) {
-      // Pre-process a .pre file if it exists
-      // ------------------------------------
-      std::string file_name;
-      if (pre_path.empty())
-        file_name = PRE_SCRIPT(path);
-      else
-        file_name = PRE_SCRIPT(pre_path);
-
-      std::ifstream pre_stream(file_name.c_str());
-      if (!pre_stream.fail()) {
-        pre_stream.close();
-        _custom_context = "Preprocessing";
-        execute_script(path, false, true);
-      }
-      // ------------------------------------
-
-      // Preprocesses the test file itself
-      _custom_context = "Setup";
-      process_setup(stream);
-
-      // Loads the validations
-      if (val_path.empty())
-        file_name = _new_format ? VAL_SCRIPT(path) : VALIDATION_SCRIPT(path);
-      else
-        file_name =
-            _new_format ? VAL_SCRIPT(val_path) : VALIDATION_SCRIPT(val_path);
-
-      // Process the file
-      _options->interactive = true;
-      if (load_source_chunks(script, stream)) load_validations(file_name);
-      for (size_t index = 0; index < _chunk_order.size(); index++) {
-        // Prints debugging information
-        std::string chunk_log = "CHUNK: " + _chunk_order[index];
-        std::string splitter(chunk_log.length(), '-');
-        output_handler.debug_print(makeyellow(splitter));
-        output_handler.debug_print(makeyellow(chunk_log));
-        output_handler.debug_print(makeyellow(splitter));
-
-        auto chunk = _chunks[_chunk_order[index]];
-
-        bool enabled = false;
-        try {
-          enabled = context_enabled(chunk.def->context);
-        } catch (const std::invalid_argument &e) {
-          ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
-              << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
-              << "\tCHUNK: " << chunk.def->line << "\n";
-        }
-
-        // Executes the file line by line
-        if (enabled) {
-          auto &code = chunk.code;
-          for (size_t chunk_item = 0; chunk_item < code.size(); chunk_item++) {
-            std::string line(code[chunk_item].second);
-
-            // Execution context is at line level
-            _custom_context =
-                path + "@[" + _chunk_order[index] + "][" + line + "]";
-
-            // There's chance to do preprocessing
-            pre_process_line(path, line);
-
-            if (testutil)
-              testutil->set_test_execution_context(
-                  _filename, (code[chunk_item].first), this);
-
-            if (g_tdb->will_execute(chunk.source, chunk.code[chunk_item].first,
-                                    line) ==
-                mysqlsh::Test_debugger::Action::Skip_execute) {
-              continue;
-            }
-            try {
-              execute(chunk.code[chunk_item].first, line);
-            } catch (...) {
-              g_tdb->did_throw(chunk.code[chunk_item].first, line);
-              throw;
-            }
-
-            g_tdb->did_execute(chunk.code[chunk_item].first, line);
-
-            if (testutil->test_skipped()) return;
-          }
-
-          execute("");
-          execute("");
-
-          // Validation contexts is at chunk level
-          _custom_context = path + "@[" + _chunk_order[index] + " validation]";
-          if (!validate(path, _chunk_order[index],
-                        chunk.is_validation_optional())) {
-            if (g_tdb->on_validate_fail(_chunk_order[index]) ==
-                mysqlsh::Test_debugger::Action::Abort) {
-              FAIL();
-            }
-            if (!g_test_trace_scripts) {
-              std::cerr
-                  << makeredbg(
-                         "----------vvvv Failure Log Begin vvvv----------")
-                  << std::endl;
-              output_handler.flush_debug_log();
-              std::cerr
-                  << makeredbg(
-                         "----------^^^^ Failure Log End ^^^^------------")
-                  << std::endl;
-            }
-          } else {
-            output_handler.whipe_debug_log();
-          }
-        }
-      }
-
-      stream.close();
-    } else {
-      std::string text("Unable to open test script: " + script);
-      SCOPED_TRACE(text.c_str());
-      ADD_FAILURE();
-    }
-  } catch (std::exception &e) {
-    std::cerr << e.what() << std::endl;
-  }
-}
-
 // Searches for // Assumpsions: comment, if found, creates the __assumptions__
 // array And processes the _assumption_script
 void Shell_script_tester::process_setup(std::istream &stream) {
@@ -1628,6 +1497,8 @@ void Shell_script_tester::set_defaults() {
                         _target_server_version.get_minor() * 100 +
                         _target_server_version.get_patch());
   exec_and_out_equals(code);
+
+  def_var("__os_type", "'" + shcore::to_string(shcore::get_os_type()) + "'");
 
 #ifdef WITH_OCI
   def_var("__with_oci", "1");

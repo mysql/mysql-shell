@@ -270,14 +270,14 @@ void update_connection_data(
     if (connection_options->has(mysqlshdk::db::kAuthMethod))
       connection_options->remove(mysqlshdk::db::kAuthMethod);
 
-    connection_options->set(mysqlshdk::db::kAuthMethod, {auth_method});
+    connection_options->set(mysqlshdk::db::kAuthMethod, auth_method);
   }
 
   if (get_server_public_key) {
     if (connection_options->has(mysqlshdk::db::kGetServerPublicKey)) {
       connection_options->remove(mysqlshdk::db::kGetServerPublicKey);
     }
-    connection_options->set(mysqlshdk::db::kGetServerPublicKey, {"true"});
+    connection_options->set(mysqlshdk::db::kGetServerPublicKey, "true");
   }
 
   if (!server_public_key_path.empty()) {
@@ -285,14 +285,14 @@ void update_connection_data(
       connection_options->remove(mysqlshdk::db::kServerPublicKeyPath);
     }
     connection_options->set(mysqlshdk::db::kServerPublicKeyPath,
-                            {server_public_key_path});
+                            server_public_key_path);
   }
 
   if (!connect_timeout.empty()) {
     if (connection_options->has(mysqlshdk::db::kConnectTimeout)) {
       connection_options->remove(mysqlshdk::db::kConnectTimeout);
     }
-    connection_options->set(mysqlshdk::db::kConnectTimeout, {connect_timeout});
+    connection_options->set(mysqlshdk::db::kConnectTimeout, connect_timeout);
   }
 
   if (compression) connection_options->set_compression(true);

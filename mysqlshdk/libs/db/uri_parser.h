@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,8 +81,8 @@ class SHCORE_PUBLIC Uri_parser {
 
   void parse_query();
   void parse_attribute(const std::pair<size_t, size_t> &range, size_t *offset);
-  std::vector<std::string> parse_values(const std::pair<size_t, size_t> &range,
-                                        size_t *offset);
+  bool is_value_array(const std::pair<size_t, size_t> &range);
+  std::vector<std::string> parse_values(size_t *offset);
   std::string parse_value(const std::pair<size_t, size_t> &range,
                           size_t *offset, const std::string &finalizers);
   std::string parse_unencoded_value(const std::pair<size_t, size_t> &range,

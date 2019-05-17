@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,7 +120,7 @@ Connection_options Import_table_options::connection_options() const {
   if (connection_options.has(mysqlshdk::db::kLocalInfile)) {
     connection_options.remove(mysqlshdk::db::kLocalInfile);
   }
-  connection_options.set(mysqlshdk::db::kLocalInfile, {"true"});
+  connection_options.set(mysqlshdk::db::kLocalInfile, "true");
   return connection_options;
 }
 

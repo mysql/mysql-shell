@@ -94,6 +94,8 @@ DESCRIPTION
         value of 0 disables the connection timeout.
       - compression: Enable/disable compression in client/server protocol,
         valid values: "true", "false", "1", and "0".
+      - connection-attributes: List of connection attributes to be registered
+        at the PERFORMANCE_SCHEMA connection attributes tables.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -178,6 +180,8 @@ DESCRIPTION
         value of 0 disables the connection timeout.
       - compression: Enable/disable compression in client/server protocol,
         valid values: "true", "false", "1", and "0".
+      - connection-attributes: List of connection attributes to be registered
+        at the PERFORMANCE_SCHEMA connection attributes tables.
 
       When these options are defined in a URI, their values must be URL
       encoded.

@@ -238,7 +238,7 @@ void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options &data_) {
   if (!data.has_value(mysqlshdk::db::kSslMode) &&
       (data.has_value(mysqlshdk::db::kSslCa) ||
        data.has_value(mysqlshdk::db::kSslCaPath))) {
-    data.set(mysqlshdk::db::kSslMode, {mysqlshdk::db::kSslModeVerifyCA});
+    data.set(mysqlshdk::db::kSslMode, mysqlshdk::db::kSslModeVerifyCA);
   }
 
   _impl->connect(data);

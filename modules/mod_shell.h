@@ -97,7 +97,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined addExtensionObjectMember(Object object, String name, Value member,
                                      Dictionary definition);
   Undefined registerGlobal(String name, Object object, Dictionary definition);
-  Undefined dumpRows(ShellBaseResult result, String format);
+  Integer dumpRows(ShellBaseResult result, String format);
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -123,7 +123,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined add_extension_object_member(Object object, str name, Value member,
                                         dict definition);
   Undefined register_global(str name, Object object, dict definition);
-  None dump_rows(ShellBaseResult result, str format);
+  int dump_rows(ShellBaseResult result, str format);
 #endif
 
   shcore::Value list_credential_helpers(const shcore::Argument_list &args);
@@ -158,8 +158,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
                        std::shared_ptr<Extensible_object> object,
                        const shcore::Dictionary_t &definition = {});
 
-  void dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
-                 const std::string &format);
+  int dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
+                const std::string &format);
 
  protected:
   void init();

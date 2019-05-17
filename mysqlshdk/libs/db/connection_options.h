@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,8 +52,7 @@ constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
 constexpr int k_default_connect_timeout = 10000;
 
-class SHCORE_PUBLIC Connection_options
-    : public mysqlshdk::utils::Nullable_options {
+class SHCORE_PUBLIC Connection_options {
  public:
   explicit Connection_options(
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
@@ -77,20 +76,20 @@ class SHCORE_PUBLIC Connection_options
 
   const std::string &get(const std::string &name) const;
 
-  const Ssl_options &get_ssl_options() const { return _ssl_options; }
-  Ssl_options &get_ssl_options() { return _ssl_options; }
+  const Ssl_options &get_ssl_options() const { return m_ssl_options; }
+  Ssl_options &get_ssl_options() { return m_ssl_options; }
 
   bool has_data() const;
   bool has_scheme() const { return has_value(kScheme); }
   bool has_user() const { return has_value(kUser); }
   bool has_password() const { return has_value(kPassword); }
   bool has_host() const { return has_value(kHost); }
-  bool has_port() const { return !_port.is_null(); }
+  bool has_port() const { return !m_port.is_null(); }
   bool has_schema() const { return has_value(kSchema); }
   bool has_socket() const { return has_value(kSocket); }
   bool has_pipe() const { return has_value(kSocket); }
-  bool has_transport_type() const { return !_transport_type.is_null(); }
-  bool has_compression() const { return _extra_options.has(kCompression); }
+  bool has_transport_type() const { return !m_transport_type.is_null(); }
+  bool has_compression() const { return m_extra_options.has(kCompression); }
 
   bool has(const std::string &name) const;
   bool has_value(const std::string &name) const;
@@ -107,6 +106,8 @@ class SHCORE_PUBLIC Connection_options
 
   void set(const std::string &attribute,
            const std::vector<std::string> &values);
+  void set(const std::string &attribute, const std::string &value);
+  void set_unchecked(const std::string &name, const char *value = nullptr);
 
   void clear_scheme() { clear_value(kScheme); }
   void clear_user() { clear_value(kUser); }
@@ -129,7 +130,18 @@ class SHCORE_PUBLIC Connection_options
     return as_uri(uri::formats::only_transport());
   }
 
-  const Nullable_options &get_extra_options() const { return _extra_options; }
+  Comparison_mode get_mode() const { return m_mode; }
+  const Nullable_options &get_extra_options() const { return m_extra_options; }
+  bool is_connection_attributes_enabled() const {
+    return m_enable_connection_attributes;
+  }
+  const Nullable_options &get_connection_attributes() const {
+    return m_connection_attributes;
+  }
+
+  void set_connection_attributes(const std::vector<std::string> &attributes);
+  void set_connection_attribute(const std::string &attribute,
+                                const std::string &value);
 
   mysqlsh::SessionType get_session_type() const;
 
@@ -141,20 +153,36 @@ class SHCORE_PUBLIC Connection_options
    */
   void set_default_connection_data();
 
+  int compare(const std::string &lhs, const std::string &rhs) const {
+    return m_options.compare(lhs, rhs);
+  }
+
   static void throw_invalid_connect_timeout(const std::string &value);
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   void _clear_fixed(const std::string &key);
   std::string get_iname(const std::string &name) const;
+  bool is_extra_option(const std::string &option);
+  bool is_bool_value(const std::string &value);
+  inline const std::string &get_value(const std::string &option) const {
+    return m_options.get_value(option);
+  }
+  inline void clear_value(const std::string &option) {
+    return m_options.clear_value(option);
+  }
 
   void raise_connection_type_error(const std::string &source);
 
-  nullable<int> _port;
-  nullable<Transport_type> _transport_type;
+  nullable<int> m_port;
+  nullable<Transport_type> m_transport_type;
 
-  Ssl_options _ssl_options;
-  Nullable_options _extra_options;
+  Comparison_mode m_mode;
+  Nullable_options m_options;
+  Ssl_options m_ssl_options;
+  Nullable_options m_extra_options;
+  bool m_enable_connection_attributes;
+  Nullable_options m_connection_attributes;
 };
 
 }  // namespace db

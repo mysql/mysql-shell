@@ -554,16 +554,17 @@ Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
       m_show_stats(show_stats),
       m_buffer_data(buffer_data) {}
 
-void Resultset_dumper::dump(const std::string &item_label, bool is_query,
-                            bool is_doc_result) {
+size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
+                              bool is_doc_result) {
   std::string output;
+  size_t count = 0;
   shcore::Interrupt_handler intr([this]() {
     m_cancelled = true;
     return true;
   });
 
   if (m_wrap_json != "off") {
-    dump_json(item_label, is_doc_result);
+    count = dump_json(item_label, is_doc_result);
   } else {
     bool first = true;
     do {
@@ -628,6 +629,8 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
 
   // Restores data
   if (m_buffer_data) m_result->rewind();
+
+  return count;
 }
 
 /**

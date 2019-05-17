@@ -139,8 +139,8 @@ class Resultset_dumper : public Resultset_dumper_base {
 
   ~Resultset_dumper() override = default;
 
-  virtual void dump(const std::string &item_label, bool is_query,
-                    bool is_doc_result);
+  virtual size_t dump(const std::string &item_label, bool is_query,
+                      bool is_doc_result);
 
  protected:
   std::string get_affected_stats(const std::string &item_label);

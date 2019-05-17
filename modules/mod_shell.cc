@@ -414,7 +414,11 @@ REGISTER_HELP(
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS13,
               "@li compression: Enable/disable compression in client/server "
               "protocol, valid values: \"true\", \"false\", \"1\", and \"0\".");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS14,
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS14,
+    "@li connection-attributes: List of connection attributes to be "
+    "registered at the PERFORMANCE_SCHEMA connection attributes tables.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS15,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 
@@ -461,8 +465,10 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
               "${TOPIC_CONNECTION_OPTION_SSL_MODE}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
               "${TOPIC_CONNECTION_OPTION_TLS_VERSION}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "${TOPIC_URI_ENCODED_VALUE}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4,
+              "${TOPIC_CONNECTION_ATTRIBUTES}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "${TOPIC_URI_ENCODED_VALUE}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL6,
               "${TOPIC_URI_ENCODED_ATTRIBUTE}");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME, "<b>Protocol Selection</b>");
@@ -473,6 +479,42 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME2,
               "@li mysql: for connections using the Classic protocol.");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3,
               "@li mysqlx: for connections using the X protocol.");
+
+REGISTER_HELP_TOPIC(Connection Attributes, TOPIC, TOPIC_CONNECTION_ATTRIBUTES,
+                    Contents, ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_ATTRIBUTES, R"*(
+<b>Connection Attributes</b>
+
+Connection attributes are key-value pairs to be sent to the server at connect
+time. They are stored at the following PERFORMANCE_SCHEMA tables:
+
+@li session_account_connect_attrs: attributes for the current session, and
+other sessions associated with the session account.
+@li session_connect_attrs: attributes for all sessions.
+
+These attributes should be defined when creating a session and are immutable
+during the life-time of the session.
+
+To define connection attributes on a URI, the connection-attributes should be
+defined as part of the URI as follows:
+
+root@@localhost:port/schema?connection-attributes=[att1=value1,att2=val2,...]
+
+Note that the characters used for the attribute name and value must follow the
+URI standard, this is, if the character is not allowed it must be percent
+encoded.
+
+To define connection attributes when creating a session using a dictionary the
+connection-attributes option should be defined, its value can be set in the
+following formats:
+
+@li Array of "key=value" pairs.
+@li Dictionary containing the key-value pairs.
+
+Note that the connection-attribute values are expected to be strings, if other
+data type is used in the dictionary, the string representation of the used
+data will be stored on the database.
+)*");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET, "<b>Socket Connections</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1,
@@ -1689,7 +1731,7 @@ Formats and dumps the given resultset object to the console.
 @param result The resultset object to dump
 @param format One of table, tabbed, vertical, json, ndjson, json/raw, 
 json/array, json/pretty. Default is table.
-@returns Nothing
+@returns The number of printed rows
 
 This function shows a resultset object returned by a DB Session query in
 the same formats supported by the shell.
@@ -1707,8 +1749,8 @@ Undefined Shell::dumpRows(ShellBaseResult result, String format) {}
 #elif DOXYGEN_PY
 None Shell::dump_rows(ShellBaseResult result, str format) {}
 #endif
-void Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
-                      const std::string &format) {
+int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
+                     const std::string &format) {
   if (!resultset) throw std::invalid_argument("result object must not be NULL");
 
   if (!format.empty() && !Resultset_dumper_base::is_valid_format(format))
@@ -1717,7 +1759,7 @@ void Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
   Resultset_dumper dumper(resultset->get_result(), "off",
                           format.empty() ? "table" : format, false, false,
                           false);
-  dumper.dump("row", false, false);
+  return dumper.dump("row", false, false);
 }
 
 }  // namespace mysqlsh

@@ -106,9 +106,6 @@ class Shell_script_tester : public Crud_test_wrapper {
 
   void validate_batch(const std::string &name);
   void validate_interactive(const std::string &name);
-  void validate_chunks(const std::string &path,
-                       const std::string &val_path = "",
-                       const std::string &pre_path = "");
 
   void execute(int location, const std::string &code);
   void execute(const std::string &code);

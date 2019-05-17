@@ -306,6 +306,188 @@ delete connection_data['ssl-ca'];
 //@ getSession using dictionary with duplicated parameters
 connection_data['Ssl-Mode'] = "DISABLED";
 var mySession = mysql.getClassicSession(connection_data)
-
 delete connection_data['Ssl-Mode'];
 delete connection_data['ssl-mode'];
+
+//@<> Connection Attributes Tests
+get_connection_atts = "select ATTR_NAME, ATTR_VALUE from performance_schema.session_account_connect_attrs order by ATTR_NAME asc";
+
+function print_attributes(session) {
+    var res = session.runSql(get_connection_atts);
+    count = shell.dumpRows(res);
+    if (count == 0)
+        println("No attributes found!");
+}
+
+function create_uri(port, connection_attributes) {
+    var uri = uri_base_no_pwd + port;
+    if (connection_attributes) {
+        uri = uri + "?connection-attributes=" + connection_attributes;
+    } else {
+        uri = uri + "?connection-attributes";
+    }
+    
+    if (secure_transport == 'disabled') {
+        uri = uri + "&ssl-mode=disabled";
+    }
+    return uri;
+}
+
+function test_classic(connection_attributes) {
+    var uri = create_uri(__my_port, connection_attributes);
+    var mySession = mysql.getClassicSession(uri, 'root');
+    print_attributes(mySession);
+    mySession.close();
+}
+
+function test_x(connection_attributes) {
+    var uri = create_uri(__my_x_port, connection_attributes);
+    var mySession = mysqlx.getSession(uri, 'root');
+    print_attributes(mySession);
+    mySession.close();
+}
+
+function test_shell_connect(port, connection_attributes) {
+    var uri = create_uri(port, connection_attributes);
+    shell.connect(uri, 'root');
+    print_attributes(session);
+    session.close();
+}
+
+var connection_attributes_supported = true;
+var connection_attributes_error = "Capability 'session_connect_attrs' doesn't exist";
+try {
+    test_x("[sample=1]");
+} catch (err) {
+    if (err.message == connection_attributes_error) {
+        connection_attributes_supported = false;
+    }
+}
+
+//@ WL12446-TS3_1 mysql.getClassicSession
+// TS5_1, TS8_1, TS8_3, TS9_1
+test_classic("[att1=value,att2,att3=45,%61%74%74%34=%3cval%3e,att5=]");
+
+//@ WL12446-TS3_1 shell.connect (classic) [USE:WL12446-TS3_1 mysql.getClassicSession]
+// TS5_1, TS8_1, TS8_3, TS9_1
+test_shell_connect(__my_port, "[att1=value,att2,att3=45,%61%74%74%34=%3cval%3e,att5=]");
+
+//@ WL12446-TS3_1 mysqlx.getSession
+// TS5_1, TS8_1, TS8_3, TS9_1
+test_x("[att1=value,att2,att3=45,%61%74%74%34=%3cval%3e,att5=]");
+
+//@ WL12446-TS3_1 shell.connect (X) [USE:WL12446-TS3_1 mysqlx.getSession] {connection_attributes_supported}
+// TS5_1, TS8_1, TS8_3, TS9_1
+test_shell_connect(__my_x_port, "[att1=value,att2,att3=45,%61%74%74%34=%3cval%3e,att5=]");
+
+
+//@ WL12446-TS7_1 Connection Attributes Starting with _ (classic)
+test_classic("[att1=value,att2,_att3=error]");
+
+//@ WL12446-TS7_1 Connection Attributes Starting with _ (X) [USE:WL12446-TS7_1 Connection Attributes Starting with _ (classic)]
+test_x("[att1=value,att2,_att3=error]");
+
+//@ WL12446-TS10_1_1 Disabled Connection Attributes using false (Classical)
+test_classic("false");
+
+//@ WL12446-TS10_1_1 Disabled Connection Attributes using 0 (Classical) [USE:WL12446-TS10_1_1 Disabled Connection Attributes using false (Classical)]
+test_classic("0");
+
+//@ WL12446-TS10_1_1 Disabled Connection Attributes using false (X)
+test_x("false");
+
+//@ WL12446-TS10_1_1 Disabled Connection Attributes using 0 (X) [USE:WL12446-TS10_1_1 Disabled Connection Attributes using false (X)]
+test_x("0")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior X {connection_attributes_supported}
+test_x()
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior X Empty [USE:WL12446-TS11_1 Default Connection Attributes Behavior X] {connection_attributes_supported}
+test_x("")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior X 1 [USE:WL12446-TS11_1 Default Connection Attributes Behavior X] {connection_attributes_supported}
+test_x("1")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior X true [USE:WL12446-TS11_1 Default Connection Attributes Behavior X] {connection_attributes_supported}
+test_x("true")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior X [] [USE:WL12446-TS11_1 Default Connection Attributes Behavior X] {connection_attributes_supported}
+test_x("[]")
+
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior Classic
+test_classic()
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior Classic Empty [USE:WL12446-TS11_1 Default Connection Attributes Behavior Classic]
+test_classic("")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior Classic 1 [USE:WL12446-TS11_1 Default Connection Attributes Behavior Classic]
+test_classic("1")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior Classic true [USE:WL12446-TS11_1 Default Connection Attributes Behavior Classic]
+test_classic("true")
+
+//@ WL12446-TS11_1 Default Connection Attributes Behavior Classic [] [USE:WL12446-TS11_1 Default Connection Attributes Behavior Classic]
+test_classic("[]")
+
+//@ WL12446-TS12_1 Invalid Value for Connection Attributes
+test_classic("custom-value")
+
+//@ WL12446-TS13_1 Duplicate Key
+test_classic("[key1=val1,key2=val2,key1=val3]")
+
+
+//@ WL12446-TS_E1 Attribute Longer Than Allowed X {connection_attributes_supported}
+test_x("[att012345678901234567980123456789=val]")
+
+//@ WL12446-TS_E1 Attribute Longer Than Allowed Classic
+test_classic("[att012345678901234567980123456789=val]")
+
+//@<> Connection Attributes in Dictionary Data
+connection_data = {
+    user: __my_user,
+    host: "localhost",
+    port: __my_port,
+    password: 'root',
+    "connection-attributes":["att1=value","att2","att3=45","att4=<val>","att5="]
+}
+
+if (secure_transport == 'disabled') {
+    connection_data["ssl-mode"] = "disabled";
+} else if (secure_transport == "on") {
+    connection_data["ssl-mode"] = "preferred";
+}
+
+
+//@ WL12446 Test Classic Connection Attributes Dictionary+Attribute List [USE:WL12446-TS3_1 mysql.getClassicSession]
+var mySession = mysql.getClassicSession(connection_data);
+print_attributes(mySession);
+mySession.close();
+
+//@ WL12446 Test X Connection Attributes Dictionary+Attribute List [USE:WL12446-TS3_1 mysqlx.getSession] {connection_attributes_supported}
+connection_data.port = __my_x_port;
+var mySession = mysqlx.getSession(connection_data);
+print_attributes(mySession);
+mySession.close();
+
+
+//@ WL12446 Test Classic Connection Attributes Dictionary+Attribute Map [USE:WL12446-TS3_1 mysql.getClassicSession]
+connection_data['connection-attributes'] = {
+    att1: "value",
+    att2: "",
+    att3: 45,
+    att4: "<val>",
+    att5: ""
+}
+connection_data.port = __my_port;
+
+var mySession = mysql.getClassicSession(connection_data);
+print_attributes(mySession);
+mySession.close();
+
+
+//@ WL12446 Test X Connection Attributes Dictionary+Attribute Map [USE:WL12446-TS3_1 mysqlx.getSession] {connection_attributes_supported}
+connection_data.port = __my_x_port;
+var mySession = mysqlx.getSession(connection_data);
+print_attributes(mySession);
+mySession.close();

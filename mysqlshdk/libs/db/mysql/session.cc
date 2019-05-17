@@ -63,8 +63,23 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   }
 
-  mysql_options(_mysql, MYSQL_OPT_CONNECT_ATTR_RESET, nullptr);
-  mysql_options4(_mysql, MYSQL_OPT_CONNECT_ATTR_ADD, "program_name", "mysqlsh");
+  // Connection attributes are only sent if they are not disabled
+  if (_connection_options.is_connection_attributes_enabled()) {
+    mysql_options(_mysql, MYSQL_OPT_CONNECT_ATTR_RESET, nullptr);
+    mysql_options4(_mysql, MYSQL_OPT_CONNECT_ATTR_ADD, "program_name",
+                   "mysqlsh");
+
+    for (const auto &att : _connection_options.get_connection_attributes()) {
+      std::string attribute = att.first;
+      std::string value;
+      if (!att.second.is_null()) {
+        value = *att.second;
+      }
+
+      mysql_options4(_mysql, MYSQL_OPT_CONNECT_ATTR_ADD, attribute.c_str(),
+                     value.c_str());
+    }
+  }
 
   if (connection_options.has(mysqlshdk::db::kGetServerPublicKey)) {
     const std::string &server_public_key =

@@ -67,7 +67,6 @@ class SHCORE_PUBLIC Nullable_options {
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
   void set(const std::string &name, const char *value = nullptr,
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
-  void set_unchecked(const std::string &name, const char *value = nullptr);
   void set_default(const std::string &name, const char *value = nullptr);
   bool has_default(const std::string &name) const;
   std::string get_default(const std::string &name) const;
@@ -76,6 +75,7 @@ class SHCORE_PUBLIC Nullable_options {
   const std::string &get_value(const std::string &name) const;
 
   size_t size() const { return _options.size(); }
+  bool empty() const { return _options.empty(); }
 
   bool operator==(const Nullable_options &other) const;
   bool operator!=(const Nullable_options &other) const;

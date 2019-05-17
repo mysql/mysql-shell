@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -366,6 +366,7 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
   attributes.erase(mysqlshdk::db::kConnectTimeout);
   attributes.erase(mysqlshdk::db::kCompression);
+  attributes.erase(mysqlshdk::db::kConnectionAttributes);
 
   for (auto property : attributes) {
     combine(property, "", 0, callback);
@@ -401,7 +402,7 @@ TEST(Connection_options, connect_timeout) {
 
     mysqlshdk::db::Connection_options sample;
     MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                    sample.set(mysqlshdk::db::kConnectTimeout, {value}));
+                    sample.set(mysqlshdk::db::kConnectTimeout, value));
   }
 
   // Tests acceptance of valid values
@@ -414,7 +415,7 @@ TEST(Connection_options, connect_timeout) {
     EXPECT_NO_THROW({ mysqlshdk::db::Connection_options data(uri); });
 
     mysqlshdk::db::Connection_options sample;
-    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kConnectTimeout, {value}));
+    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kConnectTimeout, value));
   }
 }
 
@@ -445,7 +446,7 @@ TEST(Connection_options, compression) {
 
     mysqlshdk::db::Connection_options sample;
     MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                    sample.set(mysqlshdk::db::kCompression, {value}));
+                    sample.set(mysqlshdk::db::kCompression, value));
   }
 
   // Tests acceptance of valid values
@@ -627,14 +628,14 @@ TEST(Connection_options, case_insensitive_duplicated_attribute) {
   // uppercase/lowercase letters on ssl-mode
   auto callback = [](const std::string &property, const std::string &twisted) {
     mysqlshdk::db::Connection_options data;
-    data.set(mysqlshdk::db::kAuthMethod, {"Value"});
+    data.set(mysqlshdk::db::kAuthMethod, "Value");
 
     std::string message = "The option '" + twisted +
                           "' is already defined as "
                           "'Value'.";
 
     MY_EXPECT_THROW(std::invalid_argument, message.c_str(),
-                    data.set(twisted, {"Whatever"}));
+                    data.set(twisted, "Whatever"));
   };
 
   combine(mysqlshdk::db::kAuthMethod, "", 0, callback);

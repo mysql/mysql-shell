@@ -30,7 +30,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::db::uri::Uri_encoder;
-using mysqlshdk::utils::Nullable_options;
 using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
@@ -56,24 +55,28 @@ static constexpr const char *fixed_str_list[] = {kHost,   kSocket, kScheme,
 }
 
 Connection_options::Connection_options(Comparison_mode mode)
-    : Nullable_options(mode, "connection"),
-      _ssl_options(_mode),
-      _extra_options(_mode) {
-  for (auto o : fixed_str_list)
-    Nullable_options::set(o, nullptr, Set_mode::CREATE);
+    : m_mode(mode),
+      m_options(m_mode, "connection"),
+      m_ssl_options(m_mode),
+      m_extra_options(m_mode),
+      m_enable_connection_attributes(true),
+      m_connection_attributes(m_mode) {
+  for (auto o : fixed_str_list) m_options.set(o, nullptr, Set_mode::CREATE);
 }
 
 Connection_options::Connection_options(const std::string &uri,
                                        Comparison_mode mode)
-    : Nullable_options(mode, "connection"),
-      _ssl_options(_mode),
-      _extra_options(_mode) {
-  for (auto o : fixed_str_list)
-    Nullable_options::set(o, nullptr, Set_mode::CREATE);
+    : m_mode(mode),
+      m_options(m_mode, "connection"),
+      m_ssl_options(m_mode),
+      m_extra_options(m_mode),
+      m_enable_connection_attributes(true),
+      m_connection_attributes(m_mode) {
+  for (auto o : fixed_str_list) m_options.set(o, nullptr, Set_mode::CREATE);
 
   try {
     uri::Uri_parser parser;
-    *this = parser.parse(uri, _mode);
+    *this = parser.parse(uri, m_options.get_mode());
   } catch (const std::invalid_argument &error) {
     std::string msg = "Invalid URI: ";
     msg.append(error.what());
@@ -92,29 +95,29 @@ void Connection_options::set_login_options_from(
     set_password(options.get_password());
   }
 
-  _ssl_options.clear_cert();
-  _ssl_options.clear_key();
+  m_ssl_options.clear_cert();
+  m_ssl_options.clear_key();
   // SSL client certificate options are login options
   const Ssl_options &ssl = options.get_ssl_options();
-  if (ssl.has_cert()) _ssl_options.set_cert(ssl.get_cert());
-  if (ssl.has_key()) _ssl_options.set_key(ssl.get_key());
+  if (ssl.has_cert()) m_ssl_options.set_cert(ssl.get_cert());
+  if (ssl.has_key()) m_ssl_options.set_key(ssl.get_key());
 }
 
 void Connection_options::set_ssl_connection_options_from(
     const Ssl_options &options) {
-  Ssl_options orig(_ssl_options);
+  Ssl_options orig(m_ssl_options);
   // Copy all SSL options
-  _ssl_options = options;
+  m_ssl_options = options;
   // Restore the client certificate options
-  _ssl_options.clear_cert();
-  _ssl_options.clear_key();
+  m_ssl_options.clear_cert();
+  m_ssl_options.clear_key();
   // SSL client certificate options are login options
-  if (orig.has_cert()) _ssl_options.set_cert(orig.get_cert());
-  if (orig.has_key()) _ssl_options.set_key(orig.get_key());
+  if (orig.has_cert()) m_ssl_options.set_cert(orig.get_cert());
+  if (orig.has_key()) m_ssl_options.set_key(orig.get_key());
 }
 
 void Connection_options::set_ssl_options(const Ssl_options &options) {
-  _ssl_options = options;
+  m_ssl_options = options;
 }
 
 bool Connection_options::has_data() const {
@@ -126,7 +129,7 @@ bool Connection_options::has_data() const {
 
 void Connection_options::_set_fixed(const std::string &key,
                                     const std::string &val) {
-  Nullable_options::set(key, val, Set_mode::UPDATE_NULL);
+  m_options.set(key, val, Set_mode::UPDATE_NULL);
 }
 
 void Connection_options::set_pipe(const std::string &pipe) {
@@ -135,37 +138,37 @@ void Connection_options::set_pipe(const std::string &pipe) {
 #else
   const bool win32 = false;
 #endif
-  if ((!_transport_type.is_null() && *_transport_type == Socket) ||
-      !_port.is_null() ||
-      (Nullable_options::has_value(kHost) &&
+  if ((!m_transport_type.is_null() && *m_transport_type == Socket) ||
+      !m_port.is_null() ||
+      (m_options.has_value(kHost) &&
        (get_value(kHost) != "localhost" &&  // only localhost means "use socket"
         !(get_value(kHost) == "." && win32))))
     raise_connection_type_error("pipe connection to '" + pipe + "'");
 
-  if (Nullable_options::has_value(kScheme) && get_value(kScheme) != "mysql") {
+  if (m_options.has_value(kScheme) && get_value(kScheme) != "mysql") {
     throw std::invalid_argument{"Pipe can only be used with Classic session"};
   }
 
-  Nullable_options::set(kSocket, pipe, Set_mode::UPDATE_NULL);
-  _transport_type = Pipe;
+  m_options.set(kSocket, pipe, Set_mode::UPDATE_NULL);
+  m_transport_type = Pipe;
 }
 
 void Connection_options::set_compression(bool compression) {
   if (compression)
-    _extra_options.set(mysqlshdk::db::kCompression, "true");
+    m_extra_options.set(mysqlshdk::db::kCompression, "true");
   else
-    _extra_options.set(mysqlshdk::db::kCompression, "false");
+    m_extra_options.set(mysqlshdk::db::kCompression, "false");
 }
 
 void Connection_options::set_socket(const std::string &socket) {
-  if ((!_transport_type.is_null() && *_transport_type == Pipe) ||
-      !_port.is_null() ||
-      (Nullable_options::has_value(kHost) &&
+  if ((!m_transport_type.is_null() && *m_transport_type == Pipe) ||
+      !m_port.is_null() ||
+      (has_value(kHost) &&
        get_value(kHost) != "localhost"))  // only localhost means "use socket"
     raise_connection_type_error("socket connection to '" + socket + "'");
 
-  Nullable_options::set(kSocket, socket, Set_mode::UPDATE_NULL);
-  _transport_type = Socket;
+  m_options.set(kSocket, socket, Set_mode::UPDATE_NULL);
+  m_transport_type = Socket;
 }
 
 void Connection_options::raise_connection_type_error(
@@ -173,28 +176,28 @@ void Connection_options::raise_connection_type_error(
   std::string type;
   std::string target;
 
-  if (Nullable_options::has_value(kHost) || !_port.is_null()) {
-    if (Nullable_options::has_value(kHost)) {
+  if (has_value(kHost) || !m_port.is_null()) {
+    if (has_value(kHost)) {
       if (get_value(kHost) != "localhost") type = "tcp ";
 
       target = "to '" + get_value(kHost);
     }
 
-    if (!_port.is_null()) {
+    if (!m_port.is_null()) {
       if (target.empty())
         target = "to port '";
       else
         target.append(":");
 
-      target.append(std::to_string(*_port));
+      target.append(std::to_string(*m_port));
       type = "tcp ";
     }
 
     target.append("'");
-  } else if (*_transport_type == Socket) {
+  } else if (*m_transport_type == Socket) {
     type = "socket ";
     target = "to '" + get_value(kSocket) + "'";
-  } else if (*_transport_type == Pipe) {
+  } else if (*m_transport_type == Pipe) {
     type = "pipe ";
     target = "to '" + get_value(kSocket) + "'";
   }
@@ -206,7 +209,7 @@ void Connection_options::raise_connection_type_error(
 }
 
 void Connection_options::set_host(const std::string &host) {
-  if (!_transport_type.is_null() && *_transport_type != Tcp)
+  if (!m_transport_type.is_null() && *m_transport_type != Tcp)
     raise_connection_type_error("connection to '" + host + "'");
 
   if (host != "localhost"
@@ -214,17 +217,17 @@ void Connection_options::set_host(const std::string &host) {
       && host != "."
 #endif  // _WIN32
   )
-    _transport_type = Tcp;
-  else if (_port.is_null())
-    _transport_type.reset();
+    m_transport_type = Tcp;
+  else if (m_port.is_null())
+    m_transport_type.reset();
 
-  Nullable_options::set(kHost, host, Set_mode::UPDATE_NULL);
+  m_options.set(kHost, host, Set_mode::UPDATE_NULL);
 }
 
 void Connection_options::set_port(int port) {
-  if (_transport_type.is_null() || _port.is_null()) {
-    _port = port;
-    _transport_type = Tcp;
+  if (m_transport_type.is_null() || m_port.is_null()) {
+    m_port = port;
+    m_transport_type = Tcp;
   } else {
     raise_connection_type_error(
         "tcp connection to "
@@ -237,103 +240,131 @@ std::string Connection_options::get_iname(const std::string &name) const {
   // DbUser and DbPassword are only supported as input
   // Internally, they are handled as User and Password
   std::string iname(name);
-  if (compare(name, kDbUser) == 0)
+  if (m_options.compare(name, kDbUser) == 0)
     return kUser;
-  else if (compare(name, kDbPassword) == 0)
+  else if (m_options.compare(name, kDbPassword) == 0)
     return kPassword;
 
   return name;
+}
+
+bool Connection_options::is_extra_option(const std::string &option) {
+  return std::find_if(uri_extra_options.begin(), uri_extra_options.end(),
+                      [this, &option](
+                          const decltype(uri_extra_options)::value_type &item) {
+                        return m_options.compare(option, item) == 0;
+                      }) != uri_extra_options.end();
+}
+
+bool Connection_options::is_bool_value(const std::string &value) {
+  auto lower_case_value = shcore::str_lower(value);
+  return lower_case_value == "true" || lower_case_value == "false" ||
+         lower_case_value == "1" || lower_case_value == "0";
+}
+
+void Connection_options::set(const std::string &name,
+                             const std::string &value) {
+  std::string iname = get_iname(name);
+
+  if (m_options.has(iname)) {
+    m_options.set(iname, value, Set_mode::UPDATE_NULL);
+  } else if (m_ssl_options.has(iname)) {
+    m_ssl_options.set(iname, value);
+  } else if (is_extra_option(iname)) {
+    if (name == kGetServerPublicKey || name == kCompression) {
+      if (!is_bool_value(value)) {
+        throw std::invalid_argument(
+            shcore::str_format("Invalid value '%s' for '%s'. Allowed "
+                               "values: true, false, 1, 0.",
+                               value.c_str(), name.c_str()));
+      }
+    } else if (name == kConnectTimeout) {
+      for (auto digit : value) {
+        if (!std::isdigit(digit)) {
+          throw_invalid_connect_timeout(value);
+        }
+      }
+    }
+
+    m_extra_options.set(iname, value, Set_mode::CREATE);
+  } else if (name == kConnectionAttributes) {
+    // When connection-attributes has assigned a single value, it must
+    // be a boolean. We do NOT do anything with it: in DevAPI standard
+    // it should avoid ANY connection attribute to be sent, however
+    // on the shell this behavior is not present, see WL12446 NOTES on FR10
+    // for more details
+    if (!value.empty() && !is_bool_value(value)) {
+      throw std::invalid_argument(
+          "The value of 'connection-attributes' must be either a boolean or a "
+          "list of key-value pairs.");
+    } else {
+      auto lower_case_value = shcore::str_lower(value);
+      if (lower_case_value == "0" || lower_case_value == "false") {
+        m_enable_connection_attributes = false;
+      }
+    }
+  } else {
+    throw std::invalid_argument("Invalid connection option '" + name + "'.");
+  }
+}
+
+void Connection_options::set_unchecked(const std::string &name,
+                                       const char *value) {
+  m_extra_options.set(name, value);
 }
 
 void Connection_options::set(const std::string &name,
                              const std::vector<std::string> &values) {
   std::string iname = get_iname(name);
 
-  auto is_extra_option = [this, &name]() -> bool {
-    return std::find_if(uri_extra_options.begin(), uri_extra_options.end(),
-                        [this, &name](const decltype(
-                            uri_extra_options)::value_type &item) {
-                          return compare(name, item) == 0;
-                        }) != uri_extra_options.end();
-  };
-
-  if (Nullable_options::has(iname) || _ssl_options.has(iname) ||
-      is_extra_option()) {
+  if (m_options.has(iname) || m_ssl_options.has(iname) ||
+      is_extra_option(iname)) {
     // All the connection parameters accept only 1 value
-    if (values.size() != 1) {
-      throw std::invalid_argument("The connection option '" + name +
-                                  "'"
-                                  " requires exactly one value.");
-    }
-
-    if (Nullable_options::has(iname)) {
-      Nullable_options::set(iname, values[0], Set_mode::UPDATE_NULL);
-    } else if (_ssl_options.has(iname)) {
-      _ssl_options.set(iname, values[0]);
-    } else {
-      // TODO(rennox) at the moment, the only extra option supported are those
-      // listed in uri_extra_options set, in one hand we have issues claiming
-      // errors should be raised if not valid options are given, and on the
-      // other side the URI specification does not explicitly forbid other
-      // values. This conflict needs to be resolved at the DevAPI Court
-      if (name == kGetServerPublicKey || name == kCompression) {
-        auto lower_case_value = shcore::str_lower(values[0]);
-        if (!(lower_case_value == "true" || lower_case_value == "false" ||
-              lower_case_value == "1" || lower_case_value == "0")) {
-          throw std::invalid_argument(
-              shcore::str_format("Invalid value '%s' for '%s'. Allowed "
-                                 "values: true, false, 1, 0.",
-                                 values[0].c_str(), name.c_str()));
-        }
-      } else if (name == kConnectTimeout) {
-        for (auto digit : values[0]) {
-          if (!std::isdigit(digit)) {
-            throw_invalid_connect_timeout(values[0]);
-          }
-        }
-      }
-
-      _extra_options.set(iname, values[0], Set_mode::CREATE);
-    }
-
+    throw std::invalid_argument("The connection option '" + name +
+                                "' requires exactly one value.");
+  } else if (name == kConnectionAttributes) {
+    set_connection_attributes(values);
   } else {
-    throw_invalid_option(name);
+    throw std::invalid_argument("Invalid connection option '" + name + "'.");
   }
 }
 
 bool Connection_options::has(const std::string &name) const {
   std::string iname = get_iname(name);
 
-  return Nullable_options::has(iname) || _ssl_options.has(iname) ||
-         _extra_options.has(iname) || compare(iname, kPort) == 0;
+  return m_options.has(iname) || m_ssl_options.has(iname) ||
+         m_extra_options.has(iname) || m_options.compare(iname, kPort) == 0;
 }
 
 bool Connection_options::has_value(const std::string &name) const {
   std::string iname = get_iname(name);
 
-  if (Nullable_options::has(iname))
-    return Nullable_options::has_value(iname);
-  else if (_ssl_options.has(iname))
-    return _ssl_options.has_value(iname);
-  else if (compare(iname, kPort) == 0)
-    return !_port.is_null();
-  else if (_extra_options.has(iname))
-    return _extra_options.has_value(iname);
+  if (m_options.has(iname))
+    return m_options.has_value(iname);
+  else if (m_ssl_options.has(iname))
+    return m_ssl_options.has_value(iname);
+  else if (m_options.compare(iname, kPort) == 0)
+    return !m_port.is_null();
+  else if (m_extra_options.has(iname))
+    return m_extra_options.has_value(iname);
 
   return false;
 }
 
 int Connection_options::get_port() const {
-  if (_port.is_null()) throw_no_value(kPort);
+  if (m_port.is_null()) {
+    throw std::invalid_argument(
+        shcore::str_format("The connection option '%s' has no value.", kPort));
+  }
 
-  return *_port;
+  return *m_port;
 }
 
 Transport_type Connection_options::get_transport_type() const {
-  if (_transport_type.is_null())
+  if (m_transport_type.is_null())
     throw std::invalid_argument("Transport Type is undefined.");
 
-  return *_transport_type;
+  return *m_transport_type;
 }
 
 bool Connection_options::get_compression() const {
@@ -341,58 +372,58 @@ bool Connection_options::get_compression() const {
     throw std::invalid_argument("Compression is undefined.");
 
   return shcore::lexical_cast<bool>(
-      shcore::str_lower(_extra_options.get_value(kCompression)));
+      shcore::str_lower(m_extra_options.get_value(kCompression)));
 }
 
 const std::string &Connection_options::get(const std::string &name) const {
-  if (Nullable_options::has(name))
+  if (m_options.has(name))
     return get_value(name);
-  else if (_ssl_options.has(name))
-    return _ssl_options.get_value(name);
-  else if (_extra_options.has(name))
-    return _extra_options.get_value(name);
+  else if (m_ssl_options.has(name))
+    return m_ssl_options.get_value(name);
+  else if (m_extra_options.has(name))
+    return m_extra_options.get_value(name);
   else
     return get_value(name);  // <-- This will throw the standard message
 }
 
 void Connection_options::clear_host() {
-  if (!_transport_type.is_null() && *_transport_type == Transport_type::Tcp &&
-      _port.is_null())
-    _transport_type.reset();
+  if (!m_transport_type.is_null() && *m_transport_type == Transport_type::Tcp &&
+      m_port.is_null())
+    m_transport_type.reset();
 
   clear_value(kHost);
 }
 
 void Connection_options::clear_port() {
-  if (Nullable_options::has_value(kHost) && get_value(kHost) == "localhost")
-    _transport_type.reset();
+  if (has_value(kHost) && get_value(kHost) == "localhost")
+    m_transport_type.reset();
 
-  _port.reset();
+  m_port.reset();
 }
 
 void Connection_options::clear_socket() {
-  _transport_type.reset();
+  m_transport_type.reset();
   clear_value(kSocket);
 }
 
 void Connection_options::clear_pipe() {
-  _transport_type.reset();
+  m_transport_type.reset();
   clear_value(kSocket);
 }
 
 void Connection_options::remove(const std::string &name) {
   // Can't delete fixed values
-  if (Nullable_options::has(name))
+  if (m_options.has(name))
     throw std::invalid_argument(
         "Unable to delete Connection option, use "
         "clear instead!!");
 
-  if (_ssl_options.has(name))
+  if (m_ssl_options.has(name))
     throw std::invalid_argument(
         "Unable to delete SSL Connection option, use "
         "clear instead!!");
 
-  _extra_options.remove(name);
+  m_extra_options.remove(name);
 }
 
 std::string Connection_options::as_uri(
@@ -402,9 +433,12 @@ std::string Connection_options::as_uri(
 }
 
 bool Connection_options::operator==(const Connection_options &other) const {
-  return Nullable_options::operator==(other) &&
-         _ssl_options == other._ssl_options &&
-         _extra_options == other._extra_options && _port == other._port;
+  return m_options == other.m_options && m_ssl_options == other.m_ssl_options &&
+         m_extra_options == other.m_extra_options &&
+         m_enable_connection_attributes ==
+             other.m_enable_connection_attributes &&
+         m_connection_attributes == other.m_connection_attributes &&
+         m_port == other.m_port && m_transport_type == other.m_transport_type;
 }
 
 bool Connection_options::operator!=(const Connection_options &other) const {
@@ -452,6 +486,54 @@ void Connection_options::throw_invalid_connect_timeout(
                          "(including 0).",
                          value.c_str(), kConnectTimeout));
 }
+void Connection_options::set_connection_attribute(const std::string &attribute,
+                                                  const std::string &value) {
+  std::string error;
 
+  if (attribute.empty()) {
+    error =
+        "Invalid attribute on 'connection-attributes', empty name is not "
+        "allowed.";
+  } else if (attribute[0] == '_') {
+    error = "Key names in 'connection-attributes' cannot start with '_'";
+  } else if (m_connection_attributes.has(attribute)) {
+    error =
+        "Duplicate key '" + attribute + "' used in 'connection-attributes'.";
+  }
+
+  if (error.empty())
+    m_connection_attributes.set(attribute, value);
+  else
+    throw std::invalid_argument(error);
+}
+
+void Connection_options::set_connection_attributes(
+    const std::vector<std::string> &attributes) {
+  // Enables the connection attributes
+  m_enable_connection_attributes = true;
+
+  for (const auto &pair : attributes) {
+    if (!pair.empty()) {
+      auto tokens = shcore::split_string(pair, "=");
+      size_t len = tokens.size();
+
+      std::string attribute, value;
+      switch (len) {
+        case 2:
+          attribute = tokens[0];
+          value = tokens[1];
+          break;
+        case 1:
+          attribute = tokens[0];
+          break;
+        default:
+          throw std::invalid_argument(
+              "The value of 'connection-attributes' must be "
+              "either a boolean or a list of key=value pairs.");
+      }
+      set_connection_attribute(attribute, value);
+    }
+  }
+}
 }  // namespace db
 }  // namespace mysqlshdk
