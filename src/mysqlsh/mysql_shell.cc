@@ -1614,10 +1614,15 @@ void Mysql_shell::process_line(const std::string &line) {
 void Mysql_shell::process_sql_result(
     std::shared_ptr<mysqlshdk::db::IResult> result,
     const shcore::Sql_result_info &info) {
-  const auto pager = current_console()->enable_pager();
-
   Base_shell::process_sql_result(result, info);
+
   if (result) {
+    std::shared_ptr<IPager> pager;
+
+    if (result->has_resultset()) {
+      pager = current_console()->enable_pager();
+    }
+
     if (options().show_column_type_info) {
       auto cols = result->get_metadata();
       auto console = mysqlsh::current_console();
