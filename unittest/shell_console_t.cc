@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,10 +37,11 @@ struct Test_data {
 };
 
 namespace {
-void print(void *user_data, const char *text) {
+bool print(void *user_data, const char *text) {
   Test_data *data = static_cast<Test_data *>(user_data);
   if (!data->output.empty()) data->output.append("||");
   data->output.append(text);
+  return true;
 }
 
 shcore::Prompt_result prompt(void *user_data, const char *prompt,

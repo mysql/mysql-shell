@@ -129,7 +129,6 @@ class SHCORE_PUBLIC Base_shell {
 
   void update_prompt_variables();
 
-  shcore::Interpreter_delegate _delegate;
   Prompt_variables_update_type m_pending_update =
       Prompt_variables_update_type::UPDATE;
 

@@ -128,6 +128,10 @@ class IConsole {
    */
   virtual bool is_global_pager_enabled() const = 0;
 
+  virtual void add_print_handler(shcore::Interpreter_print_handler *) = 0;
+
+  virtual void remove_print_handler(shcore::Interpreter_print_handler *) = 0;
+
   void set_verbose(int level) { m_verbose = level; }
 
   int get_verbose() const { return m_verbose; }

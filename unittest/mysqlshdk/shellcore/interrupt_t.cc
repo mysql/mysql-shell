@@ -150,10 +150,8 @@ struct Call_on_leave {
 };
 
 class Interrupt_mysql : public Shell_core_test_wrapper {
- private:
-  shcore::Interpreter_delegate *m_final_delegate;
-
  public:
+  Interrupt_mysql() : m_handler(nullptr, slow_deleg_print, nullptr, nullptr) {}
   void set_options() override { _options->interactive = true; }
 
   void SetUp() override {
@@ -175,8 +173,6 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     std::unique_ptr<shcore::Interpreter_delegate> delegate(
         new shcore::Interpreter_delegate(output_handler.deleg));
 
-    m_final_delegate = delegate.get();
-
     replace_shell(_opts, std::move(delegate));
 
     _interactive_shell->finish_init();
@@ -184,15 +180,15 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     enable_testutil();
   }
 
-  static void slow_deleg_print(void *user_data, const char *text) {
+  static bool slow_deleg_print(void *, const char *) {
     shcore::sleep_ms(10);
-    Shell_test_output_handler::deleg_print(user_data, text);
+    return false;
   }
 
-  void make_output_slow() { m_final_delegate->print = slow_deleg_print; }
+  void make_output_slow() { current_console()->add_print_handler(&m_handler); }
 
   void unmake_output_slow() {
-    m_final_delegate->print = Shell_test_output_handler::deleg_print;
+    current_console()->remove_print_handler(&m_handler);
   }
 
   static void SetUpTestCase() {
@@ -284,6 +280,9 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     conn->close();
     FAIL() << "timeout waiting for " << str << "\n";
   }
+
+ private:
+  shcore::Interpreter_print_handler m_handler;
 };
 
 class Interrupt_mysqlx : public Interrupt_mysql {

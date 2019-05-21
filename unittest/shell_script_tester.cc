@@ -41,9 +41,10 @@ extern bool g_generate_validation_file;
 
 //-----------------------------------------------------------------------------
 
-static void do_print(void *udata, const char *s) {
+static bool do_print(void *udata, const char *s) {
   printf("%s", s);
   fflush(stdout);
+  return true;
 }
 
 static shcore::Prompt_result do_prompt(void *udata, const char *prompt,
@@ -59,10 +60,8 @@ class Test_debugger {
  public:
   enum class Action { Skip_execute, Continue, Abort };
 
-  Test_debugger() {
-    m_deleg.user_data = this;
-    m_deleg.print = do_print;
-    m_deleg.prompt = do_prompt;
+  Test_debugger()
+      : m_deleg(this, do_print, do_prompt, nullptr, nullptr, nullptr) {
     m_console.reset(new mysqlsh::Shell_console(&m_deleg));
   }
 

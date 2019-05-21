@@ -33,7 +33,7 @@
 #include "scripting/types.h"
 
 namespace shcore {
-struct Interpreter_delegate;
+
 class Object_registry;
 
 using JSObject =

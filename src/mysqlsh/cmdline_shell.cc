@@ -257,17 +257,19 @@ REGISTER_HELP(CMD_NOPAGER_SYNTAX, "<b>\\nopager</b>");
 
 Command_line_shell::Command_line_shell(
     std::shared_ptr<Shell_options> cmdline_options,
-    std::unique_ptr<shcore::Interpreter_delegate> delegate)
+    std::unique_ptr<shcore::Interpreter_delegate> delegate,
+    bool suppress_output)
     : mysqlsh::Mysql_shell(cmdline_options, delegate.get()),
       _delegate(std::move(delegate)),
+      m_suppressed_handler(this, &Command_line_shell::deleg_delayed_print,
+                           &Command_line_shell::deleg_delayed_print_error,
+                           nullptr),
+      m_suppress_output(suppress_output),
       m_default_pager(options().pager) {
   // The default command line shell initializes printing in delayed mode
   // so everything printed before/during the initialization process is cached
-  if (_delegate->user_data == this) {
-    _backup_delegate.print = _delegate->print;
-    _backup_delegate.print_error = _delegate->print_error;
-    _delegate->print = &Command_line_shell::deleg_delayed_print;
-    _delegate->print_error = &Command_line_shell::deleg_delayed_print_error;
+  if (m_suppress_output) {
+    current_console()->add_print_handler(&m_suppressed_handler);
   }
 
   _output_printed = false;
@@ -301,13 +303,16 @@ Command_line_shell::Command_line_shell(
  * information printing.
  */
 void Command_line_shell::quiet_print() {
-  if (!_backup_delegate.print) {
-    _backup_delegate.print = _delegate->print;
-    _backup_delegate.print_error = _delegate->print_error;
+  if (m_suppress_output) {
+    current_console()->remove_print_handler(&m_suppressed_handler);
   }
 
-  _delegate->print = &Command_line_shell::deleg_disable_print;
-  _delegate->print_error = &Command_line_shell::deleg_disable_print_error;
+  m_suppress_output = true;
+  m_suppressed_handler = shcore::Interpreter_print_handler(
+      this, &Command_line_shell::deleg_disable_print,
+      &Command_line_shell::deleg_disable_print_error, nullptr);
+
+  current_console()->add_print_handler(&m_suppressed_handler);
 }
 
 /**
@@ -316,28 +321,25 @@ void Command_line_shell::quiet_print() {
  * Then the cached information will be printed.
  */
 void Command_line_shell::restore_print() {
-  if (_backup_delegate.print) {
-    _delegate->print = _backup_delegate.print;
-    _backup_delegate.print = nullptr;
-
-    _delegate->print_error = _backup_delegate.print_error;
-    _backup_delegate.print_error = nullptr;
+  if (m_suppress_output) {
+    current_console()->remove_print_handler(&m_suppressed_handler);
+    m_suppress_output = false;
 
     // If printing information is not disabled. prints cached information
     if (options().quiet_start != Shell_options::Quiet_start::SUPRESS_INFO) {
       for (const auto &s : _full_output) {
         if (s.first == STDOUT_FILENO)
-          _delegate->print(_delegate->user_data, s.second.c_str());
+          _delegate->print(s.second.c_str());
         else
-          _delegate->print_error(_delegate->user_data, s.second.c_str());
+          _delegate->print_error(s.second.c_str());
       }
       _full_output.clear();
 
       for (const auto &s : _delayed_output) {
         if (s.first == STDOUT_FILENO)
-          _delegate->print(_delegate->user_data, s.second.c_str());
+          _delegate->print(s.second.c_str());
         else
-          _delegate->print_error(_delegate->user_data, s.second.c_str());
+          _delegate->print_error(s.second.c_str());
       }
       _delayed_output.clear();
     }
@@ -352,7 +354,13 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                                  &Command_line_shell::deleg_prompt,
                                  &Command_line_shell::deleg_password,
                                  &Command_line_shell::deleg_print_error,
-                                 &Command_line_shell::deleg_print_diag})) {}
+                                 &Command_line_shell::deleg_print_diag}),
+                         true) {}
+
+Command_line_shell::Command_line_shell(
+    std::shared_ptr<Shell_options> options,
+    std::unique_ptr<shcore::Interpreter_delegate> delegate)
+    : Command_line_shell(options, std::move(delegate), false) {}
 
 Command_line_shell::~Command_line_shell() {
   // global pager needs to be destroyed as it uses the delegate
@@ -561,50 +569,57 @@ bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
   return true;
 }
 
-void Command_line_shell::deleg_disable_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_disable_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_full_output.emplace_back(STDOUT_FILENO, text);
+  return true;
 }
 
-void Command_line_shell::deleg_disable_print_error(void *cdata,
+bool Command_line_shell::deleg_disable_print_error(void *cdata,
                                                    const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_full_output.emplace_back(STDERR_FILENO, text);
+  return true;
 }
 
-void Command_line_shell::deleg_delayed_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_delayed_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_delayed_output.emplace_back(STDOUT_FILENO, text);
+  return true;
 }
 
-void Command_line_shell::deleg_delayed_print_error(void *cdata,
+bool Command_line_shell::deleg_delayed_print_error(void *cdata,
                                                    const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_delayed_output.emplace_back(STDERR_FILENO, text);
+  return true;
 }
 
-void Command_line_shell::deleg_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     write_to_console(fileno(stdout), text);
     self->_output_printed = true;
   }
+  return true;
 }
 
-void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     write_to_console(fileno(stderr), text);
     self->_output_printed = true;
   }
+  return true;
 }
 
-void Command_line_shell::deleg_print_diag(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print_diag(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     write_to_console(fileno(stderr), text);
     self->_output_printed = true;
   }
+  return true;
 }
 
 std::string Command_line_shell::query_variable(

@@ -77,12 +77,8 @@ inline bool use_json() {
 #endif  // _WIN32
 
 class Shell_pager : public IPager {
- private:
-  using Delegate = shcore::Interpreter_delegate;
-
  public:
-  explicit Shell_pager(Delegate *delegate)
-      : m_delegate{delegate}, m_original_delegate{*delegate} {
+  Shell_pager() : m_handler(this, &Shell_pager::print, nullptr, nullptr) {
     const auto &options = current_shell_options()->get();
 
     if (options.interactive && !options.pager.empty()) {
@@ -96,27 +92,7 @@ class Shell_pager : public IPager {
     }
 
     if (m_pager) {
-      m_delegate->user_data = this;
-
-      if (m_delegate->print) {
-        m_delegate->print = print;
-      }
-
-      if (m_delegate->prompt) {
-        m_delegate->prompt = prompt;
-      }
-
-      if (m_delegate->password) {
-        m_delegate->password = password;
-      }
-
-      if (m_delegate->print_error) {
-        m_delegate->print_error = print_error;
-      }
-
-      if (m_delegate->print_diag) {
-        m_delegate->print_diag = print_diag;
-      }
+      current_console()->add_print_handler(&m_handler);
     }
   }
 
@@ -125,7 +101,8 @@ class Shell_pager : public IPager {
       // disable pager and restore original delegate before printing anything
       const auto status = pclose(m_pager);
       m_pager = nullptr;
-      *m_delegate = m_original_delegate;
+
+      current_console()->remove_print_handler(&m_handler);
 
       // inform of any errors
 #ifdef _WIN32
@@ -144,41 +121,14 @@ class Shell_pager : public IPager {
   }
 
  private:
-  static void print(void *user_data, const char *text) {
+  static bool print(void *user_data, const char *text) {
     const auto self = static_cast<Shell_pager *>(user_data);
     fprintf(self->m_pager, "%s", text);
     fflush(self->m_pager);
+    return true;
   }
 
-  static shcore::Prompt_result prompt(void *user_data, const char *prompt,
-                                      std::string *ret_input) {
-    const auto self = static_cast<Shell_pager *>(user_data);
-    return self->m_original_delegate.prompt(self->m_original_delegate.user_data,
-                                            prompt, ret_input);
-  }
-
-  static shcore::Prompt_result password(void *user_data, const char *prompt,
-                                        std::string *ret_password) {
-    const auto self = static_cast<Shell_pager *>(user_data);
-    return self->m_original_delegate.password(
-        self->m_original_delegate.user_data, prompt, ret_password);
-  }
-
-  static void print_error(void *user_data, const char *text) {
-    const auto self = static_cast<Shell_pager *>(user_data);
-    self->m_original_delegate.print_error(self->m_original_delegate.user_data,
-                                          text);
-  }
-
-  static void print_diag(void *user_data, const char *text) {
-    const auto self = static_cast<Shell_pager *>(user_data);
-    self->m_original_delegate.print_diag(self->m_original_delegate.user_data,
-                                         text);
-  }
-
-  Delegate *m_delegate = nullptr;
-
-  Delegate m_original_delegate;
+  shcore::Interpreter_print_handler m_handler;
 
   FILE *m_pager = nullptr;
 };
@@ -237,6 +187,7 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
 
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {
+  m_print_handlers.emplace_back(deleg);
   // Capture logging output and if verbose is enabled, show them in the console
   shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
 }
@@ -246,21 +197,22 @@ Shell_console::~Shell_console() {
 }
 
 void Shell_console::dump_json(const char *tag, const std::string &s) const {
-  m_ideleg->print(m_ideleg->user_data, json_obj(tag, s).c_str());
+  delegate_print(json_obj(tag, s).c_str());
 }
 
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json) const {
-  using Print_func = void (*)(void *, const char *);
-  Print_func print =
-      stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_diag;
+  using Print_func = void (Shell_console::*)(const char *) const;
+  Print_func print = stream == Output_stream::STDOUT
+                         ? &Shell_console::delegate_print
+                         : &Shell_console::delegate_print_diag;
 
   // format_json=false means bypass JSON wrapping
   if (use_json() && format_json) {
     const char *tag = stream == Output_stream::STDOUT ? "info" : "error";
     dump_json(tag, text);
   } else {
-    print(m_ideleg->user_data, text.c_str());
+    (this->*print)(text.c_str());
   }
 }
 
@@ -296,7 +248,7 @@ void Shell_console::print_diag(const std::string &text) const {
   if (use_json()) {
     dump_json("error", ftext);
   } else {
-    m_ideleg->print_diag(m_ideleg->user_data, ftext.c_str());
+    delegate_print_diag(ftext.c_str());
   }
   if (g_dont_log == 0) {
     g_dont_log++;
@@ -310,8 +262,7 @@ void Shell_console::print_error(const std::string &text) const {
   if (use_json()) {
     dump_json("error", ftext);
   } else {
-    m_ideleg->print_error(
-        m_ideleg->user_data,
+    delegate_print_error(
         (mysqlshdk::textui::error("ERROR: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
@@ -326,8 +277,7 @@ void Shell_console::print_warning(const std::string &text) const {
   if (use_json()) {
     dump_json("warning", ftext);
   } else {
-    m_ideleg->print_error(
-        m_ideleg->user_data,
+    delegate_print_error(
         (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
@@ -342,8 +292,7 @@ void Shell_console::print_note(const std::string &text) const {
   if (use_json()) {
     dump_json("note", ftext);
   } else {
-    m_ideleg->print_error(
-        m_ideleg->user_data,
+    delegate_print_error(
         (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
   }
   if (g_dont_log == 0) {
@@ -358,7 +307,7 @@ void Shell_console::print_info(const std::string &text) const {
   if (use_json()) {
     dump_json("info", ftext);
   } else {
-    m_ideleg->print_error(m_ideleg->user_data, (ftext + "\n").c_str());
+    delegate_print_error((ftext + "\n").c_str());
   }
   if (g_dont_log == 0 && !text.empty()) {
     g_dont_log++;
@@ -377,8 +326,7 @@ bool Shell_console::prompt(const std::string &prompt, std::string *ret_val,
   }
 
   while (1) {
-    shcore::Prompt_result result =
-        m_ideleg->prompt(m_ideleg->user_data, text.c_str(), ret_val);
+    shcore::Prompt_result result = m_ideleg->prompt(text.c_str(), ret_val);
     if (result == shcore::Prompt_result::Cancel)
       throw shcore::cancelled("Cancelled");
     if (result == shcore::Prompt_result::Ok) {
@@ -581,7 +529,7 @@ shcore::Prompt_result Shell_console::prompt_password(
   shcore::Prompt_result result;
   bool valid = true;
   do {
-    result = m_ideleg->password(m_ideleg->user_data, text.c_str(), out_val);
+    result = m_ideleg->password(text.c_str(), out_val);
 
     if (result == shcore::Prompt_result::Ok) {
       if (validator) {
@@ -613,7 +561,7 @@ void Shell_console::print_value(const shcore::Value &value,
         output = json_obj(tag.c_str(), value);
     }
 
-    m_ideleg->print(m_ideleg->user_data, output.c_str());
+    delegate_print(output.c_str());
   } else {
     bool add_new_line = true;
 
@@ -645,9 +593,9 @@ void Shell_console::print_value(const shcore::Value &value,
     if (add_new_line) output += "\n";
 
     if (tag == "error")
-      m_ideleg->print_diag(m_ideleg->user_data, output.c_str());
+      delegate_print_diag(output.c_str());
     else
-      m_ideleg->print(m_ideleg->user_data, output.c_str());
+      delegate_print(output.c_str());
   }
 }
 
@@ -655,7 +603,7 @@ std::shared_ptr<IPager> Shell_console::enable_pager() {
   std::shared_ptr<IPager> pager = m_current_pager.lock();
 
   if (!pager) {
-    pager = std::make_shared<Shell_pager>(m_ideleg);
+    pager = std::make_shared<Shell_pager>();
     m_current_pager = pager;
   }
 
@@ -668,6 +616,36 @@ void Shell_console::disable_global_pager() { m_global_pager.reset(); }
 
 bool Shell_console::is_global_pager_enabled() const {
   return nullptr != m_global_pager;
+}
+
+void Shell_console::add_print_handler(shcore::Interpreter_print_handler *h) {
+  m_print_handlers.emplace_back(h);
+}
+
+void Shell_console::remove_print_handler(shcore::Interpreter_print_handler *h) {
+  m_print_handlers.remove(h);
+}
+
+void Shell_console::delegate_print(const char *msg) const {
+  delegate(msg, &shcore::Interpreter_print_handler::print);
+}
+
+void Shell_console::delegate_print_error(const char *msg) const {
+  delegate(msg, &shcore::Interpreter_print_handler::print_error);
+}
+
+void Shell_console::delegate_print_diag(const char *msg) const {
+  delegate(msg, &shcore::Interpreter_print_handler::print_diag);
+}
+
+void Shell_console::delegate(
+    const char *msg, shcore::Interpreter_print_handler::Print print) const {
+  for (auto it = m_print_handlers.crbegin(); it != m_print_handlers.crend();
+       ++it) {
+    if ((*it->*print)(msg)) {
+      return;
+    }
+  }
 }
 
 std::string fit_screen(const std::string &text) {

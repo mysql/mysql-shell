@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,19 +166,19 @@ TEST(Cmdline_shell, prompt_py) {
   shcore::delete_file("test.theme");
 }
 
-static void print_capture(void *cdata, const char *text) {
+static bool print_capture(void *cdata, const char *text) {
   std::string *capture = static_cast<std::string *>(cdata);
   capture->append(text).append("\n");
+  return true;
 }
 
 TEST(Cmdline_shell, help) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
 
   shell.print_cmd_line_helper();
   EXPECT_TRUE(shcore::str_beginswith(capture, "MySQL Shell "));
@@ -196,6 +196,8 @@ TEST(Cmdline_shell, help) {
       "trademarks of their respective owners.\n\n\n\nType '\\help' or '\\?' "
       "for help; '\\quit' to exit.\n\n";
   EXPECT_EQ(expected, capture);
+
+  current_console()->remove_print_handler(&handler);
 }
 
 }  // namespace mysqlsh

@@ -92,8 +92,6 @@ class AutoPyObject {
   PyObject *operator->() { return object; }
 };
 
-struct Interpreter_delegate;
-
 class TYPES_COMMON_PUBLIC Python_context {
  public:
   Python_context(bool redirect_stdio);

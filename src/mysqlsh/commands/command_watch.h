@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,13 +35,20 @@ class Command_watch : public Command_show {
  public:
   Command_watch(const std::shared_ptr<shcore::IShell_core> &shell,
                 const std::shared_ptr<Shell_reports> &reports)
-      : Command_show(shell, reports) {}
+      : Command_show(shell, reports),
+        m_handler(this, print_hook, nullptr, nullptr) {}
 
   bool execute(const std::vector<std::string> &args) override;
 
  private:
+  static bool print_hook(void *user_data, const char *msg);
+
   std::vector<std::string> parse_arguments(
       const std::vector<std::string> &args);
+
+  shcore::Interpreter_print_handler m_handler;
+
+  bool m_first_line = false;
 
   // default values of options handled by \watch
   bool m_clear_screen = true;

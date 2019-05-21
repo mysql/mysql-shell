@@ -143,8 +143,6 @@ class SHCORE_PUBLIC Shell_language {
   Shell_command_handler _shell_command_handler;
 };
 
-struct Interpreter_delegate;
-
 #if DOXYGEN_JS_CPP
 /**
  * Class that encloses the shell functionality.

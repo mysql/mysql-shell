@@ -94,9 +94,9 @@ class Shell_test_output_handler {
 
   virtual void TearDown() {}
 
-  static void deleg_print(void *user_data, const char *text);
-  static void deleg_print_error(void *user_data, const char *text);
-  static void deleg_print_diag(void *user_data, const char *text);
+  static bool deleg_print(void *user_data, const char *text);
+  static bool deleg_print_error(void *user_data, const char *text);
+  static bool deleg_print_diag(void *user_data, const char *text);
   static shcore::Prompt_result deleg_prompt(void *user_data,
                                             const char *UNUSED(prompt),
                                             std::string *ret);

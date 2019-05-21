@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,12 +56,14 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
 
     if (m_clear_screen) {
       mysqlshdk::textui::scroll_screen();
+      current_console()->add_print_handler(&m_handler);
     }
 
+    const auto remove_handler = shcore::on_leave_scope(
+        [this]() { current_console()->remove_print_handler(&m_handler); });
+
     while (!iterrupted) {
-      if (m_clear_screen) {
-        mysqlshdk::textui::clear_screen();
-      }
+      m_first_line = true;
 
       Command_show::execute(new_args);
 
@@ -153,6 +155,17 @@ std::vector<std::string> Command_watch::parse_arguments(
   }
 
   return new_args;
+}
+
+bool Command_watch::print_hook(void *user_data, const char *) {
+  const auto self = static_cast<Command_watch *>(user_data);
+
+  if (self->m_clear_screen && self->m_first_line) {
+    self->m_first_line = false;
+    mysqlshdk::textui::clear_screen();
+  }
+
+  return false;
 }
 
 }  // namespace mysqlsh

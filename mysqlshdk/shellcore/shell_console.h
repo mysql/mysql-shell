@@ -142,12 +142,26 @@ class Shell_console : public IConsole {
   void disable_global_pager() override;
   bool is_global_pager_enabled() const override;
 
+  void add_print_handler(shcore::Interpreter_print_handler *) override;
+
+  void remove_print_handler(shcore::Interpreter_print_handler *) override;
+
  private:
+  void dump_json(const char *tag, const std::string &s) const;
+
+  void delegate_print(const char *msg) const;
+
+  void delegate_print_error(const char *msg) const;
+
+  void delegate_print_diag(const char *msg) const;
+
+  void delegate(const char *msg,
+                shcore::Interpreter_print_handler::Print print) const;
+
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;
   std::shared_ptr<IPager> m_global_pager;
-
-  void dump_json(const char *tag, const std::string &s) const;
+  std::list<shcore::Interpreter_print_handler *> m_print_handlers;
 };
 
 std::string fit_screen(const std::string &text);

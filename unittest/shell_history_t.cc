@@ -48,14 +48,33 @@ class Shell_history : public ::testing::Test {
  public:
   Shell_history()
       : _options_file(
-            Shell_core_test_wrapper::get_options_file_name("history_test")) {}
+            Shell_core_test_wrapper::get_options_file_name("history_test")),
+        m_handler(&m_capture, print_capture, print_capture, print_capture) {}
 
-  virtual void SetUp() {
+  void SetUp() override {
     remove(_options_file.c_str());
     linenoiseHistoryFree();
   }
 
+ protected:
+  void enable_capture() { current_console()->add_print_handler(&m_handler); }
+
+  void disable_capture() {
+    current_console()->remove_print_handler(&m_handler);
+  }
+
   std::string _options_file;
+
+  std::string m_capture;
+
+  shcore::Interpreter_print_handler m_handler;
+
+ private:
+  static bool print_capture(void *cdata, const char *text) {
+    std::string *m_capture = static_cast<std::string *>(cdata);
+    m_capture->append(text).append("\n");
+    return true;
+  }
 };
 
 TEST_F(Shell_history, check_history_sql_not_connected) {
@@ -428,11 +447,6 @@ TEST_F(Shell_history, history_ignore_pattern_py) {
 #endif
 }
 
-static void print_capture(void *cdata, const char *text) {
-  std::string *capture = static_cast<std::string *>(cdata);
-  capture->append(text).append("\n");
-}
-
 TEST_F(Shell_history, history_linenoise) {
   // Test cases covered here:
   // TS_CLE#1 Commands executed by the user in the shell are saved to the
@@ -489,75 +503,71 @@ TEST_F(Shell_history, history_linenoise) {
 
     EXPECT_STREQ("print(4);", linenoiseHistoryLine(0));
 
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\help history");
 
     // TS_SC#1
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history");
-    EXPECT_EQ("    5  \\help history\n\n", capture);
+    EXPECT_EQ("    5  \\help history\n\n", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     // TS_SC#3
     shell.process_line("\\history del 6");
-    EXPECT_EQ("", capture);
+    EXPECT_EQ("", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history");
-    EXPECT_EQ("    1  \\history del 6\n\n", capture);
+    EXPECT_EQ("    1  \\history del 6\n\n", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("print(5);");
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history 1");
     EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
-              capture);
+              m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history 1 x");
     EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
-              capture);
+              m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history x 1");
     EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
-              capture);
+              m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history clear 1");
-    EXPECT_EQ("\\history clear does not take any parameters\n", capture);
+    EXPECT_EQ("\\history clear does not take any parameters\n", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history del");
     EXPECT_EQ("\\history delete requires entry number to be deleted\n",
-              capture);
+              m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history del 50");
-    EXPECT_EQ("Invalid history entry: 50 - valid range is 8-8\n", capture);
+    EXPECT_EQ("Invalid history entry: 50 - valid range is 8-8\n", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history 0 -1 -1");
     EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
-              capture);
+              m_capture);
 
     // TS_SC#4 - cancelled
 
-    capture.clear();
+    m_capture.clear();
     // TS_SC#5
     shell.process_line("\\history clear");
-    EXPECT_EQ("", capture);
+    EXPECT_EQ("", m_capture);
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history");
-    EXPECT_EQ("    1  \\history clear\n\n", capture);
+    EXPECT_EQ("    1  \\history clear\n\n", m_capture);
     EXPECT_EQ(1, shell._history.size());
     shell.load_state();
     EXPECT_EQ(1, shell._history.size());
@@ -573,19 +583,19 @@ TEST_F(Shell_history, history_linenoise) {
     // the "current" line will be stuck in the history until the next command.
     // This makes this test for something different from what we want, but
     // there's no better way
-    capture.clear();
+    m_capture.clear();
     shell.process_line("shell.options['history.maxSize']=0;\n");
     EXPECT_EQ(0, shell._history.size());
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history\n");
-    EXPECT_EQ("", capture);
+    EXPECT_EQ("", m_capture);
     EXPECT_STREQ(NULL, linenoiseHistoryLine(1));
 
-    capture.clear();
+    m_capture.clear();
     // TS_SC#2
     shell.process_line("\\history save\n");
-    EXPECT_EQ("Command history file saved with 0 entries.\n\n", capture);
+    EXPECT_EQ("Command history file saved with 0 entries.\n\n", m_capture);
 
     std::string hdata;
     shcore::load_text_file(hist_file, hdata);
@@ -606,16 +616,12 @@ TEST_F(Shell_history, check_help_shows_history) {
 
   {
     // Expecting the Shell mention \history in \help
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\help");
     EXPECT_TRUE(
-        strstr(capture.c_str(),
+        strstr(m_capture.c_str(),
                "\\history            View and edit command line history."));
   }
 }
@@ -633,16 +639,12 @@ TEST_F(Shell_history, history_autosave_int) {
     EXPECT_TRUE(opt.get_member("history.autoSave").as_bool());
 
     // Expecting the Shell to print history.autoSave = true not 101
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("print(shell.options)");
     // we perform automatic type conversion on set
-    EXPECT_TRUE(strstr(capture.c_str(), "\"history.autoSave\": true"));
+    EXPECT_TRUE(strstr(m_capture.c_str(), "\"history.autoSave\": true"));
   }
 }
 
@@ -667,15 +669,11 @@ TEST_F(Shell_history, check_history_source_js) {
   EXPECT_EQ(0, linenoiseHistorySize());
 
   {
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
     shell.process_line("\\source test_source.js");
     EXPECT_EQ(1, linenoiseHistorySize());
-    EXPECT_EQ("1\n2\n", capture);
+    EXPECT_EQ("1\n2\n", m_capture);
   }
 
   shcore::delete_file("test_source.js");
@@ -702,15 +700,11 @@ TEST_F(Shell_history, check_history_source_py) {
   EXPECT_EQ(0, linenoiseHistorySize());
 
   {
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
     shell.process_line("\\source test_source.py");
     EXPECT_EQ(1, linenoiseHistorySize());
-    EXPECT_EQ("1\n\n\n2\n\n\n", capture);
+    EXPECT_EQ("1\n\n\n2\n\n\n", m_capture);
   }
 
   shcore::delete_file("test_source.py");
@@ -742,11 +736,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
     // 3   // 3
     EXPECT_EQ(3, shell._history.size());
 
-    std::string capture;
-    shell._delegate->print = print_capture;
-    shell._delegate->print_error = print_capture;
-    shell._delegate->print_diag = print_capture;
-    shell._delegate->user_data = &capture;
+    enable_capture();
 
     // Note: history entries are added AFTER they are executed
     // that means if \history is called, it will print the stack up the
@@ -756,7 +746,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
     // Did we just pop index 0 off the stack by pushing \\history?
     // A: Yes, but the pop only happens after the history is printed
     shell.process_line("\\history");
-    EXPECT_EQ("    1  // 1\n\n    2  // 2\n\n    3  // 3\n\n", capture);
+    EXPECT_EQ("    1  // 1\n\n    2  // 2\n\n    3  // 3\n\n", m_capture);
     EXPECT_EQ(3, shell._history.size());
     // Actual history is now:
     // 2   // 2
@@ -770,14 +760,14 @@ TEST_F(Shell_history, check_history_overflow_del) {
     // 4   \history
     // 5   \history del 2
 
-    capture.clear();
+    m_capture.clear();
     shell.process_line("\\history");
     // Actual history is now:
     // 4   \history
     // 5   \history del 2
     // 6   \history
     EXPECT_EQ("    3  // 3\n\n    4  \\history\n\n    5  \\history del 2\n\n",
-              capture);
+              m_capture);
     EXPECT_EQ(3, shell._history.size());
   }
 }
@@ -786,11 +776,7 @@ TEST_F(Shell_history, history_management) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   shell.process_line("\\js\n");
   shell.process_line("\\history clear\n");
@@ -854,14 +840,14 @@ TEST_F(Shell_history, history_management) {
   shell.process_line("println('bar');");
   shell.process_line("println('foo');");
   shell.process_line("println('foo');");
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history");
   EXPECT_EQ(
       "    1  \\history clear\n\n"
       "    2  println('bar');\n\n"
       "    3  println('foo');\n\n",
-      capture);
-  capture.clear();
+      m_capture);
+  m_capture.clear();
   // ensure ordering after an ignored duplicate item continues sequential
   shell.process_line("\\history");
   EXPECT_EQ(
@@ -869,14 +855,14 @@ TEST_F(Shell_history, history_management) {
       "    2  println('bar');\n\n"
       "    3  println('foo');\n\n"
       "    4  \\history\n\n",
-      capture);
+      m_capture);
 
   // TS_HM#7 if the history file can't be read or written to, it will log an
   // error message and skip the read/write operation.
   shcore::delete_file(histfile);
 
   shcore::ensure_dir_exists(histfile.c_str());
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history save");
 
   auto base = "Could not save command history to";
@@ -885,14 +871,14 @@ TEST_F(Shell_history, history_management) {
 #else
   auto specific = histfile + ": Is a directory";
 #endif
-  auto base_found = capture.find(base) != std::string::npos;
-  auto specific_found = capture.find(specific) != std::string::npos;
+  auto base_found = m_capture.find(base) != std::string::npos;
+  auto specific_found = m_capture.find(specific) != std::string::npos;
 
   if (!base_found || !specific_found) {
     SCOPED_TRACE(specific);
     SCOPED_TRACE(base);
     SCOPED_TRACE("Expected:");
-    SCOPED_TRACE(capture);
+    SCOPED_TRACE(m_capture);
     SCOPED_TRACE("Actual:");
     FAIL();
   }
@@ -900,19 +886,19 @@ TEST_F(Shell_history, history_management) {
 #ifndef _WIN32
   EXPECT_EQ(0, chmod(histfile.c_str(), 0));
 
-  capture.clear();
+  m_capture.clear();
   EXPECT_NO_THROW(shell.load_state());
 
   base = "Could not load command history from";
   specific = histfile + ": Permission denied";
-  base_found = capture.find(base) != std::string::npos;
-  specific_found = capture.find(specific) != std::string::npos;
+  base_found = m_capture.find(base) != std::string::npos;
+  specific_found = m_capture.find(specific) != std::string::npos;
 
   if (!base_found || !specific_found) {
     SCOPED_TRACE(specific);
     SCOPED_TRACE(base);
     SCOPED_TRACE("Expected:");
-    SCOPED_TRACE(capture);
+    SCOPED_TRACE(m_capture);
     SCOPED_TRACE("Actual:");
     FAIL();
   }
@@ -930,11 +916,7 @@ TEST_F(Shell_history, history_sizes) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   shell.process_line("shell.options['history.maxSize'] = 4;");
   shell.process_line("print(1);");
@@ -942,7 +924,7 @@ TEST_F(Shell_history, history_sizes) {
   shell.process_line("print(3);");
   shell.process_line("print(4);");
 
-  capture.clear();
+  m_capture.clear();
 
   shell.process_line("\\history");
 
@@ -955,7 +937,7 @@ TEST_F(Shell_history, history_sizes) {
       "    3  print(2);\n\n"
       "    4  print(3);\n\n"
       "    5  print(4);\n\n",
-      capture);
+      m_capture);
 
   shell.process_line("shell.options['history.maxSize'] = 3;");
   shell.process_line("\\history");
@@ -994,13 +976,13 @@ TEST_F(Shell_history, history_sizes) {
   shell.process_line("\\history del 3");
   // ensure numbering continues normally
   shell.process_line("print(42);");
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history");
   EXPECT_EQ(
       "    2  print(42);\n\n"
       "    3  \\history del 3\n\n"
       "    4  print(42);\n\n",
-      capture);
+      m_capture);
 }
 
 TEST_F(Shell_history, history_del_invisible_entry) {
@@ -1009,21 +991,17 @@ TEST_F(Shell_history, history_del_invisible_entry) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   // Trivial and should be covered elsewhere already
   shell.process_line("\\history del 10-1");
-  EXPECT_TRUE(strstr(capture.c_str(), "Invalid"));
+  EXPECT_TRUE(strstr(m_capture.c_str(), "Invalid"));
 
   // History has now one command and it will get the index 1
   // Can we access the invisible implementation dependent index 2?
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history del 2");
-  EXPECT_TRUE(strstr(capture.c_str(), "Invalid"));
+  EXPECT_TRUE(strstr(m_capture.c_str(), "Invalid"));
 }
 
 TEST_F(Shell_history, history_source_history) {
@@ -1034,12 +1012,7 @@ TEST_F(Shell_history, history_source_history) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   shell.process_line("session");
   shell.process_line("dba");
@@ -1058,7 +1031,7 @@ TEST_F(Shell_history, history_source_history) {
       "    3  \\history save\n\n"
       "    4  " +
           line + "\n\n",
-      capture);
+      m_capture);
   shcore::delete_file(histfile);
 }
 
@@ -1066,11 +1039,7 @@ TEST_F(Shell_history, history_del_range) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   shell.process_line("session");
   shell.process_line("dba");
@@ -1090,26 +1059,27 @@ TEST_F(Shell_history, history_del_range) {
       "    5  shell\n\n"
       "    6  util\n\n"
       "    7  \\history del 1-3\n\n",
-      capture);
+      m_capture);
 
   // invalid range: using former entries
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history del 1-3");
-  EXPECT_EQ("Invalid history range: 1-3 - valid range is 4-8\n", capture);
+  EXPECT_EQ("Invalid history range: 1-3 - valid range is 4-8\n", m_capture);
 
   // lower bound bigger than upper bound
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history del 7-4");
   EXPECT_EQ("Invalid history range 7-4. Last item must be greater than first\n",
-            capture);
+            m_capture);
 
   shell.process_line("\\history clear");
   shell.process_line("session");
   shell.process_line("dba");
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history del 1 - 3");
   // Not sure if we want to give an error here or be gentle and accept space
-  EXPECT_EQ("\\history delete requires entry number to be deleted\n", capture);
+  EXPECT_EQ("\\history delete requires entry number to be deleted\n",
+            m_capture);
 }
 
 TEST_F(Shell_history, history_entry_number_reset) {
@@ -1119,11 +1089,7 @@ TEST_F(Shell_history, history_entry_number_reset) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
 
   shell.process_line("session");
   shell.process_line("dba");
@@ -1134,13 +1100,13 @@ TEST_F(Shell_history, history_entry_number_reset) {
       "    1  session\n\n"
       "    2  dba\n\n"
       "    3  util\n\n",
-      capture);
+      m_capture);
 
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history clear");
   shell.process_line("\\history");
   // This should get number 4, if numbering was not reset
-  EXPECT_EQ("    1  \\history clear\n\n", capture);
+  EXPECT_EQ("    1  \\history clear\n\n", m_capture);
   EXPECT_EQ(2, shell._history.size());
 }
 
@@ -1166,182 +1132,178 @@ TEST_F(Shell_history, history_delete_range) {
 
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
   using strv = std::vector<std::string>;
   shell._history.set_limit(10);
 
   // range of 1
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
       "1-1", strv({"2  two", "3  three", "4  four", "5  \\history del 1-1"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
       "2-2", strv({"1  one", "3  three", "4  four", "5  \\history del 2-2"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
       "4-4", strv({"1  one", "2  two", "3  three", "4  \\history del 4-4"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-5", strv({"1  one", "2  two", "3  three", "4  four",
                               "5  \\history del 5-5"}));
-  EXPECT_EQ("Invalid history range: 5-5 - valid range is 1-4\n", capture);
+  EXPECT_EQ("Invalid history range: 5-5 - valid range is 1-4\n", m_capture);
 
   // range of 2
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("1-2", strv({"3  three", "4  four", "5  \\history del 1-2"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
   // (continuing) start outside, end inside
-  capture.clear();
+  m_capture.clear();
   CHECK_DELRANGE("1-3", strv({"3  three", "4  four", "5  \\history del 1-2",
                               "6  \\history del 1-3"}));
-  EXPECT_EQ("Invalid history range: 1-3 - valid range is 3-5\n", capture);
+  EXPECT_EQ("Invalid history range: 1-3 - valid range is 3-5\n", m_capture);
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("2-3", strv({"1  one", "4  four", "5  \\history del 2-3"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
   //  shell._history.dump([](const std::string &s) { std::cout << s << "\n"; });
 
   // inverted range
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("2-1", strv({"1  one", "2  two", "3  three", "4  four",
                               "5  \\history del 2-1"}));
   EXPECT_EQ("Invalid history range 2-1. Last item must be greater than first\n",
-            capture);
+            m_capture);
 
   // start inside, end outside
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("3-5", strv({"1  one", "2  two", "3  \\history del 3-5"}));
 
   // start outside, end outside
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
       "1-1", strv({"2  two", "3  three", "4  four", "5  \\history del 1-1"}));
   CHECK_DELRANGE("1-5", strv({"2  two", "3  three", "4  four",
                               "5  \\history del 1-1", "6  \\history del 1-5"}));
-  EXPECT_EQ("Invalid history range: 1-5 - valid range is 2-5\n", capture);
+  EXPECT_EQ("Invalid history range: 1-5 - valid range is 2-5\n", m_capture);
 
   // outside to end
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
       "1-1", strv({"2  two", "3  three", "4  four", "5  \\history del 1-1"}));
   CHECK_DELRANGE("1-", strv({"2  two", "3  three", "4  four",
                              "5  \\history del 1-1", "6  \\history del 1-"}));
-  EXPECT_EQ("Invalid history range: 1- - valid range is 2-5\n", capture);
+  EXPECT_EQ("Invalid history range: 1- - valid range is 2-5\n", m_capture);
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-", strv({"1  one", "2  two", "3  three", "4  four",
                              "5  \\history del 5-"}));
-  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", capture);
+  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", m_capture);
 
   // middle to end
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("3-", strv({"1  one", "2  two", "3  \\history del 3-"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
   // last to end
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("4-",
                  strv({"1  one", "2  two", "3  three", "4  \\history del 4-"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-", strv({"1  one", "2  two", "3  three", "4  four",
                              "5  \\history del 5-"}));
-  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", capture);
+  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", m_capture);
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   CHECK_DELRANGE("-2", strv({"1  one", "2  \\history del -2"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   CHECK_DELRANGE("-5", strv({"1  \\history del -5"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("3",
                  strv({"1  one", "2  two", "4  four", "5  \\history del 3"}));
   CHECK_DELRANGE("-3", strv({"1  one", "2  two", "3  \\history del -3"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
   // invalid
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("-1-2", strv({"1  one", "2  two", "3  three", "4  four",
                                "5  \\history del -1-2"}));
   EXPECT_EQ(
       "\\history delete range argument needs to be in format first-last\n",
-      capture);
+      m_capture);
 
   // small history size
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   shell._history.set_limit(3);
   CHECK_DELRANGE("3", strv({"1  one", "2  two", "3  \\history del 3"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   shell._history.set_limit(3);
   CHECK_DELRANGE("1", strv({"2  two", "3  three", "4  \\history del 1"}));
-  EXPECT_EQ("", capture);
+  EXPECT_EQ("", m_capture);
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two"}));
   shell._history.set_limit(2);
   CHECK_DELRANGE("2", strv({"1  one", "2  \\history del 2"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two"}));
   shell._history.set_limit(2);
   CHECK_DELRANGE("1", strv({"2  two", "3  \\history del 1"}));
-  EXPECT_EQ("", capture);
+  EXPECT_EQ("", m_capture);
 
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one"}));
   shell._history.set_limit(1);
   CHECK_DELRANGE("1", strv({"1  \\history del 1"}));
-  EXPECT_TRUE(capture.empty());
+  EXPECT_TRUE(m_capture.empty());
 
-  capture.clear();
+  m_capture.clear();
   shell._history.clear();
   shell._history.set_limit(0);
   CHECK_DELRANGE("1", strv({}));
-  EXPECT_EQ("The history is already empty\n", capture);
-  capture.clear();
+  EXPECT_EQ("The history is already empty\n", m_capture);
+  m_capture.clear();
   CHECK_DELRANGE("0", strv({}));
-  EXPECT_EQ("The history is already empty\n", capture);
+  EXPECT_EQ("The history is already empty\n", m_capture);
 
   // load and shrink
-  capture.clear();
+  m_capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   shell._history.set_limit(1);
   CHECK_DELRANGE("0", strv({"2  \\history del 0"}));
-  EXPECT_EQ("Invalid history entry: 0 - valid range is 1-1\n", capture);
+  EXPECT_EQ("Invalid history entry: 0 - valid range is 1-1\n", m_capture);
 
 #undef CHECK_DELRANGE
   shcore::delete_file("testhistory");
@@ -1350,11 +1312,7 @@ TEST_F(Shell_history, history_delete_range) {
 TEST_F(Shell_history, history_numbering) {
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->print_diag = print_capture;
-  shell._delegate->user_data = &capture;
+  enable_capture();
   using strv = std::vector<std::string>;
 
   shell._history.set_limit(10);
@@ -1364,7 +1322,7 @@ TEST_F(Shell_history, history_numbering) {
     strv dump;                                                                 \
     SCOPED_TRACE(line);                                                        \
     shell.process_line(line);                                                  \
-    EXPECT_TRUE(capture.empty());                                              \
+    EXPECT_TRUE(m_capture.empty());                                            \
     shell._history.dump([&dump](const std::string &s) { dump.push_back(s); }); \
     for (strv::size_type i = 0; i < dump.size(); ++i) {                        \
       EXPECT_TRUE(i < expected.size());                                        \
@@ -1453,9 +1411,9 @@ TEST_F(Shell_history, history_numbering) {
   CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
   CHECK_NUMBERING_ADD("mysql",
                       (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
-  capture.clear();
+  m_capture.clear();
   shell.process_line("\\history del 5");
-  EXPECT_EQ("Invalid history entry: 5 - valid range is 1-4\n", capture);
+  EXPECT_EQ("Invalid history entry: 5 - valid range is 1-4\n", m_capture);
 
 #undef CHECK_NUMBERING
   shcore::delete_file("testhistory");

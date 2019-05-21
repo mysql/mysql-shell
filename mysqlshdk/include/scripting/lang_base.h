@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,41 +45,86 @@ enum class Prompt_result {
   CTRL_D = -1  // EOF / Abort / Cancel
 };
 
-struct TYPES_COMMON_PUBLIC Interpreter_delegate {
-  Interpreter_delegate() {
-    user_data = nullptr;
-    print = nullptr;
-    prompt = nullptr;
-    password = nullptr;
-    print_error = nullptr;
-    print_diag = nullptr;
+class TYPES_COMMON_PUBLIC Interpreter_print_handler {
+ public:
+  // true -> print request was handled and other handlers should not be called
+  using Print_function = bool (*)(void *, const char *);
+
+  using Print = bool (Interpreter_print_handler::*)(const char *) const;
+
+  Interpreter_print_handler(void *user_data, Print_function print,
+                            Print_function print_error,
+                            Print_function print_diag)
+      : m_user_data(user_data),
+        m_print(print),
+        m_print_error(print_error),
+        m_print_diag(print_diag) {}
+
+  virtual ~Interpreter_print_handler() = default;
+
+  bool print(const char *msg) const { return delegate(msg, m_print); }
+
+  bool print_error(const char *msg) const {
+    return delegate(msg, m_print_error);
   }
 
-  Interpreter_delegate(
-      void *user_data, void (*print)(void *user_data, const char *text),
-      Prompt_result (*prompt)(void *user_data, const char *prompt,
-                              std::string *ret_input),
-      Prompt_result (*password)(void *user_data, const char *prompt,
-                                std::string *ret_password),
-      void (*print_error)(void *user_data, const char *text),
-      void (*print_diag)(void *user_data, const char *text)) {
-    this->user_data = user_data;
-    this->print = print;
-    this->prompt = prompt;
-    this->password = password;
-    this->print_error = print_error;
-    this->print_diag = print_diag;
+  bool print_diag(const char *msg) const { return delegate(msg, m_print_diag); }
+
+ protected:
+  void *m_user_data = nullptr;
+
+ private:
+  bool delegate(const char *msg, Print_function func) const {
+    if (func) {
+      return func(m_user_data, msg);
+    } else {
+      return false;
+    }
   }
 
-  void *user_data;
-  void (*print)(void *user_data, const char *text);
-  Prompt_result (*prompt)(void *user_data, const char *prompt,
-                          std::string *ret_input);
-  Prompt_result (*password)(void *user_data, const char *prompt,
-                            std::string *ret_password);
-  void (*print_error)(void *user_data, const char *text);
-  void (*print_diag)(void *user_data, const char *text);
+  Print_function m_print = nullptr;
+  Print_function m_print_error = nullptr;
+  Print_function m_print_diag = nullptr;
 };
-};  // namespace shcore
+
+class TYPES_COMMON_PUBLIC Interpreter_delegate
+    : public Interpreter_print_handler {
+ public:
+  using Prompt_function = Prompt_result (*)(void *, const char *,
+                                            std::string *);
+
+  using Prompt = Prompt_result (Interpreter_delegate ::*)(const char *,
+                                                          std::string *) const;
+
+  Interpreter_delegate(void *user_data, Print_function print,
+                       Prompt_function prompt, Prompt_function password,
+                       Print_function print_error, Print_function print_diag)
+      : Interpreter_print_handler(user_data, print, print_error, print_diag),
+        m_prompt(prompt),
+        m_password(password) {}
+
+  Prompt_result prompt(const char *msg, std::string *result) const {
+    return delegate(msg, result, m_prompt);
+  }
+
+  Prompt_result password(const char *msg, std::string *result) const {
+    return delegate(msg, result, m_password);
+  }
+
+ private:
+  Prompt_result delegate(const char *msg, std::string *result,
+                         Prompt_function func) const {
+    if (func) {
+      return func(m_user_data, msg, result);
+    } else {
+      return Prompt_result::CTRL_D;
+    }
+  }
+
+  Prompt_function m_prompt = nullptr;
+  Prompt_function m_password = nullptr;
+};
+
+}  // namespace shcore
 
 #endif

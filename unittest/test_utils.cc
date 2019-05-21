@@ -42,14 +42,14 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern bool g_profile_test_scripts;
 
 Shell_test_output_handler::Shell_test_output_handler()
-    : m_internal(false), m_answers_to_stdout(false), m_errors_on_stderr(false) {
-  deleg.user_data = this;
-  deleg.print = &Shell_test_output_handler::deleg_print;
-  deleg.print_error = &Shell_test_output_handler::deleg_print_error;
-  deleg.print_diag = &Shell_test_output_handler::deleg_print_diag;
-  deleg.prompt = &Shell_test_output_handler::deleg_prompt;
-  deleg.password = &Shell_test_output_handler::deleg_password;
-
+    : deleg(this, &Shell_test_output_handler::deleg_print,
+            &Shell_test_output_handler::deleg_prompt,
+            &Shell_test_output_handler::deleg_password,
+            &Shell_test_output_handler::deleg_print_error,
+            &Shell_test_output_handler::deleg_print_diag),
+      m_internal(false),
+      m_answers_to_stdout(false),
+      m_errors_on_stderr(false) {
   full_output.clear();
   debug = false;
 
@@ -78,7 +78,7 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
   }
 }
 
-void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
+bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
   if (!target->m_internal) {
@@ -91,9 +91,11 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
   std::lock_guard<std::mutex> lock(target->stdout_mutex);
   target->std_out.append(text);
+
+  return true;
 }
 
-void Shell_test_output_handler::deleg_print_error(void *user_data,
+bool Shell_test_output_handler::deleg_print_error(void *user_data,
                                                   const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
@@ -115,9 +117,11 @@ void Shell_test_output_handler::deleg_print_error(void *user_data,
     target->std_err.append(text);
   else
     target->std_out.append(text);
+
+  return true;
 }
 
-void Shell_test_output_handler::deleg_print_diag(void *user_data,
+bool Shell_test_output_handler::deleg_print_diag(void *user_data,
                                                  const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
@@ -127,6 +131,8 @@ void Shell_test_output_handler::deleg_print_diag(void *user_data,
     std::cerr << makered(text) << std::endl;
 
   target->std_err.append(text);
+
+  return true;
 }
 
 shcore::Prompt_result Shell_test_output_handler::deleg_prompt(

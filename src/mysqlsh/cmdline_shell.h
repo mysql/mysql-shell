@@ -81,6 +81,10 @@ class Command_line_shell : public Mysql_shell,
   void pause_history(bool flag) { _history.pause(flag); }
 
  private:
+  Command_line_shell(std::shared_ptr<Shell_options> options,
+                     std::unique_ptr<shcore::Interpreter_delegate> delegate,
+                     bool suppress_output);
+
   History _history;
   shcore::Shell_core::Mode m_previous_mode = shcore::Shell_core::Mode::None;
 
@@ -99,13 +103,13 @@ class Command_line_shell : public Mysql_shell,
  private:
   static char *readline(const char *prompt);
 
-  static void deleg_print(void *self, const char *text);
-  static void deleg_delayed_print(void *self, const char *text);
-  static void deleg_disable_print(void *self, const char *text);
-  static void deleg_print_error(void *self, const char *text);
-  static void deleg_delayed_print_error(void *self, const char *text);
-  static void deleg_disable_print_error(void *self, const char *text);
-  static void deleg_print_diag(void *self, const char *text);
+  static bool deleg_print(void *self, const char *text);
+  static bool deleg_delayed_print(void *self, const char *text);
+  static bool deleg_disable_print(void *self, const char *text);
+  static bool deleg_print_error(void *self, const char *text);
+  static bool deleg_delayed_print_error(void *self, const char *text);
+  static bool deleg_disable_print_error(void *self, const char *text);
+  static bool deleg_print_diag(void *self, const char *text);
   static shcore::Prompt_result deleg_prompt(void *self, const char *text,
                                             std::string *ret);
   static shcore::Prompt_result deleg_password(void *self, const char *text,
@@ -123,7 +127,8 @@ class Command_line_shell : public Mysql_shell,
 
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
 
-  shcore::Interpreter_delegate _backup_delegate;
+  shcore::Interpreter_print_handler m_suppressed_handler;
+  bool m_suppress_output;
   std::vector<std::pair<int, std::string>> _full_output;
   std::vector<std::pair<int, std::string>> _delayed_output;
   Prompt_manager _prompt;
