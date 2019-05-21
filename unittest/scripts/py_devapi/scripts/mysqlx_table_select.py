@@ -302,6 +302,51 @@ table.select().where('like LIKE :like').bind('like', '%bar').execute()
 # Table.Select escaped column, with like as operator and placeholder
 table.select().where('`notnested.like` LIKE :like').bind('like', '%bar').execute()
 
+#@<> WL12767 Table.select {VER(>=8.0.17)}
+result = mySession.sql('create table wl12767 (`overlaps` JSON, `list` JSON,`Name` varchar(50));').execute()
+table = schema.get_table('wl12767')
+result = table.insert().values('{"one":1, "two":2, "three":3}', '{"one":1,"two":2, "three":3}', "one").execute()
+result = table.insert().values('{"one":1, "two":2, "three":3}', '{"four":4,"five":5, "six":6}', "two").execute()
+result = table.insert().values('{"one":1, "three":3, "five":5}', '{"two":2,"four":4, "six":6}', "three").execute()
+result = table.insert().values('{"one":1, "three":3, "five":5}', '{"three":3,"six":9, "nine":9}', "four").execute()
+result = table.insert().values('{"one":1, "three":3, "five":5}', '{"three":6,"six":12, "nine":18}', "five").execute()
+result = table.insert().values('{"one":[1,2,3]}', '{"one":[3,4,5]}',"six").execute()
+result = table.insert().values('{"one":[1,2,3]}', '{"one":[1,2,3]}',"seven").execute()
+
+#@ WL12767-TS1_1-01 {VER(>=8.0.17)}
+# WL12767-TS6_1
+table.select(["name"]).where("`overlaps` overlaps `list`").execute()
+
+#@ WL12767-TS1_1-02 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+# WL12767-TS3_1
+table.select(["name"]).where("overlaps overlaps list").execute()
+
+#@ WL12767-TS1_1-03 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+table.select(["name"]).where("`list` overlaps `overlaps`").execute()
+
+#@ WL12767-TS1_1-04 [USE:WL12767-TS1_1-01] {VER(>=8.0.17)}
+# WL12767-TS3_1
+table.select(["name"]).where("list overlaps overlaps").execute()
+
+#@ WL12767-TS1_1-05 {VER(>=8.0.17)}
+table.select(["name"]).where("`overlaps` not overlaps `list`").execute()
+
+#@ WL12767-TS1_1-06 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+# WL12767-TS2_1
+# WL12767-TS3_1
+table.select(["name"]).where("overlaps not OVERLAPS list").execute()
+
+#@ WL12767-TS1_1-07 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+table.select(["name"]).where("`list` not overlaps `overlaps`").execute()
+
+#@ WL12767-TS1_1-08 [USE:WL12767-TS1_1-05] {VER(>=8.0.17)}
+# WL12767-TS2_1
+# WL12767-TS3_1
+table.select(["name"]).where("list not OvErLaPs overlaps").execute()
+
+#@ WL12767-TS5_1 {VER(>=8.0.17)}
+table.select(["name"]).where("name OvErLaPs overlaps").execute()
+
 # Cleanup
 mySession.drop_schema('js_shell_test')
 mySession.close()

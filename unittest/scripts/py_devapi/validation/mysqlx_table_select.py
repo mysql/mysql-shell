@@ -244,3 +244,28 @@
 | bar  | non nested foo |
 +------+----------------+
 2 rows in set [[*]]
+
+#@<OUT> WL12767-TS1_1-01
++-------+
+| name  |
++-------+
+| one   |
+| four  |
+| seven |
++-------+
+3 rows in set ([[*]])
+
+#@<OUT> WL12767-TS1_1-05
+true
++-------+
+| name  |
++-------+
+| two   |
+| three |
+| five  |
+| six   |
++-------+
+4 rows in set ([[*]])
+
+#@ WL12767-TS5_1
+|| Invalid JSON text in argument 1 to function json_overlaps: "Invalid value." at position 0.
