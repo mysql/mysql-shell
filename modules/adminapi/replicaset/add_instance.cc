@@ -120,6 +120,20 @@ void Add_instance::resolve_ssl_mode() {
   }
 }
 
+void Add_instance::ensure_unique_server_id() const {
+  try {
+    m_replicaset.validate_server_id(*m_target_instance);
+  } catch (const std::runtime_error &err) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot add instance '" + m_instance_address +
+                         "' to the cluster because it has the same server ID "
+                         "of a member of the cluster. Please change the server "
+                         "ID of the instance to add: all members must have a "
+                         "unique server ID.");
+    throw;
+  }
+}
+
 void Add_instance::prepare() {
   // Connect to the target instance (if needed).
   if (!m_reuse_session_for_target_instance) {
@@ -225,6 +239,9 @@ void Add_instance::prepare() {
 
   // Check instance server UUID (must be unique among the cluster members).
   m_replicaset.validate_server_uuid(m_target_instance->get_session());
+
+  // Ensure instance server ID is unique among the cluster members.
+  ensure_unique_server_id();
 
   // Get the address used by GR for the added instance (used in MD).
   m_host_in_metadata = m_target_instance->get_canonical_hostname();

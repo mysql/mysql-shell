@@ -139,6 +139,7 @@ class Add_instance : public Command_interface {
   void handle_gr_protocol_version();
   void handle_replication_user();
   void log_used_gr_options();
+  void ensure_unique_server_id() const;
 };
 
 }  // namespace dba

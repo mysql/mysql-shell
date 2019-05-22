@@ -1795,5 +1795,33 @@ void ReplicaSet::set_group_name(const std::string &group_name) {
   _metadata_storage->set_replicaset_group_name(get_id(), group_name);
 }
 
+void ReplicaSet::validate_server_id(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  // Get the server_id of the target instance.
+  mysqlshdk::utils::nullable<int64_t> server_id =
+      target_instance.get_sysvar_int("server_id");
+
+  // Check if there is a member with the same server_id and throw an exception
+  // in that case.
+  // NOTE: attempt to check all members (except itself) independently of their
+  //       state, but skip it if the connection fails.
+  execute_in_members(
+      {}, target_instance.get_connection_options(),
+      {target_instance.get_canonical_address()},
+      [&server_id](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+        mysqlshdk::mysql::Instance instance(session);
+
+        mysqlshdk::utils::nullable<int64_t> id =
+            instance.get_sysvar_int("server_id");
+
+        if (!server_id.is_null() && !id.is_null() && *server_id == *id) {
+          throw std::runtime_error{"The server_id '" + std::to_string(*id) +
+                                   "' is already used by instance '" +
+                                   instance.descr() + "'."};
+        }
+        return true;
+      });
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

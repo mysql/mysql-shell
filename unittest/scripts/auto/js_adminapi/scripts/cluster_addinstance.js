@@ -623,3 +623,29 @@ c.addInstance(__sandbox_uri2);
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#29809560: addinstance() does not validate if server_id is unique in the cluster
+//@ BUG#29809560: deploy sandboxes.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@ BUG#29809560: set the same server id an all instances.
+shell.connect(__hostname_uri1);
+session.runSql("SET GLOBAL server_id = 666");
+session.close();
+shell.connect(__hostname_uri2);
+session.runSql("SET GLOBAL server_id = 666");
+session.close();
+
+//@ BUG#29809560: create cluster.
+shell.connect(__hostname_uri1);
+var c = dba.createCluster('test');
+
+//@<> BUG#29809560: add instance fails because server_id is not unique.
+c.addInstance(__hostname_uri2);
+
+//@ BUG#29809560: clean-up.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

@@ -193,6 +193,9 @@ class ReplicaSet {
   void validate_server_uuid(
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const;
 
+  void validate_server_id(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
+
   std::string get_cluster_group_seeds(
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session =
           nullptr) const;
