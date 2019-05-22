@@ -1,4 +1,4 @@
-# Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -53,6 +53,7 @@ IF(LOCAL_GMOCK_ZIP
 ENDIF()
 
 IF (WITH_GMOCK)
+  FILE(TO_CMAKE_PATH "${WITH_GMOCK}" WITH_GMOCK)
   ## Did we get a full path name, including file name?
   IF (${WITH_GMOCK} MATCHES ".*\\.zip")
     GET_FILENAME_COMPONENT(GMOCK_DIR ${WITH_GMOCK} PATH)
