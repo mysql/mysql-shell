@@ -53,10 +53,7 @@ cluster.addInstance(__sandbox_uri3, {localAddress: __cfg_local_address3, memberW
 // F3.1.1 - The JSON object shall contain the information about the global
 // cluster and per instance configuration options.
 
-//@<OUT> WL#11465: Get the cluster options {VER(>=8.0.13)}
-cluster.options();
-
-//@<OUT> WL#11465: Get the cluster options 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: Get the cluster options
 cluster.options();
 
 // F3.2 - The function shall have an optional parameter 'all':
@@ -70,10 +67,7 @@ cluster.options(1)
 cluster.options({foo: true})
 cluster.options({all: "foo"})
 
-//@<OUT> WL#11465: Get the cluster options using 'all' {VER(>=8.0.13)}
-cluster.options({all: true});
-
-//@<OUT> WL#11465: Get the cluster options 5.7 using 'all' {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: Get the cluster options using 'all'
 cluster.options({all: true});
 
 //@ Kill instances 2 and 3
@@ -82,10 +76,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 
-//@<OUT> WL#11465: Get the cluster options with 2 members down 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-cluster.options();
-
-//@<OUT> WL#11465: Get the cluster options with 2 members down {VER(>=8.0.13)}
+//@<OUT> WL#11465: Get the cluster options with 2 members down
 cluster.options();
 
 //@ WL#11465: Finalization

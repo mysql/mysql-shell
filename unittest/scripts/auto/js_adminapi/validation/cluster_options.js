@@ -142,7 +142,7 @@
     }
 }
 
-//@<OUT> WL#11465: Get the cluster options 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: Get the cluster options {VER(>=5.7.24) && VER(<8.0.0)}
 {
     "clusterName": "testCluster",
     "defaultReplicaSet": {
@@ -323,6 +323,12 @@
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
+?{VER(>=8.0.17)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_clone_threshold"
+                },
+?{}
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
@@ -540,6 +546,12 @@
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
+?{VER(>=8.0.17)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_clone_threshold"
+                },
+?{}
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
@@ -757,6 +769,12 @@
                     "value": "OFF",
                     "variable": "group_replication_bootstrap_group"
                 },
+?{VER(>=8.0.17)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_clone_threshold"
+                },
+?{}
                 {
                     "value": "GCS_DEBUG_NONE",
                     "variable": "group_replication_communication_debug_options"
@@ -953,8 +971,7 @@
     }
 }
 
-
-//@<OUT> WL#11465: Get the cluster options 5.7 using 'all' {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: Get the cluster options using 'all' {VER(>=5.7.24) && VER(<8.0.0)}
 {
     "clusterName": "testCluster",
     "defaultReplicaSet": {
@@ -1455,7 +1472,7 @@
 //@ Kill instances 2 and 3
 ||
 
-//@<OUT> WL#11465: Get the cluster options with 2 members down 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: Get the cluster options with 2 members down {VER(>=5.7.24) && VER(<8.0.0)}
 {
     "clusterName": "testCluster",
     "defaultReplicaSet": {
