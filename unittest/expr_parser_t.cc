@@ -115,50 +115,50 @@ TEST(Expr_parser_tests, x_test) {
 TEST(Expr_parser_tests, x_test_cast) {
   parse_and_assert_expr("cast( ( mycol +  1 ) as signed integer )",
                         "[59, 6, 6, 19, 36, 76, 7, 56, 73, 75, 7]",
-                        "cast((mycol + 1), \"signed integer\")");
+                        "CAST((mycol + 1) AS signed integer)");
   parse_and_assert_expr("cast( concat( \"Hello\", \" World\" ) as char(11) )",
                         "[59, 6, 19, 6, 20, 24, 20, 7, 56, 67, 6, 76, 7, 7]",
-                        "cast(concat(\"Hello\", \" World\"), \"char(11)\")");
+                        "CAST(concat(\"Hello\", \" World\") AS char(11))");
   parse_and_assert_expr(
       "cast(doc->'$.foo' as char(30))",
       "[59, 6, 19, 82, 83, 77, 22, 19, 83, 56, 67, 6, 76, 7, 7]",
-      "cast(doc$.foo, \"char(30)\")");
+      "CAST(doc$.foo AS char(30))");
   parse_and_assert_expr("cast(1234 as unsigned int)",
                         "[59, 6, 76, 56, 74, 75, 7]",
-                        "cast(1234, \"unsigned int\")");
+                        "CAST(1234 AS unsigned int)");
   parse_and_assert_expr("cast(bla as decimal(4,3))",
                         "[59, 6, 19, 56, 72, 6, 76, 24, 76, 7, 7]",
-                        "cast(bla, \"decimal(4, 3)\")");
+                        "CAST(bla AS decimal(4, 3))");
   parse_and_assert_expr(
       "cast( ( now() - interval + 2 day > some_other_time() or cast( ( "
       "something_else IS NOT NULL ) as signed integer )) as int )",
       "[59, 6, 6, 19, 6, 7, 37, 16, 36, 76, 48, 27, 19, 6, 7, 3, 59, 6, 6, 19, "
       "5, 1, 12, 7, 56, 73, 75, 7, 7, 56, 75, 7]",
-      "cast((((now() - INTERVAL 2 day) > some_other_time()) || cast(NOT ( "
-      "(something_else IS NULL)), \"signed integer\")), \"int\")");
+      "CAST((((now() - INTERVAL 2 day) > some_other_time()) || CAST(NOT ( "
+      "(something_else IS NULL)) AS signed integer)) AS int)");
   parse_and_assert_expr(
       "cast( ( a is true and b is null and C + 1 > 40 and cast(mytime = now() "
       "as int ) or hungry()) as char(1) )",
       "[59, 6, 6, 19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 59, 6, "
       "19, 25, 19, 6, 7, 56, 75, 7, 3, 19, 6, 7, 7, 56, 67, 6, 76, 7, 7]",
-      "cast((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && cast((mytime "
-      "== now()), \"int\")) || hungry()), \"char(1)\")");
+      "CAST((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && CAST((mytime "
+      "== now()) AS int)) || hungry()) AS char(1))");
   parse_and_assert_expr("cast( '1/5/6' as datetime(6))",
                         "[59, 6, 20, 56, 70, 6, 76, 7, 7]",
-                        "cast(\"1/5/6\", \"datetime(6)\")");
+                        "CAST(\"1/5/6\" AS datetime(6))");
   parse_and_assert_expr("cast( '1:5' as time(5))",
                         "[59, 6, 20, 56, 71, 6, 76, 7, 7]",
-                        "cast(\"1:5\", \"time(5)\")");
+                        "CAST(\"1:5\" AS time(5))");
   parse_and_assert_expr(
       "cast( concat( \"Hello\", \" World\" ) as char(20) binary charset utf8)",
       "[59, 6, 19, 6, 20, 24, 20, 7, 56, 67, 6, 76, 7, 66, 62, 19, 7]",
-      "cast(concat(\"Hello\", \" World\"), \"char(20) binary charset utf8\")");
+      "CAST(concat(\"Hello\", \" World\") AS char(20) binary charset utf8)");
   parse_and_assert_expr(
       "cast( concat( \"Hello\", \" World\" ) as char(30) binary charset binary "
       ")",
       "[59, 6, 19, 6, 20, 24, 20, 7, 56, 67, 6, 76, 7, 66, 62, 66, 7]",
-      "cast(concat(\"Hello\", \" World\"), \"char(30) binary charset "
-      "binary\")");
+      "CAST(concat(\"Hello\", \" World\") AS char(30) binary charset "
+      "binary)");
   parse_and_assert_expr("binary mycol +  1", "[66, 19, 36, 76]",
                         "binary((mycol + 1))");
   parse_and_assert_expr(
@@ -166,8 +166,8 @@ TEST(Expr_parser_tests, x_test_cast) {
       "now() as int ) or hungry()) as char(1) )",
       "[66, 59, 6, 6, 19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 59, "
       "6, 19, 25, 19, 6, 7, 56, 75, 7, 3, 19, 6, 7, 7, 56, 67, 6, 76, 7, 7]",
-      "binary(cast((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && "
-      "cast((mytime == now()), \"int\")) || hungry()), \"char(1)\"))");
+      "binary(CAST((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && "
+      "CAST((mytime == now()) AS int)) || hungry()) AS char(1)))");
 }
 
 TEST(Expr_parser_tests, x_test_2) {

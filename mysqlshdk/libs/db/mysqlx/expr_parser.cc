@@ -618,17 +618,17 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::cast() {
   _tokenizer.consume_token(Token::LPAREN);
   std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
   std::unique_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
-  // function
-  result->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
-  Mysqlx::Expr::FunctionCall *func = result->mutable_function_call();
+  // operator
+  result->set_type(Mysqlx::Expr::Expr::OPERATOR);
+  Mysqlx::Expr::Operator *op = result->mutable_operator_();
   std::unique_ptr<Mysqlx::Expr::Identifier> id(new Mysqlx::Expr::Identifier());
-  id->set_name(std::string("cast"));
-  func->set_allocated_name(id.release());
+  op->set_name(std::string("cast"));
+  ::google::protobuf::RepeatedPtrField<::Mysqlx::Expr::Expr> *params =
+      op->mutable_param();
+
   // params
   // 1st arg, expr
   _tokenizer.consume_token(Token::AS);
-  ::google::protobuf::RepeatedPtrField<::Mysqlx::Expr::Expr> *params =
-      func->mutable_param();
   params->AddAllocated(e.release());
   // 2nd arg, cast_data_type
   const std::string &type_to_cast = cast_data_type();
@@ -1043,6 +1043,15 @@ std::string Expr_unparser::scalar_to_string(
   }
 }
 
+std::string Expr_unparser::data_type_to_string(
+    const Mysqlx::Datatypes::Scalar &s) {
+  if (s.type() == Mysqlx::Datatypes::Scalar::V_OCTETS) {
+    return s.v_octets().value();
+  } else {
+    throw Parser_error("Unknown data type at Scalar: " + s.DebugString());
+  }
+}
+
 std::string Expr_unparser::document_path_to_string(
     const ::google::protobuf::RepeatedPtrField<::Mysqlx::Expr::DocumentPathItem>
         &dp) {
@@ -1137,6 +1146,9 @@ std::string Expr_unparser::operator_to_string(
     return Expr_unparser::expr_to_string(ps.Get(0)) + " LIKE " +
            Expr_unparser::expr_to_string(ps.Get(1)) + " ESCAPE " +
            Expr_unparser::expr_to_string(ps.Get(2));
+  } else if (name == "CAST" && ps.size() == 2) {
+    return "CAST(" + Expr_unparser::expr_to_string(ps.Get(0)) + " AS " +
+           Expr_unparser::data_type_to_string(ps.Get(1).literal()) + ")";
   } else if (ps.size() == 2) {
     std::string op_name(op.name());
     std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::toupper);

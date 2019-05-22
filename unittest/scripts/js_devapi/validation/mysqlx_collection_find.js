@@ -302,3 +302,12 @@
     "name": "seven"
 }
 3 documents in set ([[*]] sec)
+
+//@<OUT> BUG29807711 VALID CAST EXPRESSIONS RESULT IN UNEXPECTED ERROR
+{
+    "_id": "4C514FF38144B714E7119BCF48B4CA01",
+    "age": 42,
+    "name": "foo"
+}
+1 document in set ([[*]])
+

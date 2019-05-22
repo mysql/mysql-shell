@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -139,6 +139,7 @@ class Expr_unparser {
   static std::string any_to_string(const Mysqlx::Datatypes::Any &a);
   static std::string escape_literal(const std::string &s);
   static std::string scalar_to_string(const Mysqlx::Datatypes::Scalar &s);
+  static std::string data_type_to_string(const Mysqlx::Datatypes::Scalar &s);
   static std::string document_path_to_string(
       const ::google::protobuf::RepeatedPtrField<
           ::Mysqlx::Expr::DocumentPathItem> &dp);

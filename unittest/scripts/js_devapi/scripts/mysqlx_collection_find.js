@@ -330,6 +330,13 @@ collection.find("`list` not overlaps `overlaps`").fields(["name"]).execute()
 // WL12767-TS3_1
 collection.find("list not OvErLaPs overlaps").fields(["name"]).execute()
 
+//@ BUG29807711 VALID CAST EXPRESSIONS RESULT IN UNEXPECTED ERROR
+var collection = schema.createCollection('bug29807711')
+var result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA01', "name": 'foo', "age": 42 }).execute()
+var result = collection.add({ "_id": '4C514FF38144B714E7119BCF48B4CA02', "name": 'bar', "age": 23 }).execute()
+
+collection.find("CAST('42' AS UNSIGNED INTEGER) = age").execute()
+
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();
