@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -398,19 +398,21 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "/* comment */# comment\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, results.size());
-  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  ASSERT_EQ(2, results.size());
+  EXPECT_FALSE(std::get<1>(results[1]).empty());
 
-  EXPECT_EQ("/* comment */# comment\nshow databases", std::get<0>(results[0]));
+  EXPECT_EQ("/* comment */# comment", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 
   sql =
       "/* comment */ # comment\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, results.size());
-  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  ASSERT_EQ(2, results.size());
+  EXPECT_FALSE(std::get<1>(results[1]).empty());
 
-  EXPECT_EQ("/* comment */ # comment\nshow databases", std::get<0>(results[0]));
+  EXPECT_EQ("/* comment */ # comment", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, continued_backtick_string) {
@@ -465,15 +467,17 @@ TEST_F(TestMySQLSplitter, delimiter_ignored_contexts) {
   send_sql(sql);
   ASSERT_EQ(1, results.size());
 
+  auto prev_context = context;
   sql = "/* this is an valid comment, delimiter ; inside */\n";
   send_sql(sql, true);
   ASSERT_EQ(0, results.size());
-  EXPECT_EQ("-", context);
+  EXPECT_EQ(prev_context, context);
 
+  prev_context = context;
   sql = "/* this is an valid comment, delimiter ; inside */\n";
   send_sql(sql, false);
   ASSERT_EQ(1, results.size());
-  EXPECT_EQ("-", context);
+  EXPECT_EQ(prev_context, context);
 
   sql = "select ';' as a;";
   send_sql(sql);
@@ -1103,6 +1107,45 @@ select $;)*"));
 
   EXPECT_EQ(strv({"drop table\ndelimiter ,\nfoobar;"}),
             split_batch("drop table\ndelimiter ,\nfoobar;"));
+  EXPECT_EQ(";", delimiter);
+
+  EXPECT_EQ(strv({"select 1//"}), split_batch("/* bla */\n"
+                                              "delimiter //\n"
+                                              "select 1//"));
+  EXPECT_EQ("//", delimiter);
+
+  EXPECT_EQ(strv({"-- bla", "select 1$$$"}), split_batch("-- bla\n"
+                                                         "delimiter $$$\n"
+                                                         "select 1$$$\n"));
+  EXPECT_EQ("$$$", delimiter);
+
+  EXPECT_EQ(strv({"select 1$$"}), split_batch("/* bla\n"
+                                              "bla */\n"
+                                              "delimiter $$\n"
+                                              "select 1$$\n"));
+  EXPECT_EQ("$$", delimiter);
+
+  EXPECT_EQ(strv({"# comment", "select 1#"}), split_batch("# comment\n"
+                                                          "delimiter #\n"
+                                                          "select 1#\n"));
+  EXPECT_EQ("#", delimiter);
+
+  EXPECT_EQ(strv({"select 1!%#", "show databases$$"}),
+            split_batch("\n"
+                        "DELIMITER !%#\n"
+                        "select 1!%#"
+                        "DELIMITER $$\n"
+                        "\n"
+                        "show databases$$\n"));
+  EXPECT_EQ("$$", delimiter);
+
+  EXPECT_EQ(strv({"show databases$$"}), split_batch("\n"
+                                                    "DELIMITER ;\n"
+                                                    "\n"
+                                                    "DELIMITER $$\n"
+                                                    "\n"
+                                                    "show databases$$\n"
+                                                    "delimiter ;"));
   EXPECT_EQ(";", delimiter);
 
   // TODO(alfredo): \d as delimiter change command

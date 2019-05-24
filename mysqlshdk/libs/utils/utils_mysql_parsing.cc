@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -203,6 +203,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
   };
 
   char *bos;  // beginning of statement
+  Context previous_context = Context::NONE;
 
   bos = m_ptr;
   for (;;) {
@@ -315,6 +316,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case '/':  // /* ... */
             if ((m_end - p) >= 3) {
               if (*(p + 1) == '*') {
+                previous_context = m_context;
                 if (*(p + 2) == '!' || *(p + 2) == '+') {
                   m_context = COMMENT_HINT;
                   p += 3;
@@ -333,7 +335,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case 'D':
             // Possible start of the keyword DELIMITER. Must be the 1st keyword
             // of a statement.
-            if (p == bos && (m_end - p >= k_delimiter_len) &&
+            if (m_context == NONE && (m_end - p >= k_delimiter_len) &&
                 shcore::str_caseeq(p, k_delimiter, k_delimiter_len)) {
               if (has_complete_line) {
                 // handle delimiter change directly here
@@ -410,6 +412,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           default:
           other:
             if (m_context != NONE || !is_any_blank(*p)) m_context = STATEMENT;
+            if (p == bos && is_any_blank(*p)) bos++;
             ++p;
             break;
         }
@@ -462,7 +465,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
           } else {
             p += 2;
-            m_context = STATEMENT;
+            m_context = previous_context;
           }
           break;
 
