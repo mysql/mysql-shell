@@ -27,6 +27,7 @@
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_process.h"
 #include "unittest/test_utils/mod_testutils.h"
+#include "unittest/test_utils/test_net_utilities.h"
 
 using mysqlshdk::db::replay::Mode;
 extern const char *g_mysqlsh_path;
@@ -122,6 +123,8 @@ class Devutil : public mysqlsh::Extensible_object {
   shcore::IShell_core *m_shell;
 };
 
+tests::Test_net_utilities test_net_utilities;
+
 }  // namespace
 
 void handle_debug_options(int *argc, char ***argv) {
@@ -148,6 +151,20 @@ void handle_debug_options(int *argc, char ***argv) {
 
       printf("Recording classic sessions to %s\n",
              mysqlshdk::db::replay::g_recording_path_prefix);
+
+      {
+        const auto hostname = getenv("MYSQL_HOSTNAME");
+
+        if (hostname) {
+          printf("Capturing network utilities on %s\n", hostname);
+          test_net_utilities.inject(hostname, {},
+                                    mysqlshdk::db::replay::Mode::Record);
+
+          std::map<std::string, std::string> info;
+          info["hostname"] = hostname;
+          mysqlshdk::db::replay::save_test_case_info(info);
+        }
+      }
     } else if (strcasecmp(mode, "replay") == 0) {
       mysqlshdk::db::replay::set_mode(Mode::Replay);
 
@@ -160,6 +177,16 @@ void handle_debug_options(int *argc, char ***argv) {
           getenv("MYSQLSH_RECORDER_PREFIX"));
       printf("Replaying classic sessions from %s\n",
              mysqlshdk::db::replay::g_recording_path_prefix);
+
+      {
+        auto info = mysqlshdk::db::replay::load_test_case_info();
+
+        if (info["net_data"] != "") {
+          test_net_utilities.inject(info["hostname"],
+                                    shcore::Value::parse(info["net_data"]),
+                                    mysqlshdk::db::replay::Mode::Replay);
+        }
+      }
     } else {
       printf("Invalid value for MYSQLSH_RECORDER_MODE '%s'\n", mode);
     }
@@ -236,6 +263,12 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 }
 
 void finalize_debug_shell(mysqlsh::Command_line_shell *shell) {
+  if (Mode::Record == mysqlshdk::db::replay::g_replay_mode) {
+    auto info = mysqlshdk::db::replay::load_test_case_info();
+    info["net_data"] = test_net_utilities.get_recorded().repr();
+    mysqlshdk::db::replay::save_test_case_info(info);
+  }
+
   // Automatically close recording sessions that may be still open
   mysqlshdk::db::replay::on_recorder_connect_hook = {};
   mysqlshdk::db::replay::on_recorder_close_hook = {};
@@ -249,4 +282,6 @@ void finalize_debug_shell(mysqlsh::Command_line_shell *shell) {
 
   shell->set_global_object("testutil", {});
   shell->set_global_object("devutil", {});
+
+  test_net_utilities.remove();
 }

@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "unittest/test_utils/test_net_utilities.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
@@ -53,244 +54,6 @@ class My_random : public mysqlshdk::utils::Random {
 
  private:
   int ts = 0;
-};
-
-/**
- * Network utilities used by the unit tests.
- */
-class Test_net_utilities : public mysqlshdk::utils::Net {
- public:
-  ~Test_net_utilities() override { remove(); }
-
-  /**
-   * Injects this instance of network utilities, replacing the default
-   * behaviour.
-   */
-  void inject(const std::string &hostname, const shcore::Value &data) {
-    if (data)
-      m_recorded_data = data.as_map();
-    else
-      m_recorded_data = shcore::make_dict();
-    m_hostname = hostname;
-    set(this);
-  }
-
-  shcore::Value get_recorded() const { return shcore::Value(m_recorded_data); }
-
-  /**
-   * Removes the injected instance, restoring the default behaviour.
-   */
-  void remove() {
-    if (get() == this) set(nullptr);
-  }
-
- protected:
-  std::string m_hostname;
-  mutable shcore::Dictionary_t m_recorded_data;
-  mutable std::map<std::string, size_t> m_recorded_data_index;
-
-  /**
-   * Allows to resolve the hostname stored by the shell test environment.
-   */
-  std::vector<std::string> resolve_hostname_ipv4_all_impl(
-      const std::string &name) const override {
-    std::vector<std::string> result;
-
-    switch (g_test_recording_mode) {
-      case mysqlshdk::db::replay::Mode::Record:
-        try {
-          result = Net::resolve_hostname_ipv4_all_impl(name);
-          add_recorded("resolve_hostname_ipv4_all:" + name, result);
-        } catch (std::exception &) {
-          add_recorded_exc("resolve_hostname_ipv4_all:" + name);
-          throw;
-        }
-        break;
-      case mysqlshdk::db::replay::Mode::Replay:
-        result = get_recorded_strv("resolve_hostname_ipv4_all:" + name, true);
-        break;
-      case mysqlshdk::db::replay::Mode::Direct:
-        result = Net::resolve_hostname_ipv4_all_impl(name);
-        break;
-    }
-    return result;
-  }
-
-  bool is_local_address_impl(const std::string &address) const override {
-    bool result = false;
-
-    switch (g_test_recording_mode) {
-      case mysqlshdk::db::replay::Mode::Record:
-        try {
-          result = Net::is_local_address_impl(address);
-          add_recorded("is_local_address:" + address, result);
-        } catch (std::exception &) {
-          add_recorded_exc("is_local_address:" + address);
-          throw;
-        }
-        break;
-      case mysqlshdk::db::replay::Mode::Replay:
-        result = get_recorded_bool("is_local_address:" + address, true);
-        break;
-      case mysqlshdk::db::replay::Mode::Direct:
-        result = Net::is_local_address_impl(address);
-        break;
-    }
-
-    return result;
-  }
-
-  bool is_loopback_impl(const std::string &address) const override {
-    bool result = false;
-
-    switch (g_test_recording_mode) {
-      case mysqlshdk::db::replay::Mode::Record:
-        try {
-          result = Net::is_loopback_impl(address);
-          add_recorded("is_loopback:" + address, result);
-        } catch (std::exception &) {
-          add_recorded_exc("is_loopback:" + address);
-          throw;
-        }
-        break;
-      case mysqlshdk::db::replay::Mode::Replay:
-        result = get_recorded_bool("is_loopback:" + address, true);
-        break;
-      case mysqlshdk::db::replay::Mode::Direct:
-        result = Net::is_loopback_impl(address);
-        break;
-    }
-
-    return result;
-  }
-
-  std::string get_hostname_impl() const override { return m_hostname; }
-
-  bool is_port_listening_impl(const std::string &address,
-                              int port) const override {
-    bool result = false;
-    std::string key =
-        "is_port_listening:" + address + "/" + std::to_string(port);
-
-    switch (g_test_recording_mode) {
-      case mysqlshdk::db::replay::Mode::Record:
-        try {
-          result = Net::is_port_listening_impl(address, port);
-          add_recorded(key, result);
-        } catch (std::exception &) {
-          add_recorded_exc(key);
-          throw;
-        }
-        break;
-      case mysqlshdk::db::replay::Mode::Replay:
-        result = get_recorded_bool(key, false);
-        break;
-      case mysqlshdk::db::replay::Mode::Direct:
-        result = Net::is_port_listening_impl(address, port);
-        break;
-    }
-
-    return result;
-  }
-
-  bool get_recorded_bool(const std::string &key, bool is_static) const {
-    if (!m_recorded_data->has_key(key))
-      throw std::logic_error("Net_utils: Recorded data has no data for " + key);
-
-    shcore::Array_t array = m_recorded_data->get_array(key);
-    size_t idx = m_recorded_data_index[key];
-    if (!array || idx >= array->size())
-      throw std::logic_error(
-          "Net_utils: Recorded data has not enough data for " + key);
-    if (!is_static) m_recorded_data_index[key] = idx + 1;
-
-    shcore::Value value = array->at(idx);
-    if (value.type == shcore::Map) {
-      if (value.as_map()->get_string("type") == "net_error")
-        throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
-      else
-        throw std::runtime_error(value.as_map()->get_string("what"));
-    }
-    return value.as_bool();
-  }
-
-  void add_recorded(const std::string &key, bool value) const {
-    shcore::Array_t array;
-    if (!m_recorded_data->has_key(key)) {
-      array = shcore::make_array();
-      m_recorded_data->set(key, shcore::Value(array));
-    } else {
-      array = m_recorded_data->get_array(key);
-    }
-    array->push_back(shcore::Value(value));
-  }
-
-  std::vector<std::string> get_recorded_strv(const std::string &key,
-                                             bool is_static) const {
-    if (!m_recorded_data->has_key(key))
-      throw std::logic_error("Net_utils: Recorded data has no data for " + key);
-
-    shcore::Array_t array = m_recorded_data->get_array(key);
-    size_t idx = m_recorded_data_index[key];
-    if (!array || idx >= array->size())
-      throw std::logic_error(
-          "Net_utils: Recorded data has not enough data for " + key);
-    if (!is_static) m_recorded_data_index[key] = idx + 1;
-
-    shcore::Value value = array->at(idx);
-    if (value.type == shcore::Map) {
-      if (value.as_map()->get_string("type") == "net_error")
-        throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
-      else
-        throw std::runtime_error(value.as_map()->get_string("what"));
-    }
-
-    std::vector<std::string> strv;
-    shcore::Array_t a = value.as_array();
-    for (size_t i = 0; i < a->size(); i++) {
-      strv.push_back(a->at(i).as_string());
-    }
-    return strv;
-  }
-
-  void add_recorded_exc(const std::string &key) const {
-    shcore::Array_t array;
-    if (!m_recorded_data->has_key(key)) {
-      array = shcore::make_array();
-      m_recorded_data->set(key, shcore::Value(array));
-    } else {
-      array = m_recorded_data->get_array(key);
-    }
-    shcore::Dictionary_t dict = shcore::make_dict();
-    try {
-      throw;
-    } catch (mysqlshdk::utils::net_error &e) {
-      dict->set("type", shcore::Value("net_error"));
-      dict->set("what", shcore::Value(e.what()));
-    } catch (std::exception &e) {
-      dict->set("type", shcore::Value("exception"));
-      dict->set("what", shcore::Value(e.what()));
-    }
-
-    array->push_back(shcore::Value(dict));
-  }
-
-  void add_recorded(const std::string &key,
-                    const std::vector<std::string> &value) const {
-    shcore::Array_t array;
-    if (!m_recorded_data->has_key(key)) {
-      array = shcore::make_array();
-      m_recorded_data->set(key, shcore::Value(array));
-    } else {
-      array = m_recorded_data->get_array(key);
-    }
-
-    shcore::Array_t strv = shcore::make_array();
-    for (const auto &s : value) {
-      strv->push_back(shcore::Value(s));
-    }
-    array->push_back(shcore::Value(strv));
-  }
 };
 
 Test_net_utilities test_net_utilities;
@@ -572,7 +335,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     // Net::is_loopback() will replay with the same environment as where
     // traces were recorded
     test_net_utilities.inject(m_hostname,
-                              shcore::Value::parse(info["net_data"]));
+                              shcore::Value::parse(info["net_data"]),
+                              mysqlshdk::db::replay::Mode::Replay);
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
     _recording = true;
     std::map<std::string, std::string> info;
@@ -585,7 +349,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     info["real_hostname"] = s_real_hostname;
     info["real_host_is_loopback"] = s_real_host_is_loopback ? "1" : "0";
 
-    test_net_utilities.inject(s_hostname, {});
+    test_net_utilities.inject(s_hostname, {},
+                              mysqlshdk::db::replay::Mode::Record);
 
     mysqlshdk::db::replay::save_test_case_info(info);
   }

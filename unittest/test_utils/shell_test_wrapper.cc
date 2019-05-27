@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "shellcore/interrupt_handler.h"
 #include "unittest/test_utils/shell_test_env.h"
+#include "unittest/test_utils/test_net_utilities.h"
 
 extern char *g_mppath;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
@@ -41,6 +42,8 @@ extern mysqlshdk::utils::Version g_target_server_version;
 using TestingMode = mysqlshdk::db::replay::Mode;
 
 namespace tests {
+
+namespace {
 
 class My_random : public mysqlshdk::utils::Random {
  public:
@@ -51,6 +54,10 @@ class My_random : public mysqlshdk::utils::Random {
  private:
   int ts = 0;
 };
+
+Test_net_utilities test_net_utilities;
+
+}  // namespace
 
 Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
   const char *tmpdir = getenv("TMPDIR");
@@ -284,11 +291,11 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
+    std::map<std::string, std::string> info;
     // Some environmental or random data can change between recording and
     // replay time. Such data must be ensured to match between both.
     try {
-      std::map<std::string, std::string> info =
-          mysqlshdk::db::replay::load_test_case_info();
+      info = mysqlshdk::db::replay::load_test_case_info();
 
       // Override environment dependant data with the same values that were
       // used and saved during recording
@@ -310,6 +317,12 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
       _mysql_sandbox_port3 = "3336";
       _mysql_sandbox_nport3 = 3336;
     }
+
+    // Inject the recorded environment, so that tests that call things like
+    // Net::is_loopback() will replay with the same environment as where
+    // traces were recorded
+    test_net_utilities.inject(_hostname, shcore::Value::parse(info["net_data"]),
+                              mysqlshdk::db::replay::Mode::Replay);
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
     std::map<std::string, std::string> info;
 
@@ -318,6 +331,9 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
     info["sandbox_port3"] = _mysql_sandbox_port3;
     info["hostname"] = _hostname;
     info["hostname_ip"] = _hostname_ip;
+
+    test_net_utilities.inject(_hostname, {},
+                              mysqlshdk::db::replay::Mode::Record);
 
     mysqlshdk::db::replay::save_test_case_info(info);
   }
@@ -340,7 +356,14 @@ void Shell_test_wrapper::teardown_recorder() {
     // trace dir, no conditions set right now
     shcore::delete_file(mysqlshdk::db::replay::current_recording_dir() +
                         "/FAILED");
+
+    auto info = mysqlshdk::db::replay::load_test_case_info();
+    info["net_data"] = test_net_utilities.get_recorded().repr();
+    mysqlshdk::db::replay::save_test_case_info(info);
   }
+
+  test_net_utilities.remove();
+
   mysqlshdk::db::replay::end_recording_context();
 }
 

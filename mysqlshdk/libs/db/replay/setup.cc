@@ -115,7 +115,9 @@ std::string next_replay_path(const std::string &type) {
 }
 
 void save_test_case_info(const std::map<std::string, std::string> &state) {
-  save_info(current_recording_dir() + "/info", state);
+  const auto dir = current_recording_dir();
+  shcore::ensure_dir_exists(dir);
+  save_info(dir + "/info", state);
 }
 
 std::map<std::string, std::string> load_test_case_info() {
