@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,7 +56,7 @@ void create_user_with_random_password(
     const std::shared_ptr<db::ISession> &session, const std::string &user,
     const std::vector<std::string> &hosts,
     const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    std::string *out_password);
+    std::string *out_password, bool disable_pwd_expire = false);
 
 std::string generate_password(size_t password_length = kPASSWORD_LENGTH);
 

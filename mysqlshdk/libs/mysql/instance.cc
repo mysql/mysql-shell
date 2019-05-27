@@ -520,14 +520,21 @@ void Instance::uninstall_plugin(const std::string &plugin_name) const {
  *               object to grant those privileges on (e.g., "mysql.*"), and the
  *               third is a boolean value indicating if the grants will be
  *               given with the "GRANT OPTION" privilege (true) or not (false).
+ * @param disable_pwd_expire boolean indicating if password expiration will be
+ *                           disabled (true) or not. By default, false: no
+ *                           password expiration policy is set.
  */
 void Instance::create_user(
     const std::string &user, const std::string &host, const std::string &pwd,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants)
-    const {
+    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+    bool disable_pwd_expire) const {
   // Create the user
-  static const std::string create_stmt_fmt =
+  std::string create_stmt_fmt =
       "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/";
+  if (disable_pwd_expire) {
+    // Disable password expiration for user (if desired).
+    create_stmt_fmt.append(" PASSWORD EXPIRE NEVER");
+  }
   shcore::sqlstring create_stmt = shcore::sqlstring(create_stmt_fmt.c_str(), 0);
   create_stmt << user;
   create_stmt << host;

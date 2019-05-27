@@ -964,6 +964,9 @@ void create_replication_random_user_pass(
  * Create a replication (recovery) user with the required privileges for
  * Group Replication and a randomly generated password.
  *
+ * NOTE: The replication (recovery) user is always created with disabled
+ *       password expiration (see: BUG#28855764).
+ *
  * @param instance session object to connect to the target instance.
  * @param user string with the username that will be used.
  * @param hosts list of strings with the host part for the user account. If none
@@ -984,7 +987,7 @@ void create_replication_user_random_pass(
   mysql::create_user_with_random_password(
       instance.get_session(), user,
       hosts.empty() ? std::vector<std::string>({"%"}) : hosts, gr_grants,
-      out_pwd);
+      out_pwd, true);
 }
 
 /**

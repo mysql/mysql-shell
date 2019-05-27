@@ -91,10 +91,11 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD1(uninstall_plugin, void(const std::string &));
   MOCK_CONST_METHOD1(get_plugin_status, mysqlshdk::utils::nullable<std::string>(
                                             const std::string &));
-  MOCK_CONST_METHOD4(
+  MOCK_CONST_METHOD5(
       create_user,
       void(const std::string &, const std::string &, const std::string &,
-           const std::vector<std::tuple<std::string, std::string, bool>> &));
+           const std::vector<std::tuple<std::string, std::string, bool>> &,
+           bool));
   MOCK_CONST_METHOD3(drop_user,
                      void(const std::string &, const std::string &, bool));
   MOCK_CONST_METHOD1(drop_users_with_regexp, void(const std::string &));

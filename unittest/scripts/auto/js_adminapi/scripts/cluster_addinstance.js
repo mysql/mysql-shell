@@ -8,6 +8,23 @@ function print_metadata_instance_addresses(session) {
     print("\n");
 }
 
+function get_recovery_user(session) {
+    var res = session.runSql(
+        "SELECT user_name FROM mysql.slave_master_info " +
+        "WHERE Channel_name = 'group_replication_recovery'");
+    var row = res.fetchOne();
+    return row[0];
+}
+
+function number_of_non_expiring_pwd_accounts(session, user) {
+    // Account with non expiring password have password_lifetime = 0.
+    var res = session.runSql(
+        "SELECT COUNT(*)  FROM mysql.user u WHERE u.user = '" + user +
+        "' AND password_lifetime = 0");
+    var row = res.fetchOne();
+    return row[0];
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -645,6 +662,38 @@ var c = dba.createCluster('test');
 c.addInstance(__hostname_uri2);
 
 //@ BUG#29809560: clean-up.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#28855764: user created by shell expires with default_password_lifetime
+//@ BUG#28855764: deploy sandboxes.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@ BUG#28855764: create cluster.
+shell.connect(__hostname_uri1);
+var c = dba.createCluster('test');
+
+//@ BUG#28855764: add instance an instance to the cluster
+c.addInstance(__hostname_uri2);
+
+//@ BUG#28855764: get recovery user for instance 2.
+session.close();
+shell.connect(__hostname_uri2);
+var recovery_user_2 = get_recovery_user(session);
+
+//@ BUG#28855764: get recovery user for instance 1.
+session.close();
+shell.connect(__hostname_uri1);
+var recovery_user_1 = get_recovery_user(session);
+
+//@<> BUG#28855764: Passwords for recovery users never expire (password_lifetime=0).
+print("Number of accounts for '" + recovery_user_1 + "': " + number_of_non_expiring_pwd_accounts(session, recovery_user_1) + "\n");
+print("Number of accounts for '" + recovery_user_2 + "': " + number_of_non_expiring_pwd_accounts(session, recovery_user_2) + "\n");
+
+//@ BUG#28855764: clean-up.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

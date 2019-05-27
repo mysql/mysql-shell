@@ -230,3 +230,26 @@ Cluster.addInstance: The server_id '666' is already used by instance '<<<hostnam
 
 //@ BUG#29809560: clean-up.
 ||
+
+// BUG#28855764: user created by shell expires with default_password_lifetime
+//@ BUG#28855764: deploy sandboxes.
+||
+
+//@ BUG#28855764: create cluster.
+||
+
+//@ BUG#28855764: add instance an instance to the cluster
+||
+
+//@ BUG#28855764: get recovery user for instance 2.
+||
+
+//@ BUG#28855764: get recovery user for instance 1.
+||
+
+//@<OUT> BUG#28855764: Passwords for recovery users never expire (password_lifetime=0).
+Number of accounts for '<<<recovery_user_1>>>': 2
+Number of accounts for '<<<recovery_user_2>>>': 2
+
+//@ BUG#28855764: clean-up.
+||

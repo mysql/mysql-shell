@@ -126,8 +126,8 @@ class IInstance {
       const std::string &plugin_name) const = 0;
   virtual void create_user(
       const std::string &user, const std::string &host, const std::string &pwd,
-      const std::vector<std::tuple<std::string, std::string, bool>> &privileges)
-      const = 0;
+      const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+      bool disable_pwd_expire) const = 0;
   virtual void drop_user(const std::string &user, const std::string &host,
                          bool if_exists = false) const = 0;
   virtual void drop_users_with_regexp(const std::string &regexp) const = 0;
@@ -254,10 +254,10 @@ class Instance : public IInstance {
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(
       const std::string &plugin_name) const override;
-  void create_user(const std::string &user, const std::string &host,
-                   const std::string &pwd,
-                   const std::vector<std::tuple<std::string, std::string, bool>>
-                       &grants) const override;
+  void create_user(
+      const std::string &user, const std::string &host, const std::string &pwd,
+      const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+      bool disable_pwd_expire = false) const override;
   void drop_user(const std::string &user, const std::string &host,
                  bool if_exists = false) const override;
   void drop_users_with_regexp(const std::string &regexp) const override;

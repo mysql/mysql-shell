@@ -237,7 +237,7 @@ void create_user_with_random_password(
     const std::shared_ptr<db::ISession> &session, const std::string &user,
     const std::vector<std::string> &hosts,
     const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    std::string *out_password) {
+    std::string *out_password, bool disable_pwd_expire) {
   assert(!hosts.empty());
   Instance inst(session);
 
@@ -245,7 +245,8 @@ void create_user_with_random_password(
 
   for (int i = 0;; i++) {
     try {
-      inst.create_user(user, hosts.front(), *out_password, grants);
+      inst.create_user(user, hosts.front(), *out_password, grants,
+                       disable_pwd_expire);
       break;
     } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
@@ -267,7 +268,7 @@ void create_user_with_random_password(
 
   // subsequent user creations shouldn't fail b/c of password
   for (size_t i = 1; i < hosts.size(); i++) {
-    inst.create_user(user, hosts[i], *out_password, grants);
+    inst.create_user(user, hosts[i], *out_password, grants, disable_pwd_expire);
   }
 }
 
