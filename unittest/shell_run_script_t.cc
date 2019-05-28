@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -217,6 +217,7 @@ select error;)*");
                         "  pass\n\n"
                         "session.sql('select 1').execute();\n"
                         "session.sql('select 1').execute();\n");
+    shcore::create_file("prompt_new_line", "[1, 2, 3]\n");
     // disable prompt theme, so we can check output along with prompt
     putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME=invalid"));
   }
@@ -236,6 +237,7 @@ select error;)*");
     shcore::delete_file("reconnect_mysqlx.js");
     shcore::delete_file("reconnect_mysql.py");
     shcore::delete_file("reconnect_mysqlx.py");
+    shcore::delete_file("prompt_new_line");
     putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   }
 };
@@ -882,6 +884,17 @@ ERROR: 1054 at line 6: Unknown column 'error' in 'field list')*";
   wipe_out();
   execute({_mysqlsh, _uri.c_str(), "--sql", nullptr}, nullptr,
           "error_test.sql");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
+}
+
+TEST_F(ShellExeRunScript, bug29699640) {
+  static constexpr auto expected_output = R"*(> [1, 2, 3]
+[1,2,3]
+mysql-)*";
+
+  wipe_out();
+  execute({_mysqlsh, "--interactive=full", "--json=raw", mode.c_str(), nullptr},
+          nullptr, "prompt_new_line");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
 }
 

@@ -553,7 +553,8 @@ void Shell_console::print_value(const shcore::Value &value,
     // If no tag is provided, prints the JSON representation of the Value
     if (tag.empty()) {
       output = value.json(mysqlsh::current_shell_options()->get().wrap_json ==
-                          "json");
+                          "json") +
+               "\n";
     } else {
       if (value.type == shcore::String)
         output = json_obj(tag.c_str(), value.get_string());
@@ -561,10 +562,9 @@ void Shell_console::print_value(const shcore::Value &value,
         output = json_obj(tag.c_str(), value);
     }
 
+    // JSON output is always printed to stdout
     delegate_print(output.c_str());
   } else {
-    bool add_new_line = true;
-
     if (tag == "error" && value.type == shcore::Map) {
       output = "ERROR";
       shcore::Value::Map_type_ref error_map = value.as_map();
@@ -590,7 +590,7 @@ void Shell_console::print_value(const shcore::Value &value,
       output = value.descr(true);
     }
 
-    if (add_new_line) output += "\n";
+    output += "\n";
 
     if (tag == "error")
       delegate_print_diag(output.c_str());

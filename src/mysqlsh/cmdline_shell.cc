@@ -118,9 +118,19 @@ static int utf8_bytes_length(unsigned char c) {
   return lengths[c];
 }
 
-void write_to_console(int fd, const char *text) {
+/**
+ * Writes the specified text to the given file descriptor.
+ *
+ * @param fd - file desriptor to write to
+ * @param text - text to be written
+ *
+ * @returns true if the specified text ends with a newline character.
+ */
+bool write_to_console(int fd, const char *text) {
   const char *p = text;
   size_t bytes_left = strlen(text);
+  bool has_newline = (bytes_left > 0) && (text[bytes_left - 1] == '\n');
+
   while (bytes_left > 0) {
     int flush_bytes = BUFSIZ < bytes_left ? BUFSIZ : bytes_left;
     const char *flush_end = p + flush_bytes;
@@ -172,6 +182,8 @@ void write_to_console(int fd, const char *text) {
     bytes_left -= bytes_written;
     p += bytes_written;
   }
+
+  return has_newline;
 }
 
 void print_diag(const std::string &s) { current_console()->print_diag(s); }
@@ -271,8 +283,6 @@ Command_line_shell::Command_line_shell(
   if (m_suppress_output) {
     current_console()->add_print_handler(&m_suppressed_handler);
   }
-
-  _output_printed = false;
 
   g_instance = this;
 
@@ -598,8 +608,7 @@ bool Command_line_shell::deleg_delayed_print_error(void *cdata,
 bool Command_line_shell::deleg_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    write_to_console(fileno(stdout), text);
-    self->_output_printed = true;
+    self->m_prompt_requires_newline = !write_to_console(fileno(stdout), text);
   }
   return true;
 }
@@ -607,8 +616,7 @@ bool Command_line_shell::deleg_print(void *cdata, const char *text) {
 bool Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    write_to_console(fileno(stderr), text);
-    self->_output_printed = true;
+    self->m_prompt_requires_newline = !write_to_console(fileno(stderr), text);
   }
   return true;
 }
@@ -616,8 +624,7 @@ bool Command_line_shell::deleg_print_error(void *cdata, const char *text) {
 bool Command_line_shell::deleg_print_diag(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    write_to_console(fileno(stderr), text);
-    self->_output_printed = true;
+    self->m_prompt_requires_newline = !write_to_console(fileno(stderr), text);
   }
   return true;
 }
@@ -819,10 +826,9 @@ void Command_line_shell::command_loop() {
       if (using_tty) {
         // Ensure prompt is in its own line, in case there was any output
         // without a \n
-        if (_output_printed) {
+        if (m_prompt_requires_newline) {
           mysqlsh::current_console()->raw_print(
               "\n", mysqlsh::Output_stream::STDOUT, false);
-          _output_printed = false;
         }
         char *tmp = Command_line_shell::readline(prompt().c_str());
         if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
@@ -841,9 +847,15 @@ void Command_line_shell::command_loop() {
           break;
         }
       } else {
-        if (options().full_interactive)
+        if (options().full_interactive) {
+          if (m_prompt_requires_newline) {
+            mysqlsh::current_console()->raw_print(
+                "\n", mysqlsh::Output_stream::STDOUT, false);
+          }
+
           mysqlsh::current_console()->raw_print(
               prompt(), mysqlsh::Output_stream::STDOUT, false);
+        }
         if (!std::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
             _interrupted = false;

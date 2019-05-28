@@ -132,7 +132,7 @@ class Command_line_shell : public Mysql_shell,
   std::vector<std::pair<int, std::string>> _full_output;
   std::vector<std::pair<int, std::string>> _delayed_output;
   Prompt_manager _prompt;
-  bool _output_printed;
+  bool m_prompt_requires_newline = false;
   const std::string m_default_pager;
   std::string m_current_session_uri;
 
