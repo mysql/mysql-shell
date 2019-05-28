@@ -1,6 +1,13 @@
 //@ Deploy sandbox in dir with space
 ||
 
+//@<OUT> BUG#29634828 AdminAPI should handle localhost and sandboxes better
++---------------+
+| @@report_host |
++---------------+
+| 127.0.0.1     |
++---------------+
+
 //@ Stop sandbox in dir with space
 ||
 

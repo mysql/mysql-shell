@@ -533,6 +533,7 @@ def create_sandbox(**kwargs):
         "datadir": datadir.replace("\\", "/"),
         "loose_log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.
         "report_port": port,
+        "report_host": "127.0.0.1",
         "log_error": os.path.join(datadir, "error.log").replace("\\", "/"),
         "relay_log_info_repository": "TABLE",
         "binlog_checksum": "NONE",
