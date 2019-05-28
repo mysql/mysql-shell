@@ -77,7 +77,7 @@ class Replayer_mysql : public mysql::Session {
 class Result_mysql : public db::mysql::Result {
  public:
   Result_mysql(uint64_t affected_rows, unsigned int warning_count,
-               uint64_t last_insert_id, const char *info,
+               uint64_t last_insert_id, const char *info, bool buffered,
                const std::vector<std::string> &gtids);
 
   const db::IRow *fetch_one() override {

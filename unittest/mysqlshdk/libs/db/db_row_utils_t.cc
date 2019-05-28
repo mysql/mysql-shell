@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -95,6 +95,37 @@ TEST_F(Row_utils, fetch_one_n) {
     EXPECT_EQ(1, rowcopy.get_uint("one"));
     EXPECT_EQ("two", rowcopy.get_string("two"));
     EXPECT_THROW(rowcopy.get_string("three"), std::invalid_argument);
+  } while (switch_proto());
+}
+
+TEST_F(Row_utils, fetch_by_name_multi_results) {
+  do {
+    SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
+    ASSERT_NO_THROW(session->connect(Connection_options(uri())));
+
+    session->execute("drop schema if exists bug29451154");
+    session->execute("create schema bug29451154");
+    session->execute("use bug29451154");
+    session->execute(
+        "CREATE PROCEDURE samplesp() BEGIN "
+        "SELECT 'name','last_name', 1 as number; SELECT 1 as one, 2 as two; "
+        "END;");
+    auto result = session->query("call samplesp()");
+    auto rowa = result->fetch_one_named();
+    {
+      EXPECT_EQ("name", rowa.get_string("name"));
+      EXPECT_EQ("last_name", rowa.get_string("last_name"));
+      EXPECT_EQ(1, rowa.get_uint("number"));
+    }
+
+    result->next_resultset();
+    auto rowb = result->fetch_one_named();
+    {
+      EXPECT_EQ(1, rowb.get_uint("one"));
+      EXPECT_EQ(2, rowb.get_uint("two"));
+    }
+    EXPECT_TRUE(result->next_resultset());
+    session->execute("drop schema bug29451154");
   } while (switch_proto());
 }
 

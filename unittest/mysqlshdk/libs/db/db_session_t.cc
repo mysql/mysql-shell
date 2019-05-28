@@ -153,9 +153,7 @@ TEST_F(Db_tests, query) {
       EXPECT_NO_THROW(session->execute(procedure));
       auto result = session->query("call test_query()");
       EXPECT_TRUE(result->next_resultset());
-      if (!is_classic) {
-        EXPECT_TRUE(result->next_resultset());
-      }
+      EXPECT_TRUE(result->next_resultset());
       EXPECT_FALSE(result->next_resultset());
     }
 

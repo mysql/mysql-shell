@@ -668,7 +668,7 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
     std::string gtids = obj.HasMember("gtids") ? get_string(obj["gtids"]) : "";
 
     std::shared_ptr<Result_mysql> result(new Result_mysql(
-        affected_rows, warning_count, last_insert_id, info.c_str(),
+        affected_rows, warning_count, last_insert_id, info.c_str(), false,
         gtids.empty() ? std::vector<std::string>()
                       : shcore::str_split(gtids, ",")));
 

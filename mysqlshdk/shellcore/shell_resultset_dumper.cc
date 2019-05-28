@@ -562,11 +562,19 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
     return true;
   });
 
-  if (m_wrap_json != "off")
+  if (m_wrap_json != "off") {
     dump_json(item_label, is_doc_result);
-  else
+  } else {
+    bool first = true;
     do {
       size_t count = 0;
+      // Prints a blank line between multi-results
+      if (first) {
+        first = false;
+      } else {
+        m_printer->print("\n");
+      }
+
       if (m_result->has_resultset()) {
         // Data requires to be buffered on table format because it will be
         // traversed once for proper formatting and once for printing it
@@ -610,7 +618,9 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
 
       // Prints the warnings if there were any
       if (warning_count && m_show_warnings) dump_warnings();
+
     } while (m_result->next_resultset() && !m_cancelled);
+  }
 
   if (m_cancelled)
     m_printer->println(

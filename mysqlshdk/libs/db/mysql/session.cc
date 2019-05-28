@@ -297,9 +297,8 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
   std::shared_ptr<Result> result(
       new Result(shared_from_this(), mysql_affected_rows(_mysql),
                  mysql_warning_count(_mysql), mysql_insert_id(_mysql),
-                 mysql_info(_mysql)));
+                 mysql_info(_mysql), buffered));
 
-  prepare_fetch(result.get(), buffered);
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());
   return std::static_pointer_cast<IResult>(result);
@@ -317,10 +316,10 @@ bool Session_impl::next_resultset() {
   return mysql_next_result(_mysql) == 0;
 }
 
-void Session_impl::prepare_fetch(Result *target, bool buffered) {
+void Session_impl::prepare_fetch(Result *target) {
   MYSQL_RES *result;
 
-  if (buffered)
+  if (target->is_buffered())
     result = mysql_store_result(_mysql);
   else
     result = mysql_use_result(_mysql);
@@ -332,8 +331,6 @@ void Session_impl::prepare_fetch(Result *target, bool buffered) {
     // We need to update the received result object with the information
     // for the next result set
     target->reset(_prev_result);
-
-    target->fetch_metadata();
   } else {
     // Update the result object for stmts that don't return a result
     target->reset(nullptr);

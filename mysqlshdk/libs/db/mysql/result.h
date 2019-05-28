@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,10 +68,12 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual void buffer();
   virtual void rewind();
 
+  bool is_buffered() { return m_buffered; }
+
  protected:
   Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
          uint64_t affected_rows, unsigned int warning_count,
-         uint64_t last_insert_id, const char *info);
+         uint64_t last_insert_id, const char *info, bool buffered);
   void reset(std::shared_ptr<MYSQL_RES> res);
 
   std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
@@ -103,6 +105,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   std::list<std::unique_ptr<Warning>> _warnings;
   bool _has_resultset = false;
   bool _fetched_warnings = false;
+  bool m_buffered = false;
 };
 }  // namespace mysql
 }  // namespace db

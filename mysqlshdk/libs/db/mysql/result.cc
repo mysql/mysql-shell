@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,14 +38,18 @@ namespace db {
 namespace mysql {
 Result::Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
                uint64_t affected_rows_, unsigned int warning_count_,
-               uint64_t last_insert_id, const char *info_)
+               uint64_t last_insert_id, const char *info_, bool buffered)
     : _session(owner),
       _affected_rows(affected_rows_),
       _last_insert_id(last_insert_id),
       _warning_count(warning_count_),
       _fetched_row_count(0),
-      _has_resultset(false) {
+      _has_resultset(false),
+      m_buffered(buffered) {
   if (info_) _info.assign(info_);
+  if (owner) {
+    owner->prepare_fetch(this);
+  }
 }
 
 // MYSQL-SERVER-CODE mysql.cc:3341
@@ -228,9 +232,11 @@ const IRow *Result::fetch_one() {
 bool Result::next_resultset() {
   bool ret_val = false;
 
-  if (auto s = _session.lock()) ret_val = s->next_resultset();
+  if (auto s = _session.lock()) {
+    ret_val = s->next_resultset();
 
-  _fetched_row_count = 0;
+    if (ret_val) s->prepare_fetch(this);
+  }
 
   return ret_val;
 }
@@ -274,11 +280,18 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
 }
 
 void Result::reset(std::shared_ptr<MYSQL_RES> res) {
+  _field_names.reset();
   _has_resultset = false;
-
-  if (res) _has_resultset = true;
-
+  _pre_fetched = false;
+  _fetched_row_count = 0;
+  _pre_fetched_rows.clear();
   _result = res;
+
+  if (res) {
+    _has_resultset = true;
+    fetch_metadata();
+  }
+
   if (auto s = _session.lock()) _gtids = s->get_last_gtids();
 }
 

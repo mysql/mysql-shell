@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -302,12 +302,18 @@ bool Result::next_resultset() {
   bool ret_val = false;
 
   _pre_fetched_rows.clear();
+  _field_names.reset();
   _pre_fetched = false;
 
   xcl::XError error;
   ret_val = _result->next_resultset(&error);
   if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   _fetched_row_count = 0;
+
+  if (ret_val) {
+    fetch_metadata();
+  }
+
   return ret_val;
 }
 

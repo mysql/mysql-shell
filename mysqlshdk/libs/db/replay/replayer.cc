@@ -215,8 +215,9 @@ Replayer_mysql::get_connection_options() const {
 
 Result_mysql::Result_mysql(uint64_t affected_rows, unsigned int warning_count,
                            uint64_t last_insert_id, const char *info,
-                           const std::vector<std::string> &gtids)
-    : mysql::Result({}, affected_rows, warning_count, last_insert_id, info),
+                           bool buffered, const std::vector<std::string> &gtids)
+    : mysql::Result({}, affected_rows, warning_count, last_insert_id, info,
+                    buffered),
       _gtids(gtids) {}
 
 // ---

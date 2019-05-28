@@ -70,7 +70,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   void close();
 
   bool next_resultset();
-  void prepare_fetch(Result *target, bool buffered);
+  void prepare_fetch(Result *target);
 
   std::string uri() { return _uri; }
 
