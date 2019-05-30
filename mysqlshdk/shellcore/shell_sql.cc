@@ -23,6 +23,7 @@
  */
 
 #include "shellcore/shell_sql.h"
+#include <array>
 #include <fstream>
 #include <functional>
 #include "modules/devapi/mod_mysqlx_session.h"
@@ -33,6 +34,7 @@
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_options.h"
+#include "utils/utils_lexing.h"
 #include "utils/utils_string.h"
 
 REGISTER_HELP(CMD_G_UC_BRIEF,
@@ -96,9 +98,15 @@ void Shell_sql::kill_query(uint64_t conn_id,
   }
 }
 
+static inline bool ansi_quotes_enabled(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  return session ? session->ansi_quotes_enabled() : false;
+}
+
 bool Shell_sql::process_sql(const char *query_str, size_t query_len,
                             const std::string &delimiter, size_t line_num,
-                            std::shared_ptr<mysqlshdk::db::ISession> session) {
+                            std::shared_ptr<mysqlshdk::db::ISession> session,
+                            mysqlshdk::utils::Sql_splitter *splitter) {
   bool ret_val = false;
   if (session) {
     try {
@@ -140,7 +148,29 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
       ret_val = false;
     }
   }
+
   _last_handled.append(query_str, query_len).append(delimiter);
+  // check if value of sql_mode have changed
+  if (ret_val && query_len > 12 &&
+      (query_str[2] == 't' || query_str[2] == 'T' || query_str[1] == '*')) {
+    mysqlshdk::utils::SQL_string_iterator it(_last_handled);
+    auto next = shcore::str_upper(it.get_next_sql_token());
+    if (next.compare("SET") == 0) {
+      constexpr std::array<const char *, 4> mods = {"GLOBAL", "PERSIST",
+                                                    "SESSION", "LOCAL"};
+      next = shcore::str_upper(it.get_next_sql_token());
+      for (const char *mod : mods)
+        if (next.compare(mod) == 0) {
+          next = shcore::str_upper(it.get_next_sql_token());
+          break;
+        }
+
+      if (next.find("SQL_MODE") != std::string::npos) {
+        session->refresh_sql_mode();
+        splitter->set_ansi_quotes(session->ansi_quotes_enabled());
+      }
+    }
+  }
 
   return ret_val;
 }
@@ -155,11 +185,13 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
       session = s->get_core_session();
   }
 
+  mysqlshdk::utils::Sql_splitter *splitter = nullptr;
   if (!mysqlshdk::utils::iterate_sql_stream(
           istream, k_sql_chunk_size,
-          [this, session](const char *s, size_t len, const std::string &delim,
-                          size_t lnum) {
-            if (len > 0 && !process_sql(s, len, delim, lnum, session)) {
+          [&](const char *s, size_t len, const std::string &delim,
+              size_t lnum) {
+            if (len > 0 &&
+                !process_sql(s, len, delim, lnum, session, splitter)) {
               if (!mysqlsh::current_shell_options()->get().force) return false;
             }
             return true;
@@ -167,7 +199,7 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
           [](const std::string &err) {
             mysqlsh::current_console()->print_error(err);
           },
-          false)) {
+          ansi_quotes_enabled(session), nullptr, &splitter)) {
     // signal error during input processing
     _result_processor(nullptr, {});
     return false;
@@ -191,7 +223,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       print_exception(shcore::Exception::logic_error("Not connected."));
     }
   }
-
+  m_splitter.set_ansi_quotes(ansi_quotes_enabled(session));
   _last_handled.clear();
 
   m_buffer.append(code);
@@ -210,7 +242,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
     for (;;) {
       if (m_splitter.next_range(&range, &delim)) {
         if (!process_sql(&m_buffer[range.offset], range.length, delim, 0,
-                         session)) {
+                         session, &m_splitter)) {
           got_error = true;
         }
       } else {
@@ -279,11 +311,13 @@ void Shell_sql::execute(const std::string &sql) {
     for (const std::string d :
          {";", "\\G", "\\g", get_main_delimiter().c_str()}) {
       if (shcore::str_endswith(sql, d)) {
-        process_sql(sql.c_str(), sql.length() - d.length(), d, 0, session);
+        process_sql(sql.c_str(), sql.length() - d.length(), d, 0, session,
+                    &m_splitter);
         return;
       }
     }
-    process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session);
+    process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session,
+                &m_splitter);
   }
 }
 

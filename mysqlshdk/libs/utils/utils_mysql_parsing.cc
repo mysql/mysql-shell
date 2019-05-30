@@ -552,6 +552,8 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
  *        strings
  * @param delimiter statement delimiter. If the script changes the delimiter,
  *        it will be assigned to this argument.
+ * @param splitter_ptr if provided function will assign here Sql_splitter used
+ *        for stream processing.
  * @returns list of (statement, delimiter, line_number) tuples
  */
 bool iterate_sql_stream(
@@ -560,7 +562,7 @@ bool iterate_sql_stream(
                              const std::string & /* delimiter */,
                              size_t /* line_num */)> &callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
-    std::string *delimiter) {
+    std::string *delimiter, Sql_splitter **splitter_ptr) {
   assert(chunk_size > 0);
 
   bool stop = false;
@@ -578,6 +580,7 @@ bool iterate_sql_stream(
       err_callback);
   splitter.set_ansi_quotes(ansi_quotes);
   if (delimiter) splitter.set_delimiter(*delimiter);
+  if (splitter_ptr) *splitter_ptr = &splitter;
 
   std::string buffer;
   buffer.resize(chunk_size);

@@ -430,4 +430,34 @@ TEST_F(Command_line_test, bug28814112_py) {
 }
 #endif
 
+TEST_F(Command_line_test, batch_ansi_quotes) {
+  // Check if processor is available
+  ASSERT_NE(system(NULL), 0);
+  char cmd[MAX_PATH];
+  std::snprintf(
+      cmd, MAX_PATH,
+#ifdef _WIN32
+      R"(echo set sql_mode = 'ANSI_QUOTES'; select "\"";select version();#";)"
+#else
+      R"(echo "set sql_mode = 'ANSI_QUOTES'; select \"\\\"\";select version();#\"")"
+#endif
+      " | %s --uri=%s --sql 2>&1",
+      _mysqlsh, _uri.c_str());
+
+#ifdef _WIN32
+  FILE *fp = _popen(cmd, "r");
+#else
+  FILE *fp = popen(cmd, "r");
+#endif
+  ASSERT_NE(nullptr, fp);
+  char buf[MAX_PATH];
+  /* Read the output a line at a time - output it. */
+  std::string out;
+  while (fgets(buf, sizeof(buf) - 1, fp) != NULL) {
+    out.append(buf);
+  }
+  EXPECT_NE(std::string::npos,
+            out.find(R"(Unknown column '\";select version();#')"));
+}
+
 }  // namespace tests

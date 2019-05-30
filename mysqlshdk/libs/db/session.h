@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "mysqlshdk_export.h"
 
@@ -144,6 +145,31 @@ class SHCORE_PUBLIC ISession {
                       mysqlshdk::db::uri::formats::full_no_password()) const {
     return get_connection_options().as_uri(format);
   }
+
+  const char *get_sql_mode() {
+    if (!m_sql_mode && is_open()) refresh_sql_mode();
+    return m_sql_mode ? m_sql_mode->c_str() : "";
+  }
+
+  bool ansi_quotes_enabled() {
+    if (!m_sql_mode && is_open()) refresh_sql_mode();
+    return m_ansi_quotes_enabled;
+  }
+
+  void refresh_sql_mode() {
+    assert(is_open());
+    try {
+      const auto sql_mode = shcore::str_upper(
+          query("select @@sql_mode;")->fetch_one()->get_string(0));
+      m_sql_mode.reset(new std::string(sql_mode));
+      m_ansi_quotes_enabled = sql_mode.find("ANSI_QUOTES") != std::string::npos;
+    } catch (...) {
+    }
+  }
+
+ private:
+  std::unique_ptr<std::string> m_sql_mode;
+  bool m_ansi_quotes_enabled = false;
 };
 
 }  // namespace db

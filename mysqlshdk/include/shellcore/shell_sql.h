@@ -90,7 +90,8 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   bool process_sql(const char *query_str, size_t query_len,
                    const std::string &delimiter, size_t line_num,
-                   std::shared_ptr<mysqlshdk::db::ISession> session);
+                   std::shared_ptr<mysqlshdk::db::ISession> session,
+                   mysqlshdk::utils::Sql_splitter *splitter);
 
   std::pair<size_t, bool> handle_command(const char *p, size_t len, bool bol);
 

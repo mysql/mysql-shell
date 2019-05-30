@@ -2543,4 +2543,28 @@ TEST_F(Interactive_shell_test, sql_command) {
   wipe_all();
 }
 
+TEST_F(Interactive_shell_test, ansi_quotes) {
+  execute("\\sql");
+  execute("\\connect " + _uri);
+  execute("set @old_mode=@@sql_mode;");
+  execute(R"(select "\"";select version();#";)");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  for (const std::string s :
+       {"set @@session.sql_mode='ANSI_QUOTES';",
+        "set LOCAL sql_mode='ANSI_QUOTES';", "set sql_mode = 'ANSI_QUOTES';"}) {
+    execute(s);
+    EXPECT_TRUE(output_handler.std_err.empty());
+    execute(R"(select "\"";select version();#";)");
+    EXPECT_NE(std::string::npos,
+              output_handler.std_err.find(
+                  R"(Unknown column '\";select version();#')"));
+    wipe_all();
+    execute("set sql_mode=@old_mode;");
+    execute(R"(select "\"";select version();#";)");
+    EXPECT_TRUE(output_handler.std_err.empty());
+  }
+}
+
 }  // namespace mysqlsh
