@@ -130,7 +130,7 @@ RETURNS
        This TableUpdate object.
 
 DESCRIPTION
-      Adds an opertion into the update handler to update a column value in on
+      Adds an operation into the update handler to update a column value in on
       the records that were included on the selection filter and limit.
 
 //@<OUT> Help on where

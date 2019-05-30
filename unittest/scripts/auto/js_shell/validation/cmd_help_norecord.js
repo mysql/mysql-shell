@@ -7,7 +7,7 @@ The <pattern> argument should be the name of a category or a topic.
 The pattern is a filter to identify topics for which help is required, it can
 use the following wildcards:
 
-- ? matches any single charecter.
+- ? matches any single character.
 - * matches any character sequence.
 
 The following are the main help categories:
@@ -105,7 +105,7 @@ The <pattern> argument should be the name of a category or a topic.
 The pattern is a filter to identify topics for which help is required, it can
 use the following wildcards:
 
-- ? matches any single charecter.
+- ? matches any single character.
 - * matches any character sequence.
 
 The following are the main help categories:
@@ -132,7 +132,7 @@ The <pattern> argument should be the name of a category or a topic.
 The pattern is a filter to identify topics for which help is required, it can
 use the following wildcards:
 
-- ? matches any single charecter.
+- ? matches any single character.
 - * matches any character sequence.
 
 The following are the main help categories:
@@ -198,7 +198,7 @@ The <pattern> argument should be the name of a category or a topic.
 The pattern is a filter to identify topics for which help is required, it can
 use the following wildcards:
 
-- ? matches any single charecter.
+- ? matches any single character.
 - * matches any character sequence.
 
 The following are the main help categories:

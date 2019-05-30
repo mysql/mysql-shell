@@ -74,11 +74,11 @@ crud.execute()
 #@ third execution after lock_shared(), uses prepared statement
 crud.execute()
 
-#@ creates statement with agregate function to test having()
+#@ creates statement with aggregate function to test having()
 crud = table.select('age', 'count(age) as number').group_by('age')
 crud.execute();
 
-#@ prepares statement with agregate function to test having()
+#@ prepares statement with aggregate function to test having()
 crud.execute();
 
 #@ having() changes statement, back to normal execution

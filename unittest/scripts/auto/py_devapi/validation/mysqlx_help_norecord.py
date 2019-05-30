@@ -259,7 +259,7 @@ CLASSES
                     performed on the database.
  - RowResult        Allows traversing the Row objects returned by a
                     Table.select operation.
- - Schema           Represents a Schema as retrived from a session created
+ - Schema           Represents a Schema as retrieved from a session created
                     using the X Protocol.
  - Session          Enables interaction with a MySQL Server using the X
                     Protocol.
@@ -454,9 +454,9 @@ NAME
       CollectionFind - Operation to retrieve documents from a Collection.
 
 DESCRIPTION
-      A CollectionFind object represents an operation to retreve documents from
-      a Collection, it is created through the find function on the Collection
-      class.
+      A CollectionFind object represents an operation to retrieve documents
+      from a Collection, it is created through the find function on the
+      Collection class.
 
 FUNCTIONS
       bind(name, value)
@@ -478,7 +478,7 @@ FUNCTIONS
             Sets a grouping criteria for the resultset.
 
       having(condition)
-            Sets a condition for records to be considered in agregate function
+            Sets a condition for records to be considered in aggregate function
             operations.
 
       help([member])
@@ -856,8 +856,8 @@ FUNCTIONS
 
 #@<OUT> Help on Schema
 NAME
-      Schema - Represents a Schema as retrived from a session created using the
-               X Protocol.
+      Schema - Represents a Schema as retrieved from a session created using
+               the X Protocol.
 
 DESCRIPTION
       View Support
@@ -1168,7 +1168,7 @@ FUNCTIONS
             Sets a grouping criteria for the retrieved rows.
 
       having(condition)
-            Sets a condition for records to be considered in agregate function
+            Sets a condition for records to be considered in aggregate function
             operations.
 
       help([member])

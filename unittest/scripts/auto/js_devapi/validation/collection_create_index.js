@@ -761,7 +761,7 @@ Create Table: CREATE TABLE `my_coll` (
 ||Invalid or unsupported type specification 'Dates' (MySQL Error 5017)
 
 //@ Create an index specifiying geojson options for non geojson data type. (WL10858-FR5_8)
-||Unsupported argumet specification for '$.myField' (MySQL Error 5017)
+||Unsupported argument specification for '$.myField' (MySQL Error 5017)
 
 //@ Create an index with mismatched data types (WL10858-ET_1)
 ||Incorrect datetime value: '10' for column

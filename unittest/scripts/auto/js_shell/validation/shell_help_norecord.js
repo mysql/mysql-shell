@@ -1118,6 +1118,10 @@ The following topics were found at the SQL Syntax category:
 
 - ALTER TABLE
 - CREATE TABLE
+?{VER(>=8.0.17)}
+- DESC
+- DESCRIBE
+?{}
 - EXPLAIN
 - KILL
 
@@ -1261,7 +1265,7 @@ paths:
 An extension script is either a JavaScript (*.js) or Python (*.py) file which
 will be automatically processed when the MySQL Shell starts.
 
-These scripts can be used to define extension objects so ther are available
+These scripts can be used to define extension objects so there are available
 right away when the MySQL Shell starts.
 
 //@<OUT> Help on unparseUri

@@ -47,7 +47,7 @@ RETURNS
 
 DESCRIPTION
       An insert operation requires the values to be inserted, optionally the
-      target colums can be defined.
+      target columns can be defined.
 
       If this function is called without any parameter, no column names will be
       defined yet.

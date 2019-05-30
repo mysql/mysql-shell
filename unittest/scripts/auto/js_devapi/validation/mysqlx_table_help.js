@@ -233,7 +233,7 @@ DESCRIPTION
             - insert({column:value[, column:value, ...]})
 
             An insert operation requires the values to be inserted, optionally
-            the target colums can be defined.
+            the target columns can be defined.
 
             If this function is called without any parameter, no column names
             will be defined yet.
@@ -385,15 +385,15 @@ DESCRIPTION
             result.
 
       lockShared([lockContention])
-            When this function is called, the selected rows will belocked for
+            When this function is called, the selected rows will be locked for
             write operations, they may be retrieved on a different session, but
             no updates will be allowed.
 
             The acquired locks will be released when the current transaction is
-            commited or rolled back.
+            committed or rolled back.
 
             The lockContention parameter defines the behavior of the operation
-            if another session contains an exlusive lock to matching rows.
+            if another session contains an exclusive lock to matching rows.
 
             The lockContention can be specified using the following constants:
 
@@ -423,11 +423,11 @@ DESCRIPTION
             This operation only makes sense within a transaction.
 
       lockExclusive([lockContention])
-            When this function is called, the selected rows will belocked for
+            When this function is called, the selected rows will be locked for
             read operations, they will not be retrievable by other session.
 
             The acquired locks will be released when the current transaction is
-            commited or rolled back.
+            committed or rolled back.
 
             The lockContention parameter defines the behavior of the operation
             if another session contains a lock to matching rows.
@@ -498,7 +498,7 @@ DESCRIPTION
             Initializes the update operation.
 
       set(attribute, value)
-            Adds an opertion into the update handler to update a column value
+            Adds an operation into the update handler to update a column value
             in on the records that were included on the selection filter and
             limit.
 

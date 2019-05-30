@@ -30,7 +30,8 @@ SYNTAX
       <TableInsert>.execute()
 
 RETURNS
-       A Result object that can be used to retrieve the results ofoperation.
+       A Result object that can be used to retrieve the results of the
+      operation.
 
 //@<OUT> Help on help
 NAME
@@ -57,7 +58,7 @@ RETURNS
 
 DESCRIPTION
       An insert operation requires the values to be inserted, optionally the
-      target colums can be defined.
+      target columns can be defined.
 
       If this function is called without any parameter, no column names will be
       defined yet.

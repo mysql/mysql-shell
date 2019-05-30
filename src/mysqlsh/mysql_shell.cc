@@ -99,7 +99,7 @@ REGISTER_HELP(HELP_AVAILABLE_TOPICS_SQL1, "${HELP_AVAILABLE_TOPICS_ALL}");
 REGISTER_HELP(HELP_PATTERN,
               "The pattern is a filter to identify topics for which help is "
               "required, it can use the following wildcards:");
-REGISTER_HELP(HELP_PATTERN1, "@li <b>?</b> matches any single charecter.");
+REGISTER_HELP(HELP_PATTERN1, "@li <b>?</b> matches any single character.");
 REGISTER_HELP(HELP_PATTERN2, "@li <b>*</b> matches any character sequence.");
 
 REGISTER_HELP(CONTENTS_DETAIL,

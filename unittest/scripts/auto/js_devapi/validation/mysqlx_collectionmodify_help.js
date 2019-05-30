@@ -82,7 +82,7 @@ RETURNS
        This CollectionModify object.
 
 DESCRIPTION
-      Adds an opertion into the modify handler to append a value into an array
+      Adds an operation into the modify handler to append a value into an array
       attribute on the documents that were included on the selection filter and
       limit.
 
@@ -102,7 +102,7 @@ RETURNS
        This CollectionModify object.
 
 DESCRIPTION
-      Adds an opertion into the modify handler to delete a value from an array
+      Adds an operation into the modify handler to delete a value from an array
       attribute on the documents that were included on the selection filter and
       limit.
 
@@ -129,7 +129,7 @@ RETURNS
        This CollectionModify object.
 
 DESCRIPTION
-      Adds an opertion into the modify handler to insert a value into an array
+      Adds an operation into the modify handler to insert a value into an array
       attribute on the documents that were included on the selection filter and
       limit.
 
@@ -207,7 +207,7 @@ RETURNS
 
 DESCRIPTION
       This function adds an operation to add into the documents of a
-      collection, all the attribues defined in document that do not exist on
+      collection, all the attributes defined in document that do not exist on
       the collection's documents.
 
       The attribute addition will be done on the collection's documents once
@@ -272,7 +272,7 @@ DESCRIPTION
 
       Special considerations:
 
-      - The _id of the documents is inmutable, so it will not be affected by
+      - The _id of the documents is immutable, so it will not be affected by
         the patch operation even if it is included on the patch JSON object.
       - The patch JSON object accepts expression objects as values. If used
         they will be evaluated at the server side.
@@ -295,7 +295,7 @@ RETURNS
        This CollectionModify object.
 
 DESCRIPTION
-      Adds an opertion into the modify handler to set an attribute on the
+      Adds an operation into the modify handler to set an attribute on the
       documents that were included on the selection filter and limit.
 
       - If the attribute is not present on the document, it will be added with
@@ -328,7 +328,7 @@ DESCRIPTION
       attribute name on which the collection sorting will be based. Each
       criterion could be followed by asc or desc to indicate ascending
 
-      or descending order respectivelly. If no order is specified, ascending
+      or descending order respectively. If no order is specified, ascending
       will be used by default.
 
       This method is usually used in combination with limit to fix the amount
@@ -355,7 +355,7 @@ DESCRIPTION
       The attribute removal will be done on the collection's documents once the
       execute method is called.
 
-      For each attribute on the attributes list, adds an opertion into the
+      For each attribute on the attributes list, adds an operation into the
       modify handler
 
       to remove the attribute on the documents that were included on the

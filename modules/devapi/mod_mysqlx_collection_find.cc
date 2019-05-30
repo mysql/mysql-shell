@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,7 @@ REGISTER_HELP_CLASS(CollectionFind, mysqlx);
 REGISTER_HELP(COLLECTIONFIND_BRIEF,
               "Operation to retrieve documents from a Collection.");
 REGISTER_HELP(COLLECTIONFIND_DETAIL,
-              "A CollectionFind object represents an operation to retreve "
+              "A CollectionFind object represents an operation to retrieve "
               "documents from a Collection, it is created through the "
               "<b>find</b> function on the <b>Collection</b> class.");
 CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
@@ -469,15 +469,15 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
 
 REGISTER_HELP_FUNCTION(having, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_HAVING_BRIEF,
-              "Sets a condition for records to be considered in agregate "
+              "Sets a condition for records to be considered in aggregate "
               "function operations.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_PARAM,
-              "@param condition A condition on the agregate functions "
+              "@param condition A condition on the aggregate functions "
               "used on the grouping criteria.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
-              "Sets a condition for records to be considered in agregate "
+              "Sets a condition for records to be considered in aggregate "
               "function operations.");
 
 /**
@@ -571,7 +571,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL,
               "If used the CollectionFind operation will return the records "
               "sorted with the defined criteria.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL1,
-              "Every defined sort criterion sollows the next format:");
+              "Every defined sort criterion follows the next format:");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL2, "name [ ASC | DESC ]");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
               "ASC is used by default if the sort order is not specified.");
@@ -913,16 +913,16 @@ REGISTER_HELP(
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL,
-              "When this function is called, the selected documents will be"
+              "When this function is called, the selected documents will be "
               "locked for write operations, they may be retrieved on a "
               "different session, but no updates will be allowed.");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL1,
               "The acquired locks will be released when the current "
-              "transaction is commited or rolled back.");
+              "transaction is committed or rolled back.");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL2,
               "The lockContention parameter defines the behavior of the "
-              "operation if another session contains an exlusive lock to "
+              "operation if another session contains an exclusive lock to "
               "matching documents.");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL3,
@@ -1052,7 +1052,7 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL,
               "other session.");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL1,
               "The acquired locks will be released when the current "
-              "transaction is commited or rolled back.");
+              "transaction is committed or rolled back.");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL2,
               "The lockContention parameter defines the behavior of the "
               "operation if another session contains a lock to matching "

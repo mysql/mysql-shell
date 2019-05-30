@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -362,11 +362,11 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
 
 REGISTER_HELP_FUNCTION(having, TableSelect);
 REGISTER_HELP(TABLESELECT_HAVING_BRIEF,
-              "Sets a condition for records to be considered in agregate "
+              "Sets a condition for records to be considered in aggregate "
               "function operations.");
 REGISTER_HELP(
     TABLESELECT_HAVING_PARAM,
-    "@param condition A condition to be used with agregate functions.");
+    "@param condition A condition to be used with aggregate functions.");
 REGISTER_HELP(TABLESELECT_HAVING_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_HAVING_DETAIL,
               "If used the TableSelect operation will only consider the "
@@ -706,16 +706,16 @@ REGISTER_HELP(
 REGISTER_HELP(TABLESELECT_LOCKSHARED_RETURNS,
               "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL,
-              "When this function is called, the selected rows will be"
+              "When this function is called, the selected rows will be "
               "locked for write operations, they may be retrieved on a "
               "different session, but no updates will be allowed.");
 REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL1,
               "The acquired locks will be released when the current "
-              "transaction is commited or rolled back.");
+              "transaction is committed or rolled back.");
 
 REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL2,
               "The lockContention parameter defines the behavior of the "
-              "operation if another session contains an exlusive lock to "
+              "operation if another session contains an exclusive lock to "
               "matching rows.");
 
 REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL3,
@@ -840,12 +840,12 @@ REGISTER_HELP(
 REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_RETURNS,
               "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL,
-              "When this function is called, the selected rows will be"
+              "When this function is called, the selected rows will be "
               "locked for read operations, they will not be retrievable by "
               "other session.");
 REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL1,
               "The acquired locks will be released when the current "
-              "transaction is commited or rolled back.");
+              "transaction is committed or rolled back.");
 
 REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL2,
               "The lockContention parameter defines the behavior of the "

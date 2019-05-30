@@ -163,7 +163,7 @@ DESCRIPTION
 
       Only one document will be affected by this operation.
 
-      The id of the document remains inmutable, if the new document contains a
+      The id of the document remains immutable, if the new document contains a
       different id, it will be ignored.
 
       Any constraint (unique key) defined on the collection is applicable on
@@ -312,7 +312,7 @@ SYNTAX
             Sets a grouping criteria for the resultset.
 
       having(condition)
-            Sets a condition for records to be considered in agregate function
+            Sets a condition for records to be considered in aggregate function
             operations.
 
       sort(...)
@@ -324,7 +324,7 @@ SYNTAX
             If used the CollectionFind operation will return the records sorted
             with the defined criteria.
 
-            Every defined sort criterion sollows the next format:
+            Every defined sort criterion follows the next format:
 
             name [ ASC | DESC ]
 
@@ -343,15 +343,16 @@ SYNTAX
                        the offset function instead.
 
       lockShared([lockContention])
-            When this function is called, the selected documents will belocked
+            When this function is called, the selected documents will be locked
             for write operations, they may be retrieved on a different session,
             but no updates will be allowed.
 
             The acquired locks will be released when the current transaction is
-            commited or rolled back.
+            committed or rolled back.
 
             The lockContention parameter defines the behavior of the operation
-            if another session contains an exlusive lock to matching documents.
+            if another session contains an exclusive lock to matching
+            documents.
 
             The lockContention can be specified using the following constants:
 
@@ -386,7 +387,7 @@ SYNTAX
             for read operations, they will not be retrievable by other session.
 
             The acquired locks will be released when the current transaction is
-            commited or rolled back.
+            committed or rolled back.
 
             The lockContention parameter defines the behavior of the operation
             if another session contains a lock to matching documents.
@@ -524,8 +525,8 @@ SYNTAX
             to true, for example '1'.
 
       set(attribute, value)
-            Adds an opertion into the modify handler to set an attribute on the
-            documents that were included on the selection filter and limit.
+            Adds an operation into the modify handler to set an attribute on
+            the documents that were included on the selection filter and limit.
 
             - If the attribute is not present on the document, it will be added
               with the given value.
@@ -549,7 +550,7 @@ SYNTAX
             The attribute removal will be done on the collection's documents
             once the execute method is called.
 
-            For each attribute on the attributes list, adds an opertion into
+            For each attribute on the attributes list, adds an operation into
             the modify handler
 
             to remove the attribute on the documents that were included on the
@@ -557,8 +558,8 @@ SYNTAX
 
       merge(document)
             This function adds an operation to add into the documents of a
-            collection, all the attribues defined in document that do not exist
-            on the collection's documents.
+            collection, all the attributes defined in document that do not
+            exist on the collection's documents.
 
             The attribute addition will be done on the collection's documents
             once the execute method is called.
@@ -586,7 +587,7 @@ SYNTAX
 
             Special considerations:
 
-            - The _id of the documents is inmutable, so it will not be affected
+            - The _id of the documents is immutable, so it will not be affected
               by the patch operation even if it is included on the patch JSON
               object.
             - The patch JSON object accepts expression objects as values. If
@@ -596,7 +597,7 @@ SYNTAX
             once the execute method is called.
 
       arrayInsert(docPath, value)
-            Adds an opertion into the modify handler to insert a value into an
+            Adds an operation into the modify handler to insert a value into an
             array attribute on the documents that were included on the
             selection filter and limit.
 
@@ -604,12 +605,12 @@ SYNTAX
             documents once the execute method is called.
 
       arrayAppend(docPath, value)
-            Adds an opertion into the modify handler to append a value into an
+            Adds an operation into the modify handler to append a value into an
             array attribute on the documents that were included on the
             selection filter and limit.
 
       arrayDelete(docPath)
-            Adds an opertion into the modify handler to delete a value from an
+            Adds an operation into the modify handler to delete a value from an
             array attribute on the documents that were included on the
             selection filter and limit.
 
@@ -629,7 +630,7 @@ SYNTAX
             attribute name on which the collection sorting will be based. Each
             criterion could be followed by asc or desc to indicate ascending
 
-            or descending order respectivelly. If no order is specified,
+            or descending order respectively. If no order is specified,
             ascending will be used by default.
 
             This method is usually used in combination with limit to fix the

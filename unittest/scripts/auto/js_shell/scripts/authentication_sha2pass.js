@@ -284,7 +284,7 @@ var uri_ssl = 'local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUI
 // First connect without SSL - should fail
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
-// TODO() - ther's a bug in xplugin that won't let a user with no password login
+// TODO() - there's a bug in xplugin that won't let a user with no password login
 // // Connect again with SSL - should (SUCCESS)
 // var s = mysqlx.getSession(uri_ssl);
 // EXPECT_TRUE(s.isOpen());

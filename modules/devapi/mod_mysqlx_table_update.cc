@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,7 +132,7 @@ REGISTER_HELP(
     "@param value Defines the value to be set on the indicated column.");
 REGISTER_HELP(TABLEUPDATE_SET_RETURNS, "@returns This TableUpdate object.");
 REGISTER_HELP(TABLEUPDATE_SET_DETAIL,
-              "Adds an opertion into the update handler to update a column "
+              "Adds an operation into the update handler to update a column "
               "value in on the records that were included on the selection "
               "filter and limit.");
 REGISTER_HELP(TABLEINSERT_SET_DETAIL1, "<b>Using Expressions As Values</b>");

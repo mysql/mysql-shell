@@ -73,11 +73,11 @@ crud.execute()
 //@ third execution after lockShared(), uses prepared statement
 crud.execute()
 
-//@ creates statement with agregate function to test having()
+//@ creates statement with aggregate function to test having()
 var crud = collection.find().fields('age', 'count(age)').groupBy('age')
 crud.execute();
 
-//@ prepares statement with agregate function to test having()
+//@ prepares statement with aggregate function to test having()
 crud.execute();
 
 //@ having() changes statement, back to normal execution

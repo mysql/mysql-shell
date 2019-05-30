@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ REGISTER_HELP_SUB_CLASS(Schema, mysqlx, DatabaseObject);
 REGISTER_HELP(SCHEMA_GLOBAL_BRIEF,
               "Used to work with database schema objects.");
 REGISTER_HELP(SCHEMA_BRIEF,
-              "Represents a Schema as retrived from a session created using "
+              "Represents a Schema as retrieved from a session created using "
               "the X Protocol.");
 REGISTER_HELP(SCHEMA_DETAIL, "<b>View Support</b>");
 REGISTER_HELP(

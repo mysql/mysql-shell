@@ -6,9 +6,9 @@ NAME
       CollectionFind - Operation to retrieve documents from a Collection.
 
 DESCRIPTION
-      A CollectionFind object represents an operation to retreve documents from
-      a Collection, it is created through the find function on the Collection
-      class.
+      A CollectionFind object represents an operation to retrieve documents
+      from a Collection, it is created through the find function on the
+      Collection class.
 
 FUNCTIONS
       bind(name, value)
@@ -30,7 +30,7 @@ FUNCTIONS
             Sets a grouping criteria for the resultset.
 
       having(condition)
-            Sets a condition for records to be considered in agregate function
+            Sets a condition for records to be considered in aggregate function
             operations.
 
       help([member])
@@ -162,21 +162,21 @@ DESCRIPTION
 
 //@<OUT> Help on having
 NAME
-      having - Sets a condition for records to be considered in agregate
+      having - Sets a condition for records to be considered in aggregate
                function operations.
 
 SYNTAX
       <CollectionFind>.having(condition)
 
 WHERE
-      condition: A condition on the agregate functions used on the grouping
+      condition: A condition on the aggregate functions used on the grouping
                  criteria.
 
 RETURNS
        This CollectionFind object.
 
 DESCRIPTION
-      Sets a condition for records to be considered in agregate function
+      Sets a condition for records to be considered in aggregate function
       operations.
 
 //@<OUT> Help on help
@@ -206,6 +206,8 @@ RETURNS
 DESCRIPTION
       If used, the operation will return at most numberOfDocs documents.
 
+      This function can be called every time the statement is executed.
+
 //@<OUT> Help on lockExclusive
 NAME
       lockExclusive - Instructs the server to acquire an exclusive lock on
@@ -226,7 +228,7 @@ DESCRIPTION
       read operations, they will not be retrievable by other session.
 
       The acquired locks will be released when the current transaction is
-      commited or rolled back.
+      committed or rolled back.
 
       The lockContention parameter defines the behavior of the operation if
       another session contains a lock to matching documents.
@@ -273,15 +275,15 @@ RETURNS
        This CollectionFind object.
 
 DESCRIPTION
-      When this function is called, the selected documents will belocked for
+      When this function is called, the selected documents will be locked for
       write operations, they may be retrieved on a different session, but no
       updates will be allowed.
 
       The acquired locks will be released when the current transaction is
-      commited or rolled back.
+      committed or rolled back.
 
       The lockContention parameter defines the behavior of the operation if
-      another session contains an exlusive lock to matching documents.
+      another session contains an exclusive lock to matching documents.
 
       The lockContention can be specified using the following constants:
 
@@ -350,7 +352,7 @@ DESCRIPTION
       If used the CollectionFind operation will return the records sorted with
       the defined criteria.
 
-      Every defined sort criterion sollows the next format:
+      Every defined sort criterion follows the next format:
 
       name [ ASC | DESC ]
 

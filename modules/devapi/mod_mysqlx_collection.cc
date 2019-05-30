@@ -958,7 +958,7 @@ REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL1,
               "Only one document will be affected by this operation.");
 REGISTER_HELP(
     COLLECTION_REPLACEONE_DETAIL2,
-    "The id of the document remain inmutable, if the new document contains a "
+    "The id of the document remain immutable, if the new document contains a "
     "different id, it will be ignored.");
 REGISTER_HELP(
     COLLECTION_REPLACEONE_DETAIL3,
@@ -1028,7 +1028,7 @@ REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL,
 REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL1,
               "Only one document will be affected by this operation.");
 REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL2,
-              "The id of the document remains inmutable, if the new document "
+              "The id of the document remains immutable, if the new document "
               "contains a different id, it will be ignored.");
 REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL3,
               "Any constraint (unique key) defined on the collection is "

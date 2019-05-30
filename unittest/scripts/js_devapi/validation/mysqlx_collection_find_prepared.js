@@ -1002,7 +1002,7 @@
 }
 3 documents in set ([[*]] sec)
 
-//@<PROTOCOL> creates statement with agregate function to test having()
+//@<PROTOCOL> creates statement with aggregate function to test having()
 >>>> SEND Mysqlx.Crud.Find {
   collection {
     name: "test_collection"
@@ -1052,7 +1052,7 @@
   }
 }
 
-//@<OUT> creates statement with agregate function to test having()
+//@<OUT> creates statement with aggregate function to test having()
 {
     "age": 18,
     "count(age)": 2
@@ -1063,7 +1063,7 @@
 }
 2 documents in set ([[*]] sec)
 
-//@<PROTOCOL> prepares statement with agregate function to test having()
+//@<PROTOCOL> prepares statement with aggregate function to test having()
 >>>> SEND Mysqlx.Prepare.Prepare {
   stmt_id: 8
   stmt {
@@ -1126,7 +1126,7 @@
   stmt_id: 8
 }
 
-//@<OUT> prepares statement with agregate function to test having()
+//@<OUT> prepares statement with aggregate function to test having()
 {
     "age": 18,
     "count(age)": 2

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,7 +77,7 @@ REGISTER_HELP(TABLEINSERT_INSERT_SIGNATURE3,
 REGISTER_HELP(TABLEINSERT_INSERT_RETURNS, "@returns This TableInsert object.");
 REGISTER_HELP(TABLEINSERT_INSERT_DETAIL,
               "An insert operation requires the values to be inserted, "
-              "optionally the target colums can be defined.");
+              "optionally the target columns can be defined.");
 REGISTER_HELP(TABLEINSERT_INSERT_DETAIL1,
               "If this function is called without any parameter, no column "
               "names will be defined yet.");
@@ -344,7 +344,7 @@ REGISTER_HELP_FUNCTION(execute, TableInsert);
 REGISTER_HELP(TABLEINSERT_EXECUTE_BRIEF, "Executes the insert operation.");
 REGISTER_HELP(TABLEINSERT_EXECUTE_RETURNS,
               "@returns A <b>Result</b> object that can be used to retrieve "
-              "the results ofoperation.");
+              "the results of the operation.");
 /**
  * $(TABLEINSERT_EXECUTE_BRIEF)
  *

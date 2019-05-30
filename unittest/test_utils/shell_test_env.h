@@ -115,7 +115,7 @@ class Override_row_string : public mysqlshdk::db::replay::Row_hook {
  * \ingroup UTFramework
  * Defines a base environment for unit tests.
  *
- * The attribues of this class are configured based on the environment where
+ * The attributes of this class are configured based on the environment where
  * the tests are executed, the values are available through all the test suite.
  */
 class Shell_test_env : public ::testing::Test {

@@ -20,7 +20,7 @@ FUNCTIONS
             Sets a grouping criteria for the retrieved rows.
 
       having(condition)
-            Sets a condition for records to be considered in agregate function
+            Sets a condition for records to be considered in aggregate function
             operations.
 
       help([member])
@@ -99,14 +99,14 @@ RETURNS
 
 //@<OUT> Help on having
 NAME
-      having - Sets a condition for records to be considered in agregate
+      having - Sets a condition for records to be considered in aggregate
                function operations.
 
 SYNTAX
       <TableSelect>.having(condition)
 
 WHERE
-      condition: A condition to be used with agregate functions.
+      condition: A condition to be used with aggregate functions.
 
 RETURNS
        This TableSelect object.
@@ -142,6 +142,8 @@ RETURNS
 DESCRIPTION
       If used, the operation will return at most numberOfRows rows.
 
+      This function can be called every time the statement is executed.
+
 //@<OUT> Help on lockExclusive
 NAME
       lockExclusive - Instructs the server to acquire an exclusive lock on rows
@@ -158,11 +160,11 @@ RETURNS
        This TableSelect object.
 
 DESCRIPTION
-      When this function is called, the selected rows will belocked for read
+      When this function is called, the selected rows will be locked for read
       operations, they will not be retrievable by other session.
 
       The acquired locks will be released when the current transaction is
-      commited or rolled back.
+      committed or rolled back.
 
       The lockContention parameter defines the behavior of the operation if
       another session contains a lock to matching rows.
@@ -210,15 +212,15 @@ RETURNS
        This TableSelect object.
 
 DESCRIPTION
-      When this function is called, the selected rows will belocked for write
+      When this function is called, the selected rows will be locked for write
       operations, they may be retrieved on a different session, but no updates
       will be allowed.
 
       The acquired locks will be released when the current transaction is
-      commited or rolled back.
+      committed or rolled back.
 
       The lockContention parameter defines the behavior of the operation if
-      another session contains an exlusive lock to matching rows.
+      another session contains an exclusive lock to matching rows.
 
       The lockContention can be specified using the following constants:
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -237,10 +237,11 @@ REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM1,
               "@param value The value to be set on the specified attribute.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL,
-              "Adds an opertion into the modify handler to set an attribute on "
-              "the documents that were included on the selection filter and "
-              "limit.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_SET_DETAIL,
+    "Adds an operation into the modify handler to set an attribute on "
+    "the documents that were included on the selection filter and "
+    "limit.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL1,
               "@li If the attribute is not present on the document, it will be "
               "added with the given value.");
@@ -353,7 +354,7 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL,
               "The attribute removal will be done on the collection's "
               "documents once the execute method is called.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL1,
-              "For each attribute on the attributes list, adds an opertion "
+              "For each attribute on the attributes list, adds an operation "
               "into the modify handler");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
               "to remove the attribute on the documents that were included on "
@@ -527,7 +528,7 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURNS,
               "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL,
               "This function adds an operation to add into the documents of a "
-              "collection, all the attribues defined in document that do not "
+              "collection, all the attributes defined in document that do not "
               "exist on the collection's documents.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
               "The attribute addition will be done on the collection's "
@@ -643,7 +644,7 @@ REGISTER_HELP(
 REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL6, "Special considerations:");
 REGISTER_HELP(
     COLLECTIONMODIFY_PATCH_DETAIL7,
-    "@li The _id of the documents is inmutable, so it will not be affected by "
+    "@li The _id of the documents is immutable, so it will not be affected by "
     "the patch operation even if it is included on the patch JSON object.");
 REGISTER_HELP(
     COLLECTIONMODIFY_PATCH_DETAIL8,
@@ -739,10 +740,11 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM1,
               "@param value The value to be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL,
-              "Adds an opertion into the modify handler to insert a value into "
-              "an array attribute on the documents that were included on the "
-              "selection filter and limit.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYINSERT_DETAIL,
+    "Adds an operation into the modify handler to insert a value into "
+    "an array attribute on the documents that were included on the "
+    "selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
               "The insertion of the value will be done on the collection's "
               "documents once the execute method is called.");
@@ -820,10 +822,11 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1,
               "@param value The value to be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
-              "Adds an opertion into the modify handler to append a value into "
-              "an array attribute on the documents that were included on the "
-              "selection filter and limit.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
+    "Adds an operation into the modify handler to append a value into "
+    "an array attribute on the documents that were included on the "
+    "selection filter and limit.");
 
 /**
  * $(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF)
@@ -895,10 +898,11 @@ REGISTER_HELP(
     "and position of the value to be deleted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
-              "Adds an opertion into the modify handler to delete a value from "
-              "an array attribute on the documents that were included on the "
-              "selection filter and limit.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
+    "Adds an operation into the modify handler to delete a value from "
+    "an array attribute on the documents that were included on the "
+    "selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
               "The attribute deletion will be done on the collection's "
               "documents once the execute method is called.");
@@ -990,7 +994,7 @@ REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL,
               "based. Each criterion could be followed by asc or desc to "
               "indicate ascending");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1,
-              "or descending order respectivelly. If no order is specified, "
+              "or descending order respectively. If no order is specified, "
               "ascending will be used by default.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2,
               "This method is usually used in combination with limit to fix "

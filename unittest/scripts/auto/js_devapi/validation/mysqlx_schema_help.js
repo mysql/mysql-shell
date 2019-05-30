@@ -3,8 +3,8 @@
 
 //@<OUT> Schema.help
 NAME
-      Schema - Represents a Schema as retrived from a session created using the
-               X Protocol.
+      Schema - Represents a Schema as retrieved from a session created using
+               the X Protocol.
 
 DESCRIPTION
       View Support
