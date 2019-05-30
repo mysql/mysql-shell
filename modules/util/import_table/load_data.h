@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,8 +79,8 @@ class Load_data_worker final {
   Load_data_worker(const Load_data_worker &other) = default;
   Load_data_worker(Load_data_worker &&other) = default;
 
-  Load_data_worker &operator=(const Load_data_worker &other) = default;
-  Load_data_worker &operator=(Load_data_worker &&other) = default;
+  Load_data_worker &operator=(const Load_data_worker &other) = delete;
+  Load_data_worker &operator=(Load_data_worker &&other) = delete;
 
   ~Load_data_worker() = default;
 

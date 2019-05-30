@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,10 +59,10 @@ class Import_table final {
   Import_table() = delete;
   explicit Import_table(const Import_table_options &options);
   Import_table(const Import_table &other) = delete;
-  Import_table(Import_table &&other) = default;
+  Import_table(Import_table &&other) = delete;
 
   Import_table &operator=(const Import_table &other) = delete;
-  Import_table &operator=(Import_table &&other) = default;
+  Import_table &operator=(Import_table &&other) = delete;
 
   ~Import_table() = default;
 
