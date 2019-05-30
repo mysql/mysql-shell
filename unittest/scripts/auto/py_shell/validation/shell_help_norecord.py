@@ -1118,7 +1118,7 @@ The following topics were found at the SQL Syntax category:
 
 - ALTER TABLE
 - CREATE TABLE
-?{VER(>=8.0.17)}
+?{(VER(>=5.7.27) and VER(<8.0.0)) or VER(>=8.0.17)}
 - DESC
 - DESCRIBE
 ?{}
