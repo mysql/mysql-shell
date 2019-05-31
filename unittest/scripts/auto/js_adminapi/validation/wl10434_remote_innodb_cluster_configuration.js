@@ -37,19 +37,19 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "required": "NONE"
         },
         {
-            "action": "restart",
+            "action": "server_update+restart",
             "current": "OFF",
             "option": "enforce_gtid_consistency",
             "required": "ON"
         },
         {
-            "action": "restart",
+            "action": "server_update+restart",
             "current": "OFF",
             "option": "gtid_mode",
             "required": "ON"
         },
         {
-            "action": "restart",
+            "action": "server_update+restart",
             "current": "1",
             "option": "server_id",
             "required": "<unique ID>"

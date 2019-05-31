@@ -1696,8 +1696,10 @@ ConfigureInstanceAction get_configure_instance_action(
     ret_val = ConfigureInstanceAction::UPDATE_CONFIG;
   else if (action == "server_update")
     ret_val = ConfigureInstanceAction::UPDATE_SERVER_DYNAMIC;
-  else if (action == "restart")
+  else if (action == "server_update+restart")
     ret_val = ConfigureInstanceAction::UPDATE_SERVER_STATIC;
+  else if (action == "restart")
+    ret_val = ConfigureInstanceAction::RESTART;
   else
     ret_val = ConfigureInstanceAction::UNDEFINED;
 
@@ -1746,6 +1748,10 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
           }
           case ConfigureInstanceAction::UPDATE_SERVER_STATIC: {
             note = "Update read-only variable and restart the server";
+            break;
+          }
+          case ConfigureInstanceAction::RESTART: {
+            note = "Restart the server";
             break;
           }
           default: {

@@ -170,7 +170,8 @@ enum class ConfigureInstanceAction {
   UPDATE_SERVER_AND_CONFIG_STATIC,   // "config_update+restart" - restart
   UPDATE_CONFIG,                     // "config_update" - no restart
   UPDATE_SERVER_DYNAMIC,             // "server_update" - no restart
-  UPDATE_SERVER_STATIC,              // "restart" - restart
+  UPDATE_SERVER_STATIC,              // "server_update+restart" - restart
+  RESTART,                           // "restart" - restart
   UNDEFINED
 };
 

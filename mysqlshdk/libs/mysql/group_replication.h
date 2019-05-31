@@ -110,6 +110,7 @@ struct Member {
 enum class Config_type {
   SERVER,
   CONFIG,
+  RESTART_ONLY,
 };
 
 enum class Gr_seeds_change_type {
@@ -118,13 +119,14 @@ enum class Gr_seeds_change_type {
   OVERRIDE,
 };
 
-typedef mysqlshdk::utils::Enum_set<Config_type, Config_type::CONFIG>
+typedef mysqlshdk::utils::Enum_set<Config_type, Config_type::RESTART_ONLY>
     Config_types;
 
 struct Invalid_config {
   std::string var_name;
   std::string current_val;
   std::string required_val;
+  mysqlshdk::utils::nullable<std::string> persisted_val;
   Config_types types;
   bool restart;
   shcore::Value_type val_type;

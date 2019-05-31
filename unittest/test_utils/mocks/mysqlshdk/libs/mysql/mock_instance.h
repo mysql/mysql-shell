@@ -115,6 +115,9 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   }
   MOCK_CONST_METHOD0(is_set_persist_supported,
                      mysqlshdk::utils::nullable<bool>());
+  MOCK_CONST_METHOD1(
+      get_persisted_value,
+      mysqlshdk::utils::nullable<std::string>(const std::string &));
 
   MOCK_CONST_METHOD0(get_fence_sysvars, std::vector<std::string>());
 

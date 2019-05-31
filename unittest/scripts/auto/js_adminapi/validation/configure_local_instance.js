@@ -63,7 +63,6 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
-true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>

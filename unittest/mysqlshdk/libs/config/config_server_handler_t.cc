@@ -602,4 +602,33 @@ TEST_F(Config_server_handler_test, apply_errors) {
   }
 }
 
+TEST_F(Config_server_handler_test, get_persisted_value) {
+  // Test getting persisted values.
+  mysqlshdk::mysql::Instance instance(m_session);
+
+  Config_server_handler cfg_h(&instance, Var_qualifier::PERSIST);
+
+  if (instance.is_set_persist_supported()) {
+    // No persisted value for variable.
+    mysqlshdk::utils::nullable<std::string> res =
+        cfg_h.get_persisted_value("gtid_mode");
+    EXPECT_TRUE(res.is_null());
+
+    // Get variable with persisted value.
+    cfg_h.set_now("gtid_mode", nullable<std::string>("ON"),
+                  Var_qualifier::PERSIST_ONLY);
+    res = cfg_h.get_persisted_value("gtid_mode");
+    EXPECT_FALSE(res.is_null());
+    EXPECT_STREQ("ON", (*res).c_str());
+
+    // Remove persisted variable (clean-up).
+    instance.execute("RESET PERSIST gtid_mode");
+  } else {
+    // Exception thrown if SET PERSIST is not supported.
+    EXPECT_THROW_LIKE(cfg_h.get_persisted_value("not_exist"),
+                      std::runtime_error,
+                      "Unable to get persisted value for 'not_exist': ");
+  }
+}
+
 }  // namespace testing

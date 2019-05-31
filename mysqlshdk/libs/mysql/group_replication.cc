@@ -38,6 +38,7 @@
 
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
@@ -1088,6 +1089,44 @@ void check_variable_compliance(const std::vector<std::string> &values,
   }
 }
 
+void check_persisted_value_compliance(
+    const std::vector<std::string> &values, bool allowed_values,
+    const config::Config_server_handler &srv_handler, Invalid_config *change) {
+  mysqlshdk::utils::nullable<std::string> persisted_value =
+      srv_handler.get_persisted_value(change->var_name);
+
+  // Check only needed if there is a persisted value.
+  if (!persisted_value.is_null()) {
+    std::string value = shcore::str_upper(*persisted_value);
+
+    if (change->current_val != value) {
+      // When the persisted value is different from the current sysvar value
+      // check if it is valid and take the necessary action.
+
+      auto found_it = std::find(values.begin(), values.end(), value);
+      if ((found_it == values.end() && allowed_values) ||
+          (found_it != values.end() && !allowed_values)) {
+        // Persisted value is invalid, thus it must to be changed:
+        // if sysvar values is correct then the persisted value must be changed
+        // but restart is not required, otherwise maintain the current change.
+        if (!change->types.is_set(Config_type::SERVER)) {
+          // Sysvar value is correct
+          change->types.set(Config_type::SERVER);
+          change->restart = false;
+        }
+      } else {
+        // Persisted value is valid, thus only a restart is required.
+        change->restart = true;
+        change->types.unset(Config_type::SERVER);
+        change->types.set(Config_type::RESTART_ONLY);
+      }
+    }
+
+    // Add persisted value information when available.
+    change->persisted_val = value;
+  }
+}
+
 /**
  * Auxiliary function that does the logging of an invalid config.
  * @param change The Invalid config object
@@ -1177,10 +1216,25 @@ void check_server_variables_compatibility(
 
     // If config object has has a server handler
     if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
-      check_variable_compliance(
-          valid_values, true,
-          *config.get_handler(mysqlshdk::config::k_dft_cfg_server_handler),
-          &change, Config_type::SERVER, restart, true);
+      // Get the config server handler.
+      auto srv_cfg_handler =
+          dynamic_cast<mysqlshdk::config::Config_server_handler *>(
+              config.get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
+
+      // Determine if the config server handler supports SET PERSIST.
+      bool use_persist = (srv_cfg_handler->get_default_var_qualifier() ==
+                          mysqlshdk::mysql::Var_qualifier::PERSIST);
+
+      // Check the variables compliance.
+      check_variable_compliance(valid_values, true, *srv_cfg_handler, &change,
+                                Config_type::SERVER, restart, true);
+
+      // Check persisted value if supported, because it can be different from
+      // the current sysvar value (when PERSIST_ONLY was used).
+      if (use_persist) {
+        check_persisted_value_compliance(valid_values, true, *srv_cfg_handler,
+                                         &change);
+      }
     }
 
     log_invalid_config(change);

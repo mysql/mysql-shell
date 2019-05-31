@@ -15,6 +15,11 @@ set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
+set_sysvar(session, "super_read_only", 0);
+session.runSql("RESET PERSIST enforce_gtid_consistency");
+session.runSql("RESET PERSIST gtid_mode");
+session.runSql("RESET PERSIST server_id");
+set_sysvar(session, "super_read_only", 1);
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
@@ -46,6 +51,9 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root4', clusterAdminPassword:'root', clearReadOnly: 'NotABool'});
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
+session.runSql("RESET PERSIST enforce_gtid_consistency");
+session.runSql("RESET PERSIST gtid_mode");
+session.runSql("RESET PERSIST server_id");
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");

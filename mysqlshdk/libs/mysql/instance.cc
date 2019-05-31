@@ -715,6 +715,24 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
   }
 }
 
+utils::nullable<std::string> Instance::get_persisted_value(
+    const std::string &variable_name) const {
+  utils::nullable<std::string> res;
+
+  auto result = queryf(
+      "SELECT variable_value "
+      "FROM performance_schema.persisted_variables "
+      "WHERE variable_name = ?",
+      variable_name);
+
+  auto row = result->fetch_one();
+  if (row) {
+    res = row->get_string(0);
+  }
+
+  return res;
+}
+
 std::vector<std::string> Instance::get_fence_sysvars() const {
   std::vector<std::string> result;
 

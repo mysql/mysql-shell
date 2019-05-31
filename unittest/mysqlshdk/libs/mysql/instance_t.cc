@@ -1319,6 +1319,37 @@ TEST_F(Instance_test, is_set_persist_supported) {
   _session->close();
 }
 
+TEST_F(Instance_test, get_persisted_value) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // No value found for the specified variable.
+  session
+      .expect_query(
+          "SELECT variable_value FROM performance_schema.persisted_variables "
+          "WHERE variable_name = 'gtid_mode'")
+      .then_return({{
+          "", {"variable_value"}, {Type::String}, {}  // No records
+      }});
+  mysqlshdk::utils::nullable<std::string> res =
+      instance.get_persisted_value("gtid_mode");
+  EXPECT_TRUE(res.is_null());
+
+  // Persisted value successfully returned.
+  session
+      .expect_query(
+          "SELECT variable_value FROM performance_schema.persisted_variables "
+          "WHERE variable_name = 'gtid_mode'")
+      .then_return({{"", {"variable_value"}, {Type::String}, {{"ON"}}}});
+  res = instance.get_persisted_value("gtid_mode");
+  EXPECT_FALSE(res.is_null());
+  EXPECT_STREQ("ON", (*res).c_str());
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 TEST_F(Instance_test, suppress_binary_log) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);

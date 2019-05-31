@@ -355,11 +355,14 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
       } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER)) {
         if (cfg.restart) {
           *restart_needed = true;
-          action = "restart";
+          action = "server_update+restart";
         } else {
           action = "server_update";
           *sysvar_change_needed = true;
         }
+      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::RESTART_ONLY)) {
+        *restart_needed = true;
+        action = "restart";
       } else if (cfg.types.empty()) {
         throw std::runtime_error("Unexpected change type");
       }
@@ -368,6 +371,9 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
       (*error)["current"] = shcore::Value(cfg.current_val);
       (*error)["required"] = shcore::Value(cfg.required_val);
       (*error)["action"] = shcore::Value(action);
+      if (!cfg.persisted_val.is_null()) {
+        (*error)["persisted"] = shcore::Value(*cfg.persisted_val);
+      }
       config_errors->push_back(shcore::Value(error));
     }
     (*map_val)["config_errors"] = shcore::Value(config_errors);

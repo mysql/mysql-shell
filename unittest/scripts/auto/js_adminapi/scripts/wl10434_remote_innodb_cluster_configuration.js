@@ -264,6 +264,10 @@ dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "cluster
 // ET_12 - Super read-only enabled and 'clearReadOnly' is not set with interactive is ENABLED
 // prompts the user if wants to disable super_read_only to continue with the operation.
 shell.connect(__sandbox_uri1);
+session.runSql("RESET PERSIST binlog_checksum");
+session.runSql("RESET PERSIST enforce_gtid_consistency");
+session.runSql("RESET PERSIST gtid_mode");
+session.runSql("RESET PERSIST server_id");
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 //@ ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}

@@ -256,5 +256,15 @@ utils::nullable<std::string> Config_server_handler::get_string_now(
   return res;
 }
 
+utils::nullable<std::string> Config_server_handler::get_persisted_value(
+    const std::string &name) const {
+  try {
+    return m_instance->get_persisted_value(name);
+  } catch (const mysqlshdk::db::Error &err) {
+    throw std::runtime_error{"Unable to get persisted value for '" + name +
+                             "': " + err.what()};
+  }
+}
+
 }  // namespace config
 }  // namespace mysqlshdk

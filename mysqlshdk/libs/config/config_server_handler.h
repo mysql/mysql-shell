@@ -336,6 +336,22 @@ class Config_server_handler : public IConfig_handler {
     return m_var_qualifier;
   }
 
+  /**
+   * Get the persisted value for the specified server configuration (system
+   * variable).
+   *
+   * NOTE: This function gets the value directly from the server (i.e.,
+   * Performance Schema 'persisted_variables' table).
+   *
+   * @param name string with the name of the configuration to get.
+   * @return nullable string with the value for the specified configuration,
+   *         the value is null if no value was found.
+   * @throw std::runtime_error if an error occurs trying to get the persisted
+   *        value (e.g., for 5.7 servers that do not support SET PERSIST).
+   */
+  utils::nullable<std::string> get_persisted_value(
+      const std::string &name) const;
+
  private:
   /**
    * Auxiliary function to convert a shcore::Value (holding a bool) to a

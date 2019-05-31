@@ -139,6 +139,8 @@ class IInstance {
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
+  virtual utils::nullable<std::string> get_persisted_value(
+      const std::string &variable_name) const = 0;
 
   virtual std::vector<std::string> get_fence_sysvars() const = 0;
 
@@ -285,6 +287,22 @@ class Instance : public IInstance {
    *         'persisted_globals_load' is disabled, and null if not supported.
    */
   utils::nullable<bool> is_set_persist_supported() const override;
+
+  /**
+   * Return the persisted value for the given variable.
+   *
+   * The persisted value of a variable may not match its current system variable
+   * value, in particular if PERSIST_ONLY was used to set it. This function
+   * returns the persisted value of a specified variable from the
+   * performance_schema.persisted_variables table.
+   *
+   * @param variable_name string with the name of the variable to obtain the
+   *                      persisted value.
+   * @return nullable string with the persisted value for the specified
+   *         variable, or null if no persisted value was found.
+   */
+  utils::nullable<std::string> get_persisted_value(
+      const std::string &variable_name) const override;
 
   std::vector<std::string> get_fence_sysvars() const override;
 
