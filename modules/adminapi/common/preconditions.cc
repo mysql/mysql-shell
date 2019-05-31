@@ -63,15 +63,16 @@ const std::map<std::string, FunctionAvailability>
           ManagedInstance::State::Any}},
         {"Dba.dropMetadataSchema",
          {GRInstanceType::StandaloneWithMetadata |
+              GRInstanceType::StandaloneInMetadata |
               GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
         {"Dba.rebootClusterFromCompleteOutage",
-         {GRInstanceType::StandaloneWithMetadata |
-              GRInstanceType::InnoDBCluster,
+         {GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::Any,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
         {"Dba.configureLocalInstance",
          {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+              GRInstanceType::StandaloneInMetadata |
               GRInstanceType::InnoDBCluster | GRInstanceType::Unknown,
           ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
         {"Dba.checkInstanceConfiguration",
@@ -79,7 +80,8 @@ const std::map<std::string, FunctionAvailability>
               GRInstanceType::Unknown,
           ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
         {"Dba.configureInstance",
-         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata,
+         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+              GRInstanceType::StandaloneInMetadata,
           ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
 
         // The Replicaset/Cluster functions
@@ -329,7 +331,13 @@ void check_preconditions(const std::string &function_name,
         break;
       case GRInstanceType::StandaloneWithMetadata:
         error +=
-            " to a standalone instance (metadata exists, but GR is not active)";
+            " to a standalone instance (metadata exists, instance does not "
+            "belong to that metadata, and GR is not active)";
+        break;
+      case GRInstanceType::StandaloneInMetadata:
+        error +=
+            " to a standalone instance (metadata exists, instance belongs to "
+            "that metadata, but GR is not active)";
         break;
       case GRInstanceType::GroupReplication:
         error +=

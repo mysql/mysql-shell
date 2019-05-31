@@ -728,7 +728,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
 ||
 
 #@ Verify that it's not possible to get the cluster handle due to complete outage
-|| This function is not available through a session to a standalone instance (metadata exists, but GR is not active)
+|| This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata, but GR is not active)
 
 #@ Reboot cluster from complete outage
 ||

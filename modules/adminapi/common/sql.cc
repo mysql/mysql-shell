@@ -118,6 +118,24 @@ GRInstanceType get_gr_instance_type(
       log_debug("Instance type check: %s: Metadata found",
                 connection->get_connection_options().as_uri().c_str());
       ret_val = GRInstanceType::StandaloneWithMetadata;
+
+      query =
+          "select count(*) from mysql_innodb_cluster_metadata.instances "
+          "where mysql_server_uuid = @@server_uuid";
+
+      result = connection->query(query);
+      row = result->fetch_one();
+
+      if (row) {
+        if (row->get_int(0) != 0) {
+          log_debug("Instance type check: %s: instance is in Metadata",
+                    connection->get_connection_options().as_uri().c_str());
+          ret_val = GRInstanceType::StandaloneInMetadata;
+        } else {
+          log_debug("Instance type check: %s: instance is not in Metadata",
+                    connection->get_connection_options().as_uri().c_str());
+        }
+      }
     }
   }
 

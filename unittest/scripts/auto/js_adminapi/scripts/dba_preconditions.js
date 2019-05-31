@@ -55,6 +55,48 @@ session.close();
 var uri = "mysql://root:root@"+ hostname + ":" + __mysql_sandbox_port1;
 shell.connect(uri);
 dba.rebootClusterFromCompleteOutage("bla");
+session.close();
+
+//@ dissolve the cluster
+shell.connect(__sandbox_uri1);
+var c = dba.getCluster("bla");
+c.dissolve();
+
+//@ Dba_preconditions_standalone_with_metadata, get_cluster_fails
+dba.getCluster("bla");
+
+//@ Dba_preconditions_standalone_with_metadata, create_cluster_succeeds
+// Create Cluster is allowed on standalone instance with metadata, the precondition
+// validation passes
+dba.createCluster("1nvalidName");
+
+//@ Dba_preconditions_standalone_with_metadata, reboot_cluster_from_complete_outage_fails
+dba.rebootClusterFromCompleteOutage("bla");
+
+//@ Dba_preconditions_standalone_with_metadata, drop_metadata_schema_succeeds
+dba.dropMetadataSchema({ 'force': true, 'clearReadOnly': true });
+
+//@ create new cluster
+dba.createCluster("dev");
+
+//@ stop group replication
+session.runSql("stop group_replication;");
+
+//@ Dba_preconditions_standalone_in_metadata, get_cluster_fails
+dba.getCluster("dev");
+
+//@ Dba_preconditions_standalone_in_metadata, create_cluster_fails
+dba.createCluster("dev2");
+
+//@ Dba_preconditions_standalone_in_metadata, reboot_cluster_from_complete_outage_succeeds
+dba.rebootClusterFromCompleteOutage("dev", { 'clearReadOnly': true });
+
+//@ stop group replication once again
+session.runSql("stop group_replication;");
+
+//@ Dba_preconditions_standalone_in_metadata, drop_metadata_schema_succeeds
+dba.dropMetadataSchema({ 'force': true, 'clearReadOnly': true });
 
 //@ Cleanup
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

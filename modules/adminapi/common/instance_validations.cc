@@ -436,7 +436,8 @@ void ensure_instance_not_belong_to_cluster(
       mysqlsh::dba::get_gr_instance_type(instance.get_session());
 
   if (type != GRInstanceType::Standalone &&
-      type != GRInstanceType::StandaloneWithMetadata) {
+      type != GRInstanceType::StandaloneWithMetadata &&
+      type != GRInstanceType::StandaloneInMetadata) {
     // Retrieves the new instance UUID
     std::string uuid = instance.get_uuid();
 

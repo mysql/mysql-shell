@@ -98,7 +98,13 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
     } else if (instance_type == GRInstanceType::StandaloneWithMetadata) {
       error +=
           "' is a standalone instance but is part of a different InnoDB "
-          "Cluster (metadata exists, but Group Replication is not active).";
+          "Cluster (metadata exists, instance does not belong to that "
+          "metadata, and Group Replication is not active).";
+    } else if (instance_type == GRInstanceType::StandaloneInMetadata) {
+      error +=
+          "' is a standalone instance but is part of a different InnoDB "
+          "Cluster (metadata exists, instance belongs to that metadata, but "
+          "Group Replication is not active).";
     } else {
       error += " has an unknown state.";
     }

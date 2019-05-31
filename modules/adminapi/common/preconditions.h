@@ -36,7 +36,8 @@ enum GRInstanceType {
   GroupReplication = 1 << 1,
   InnoDBCluster = 1 << 2,
   StandaloneWithMetadata = 1 << 3,
-  Unknown = 1 << 4
+  StandaloneInMetadata = 1 << 4,
+  Unknown = 1 << 5
 };
 
 struct NewInstanceInfo {

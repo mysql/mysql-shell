@@ -51,5 +51,41 @@
 //@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
 ||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable.
 
+//@ dissolve the cluster
+||
+
+//@ Dba_preconditions_standalone_with_metadata, get_cluster_fails
+||Dba.getCluster: This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata, and GR is not active)
+
+//@ Dba_preconditions_standalone_with_metadata, create_cluster_succeeds
+||Dba.createCluster: The Cluster name can only start with an alphabetic or the '_' character.
+
+//@ Dba_preconditions_standalone_with_metadata, reboot_cluster_from_complete_outage_fails
+||Dba.rebootClusterFromCompleteOutage: This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata, and GR is not active)
+
+//@ Dba_preconditions_standalone_with_metadata, drop_metadata_schema_succeeds
+||
+
+//@ create new cluster
+||
+
+//@ stop group replication
+||
+
+//@ Dba_preconditions_standalone_in_metadata, get_cluster_fails
+||Dba.getCluster: This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata, but GR is not active)
+
+//@ Dba_preconditions_standalone_in_metadata, create_cluster_fails
+||dba.createCluster: Unable to create cluster. The instance 'localhost:<<<__mysql_sandbox_port1>>>' has a populated Metadata schema and belongs to that Metadata. Use either dba.dropMetadataSchema() to drop the schema, or dba.rebootClusterFromCompleteOutage() to reboot the cluster from complete outage.
+
+//@ Dba_preconditions_standalone_in_metadata, reboot_cluster_from_complete_outage_succeeds
+||
+
+//@ stop group replication once again
+||
+
+//@ Dba_preconditions_standalone_in_metadata, drop_metadata_schema_succeeds
+||
+
 //@ Cleanup
 ||

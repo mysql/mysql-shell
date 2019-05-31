@@ -28,7 +28,7 @@
 ||Cluster.status: This function is not available through a session to a standalone instance
 
 //@ getCluster() - error
-||Dba.getCluster: This function is not available through a session to a standalone instance (metadata exists, but GR is not active)
+||Dba.getCluster: This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata, but GR is not active)
 
 //@<OUT> No flag, yes on prompt
 Reconfiguring the cluster 'dev' from complete outage...

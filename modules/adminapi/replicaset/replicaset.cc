@@ -1346,7 +1346,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   auto instance_type = get_gr_instance_type(session);
 
   if (instance_type != GRInstanceType::Standalone &&
-      instance_type != GRInstanceType::StandaloneWithMetadata) {
+      instance_type != GRInstanceType::StandaloneWithMetadata &&
+      instance_type != GRInstanceType::StandaloneInMetadata) {
     state = get_replication_group_state(target_instance, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&

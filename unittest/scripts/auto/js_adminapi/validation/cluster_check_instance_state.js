@@ -29,7 +29,7 @@ Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port2>>>'
 ||
 
 //@<ERR> checkInstanceState: is a standalone instance but is part of a different InnoDB Cluster
-Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port2>>>' is a standalone instance but is part of a different InnoDB Cluster (metadata exists, but Group Replication is not active). (RuntimeError)
+Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port2>>>' is a standalone instance but is part of a different InnoDB Cluster (metadata exists, instance belongs to that metadata, but Group Replication is not active). (RuntimeError)
 
 //@ Drop metadatata schema from instance 2 to get diverged GTID
 ||

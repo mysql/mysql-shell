@@ -975,6 +975,18 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
                                get_function_name("getCluster", false) +
                                "() to access it.";
       throw shcore::Exception::runtime_error(nice_error);
+    } else if (error.find("instance belongs to that metadata") !=
+               std::string::npos) {
+      // BUG#29271400:
+      // createCluster() should not be allowed in instance with metadata
+      std::string nice_error =
+          "dba.<<<createCluster>>>: Unable to create cluster. The instance '" +
+          group_session->uri(only_transport()) +
+          "' has a populated Metadata schema and belongs to that Metadata. Use "
+          "either dba.<<<dropMetadataSchema>>>() to drop the schema, or "
+          "dba.<<<rebootClusterFromCompleteOutage>>>() to reboot the cluster "
+          "from complete outage.";
+      throw shcore::Exception::runtime_error(nice_error);
     } else {
       throw;
     }
@@ -2441,6 +2453,7 @@ static void validate_instance_belongs_to_cluster(
 
     case GRInstanceType::Standalone:
     case GRInstanceType::StandaloneWithMetadata:
+    case GRInstanceType::StandaloneInMetadata:
     case GRInstanceType::Unknown:
       // We only want to check whether the status if InnoDBCluster or
       // GroupReplication to stop and thrown an exception
