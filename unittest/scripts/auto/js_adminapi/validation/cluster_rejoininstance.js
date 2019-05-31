@@ -50,6 +50,12 @@ Cluster.rejoinInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
+                "recovery": {
+                    "receiverError": "error connecting to master 'not_exist@<<<hostname>>>:[[*]]",
+                    "receiverErrorNumber": 1045,
+                    "state": "CONNECTION_ERROR"
+                },
+                "recoveryStatusText": "Distributed recovery in progress",
                 "role": "HA",
                 "status": "RECOVERING"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },

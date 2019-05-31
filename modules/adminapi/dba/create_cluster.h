@@ -24,6 +24,9 @@
 #ifndef MODULES_ADMINAPI_DBA_CREATE_CLUSTER_H_
 #define MODULES_ADMINAPI_DBA_CREATE_CLUSTER_H_
 
+#include <string>
+
+#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/command_interface.h"
@@ -40,10 +43,9 @@ class Create_cluster : public Command_interface {
   Create_cluster(mysqlshdk::mysql::IInstance *target_instance,
                  const std::string &cluster_name,
                  const Group_replication_options &gr_options,
+                 const Clone_options &clone_options,
                  mysqlshdk::utils::nullable<bool> multi_primary,
-                 bool adopt_from_gr, bool force,
-                 const mysqlshdk::utils::nullable<bool> &clear_read_only,
-                 bool interactive);
+                 bool adopt_from_gr, bool force, bool interactive);
 
   ~Create_cluster() override;
 
@@ -52,6 +54,7 @@ class Create_cluster : public Command_interface {
    * Validates parameters and others, more specifically:
    * - Validate the cluster name;
    * - Validate the GR options (values and options combinations);
+   * - Validate the Clone options (values and options combinations);
    *   NOTE: This includes handling the multiPrimary option (and prompt);
    * - If not an adopted cluster:
    *     - ensure the instance configuration is valid;
@@ -65,7 +68,6 @@ class Create_cluster : public Command_interface {
    *     - Generate the GR group name to use if needed;
    * - else:
    *     - Determine the topology mode used by the adopted group;
-   * - Prompt to disable super_read_only if needed;
    * - Validate super_read_only;
    * - If not an adopted cluster:
    *     - Prepare Config object;
@@ -112,6 +114,7 @@ class Create_cluster : public Command_interface {
   mysqlshdk::mysql::IInstance *m_target_instance;
   const std::string m_cluster_name;
   Group_replication_options m_gr_opts;
+  Clone_options m_clone_opts;
   mysqlshdk::utils::nullable<bool> m_multi_primary;
   bool m_adopt_from_gr;
   bool m_force;

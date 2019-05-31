@@ -5,13 +5,13 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri3);
-var cluster = dba.createCluster('outsider');
+var cluster = dba.createCluster('outsider', {gtidSetIsComplete: true});
 session.close();
 
 shell.connect(__sandbox_uri1);
 
 cluster.disconnect();
-var cluster = dba.createCluster('clus');
+var cluster = dba.createCluster('clus', {gtidSetIsComplete: true});
 
 var outsider = mysql.getSession(__sandbox_uri3);
 

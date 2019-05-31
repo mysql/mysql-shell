@@ -36,9 +36,9 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 
 //@ create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@ Adding instance 2 using the root account
 cluster.addInstance({dbUser: 'root', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'root'});

@@ -16,7 +16,7 @@
 //@ BUG29265869 - Persist GR settings for 5.7. {VER(<8.0.0)}
 ||
 
-//@<OUT> BUG29265869 - Show initial cluster options.  {VER(>=8.0.16)}
+//@<OUT> BUG29265869 - Show initial cluster options.  {VER(>=8.0.17)}
 {
     "clusterName": "test",
     "defaultReplicaSet": {
@@ -30,6 +30,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
             }
         ],
         "topology": {
@@ -125,6 +129,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
             }
         ],
         "topology": {
@@ -218,7 +226,7 @@
 //@ BUG29265869 - Reboot cluster from complete outage.
 ||
 
-//@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.0.16)}
+//@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.0.17)}
 {
     "clusterName": "test",
     "defaultReplicaSet": {
@@ -232,6 +240,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
             }
         ],
         "topology": {
@@ -327,6 +339,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
             }
         ],
         "topology": {

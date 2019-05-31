@@ -51,7 +51,7 @@ shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#12049: Create cluster 1 {VER(>=5.7.24)}
-var c = dba.createCluster('test', {clearReadOnly: true})
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true})
 
 //@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
 // F1.2 - The exitStateAction option shall be a string value.
@@ -81,7 +81,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.12.
 
 //@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY"});
+var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY", gtidSetIsComplete: true});
 
 //@ WL#12049: Add instance using a valid exitStateAction 2 {VER(>=8.0.12)}
 c.addInstance(__sandbox_uri2, {exitStateAction: "READ_ONLY"})
@@ -108,7 +108,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#12049: Create cluster 3 {VER(>=8.0.12)}
-var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 
 //@ WL#12049: Add instance without using exitStateAction {VER(>=8.0.12)}
 c.addInstance(__sandbox_uri2)
@@ -147,7 +147,7 @@ shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#11032: Create cluster 1 {VER(>=5.7.20)}
-var c = dba.createCluster('test', {clearReadOnly: true})
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true})
 
 //@ WL#11032: addInstance() errors using memberWeight option {VER(>=5.7.20)}
 // F1.2 - The memberWeight option shall be an integer value.
@@ -173,7 +173,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.11.
 
 //@ WL#11032: Create cluster 2 {VER(>=8.0.11)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75});
+var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75, gtidSetIsComplete: true});
 
 //@ WL#11032: Add instance using a valid value for memberWeight (-50) {VER(>=8.0.11)}
 c.addInstance(__sandbox_uri2, {memberWeight: -50})
@@ -197,7 +197,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#11032: Create cluster 3 {VER(>=8.0.11)}
-var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 
 //@ WL#11032: Add instance without using memberWeight {VER(>=8.0.11)}
 c.addInstance(__sandbox_uri2)
@@ -235,7 +235,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ BUG#27084767: Create a cluster in single-primary mode
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance
 EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
@@ -258,7 +258,7 @@ session.close();
 shell.connect(__sandbox_uri1);
 
 //@ BUG#27084767: Create a cluster in multi-primary mode
-var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true});
+var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
 // This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
@@ -323,7 +323,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 shell.connect(__hostname_uri1);
 
 //@ BUG#27084767: Create a cluster in single-primary mode non-sandbox
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
 EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
@@ -346,7 +346,7 @@ c.dissolve({force: true})
 shell.connect(__hostname_uri1);
 
 //@ BUG#27084767: Create a cluster in multi-primary mode non-sandbox
-var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true});
+var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
 // This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
@@ -396,7 +396,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
-c = dba.createCluster('noxplugin');
+c = dba.createCluster('noxplugin', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 c.addInstance(__sandbox_uri3);
 
@@ -422,7 +422,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 //@ BUG28056944 create cluster.
 shell.connect(__hostname_uri1);
-var c = dba.createCluster('test_cluster');
+var c = dba.createCluster('test_cluster', {gtidSetIsComplete: true});
 c.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -464,7 +464,7 @@ shell.connect(__sandbox_uri1);
 
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_1 The value for group_replication_consistency must be the same on all cluster members (single-primary) {VER(>=8.0.14)}
-var c = dba.createCluster('test', {consistency: "1"});
+var c = dba.createCluster('test', {consistency: "1", gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 
@@ -482,7 +482,7 @@ c.dissolve({force: true});
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', { clearReadOnly:true, consistency: "1", multiPrimary:true, force: true});
+var c = dba.createCluster('test', { clearReadOnly:true, consistency: "1", multiPrimary:true, force: true, gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 
@@ -516,7 +516,7 @@ shell.connect(__sandbox_uri1);
 
 // FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
 //@ WL#12050: TSF2_1 The value for group_replication_member_expel_timeout must be the same on all cluster members (single-primary) {VER(>=8.0.13)}
-var c = dba.createCluster('test', {expelTimeout: 100});
+var c = dba.createCluster('test', {expelTimeout: 100, gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 
@@ -534,7 +534,7 @@ c.dissolve({force: true});
 // FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
 //@ WL#12050: TSF2_2 The value for group_replication_member_expel_timeout must be the same on all cluster members (multi-primary) {VER(>=8.0.13)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', { clearReadOnly:true, expelTimeout: 200, multiPrimary:true, force: true});
+var c = dba.createCluster('test', { clearReadOnly:true, expelTimeout: 200, multiPrimary:true, force: true, gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 
@@ -571,7 +571,7 @@ var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 var s3 = mysql.getSession(__sandbox_uri3);
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {autoRejoinTries: 2});
+var c = dba.createCluster('test', {autoRejoinTries: 2, gtidSetIsComplete: true});
 
 // FR1 - A new option autoRejoinTries shall be added to the [dba.]createCluster() and [cluster.]addInstance() to allow users to set the Group Replication (GR) system variable group_replication_autorejoin_tries.
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
@@ -617,7 +617,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 session.close();
 
 //@<> BUG#29305551: Setup asynchronous replication
@@ -656,7 +656,7 @@ session.close();
 
 //@ BUG#29809560: create cluster.
 shell.connect(__hostname_uri1);
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#29809560: add instance fails because server_id is not unique.
 c.addInstance(__hostname_uri2);
@@ -674,7 +674,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 //@ BUG#28855764: create cluster.
 shell.connect(__hostname_uri1);
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@ BUG#28855764: add instance an instance to the cluster
 c.addInstance(__hostname_uri2);
@@ -706,7 +706,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, se
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id: 22222});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id: 33333});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 // FR1 - A new auto-generated recovery account must be created whenever creating a cluster and joining an instance to a cluster
 //@<> WL#12773: FR1.1 - The account user-name shall be mysql_innodb_cluster_<server_id>

@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/replicaset/set_option.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -43,26 +44,171 @@ Cluster_set_option::Cluster_set_option(Cluster_impl *cluster,
   assert(cluster);
 }
 
+Cluster_set_option::Cluster_set_option(Cluster_impl *cluster,
+                                       const std::string &option, bool value)
+    : m_cluster(cluster), m_option(option), m_value_bool(value) {
+  assert(cluster);
+}
+
 Cluster_set_option::~Cluster_set_option() {}
 
 void Cluster_set_option::ensure_option_valid() {
   // - Validate if the option is valid, being the accepted values:
   //   - clusterName
-  // In this class only 'clusterName' must be checked.
-  if (!m_value_int.is_null()) {
-    throw shcore::Exception::argument_error(
-        "Invalid value for 'clusterName': Argument #2 is expected to be a "
-        "string.");
+  //   - disableClone
+  if (m_option == kClusterName) {
+    if (!m_value_int.is_null() || !m_value_bool.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for 'clusterName': Argument #2 is expected to be a "
+          "string.");
+    } else {
+      mysqlsh::dba::validate_cluster_name(*m_value_str);
+    }
+  } else if (m_option == kDisableClone) {
+    // Ensure forceClone is a boolean or integer value
+    if (!m_value_str.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for 'disableClone': Argument #2 is expected to be a "
+          "boolean.");
+    }
+  }
+}
+
+void Cluster_set_option::check_disable_clone_support() {
+  auto console = mysqlsh::current_console();
+
+  log_debug("Checking of disableClone is not supported by all cluster members");
+
+  // Get all cluster instances
+  std::vector<Instance_definition> instance_defs =
+      m_cluster->get_metadata_storage()->get_replicaset_instances(
+          m_cluster->get_default_replicaset()->get_id(), true);
+
+  size_t count = 0;
+
+  // Check if all instances have a version that does not support clone
+  for (const Instance_definition &instance_def : instance_defs) {
+    mysqlshdk::gr::Member_state state =
+        mysqlshdk::gr::to_member_state(instance_def.state);
+
+    if (state == mysqlshdk::gr::Member_state::ONLINE) {
+      std::string instance_address = instance_def.endpoint;
+
+      Connection_options instance_cnx_opts =
+          shcore::get_connection_options(instance_address, false);
+      instance_cnx_opts.set_login_options_from(
+          m_cluster->get_group_session()->get_connection_options());
+
+      log_debug("Connecting to instance '%s'.", instance_address.c_str());
+      std::shared_ptr<mysqlshdk::db::ISession> session;
+
+      // Establish a session to the instance
+      try {
+        session = mysqlshdk::db::mysql::Session::create();
+        session->connect(instance_cnx_opts);
+
+        mysqlshdk::mysql::Instance instance;
+
+        if (!is_option_supported(
+                mysqlshdk::mysql::Instance(session).get_version(), m_option,
+                k_global_cluster_supported_options)) {
+          count++;
+        }
+
+        session->close();
+      } catch (const std::exception &err) {
+        log_debug("Failed to connect to instance: %s", err.what());
+      }
+    }
+  }
+
+  if (count == instance_defs.size()) {
+    throw shcore::Exception::runtime_error(
+        "Option 'disableClone' not supported on Cluster.");
+  }
+}
+
+void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
+  // Get all cluster instances
+  std::vector<Instance_definition> instance_defs =
+      m_cluster->get_metadata_storage()->get_replicaset_instances(
+          m_cluster->get_default_replicaset()->get_id(), true);
+
+  // Get cluster session to use the same authentication credentials for all
+  // replicaset instances.
+  Connection_options cluster_cnx_opt =
+      m_cluster->get_group_session()->get_connection_options();
+
+  size_t count = 0;
+
+  for (const Instance_definition &instance_def : instance_defs) {
+    std::string instance_address = instance_def.endpoint;
+
+    Connection_options instance_cnx_opts =
+        shcore::get_connection_options(instance_address, false);
+    instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
+
+    log_debug("Connecting to instance '%s'.", instance_address.c_str());
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+
+    mysqlshdk::mysql::Instance instance;
+
+    // Establish a session to the instance
+    try {
+      session = mysqlshdk::db::mysql::Session::create();
+      session->connect(instance_cnx_opts);
+
+      instance = mysqlshdk::mysql::Instance(session);
+
+      if (disable_clone) {
+        mysqlshdk::mysql::uninstall_clone_plugin(instance, nullptr);
+      } else {
+        mysqlshdk::mysql::install_clone_plugin(instance, nullptr);
+      }
+
+      session->close();
+    } catch (const std::exception &err) {
+      auto console = mysqlsh::current_console();
+
+      std::string op = disable_clone ? "disable" : "enable";
+
+      std::string err_msg = "Unable to " + op + " clone on the instance '" +
+                            instance_address + "': " + std::string(err.what());
+
+      // If a cluster member is unreachable, just print a warning. Otherwise
+      // print error
+      if (shcore::str_beginswith(err.what(), "Can't connect to MySQL server")) {
+        console->print_warning(err_msg);
+      } else {
+        console->print_error(err_msg);
+      }
+      console->println();
+
+      count++;
+    }
+  }
+
+  // Update disableClone value in the metadata only if we succeeded to
+  // update the plugin status in at least one of the members
+  if (count != instance_defs.size()) {
+    m_cluster->get_metadata_storage()->update_cluster_attribute(
+        m_cluster->get_id(), k_cluster_attribute_disable_clone,
+        disable_clone ? shcore::Value::True() : shcore::Value::False());
   } else {
-    mysqlsh::dba::validate_cluster_name(*m_value_str);
+    // If we failed to update the value in all cluster members, thrown an
+    // exception
+    throw shcore::Exception::runtime_error(
+        "Failed to set the value of '" + m_option +
+        "' in the Cluster: Unable to update the clone plugin status in all "
+        "cluster members.");
   }
 }
 
 void Cluster_set_option::prepare() {
   // Check if the option is a ReplicaSet option and create the
   // Replicaset Set_option object to handle it. If the option it not a
-  // ReplicaSet option then verify if it is a Cluster option and thrown an error
-  // in case is not
+  // ReplicaSet option then verify if it is a Cluster option and thrown an
+  // error in case is not
   if (k_global_replicaset_supported_options.count(m_option) != 0) {
     std::shared_ptr<ReplicaSet> default_rs =
         m_cluster->get_default_replicaset();
@@ -103,7 +249,7 @@ shcore::Value Cluster_set_option::execute() {
   } else {
     std::string current_cluster_name = m_cluster->get_name();
 
-    if (m_option == "clusterName") {
+    if (m_option == kClusterName) {
       console->print_info("Setting the value of '" + m_option + "' to '" +
                           *m_value_str + "' in the Cluster ...");
       console->println();
@@ -114,6 +260,33 @@ shcore::Value Cluster_set_option::execute() {
 
       console->print_info("Successfully set the value of '" + m_option +
                           "' to '" + *m_value_str + "' in the Cluster: '" +
+                          current_cluster_name + "'.");
+    } else if (m_option == kDisableClone) {
+      // Ensure forceClone is a boolean or integer value
+      std::string m_value_printable =
+          ((!m_value_bool.is_null() && *m_value_bool == true) ||
+           (!m_value_int.is_null() && *m_value_int >= 1))
+              ? "true"
+              : "false";
+
+      console->print_info("Setting the value of '" + m_option + "' to '" +
+                          m_value_printable + "' in the Cluster ...");
+      console->println();
+
+      check_disable_clone_support();
+
+      if (!m_value_int.is_null()) {
+        if (*m_value_int >= 1) {
+          update_disable_clone_option(true);
+        } else {
+          update_disable_clone_option(false);
+        }
+      } else if (!m_value_bool.is_null()) {
+        update_disable_clone_option(*m_value_bool);
+      }
+
+      console->print_info("Successfully set the value of '" + m_option +
+                          "' to '" + m_value_printable + "' in the Cluster: '" +
                           current_cluster_name + "'.");
     }
   }

@@ -9,7 +9,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", "slave_preserve_commit_order":1, report_host: hostname});
 
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("cluster");
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
 // Create a test dataset so that RECOVERY takes a while
 session.runSql("create schema test");
@@ -67,19 +67,21 @@ function json_check(json, template, allowed_missing, allowed_unexpected) {
     if (!allowed_unexpected) allowed_unexpected = [];
     var r = json_check_fields(json, template);
     var nlist = [];
-    for (var k in json["missing"]) {
-        if (!(k in allowed_missing)) {
-            nlist.push(k);
+    for (var index in r["missing"]) {
+        var missing = r["missing"][index];
+        if (-1 == allowed_missing.indexOf(missing)) {
+            nlist.push(missing);
         }
     }
     r["missing"] = nlist;
     nlist = [];
-    for (var k in json["unexpected"]) {
-        if (!(k in allowed_unexpected)) {
-            nlist.push(k);
+    for (var index in r["unexpected"]) {
+        var unexpected = r["unexpected"][index];
+        if (-1 == allowed_unexpected.indexOf(unexpected)) {
+            nlist.push(unexpected);
         }
     }
-    r["missing"] = nlist;
+    r["unexpected"] = nlist;
 
     EXPECT_EQ([], r["missing"], "Missing fields");
     EXPECT_EQ([], r["unexpected"], "Unexpected fields");
@@ -253,15 +255,11 @@ const extended_2_status_templ_57 = {
                 "role": "", 
                 "status": "", 
                 "transactions": {
-                    "appliedCount": 0, 
                     "checkedCount": 0, 
                     "committedAllMembers": "", 
                     "conflictsDetectedCount": 0, 
-                    "inApplierQueueCount": 0, 
-                    "inQueueCount": 0, 
-                    "lastConflictFree": "", 
-                    "proposedCount": 0, 
-                    "rollbackCount": 0
+                    "inQueueCount": 0,
+                    "lastConflictFree" : ""
                 }
             }
         },
@@ -270,7 +268,7 @@ const extended_2_status_templ_57 = {
     "groupInformationSourceMember": ""
 };
 
-const full_status_templ = {
+const full_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
@@ -341,6 +339,54 @@ const full_status_templ = {
     "groupInformationSourceMember": ""
 };
 
+const full_status_templ_57 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "", 
+        "groupName": "",
+        "primary": "",
+        "ssl": "", 
+        "status": "", 
+        "statusText": "", 
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "", 
+                "readReplicas": {}, 
+                "role": "", 
+                "status": "", 
+                "version": "<<<__version>>>", 
+                "transactions": {
+                    "checkedCount": 0, 
+                    "committedAllMembers": "", 
+                    "conflictsDetectedCount": 0, 
+                    "connection": {
+                        "lastHeartbeatTimestamp": "", 
+                        "receivedHeartbeats": 0, 
+                        "receivedTransactionSet": "",
+                        "threadId": 0
+                    },
+                    "inQueueCount": 0, 
+                    "lastConflictFree": "", 
+                    "workers": [
+                        {
+                            "lastSeen": "",
+                            "threadId": 0
+                        }
+                    ]
+                }
+            }
+        },
+        "topologyMode": "Single-Primary"
+    }, 
+    "groupInformationSourceMember": ""
+};
+
 const transaction_status_templ = {
     "appliedCount": 0, 
     "checkedCount": 0, 
@@ -392,7 +438,7 @@ const transaction_status_templ = {
     ]
 };
 
-const coordinator_status_templ = {
+const coordinator_status_templ_80 = {
     "lastProcessed": {
         "bufferTime": 0.0, 
         "endTimestamp": "", 
@@ -404,6 +450,22 @@ const coordinator_status_templ = {
         "transaction": ""
     }, 
     "threadId": 0
+};
+
+const coordinator_status_templ_57 = {
+    "threadId": 0
+};
+
+const distributed_recovery_status_templ = {
+    "state": ""
+};
+
+const clone_recovery_status_templ = {
+    "cloneStartTime": "",
+    "cloneState": "",
+    "currentStage": "",
+    "currentStageProgress": 0,
+    "currentStageState": ""
 };
 
 //---
@@ -504,14 +566,19 @@ json_check(stat, base_status_templ_80);
 var stat = cluster.status();
 json_check(stat, base_status_templ_57);
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3)
-// TS1_5	Verify that information about additional transactions stats is printed by each member of the group when using cluster.status() and the option queryMembers is set to true.
-// TS4_1	Verify that the I/O thread and applied workers information is added to the status of a member when calling cluster.status().
-// TS7_1	Verify that information about the regular transaction processed is added to the status of a member that is Online when calling cluster.status().
-// TS10_1	Validate that information about member_id/server_uuid and GR group name is added to the output when calling cluster.status() if brief is set to false.
+// TS1_5    Verify that information about additional transactions stats is printed by each member of the group when using cluster.status() and the option queryMembers is set to true.
+// TS4_1    Verify that the I/O thread and applied workers information is added to the status of a member when calling cluster.status().
+// TS7_1    Verify that information about the regular transaction processed is added to the status of a member that is Online when calling cluster.status().
+// TS10_1   Validate that information about member_id/server_uuid and GR group name is added to the output when calling cluster.status() if brief is set to false.
 // WL#13084 - TSF4_4: extended: 3 includes transactions information (same as queryMembers: true).
+
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0)}
 var stat = cluster.status({extended: 3});
-json_check(stat, full_status_templ);
+json_check(stat, full_status_templ_80);
+
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 5.7 {VER(<8.0)}
+var stat = cluster.status({extended: 3});
+json_check(stat, full_status_templ_57);
 
 // WL#13084 - TSF4_4: extended: 3 includes additional replication information.
 var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
@@ -533,9 +600,13 @@ EXPECT_NE(undefined, connection);
 var workers = json_find_key(stat, "workers");
 EXPECT_NE(undefined, workers);
 
-// TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false.
+//@<> TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0)}
 var stat_qm = cluster.status({queryMembers: true, extended:false});
-json_check(stat_qm, full_status_templ);
+json_check(stat_qm, full_status_templ_80);
+
+//@<> TS_E3 Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(<8.0)}
+var stat_qm = cluster.status({queryMembers: true, extended:false});
+json_check(stat_qm, full_status_templ_57);
 
 //@<> WL#13084 - TSF5_2: extended: 3 is the same as queryMembers: true.
 var stat_ext_3 = cluster.status({queryMembers: true});
@@ -546,17 +617,20 @@ var stat_qm_true_ext_2 = cluster.status({queryMembers: true, extended: 2});
 EXPECT_EQ(stat, stat_qm_true_ext_2);
 
 // With 2 members
-cluster.addInstance(__sandbox_uri2);
+cluster.addInstance(__sandbox_uri2, {waitRecovery: 0});
 
 // TS6_1	Verify that information about the recovery process is added to the status of a member that is on Recovery status when calling cluster.status().
 
 //@<> F7- Check that recovery stats are there 5.7 {VER(<8.0)}
 var stat = cluster.status({extended:2});
-json_check(stat, extended_2_status_templ_57);
+var allowed_missing = ["transactions"];
+var allowed_unexpected = ["recovery", "recoveryStatusText"];
+json_check(stat, extended_2_status_templ_57, allowed_missing, allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 {VER(>=8.0)}
 var stat = cluster.status({extended:2});
-json_check(stat, extended_2_status_templ_80);
+var allowed_unexpected = ["recovery", "recoveryStatusText"];
+json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
 var stat = cluster.status({extended:3});
 println(stat);
@@ -564,8 +638,12 @@ EXPECT_EQ("RECOVERING", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)[
 var allowed_missing = ["appliedCount", "checkedCount", "committedAllMembers", "conflictsDetectedCount", "inApplierQueueCount", "inQueueCount", "lastConflictFree", "proposedCount", "rollbackCount"];
 // currentlyQueueing only appears if the worker is currently processing a tx
 allowed_missing.push("currentlyQueueing");
+var transactions = json_find_key(stat, "transactions");
+json_check(transactions, transaction_status_templ, allowed_missing);
+
+// WL13208-TS_FR8_3 - Distributed Recovery displays state
 var recovery = json_find_key(stat, "recovery");
-json_check(recovery, transaction_status_templ, allowed_missing);
+json_check(recovery, distributed_recovery_status_templ);
 
 // Wait recovery to finish
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -575,17 +653,34 @@ println(stat);
 var recovery = json_find_key(stat, "recovery");
 EXPECT_FALSE(recovery);
 
+//@<> WL13208-TS_FR8_2 - Clone Recovery status displays state information {VER(>=8.0)}
+cluster.removeInstance(hostname+":"+__mysql_sandbox_port2);
+
+// Insert more rows in primary so that a recovery is necessary
+for (i = 0; i < NUM_DATA_ROWS; i++) {
+    session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
+}
+
+// the recovery should fail because it can't connect to the primary
+cluster.addInstance(__sandbox_uri2, {waitRecovery: 0, recoveryMethod:'clone'});
+
+var stat = cluster.status({ extended: 3 })
+var recovery = json_find_key(stat, "recovery");
+var allowed_missing = ["currentStageProgress"];
+json_check(recovery, clone_recovery_status_templ, allowed_missing);
+
 //@<> F4 - shutdown member2 and try again to see if connect error is included
 // TS_3_1	Verify that a shellConnectError is added to the status of a member if the shell can't connect to it when calling cluster.status().
+// WL13208-TS_FR8_4
 testutil.stopSandbox(__mysql_sandbox_port2);
 
 var stat = cluster.status({extended:3});
 var loc = json_find_key(stat, hostname+":" + __mysql_sandbox_port2);
 EXPECT_NE(undefined, loc["shellConnectError"]);
 
-//@<> F6- With parallel appliers 
+//@<> F6- With parallel appliers for 8.0 {VER(>=8.0)}
 // TS5_1	Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
-cluster.addInstance(__sandbox_uri3);
+cluster.addInstance(__sandbox_uri3, {waitRecovery: 0});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 var stat = cluster.status({extended:3});
@@ -594,12 +689,25 @@ EXPECT_NE(undefined, tx["connection"]);
 EXPECT_NE(undefined, tx["coordinator"]);
 EXPECT_NE(undefined, tx["workers"]);
 EXPECT_EQ(2, tx["workers"].length);
-json_check(tx["coordinator"], coordinator_status_templ);
+json_check(tx["coordinator"], coordinator_status_templ_80);
+
+//@<> F6- With parallel appliers for 5.7 {VER(<8.0)}
+// TS5_1    Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
+cluster.addInstance(__sandbox_uri3, {waitRecovery: 0});
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+var stat = cluster.status({extended:3});
+var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];
+EXPECT_NE(undefined, tx["connection"]);
+EXPECT_NE(undefined, tx["coordinator"]);
+EXPECT_NE(undefined, tx["workers"]);
+EXPECT_EQ(2, tx["workers"].length);
+json_check(tx["coordinator"], coordinator_status_templ_57);
 
 //@<> F9- Rejoin member2 but trigger a failed recovery so we get a recovery error
 
 // Insert more rows in primary so that a recovery is necessary
-for (i = 0; i < 4; i++) {
+for (i = 0; i < NUM_DATA_ROWS; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
@@ -620,10 +728,10 @@ var stat = cluster.status({extended:3});
 println(stat);
 // TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
 var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");
-EXPECT_EQ(1045, recovery["connection"]["lastErrno"]);
-EXPECT_NE(undefined, recovery["connection"]["lastError"]);
-EXPECT_NE(undefined, recovery["connection"]["lastErrorTimestamp"]);
-
+EXPECT_EQ(1045, recovery["receiverErrorNumber"]);
+EXPECT_EQ("CONNECTION_ERROR", recovery["state"]);
+EXPECT_NE(undefined, recovery["receiverErrorNumber"]);
+EXPECT_NE(undefined, recovery["state"]);
 
 // Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -21,12 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/common/group_replication_options.h"
-
 #include <set>
 #include <string>
 #include <vector>
+
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
@@ -105,7 +105,8 @@ void validate_exit_state_action_supported(
     throw shcore::Exception::argument_error(
         "Invalid value for exitStateAction, string value cannot be empty.");
 
-  if (!is_group_replication_option_supported(version, kExitStateAction)) {
+  if (!is_option_supported(version, kExitStateAction,
+                           k_global_replicaset_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'exitStateAction' not supported on target server "
         "version: '" +
@@ -130,7 +131,8 @@ void validate_consistency_supported(
           "Invalid value for consistency, string value cannot be "
           "empty.");
     }
-    if (!is_group_replication_option_supported(version, kConsistency)) {
+    if (!is_option_supported(version, kConsistency,
+                             k_global_replicaset_supported_options)) {
       throw std::runtime_error(
           "Option 'consistency' not supported on target server "
           "version: '" +
@@ -158,7 +160,8 @@ void validate_expel_timeout_supported(
           "Invalid value for expelTimeout, integer value must be in the range: "
           "[0, 3600]");
     }
-    if (!is_group_replication_option_supported(version, kExpelTimeout)) {
+    if (!is_option_supported(version, kExpelTimeout,
+                             k_global_replicaset_supported_options)) {
       throw std::runtime_error(
           "Option 'expelTimeout' not supported on target server "
           "version: '" +
@@ -178,7 +181,8 @@ void validate_auto_rejoin_tries_supported(
     const mysqlshdk::utils::Version &version) {
   // The rejoinRetries option shall only be allowed if the target MySQL
   // server version is >= 8.0.16.
-  if (!is_group_replication_option_supported(version, kAutoRejoinTries)) {
+  if (!is_option_supported(version, kAutoRejoinTries,
+                           k_global_replicaset_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'autoRejoinTries' not supported on target server "
         "version: '" +
@@ -198,7 +202,8 @@ void validate_member_weight_supported(
   // The memberWeight option shall only be allowed if the target MySQL
   // server version is >= 5.7.20 if 5.0, or >= 8.0.11 if 8.0.
 
-  if (!is_group_replication_option_supported(version, kMemberWeight)) {
+  if (!is_option_supported(version, kMemberWeight,
+                           k_global_replicaset_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'memberWeight' not supported on target server "
         "version: '" +

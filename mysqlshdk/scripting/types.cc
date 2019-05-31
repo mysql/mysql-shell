@@ -261,10 +261,11 @@ std::string Exception::format() const {
   std::string state = _error->get_string("state", "");
   std::string error_location = _error->get_string("location", "");
 
-  if (!message.empty()) {
+  if (!message.empty() &&
+      !is_mysqlsh()) {  // don't show shell error codes for now
     if (!type.empty()) error_message += type;
 
-    if (code != -1 && !is_mysqlsh()) {  // don't show shell error codes for now
+    if (code != -1) {
       if (is_mysql() || is_mysqlsh())
         error_message += "-" + std::to_string(code);
       else

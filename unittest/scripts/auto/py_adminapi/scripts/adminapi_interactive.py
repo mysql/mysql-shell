@@ -74,23 +74,33 @@ dba.configure_instance(__sandbox_uri3)
 #
 # 1. Create a cluster on __sandbox_uri1, using some of the available options
 
+# Create a test dataset so that RECOVERY takes a while and we ensure right monitoring messages for addInstance
+shell.connect(__sandbox_uri1)
+session.run_sql("create schema test");
+session.run_sql("create table test.data (a int primary key auto_increment, data longtext)");
+for x in range(0, 20):
+  session.run_sql("insert into test.data values (default, repeat('x', 4*1024*1024))");
+
+session.close()
+
 # Establish a session to the instance on which the cluster will be created
 shell.connect({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin', 'password': 'myPwd'})
 
 #@<OUT> create_cluster()
-c = dba.create_cluster("testCluster", {'groupName': 'ca94447b-e6fc-11e7-b69d-4485005154dc', 'ipWhitelist': '255.255.255.255/32,127.0.0.1,' + hostname_ip, 'memberSslMode': 'DISABLED', 'exitStateAction': 'READ_ONLY'})
+c = dba.create_cluster("testCluster", {'groupName': 'ca94447b-e6fc-11e7-b69d-4485005154dc', 'ipWhitelist': '255.255.255.255/32,127.0.0.1,' + hostname_ip, 'memberSslMode': 'DISABLED', 'exitStateAction': 'READ_ONLY', 'gtidSetIsComplete': True})
 
 # Cluster.addInstance():
 #
 # 1. Add 2 instances to the created cluster and check both .status() and .describe()
 
-#@<OUT> add_instance() 1
+#@<OUT> add_instance() 1 clone {VER(>=8.0.17)}
 c.add_instance({'host': hostname, 'port': __mysql_sandbox_port2, 'user': 'myAdmin', 'password': 'myPwd'}, {'exitStateAction': 'READ_ONLY'})
-testutil.wait_member_state(__mysql_sandbox_port2, "ONLINE")
+
+#@<OUT> add_instance() 1 {VER(<8.0.11)}
+c.add_instance({'host': hostname, 'port': __mysql_sandbox_port2, 'user': 'myAdmin', 'password': 'myPwd'}, {'exitStateAction': 'READ_ONLY'})
 
 #@ add_instance() 2
 c.add_instance({'host': hostname, 'port': __mysql_sandbox_port3, 'user': 'myAdmin', 'password': 'myPwd'}, {'exitStateAction': 'READ_ONLY'})
-testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE")
 
 # Cluster.describe():
 #

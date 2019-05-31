@@ -23,7 +23,7 @@ var admin_user_uri1 = "gr_user:gr_pass@localhost:"+__mysql_sandbox_port1;
 var admin_user_uri2 = "gr_user:gr_pass@localhost:"+__mysql_sandbox_port2;
 var admin_user_uri3 = "gr_user:gr_pass@localhost:"+__mysql_sandbox_port3;
 shell.connect(admin_user_uri1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 cluster.addInstance(admin_user_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

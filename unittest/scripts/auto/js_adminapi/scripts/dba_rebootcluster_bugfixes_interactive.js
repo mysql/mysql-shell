@@ -27,7 +27,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 //@ Deploy cluster
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster("myCluster", {memberSslMode: 'DISABLED'});
+var c = dba.createCluster("myCluster", {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -104,7 +104,7 @@ c.dissolve();
 
 //@<> BUG#29305551: Create cluster
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {clearReadOnly: true, memberSslMode: 'DISABLED'});
+var c = dba.createCluster('test', {clearReadOnly: true, memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@<> BUG#29305551: Add instances to the cluster
 c.addInstance(__sandbox_uri2);

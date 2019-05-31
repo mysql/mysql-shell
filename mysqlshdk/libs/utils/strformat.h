@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ inline std::pair<std::string, double> scale_value(T n) {
   return {"", n};
 }
 
-std::string format_seconds(double secs);
+std::string format_seconds(double secs, bool show_fractional_seconds = true);
 std::string format_microseconds(double secs);
 
 std::string format_bytes(uint64_t bytes);

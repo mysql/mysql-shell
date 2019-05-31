@@ -65,6 +65,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shcore::Argument_list args;
   shcore::Dictionary_t options = shcore::make_dict();
   options->emplace("memberSslMode", "REQUIRED");
+  options->emplace("gtidSetIsComplete", true);
   auto cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
 

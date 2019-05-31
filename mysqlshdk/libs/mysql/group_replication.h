@@ -44,16 +44,18 @@ namespace mysqlshdk {
 // TODO(.) namespace gr should probably be renamed to mysql
 namespace gr {
 
-static constexpr char kPluginName[] = "group_replication";
-static constexpr char kPluginActive[] = "ACTIVE";
-static constexpr char kPluginDisabled[] = "DISABLED";
-static constexpr char k_value_not_set[] = "<not set>";
-static constexpr char k_no_value[] = "<no value>";
-static constexpr char k_must_be_initialized[] = "<must be initialized>";
+static constexpr const char k_gr_plugin_name[] = "group_replication";
+static constexpr const char k_value_not_set[] = "<not set>";
+static constexpr const char k_no_value[] = "<no value>";
+static constexpr const char k_must_be_initialized[] = "<must be initialized>";
 static constexpr const char k_group_recovery_user_prefix[] =
     "mysql_innodb_cluster_";
 static constexpr const char k_group_recovery_old_user_prefix[] =
     "mysql_innodb_cluster_r";
+static constexpr const char k_gr_applier_channel[] =
+    "group_replication_applier";
+static constexpr const char k_gr_recovery_channel[] =
+    "group_replication_recovery";
 
 /**
  * Enumeration of the supported states for Group Replication members.
@@ -261,11 +263,13 @@ void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &rpl_pwd);
 
 // Functions to manage the GR plugin
-bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
-                    mysqlshdk::config::Config *config,
-                    bool disable_read_only = false);
-bool uninstall_plugin(const mysqlshdk::mysql::IInstance &instance,
-                      mysqlshdk::config::Config *config);
+bool install_group_replication_plugin(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::config::Config *config);
+bool uninstall_group_replication_plugin(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::config::Config *config);
+
 void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
                              const bool bootstrap,
                              const uint16_t read_only_timeout = 900);
@@ -307,7 +311,8 @@ mysql::User_privileges_result check_replication_user(
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, mysqlshdk::mysql::IInstance *primary,
     const std::vector<std::string> &hosts,
-    const mysqlshdk::utils::nullable<std::string> &password);
+    const mysqlshdk::utils::nullable<std::string> &password,
+    bool clone_supported = false);
 
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 
@@ -499,6 +504,36 @@ void check_instance_version_compatibility(
 bool is_instance_only_read_compatible(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version);
+
+enum class Group_member_recovery_status {
+  DONE_ONLINE,        // not in recovery (ONLINE)
+  DONE_OFFLINE,       // not in recovery (OFFLINE)
+  DISTRIBUTED,        // distributed recovery (binlog)
+  DISTRIBUTED_ERROR,  // error during distributed (ERROR state)
+  CLONE,              // clone recovery
+  CLONE_ERROR,        // error during clone (ERROR state)
+  UNKNOWN,            // couldn't detect
+  UNKNOWN_ERROR       // couldn't detect (ERROR state)
+};
+
+/**
+ * Given a member in RECOVERING state, tries to detect the type of recovery in
+ * use.
+ *
+ * @param instance connection options to the instance being checked
+ * @param start_time timestamp of a point in time before the recovery is known
+ * to have started
+ * @param out_recovering if not null, will be set to true if RECOVERING
+ * @returns current status of the recovery, as detected
+ *
+ * Note: The only way to tell apart different executions of clone is
+ * through the time it started, so the start_time arg should be set to the
+ * timestamp of the server right before the START GROUP_REPLICATION is executed,
+ * in that same server.
+ */
+Group_member_recovery_status detect_recovery_status(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &start_time,
+    bool *out_recovering = nullptr);
 
 }  // namespace gr
 }  // namespace mysqlshdk

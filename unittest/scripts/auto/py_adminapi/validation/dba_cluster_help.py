@@ -100,6 +100,10 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - label: an identifier for the instance being added
+      - recoveryMethod: Preferred method of state recovery. May be auto, clone
+        or incremental. Default is auto.
+      - waitRecovery: Integer value to indicate if the command shall wait for
+        the recovery process to finish and its verbosity level.
       - password: the instance connection password
       - memberSslMode: SSL mode used on the instance
       - ipWhitelist: The list of hosts allowed to connect to the instance for
@@ -119,6 +123,22 @@ DESCRIPTION
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
 
+      The recoveryMethod option supports the following values:
+
+      - incremental: uses distributed state recovery, which applies missing
+        transactions copied from another cluster member. Clone will be
+        disabled.
+      - clone: clone: uses built-in MySQL clone support, which completely
+        replaces the state of the target instance with a full snapshot of
+        another cluster member before distributed recovery starts. Requires
+        MySQL 8.0.17 or newer.
+      - auto: let Group Replication choose whether or not a full snapshot has
+        to be taken, based on what the target server supports and the
+        group_replication_clone_threshold sysvar. This is the default value. A
+        prompt will be shown if not possible to safely determine a safe way
+        forward. If interaction is disabled, the operation will be canceled
+        instead.
+
       ATTENTION: The memberSslMode option will be removed in a future release.
 
       The memberSslMode option supports the following values:
@@ -130,6 +150,20 @@ DESCRIPTION
         disabled based on the cluster configuration
 
       If memberSslMode is not specified AUTO will be used by default.
+
+      The waitRecovery option supports the following values:
+
+      - 0: do not wait and let the recovery process to finish in the
+        background.
+      - 1: block until the recovery process to finishes.
+      - 2: block until the recovery process finishes and show progress
+        information.
+      - 3: block until the recovery process finishes and show progress using
+        progress bars.
+
+      By default, if the standard output on which the Shell is running refers
+      to a terminal, the waitRecovery option has the value of 3. Otherwise, it
+      has the value of 2.
 
       The exitStateAction option supports the following values:
 
@@ -205,6 +239,7 @@ EXCEPTIONS
       - If the value for the ipWhitelist, localAddress, groupSeeds, or
         exitStateAction options is empty.
       - If the instance definition cannot be used for Group Replication.
+      - If the value for the waitRecovery option is not in the range [0, 3].
 
       RuntimeError in the following scenarios:
 
@@ -215,6 +250,7 @@ EXCEPTIONS
       - If the value for the localAddress, groupSeeds, exitStateAction,
         memberWeight or autoRejoinTries options is not valid for Group
         Replication.
+      - If the value of recoveryMethod is not auto and it cannot be used.
 
 #@<OUT> cluster.check_instance_state
 NAME
@@ -757,6 +793,8 @@ DESCRIPTION
         it from the cluster.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
+      - disableClone: boolean value used to disable the clone usage on the
+        cluster.
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.

@@ -56,7 +56,7 @@ session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (), REPLICATE_DO
 session.runSql("RESET SLAVE ALL");
 
 //@# Dba: create_cluster succeed without binlog-do-db nor repl filter
-cluster = dba.createCluster("testCluster");
+cluster = dba.createCluster("testCluster", {gtidSetIsComplete: true});
 cluster
 
 //@# Dba: add_instance fails with binlog-do-db

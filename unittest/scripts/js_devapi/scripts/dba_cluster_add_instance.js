@@ -11,9 +11,9 @@ var singleSession = session;
 //@ create first cluster
 // Regression for BUG#270621122: Deprecate memberSslMode (ensure no warning is showed for createCluster)
 if (__have_ssl)
-  var single = dba.createCluster('single', {memberSslMode: 'REQUIRED'});
+  var single = dba.createCluster('single', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-  var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
+  var single = dba.createCluster('single', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@ Success adding instance
 // Regression for BUG#270621122: Deprecate memberSslMode
@@ -70,9 +70,9 @@ var multiSession = session;
 // We must use clearReadOnly because the instance 3 was removed from the cluster before
 // (BUG#26422638)
 if (__have_ssl)
-  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiPrimary:true, force:true, clearReadOnly: true});
+  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiPrimary:true, force:true, clearReadOnly: true, gtidSetIsComplete: true});
 else
-  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiPrimary:true, force:true, clearReadOnly: true});
+  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiPrimary:true, force:true, clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;

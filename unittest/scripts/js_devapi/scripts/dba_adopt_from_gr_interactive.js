@@ -29,7 +29,7 @@ session.runSql("SET sql_log_bin = 1");
 dba.createCluster('testCluster', {adoptFromGR: true});
 
 //@ Create cluster
-var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED'});
+var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@ Adding instance to cluster
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -119,7 +119,7 @@ cluster.disconnect();
 // create cluster in multi-primary mode
 shell.connect(__sandbox_uri1);
 
-var cluster = dba.createCluster('testCluster', {multiPrimary: true, memberSslMode: __ssl_mode, clearReadOnly: true, force: true});
+var cluster = dba.createCluster('testCluster', {multiPrimary: true, memberSslMode: __ssl_mode, clearReadOnly: true, force: true, gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 cluster.addInstance(__sandbox_uri2);

@@ -27,6 +27,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_extensible_object.h"
@@ -88,6 +89,7 @@ class Testutils : public mysqlsh::Extensible_object {
   List wipeFileContents(String path);
   Undefined dbugSet(String s);
   Undefined dprint(String s);
+  // Undefined slowify(Integer port, Boolean start);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -127,6 +129,7 @@ class Testutils : public mysqlsh::Extensible_object {
   list wipe_file_contents(str path);
   None dbug_set(str s);
   None dprint(str s);
+  None skip(int port, bool start);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -237,6 +240,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void dprint(const std::string &s);
 
+  // void slowify(int port, bool flag);
+
  public:
   // These should produce test failure output similar to that of gtest,
   // possibly including a stacktrace in the target language
@@ -281,10 +286,16 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string fetch_captured_stderr(bool eat_one);
 
  private:
+  struct Slower_thread {
+    std::thread thread;
+    bool stop = false;
+  };
+
   std::weak_ptr<mysqlsh::Command_line_shell> _shell;
   std::string _mysqlsh_path;
   std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;
   std::map<int, std::string> _passwords;
+  std::map<int, std::unique_ptr<Slower_thread>> _slower_threads;
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
   bool _dummy_sandboxes = false;

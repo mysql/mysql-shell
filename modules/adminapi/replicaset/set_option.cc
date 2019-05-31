@@ -152,9 +152,9 @@ void Set_option::ensure_option_supported_all_members_replicaset() {
     std::string instance_address = instance->descr();
 
     // Verify if the instance version is supported
-    bool is_supported = is_group_replication_option_supported(
-        instance->get_version(), m_option,
-        k_global_replicaset_supported_options);
+    bool is_supported =
+        is_option_supported(instance->get_version(), m_option,
+                            k_global_replicaset_supported_options);
 
     if (!is_supported) {
       console->print_error(

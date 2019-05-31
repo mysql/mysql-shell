@@ -7,7 +7,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 //@ Create cluster, disable interactive mode.
 // WL11889 FR1_01: new interactive option to disable interactive mode.
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('c');
+var c = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@<> Dissolve cluster, disable interactive mode.
 // WL11889 FR1_01: new interactive option to disable interactive mode.
@@ -16,7 +16,7 @@ var c = dba.createCluster('c');
 c.dissolve({interactive: false});
 
 //@ Create cluster, with unreachable instances.
-var c = dba.createCluster('c', {clearReadOnly: true});
+var c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Add instance on port2.
 c.addInstance(__sandbox_uri2);
@@ -69,7 +69,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_start_on_bo
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Create cluster, instance with replication errors.
-c = dba.createCluster('c', {clearReadOnly: true});
+c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Add instance on port2, again.
 c.addInstance(__sandbox_uri2);

@@ -77,6 +77,11 @@ class SHCORE_PUBLIC IRow {
     return get_uint(index);
   }
 
+  inline double get_double(uint32_t index, double default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_double(index);
+  }
+
   virtual ~IRow() {}
 };
 }  // namespace db

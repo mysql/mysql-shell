@@ -24,6 +24,9 @@
 #include "modules/adminapi/dba/create_cluster.h"
 
 #include <memory>
+#include <set>
+#include <utility>
+#include <vector>
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
@@ -34,6 +37,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -43,16 +47,16 @@
 namespace mysqlsh {
 namespace dba {
 
-Create_cluster::Create_cluster(
-    mysqlshdk::mysql::IInstance *target_instance,
-    const std::string &cluster_name,
-    const Group_replication_options &gr_options,
-    mysqlshdk::utils::nullable<bool> multi_primary, bool adopt_from_gr,
-    bool force, const mysqlshdk::utils::nullable<bool> &clear_read_only,
-    bool interactive)
+Create_cluster::Create_cluster(mysqlshdk::mysql::IInstance *target_instance,
+                               const std::string &cluster_name,
+                               const Group_replication_options &gr_options,
+                               const Clone_options &clone_options,
+                               mysqlshdk::utils::nullable<bool> multi_primary,
+                               bool adopt_from_gr, bool force, bool interactive)
     : m_target_instance(target_instance),
       m_cluster_name(cluster_name),
       m_gr_opts(gr_options),
+      m_clone_opts(clone_options),
       m_multi_primary(multi_primary),
       m_adopt_from_gr(adopt_from_gr),
       m_force(force),
@@ -181,6 +185,9 @@ void Create_cluster::prepare() {
   // Validate values given for GR options.
   m_gr_opts.check_option_values(m_target_instance->get_version());
 
+  // Validate the Clone options.
+  m_clone_opts.check_option_values(m_target_instance->get_version());
+
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
 
@@ -217,8 +224,8 @@ void Create_cluster::prepare() {
       // - exitStateAction default value should only be set if supported in
       // the target instance
       if (m_gr_opts.exit_state_action.is_null() &&
-          is_group_replication_option_supported(
-              m_target_instance->get_version(), kExpelTimeout)) {
+          is_option_supported(m_target_instance->get_version(), kExpelTimeout,
+                              k_global_replicaset_supported_options)) {
         m_gr_opts.exit_state_action = "READ_ONLY";
       }
 
@@ -442,7 +449,7 @@ shcore::Value Create_cluster::execute() {
   // Make sure the GR plugin is installed (only installed if needed).
   // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
   //       Disable read-only temporarily to install the plugin if needed.
-  mysqlshdk::gr::install_plugin(*m_target_instance, nullptr, true);
+  mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
   if (*m_multi_primary && !m_adopt_from_gr) {
     log_info(
@@ -478,10 +485,15 @@ shcore::Value Create_cluster::execute() {
     // For V1.0, let's see the Cluster's description to "default"
     cluster->impl()->set_description("Default Cluster");
 
-    cluster->impl()->set_attribute(ATT_DEFAULT, shcore::Value::True());
-
     // Insert Cluster on the Metadata Schema.
     metadata->insert_cluster(cluster->impl());
+    metadata->update_cluster_attribute(
+        cluster->impl()->get_id(), k_cluster_attribute_assume_gtid_set_complete,
+        m_clone_opts.gtid_set_is_complete ? shcore::Value::True()
+                                          : shcore::Value::False());
+    metadata->update_cluster_attribute(cluster->impl()->get_id(),
+                                       k_cluster_attribute_default,
+                                       shcore::Value::True());
 
     // Create the default replicaset in the Metadata and set it to the cluster.
     cluster->impl()->insert_default_replicaset(*m_multi_primary,
@@ -510,7 +522,7 @@ shcore::Value Create_cluster::execute() {
               m_address_in_metadata);
 
       log_debug(
-          "ReplicaSet %s: Instance '%s' %s",
+          "Cluster %s: Instance '%s' %s",
           std::to_string(cluster->impl()->get_default_replicaset()->get_id())
               .c_str(),
           m_target_instance->descr().c_str(),
@@ -523,6 +535,38 @@ shcore::Value Create_cluster::execute() {
             m_target_instance->get_connection_options());
       }
       setup_recovery(cluster->impl().get(), m_target_instance);
+    }
+
+    // Handle the clone options
+    {
+      // If disableClone: true, uninstall the plugin and update the Metadata
+      if (!m_clone_opts.disable_clone.is_null() &&
+          *m_clone_opts.disable_clone) {
+        mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
+        cluster->impl()->set_disable_clone_option(*m_clone_opts.disable_clone);
+      } else {
+        // Install the plugin if the target instance is >= 8.0.17
+        if (m_target_instance->get_version() >=
+            mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+          // Try to install the plugin, if it fails or it's disabled, then
+          // disable the clone usage on the cluster but proceed
+          try {
+            mysqlshdk::mysql::install_clone_plugin(*m_target_instance, nullptr);
+          } catch (const std::exception &e) {
+            console->print_warning(
+                "Failed to install/activate the clone plugin: " +
+                std::string(e.what()));
+            console->print_info("Disabling the clone usage on the cluster.");
+            console->print_info();
+
+            cluster->impl()->set_disable_clone_option(true);
+          }
+        } else {
+          // If the target instance is < 8.0.17 it does not support clone, so we
+          // must disable it by default
+          cluster->impl()->set_disable_clone_option(true);
+        }
+      }
     }
 
     // If it reaches here, it means there are no exceptions

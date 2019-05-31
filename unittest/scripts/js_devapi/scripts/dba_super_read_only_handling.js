@@ -49,19 +49,17 @@ dba.configureInstance(connection3, {clusterAdmin: "testUser", clusterAdminPasswo
 shell.connect(connection1);
 
 //@ Creates Cluster succeeds (should auto-clear)
-var cluster = dba.createCluster('sample');
+var cluster = dba.createCluster('sample', {gtidSetIsComplete: true});
 
 //@ Adds a read only instance
 ensureSuperReadOnly(connection2);
 cluster.addInstance(connection2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Adds other instance
 cluster.addInstance(connection3);
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port3);

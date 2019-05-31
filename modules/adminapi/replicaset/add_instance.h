@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/command_interface.h"
@@ -42,7 +43,9 @@ class Add_instance : public Command_interface {
   Add_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
                const ReplicaSet &replicaset,
                const Group_replication_options &gr_options,
+               const Clone_options &clone_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
+               bool interactive, int wait_recovery,
                const std::string &replication_user = "",
                const std::string &replication_password = "",
                bool overwrite_seed = false, bool skip_instance_check = false,
@@ -51,7 +54,9 @@ class Add_instance : public Command_interface {
   Add_instance(mysqlshdk::mysql::IInstance *target_instance,
                const ReplicaSet &replicaset,
                const Group_replication_options &gr_options,
+               const Clone_options &clone_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
+               bool interactive, int wait_recovery,
                const std::string &replication_user = "",
                const std::string &replication_password = "",
                bool overwrite_seed = false, bool skip_instance_check = false,
@@ -112,7 +117,9 @@ class Add_instance : public Command_interface {
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   const ReplicaSet &m_replicaset;
   Group_replication_options m_gr_opts;
+  Clone_options m_clone_opts;
   mysqlshdk::utils::nullable<std::string> m_instance_label;
+  bool m_interactive;
   std::string m_rpl_user;
   std::string m_rpl_pwd;
 
@@ -135,12 +142,25 @@ class Add_instance : public Command_interface {
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
+  bool m_clone_supported = false;
+  bool m_clone_disabled = false;
+
+  Recovery_progress_style m_progress_style;
+
+  int64_t m_restore_clone_threshold = 0;
+
+  Member_recovery_method validate_instance_recovery();
+
   void ensure_instance_version_compatibility() const;
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
   bool handle_replication_user();
   void log_used_gr_options();
   void ensure_unique_server_id() const;
+  void handle_recovery_account() const;
+  void update_change_master() const;
+
+  void refresh_target_connections();
 };
 
 }  // namespace dba

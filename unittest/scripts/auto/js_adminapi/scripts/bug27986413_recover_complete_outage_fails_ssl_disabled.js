@@ -11,7 +11,7 @@ var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
 //@ Deploy cluster with ssl disabled
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster("C",  {"memberSslMode": "DISABLED"});
+var c = dba.createCluster("C",  {"memberSslMode": "DISABLED", gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);

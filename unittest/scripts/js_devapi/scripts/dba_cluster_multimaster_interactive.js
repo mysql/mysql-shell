@@ -23,7 +23,7 @@ Cluster.dissolve({force: true});
 Cluster.disconnect();
 
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-dba.createCluster('devCluster', {multiMaster: true});
+dba.createCluster('devCluster', {multiMaster: true, gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -36,12 +36,8 @@ Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 //@<OUT> Cluster: addInstance with interaction, ok
 Cluster.addInstance(__sandbox_uri2);
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
 //@<OUT> Cluster: addInstance 3 with interaction, ok
 Cluster.addInstance(__sandbox_uri3);
-
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe1
 Cluster.describe();
@@ -69,9 +65,9 @@ Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED'});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED'});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -79,12 +75,8 @@ Cluster = dba.getCluster('devCluster');
 //@<OUT> Cluster: addInstance with interaction, ok 2
 Cluster.addInstance(__sandbox_uri2);
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
 //@<OUT> Cluster: addInstance with interaction, ok 3
 Cluster.addInstance(__sandbox_uri3);
-
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: status: success
 Cluster.status();

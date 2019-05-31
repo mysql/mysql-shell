@@ -26,6 +26,7 @@
 
 #include <map>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "mysqlshdk/libs/textui/term_vt100.h"
@@ -166,6 +167,8 @@ struct SHCORE_PUBLIC Style {
   bool compare(const Style &style,
                int mask = Attributes_set | Color_fg_mask | Color_bg_mask) const;
 
+  std::string str() const;
+
   operator std::string() const;
 
   operator bool() const { return field_mask != 0; }
@@ -273,7 +276,7 @@ inline std::string remark(const std::string &text) {
  * achieve it's objective.
  */
 std::string format_markup_text(const std::vector<std::string> &lines,
-                               size_t width, size_t left_padding,
+                               size_t width, size_t left_padding = 0,
                                bool paragraph_per_line = true);
 
 /**
@@ -286,7 +289,7 @@ std::string format_markup_text(const std::vector<std::string> &lines,
  * - Replacement of @< by "<"
  * - Replacement of @> by ">"
  * - Replacement of &nbsp; by " "
- * - Replacement of @li by "-" (To create bullet list)
+ * - Replacement of @li by "-" (To create bullet list).
  *
  * These formatting options are required to use the same documentation for
  * online help and the doxygen generated documentation.

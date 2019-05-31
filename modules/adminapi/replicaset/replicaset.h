@@ -93,6 +93,9 @@ class ReplicaSet {
       const mysqlshdk::db::Connection_options &instance_definition,
       const std::string &label = "") const;
 
+  void add_instance_metadata(Instance_definition *instance_definition,
+                             const std::string &canonical_hostname) const;
+
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
 

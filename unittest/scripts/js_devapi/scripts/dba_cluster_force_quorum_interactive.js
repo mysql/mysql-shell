@@ -9,9 +9,9 @@ var clusterSession = session;
 
 //@<OUT> create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 cluster.status();
 

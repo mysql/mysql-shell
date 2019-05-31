@@ -1,3 +1,13 @@
+function purgeLogs(sess) {
+  sess.runSql("FLUSH BINARY LOGS");
+  var res = sess.runSql("SHOW MASTER STATUS");
+  var row = res.fetchOne();
+  var file = row[0];
+
+  // Flush and purge the binary log
+  sess.runSql("PURGE BINARY LOGS TO '" + file + "'");
+}
+
 //@ Create single-primary cluster
 var scene = new ClusterScenario([__mysql_sandbox_port1]);
 var cluster = scene.cluster
@@ -92,27 +102,99 @@ shell.connect(__sandbox_uri1);
 cluster.removeInstance(__sandbox_uri2, {force: true});
 
 // Insert data on instance 1
-for (i = 0; i < 5; i++) {
+for (i = 0; i < 20; i++) {
   session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
 //@<OUT> checkInstanceState: state: ok, reason: recoverable
 cluster.checkInstanceState(__sandbox_uri2);
 
-// Flush and get the current binary log
-session.runSql("FLUSH BINARY LOGS");
-var res = session.runSql("SHOW MASTER STATUS");
-var row = res.fetchOne();
-var file = row[0];
-
-// Flush and purge the binary log
-session.runSql("PURGE BINARY LOGS TO '" + file + "'");
+// Flush the binary logs
+purgeLogs(session);
 session.close();
 
-//@<OUT> checkInstanceState: state: error, reason: lost_transactions
+//@<OUT> checkInstanceState: state: error, reason: all_purged
 cluster.checkInstanceState(__sandbox_uri2);
 
-//@ Finalization
+//@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port2);
 cluster.disconnect();
 scene.destroy();
+
+
+//@<> WL#13208: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+shell.connect(__sandbox_uri1);
+
+//@ WL#13208: TS_FR5_1 create cluster with clone enabled. (disableClone: false) {VER(>=8.0.17)}
+var c = dba.createCluster('test', {disableClone: false});
+
+//@<> WL#13208: TS_FR5_1 clean (purge) binary logs on cluster {VER(>=8.0.17)}
+// Flush the binary logs
+purgeLogs(session);
+
+//@<> WL#13208: TS_FR5_1 connect to instance 2 to clean all transactions {VER(>=8.0.17)}
+session.close();
+var s2 = shell.connect(__sandbox_uri2);
+s2.runSql("RESET MASTER");
+
+//@ WL#13208: TS_FR5_1 No errors for instance 2 using checkInstanceState() {VER(>=8.0.17)}
+c.checkInstanceState(__sandbox_uri2);
+
+//@<> WL#13208: TS_FR5_2 adding some transactions to instance 2 {VER(>=8.0.17)}
+s2.runSql("CREATE DATABASE test_wl13208");
+s2.runSql("CREATE TABLE test_wl13208.t1 (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100))");
+s2.runSql("INSERT INTO test_wl13208.t1 (name) VALUES ('row1')");
+s2.runSql("INSERT INTO test_wl13208.t1 (name) VALUES ('row2')");
+
+//@ WL#13208: TS_FR5_2 checkInstanceState() indicate instance 2 can be added with clone enabled {VER(>=8.0.17)}
+c.checkInstanceState(__sandbox_uri2);
+
+//@<> WL#13208: Re-create the sandboxes {VER(>=8.0.17)}
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@<> WL#13208: Re-create the cluster {VER(>=8.0.17)}
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('test', {disableClone: false});
+
+//@<> WL#13208: Add some transactions to the cluster {VER(>=8.0.17)}
+session.runSql("CREATE DATABASE test_wl13208");
+session.runSql("CREATE TABLE test_wl13208.t1 (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100))");
+session.runSql("INSERT INTO test_wl13208.t1 (name) VALUES ('row1')");
+session.runSql("INSERT INTO test_wl13208.t1 (name) VALUES ('row2')");
+
+//@<> WL#13208: Add instance 2 to the cluster {VER(>=8.0.17)}
+// NOTE: Use incremental to ensure the binary logs are available in both instances
+c.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"});
+
+//@ WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added {VER(>=8.0.17)}
+c.checkInstanceState(__sandbox_uri3);
+
+//@<> WL#13208: TS_FR5_5 clean (purge) binary logs on instance 1 only {VER(>=8.0.17)}
+// Flush the binary logs
+session.close();
+shell.connect(__sandbox_uri1);
+purgeLogs(session);
+
+//@ WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added since instance 2 still has the binlogs {VER(>=8.0.17)}
+c.checkInstanceState(__sandbox_uri3);
+
+//@<> WL#13208: TS_FR5_5 clean (purge) binary logs on instance 2 {VER(>=8.0.17)}
+// Flush the binary logs
+session.close();
+shell.connect(__sandbox_uri2);
+purgeLogs(session);
+
+//@ WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added only if clone is used because binlogs were purged from all members {VER(>=8.0.17)}
+c.checkInstanceState(__sandbox_uri3);
+
+//@<> WL#13208: clean-up
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

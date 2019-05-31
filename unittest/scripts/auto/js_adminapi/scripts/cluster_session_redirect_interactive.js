@@ -12,7 +12,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("clus");
+var cluster = dba.createCluster("clus", {gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE", true);

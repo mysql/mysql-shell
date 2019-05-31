@@ -31,9 +31,12 @@
 #include <type_traits>
 #include <vector>
 #ifdef _WIN32
+#include <io.h>
 #include <windows.h>
 #undef DELETE
 #undef ERROR
+#else
+#include <unistd.h>
 #endif
 
 #include "mysqlshdk/include/shellcore/ishell_core.h"
@@ -249,6 +252,12 @@ template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args &&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+#ifdef _WIN32
+#define STDIN_FILENO _fileno(stdin)
+#define STDOUT_FILENO _fileno(stdout)
+#define isatty _isatty
+#endif
 
 }  // namespace shcore
 

@@ -33,6 +33,26 @@
 namespace mysqlshdk {
 namespace mysql {
 
+std::string to_string(Replication_channel::Status status) {
+  switch (status) {
+    case Replication_channel::OFF:
+      return "OFF";
+    case Replication_channel::ON:
+      return "ON";
+    case Replication_channel::RECEIVER_OFF:
+      return "RECEIVER_OFF";
+    case Replication_channel::APPLIER_OFF:
+      return "APPLIER_OFF";
+    case Replication_channel::CONNECTING:
+      return "CONNECTING";
+    case Replication_channel::CONNECTION_ERROR:
+      return "CONNECTION_ERROR";
+    case Replication_channel::APPLIER_ERROR:
+      return "APPLIER_ERROR";
+  }
+  throw std::logic_error("internal error");
+}
+
 std::string to_string(Replication_channel::Receiver::State state) {
   switch (state) {
     case Replication_channel::Receiver::ON:
@@ -500,13 +520,6 @@ Replica_gtid_state check_replica_gtid_state(
     const std::string &master_gtidset, const std::string &master_purged_gtidset,
     const std::string &slave_gtidset, std::string *out_missing_gtids,
     std::string *out_errant_gtids) {
-  if (slave_gtidset.empty() && master_purged_gtidset.empty() &&
-      !master_gtidset.empty()) {
-    if (out_missing_gtids) *out_missing_gtids = master_gtidset;
-    if (out_errant_gtids) *out_errant_gtids = "";
-    return Replica_gtid_state::NEW;
-  }
-
   Gtid_set_relation rel =
       compare_gtid_sets(instance, master_gtidset, slave_gtidset,
                         out_errant_gtids, out_missing_gtids);
@@ -518,6 +531,9 @@ Replica_gtid_state check_replica_gtid_state(
       return Replica_gtid_state::DIVERGED;
 
     case Gtid_set_relation::EQUAL:
+      if (slave_gtidset.empty()) {
+        return Replica_gtid_state::NEW;
+      }
       return Replica_gtid_state::IDENTICAL;
 
     case Gtid_set_relation::CONTAINS:
@@ -529,6 +545,9 @@ Replica_gtid_state check_replica_gtid_state(
                       slave_gtidset)
               ->fetch_one_or_throw()
               ->get_int(0)) {
+        if (slave_gtidset.empty()) {
+          return Replica_gtid_state::NEW;
+        }
         return Replica_gtid_state::RECOVERABLE;
       } else {
         return Replica_gtid_state::IRRECOVERABLE;

@@ -149,6 +149,11 @@ class Row_ref_by_name {
     return ref()->get_double(field_index(field));
   }
 
+  double get_double(const std::string &field, double default_if_null) const {
+    if (is_null(field)) return default_if_null;
+    return ref()->get_double(field_index(field));
+  }
+
   std::pair<const char *, size_t> get_string_data(
       const std::string &field) const {
     return ref()->get_string_data(field_index(field));

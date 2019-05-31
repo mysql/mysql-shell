@@ -7,7 +7,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ create cluster on first instance
-var cluster = dba.createCluster('c');
+var cluster = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@ add second instance with label
 cluster.addInstance(__sandbox_uri2, {label: '1node1'});

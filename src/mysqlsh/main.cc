@@ -59,10 +59,7 @@ const char *g_mysqlsh_path;
 static mysqlsh::Command_line_shell *g_shell_ptr;
 
 #ifdef WIN32
-#include <io.h>
 #include <windows.h>
-#define isatty _isatty
-#define snprintf _snprintf
 
 class Interrupt_helper : public shcore::Interrupt_helper {
  public:
@@ -374,18 +371,8 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
   *stdin_is_tty = false;
   *stdout_is_tty = false;
 
-  int __stdin_fileno;
-  int __stdout_fileno;
-
-#if defined(WIN32)
-  __stdin_fileno = _fileno(stdin);
-  __stdout_fileno = _fileno(stdout);
-#else
-  __stdin_fileno = STDIN_FILENO;
-  __stdout_fileno = STDOUT_FILENO;
-#endif
-  *stdin_is_tty = isatty(__stdin_fileno) != 0;
-  *stdout_is_tty = isatty(__stdout_fileno) != 0;
+  *stdin_is_tty = isatty(STDIN_FILENO) != 0;
+  *stdout_is_tty = isatty(STDOUT_FILENO) != 0;
 
   if (!*stdin_is_tty || !*stdout_is_tty)
     is_interactive = false;

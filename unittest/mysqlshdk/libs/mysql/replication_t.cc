@@ -120,11 +120,6 @@ TEST_F(Replication_test, check_replica_gtid_state) {
   std::string missing;
   std::string errant;
 
-  EXPECT_EQ(Replica_gtid_state::IDENTICAL,
-            check_replica_gtid_state(instance, "", "", "", &missing, &errant));
-  EXPECT_EQ("", missing);
-  EXPECT_EQ("", errant);
-
   EXPECT_EQ(
       Replica_gtid_state::NEW,
       check_replica_gtid_state(instance, gtidset1, "", "", &missing, &errant));

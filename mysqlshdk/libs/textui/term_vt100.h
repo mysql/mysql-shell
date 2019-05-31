@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,14 +36,16 @@
 namespace mysqlshdk {
 namespace vt100 {
 
+void set_echo(bool);
 bool is_available();
 
 bool get_screen_size(int *rows, int *columns);
 
 void send_escape(const char *s);
-#if 0
+
 bool read_escape(const char *terminator, char *buffer, size_t buflen);
 
+#if 0
 // Requests a Report Device Code response from the device.
 inline std::string query_device_code() {
   send_escape("\033[c");
@@ -59,15 +61,10 @@ inline bool query_device_status() {
   read_escape("n", buffer, sizeof(buffer));
   return strcmp(buffer + 1, "0") == 0;
 }
+#endif
 
 // Requests a Report Cursor Position response from the device.
-inline void query_cursor_position(int *row, int *column) {
-  send_escape("\033[6n");
-  char buffer[100];
-  read_escape("R", buffer, sizeof(buffer));
-  sscanf(buffer, "%i;%i", row, column);
-}
-#endif
+void query_cursor_position(int *row, int *column);
 
 // Reset all terminal settings to default.
 inline void reset_device() { send_escape("\033c"); }

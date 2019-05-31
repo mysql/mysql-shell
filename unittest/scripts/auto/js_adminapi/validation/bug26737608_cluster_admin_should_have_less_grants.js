@@ -1,10 +1,26 @@
 //@ create cluster admin
 |Cluster admin user 'ca'@'%' created.|
 
-//@<OUT> check global privileges of cluster admin
+//@<OUT> check global privileges of cluster admin {VER(<8.0.17)}
 +--------------------+--------------+
 | PRIVILEGE_TYPE     | IS_GRANTABLE |
 +--------------------+--------------+
+| CREATE USER        | YES          |
+| FILE               | YES          |
+| PROCESS            | YES          |
+| RELOAD             | YES          |
+| REPLICATION CLIENT | YES          |
+| REPLICATION SLAVE  | YES          |
+| SELECT             | YES          |
+| SHUTDOWN           | YES          |
+| SUPER              | YES          |
++--------------------+--------------+
+
+//@<OUT> check global privileges of cluster admin {VER(>=8.0.17)}
++--------------------+--------------+
+| PRIVILEGE_TYPE     | IS_GRANTABLE |
++--------------------+--------------+
+| BACKUP_ADMIN       | YES          |
 | CREATE USER        | YES          |
 | FILE               | YES          |
 | PROCESS            | YES          |

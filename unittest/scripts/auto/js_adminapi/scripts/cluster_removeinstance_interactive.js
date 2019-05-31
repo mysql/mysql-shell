@@ -29,7 +29,7 @@ function host_exist_in_metadata_schema(port) {
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ create cluster
-var cluster = dba.createCluster('dev');
+var cluster = dba.createCluster('dev', {gtidSetIsComplete: true});
 
 //@ remove instance not in MD but reachable when there's just 1 (should fail)
 cluster.removeInstance(__hostname_uri3, {interactive:true});
@@ -425,7 +425,7 @@ cluster.disconnect();
 
 //@ Cluster re-created with success
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
-var cluster = dba.createCluster('dev', {clearReadOnly: true});
+var cluster = dba.createCluster('dev', {clearReadOnly: true, gtidSetIsComplete: true});
 
 session.close();
 cluster.disconnect();

@@ -39,6 +39,7 @@
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -103,7 +104,7 @@ std::string get_mysqlprovision_error_string(
   return shcore::str_join(str_errors, "\n");
 }
 
-bool is_group_replication_option_supported(
+bool is_option_supported(
     const mysqlshdk::utils::Version &version, const std::string &option,
     const std::map<std::string, Option_availability> &options_map) {
   assert(options_map.find(option) != options_map.end());
@@ -125,7 +126,7 @@ bool is_group_replication_option_supported(
     }
   } else {
     throw std::runtime_error(
-        "Unexpected version found for GR option support check: '" +
+        "Unexpected version found for option support check: '" +
         version.get_full() + "'.");
   }
 }
@@ -402,11 +403,17 @@ std::string create_grant(const std::string &username,
          object + " TO " + username + " WITH GRANT OPTION";
 }
 
-std::vector<std::string> create_grants(const std::string &username) {
+std::vector<std::string> create_grants(const std::string &username,
+                                       bool clone_available) {
   std::vector<std::string> grants;
 
   // global privileges
   grants.emplace_back(create_grant(username, k_global_privileges));
+
+  if (clone_available) {
+    const std::set<std::string> clone_privs{"BACKUP_ADMIN"};
+    grants.emplace_back(create_grant(username, clone_privs));
+  }
 
   // privileges for schemas
   for (const auto &schema : k_schema_grants)
@@ -435,19 +442,24 @@ void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
   // If the current user doesn't have the right privileges to create a cluster
   // admin, one of the SQL statements below will throw.
 
+  // Check if BACKUP_ADMIN should be added
+  bool add_backup_admin =
+      (mysqlshdk::mysql::Instance(session).get_version() >=
+       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
+          ? true
+          : false;
+
   session->execute("SET sql_log_bin = 0");
-  session->execute("START TRANSACTION");
   try {
     log_info("Creating account %s", username.c_str());
     // Create the user
     session->executef("CREATE USER ?@? IDENTIFIED BY ?", user, host, password);
-
     // Give the grants
-    for (const auto &grant : create_grants(username)) session->execute(grant);
-    session->execute("COMMIT");
+    for (const auto &grant : create_grants(username, add_backup_admin))
+      session->execute(grant);
+
     session->execute("SET sql_log_bin = 1");
   } catch (...) {
-    session->execute("ROLLBACK");
     session->execute("SET sql_log_bin = 1");
     throw;
   }

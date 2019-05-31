@@ -42,7 +42,7 @@ var cluster = dba.createCluster('mtsCluster', {memberSslMode:'DISABLED'});
 dba.configureLocalInstance(__sandbox_uri1);
 
 //@ Create cluster (succeed this time).
-var cluster = dba.createCluster('mtsCluster', {memberSslMode:'DISABLED'});
+var cluster = dba.createCluster('mtsCluster', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@<OUT> check instance with invalid commit order.

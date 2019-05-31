@@ -17,6 +17,18 @@ group_replication_start_on_boot = ON
 true
 Reconfiguring the cluster 'C' from complete outage...
 
+The safest and most convenient way to provision a new instance is through
+automatic clone provisioning, which will completely overwrite the state of
+'localhost:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing cluster member. To
+use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental distributed state recovery may be safely used if you are sure
+all updates ever executed in the cluster were done with GTIDs enabled, there
+are no purged transactions and the new instance contains the same GTID set as
+the cluster or a subset of it. To use this method by default, set the
+'recoveryMethod' option to 'incremental'.
+
+Incremental distributed state recovery was selected because it seems to be safely usable.
 
 The cluster was successfully rebooted.
 
@@ -159,6 +171,18 @@ group_replication_start_on_boot = ON
 true
 Reconfiguring the cluster 'ClusterName' from complete outage...
 
+The safest and most convenient way to provision a new instance is through
+automatic clone provisioning, which will completely overwrite the state of
+'localhost:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing cluster member. To
+use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental distributed state recovery may be safely used if you are sure
+all updates ever executed in the cluster were done with GTIDs enabled, there
+are no purged transactions and the new instance contains the same GTID set as
+the cluster or a subset of it. To use this method by default, set the
+'recoveryMethod' option to 'incremental'.
+
+Incremental distributed state recovery was selected because it seems to be safely usable.
 
 The cluster was successfully rebooted.
 
@@ -299,6 +323,22 @@ true
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 true
+
+NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is
+empty), but the cluster was configured to assume that incremental distributed
+state recovery can correctly provision it in this case.
+The safest and most convenient way to provision a new instance is through
+automatic clone provisioning, which will completely overwrite the state of
+'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To
+use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental distributed state recovery may be safely used if you are sure
+all updates ever executed in the cluster were done with GTIDs enabled, there
+are no purged transactions and the new instance contains the same GTID set as
+the cluster or a subset of it. To use this method by default, set the
+'recoveryMethod' option to 'incremental'.
+
+Incremental distributed state recovery was selected because it seems to be safely usable.
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -310,11 +350,16 @@ WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' will not load the pers
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Adding instance to the cluster ...
+Adding instance to the cluster...
 
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+
+//@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
+{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+
+//@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-ONLINE
 {
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
@@ -429,6 +474,21 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
+NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is
+empty), but the cluster was configured to assume that incremental distributed
+state recovery can correctly provision it in this case.
+The safest and most convenient way to provision a new instance is through
+automatic clone provisioning, which will completely overwrite the state of
+'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To
+use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental distributed state recovery may be safely used if you are sure
+all updates ever executed in the cluster were done with GTIDs enabled, there
+are no purged transactions and the new instance contains the same GTID set as
+the cluster or a subset of it. To use this method by default, set the
+'recoveryMethod' option to 'incremental'.
+
+Incremental distributed state recovery was selected because it seems to be safely usable.
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -440,8 +500,14 @@ WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group R
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Adding instance to the cluster ...
+Adding instance to the cluster...
 
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+
+//@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
+{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+
+//@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 

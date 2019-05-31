@@ -308,9 +308,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
 #ifdef HAVE_V8
-  execute("var c = dba.createCluster('sample', {memberSslMode:'REQUIRED'})");
+  execute(
+      "var c = dba.createCluster('sample', {memberSslMode:'REQUIRED', "
+      "gtidSetIsComplete: true})");
 #else
-  execute("c = dba.create_cluster('sample', {'memberSslMode':'REQUIRED'})");
+  execute(
+      "c = dba.create_cluster('sample', {'memberSslMode':'REQUIRED', "
+      "gtidSetIsComplete: true})");
 #endif
   execute("c.disconnect()");
   execute("session.close()");
@@ -442,9 +446,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
 #ifdef HAVE_V8
-  execute("var c = dba.createCluster('sample', {memberSslMode:'DISABLED'})");
+  execute(
+      "var c = dba.createCluster('sample', {memberSslMode:'DISABLED', "
+      "gtidSetIsComplete: true})");
 #else
-  execute("c = dba.create_cluster('sample', {'memberSslMode':'DISABLED'})");
+  execute(
+      "c = dba.create_cluster('sample', {'memberSslMode':'DISABLED', "
+      "gtidSetIsComplete: true})");
 #endif
   execute("c.disconnect()");
   execute("session.close()");
@@ -1416,33 +1424,42 @@ TEST(mod_dba_common, validate_expel_timeout_supported) {
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 13)));
 }
 
-TEST(mod_dba_common, is_group_replication_option_supported) {
+TEST(mod_dba_common, is_option_supported) {
   // if a non supported version is used, then we must throw an exception,
   // else just save the result for further testing
-  EXPECT_THROW_LIKE(mysqlsh::dba::is_group_replication_option_supported(
-                        Version(9, 0, 0), mysqlsh::dba::kExitStateAction),
-                    std::runtime_error,
-                    "Unexpected version found for GR option support check:");
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::is_option_supported(
+          Version(9, 0, 0), mysqlsh::dba::kExitStateAction,
+          mysqlsh::dba::k_global_replicaset_supported_options),
+      std::runtime_error,
+      "Unexpected version found for option support check: '9.0.0'.");
 
   // testing the result of exit-state action case since it has requirements for
   // both 5.7 and the 8.0 MySQL versions.
-  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(8, 0, 11), mysqlsh::dba::kExitStateAction));
-  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(8, 0, 12), mysqlsh::dba::kExitStateAction));
-  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(5, 7, 23), mysqlsh::dba::kExitStateAction));
-  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(5, 7, 24), mysqlsh::dba::kExitStateAction));
+  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
+      Version(8, 0, 11), mysqlsh::dba::kExitStateAction,
+      mysqlsh::dba::k_global_replicaset_supported_options));
+  EXPECT_TRUE(mysqlsh::dba::is_option_supported(
+      Version(8, 0, 12), mysqlsh::dba::kExitStateAction,
+      mysqlsh::dba::k_global_replicaset_supported_options));
+  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
+      Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
+      mysqlsh::dba::k_global_replicaset_supported_options));
+  EXPECT_TRUE(mysqlsh::dba::is_option_supported(
+      Version(5, 7, 24), mysqlsh::dba::kExitStateAction,
+      mysqlsh::dba::k_global_replicaset_supported_options));
 
   // testing the result of autoRejoinRetries which is only supported on 8.0.16
   // onwards (BUG#29246657)
-  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(8, 0, 11), mysqlsh::dba::kAutoRejoinTries));
-  EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(8, 0, 16), mysqlsh::dba::kAutoRejoinTries));
-  EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
-      Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries));
+  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
+      Version(8, 0, 11), mysqlsh::dba::kAutoRejoinTries,
+      mysqlsh::dba::k_global_replicaset_supported_options));
+  EXPECT_TRUE(mysqlsh::dba::is_option_supported(
+      Version(8, 0, 16), mysqlsh::dba::kAutoRejoinTries,
+      mysqlsh::dba::k_global_replicaset_supported_options));
+  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
+      Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries,
+      mysqlsh::dba::k_global_replicaset_supported_options));
 }
 
 TEST(mod_dba_common, validate_group_name_option) {

@@ -51,7 +51,7 @@ class MetadataStorage;
 void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
-// common keys for group replication configuration options
+// common keys for group replication and clone configuration options
 constexpr const char kExitStateAction[] = "exitStateAction";
 constexpr const char kGrExitStateAction[] =
     "group_replication_exit_state_action";
@@ -78,6 +78,7 @@ constexpr const char kClusterName[] = "clusterName";
 constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
 constexpr const char kGrAutoRejoinTries[] =
     "group_replication_autorejoin_tries";
+constexpr const char kDisableClone[] = "disableClone";
 
 // Group Replication configuration option availability regarding MySQL Server
 // version
@@ -127,8 +128,11 @@ const std::map<std::string, Option_availability>
  * Map of the supported global Cluster configuration options in the AdminAPI
  * <sysvar, name>
  */
+// TODO(.) This and its dependencies must be moved out to a new user_options.h
 const std::map<std::string, Option_availability>
-    k_global_cluster_supported_options{{kClusterName, {""}}};
+    k_global_cluster_supported_options{
+        {kClusterName, {""}},
+        {kDisableClone, {"", mysqlshdk::utils::Version("8.0.17")}}};
 
 /**
  * Map of the supported instance configuration options in the AdminAPI
@@ -175,6 +179,13 @@ enum class ConfigureInstanceAction {
   UNDEFINED
 };
 
+// Recovery progress style:
+// - 0 no wait and no progress
+// - 1 wait without progress info
+// - 2 wait with textual info only
+// - 3 wait with progressbar
+enum class Recovery_progress_style { NOWAIT, NOINFO, TEXTUAL, PROGRESSBAR };
+
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors);
 
@@ -183,8 +194,7 @@ extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
 
 /**
- * Check if a group_replication setting is supported on the target
- * instance
+ * Check if a setting is supported on the target instance
  *
  * @param version MySQL version of the target instance
  * @param option the name of the option as defined in the AdminAPI.
@@ -192,10 +202,9 @@ extern const char *kMemberSSLModeDisabled;
  * @return Boolean indicating if the target instance supports the option.
  *
  */
-bool is_group_replication_option_supported(
+bool is_option_supported(
     const mysqlshdk::utils::Version &version, const std::string &option,
-    const std::map<std::string, Option_availability> &options_map =
-        k_global_replicaset_supported_options);
+    const std::map<std::string, Option_availability> &options_map);
 
 /*
  * Check the existence of replication filters and throws an exception if any

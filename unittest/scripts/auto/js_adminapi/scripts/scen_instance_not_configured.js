@@ -186,7 +186,7 @@ function prepare_cluster_seed(sandbox, server_flags) {
   }
 
   shell.connect(huri);
-  var cluster = dba.createCluster("mycluster");
+  var cluster = dba.createCluster("mycluster", {gtidSetIsComplete: true});
   session.close();
   return cluster;
 }

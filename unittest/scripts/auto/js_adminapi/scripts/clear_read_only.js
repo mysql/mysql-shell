@@ -42,7 +42,7 @@ dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin:
 // --- Drop Metadata Schema Tests ---
 session.runSql("set global super_read_only=0");
 
-var cluster = dba.createCluster("dev");
+var cluster = dba.createCluster("dev", {gtidSetIsComplete: true});
 cluster.disconnect();
 session.runSql("set global super_read_only=1");
 

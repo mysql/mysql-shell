@@ -31,7 +31,6 @@
 #include <map>
 #include <mutex>
 #include <system_error>
-#include <thread>
 #include <utility>
 
 #ifdef _WIN32
@@ -78,6 +77,7 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "mysqlshdk/include/shellcore/shell_init.h"
 #include "scripting/obj_date.h"
 
 // clang-format off
@@ -201,6 +201,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("enableExtensible", &Testutils::enable_extensible);
   expose("dbugSet", &Testutils::dbug_set, "dbug");
   expose("dprint", &Testutils::dprint, "s");
+  // expose("slowify", &Testutils::slowify, "port", "start");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -698,6 +699,60 @@ None Testutils::skip();
 #endif
 ///@}
 void Testutils::skip(const std::string &reason) { _test_skipped = reason; }
+
+#if 0
+///@{
+/**
+ * Slow down replication applier rate by locking and unlock tables in a loop.
+ *
+ * @param port
+ * @param start true to start, false to stop.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::slowify(Integer port, Boolean start);
+#elif DOXYGEN_PY
+None Testutils::skip(int port, bool start);
+endif
+///@}
+void Testutils::slowify(int port, bool start) {
+  if (_slower_threads.find(port) != _slower_threads.end()) {
+    if (start)
+      throw std::logic_error("slowify already active for " +
+                             std::to_string(port));
+  } else {
+    if (!start)
+      throw std::logic_error("slowify not active for " + std::to_string(port));
+  }
+
+  if (start) {
+    Slower_thread *info(new Slower_thread());
+    _slower_threads.emplace(port, info);
+
+    info->thread = std::thread([this, port]() {
+      mysqlsh::thread_init();
+
+      try {
+        auto session = connect_to_sandbox(port);
+        while (!_slower_threads[port]->stop) {
+          session->execute("FLUSH TABLES WITH READ LOCK");
+          shcore::sleep_ms(500);
+          session->execute("UNLOCK TABLES");
+        }
+        session->close();
+      } catch (std::exception &e) {
+        dprint("ERROR in slower thread: " + std::string(e.what()));
+      }
+
+      mysqlsh::thread_end();
+    });
+  } else {
+    _slower_threads[port]->stop = true;
+    _slower_threads[port]->thread.join();
+    _slower_threads.erase(port);
+  }
+}
+#endif
+#endif
 
 ///@{
 /**

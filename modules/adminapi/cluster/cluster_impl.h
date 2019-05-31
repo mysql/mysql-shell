@@ -37,10 +37,21 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
-#define ATT_DEFAULT "default"
-
 namespace mysqlsh {
 namespace dba {
+
+// User provided option for telling us to assume that the cluster was created
+// with a server where the full update history is reflected in its GTID set
+constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
+    "opt_gtidSetIsComplete";
+// User provided option to disabling clone
+constexpr const char k_cluster_attribute_disable_clone[] = "opt_disableClone";
+// Flag to indicate the default cluster in the metadata
+constexpr const char k_cluster_attribute_default[] = "default";
+
+// Timestamp of when the instance was added to the group
+constexpr const char k_instance_attribute_join_time[] = "joinTime";
+
 class MetadataStorage;
 
 class Cluster_impl {
@@ -69,6 +80,8 @@ class Cluster_impl {
 
   std::string get_name() const { return _name; }
   std::string get_description() const { return _description; }
+  bool get_disable_clone_option() const;
+  void set_disable_clone_option(const bool disable_clone);
 
   void set_description(const std::string &description) {
     _description = description;
@@ -81,15 +94,9 @@ class Cluster_impl {
   }
   std::string get_options() { return shcore::Value(_options).json(false); }
 
-  void set_attribute(const std::string &attribute, const shcore::Value &value);
-  void set_attributes(const std::string &json) {
-    _attributes = shcore::Value::parse(json).as_map();
-  }
-  std::string get_attributes() {
-    return shcore::Value(_attributes).json(false);
-  }
-
   void insert_default_replicaset(bool multi_primary, bool is_adopted);
+
+  bool get_gtid_set_is_complete() const;
 
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
     return _group_session;
@@ -149,7 +156,6 @@ class Cluster_impl {
   std::shared_ptr<ReplicaSet> _default_replica_set;
   std::string _description;
   shcore::Value::Map_type_ref _options;
-  shcore::Value::Map_type_ref _attributes;
   // Session to a member of the group so we can query its status and other
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;

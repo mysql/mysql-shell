@@ -48,6 +48,20 @@ function get_sysvar(session, variable, type) {
   return row[pos];
 }
 
+function ensure_plugin_enabled(plugin_name, session, plugin_soname) {
+  if (plugin_soname === undefined)
+    plugin_soname = plugin_name;
+
+ 
+  var os = session.runSql('select @@version_compile_os').fetchOne()[0];
+  if (os == "Win32" || os == "Win64") {
+    session.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_soname + ".dll';");
+  }
+  else {
+    session.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_soname + ".so';");
+  }
+}
+
 function get_query_single_result(session, query) {
   var close_session = false;
 
@@ -434,9 +448,9 @@ function ClusterScenario(ports, topology_mode="pm") {
 
   this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);
   if (topology_mode == "mm") {
-    this.cluster = dba.createCluster("cluster", {multiPrimary: true, force: true});
+    this.cluster = dba.createCluster("cluster", {multiPrimary: true, force: true, gtidSetIsComplete: true});
   } else {
-    this.cluster = dba.createCluster("cluster");
+    this.cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
   }
   for (i in ports) {
     if (i > 0) {

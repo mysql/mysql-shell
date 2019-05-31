@@ -37,6 +37,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
@@ -757,21 +758,20 @@ session.
 
 The options dictionary can contain the following values:
 
-@li multiMaster: boolean value used to define an InnoDB cluster with multiple
-writable instances.
-@li multiPrimary: boolean value used to define an InnoDB cluster with multiple
-writable instances.
-@li force: boolean, confirms that the multiPrimary option must be applied.
 @li interactive: boolean value used to disable the wizards in the command
 execution, i.e. prompts are not provided to the user and confirmation prompts
 are not shown.
+@li disableClone: boolean value used to disable the clone usage on the cluster.
+@li gtidSetIsComplete: boolean value which indicates whether the GTID set
+of the seed instance corresponds to all transactions executed. Default is false.
+@li multiPrimary: boolean value used to define an InnoDB cluster with multiple
+writable instances.
+@li force: boolean, confirms that the multiPrimary option must be applied.
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 @li memberSslMode: SSL mode used to configure the members of the cluster.
 @li ipWhitelist: The list of hosts allowed to connect to the instance for group
 replication.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
 @li groupName: string value with the Group Replication group name UUID to be
 used instead of the automatically generated one.
 @li localAddress: string value with the Group Replication local address to be
@@ -784,24 +784,50 @@ ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
-
-@attention The clearReadOnly option will be removed in a future release.
-
-@attention The multiMaster option will be removed in a future release. Please
-use the multiPrimary option instead.
-
-@attention The failoverConsistency option will be removed in a future release.
-Please use the consistency option instead.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled. Deprecated.
+@li multiMaster: boolean value used to define an InnoDB cluster with multiple
+writable instances. Deprecated.
 
 An InnoDB cluster may be setup in two ways:
 
 @li Single Primary: One member of the cluster allows write operations while the
-rest are in read only mode.
-@li Multi Primary: All the members in the cluster support both read and write
+rest are read-only secondaries.
+@li Multi Primary: All the members in the cluster allow both read and write
 operations.
 
-By default this function create a Single Primary cluster, use the multiPrimary
+Note that Multi-Primary mode has limitations about what can be safely executed.
+Make sure to read the MySQL documentation for Group Replication and be aware of
+what is and is not safely executable in such setups.
+
+By default this function creates a Single Primary cluster. Use the multiPrimary
 option set to true if a Multi Primary cluster is required.
+
+<b>Options</b>
+
+interactive controls whether prompts are shown for MySQL passwords,
+confirmations and handling of cases where user feedback may be required.
+Defaults to true, unless the Shell is started with the --no-wizards option.
+
+disableClone should be set to true if built-in clone support should be
+completely disabled, even in instances where that is supported. Built-in clone
+support is available starting with MySQL 8.0.17 and allows automatically
+provisioning new cluster members by copying state from an existing cluster
+member. Note that clone will completely delete all data in the instance being
+added to the cluster.
+
+gtidSetIsComplete is used to indicate that GTIDs have been always enabled
+at the cluster seed instance and that GTID_EXECUTED contains all transactions
+ever executed. It must be left as false if data was inserted or modified while
+GTIDs were disabled or if RESET MASTER was executed. This flag affects how
+cluster.<<<addInstance>>>() decides which recovery methods are safe to use.
+Distributed recovery based on replaying the transaction history is only assumed
+to be safe if the transaction history is known to be complete, otherwise
+cluster members could end up with incomplete data sets.
+
+adoptFromGR allows creating an InnoDB cluster from an existing unmanaged
+Group Replication setup, enabling use of MySQL Router and the shell AdminAPI
+for managing it.
 
 The memberSslMode option supports the following values:
 
@@ -812,10 +838,6 @@ communicate with other members of the cluster
 instance, otherwise disabled
 
 If memberSslMode is not specified AUTO will be used by default.
-
-${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
-
-${CLUSTER_OPT_CONSISTENCY_DETAIL}
 
 The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
 notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
@@ -844,6 +866,10 @@ The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
 comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
 
+${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
+
+${CLUSTER_OPT_CONSISTENCY_DETAIL}
+
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
@@ -853,6 +879,15 @@ ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+@attention The clearReadOnly option will be removed in a future release.
+
+@attention The multiMaster option will be removed in a future release. Please
+use the multiPrimary option instead.
+
+@attention The failoverConsistency option will be removed in a future release.
+Please use the consistency option instead.
+
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
@@ -874,6 +909,7 @@ exitStateAction or consistency options is empty.
 memberWeight, consistency, expelTimeout or autoRejoinTries options is
 not valid for Group Replication.
 @li If the current connection cannot be used for Group Replication.
+@li If disableClone is not supported on the target instance.
 )*");
 
 /**
@@ -890,6 +926,7 @@ Cluster Dba::create_cluster(str name, dict options) {}
 shcore::Value Dba::create_cluster(const std::string &cluster_name,
                                   const shcore::Dictionary_t &options) {
   Group_replication_options gr_options(Group_replication_options::CREATE);
+  Clone_options clone_options(Clone_options::CREATE);
   bool adopt_from_gr = false;
   mysqlshdk::utils::nullable<bool> multi_primary;
   bool force = false;
@@ -901,6 +938,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
     // Retrieves optional options if exists
     Unpack_options(options)
         .unpack(&gr_options)
+        .unpack(&clone_options)
         .optional("multiPrimary", &multi_primary)
         .optional("multiMaster", &multi_primary)
         .optional("force", &force)
@@ -1011,8 +1049,8 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
   {
     // Create the add_instance command and execute it.
     Create_cluster op_create_cluster(&target_instance, cluster_name, gr_options,
-                                     multi_primary, adopt_from_gr, force,
-                                     clear_read_only, interactive);
+                                     clone_options, multi_primary,
+                                     adopt_from_gr, force, interactive);
 
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
@@ -2277,6 +2315,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       }
       Group_replication_options gr_options(Group_replication_options::NONE);
 
+      Clone_options clone_options(Clone_options::NONE);
+
       // The current 'group_replication_group_name' must be kept otherwise
       // if instances are rejoined later the operation may fail because
       // a new group_name started being used.
@@ -2294,9 +2334,12 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // skip replication users is set to true and the respective replication
       // user credentials left empty.
       try {
+        bool interactive = current_shell_options()->get().wizards;
+
         // Create the add_instance command and execute it.
         Add_instance op_add_instance(&target_instance, *default_replicaset,
-                                     gr_options, {}, "", "", true, true, true);
+                                     gr_options, clone_options, {}, interactive,
+                                     0, "", "", true, true, true);
 
         // Always execute finish when leaving scope.
         auto finally = shcore::on_leave_scope(

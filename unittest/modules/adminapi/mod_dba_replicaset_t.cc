@@ -152,7 +152,8 @@ TEST_F(Dba_replicaset_test, bug28219398) {
       // Create the add_instance command and execute it.
       mysqlsh::dba::Add_instance op_add_instance(
           connection_options, *m_cluster->impl()->get_default_replicaset(), {},
-          {}, replication_user, replication_pwd, false, true, false);
+          {}, {}, false, 0, replication_user, replication_pwd, false, true,
+          false);
 
       // Always execute finish when leaving scope.
       auto finally = shcore::on_leave_scope(

@@ -17,7 +17,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Setup 2 member cluster
-var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', multiPrimary: true, force: true, clearReadOnly:true});
+var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', multiPrimary: true, force: true, clearReadOnly:true, gtidSetIsComplete: true});
 cluster.addInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

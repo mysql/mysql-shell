@@ -12,10 +12,17 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 
+// Create a test dataset so that RECOVERY takes a while and we ensure right monitoring messages for addInstance
+session.runSql("create schema test");
+session.runSql("create table test.data (a int primary key auto_increment, data longtext)");
+for (i = 0; i < 20; i++) {
+    session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
+}
+
 if (__have_ssl)
-  var cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
+  var cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-  var cluster = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
+  var cluster = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -73,15 +80,10 @@ add_instance_options['user'] = 'root';
 Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 
 //@<OUT> Cluster: addInstance with interaction, ok
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster.addInstance(__sandbox_uri2);
-
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok
 Cluster.addInstance(__sandbox_uri3);
-
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe1
 Cluster.describe();
@@ -123,8 +125,6 @@ Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
 Cluster.addInstance(__sandbox_uri2, {'label': '2nd_sandbox'});
-
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
 Cluster.addInstance(__sandbox_uri3, {'label': '3rd_sandbox'});

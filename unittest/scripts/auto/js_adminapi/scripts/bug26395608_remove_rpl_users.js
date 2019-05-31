@@ -6,14 +6,15 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 function get_number_of_rpl_users() {
     var result = session.runSql(
         "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\"");
+        "WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\" " +
+        "AND PRIVILEGE_TYPE='REPLICATION SLAVE'");
     var row = result.fetchOne();
     return row[0];
 }
 
 //@ Create a cluster with 3 members.
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

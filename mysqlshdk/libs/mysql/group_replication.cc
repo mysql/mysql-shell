@@ -40,6 +40,10 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
+#include "mysqlshdk/libs/mysql/clone.h"
+#include "mysqlshdk/libs/mysql/plugin.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
@@ -50,11 +54,7 @@
 #include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace {
-const char *kErrorPluginDisabled =
-    "Group Replication plugin is %s and "
-    "cannot be enabled on runtime. Please "
-    "enable the plugin and restart the server.";
-const char *kErrorReadOnlyTimeout =
+constexpr const char *kErrorReadOnlyTimeout =
     "Timeout waiting for super_read_only to be "
     "unset after call to start Group "
     "Replication plugin.";
@@ -624,153 +624,16 @@ bool is_protocol_upgrade_required(
   return upgrade_required;
 }
 
-/**
- * Check if the Group Replication plugin is installed, and if not try to
- * install it. The option file with the instance configuration is updated
- * accordingly if provided.
- *
- * @param instance session object to connect to the target instance.
- *
- * @throw std::runtime_error if the GR plugin is DISABLED (cannot be installed
- *        online) or if an error occurs installing the GR plugin.
- *
- * @return A boolean value indicating if the GR plugin was installed (true) or
- *         if it is already installed and ACTIVE (false).
- */
-bool install_plugin(const mysqlshdk::mysql::IInstance &instance,
-                    mysqlshdk::config::Config *config, bool disable_read_only) {
-  // Get GR plugin state.
-  utils::nullable<std::string> plugin_state =
-      instance.get_plugin_status(kPluginName);
-
-  // Install the GR plugin if no state info is available (not installed).
-  bool res = false;
-  if (plugin_state.is_null()) {
-    // Disable read_only if requested.
-    utils::nullable<bool> read_only;
-    if (disable_read_only) {
-      read_only = instance.get_sysvar_bool(
-          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-      if (!read_only.is_null() && *read_only) {
-        instance.set_sysvar("super_read_only", false,
-                            mysqlshdk::mysql::Var_qualifier::GLOBAL);
-      }
-    }
-
-    // Install the GR plugin.
-    instance.install_plugin(kPluginName);
-    res = true;
-
-    // Re-enable read_only if needed.
-    if (!read_only.is_null() && *read_only) {
-      instance.set_sysvar("super_read_only", *read_only,
-                          mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    }
-
-    // Check the GR plugin state after installation;
-    plugin_state = instance.get_plugin_status(kPluginName);
-  } else if ((*plugin_state).compare(kPluginActive) == 0) {
-    // GR plugin is already active.
-    return false;
-  }
-
-  if (!plugin_state.is_null() &&
-      (*plugin_state).compare(kPluginDisabled) == 0) {
-    // If the plugin is disabled then try to activate and install it, but it
-    // can only be done if the option file is available.
-    if (config &&
-        config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-      // Enable the GR plugin on the configuration file.
-      auto cfg_file_handler =
-          dynamic_cast<mysqlshdk::config::Config_file_handler *>(
-              config->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
-      auto gr_plugin_status = cfg_file_handler->get_string(kPluginName);
-      cfg_file_handler->set_now(kPluginName,
-                                utils::nullable<std::string>("ON"));
-
-      try {
-        // Disable read_only if requested.
-        utils::nullable<bool> read_only;
-        if (disable_read_only) {
-          read_only = instance.get_sysvar_bool(
-              "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-          if (!read_only.is_null() && *read_only) {
-            instance.set_sysvar("super_read_only", false,
-                                mysqlshdk::mysql::Var_qualifier::GLOBAL);
-          }
-        }
-
-        // Uninstall the GR plugin so it can be installed again after being
-        // enabled on the option file.
-        instance.uninstall_plugin(kPluginName);
-
-        // Reinstall the GR plugin.
-        instance.install_plugin(kPluginName);
-
-        // Re-enable read_only if needed.
-        if (!read_only.is_null() && *read_only) {
-          instance.set_sysvar("super_read_only", *read_only,
-                              mysqlshdk::mysql::Var_qualifier::GLOBAL);
-        }
-
-        // Check the GR plugin state after the attempting to activate it;
-        plugin_state = instance.get_plugin_status(kPluginName);
-      } catch (const std::exception &err) {
-        // restore previous value on configuration file
-        cfg_file_handler->set_now(kPluginName, gr_plugin_status);
-        throw;
-      }
-    }
-  }
-
-  if (!plugin_state.is_null()) {
-    // Raise an exception if the plugin is not active (disabled, deleted or
-    // inactive), cannot be enabled online.
-    if ((*plugin_state).compare(kPluginActive) != 0)
-      throw std::runtime_error(
-          shcore::str_format(kErrorPluginDisabled, plugin_state->c_str()));
-  }
-
-  // GR Plugin installed and not disabled (active).
-  return res;
+bool install_group_replication_plugin(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::config::Config *config) {
+  return install_plugin(k_gr_plugin_name, instance, config);
 }
 
-/**
- * Check if the Group Replication plugin is installed and uninstall it if
- * needed. The option file with the instance configuration is updated
- * accordingly if provided (plugin disabled).
- *
- * @param instance session object to connect to the target instance.
- *
- * @throw std::runtime_error if an error occurs uninstalling the GR plugin.
- *
- * @return A boolean value indicating if the GR plugin was uninstalled (true)
- *         or if it is already not available (false).
- */
-bool uninstall_plugin(const mysqlshdk::mysql::IInstance &instance,
-                      mysqlshdk::config::Config *config) {
-  // Get GR plugin state.
-  utils::nullable<std::string> plugin_state =
-      instance.get_plugin_status(kPluginName);
-
-  if (!plugin_state.is_null()) {
-    // Uninstall the GR plugin if state info is available (installed).
-    instance.uninstall_plugin(kPluginName);
-
-    // If the config file handler is available disable the plugin.
-    if (config &&
-        config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-      mysqlshdk::config::Config_file_handler *cfg_file_handler =
-          static_cast<mysqlshdk::config::Config_file_handler *>(
-              config->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
-      cfg_file_handler->set_now(kPluginName,
-                                utils::nullable<std::string>("OFF"));
-    }
-    return true;
-  } else {
-    // GR plugin is not installed.
-    return false;
-  }
+bool uninstall_group_replication_plugin(
+    const mysqlshdk::mysql::IInstance &instance,
+    mysqlshdk::config::Config *config) {
+  return uninstall_plugin(k_gr_plugin_name, instance, config);
 }
 
 /**
@@ -942,13 +805,23 @@ mysql::User_privileges_result check_replication_user(
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, mysqlshdk::mysql::IInstance *primary,
     const std::vector<std::string> &hosts,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+    const mysqlshdk::utils::nullable<std::string> &password,
+    bool clone_supported) {
   mysqlshdk::mysql::Auth_options creds;
   assert(primary);
   assert(!hosts.empty());
   assert(!username.empty());
 
   creds.user = username;
+
+  std::vector<std::tuple<std::string, std::string, bool>> grants;
+
+  if (clone_supported) {
+    grants = {std::make_tuple("REPLICATION SLAVE, BACKUP_ADMIN", "*.*", false)};
+  } else {
+    grants = {std::make_tuple("REPLICATION SLAVE", "*.*", false)};
+  }
+
   try {
     // Accounts are created at the primary replica regardless of who will use
     // them, since they'll get replicated everywhere.
@@ -962,8 +835,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
       }
       // re-create replication with a new generated password
       mysqlshdk::mysql::create_user_with_random_password(
-          primary->get_session(), creds.user, hosts,
-          {std::make_tuple("REPLICATION SLAVE", "*.*", false)}, &repl_password,
+          primary->get_session(), creds.user, hosts, grants, &repl_password,
           true);
 
       creds.password = repl_password;
@@ -975,10 +847,9 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
             creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
       }
       // re-create replication with a given password
-      mysqlshdk::mysql::create_user_with_password(
-          primary->get_session(), creds.user, hosts,
-          {std::make_tuple("REPLICATION SLAVE", "*.*", false)},
-          password.get_safe(), true);
+      mysqlshdk::mysql::create_user_with_password(primary->get_session(),
+                                                  creds.user, hosts, grants,
+                                                  password.get_safe(), true);
 
       creds.password = password.get_safe();
     }
@@ -1394,6 +1265,8 @@ bool is_group_replication_delayed_starting(
 
 bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &host, const int port) {
+  // TODO(alfredo) - this is redundant and unreliable because of the match by
+  // hostname, should be replaced with a call to get_members() or something
   std::string is_active_member_stmt_fmt =
       "SELECT Member_state "
       "FROM performance_schema.replication_group_members "
@@ -1617,6 +1490,106 @@ bool is_instance_only_read_compatible(
     return true;
   }
   return false;
+}
+
+Group_member_recovery_status detect_recovery_status(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &start_time,
+    bool *out_recovering) {
+  std::string clone_state;
+  std::string member_state;
+  bool recovery = false;
+
+  try {
+    if (instance.get_version() >= mysql::k_mysql_clone_plugin_initial_version) {
+      auto result = instance.queryf(
+          "SELECT"
+          " (SELECT count(*)"
+          "   FROM performance_schema.replication_applier_status_by_worker a"
+          "   JOIN performance_schema.replication_connection_status c"
+          "     ON a.channel_name = c.channel_name"
+          "   WHERE a.channel_name = 'group_replication_recovery'"
+          "     AND ((a.service_state = 'ON' OR a.last_error_message <> '')"
+          "          OR (c.service_state = 'ON' OR c.last_error_message <> ''))"
+          " ) recovery,"
+          " (SELECT member_state"
+          "   FROM performance_schema.replication_group_members"
+          "   WHERE member_id = @@server_uuid) member_state,"
+          " (SELECT concat(state, '@', begin_time)"
+          "   FROM performance_schema.clone_status"
+          "   WHERE begin_time >= ?) clone",
+          start_time.empty() ? "0000-00-00 00:00:00" : start_time);
+
+      auto row = result->fetch_one_or_throw();
+      recovery = row->get_int(0, 0);
+      member_state = row->get_string(1, "OFFLINE");
+      clone_state = row->get_string(2, "");
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    log_debug("Error checking recovery state at %s: %s",
+              instance.descr().c_str(), e.what());
+  }
+  if (member_state.empty()) {
+    auto result = instance.query(
+        "SELECT"
+        " (SELECT count(*)"
+        "   FROM performance_schema.replication_applier_status_by_worker a"
+        "   JOIN performance_schema.replication_connection_status c"
+        "     ON a.channel_name = c.channel_name"
+        "   WHERE a.channel_name = 'group_replication_recovery'"
+        "     AND ((a.service_state = 'ON' OR a.last_error_message <> '')"
+        "          OR (c.service_state = 'ON' OR c.last_error_message <> ''))"
+        " ) recovery,"
+        " (SELECT member_state"
+        "   FROM performance_schema.replication_group_members"
+        "   WHERE member_id = @@server_uuid) member_state");
+
+    auto row = result->fetch_one_or_throw();
+    recovery = row->get_int(0, 0);
+    member_state = row->get_string(1, "OFFLINE");
+  }
+
+  if (out_recovering) *out_recovering = member_state == "RECOVERING";
+
+  log_debug2(
+      "Recovery status of %s: member_state=%s, clone_state=%s, recovery=%i",
+      instance.descr().c_str(), member_state.c_str(), clone_state.c_str(),
+      recovery);
+
+  // If CLONE is used, the server will restart once it's finished.
+  // If the server has auto-rejoin enabled, a normal recovery can start right
+  // after the restart. In that case, we report the normal recovery.
+  if (member_state == "RECOVERING") {
+    if (recovery)
+      return Group_member_recovery_status::DISTRIBUTED;
+    else if (!clone_state.empty())
+      return Group_member_recovery_status::CLONE;
+    else
+      return Group_member_recovery_status::UNKNOWN;
+  } else if (member_state == "ERROR") {
+    if (recovery)
+      return Group_member_recovery_status::DISTRIBUTED_ERROR;
+    else if (!clone_state.empty())
+      return Group_member_recovery_status::CLONE_ERROR;
+    else
+      return Group_member_recovery_status::UNKNOWN_ERROR;
+  } else if (member_state == "ONLINE") {
+    return Group_member_recovery_status::DONE_ONLINE;
+  } else if (member_state == "OFFLINE") {
+    // GR may stop during a CLONE, while it's restarting
+    // GR stopped?
+    log_info(
+        "Member %s is in state %s, when recovery was expected "
+        "(clone_state=%s).",
+        instance.descr().c_str(), member_state.c_str(), clone_state.c_str());
+    if (clone_state.empty())
+      return Group_member_recovery_status::DONE_OFFLINE;
+    else
+      return Group_member_recovery_status::CLONE;
+  } else {
+    log_error("Member %s is in state %s, when recovery was expected",
+              instance.descr().c_str(), member_state.c_str());
+    throw std::logic_error("Unexpected member state " + member_state);
+  }
 }
 
 }  // namespace gr

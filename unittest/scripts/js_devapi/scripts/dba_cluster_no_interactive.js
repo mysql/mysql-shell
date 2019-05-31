@@ -9,9 +9,9 @@ shell.connect(__sandbox_uri1);
 var singleSession = session;
 
 if (__have_ssl)
-  var devCluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED'});
+  var devCluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 else
-  var devCluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED'});
+  var devCluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
 
 devCluster.disconnect();
 

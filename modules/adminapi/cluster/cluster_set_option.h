@@ -41,6 +41,8 @@ class Cluster_set_option : public Command_interface {
                      const std::string &value);
   Cluster_set_option(Cluster_impl *cluster, const std::string &option,
                      int64_t value);
+  Cluster_set_option(Cluster_impl *cluster, const std::string &option,
+                     bool value);
 
   ~Cluster_set_option() override;
 
@@ -84,10 +86,13 @@ class Cluster_set_option : public Command_interface {
   std::string m_option;
   mysqlshdk::utils::nullable<std::string> m_value_str;
   mysqlshdk::utils::nullable<int64_t> m_value_int;
+  mysqlshdk::utils::nullable<bool> m_value_bool;
 
   std::unique_ptr<Set_option> m_replicaset_set_option;
 
   void ensure_option_valid();
+  void check_disable_clone_support();
+  void update_disable_clone_option(bool disable_clone);
 };
 }  // namespace dba
 }  // namespace mysqlsh

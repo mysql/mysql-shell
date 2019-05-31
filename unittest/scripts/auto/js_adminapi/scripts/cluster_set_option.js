@@ -168,5 +168,23 @@ EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoi
 EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
 EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
 
-//@ WL#11465: Finalization
+//@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to false in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
+cluster.setOption("disableClone", false);
+
+//@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to true in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
+cluster.setOption("disableClone", true);
+
+//@ WL#13208: TS_FR2_1 verify disableClone can be set with setOption() to false. {VER(>=8.0.17)}
+cluster.setOption("disableClone", false);
+
+//@ WL#13208: TS_FR2_2 verify disableClone is false with options(). {VER(>=8.0.17)}
+cluster.options();
+
+//@ WL#13208: TS_FR2_1 verify disableClone can be set with setOption() to true. {VER(>=8.0.17)}
+cluster.setOption("disableClone", true);
+
+//@ WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.0.17)}
+cluster.options();
+
+//@<> Finalization
 scene.destroy();

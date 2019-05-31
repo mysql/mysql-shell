@@ -146,7 +146,7 @@ EXPECT_EQ(__result_group_name_1, get_sysvar(session, "group_replication_group_na
 c.dissolve({force: true});
 
 //@ Create cluster
-var c = dba.createCluster('test', {clearReadOnly: true});
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Add instance errors using localAddress option
 // FR1-TS-2-5 (GR issues an error if the hostname or IP address is invalid)
@@ -306,7 +306,7 @@ var __cfg_local_address2 = localhost + ":" + __local_port2;
 var __cfg_local_address3 = localhost + ":" + __local_port3;
 var __cfg_group_seeds = __cfg_local_address1 + "," + __cfg_local_address2 + "," + __cfg_local_address3;
 var __cfg_group_name = "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __cfg_local_address1, groupSeeds: __cfg_group_seeds, groupName: __cfg_group_name});
+var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __cfg_local_address1, groupSeeds: __cfg_group_seeds, groupName: __cfg_group_name, gtidSetIsComplete: true});
 
 //@ Add instance with a specific localAddress and groupSeeds (FR1-TS-4)
 c.addInstance(add_instance_options, {localAddress: __cfg_local_address2, groupSeeds: __cfg_group_seeds});

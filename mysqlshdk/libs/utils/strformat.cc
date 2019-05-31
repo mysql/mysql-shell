@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@ namespace utils {
 
 using shcore::str_format;
 
-std::string format_seconds(double secs) {
+std::string format_seconds(double secs, bool show_fractional_seconds) {
   char buffer[256];
   std::string str;
   int d = secs / (3600 * 24);
@@ -57,7 +57,10 @@ std::string format_seconds(double secs) {
     if (!str.empty()) str.append(" ");
     str.append(buffer);
   }
-  snprintf(buffer, sizeof(buffer), "%01.4f sec", secs);
+  if (show_fractional_seconds)
+    snprintf(buffer, sizeof(buffer), "%01.4f sec", secs);
+  else
+    snprintf(buffer, sizeof(buffer), "%i sec", int(secs));
   if (!str.empty()) str.append(" ");
   str.append(buffer);
   return str;

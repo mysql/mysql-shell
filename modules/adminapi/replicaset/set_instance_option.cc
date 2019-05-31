@@ -140,7 +140,7 @@ void Set_instance_option::ensure_option_supported_target_member() {
       m_target_instance->descr().c_str(), m_option.c_str());
 
   // Verify if the instance version is supported
-  bool is_supported = is_group_replication_option_supported(
+  bool is_supported = is_option_supported(
       m_target_instance->get_version(), m_option, k_instance_supported_options);
 
   if (!is_supported) {

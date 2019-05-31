@@ -14,7 +14,7 @@ dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnfPath2, clusterAdmin: "
 
 //@ Create cluster.
 shell.connect("gr_user:gr_pass@localhost:"+__mysql_sandbox_port1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 cluster.addInstance("gr_user:gr_pass@localhost:"+__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

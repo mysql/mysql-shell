@@ -350,21 +350,22 @@ DESCRIPTION
 
       The options dictionary can contain the following values:
 
-      - multiMaster: boolean value used to define an InnoDB cluster with
-        multiple writable instances.
-      - multiPrimary: boolean value used to define an InnoDB cluster with
-        multiple writable instances.
-      - force: boolean, confirms that the multiPrimary option must be applied.
       - interactive: boolean value used to disable the wizards in the command
         execution, i.e. prompts are not provided to the user and confirmation
         prompts are not shown.
+      - disableClone: boolean value used to disable the clone usage on the
+        cluster.
+      - gtidSetIsComplete: boolean value which indicates whether the GTID set
+        of the seed instance corresponds to all transactions executed. Default
+        is false.
+      - multiPrimary: boolean value used to define an InnoDB cluster with
+        multiple writable instances.
+      - force: boolean, confirms that the multiPrimary option must be applied.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled.
       - groupName: string value with the Group Replication group name UUID to
         be used instead of the automatically generated one.
       - localAddress: string value with the Group Replication local address to
@@ -383,24 +384,52 @@ DESCRIPTION
         it from the cluster.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
-
-      ATTENTION: The clearReadOnly option will be removed in a future release.
-
-      ATTENTION: The multiMaster option will be removed in a future release.
-                 Please use the multiPrimary option instead.
-
-      ATTENTION: The failoverConsistency option will be removed in a future
-                 release. Please use the consistency option instead.
+      - clearReadOnly: boolean value used to confirm that super_read_only must
+        be disabled. Deprecated.
+      - multiMaster: boolean value used to define an InnoDB cluster with
+        multiple writable instances. Deprecated.
 
       An InnoDB cluster may be setup in two ways:
 
       - Single Primary: One member of the cluster allows write operations while
-        the rest are in read only mode.
-      - Multi Primary: All the members in the cluster support both read and
-        write operations.
+        the rest are read-only secondaries.
+      - Multi Primary: All the members in the cluster allow both read and write
+        operations.
 
-      By default this function create a Single Primary cluster, use the
+      Note that Multi-Primary mode has limitations about what can be safely
+      executed. Make sure to read the MySQL documentation for Group Replication
+      and be aware of what is and is not safely executable in such setups.
+
+      By default this function creates a Single Primary cluster. Use the
       multiPrimary option set to true if a Multi Primary cluster is required.
+
+      Options
+
+      interactive controls whether prompts are shown for MySQL passwords,
+      confirmations and handling of cases where user feedback may be required.
+      Defaults to true, unless the Shell is started with the --no-wizards
+      option.
+
+      disableClone should be set to true if built-in clone support should be
+      completely disabled, even in instances where that is supported. Built-in
+      clone support is available starting with MySQL 8.0.17 and allows
+      automatically provisioning new cluster members by copying state from an
+      existing cluster member. Note that clone will completely delete all data
+      in the instance being added to the cluster.
+
+      gtidSetIsComplete is used to indicate that GTIDs have been always enabled
+      at the cluster seed instance and that GTID_EXECUTED contains all
+      transactions ever executed. It must be left as false if data was inserted
+      or modified while GTIDs were disabled or if RESET MASTER was executed.
+      This flag affects how cluster.addInstance() decides which recovery
+      methods are safe to use. Distributed recovery based on replaying the
+      transaction history is only assumed to be safe if the transaction history
+      is known to be complete, otherwise cluster members could end up with
+      incomplete data sets.
+
+      adoptFromGR allows creating an InnoDB cluster from an existing unmanaged
+      Group Replication setup, enabling use of MySQL Router and the shell
+      AdminAPI for managing it.
 
       The memberSslMode option supports the following values:
 
@@ -411,25 +440,6 @@ DESCRIPTION
         instance, otherwise disabled
 
       If memberSslMode is not specified AUTO will be used by default.
-
-      The exitStateAction option supports the following values:
-
-      - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-        cluster unintentionally.
-      - READ_ONLY: if used, the instance switches itself to super-read-only
-        mode if it leaves the cluster unintentionally.
-
-      If exitStateAction is not specified READ_ONLY will be used by default.
-
-      The consistency option supports the following values:
-
-      - BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or write) to the
-        new primary will be put on hold until after the backlog from the old
-        primary is applied.
-      - EVENTUAL: if used, read queries to the new primary are allowed even if
-        the backlog isn't applied.
-
-      If consistency is not specified, EVENTUAL will be used by default.
 
       The ipWhitelist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -459,6 +469,25 @@ DESCRIPTION
       variable 'group_replication_group_seeds'. The groupSeeds option accepts a
       comma-separated list of addresses in the format:
       'host1:port1,...,hostN:portN'.
+
+      The exitStateAction option supports the following values:
+
+      - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
+        cluster unintentionally.
+      - READ_ONLY: if used, the instance switches itself to super-read-only
+        mode if it leaves the cluster unintentionally.
+
+      If exitStateAction is not specified READ_ONLY will be used by default.
+
+      The consistency option supports the following values:
+
+      - BEFORE_ON_PRIMARY_FAILOVER: if used, new queries (read or write) to the
+        new primary will be put on hold until after the backlog from the old
+        primary is applied.
+      - EVENTUAL: if used, read queries to the new primary are allowed even if
+        the backlog isn't applied.
+
+      If consistency is not specified, EVENTUAL will be used by default.
 
       The value for exitStateAction is used to configure how Group Replication
       behaves when a server instance leaves the group unintentionally, for
@@ -539,6 +568,14 @@ DESCRIPTION
 
       The default value is 0.
 
+      ATTENTION: The clearReadOnly option will be removed in a future release.
+
+      ATTENTION: The multiMaster option will be removed in a future release.
+                 Please use the multiPrimary option instead.
+
+      ATTENTION: The failoverConsistency option will be removed in a future
+                 release. Please use the consistency option instead.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -563,6 +600,7 @@ EXCEPTIONS
         exitStateAction, memberWeight, consistency, expelTimeout or
         autoRejoinTries options is not valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
+      - If disableClone is not supported on the target instance.
 
 //@<OUT> Delete Sandbox
 NAME

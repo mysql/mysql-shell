@@ -17,7 +17,7 @@ mysql_innodb_cluster_222	%
 2
 instance_name	attributes
 <<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_111"}
-<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_222"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"joinTime": [[*]], "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_222"}
 2
 user_name
 mysql_innodb_cluster_111

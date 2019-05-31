@@ -10,7 +10,7 @@ dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: mycnf1});
 shell.connect(__sandbox_uri1);
 
 //@<OUT> createCluster from instance with bind_address set
-dba.createCluster("testCluster");
+dba.createCluster("testCluster", {gtidSetIsComplete: true});
 
 // Clean-up instance
 // Need to shutdown first, because destroySandbox() will not do anything if the port is not listening

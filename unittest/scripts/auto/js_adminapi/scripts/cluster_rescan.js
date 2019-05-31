@@ -70,7 +70,7 @@ dba.configureInstance(__sandbox_uri3, {clusterAdmin:'root', mycnfPath: mycnf_pat
 
 //@ Create cluster.
 shell.connect(__hostname_uri1);
-var cluster = dba.createCluster("c");
+var cluster = dba.createCluster("c", {gtidSetIsComplete: true});
 cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
@@ -451,7 +451,7 @@ check_auto_increment_settings(__sandbox_uri3);
 //@<> Create multi-primary cluster.
 // NOTE: Cluster re-created for test to work with both 5.7 and 8.0 servers.
 cluster.dissolve();
-var cluster = dba.createCluster("c", {multiPrimary: true, clearReadOnly: true, force: true});
+var cluster = dba.createCluster("c", {multiPrimary: true, clearReadOnly: true, force: true, gtidSetIsComplete: true});
 cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);

@@ -76,7 +76,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#12049: Unsupported server version {VER(<5.7.24)}
-var c = dba.createCluster('test', {exitStateAction: "READ_ONLY"});
+var c = dba.createCluster('test', {exitStateAction: "READ_ONLY", gtidSetIsComplete: true});
 
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 // F1.2 - The exitStateAction option shall be a string value.
@@ -532,7 +532,7 @@ session.close();
 
 //@ BUG#29246110: create cluster succeed with supported host.
 shell.connect(__sandbox_uri2);
-var c = dba.createCluster("test_cluster");
+var c = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 //@ BUG#29246110: add instance error with non supported host.
 c.addInstance(__sandbox_uri1);
@@ -676,7 +676,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ BUG#28064729: create a cluster.
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#28064729: Verify that there are no GTIDs associated to the server uuid (create cluster).
 EXPECT_FALSE(gtid_contains_server_uuid(session));
@@ -720,3 +720,41 @@ EXPECT_EQ(old_account_number + 1, new_account_number);
 //@<> WL#12773: Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> WL#13208: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+shell.connect(__sandbox_uri1);
+
+//@ WL#13208: TS_FR1_2 validate errors for disableClone (only boolean values).
+dba.createCluster('test', {disableClone: ""});
+dba.createCluster('test', {disableClone: "not_a_bool"});
+dba.createCluster('test', {disableClone: []});
+dba.createCluster('test', {disableClone: {}});
+
+//@ WL#13208: TS_FR1_3 validate default for disableClone is false.
+var c = dba.createCluster('test');
+
+//@<> WL#13208: TS_FR1_3 verify disableClone is false.
+c.options();
+
+//@<> WL#13208: TS_FR1_3 dissolve cluster.
+c.dissolve();
+
+//@ WL#13208: TS_FR1_1 disableClone option is available (set it to a valid value: true). {VER(>=8.0.17)}
+var c = dba.createCluster('test', {disableClone: true});
+
+//@ WL#13208: TS_FR1_1 verify disableClone match the value set (true). {VER(>=8.0.17)}
+c.options();
+
+//@<> WL#13208: TS_FR1_1 dissolve cluster. {VER(>=8.0.17)}
+c.dissolve();
+
+//@ WL#13208: TS_FR1_1 disableClone option is not supported for server version < 8.0.17. {VER(<8.0.17)}
+dba.createCluster('test', {disableClone: true});
+
+//@<> WL#13208: clean-up
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

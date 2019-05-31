@@ -4,7 +4,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {"server-uuid": "aaaaaaaa-
 
 //@ Create a cluster a cluster.
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 //@ Adding an instance with the same server UUID fails.
 cluster.addInstance(__sandbox_uri2);

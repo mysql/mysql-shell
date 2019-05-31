@@ -100,6 +100,7 @@ struct Slave_host {
   std::string uuid;
 };
 
+std::string to_string(Replication_channel::Status status);
 std::string to_string(Replication_channel::Receiver::State state);
 std::string to_string(Replication_channel::Coordinator::State state);
 std::string to_string(Replication_channel::Applier::State state);

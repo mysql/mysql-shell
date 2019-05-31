@@ -6,7 +6,7 @@
 // deploy sandbox, create a cluster
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
-dba.createCluster("tempCluster");
+dba.createCluster("tempCluster", {gtidSetIsComplete: true});
 
 // stop GR manually
 session.runSql("stop group_replication;")
@@ -18,7 +18,7 @@ dba.dropMetadataSchema({clearReadOnly: true})
 dba.dropMetadataSchema({force: true, clearReadOnly: true})
 
 // create new cluster
-var cluster = dba.createCluster("tempCluster");
+var cluster = dba.createCluster("tempCluster", {gtidSetIsComplete: true});
 
 // dissolve the cluster
 cluster.dissolve({force: true})

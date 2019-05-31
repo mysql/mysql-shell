@@ -72,6 +72,18 @@ Would you like to rejoin it to the cluster? [y/N]:
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was part of the cluster configuration.
 Would you like to rejoin it to the cluster? [y/N]: 
 Disabling super_read_only mode on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+The safest and most convenient way to provision a new instance is through
+automatic clone provisioning, which will completely overwrite the state of
+'localhost:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing cluster member. To
+use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental distributed state recovery may be safely used if you are sure
+all updates ever executed in the cluster were done with GTIDs enabled, there
+are no purged transactions and the new instance contains the same GTID set as
+the cluster or a subset of it. To use this method by default, set the
+'recoveryMethod' option to 'incremental'.
+
+Incremental distributed state recovery was selected because it seems to be safely usable.
 ?{VER(<8.0.11)}
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.

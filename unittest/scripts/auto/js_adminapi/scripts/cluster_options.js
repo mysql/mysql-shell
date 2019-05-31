@@ -40,7 +40,7 @@ var __cfg_group_seeds1 = __cfg_local_address2 + "," + __cfg_local_address3;
 var __cfg_group_seeds2 = __cfg_local_address1 + "," + __cfg_local_address3;
 var __cfg_group_seeds3 = __cfg_local_address1 + "," + __cfg_local_address2;
 
-var cluster = dba.createCluster("testCluster", {groupName: __cfg_group_name, localAddress: __cfg_local_address1});
+var cluster = dba.createCluster("testCluster", {groupName: __cfg_group_name, localAddress: __cfg_local_address1, gtidSetIsComplete: true});
 
 //@ WL#11465: Add instance 2 with specific options
 cluster.addInstance(__sandbox_uri2, {localAddress: __cfg_local_address2, memberWeight: 75, exitStateAction: "ABORT_SERVER"});

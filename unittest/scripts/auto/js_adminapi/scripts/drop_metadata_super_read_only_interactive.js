@@ -4,14 +4,14 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
-var cluster = dba.createCluster("cluster");
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
 function rebuild_cluster() {
   session.close();
   testutil.destroySandbox(__mysql_sandbox_port1);
   testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
   shell.connect(__sandbox_uri1);
-  var cluster = dba.createCluster("cluster");
+  var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
   cluster.disconnect();
 }
 

@@ -44,11 +44,6 @@ namespace checks {
 void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
                            int verbose);
 
-void detect_authenticable_hostname(mysqlshdk::mysql::IInstance *instance,
-                                   mysqlshdk::mysql::IInstance *peer,
-                                   const std::string &peer_host,
-                                   std::string *out_hostname);
-
 bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
 
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);

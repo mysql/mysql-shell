@@ -27,7 +27,9 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replicaset/replicaset_status.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -594,6 +596,102 @@ void Replicaset_status::feed_member_stats(
   set_uint(dict, "rollbackCount", stats, "COUNT_TRANSACTIONS_LOCAL_ROLLBACK");
 }
 
+namespace {
+shcore::Value distributed_progress(
+    const mysqlshdk::mysql::IInstance &instance) {
+  shcore::Dictionary_t dict = shcore::make_dict();
+  mysqlshdk::mysql::Replication_channel channel;
+  if (mysqlshdk::mysql::get_channel_status(
+          instance, mysqlshdk::gr::k_gr_recovery_channel, &channel)) {
+    dict->set("state",
+              shcore::Value(mysqlshdk::mysql::to_string(channel.status())));
+
+    if (channel.receiver.last_error.code != 0) {
+      dict->set("receiverErrorNumber",
+                shcore::Value(channel.receiver.last_error.code));
+      dict->set("receiverError",
+                shcore::Value(channel.receiver.last_error.message));
+    }
+
+    if (!channel.appliers.empty() && channel.appliers[0].last_error.code != 0) {
+      dict->set("applierErrorNumber",
+                shcore::Value(channel.appliers[0].last_error.code));
+      dict->set("applierError",
+                shcore::Value(channel.appliers[0].last_error.message));
+    }
+  }
+  return shcore::Value(dict);
+}
+
+shcore::Value clone_progress(const mysqlshdk::mysql::IInstance &instance) {
+  shcore::Dictionary_t dict = shcore::make_dict();
+  mysqlshdk::mysql::Clone_status status =
+      mysqlshdk::mysql::check_clone_status(instance);
+
+  dict->set("cloneState", shcore::Value(status.state));
+  dict->set("cloneStartTime", shcore::Value(status.begin_time));
+  if (status.error_n) dict->set("errorNumber", shcore::Value(status.error_n));
+  if (!status.error.empty()) dict->set("error", shcore::Value(status.error));
+
+  auto stage = status.stages[status.current_stage()];
+  dict->set("currentStage", shcore::Value(stage.stage));
+  dict->set("currentStageState", shcore::Value(stage.state));
+  if (stage.work_estimated > 0) {
+    dict->set(
+        "currentStageProgress",
+        shcore::Value(stage.work_completed * 100.0 / stage.work_estimated));
+  }
+
+  return shcore::Value(dict);
+}
+
+std::pair<std::string, shcore::Value> recovery_status(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &join_timestamp) {
+  std::string status;
+  shcore::Value info;
+
+  mysqlshdk::gr::Group_member_recovery_status recovery =
+      mysqlshdk::gr::detect_recovery_status(instance, join_timestamp);
+
+  switch (recovery) {
+    case mysqlshdk::gr::Group_member_recovery_status::DISTRIBUTED:
+      status = "Distributed recovery in progress";
+      info = distributed_progress(instance);
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::DISTRIBUTED_ERROR:
+      status = "Distributed recovery error";
+      info = distributed_progress(instance);
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::CLONE:
+      status = "Cloning in progress";
+      info = clone_progress(instance);
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::CLONE_ERROR:
+      status = "Clone error";
+      info = clone_progress(instance);
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::UNKNOWN:
+      status = "Recovery in progress";
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::UNKNOWN_ERROR:
+      status = "Recovery error";
+      break;
+
+    case mysqlshdk::gr::Group_member_recovery_status::DONE_OFFLINE:
+    case mysqlshdk::gr::Group_member_recovery_status::DONE_ONLINE:
+      return {"", shcore::Value()};
+  }
+
+  return {status, info};
+}
+}  // namespace
+
 shcore::Dictionary_t Replicaset_status::get_topology(
     const std::vector<mysqlshdk::gr::Member> &member_info,
     const mysqlshdk::mysql::Instance *primary_instance) {
@@ -635,6 +733,23 @@ shcore::Dictionary_t Replicaset_status::get_topology(
           collect_local_status(
               member, instance,
               minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
+        }
+
+        if (minfo.state == mysqlshdk::gr::Member_state::RECOVERING) {
+          std::string status;
+          shcore::Value info;
+          // Get the join timestamp from the Metadata
+          shcore::Value join_time;
+          m_cluster->get_metadata_storage()->query_instance_attribute(
+              instance.get_uuid(), k_instance_attribute_join_time, &join_time);
+
+          std::tie(status, info) = recovery_status(
+              instance,
+              join_time.type == shcore::String ? join_time.as_string() : "");
+          if (!status.empty()) {
+            (*member)["recoveryStatusText"] = shcore::Value(status);
+          }
+          if (info) (*member)["recovery"] = info;
         }
       }
     } else {

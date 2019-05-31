@@ -468,7 +468,15 @@ std::string Instance::get_plugin_library_extension() const {
  */
 void Instance::install_plugin(const std::string &plugin_name) const {
   // Determine the extension of the plugin library.
-  std::string plugin_lib = plugin_name + get_plugin_library_extension();
+  std::string plugin_lib;
+
+  if (plugin_name == "clone") {
+    plugin_lib = "mysql_clone";
+  } else {
+    plugin_lib = plugin_name;
+  }
+
+  plugin_lib += get_plugin_library_extension();
 
   // Install the GR plugin.
   try {

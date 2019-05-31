@@ -56,10 +56,12 @@
 #include "my_dbug.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
 #include "utils/utils_net.h"
@@ -201,17 +203,32 @@ void ReplicaSet::add_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Dictionary_t &options) {
   Group_replication_options gr_options(Group_replication_options::JOIN);
+  Clone_options clone_options(Clone_options::JOIN);
   mysqlshdk::utils::nullable<std::string> label;
   std::string password;
+
+  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
+  bool interactive = current_shell_options()->get().wizards;
 
   // Get optional options.
   if (options) {
     // Retrieves optional options if exists
     Unpack_options(options)
         .unpack(&gr_options)
+        .unpack(&clone_options)
+        .optional("interactive", &interactive)
         .optional("label", &label)
+        .optional("waitRecovery", &wait_recovery)
         .optional_ci("password", &password)
         .end();
+  }
+
+  // Validate waitRecovery option UInteger [0, 3]
+  if (wait_recovery > 3) {
+    throw shcore::Exception::argument_error(
+        "Invalid value '" + std::to_string(wait_recovery) +
+        "' for option 'waitRecovery'. It must be an integer in the range [0, "
+        "3].");
   }
 
   // Override password if provided in options dictionary.
@@ -234,7 +251,9 @@ void ReplicaSet::add_instance(
   // Add the Instance to the ReplicaSet
   {
     // Create the add_instance command and execute it.
-    Add_instance op_add_instance(target_coptions, *this, gr_options, label);
+    Add_instance op_add_instance(target_coptions, *this, gr_options,
+                                 clone_options, label, interactive,
+                                 wait_recovery);
 
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
@@ -1076,10 +1095,11 @@ void ReplicaSet::add_instance_metadata(
     ss << "Error opening session to '" << instance_address << "': " << e.what();
     log_warning("%s", ss.str().c_str());
 
+    // TODO(alfredo) - this should be validated before adding the instance
     // Check if we're adopting a GR cluster, if so, it could happen that
     // we can't connect to it because root@localhost exists but root@hostname
     // doesn't (GR keeps the hostname in the members table)
-    if (e.is_mysql() && e.code() == 1045) {  // access denied
+    if (e.is_mysql() && e.code() == ER_ACCESS_DENIED_ERROR) {
       std::stringstream se;
       se << "Access denied connecting to new instance " << instance_address
          << ".\n"
@@ -1109,6 +1129,26 @@ void ReplicaSet::add_instance_metadata(
 
   // Add the instance to the metadata.
   _metadata_storage->insert_instance(instance);
+
+  tx.commit();
+}
+
+void ReplicaSet::add_instance_metadata(
+    Instance_definition *instance,
+    const std::string &canonical_hostname) const {
+  assert(instance);
+  log_debug("Adding instance to metadata");
+
+  MetadataStorage::Transaction tx(_metadata_storage);
+
+  // Add the host to the metadata.
+  uint32_t host_id = _metadata_storage->insert_host(canonical_hostname, "", "");
+
+  instance->host_id = host_id;
+  instance->replicaset_id = get_id();
+
+  // Add the instance to the metadata.
+  _metadata_storage->insert_instance(*instance);
 
   tx.commit();
 }

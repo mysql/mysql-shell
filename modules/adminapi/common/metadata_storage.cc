@@ -173,10 +173,10 @@ void MetadataStorage::insert_cluster(
   shcore::sqlstring query(
       "INSERT INTO mysql_innodb_cluster_metadata.clusters "
       "(cluster_name, description, options, attributes) "
-      "VALUES (?, ?, ?, ?)",
+      "VALUES (?, ?, ?, '{}')",
       0);
   query << cluster->get_name() << cluster->get_description()
-        << cluster->get_options() << cluster->get_attributes();
+        << cluster->get_options();
   query.done();
   // Insert the Cluster on the cluster table
   try {
@@ -194,6 +194,54 @@ void MetadataStorage::insert_cluster(
       throw shcore::Exception::mysql_error_with_code_and_state(
           e.what(), e.code(), e.sqlstate());
     }
+  }
+}
+
+bool MetadataStorage::query_cluster_attribute(uint64_t cluster_id,
+                                              const std::string &attribute,
+                                              shcore::Value *out_value) {
+  auto result = execute_sql(
+      shcore::sqlstring("SELECT attributes->'$." + attribute +
+                            "' FROM mysql_innodb_cluster_metadata.clusters"
+                            " WHERE cluster_id=?",
+                        0)
+      << cluster_id);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      *out_value = shcore::Value::parse(row->get_as_string(0));
+      return true;
+    }
+  }
+  return false;
+}
+
+void MetadataStorage::update_cluster_attribute(uint64_t cluster_id,
+                                               const std::string &attribute,
+                                               const shcore::Value &value) {
+  if (value) {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_set(attributes, '$." +
+            attribute +
+            "', CAST(? as JSON))"
+            " WHERE cluster_id = ?",
+        0);
+
+    query << value.repr() << cluster_id;
+    query.done();
+    execute_sql(query);
+  } else {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_remove(attributes, '$." +
+            attribute +
+            "')"
+            " WHERE cluster_id = ?",
+        0);
+    query << cluster_id;
+    query.done();
+    execute_sql(query);
   }
 }
 
@@ -287,26 +335,21 @@ uint32_t MetadataStorage::insert_host(const std::string &host,
 void MetadataStorage::insert_instance(const Instance_definition &options) {
   shcore::sqlstring query;
 
-  /*if (options->has_key("attributes"))
-    attributes = (*options)["attributes"].as_map();*/
-
-  // BUG#27677227: SILENT ASSUMPTION WHEN CONFIGURING CLUSTER ON SERVER WITHOUT
-  // X PROTOCOL ENABLED If the x-plugin is disabled, we do not story any value
-  // for mysqlX
   if (!options.xendpoint.empty()) {
     query = shcore::sqlstring(
         "INSERT INTO mysql_innodb_cluster_metadata.instances "
         "(host_id, replicaset_id, mysql_server_uuid, "
-        "instance_name, role, addresses) "
+        "instance_name, role, addresses, attributes) "
         "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
-        "'mysqlX', ?, 'grLocal', ?))",
+        "'mysqlX', ?, 'grLocal', ?), '{}')",
         0);
   } else {
     query = shcore::sqlstring(
         "INSERT INTO mysql_innodb_cluster_metadata.instances "
         "(host_id, replicaset_id, mysql_server_uuid, "
-        "instance_name, role, addresses) "
-        "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'grLocal', ?))",
+        "instance_name, role, addresses, attributes) "
+        "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'grLocal', ?), "
+        "'{}')",
         0);
   }
 
@@ -323,6 +366,54 @@ void MetadataStorage::insert_instance(const Instance_definition &options) {
   query.done();
 
   execute_sql(query);
+}
+
+bool MetadataStorage::query_instance_attribute(const std::string &uuid,
+                                               const std::string &attribute,
+                                               shcore::Value *out_value) {
+  auto result = execute_sql(
+      shcore::sqlstring("SELECT attributes->'$." + attribute +
+                            "' FROM mysql_innodb_cluster_metadata.instances"
+                            " WHERE mysql_server_uuid=?",
+                        0)
+      << uuid);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      *out_value = shcore::Value::parse(row->get_as_string(0));
+      return true;
+    }
+  }
+  return false;
+}
+
+void MetadataStorage::update_instance_attribute(const std::string &uuid,
+                                                const std::string &attribute,
+                                                const shcore::Value &value) {
+  if (value) {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_set(attributes, '$." +
+            attribute +
+            "', CAST(? as JSON))"
+            " WHERE mysql_server_uuid = ?",
+        0);
+
+    query << value.repr() << uuid;
+    query.done();
+    execute_sql(query);
+  } else {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_remove(attributes, '$." +
+            attribute +
+            "')"
+            " WHERE mysql_server_uuid = ?",
+        0);
+    query << uuid;
+    query.done();
+    execute_sql(query);
+  }
 }
 
 void MetadataStorage::update_instance_recovery_account(
@@ -377,6 +468,51 @@ MetadataStorage::get_instance_recovery_account(
     recovery_host = row->get_string(1, "");
   }
   return std::make_pair(recovery_user, recovery_host);
+}
+
+void MetadataStorage::remove_instance_recovery_account(
+    const std::string &instance_uuid,
+    const std::string &recovery_account_user) {
+  shcore::sqlstring query;
+
+  if (!recovery_account_user.empty()) {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances "
+        "SET attributes = json_remove(attributes, "
+        "'$.recoveryAccountUser') WHERE mysql_server_uuid = ? AND "
+        "attributes->>'$.recoveryAccountUser' = ?",
+        0);
+    query << instance_uuid;
+    query << recovery_account_user;
+    query.done();
+    execute_sql(query);
+  }
+}
+
+bool MetadataStorage::is_recovery_account_unique(
+    const std::string &recovery_account_user) {
+  shcore::sqlstring query;
+
+  if (!recovery_account_user.empty()) {
+    query = shcore::sqlstring(
+        "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
+        "WHERE attributes->'$.recoveryAccountUser' = ?",
+        0);
+    query << recovery_account_user;
+    query.done();
+
+    auto result = execute_sql(query);
+    auto row = result->fetch_one();
+    int count = 0;
+
+    if (row) {
+      count = row->get_int(0);
+    }
+
+    return count == 1;
+  }
+
+  return false;
 }
 
 void MetadataStorage::remove_instance(const std::string &instance_address) {
@@ -666,8 +802,6 @@ bool MetadataStorage::get_cluster_from_query(
       cluster->set_id(row->get_uint(0));
 
       if (!row->is_null(3)) cluster->set_description(row->get_string(3));
-
-      if (!row->is_null(5)) cluster->set_attributes(row->get_string(5));
 
       if (!row->is_null(4)) cluster->set_options(row->get_string(4));
 

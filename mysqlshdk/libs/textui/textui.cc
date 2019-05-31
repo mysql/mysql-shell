@@ -435,7 +435,9 @@ Style Style::parse(const std::map<std::string, std::string> &attributes) {
   return style;
 }
 
-Style::operator std::string() const {
+Style::operator std::string() const { return str(); }
+
+std::string Style::str() const {
   bool fg_set = false;
   bool bg_set = false;
   std::string s;

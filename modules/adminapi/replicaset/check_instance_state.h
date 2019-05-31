@@ -79,6 +79,7 @@ class Check_instance_state : public Command_interface {
   std::string m_target_instance_address;
   std::string m_address_in_metadata;
   std::unique_ptr<mysqlshdk::mysql::Instance> m_target_instance;
+  bool m_clone_available = false;
 
   void ensure_target_instance_reachable();
   void ensure_instance_valid_gr_state();

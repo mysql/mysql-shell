@@ -24,6 +24,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
             }
         ],
         "topology": {
@@ -156,6 +160,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
             }
         ],
         "topology": {
@@ -295,6 +303,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
             }
         ],
         "topology": {
@@ -985,6 +997,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
             }
         ],
         "topology": {
@@ -1486,6 +1502,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
             }
         ],
         "topology": {
@@ -1550,6 +1570,10 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
             }
         ],
         "topology": {

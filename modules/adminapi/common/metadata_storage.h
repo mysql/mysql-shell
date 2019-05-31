@@ -70,11 +70,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   uint64_t get_cluster_id(uint64_t rs_id);
   virtual bool cluster_exists(const std::string &cluster_name);
   virtual void insert_cluster(const std::shared_ptr<Cluster_impl> &cluster);
+  bool query_cluster_attribute(uint64_t cluster_id,
+                               const std::string &attribute,
+                               shcore::Value *out_value);
+
+  void update_cluster_attribute(uint64_t cluster_id,
+                                const std::string &attribute,
+                                const shcore::Value &value);
+
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
                           bool is_default, bool is_adopted);
   uint32_t insert_host(const std::string &host, const std::string &ip_address,
                        const std::string &location);
   void insert_instance(const Instance_definition &options);
+
+  bool query_instance_attribute(const std::string &uuid,
+                                const std::string &attribute,
+                                shcore::Value *out_value);
+
+  void update_instance_attribute(const std::string &uuid,
+                                 const std::string &attribute,
+                                 const shcore::Value &value);
+
   /**
    * Update the information on the metadata about the recovery user being used
    * by the instance with the given uuid.
@@ -97,6 +114,10 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   std::pair<std::string, std::string> get_instance_recovery_account(
       const std::string &instance_uuid);
+  void remove_instance_recovery_account(
+      const std::string &instance_uuid,
+      const std::string &recovery_account_user);
+  bool is_recovery_account_unique(const std::string &recovery_account_user);
   void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);

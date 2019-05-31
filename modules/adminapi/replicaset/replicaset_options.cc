@@ -110,6 +110,13 @@ shcore::Array_t Replicaset_options::collect_global_options() {
     array->push_back(shcore::Value(option));
   }
 
+  // Get the cluster's disableClone option
+  shcore::Dictionary_t option = shcore::make_dict();
+  (*option)["option"] = shcore::Value(kDisableClone);
+  (*option)["value"] =
+      shcore::Value(m_replicaset.get_cluster()->get_disable_clone_option());
+  array->push_back(shcore::Value(option));
+
   return array;
 }
 

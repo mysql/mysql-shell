@@ -47,9 +47,9 @@ shell.connect(__sandbox_uri1);
 
 //@<OUT> create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
+  var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 else
-  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
+  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 

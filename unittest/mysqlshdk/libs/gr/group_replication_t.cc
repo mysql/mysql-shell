@@ -79,25 +79,27 @@ TEST_F(Group_replication_test, plugin_installation) {
 
   // Check if GR plugin is installed and uninstall it.
   nullable<std::string> init_plugin_state =
-      instance->get_plugin_status(mysqlshdk::gr::kPluginName);
+      instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
   if (!init_plugin_state.is_null()) {
     // Test uninstall the plugin when available.
-    bool res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
+    bool res =
+        mysqlshdk::gr::uninstall_group_replication_plugin(*instance, nullptr);
     EXPECT_TRUE(res);
     nullable<std::string> plugin_state =
-        instance->get_plugin_status(mysqlshdk::gr::kPluginName);
+        instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
     ASSERT_TRUE(plugin_state.is_null());
     // Test trying to uninstall the plugin when not available.
-    res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
+    res = mysqlshdk::gr::uninstall_group_replication_plugin(*instance, nullptr);
     EXPECT_FALSE(res);
   }
 
   // Test installing the plugin (when not installed).
   if (!init_plugin_state.is_null() &&
-      (*init_plugin_state).compare(mysqlshdk::gr::kPluginDisabled) == 0) {
+      (*init_plugin_state).compare("DISABLED") == 0) {
     // An exception is expected if the plugin was disabled.
-    EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance, nullptr),
-                 std::runtime_error);
+    EXPECT_THROW(
+        mysqlshdk::gr::install_group_replication_plugin(*instance, nullptr),
+        std::runtime_error);
   } else {
     // Requirements to install the GR plugin:
     // - server_id != 0
@@ -124,32 +126,34 @@ TEST_F(Group_replication_test, plugin_installation) {
     }
 
     // GR plugin is installed and activated (if not previously disabled).
-    bool res = mysqlshdk::gr::install_plugin(*instance, nullptr);
+    bool res =
+        mysqlshdk::gr::install_group_replication_plugin(*instance, nullptr);
     ASSERT_TRUE(res)
         << "GR plugin was not installed (expected not to be available).";
     nullable<std::string> plugin_state =
-        instance->get_plugin_status(mysqlshdk::gr::kPluginName);
-    EXPECT_STREQ(mysqlshdk::gr::kPluginActive, (*plugin_state).c_str());
+        instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
+    EXPECT_STREQ("ACTIVE", (*plugin_state).c_str());
 
     // Test installing the plugin when already installed.
-    res = mysqlshdk::gr::install_plugin(*instance, nullptr);
+    res = mysqlshdk::gr::install_group_replication_plugin(*instance, nullptr);
     EXPECT_FALSE(res)
         << "GR plugin was installed (expected to be already available).";
-    plugin_state = instance->get_plugin_status(mysqlshdk::gr::kPluginName);
-    EXPECT_STREQ(mysqlshdk::gr::kPluginActive, (*plugin_state).c_str());
+    plugin_state = instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
+    EXPECT_STREQ("ACTIVE", (*plugin_state).c_str());
   }
 
   // Restore initial state (uninstall plugin if needed).
   if (init_plugin_state.is_null()) {
     // Test uninstall the plugin when available.
-    bool res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
+    bool res =
+        mysqlshdk::gr::uninstall_group_replication_plugin(*instance, nullptr);
     EXPECT_TRUE(res);
     nullable<std::string> plugin_state =
-        instance->get_plugin_status(mysqlshdk::gr::kPluginName);
+        instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
     ASSERT_TRUE(plugin_state.is_null());
 
     // Test trying to uninstall the plugin when not available.
-    res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
+    res = mysqlshdk::gr::uninstall_group_replication_plugin(*instance, nullptr);
     EXPECT_FALSE(res);
   }
 }
@@ -283,9 +287,9 @@ TEST_F(Group_replication_test, start_stop_gr) {
 
   // Install GR plugin if needed.
   nullable<std::string> init_plugin_state =
-      instance->get_plugin_status(mysqlshdk::gr::kPluginName);
+      instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::install_plugin(*instance, nullptr);
+    mysqlshdk::gr::install_group_replication_plugin(*instance, nullptr);
   }
 
   // Get initial value of GR variables (to restore at the end).
@@ -363,7 +367,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
   instance->set_sysvar("group_replication_local_address", *gr_local_address,
                        Var_qualifier::GLOBAL);
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
+    mysqlshdk::gr::uninstall_group_replication_plugin(*instance, nullptr);
   }
 }
 
@@ -402,103 +406,6 @@ TEST_F(Group_replication_test, members_state) {
   state_res = mysqlshdk::gr::to_member_state("(MISSING)");
   EXPECT_EQ(state_res, Member_state::MISSING);
   EXPECT_THROW(mysqlshdk::gr::to_member_state("invalid"), std::runtime_error);
-}
-
-TEST_F(Group_replication_test, get_replication_user) {
-  using mysqlshdk::utils::nullable;
-
-  // Check if used server meets the requirements.
-  nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
-  if (*server_id == 0) {
-    SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
-  }
-  nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
-  if (*log_bin != true) {
-    SKIP_TEST("Test server does not meet GR requirements: log_bin must be ON.");
-  }
-  nullable<bool> gtid_mode = instance->get_sysvar_bool("gtid_mode");
-  if (*gtid_mode != true) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: gtid_mode must be ON.");
-  }
-  nullable<bool> enforce_gtid_consistency =
-      instance->get_sysvar_bool("enforce_gtid_consistency");
-  if (*enforce_gtid_consistency != true) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: enforce_gtid_consistency "
-        "must be ON.");
-  }
-  nullable<std::string> master_info_repository =
-      instance->get_sysvar_string("master_info_repository");
-  if ((*master_info_repository).compare("TABLE") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: master_info_repository "
-        "must be 'TABLE'.");
-  }
-  nullable<std::string> relay_log_info_repository =
-      instance->get_sysvar_string("relay_log_info_repository");
-  if ((*relay_log_info_repository).compare("TABLE") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: relay_log_info_repository "
-        "must be 'TABLE'.");
-  }
-  nullable<std::string> binlog_checksum =
-      instance->get_sysvar_string("binlog_checksum");
-  if ((*binlog_checksum).compare("NONE") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: binlog_checksum must be "
-        "'NONE'.");
-  }
-  nullable<bool> log_slave_updates =
-      instance->get_sysvar_bool("log_slave_updates");
-  if (*log_slave_updates != true) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: log_slave_updates "
-        "must be ON.");
-  }
-  nullable<std::string> binlog_format =
-      instance->get_sysvar_string("binlog_format");
-  if ((*binlog_format).compare("ROW") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: binlog_format must be "
-        "'ROW'.");
-  }
-
-  // Install GR plugin if needed.
-  nullable<std::string> init_plugin_state =
-      instance->get_plugin_status(mysqlshdk::gr::kPluginName);
-  if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::install_plugin(*instance, nullptr);
-  }
-
-  // Test: empty string returned if no replication user was defined (or empty).
-  std::string res = mysqlshdk::gr::get_recovery_user(*instance);
-  EXPECT_TRUE(res.empty());
-
-  // Set replication user
-  auto session = instance->get_session();
-  std::string change_master_stmt =
-      "CHANGE MASTER TO MASTER_USER = 'test_user' "
-      "FOR CHANNEL 'group_replication_recovery'";
-  session->execute(change_master_stmt);
-
-  // Test: correct replication user is returned.
-  res = mysqlshdk::gr::get_recovery_user(*instance);
-  EXPECT_STREQ("test_user", res.c_str());
-
-  // Test: Start Group Replication fails for group already running.
-  EXPECT_THROW(mysqlshdk::gr::start_group_replication(*instance, true),
-               std::exception);
-
-  // Clean up (restore initial server state).
-  if (session)
-    // Set user to empty value.
-    session->execute(
-        "CHANGE MASTER TO MASTER_USER = '' "
-        "FOR CHANNEL 'group_replication_recovery'");
-  if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
-  }
 }
 
 TEST_F(Group_replication_test, is_group_replication_delayed_starting) {

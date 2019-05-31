@@ -72,11 +72,11 @@ dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 
 //@ create cluster fails with nice error if innodb_page_size=4k
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 //@ create cluster works with innodb_page_size=8k (> 4k)
 shell.connect(__sandbox_uri2);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 //@ Clean-up deployed instances.
 cluster.dissolve({force: true});

@@ -30,9 +30,9 @@ shell.connect(__sandbox_uri1);
 
 //@ create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@ Adding instance
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -402,7 +402,7 @@ cluster.disconnect();
 
 //@ Cluster re-created with success
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
-var cluster = dba.createCluster('dev', {clearReadOnly: true});
+var cluster = dba.createCluster('dev', {clearReadOnly: true, gtidSetIsComplete: true});
 
 session.close();
 cluster.disconnect();
@@ -423,7 +423,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host
 
 //@ BUG29304183: create cluster.
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('no_mysqlx');
+var c = dba.createCluster('no_mysqlx', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 
 //@ BUG29304183: removeInstance() should not fail if mysqlx is disabled.

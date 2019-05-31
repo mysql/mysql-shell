@@ -17,7 +17,7 @@ testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port3));
 
 // Create a 3 member cluster
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("clus");
+var cluster = dba.createCluster("clus", {gtidSetIsComplete: true});
 
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

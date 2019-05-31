@@ -50,7 +50,7 @@ function exist_in_metadata_schema(cluster_id, replicaset_ids) {
 
 //@ Create cluster, enable interactive mode.
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('c');
+var c = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@<> Dissolve cluster, enable interactive mode.
 // WL11889 FR1_01: new interactive option to enable interactive mode.
@@ -69,7 +69,7 @@ session.close();
 shell.connect(__sandbox_uri1);
 var singleSession = session;
 
-var single = dba.createCluster('single', {clearReadOnly: true});
+var single = dba.createCluster('single', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Success adding instance 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -128,7 +128,7 @@ shell.connect(__sandbox_uri1);
 var multiSession = session;
 
 //@ Create multi-primary cluster
-var multi = dba.createCluster('multi', {multiPrimary: true, clearReadOnly: true, force: true});
+var multi = dba.createCluster('multi', {multiPrimary: true, clearReadOnly: true, force: true, gtidSetIsComplete: true});
 
 //@ Success adding instance 2 mp
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -183,7 +183,7 @@ session.close();
 //@ Create single-primary cluster 2
 shell.connect(__sandbox_uri1);
 
-var single2 = dba.createCluster('single2', {clearReadOnly: true});
+var single2 = dba.createCluster('single2', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Success adding instance 2 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -237,7 +237,7 @@ testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 //@ Create multi-primary cluster 2
 var multiSession2 = session;
 
-var multi2 = dba.createCluster('multi2', {clearReadOnly: true, multiPrimary: true, force: true});
+var multi2 = dba.createCluster('multi2', {clearReadOnly: true, multiPrimary: true, force: true, gtidSetIsComplete: true});
 
 //@ Success adding instance 2 mp 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -291,7 +291,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_start_on_bo
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Create cluster, instance with replication errors.
-var c = dba.createCluster('c', {clearReadOnly: true});
+var c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Add instance on port2, again.
 c.addInstance(__sandbox_uri2);

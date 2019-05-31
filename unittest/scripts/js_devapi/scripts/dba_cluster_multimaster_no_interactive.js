@@ -22,7 +22,7 @@ Cluster.dissolve({force: true});
 Cluster.disconnect();
 
 //@ Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, clearReadOnly: true});
+Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
 
 Cluster.disconnect();
 
@@ -67,9 +67,9 @@ Cluster.disconnect();
 
 //@ Dba: createCluster multiPrimary 2, ok
 if (__have_ssl)
-    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
 else
-    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true, gtidSetIsComplete: true});
 
 Cluster.disconnect();
 

@@ -5,7 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 //@ Create a cluster with 3 members.
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("test_cluster");
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

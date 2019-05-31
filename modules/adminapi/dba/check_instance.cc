@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -97,6 +98,28 @@ void Check_instance::check_running_async_repl() {
         "asynchronous (master-slave) replication configured and running. "
         "To add to it a cluster please stop the slave threads by executing "
         "the query: 'STOP SLAVE;'");
+  }
+}
+
+void Check_instance::check_clone_plugin_status() {
+  if (m_target_instance->get_version() >=
+      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+    auto console = mysqlsh::current_console();
+
+    log_debug("Checking if instance '%s' has the clone plugin installed",
+              m_target_instance->descr().c_str());
+
+    mysqlshdk::utils::nullable<std::string> plugin_state =
+        m_target_instance->get_plugin_status(
+            mysqlshdk::mysql::k_mysql_clone_plugin_name);
+
+    // Check if the plugin_state is "DISABLED"
+    if (!plugin_state.is_null() && (*plugin_state).compare("DISABLED") == 0) {
+      console->print_warning(
+          "The instance '" + m_target_instance->descr() +
+          "' has the Clone plugin disabled. For optimal InnoDB cluster usage, "
+          "consider enabling it.");
+    }
   }
 }
 
@@ -216,6 +239,10 @@ void Check_instance::prepare() {
     if (!m_silent) {
       check_running_async_repl();
     }
+
+    // Check if the target instance has the clone plugin installed
+    // NOTE: only if the instance is >= 8.0.17
+    check_clone_plugin_status();
 
     if (!check_configuration()) m_is_valid = false;
   } catch (...) {

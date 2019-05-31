@@ -43,6 +43,7 @@
 #include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -85,6 +86,14 @@ void Cluster_impl::insert_default_replicaset(bool multi_primary,
     // default_replica_set var
     create_default_replicaset("default", multi_primary, "", is_adopted);
   }
+}
+
+bool Cluster_impl::get_gtid_set_is_complete() const {
+  shcore::Value flag;
+  if (get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_assume_gtid_set_complete, &flag))
+    return flag.as_bool();
+  return false;
 }
 
 void Cluster_impl::add_instance(const Connection_options &instance_def,
@@ -238,11 +247,18 @@ void Cluster_impl::disconnect() {
   }
 }
 
-void Cluster_impl::set_attribute(const std::string &attribute,
-                                 const shcore::Value &value) {
-  if (!_attributes) _attributes.reset(new shcore::Value::Map_type());
+bool Cluster_impl::get_disable_clone_option() const {
+  shcore::Value value;
+  if (_metadata_storage->query_cluster_attribute(
+          get_id(), k_cluster_attribute_disable_clone, &value))
+    return value.as_bool();
+  return false;
+}
 
-  (*_attributes)[attribute] = value;
+void Cluster_impl::set_disable_clone_option(const bool disable_clone) {
+  _metadata_storage->update_cluster_attribute(
+      get_id(), k_cluster_attribute_disable_clone,
+      disable_clone ? shcore::Value::True() : shcore::Value::False());
 }
 
 shcore::Value Cluster_impl::check_instance_state(
@@ -298,9 +314,13 @@ void Cluster_impl::set_option(const std::string &option,
     int64_t value_int = value.as_int();
     op_cluster_set_option =
         shcore::make_unique<Cluster_set_option>(this, option, value_int);
+  } else if (value.type == shcore::Bool) {
+    bool value_bool = value.as_bool();
+    op_cluster_set_option =
+        shcore::make_unique<Cluster_set_option>(this, option, value_bool);
   } else {
     throw shcore::Exception::argument_error(
-        "Argument #2 is expected to be a string or an Integer.");
+        "Argument #2 is expected to be a string, an integer or a boolean.");
   }
 
   // Always execute finish when leaving "try catch".
@@ -397,12 +417,16 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "User '%s'@'%%' already existed at instance '%s'. It will be "
-        "deleted and created again with new credentials.",
+        "deleted and created again with a new password.",
         recovery_user.c_str(), primary_master.descr().c_str()));
     primary_master.drop_user(recovery_user, "%");
   }
+
+  bool clone_available = target->get_version() >=
+                         mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+
   return mysqlshdk::gr::create_recovery_user(recovery_user, &primary_master,
-                                             {"%"}, {});
+                                             {"%"}, {}, clone_available);
 }
 
 void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
@@ -414,9 +438,6 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   std::tie(recovery_user, recovery_user_host) =
       get_metadata_storage()->get_instance_recovery_account(target->get_uuid());
   if (recovery_user.empty()) {
-    // TODO(Miguel): WL13208: handle cases where the replication user was stolen
-    // from donor during clone
-
     // Assuming the account was created by an older version of the shell,
     // which did not store account name in metadata
     log_info(
@@ -450,26 +471,47 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
                           "by InnoDB Cluster. Skipping its removal.");
     }
   } else {
-    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
-             recovery_user.c_str(), recovery_user_host.c_str(),
-             target->descr().c_str());
+    /*
+      Since clone copies all the data, including mysql.slave_master_info (where
+      the CHANGE MASTER credentials are stored) an instance may be using the
+      info stored in the donor's mysql.slave_master_info.
 
-    try {
-      primary_master.drop_user(recovery_user, "%", true);
-    } catch (const std::exception &e) {
-      console->print_warning(shcore::str_format(
-          "Error dropping recovery account '%s'@'%s' for instance '%s'",
-          recovery_user.c_str(), recovery_user_host.c_str(),
-          target->descr().c_str()));
-    }
+      To avoid such situation, we re-issue the CHANGE MASTER query after
+      clone to ensure the right account is used. However, if the monitoring
+      process is interruped or waitRecovery = 0, that won't be done.
 
-    // Also update metadata
-    try {
-      get_metadata_storage()->update_instance_recovery_account(
-          target->get_uuid(), "", "");
-    } catch (const std::exception &e) {
-      log_warning("Could not update recovery account metadata for '%s': %s",
-                  target->descr().c_str(), e.what());
+      The approach to tackle this issue is to store the donor recovery account
+      in the target instance MD.instances table before doing the new CHANGE
+      and only update it to the right account after a successful CHANGE MASTER.
+      With this approach we can ensure that the account is not removed if it is
+      being used.
+
+      As so were we must query the Metadata to check whether the
+      recovery user of that instance is registered for more than one instance
+      and if that's the case then it won't be dropped.
+    */
+    if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
+      log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+               recovery_user.c_str(), recovery_user_host.c_str(),
+               target->descr().c_str());
+
+      try {
+        primary_master.drop_user(recovery_user, "%", true);
+      } catch (const std::exception &e) {
+        console->print_warning(shcore::str_format(
+            "Error dropping recovery account '%s'@'%s' for instance '%s'",
+            recovery_user.c_str(), recovery_user_host.c_str(),
+            target->descr().c_str()));
+      }
+
+      // Also update metadata
+      try {
+        get_metadata_storage()->update_instance_recovery_account(
+            target->get_uuid(), "", "");
+      } catch (const std::exception &e) {
+        log_warning("Could not update recovery account metadata for '%s': %s",
+                    target->descr().c_str(), e.what());
+      }
     }
   }
 }

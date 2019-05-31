@@ -396,3 +396,204 @@ one server failure.
 
 //@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
 |mysql_innodb_cluster_11111, %|
+
+//@ WL#13208: TS_FR1_2 validate errors for disableClone (only boolean values).
+||Dba.createCluster: Option 'disableClone' Bool expected, but value is String (TypeError)
+||Dba.createCluster: Option 'disableClone' Bool expected, but value is String (TypeError)
+||Dba.createCluster: Option 'disableClone' is expected to be of type Bool, but is Array (TypeError)
+||Dba.createCluster: Option 'disableClone' is expected to be of type Bool, but is Map (TypeError)
+
+//@ WL#13208: TS_FR1_3 validate default for disableClone is false.
+||
+
+//@<OUT> WL#13208: TS_FR1_3 verify disableClone is false. {VER(>=8.0.13)}
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "[[*]]",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": <<<(__version_num>=80017)?"false":"true">>>
+            }
+        ],
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "0",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "50",
+                    "variable": "group_replication_member_weight"
+                }
+            ]
+        }
+    }
+}
+
+//@<OUT> WL#13208: TS_FR1_3 verify disableClone is false. {VER(>=5.7.24) && VER(<8.0.0)}
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "[[*]]",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
+            }
+        ],
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": null,
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "50",
+                    "variable": "group_replication_member_weight"
+                }
+            ]
+        }
+    }
+}
+
+//@ WL#13208: TS_FR1_1 disableClone option is available (set it to a valid value: true). {VER(>=8.0.17)}
+||
+
+//@<OUT> WL#13208: TS_FR1_1 verify disableClone match the value set (true). {VER(>=8.0.17)}
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "[[*]]",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": true
+            }
+        ],
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "0",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "50",
+                    "variable": "group_replication_member_weight"
+                }
+            ]
+        }
+    }
+}
+
+//@ WL#13208: TS_FR1_1 disableClone option is not supported for server version < 8.0.17. {VER(<8.0.17)}
+||Dba.createCluster: Option 'disableClone' not supported on target server version: '<<<__version>>>' (RuntimeError)

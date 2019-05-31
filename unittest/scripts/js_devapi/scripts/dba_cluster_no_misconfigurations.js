@@ -23,9 +23,9 @@ if (__have_ssl) {
   var row = result.fetchOne();
   var req_sec_trans = row[1];
   session.runSql("SET @@global.require_secure_transport = ON");
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', clearReadOnly: true});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
 } else {
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', clearReadOnly: true});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', clearReadOnly: true, gtidSetIsComplete: true});
 }
 
 //@ Add instance requiring secure connections (if supported)

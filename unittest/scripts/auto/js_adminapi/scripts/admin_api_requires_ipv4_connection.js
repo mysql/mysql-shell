@@ -26,12 +26,12 @@ dba.checkInstanceConfiguration("root:root@localhost:" + __mysql_sandbox_port2);
 dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port2, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //@ dba.createCluster() requires IPv4 connection
-var cluster = dba.createCluster("dev");
+var cluster = dba.createCluster("dev", {gtidSetIsComplete: true});
 
 // reconnect using IPv4 address, create cluster
 session.close();
 shell.connect({user: 'root', password: 'root', host: 'localhost', port: __mysql_sandbox_port1});
-var cluster = dba.createCluster("dev");
+var cluster = dba.createCluster("dev", {gtidSetIsComplete: true});
 
 // it's not possible to create or get an existing cluster using IPv6 connection,
 // hence it's not possible to call any of the cluster's methods via IPv6 session

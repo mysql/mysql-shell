@@ -12,7 +12,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 // Setup 2 member cluster and kill secondary
-var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
+var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 cluster.addInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.killSandbox(__mysql_sandbox_port2);
@@ -62,7 +62,7 @@ session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 // Setup 2 member cluster and kill primary
-var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
+var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 cluster.addInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.killSandbox(__mysql_sandbox_port1);

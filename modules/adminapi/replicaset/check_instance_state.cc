@@ -27,6 +27,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
@@ -132,25 +133,29 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
       m_replicaset.get_cluster()->get_group_session();
 
-  // Get the target instance gtid_executed
-  std::string instance_gtid_executed =
-      mysqlshdk::mysql::get_executed_gtid_set(*m_target_instance, true);
-
   // Check the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
-          mysqlshdk::mysql::Instance(cluster_session), *m_target_instance, true,
-          nullptr, nullptr);
+          mysqlshdk::mysql::Instance(cluster_session), *m_target_instance,
+          false, nullptr, nullptr);
 
   std::string reason;
   std::string status;
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
-      status = "error";
+      if (!m_clone_available) {
+        status = "error";
+      } else {
+        status = "warning";
+      }
       reason = "diverged";
       break;
     case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
-      status = "error";
+      if (!m_clone_available) {
+        status = "error";
+      } else {
+        status = "warning";
+      }
       reason = "lost_transactions";
       break;
     case mysqlshdk::mysql::Replica_gtid_state::RECOVERABLE:
@@ -162,6 +167,41 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
       status = "ok";
       reason = "new";
       break;
+  }
+
+  // Check if the GTIDs were purged from the whole cluster
+  bool all_purged = false;
+  mysqlshdk::mysql::Instance target_instance(*m_target_instance);
+
+  m_replicaset.execute_in_members(
+      {"'ONLINE'"}, m_target_instance->get_connection_options(), {},
+      [&all_purged, &target_instance](
+          const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+        mysqlshdk::mysql::Instance instance(session);
+
+        // Get the gtid state in regards to the cluster_session
+        mysqlshdk::mysql::Replica_gtid_state state =
+            mysqlshdk::mysql::check_replica_gtid_state(
+                instance, target_instance, false, nullptr, nullptr);
+
+        if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+          all_purged = true;
+        } else {
+          all_purged = false;
+        }
+
+        return all_purged;
+      });
+
+  // If GTIDs were purged on all members, report that
+  // If clone is available, the status shall be warning
+  if (all_purged) {
+    if (!m_clone_available) {
+      status = "error";
+    } else {
+      status = "warning";
+    }
+    reason = "all_purged";
   }
 
   (*ret)["state"] = shcore::Value(status);
@@ -195,17 +235,48 @@ void Check_instance_state::print_instance_state_info(
       console->print_info("The instance is fully recoverable.");
     }
   } else {
-    console->print_info("The instance '" + m_target_instance_address +
-                        "' is invalid for the cluster.");
-
     if (instance_state->get_string("reason") == "diverged") {
-      console->print_info(
-          "The instance contains additional transactions in relation to "
-          "the cluster.");
+      if (m_clone_available) {
+        console->print_info(
+            "The instance contains additional transactions in relation to "
+            "the cluster. However, Clone is available and if desired can be "
+            "used to overwrite the data and add the instance to a cluster.");
+      } else {
+        console->print_info("The instance '" + m_target_instance_address +
+                            "' is invalid for the cluster.");
+        console->print_info(
+            "The instance contains additional transactions in relation to "
+            "the cluster.");
+      }
     } else {
-      console->print_info(
-          "There are transactions in the cluster that can't be recovered "
-          "on the instance.");
+      // Check if clone is supported
+      // BUG#29630591: CLUSTER.CHECKINSTANCESTATE() INCORRECT OUTPUT WHEN BINARY
+      // LOGS WERE PURGED
+      if (m_clone_available) {
+        if (instance_state->get_string("reason") == "lost_transactions") {
+          console->print_info(
+              "There are transactions in the cluster that can't be recovered "
+              "on the instance, however, Clone is available and can be used "
+              "when adding it to a cluster.");
+        } else {
+          console->print_info(
+              "The cluster transactions cannot be recovered "
+              "on the instance, however, Clone is available and can be used "
+              "when adding it to a cluster.");
+        }
+      } else {
+        console->print_info("The instance '" + m_target_instance_address +
+                            "' is invalid for the cluster.");
+
+        if (instance_state->get_string("reason") == "lost_transactions") {
+          console->print_info(
+              "There are transactions in the cluster that can't be recovered "
+              "on the instance.");
+        } else {
+          console->print_info(
+              "The cluster transactions cannot be recovered on the instance.");
+        }
+      }
     }
   }
   console->println();
@@ -246,6 +317,11 @@ void Check_instance_state::prepare() {
 
   // Ensure the target instance has a valid GR state
   ensure_instance_valid_gr_state();
+
+  // Check if clone is available;
+  m_clone_available =
+      mysqlshdk::mysql::is_clone_available(*m_target_instance) &&
+      !m_replicaset.get_cluster()->get_disable_clone_option();
 }
 
 shcore::Value Check_instance_state::execute() {

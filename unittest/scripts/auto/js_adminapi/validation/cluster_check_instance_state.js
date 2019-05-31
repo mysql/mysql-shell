@@ -34,7 +34,7 @@ Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port2>>>'
 //@ Drop metadatata schema from instance 2 to get diverged GTID
 ||
 
-//@<OUT> checkInstanceState: state: error, reason: diverged
+//@<OUT> checkInstanceState: state: error, reason: diverged {VER(<8.0.17)}
 Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is invalid for the cluster.
@@ -44,6 +44,17 @@ The instance contains additional transactions in relation to the cluster.
     "reason": "diverged",
     "state": "error"
 }
+
+//@<OUT> checkInstanceState: state: error, reason: diverged {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
+
+The instance contains additional transactions in relation to the cluster. However, Clone is available and if desired can be used to overwrite the data and add the instance to a cluster.
+
+{
+    "reason": "diverged", 
+    "state": "warning"
+}
+
 
 //@ Destroy cluster2
 ||
@@ -85,16 +96,78 @@ The instance is fully recoverable.
     "state": "ok"
 }
 
-//@<OUT> checkInstanceState: state: error, reason: lost_transactions
+//@<OUT> checkInstanceState: state: error, reason: all_purged {VER(<8.0.17)}
 Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is invalid for the cluster.
-There are transactions in the cluster that can't be recovered on the instance.
+The cluster transactions cannot be recovered on the instance.
 
 {
-    "reason": "lost_transactions",
+    "reason": "all_purged",
     "state": "error"
 }
 
-//@ Finalization
+//@<OUT> checkInstanceState: state: error, reason: all_purged {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
+
+The cluster transactions cannot be recovered on the instance, however, Clone is available and can be used when adding it to a cluster.
+
+{
+    "reason": "all_purged",
+    "state": "warning"
+}
+
+//@ WL#13208: TS_FR5_1 create cluster with clone enabled. (disableClone: false) {VER(>=8.0.17)}
 ||
+
+//@<OUT> WL#13208: TS_FR5_1 No errors for instance 2 using checkInstanceState() {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
+
+The cluster transactions cannot be recovered on the instance, however, Clone is available and can be used when adding it to a cluster.
+
+{
+    "reason": "all_purged",
+    "state": "warning"
+}
+
+//@<OUT> WL#13208: TS_FR5_2 checkInstanceState() indicate instance 2 can be added with clone enabled {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state...
+
+The instance contains additional transactions in relation to the cluster. However, Clone is available and if desired can be used to overwrite the data and add the instance to a cluster.
+
+{
+    "reason": "diverged",
+    "state": "warning"
+}
+
+//@<OUT> WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port3>>>' replication state...
+
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for the cluster.
+The instance is new to Group Replication.
+
+{
+    "reason": "new",
+    "state": "ok"
+}
+
+//@<OUT> WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added since instance 2 still has the binlogs {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port3>>>' replication state...
+
+There are transactions in the cluster that can't be recovered on the instance, however, Clone is available and can be used when adding it to a cluster.
+
+{
+    "reason": "lost_transactions",
+    "state": "warning"
+}
+
+
+//@<OUT> WL#13208: TS_FR5_3 checkInstanceState() indicate instance 3 can be added only if clone is used because binlogs were purged from all members {VER(>=8.0.17)}
+Analyzing the instance 'localhost:<<<__mysql_sandbox_port3>>>' replication state...
+
+The cluster transactions cannot be recovered on the instance, however, Clone is available and can be used when adding it to a cluster.
+
+{
+    "reason": "all_purged",
+    "state": "warning"
+}

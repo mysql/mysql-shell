@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,10 @@ namespace mysqlsh {
  * libmysqlclient.
  */
 void global_init();
+
+void thread_init();
+
+void thread_end();
 
 /*
  * Call once when done using shell library, from the same thread that was used

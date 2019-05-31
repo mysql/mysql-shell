@@ -4,7 +4,7 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+var cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster.disconnect();
 
 //@ FR1-TS-01 Check persisted variables after create cluster {VER(>=8.0.12)}
@@ -45,7 +45,7 @@ shell.connect(__sandbox_uri1);
 WIPE_SHELL_LOG();
 // there should be a warning message asking to use configureInstance locally since persisted_globals_load is OFF
 var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port1 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
-cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
 //@ FR1-TS-03 TEARDOWN {VER(>=8.0.12)}
@@ -78,7 +78,7 @@ shell.connect(__hostname_uri1);
 
 var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 
-cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
 
 var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 //@ FR1-TS-04/05 {VER(>=8.0.12)}
@@ -100,7 +100,7 @@ shell.connect(__sandbox_uri1);
 //@ FR1-TS-06 {VER(<8.0.12)}
 WIPE_SHELL_LOG();
 var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
-cluster = dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+cluster = dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
 //@ FR1-TS-06 TEARDOWN {VER(<8.0.12)}
@@ -111,7 +111,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ FR1-TS-7 SETUP {VER(>=8.0.12)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 
 var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 //@ FR1-TS-7 show persisted cluster variables {VER(>=8.0.12)}
@@ -147,7 +147,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 var s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -186,14 +186,13 @@ testutil.changeSandboxConf(__mysql_sandbox_port2, "persisted-globals-load",
     "OFF");
 testutil.startSandbox(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 
 //@ FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 WIPE_SHELL_LOG();
 var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port2 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
 cluster.addInstance(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.status();
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
@@ -209,7 +208,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 var __local_address_2 = "15679";
 cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
@@ -274,7 +273,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__hostname_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();
 cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
@@ -311,7 +310,16 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+
+// Create a test dataset so that RECOVERY takes a while and we ensure right monitoring messages for addInstance
+session.runSql("SET GLOBAL super_read_only = 0");
+session.runSql("create schema test");
+session.runSql("create table test.data (a int primary key auto_increment, data longtext)");
+for (i = 0; i < 20; i++) {
+    session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
+}
+
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 
 //@ FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
@@ -338,7 +346,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -376,7 +384,7 @@ s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 var s3 = mysql.getSession(__sandbox_uri3);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -434,7 +442,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -464,7 +472,7 @@ s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 s3 = mysql.getSession(__sandbox_uri3);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -505,7 +513,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -536,7 +544,7 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 //@ Check if Cluster dissolve will reset persisted variables SETUP {VER(>=8.0.12)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 cluster = dba.getCluster("ClusterName");
 testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 cluster.dissolve({force:true});

@@ -21,12 +21,12 @@ var uri2 = hostname + ":" + __mysql_sandbox_port2;
 
 //@ BUG29265869 - Create cluster with custom GR settings. {VER(>=8.0.16)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name});
+var c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name, gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Create cluster with custom GR settings for 5.7. {VER(<8.0.0)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster("test", {localAddress: local_address1, ipWhitelist: ip_white_list57, groupName: grp_name});
+var c = dba.createCluster("test", {localAddress: local_address1, ipWhitelist: ip_white_list57, groupName: grp_name, gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Add instance with custom GR settings. {VER(>=8.0.16)}
@@ -97,7 +97,7 @@ c.dissolve({force: true});
 
 //@<> BUG#29305551: Create cluster
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {clearReadOnly: true});
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
 
 //@<> BUG#29305551: Add instance to the cluster
 c.addInstance(__sandbox_uri2);
