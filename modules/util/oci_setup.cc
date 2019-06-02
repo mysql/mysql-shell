@@ -165,21 +165,21 @@ void load_profile(const std::string &user_profile,
     // If needed, automatically loads the default objects
     std::string profile(user_profile);
 
-    if (profile.empty()) profile = "DEFAULT";
+    if (profile.empty()) profile = kDefaultProfile;
 
     mysqlsh::oci::Oci_setup setup;
 
     // Setups or load the corresponding profile
-    if (!setup.has_profile(profile))
+    if (!setup.has_profile(profile)) {
       setup.create_profile(profile);
-    else {
+    } else {
       console->print_info("Loading the OCI configuration for the profile '" +
                           profile + "'...");
       setup.load_profile(profile);
     }
 
     if (!setup.is_cancelled()) {
-      std::string oci_cfg_path = setup.get_cfg_path();
+      std::string oci_cfg_path = setup.get_oci_cfg_path();
 #ifdef _WIN32
       oci_cfg_path = shcore::str_replace(oci_cfg_path, "\\", "\\\\");
 #endif
@@ -209,11 +209,14 @@ void load_profile(const std::string &user_profile,
 }
 
 Oci_setup::Oci_setup()
+    : Oci_setup(mysqlsh::current_shell_options()->get().oci_config_file) {}
+
+Oci_setup::Oci_setup(const std::string &oci_config_path)
     : shcore::wizard::Wizard(),
       m_config(mysqlshdk::config::Case::SENSITIVE,
                mysqlshdk::config::Escape::NO),
-      m_oci_path(shcore::path::join_path(shcore::path::home(), ".oci")),
-      m_oci_cfg_path(shcore::path::join_path(m_oci_path, "config")) {
+      m_oci_path(shcore::path::dirname(oci_config_path)),
+      m_oci_cfg_path(oci_config_path) {
   if (shcore::is_file(m_oci_cfg_path)) {
     m_config.read(m_oci_cfg_path);
   }
@@ -416,9 +419,11 @@ std::string Oci_setup::load_private_key(const std::string &path,
     } else {
       wizard->set(kPassphrase, pass_phrase);
 
-      memcpy(buf, pass_phrase.c_str(), pass_phrase.size());
-
-      return pass_phrase.size();
+      const auto passphrase_size =
+          std::min(static_cast<size_t>(size), pass_phrase.size());
+      memcpy(buf, pass_phrase.c_str(), passphrase_size);
+      shcore::clear_buffer(&pass_phrase);
+      return passphrase_size;
     }
   };
 
@@ -542,9 +547,9 @@ void Oci_setup::create_profile(const std::string &profile_name) {
             "Please ensure your *public* API key is uploaded to your OCI User "
             "Settings page.");
 
-        if (has(kPublicKeyFile))
+        if (has(kPublicKeyFile)) {
           console->println("It can be found at " + m_data[kPublicKeyFile]);
-
+        }
       } catch (const std::runtime_error &err) {
         console->print_error(err.what());
       }
@@ -566,15 +571,19 @@ void Oci_setup::load_profile(const std::string &profile_name) {
         auto wizard = static_cast<shcore::wizard::Wizard *>(u);
 
         std::string passphrase;
+        size_t passphrase_size = passphrase.size();
         if (wizard->has(kPassphrase)) {
           passphrase = (*wizard)[kPassphrase];
-          memcpy(buf, passphrase.c_str(), passphrase.size());
+          passphrase_size =
+              std::min(static_cast<size_t>(size), passphrase.size());
+          memcpy(buf, passphrase.c_str(), passphrase_size);
+          shcore::clear_buffer(&passphrase);
         }
 
         // Ensure the wizard knows a passphrase is required
         (*wizard)[kUsePassphrase] = shcore::wizard::K_YES;
 
-        return passphrase.size();
+        return passphrase_size;
       };
 
       // If there's a pass phrase on the config file

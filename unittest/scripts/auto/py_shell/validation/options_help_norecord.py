@@ -39,11 +39,15 @@ DESCRIPTION
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
       - logLevel: current log level
-      - resultFormat: controls the type of output produced for SQL results.
+      - oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
+        file
+      - oci.profile: Specify which section in oci.configFile will be used as
+        profile settings
       - pager: string which specifies the external command which is going to be
         used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should
         read passwords from stdin instead of the tty
+      - resultFormat: controls the type of output produced for SQL results.
       - sandboxDir: default path where the new sandbox instances for InnoDB
         cluster will be deployed
       - showColumnTypeInfo: display column type information in SQL mode. Please
@@ -141,3 +145,4 @@ SYNTAX
 
 WHERE
       optionName: name of the option to reset.
+

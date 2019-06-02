@@ -42,6 +42,7 @@ void load_profile(const std::string &user_profile,
 class Oci_setup : public shcore::wizard::Wizard {
  public:
   Oci_setup();
+  explicit Oci_setup(const std::string &oci_config_path);
   Oci_setup &operator=(const Oci_setup &other) = delete;
   Oci_setup &operator=(Oci_setup &&other) = delete;
 
@@ -73,7 +74,7 @@ class Oci_setup : public shcore::wizard::Wizard {
    */
   bool has_profile(const std::string &profile);
 
-  std::string get_cfg_path() const { return m_oci_cfg_path; }
+  const mysqlshdk::config::Config_file &get_cfg() const { return m_config; }
 
   std::string get_oci_path() const { return m_oci_path; }
   std::string get_oci_cfg_path() const { return m_oci_cfg_path; }

@@ -144,20 +144,18 @@ INCLUDE(CheckFunctionExists)
 include(curl)
 MYSQL_CHECK_CURL()
 
-IF (WITH_OCI)
-  IF (NOT HAVE_PYTHON)
-    MESSAGE(FATAL_ERROR "WITH_OCI should not be used when python is not available.")
-  ELSE()
-    IF (BUNDLED_OPENSSL_DIR)
-      FIND_PATH(OPENSSL_INCLUDE_DIR
-        NAMES openssl/ssl.h
-        HINTS ${BUNDLED_OPENSSL_DIR}/include
-      )
-    ELSE()
-      INCLUDE(ssl)
-      MYSQL_CHECK_SSL()
-    ENDIF()
-  ENDIF()
+IF (WITH_OCI AND NOT HAVE_PYTHON)
+  MESSAGE(FATAL_ERROR "WITH_OCI should not be used when python is not available.")
+ENDIF()
+
+IF (BUNDLED_OPENSSL_DIR)
+  FIND_PATH(OPENSSL_INCLUDE_DIR
+    NAMES openssl/ssl.h
+    HINTS ${BUNDLED_OPENSSL_DIR}/include
+  )
+ELSE()
+  INCLUDE(ssl)
+  MYSQL_CHECK_SSL()
 ENDIF()
 
 if(HAVE_PYTHON)

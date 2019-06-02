@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include "modules/util/import_table/dialect.h"
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -108,24 +109,21 @@ Dialect Dialect::csv_unix() {
 }
 
 std::string Dialect::build_sql() {
-  std::string sql = "FIELDS TERMINATED BY '" + fields_terminated_by + "'";
+  using sqlstring = shcore::sqlstring;
+  std::string sql =
+      (sqlstring("FIELDS TERMINATED BY ?", 0) << fields_terminated_by).str();
 
   if (!fields_enclosed_by.empty()) {
     if (fields_optionally_enclosed) {
       sql += " OPTIONALLY";
     }
-    sql += " ENCLOSED BY '" + fields_enclosed_by + "'";
+    sql += (sqlstring(" ENCLOSED BY ?", 0) << fields_enclosed_by).str();
   }
 
-  sql += " ESCAPED BY '" + fields_escaped_by +
-         "'"
-         " LINES"
-         " STARTING BY '" +
-         lines_starting_by +
-         "'"
-         " TERMINATED BY '" +
-         lines_terminated_by + "'";
-  return shcore::str_replace(sql, "\\", "\\\\");
+  sql += (sqlstring(" ESCAPED BY ? LINES STARTING BY ? TERMINATED BY ?", 0)
+          << fields_escaped_by << lines_starting_by << lines_terminated_by)
+             .str();
+  return sql;
 }
 }  // namespace import_table
 }  // namespace mysqlsh

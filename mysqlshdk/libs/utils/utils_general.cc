@@ -1063,6 +1063,12 @@ void clear_buffer(char *buffer, size_t size) {
 #endif
 }
 
+void clear_buffer(std::string *buffer) {
+  assert(buffer);
+  clear_buffer(&(*buffer)[0], buffer->capacity());
+  buffer->clear();
+}
+
 #ifdef _WIN32
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code) {

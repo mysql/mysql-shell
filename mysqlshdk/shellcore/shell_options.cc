@@ -37,6 +37,7 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
 namespace mysqlsh {
@@ -407,7 +408,13 @@ Shell_options::Shell_options(int argc, char **argv,
         "by default.")
     (&storage.default_compress, false, SHCORE_DEFAULT_COMPRESS,
         "Enable compression in client/server protocol by default "
-        "in global shell sessions.");
+        "in global shell sessions.")
+    (&storage.oci_config_file,
+        shcore::path::join_path(shcore::path::home(), ".oci", "config"),
+        "oci.configFile",
+        "Path to Oracle Cloud Infrastructure (OCI) configuration file.")
+    (&storage.oci_profile, std::string{"DEFAULT"}, "oci.profile",
+        "Oracle Cloud Infrastructure (OCI) configuration file profile name.");
 
   add_startup_options()
     (cmdline("--name-cache"),
@@ -512,9 +519,12 @@ Shell_options::Shell_options(int argc, char **argv,
       cmdline("--oci[=profile]"),
       "Starts the shell ready to work with OCI. "
       "A wizard to configure the given profile will be launched if the profile is not configured. "
-      "If no profile is specified the 'DEFAULT' profile will be used.",
+      "If no profile is specified the value of shell option oci.profile will be used.",
       [this](const std::string&, const char* value) {
-        storage.oci_profile = value == nullptr ? "" : value;
+        storage.oci_wizard = true;
+        if (value) {
+          storage.oci_profile = value;
+        }
 #ifdef HAVE_PYTHON
         if (storage.initial_mode == shcore::IShell_core::Mode::None)
           storage.initial_mode = shcore::IShell_core::Mode::Python;
@@ -961,7 +971,7 @@ void Shell_options::check_host_conflicts() {
 
 void Shell_options::check_oci_conflicts() {
 #ifdef HAVE_PYTHON
-  if (!storage.oci_profile.is_null()) {
+  if (storage.oci_wizard) {
     if (storage.initial_mode != shcore::IShell_core::Mode::Python) {
       auto error =
           "Conflicting options: --oci can not be used unless initial mode is "

@@ -23,20 +23,23 @@
 
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 
-#include <algorithm>
-#include <functional>
-#include <regex>
-#include <vector>
-
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/md5.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-
+#include <algorithm>
+#include <cassert>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <regex>
+#include <utility>
+#include <vector>
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/shellcore/private_key_manager.h"
 
 namespace shcore {
 namespace ssl {
@@ -134,11 +137,10 @@ std::string load_private_key(const std::string &path, Password_callback pwd_cb,
     BIO_ptr bio_private(BIO_new_file(path.c_str(), "r"), ::BIO_free);
     EVP_PKEY *key_ptr =
         PEM_read_bio_PrivateKey(bio_private.get(), nullptr, pwd_cb, user_data);
-
     if (key_ptr) {
       EVP_KEY_ptr pkey(key_ptr, ::EVP_PKEY_free);
-
       fingerprint = get_fingerprint(pkey.get());
+      Private_key_storage::get().put(path, std::move(pkey));
     } else {
       throw_last_error("loading private key");
     }
@@ -148,6 +150,7 @@ std::string load_private_key(const std::string &path, Password_callback pwd_cb,
 }
 
 bool decode_base64(const std::string &source, std::string *target) {
+  assert(target);
   //--- Unencodes the Public Key Data
   size_t size = source.size();
   size_t padding =
@@ -155,7 +158,7 @@ bool decode_base64(const std::string &source, std::string *target) {
 
   const size_t expected_size = (size * 3) / 4 - padding;
 
-  std::unique_ptr<char> buffer(new char[expected_size]);
+  std::unique_ptr<char[]> buffer(new char[expected_size]);
 
   BIO_ptr bio_source(BIO_new_mem_buf(source.c_str(), source.size()),
                      ::BIO_free);
@@ -167,6 +170,30 @@ bool decode_base64(const std::string &source, std::string *target) {
   target->assign(buffer.get(), expected_size);
 
   return final_size == expected_size;
+}
+
+bool encode_base64(const std::string &source, std::string *encoded) {
+  assert(source.size() <= std::numeric_limits<int>::max());
+  return encode_base64(reinterpret_cast<const unsigned char *>(&source[0]),
+                       source.size(), encoded);
+}
+
+bool encode_base64(const unsigned char *source, int source_length,
+                   std::string *encoded) {
+  assert(encoded);
+  assert(source_length >= 0);
+  // base64 encoding produces 4 bytes of output for every 3 bytes of source
+  // data. Output is always padded in such way that length of output is
+  // divisible by 4.
+  const auto target_size = (((4 * source_length) / 3) + 3) & ~3;
+  encoded->resize(target_size + 1);
+  const auto length =
+      EVP_EncodeBlock((unsigned char *)encoded->data(), source, source_length);
+  if (target_size == static_cast<decltype((target_size))>(length)) {
+    encoded->resize(length);
+    return true;
+  }
+  return false;
 }
 
 std::string create_key_pair(const std::string &path,

@@ -78,7 +78,9 @@ class Shell_options : public shcore::Options {
     std::string schema;
     // Unix socket or Windows pipe name
     mysqlshdk::utils::nullable<std::string> sock;
-    mysqlshdk::utils::nullable<std::string> oci_profile;
+    bool oci_wizard = false;
+    std::string oci_profile;
+    std::string oci_config_file;
     std::string auth_method;
     std::string m_connect_timeout;
     bool compress = false;

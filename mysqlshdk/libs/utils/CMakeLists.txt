@@ -23,10 +23,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
   )
 
-IF(WITH_OCI AND OPENSSL_INCLUDE_DIR)
+IF(OPENSSL_INCLUDE_DIR)
 	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
 ENDIF()
-
 
 set(utils_SOURCE
     utils_mysql_parsing.cc
@@ -56,11 +55,8 @@ set(utils_SOURCE
     version.cc
     profiling.cc
     rate_limit.cc
+    ssl_keygen.cc
 )
-
-IF(WITH_OCI)
-    LIST(APPEND utils_SOURCE ssl_keygen.cc)
-ENDIF()
 
 # platform dependent implementations
 IF(UNIX)

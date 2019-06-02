@@ -84,13 +84,19 @@ running in interactive mode
 
 @li logLevel: current log level
 
-@li resultFormat: controls the type of output produced for SQL results.
+@li oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
+file
+
+@li oci.profile: Specify which section in oci.configFile will be used as
+profile settings
 
 @li pager: string which specifies the external command which is
 going to be used to display the paged output
 
 @li passwordsFromStdin: boolean value that indicates if the
 shell should read passwords from stdin instead of the tty
+
+@li resultFormat: controls the type of output produced for SQL results.
 
 @li sandboxDir: default path where the new sandbox instances for InnoDB
 cluster will be deployed

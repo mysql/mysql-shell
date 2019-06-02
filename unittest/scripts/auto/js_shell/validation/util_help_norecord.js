@@ -28,7 +28,6 @@ FUNCTIONS
             Import table dump stored in filename to target table using LOAD
             DATA LOCAL INFILE calls in parallel connections.
 
-
 //@<OUT> util checkForServerUpgrade help
 NAME
       checkForServerUpgrade - Performs series of tests on specified MySQL
@@ -95,6 +94,8 @@ DESCRIPTION
         valid values: "true", "false", "1", and "0".
       - connection-attributes: List of connection attributes to be registered
         at the PERFORMANCE_SCHEMA connection attributes tables.
+      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+      - net-buffer-length: The buffer size for TCP/IP and socket communication.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -301,6 +302,24 @@ WHERE
       options: Dictionary with import options
 
 DESCRIPTION
+      Scheme part of filename contains infomation about the transport backend.
+      Supported transport backends are: file://, http://, https://, oci+os://.
+      If scheme part of filename is omitted, then file:// transport backend
+      will be chosen.
+
+      Supported filename formats:
+
+      - [file://]/path/to/file - Read import data from local file
+      - http[s]://host.domain[:port]/path/to/file - Read import data from file
+        provided in URL
+      - oci+os://namespace/region/bucket/object - Read import data from object
+        stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
+        needed to sign requests will be obtained from profile configured in OCI
+        configuration file. Profile name and configuration file path are
+        specified in oci.profile and oci.configFile shell options. ociProfile
+        and ociConfigFile options will override, respectively, oci.profile and
+        oci.configFile shell options.
+
       Options dictionary:
 
       - schema: string (default: current shell active schema) - Name of target
@@ -352,6 +371,10 @@ DESCRIPTION
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
         options. Must be one of the following values: csv, tsv, json or
         csv-unix.
+      - ociConfigFile: string (default: not set) - Override oci.configFile
+        shell option. Available only if oci+os:// transport protocol is in use.
+      - ociProfile: string (default: not set) - Override oci.profile shell
+        option. Available only if oci+os:// transport protocol is in use.
 
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy

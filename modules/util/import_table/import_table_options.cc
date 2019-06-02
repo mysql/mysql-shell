@@ -28,10 +28,12 @@
 #include <limits>
 
 #include "modules/mod_utils.h"
+#include "modules/util/import_table/file_backends/ifile.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -45,7 +47,6 @@ Import_table_options::Import_table_options(const std::string &filename,
     : m_filename(filename) {
   m_table = std::get<0>(
       shcore::path::split_extension(shcore::path::basename(filename)));
-  m_full_path = shcore::path::expand_user(filename);
   unpack(options);
 }
 
@@ -81,14 +82,14 @@ void Import_table_options::validate() {
     }
   }
 
-  auto fd = detail::file_open(m_full_path);
-  if (!(fd >= 0)) {
-    throw std::runtime_error("Cannot open file '" + m_full_path + "'");
-  } else {
-    detail::file_close(fd);
+  auto fh = make_file_handler(m_filename);
+  fh->open();
+  if (!fh->is_open()) {
+    throw std::runtime_error("Cannot open file '" + fh->file_name() + "'");
   }
-
-  m_file_size = shcore::file_size(m_full_path);
+  m_full_path = fh->file_name();
+  m_file_size = fh->file_size();
+  fh->close();
   m_threads_size = calc_thread_size();
 }
 
@@ -176,8 +177,34 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
       .optional("replaceDuplicates", &m_replace_duplicates)
       .optional("maxRate", &m_max_rate)
       .optional("showProgress", &m_show_progress)
-      .optional("skipRows", &m_skip_rows_count)
-      .end();
+      .optional("skipRows", &m_skip_rows_count);
+
+  if (shcore::str_beginswith(m_filename, "oci+os://")) {
+    unpack_options.optional("ociProfile", &m_oci.profile)
+        .optional("ociConfigFile", &m_oci.config_file);
+
+    // Temporarily overwrite shell oci options. Original values will be restored
+    // on m_oci destruction.
+    const auto &shell_options = mysqlsh::current_shell_options();
+    shell_options->set("oci.configFile", m_oci.config_file);
+    shell_options->set("oci.profile", m_oci.profile);
+  }
+
+  unpack_options.end();
+}
+
+Import_table_options::Oci_shell_options::Oci_shell_options() {
+  // save original shell oci options
+  const auto &get = mysqlsh::current_shell_options()->get();
+  profile_original = profile = get.oci_profile;
+  config_file_original = config_file = get.oci_config_file;
+}
+
+Import_table_options::Oci_shell_options::~Oci_shell_options() {
+  // restore original shell oci options
+  auto shell_options = mysqlsh::current_shell_options();
+  shell_options->set("oci.configFile", config_file_original);
+  shell_options->set("oci.profile", profile_original);
 }
 
 }  // namespace import_table

@@ -59,9 +59,19 @@ SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident);
 
 class SHCORE_PUBLIC sqlstring {
  public:
-  struct sqlstringformat {
-    int _flags;
-    sqlstringformat(const int flags) : _flags(flags) {}
+  struct sqlstringformat final {
+   public:
+    sqlstringformat() = default;
+    explicit sqlstringformat(const int flags) : _flags(flags) {}
+    sqlstringformat(const sqlstringformat &other) = default;
+    sqlstringformat(sqlstringformat &&other) = default;
+
+    sqlstringformat &operator=(const sqlstringformat &other) = default;
+    sqlstringformat &operator=(sqlstringformat &&other) = default;
+
+    ~sqlstringformat() = default;
+
+    int _flags = 0;
   };
 
  private:
@@ -80,6 +90,10 @@ class SHCORE_PUBLIC sqlstring {
   sqlstring();
   sqlstring(const char *format_string, const sqlstringformat format);
   sqlstring(const std::string &format_string, const sqlstringformat format);
+  sqlstring(const char *format_string, const int format)
+      : sqlstring(format_string, sqlstringformat(format)) {}
+  sqlstring(const std::string &format_string, const int format)
+      : sqlstring(format_string, sqlstringformat(format)) {}
   sqlstring(const sqlstring &copy);
   void done() const;
 

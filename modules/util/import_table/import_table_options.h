@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,6 +110,24 @@ class Import_table_options {
   uint64_t m_skip_rows_count = 0;
   std::string m_base_dialect_name;
   Dialect m_dialect;
+
+  struct Oci_shell_options final {
+   public:
+    Oci_shell_options();
+    Oci_shell_options(const Oci_shell_options &other) = default;
+    Oci_shell_options(Oci_shell_options &&other) = default;
+
+    Oci_shell_options &operator=(const Oci_shell_options &other) = default;
+    Oci_shell_options &operator=(Oci_shell_options &&other) = default;
+
+    ~Oci_shell_options();
+
+    std::string profile;
+    std::string config_file;
+    std::string profile_original;
+    std::string config_file_original;
+  };
+  Oci_shell_options m_oci;
   std::shared_ptr<mysqlsh::ShellBaseSession> m_base_session;
 };
 

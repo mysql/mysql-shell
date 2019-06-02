@@ -948,6 +948,23 @@ INFILE calls in parallel connections.
 @param filename Path to file with user data
 @param options Optional dictionary with import options
 
+Scheme part of <b>filename</b> contains infomation about the transport backend.
+Supported transport backends are: file://, http://, https://, oci+os://.
+If scheme part of <b>filename</b> is omitted, then file:// transport
+backend will be chosen.
+
+Supported filename formats:
+@li <b>[file://]/path/to/file</b> - Read import data from local file
+@li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
+file provided in URL
+@li <b>oci+os://namespace/region/bucket/object</b> - Read import data from
+object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
+needed to sign requests will be obtained from profile configured in OCI
+configuration file. Profile name and configuration file path are specified
+in oci.profile and oci.configFile shell options.
+ociProfile and ociConfigFile options will override, respectively,
+oci.profile and oci.configFile shell options.
+
 Options dictionary:
 @li <b>schema</b>: string (default: current shell active schema) - Name of
 target schema
@@ -995,6 +1012,10 @@ that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
 values: csv, tsv, json or csv-unix.
+@li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
+shell option. Available only if oci+os:// transport protocol is in use.
+@li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
+option. Available only if oci+os:// transport protocol is in use.
 
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -1064,6 +1085,23 @@ Each parallel connection sets the following session variables:
  * @param filename Path to file with user data
  * @param options Optional dictionary with import options
  *
+ * Scheme part of <b>filename</b> contains infomation about the transport backend.
+ * Supported transport backends are: file://, http://, https://, oci+os://.
+ * If scheme part of <b>filename</b> is omitted, then file:// transport
+ * backend will be chosen.
+ *
+ * Supported filename formats:
+ * @li <b>[file://]/path/to/file</b> - Read import data from local file
+ * @li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
+ * file provided in URL
+ * @li <b>oci+os://namespace/region/bucket/object</b> - Read import data from
+ * object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
+ * needed to sign requests will be obtained from profile configured in OCI
+ * configuration file. Profile name and configuration file path are specified
+ * in oci.profile and oci.configFile shell options.
+ * ociProfile and ociConfigFile options will override, respectively,
+ * oci.profile and oci.configFile shell options.
+ *
  * Options dictionary:
  * @li <b>schema</b>: string (default: current shell active schema) - Name of
  * target schema
@@ -1111,6 +1149,10 @@ Each parallel connection sets the following session variables:
  * customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
  * fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
  * values: csv, tsv, json or csv-unix.
+ * @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
+ * shell option. Available only if oci+os:// transport protocol is in use.
+ * @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
+ * option. Available only if oci+os:// transport protocol is in use.
  *
  * <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
  * fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)

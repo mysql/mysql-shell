@@ -334,7 +334,7 @@ void Config_file::read(const std::string &cnf_path,
                        const std::string &group_prefix) {
   container configmap(m_group_case == Case::SENSITIVE ? comp : icomp);
   read_recursive_aux(cnf_path, 0, &configmap, group_prefix);
-  // if no exception happned during the read of the files, then replace the
+  // if no exception happened during the read of the files, then replace the
   // current configuration map with the new one.
   m_configmap = std::move(configmap);
 }

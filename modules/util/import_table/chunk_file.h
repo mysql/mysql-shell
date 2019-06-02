@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,18 +24,16 @@
 #ifndef MODULES_UTIL_IMPORT_TABLE_CHUNK_FILE_H_
 #define MODULES_UTIL_IMPORT_TABLE_CHUNK_FILE_H_
 
-#ifdef _WIN32
-using ssize_t = __int64;
-#endif
-
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
+#include <memory>
 #include <string>
 #include <thread>
 #include <utility>
 
 #include "modules/util/import_table/dialect.h"
+#include "modules/util/import_table/file_backends/ifile.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
@@ -72,7 +70,7 @@ struct Buffer final {
 struct Async_read_task {
   enum class Status { Pending, Ok, Error, Cancelled };
   std::atomic<Status> status;  //< Request status
-  int fd;                      //< File descriptor
+  IFile *fh;                   //< File handler
   int64_t offset;              //< File offset
   void *buffer;                //< Buffer location
   size_t length;               //< Number of bytes to read
@@ -107,9 +105,9 @@ class File_iterator final {
   using iterator_category = std::forward_iterator_tag;
 
   File_iterator() = delete;
-  File_iterator(int file_descriptor, size_t file_size, size_t start_from_offset,
-                Buffer *current_buffer, Buffer *next_buffer,
-                Async_read_task *aio, size_t needle_size,
+  File_iterator(IFile *file_descriptor, size_t file_size,
+                size_t start_from_offset, Buffer *current_buffer,
+                Buffer *next_buffer, Async_read_task *aio, size_t needle_size,
                 shcore::Synchronized_queue<Async_read_task *> *task_queue);
 
   File_iterator(const File_iterator &other) = default;
@@ -177,7 +175,7 @@ class File_iterator final {
   uint8_t *m_ptr = nullptr;
   uint8_t *m_ptr_end = nullptr;
   size_t m_offset = 0;  //< Global file offset where m_ptr points
-  int m_fd = -1;
+  IFile *m_fh = nullptr;
   size_t m_file_size = 0;
   Async_read_task *m_aio{};
   bool m_eof = false;
@@ -226,7 +224,7 @@ class File_handler final {
 
   ~File_handler();
 
-  bool is_open() const { return m_fd >= 0; }
+  bool is_open() const { return m_fh->is_open(); }
 
   size_t size() const { return m_file_size; }
 
@@ -238,7 +236,7 @@ class File_handler final {
   mutable Async_read_task m_aio{};
   mutable std::thread m_aio_worker;
   mutable shcore::Synchronized_queue<Async_read_task *> m_task_queue;
-  int m_fd = -1;
+  std::unique_ptr<IFile> m_fh;
   size_t m_file_size = 0;
 };
 

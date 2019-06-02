@@ -787,9 +787,9 @@ int main(int argc, char **argv) {
       std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
 
 #ifdef WITH_OCI
-      if (!options.oci_profile.is_null()) {
+      if (options.oci_wizard) {
         if (options.interactive) {
-          mysqlsh::oci::load_profile(*options.oci_profile,
+          mysqlsh::oci::load_profile(options.oci_profile,
                                      shell->shell_context());
         } else {
           mysqlsh::current_console()->print_warning(

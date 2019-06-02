@@ -97,6 +97,8 @@ DESCRIPTION
         valid values: "true", "false", "1", and "0".
       - connection-attributes: List of connection attributes to be registered
         at the PERFORMANCE_SCHEMA connection attributes tables.
+      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+      - net-buffer-length: The buffer size for TCP/IP and socket communication.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -184,6 +186,8 @@ DESCRIPTION
         valid values: "true", "false", "1", and "0".
       - connection-attributes: List of connection attributes to be registered
         at the PERFORMANCE_SCHEMA connection attributes tables.
+      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+      - net-buffer-length: The buffer size for TCP/IP and socket communication.
 
       When these options are defined in a URI, their values must be URL
       encoded.

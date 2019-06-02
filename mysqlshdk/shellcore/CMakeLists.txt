@@ -25,11 +25,16 @@ include_directories(
         "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 include_directories(${CMAKE_SOURCE_DIR}) # <--- TODO: REMOVE (something's including modules/*)
 
+IF(OPENSSL_INCLUDE_DIR)
+	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+ENDIF()
+
 set(SHELLCORE_SOURCES
   base_shell.cc
   base_session.cc
   completer.cc
   credential_manager.cc
+  private_key_manager.cc
   provider_script.cc
   interrupt_handler.cc
   ishell_core.cc

@@ -1,4 +1,5 @@
 var _defaultSandboxDir = shell.options.sandboxDir
+var _defaultOciConfigFile = shell.options['oci.configFile']
 
 //@ shell classic connection
 shell.connect(__mysqluripwd)

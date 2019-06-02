@@ -226,7 +226,7 @@ Formats the given connection options to a URI string suitable for mysqlsh.
 @param options a dictionary with the connection options.
 @returns A URI string
 
-This function assembles a MySQL connection string which can be used in the 
+This function assembles a MySQL connection string which can be used in the
 shell or X DevAPI connectors.
 )*");
 
@@ -447,6 +447,11 @@ REGISTER_HELP(
     "@li connection-attributes: List of connection attributes to be "
     "registered at the PERFORMANCE_SCHEMA connection attributes tables.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS16,
+              "@li local-infile: Enable/disable LOAD DATA LOCAL INFILE.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS17,
+              "@li net-buffer-length: The buffer size for TCP/IP and socket "
+              "communication.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS18,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 
@@ -1830,7 +1835,7 @@ REGISTER_HELP_FUNCTION_TEXT(SHELL_DUMPROWS, R"*(
 Formats and dumps the given resultset object to the console.
 
 @param result The resultset object to dump
-@param format One of table, tabbed, vertical, json, ndjson, json/raw, 
+@param format One of table, tabbed, vertical, json, ndjson, json/raw,
 json/array, json/pretty. Default is table.
 @returns The number of printed rows
 

@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_UTILS_OPEN_SSL_H_
-#define MYSQLSHDK_LIBS_UTILS_OPEN_SSL_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_SSL_KEYGEN_H_
+#define MYSQLSHDK_LIBS_UTILS_SSL_KEYGEN_H_
 
 #include <stdexcept>
 #include <string>
@@ -97,7 +97,10 @@ std::string load_private_key(const std::string &path,
  * @returns true on success decode
  */
 bool decode_base64(const std::string &source, std::string *target);
+bool encode_base64(const std::string &source, std::string *target);
+bool encode_base64(const unsigned char *source, int source_length,
+                   std::string *encoded);
 }  // namespace ssl
 }  // namespace shcore
 
-#endif  // MYSQLSHDK_LIBS_UTILS_OPEN_SSL_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_SSL_KEYGEN_H_

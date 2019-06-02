@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,22 +23,6 @@
 
 #include "modules/util/import_table/chunk_file.h"
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#if defined(_WIN32)
-#include <io.h>
-#define lseek64 _lseeki64
-#define off64_t __int64
-#define read _read
-#elif defined(__APPLE__)
-#include <unistd.h>
-#define lseek64 lseek
-#define off64_t off_t
-#else
-#include <unistd.h>
-#endif
-
 #include <algorithm>
 #include <cassert>
 
@@ -48,14 +32,14 @@ namespace mysqlsh {
 namespace import_table {
 
 File_iterator::File_iterator(
-    int file_descriptor, size_t file_size, size_t start_from_offset,
+    IFile *file_descriptor, size_t file_size, size_t start_from_offset,
     Buffer *current_buffer, Buffer *next_buffer, Async_read_task *aio,
     size_t needle_size,
     shcore::Synchronized_queue<Async_read_task *> *task_queue)
     : m_current(current_buffer),
       m_next(next_buffer),
       m_offset(start_from_offset),
-      m_fd(file_descriptor),
+      m_fh(file_descriptor),
       m_file_size(file_size),
       m_aio(aio),
       m_task_queue(task_queue) {
@@ -75,7 +59,7 @@ File_iterator::File_iterator(
   }
 
   if (start_from_offset < file_size) {
-    m_aio->fd = m_fd;
+    m_aio->fh = m_fh;
     m_aio->length = BUFFER_SIZE;
 
     read_next(m_offset);
@@ -158,8 +142,10 @@ void File_iterator::force_offset(size_t start_from_offset) {
 }
 
 File_handler::File_handler(const std::string &pathname) {
-  m_fd = detail::file_open(pathname);
-  m_file_size = shcore::file_size(pathname);
+  m_fh = make_file_handler(pathname);
+  m_fh->open();
+  // todo(kg): check if m_fh->is_open() and throw?
+  m_file_size = m_fh->file_size();
   m_aio_worker = std::thread([this]() -> void {
     while (true) {
       Async_read_task *r = m_task_queue.pop();
@@ -171,12 +157,12 @@ File_handler::File_handler(const std::string &pathname) {
 
       {
         std::unique_lock<std::mutex> lock(r->mutex);
-        off64_t offset = lseek64(r->fd, r->offset, SEEK_SET);
+        off64_t offset = r->fh->seek(r->offset);
         if (offset == static_cast<off64_t>(-1)) {
           r->return_value = -1;
           r->status = Async_read_task::Status::Error;
         } else {
-          auto ret = read(r->fd, r->buffer, r->length);
+          auto ret = r->fh->read(r->buffer, r->length);
           r->return_value = ret;
           r->status = Async_read_task::Status::Ok;
         }
@@ -189,15 +175,15 @@ File_handler::File_handler(const std::string &pathname) {
 File_handler::~File_handler() {
   m_task_queue.shutdown(1);
   m_aio_worker.join();
-  detail::file_close(m_fd);
+  m_fh->close();
 }
 
 File_iterator File_handler::begin(size_t needle_size) const {
-  return File_iterator(m_fd, size(), 0, &m_buffer[0], &m_buffer[1], &m_aio,
-                       needle_size, &m_task_queue);
+  return File_iterator(m_fh.get(), size(), 0, &m_buffer[0], &m_buffer[1],
+                       &m_aio, needle_size, &m_task_queue);
 }
 File_iterator File_handler::end(size_t needle_size) const {
-  return File_iterator(m_fd, size(), size(), nullptr, nullptr, nullptr,
+  return File_iterator(m_fh.get(), size(), size(), nullptr, nullptr, nullptr,
                        needle_size, &m_task_queue);
 }
 

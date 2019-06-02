@@ -28,13 +28,11 @@
 #include <sys/types.h>
 #if defined(_WIN32)
 #include <io.h>
-#define lseek64 _lseeki64
-#define off64_t __int64
-#define read _read
+using off64_t = __int64;
+using ssize_t = __int64;
 #elif defined(__APPLE__)
 #include <unistd.h>
-#define lseek64 lseek
-#define off64_t off_t
+using off64_t = off_t;
 #else
 #include <unistd.h>
 #endif
@@ -46,6 +44,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -53,15 +52,17 @@ namespace import_table {
 
 int local_infile_init(void **buffer, const char *filename, void *userdata) {
   File_info *file_info = static_cast<File_info *>(userdata);
-  file_info->fd = detail::file_open(file_info->filename);
+  // todo(kg): we can get rid of file open and close (in local_infile_end()).
+  //           We can open it when constructing File_info object.
+  file_info->filehandler->open();
 
-  if (file_info->fd < 0) {
+  if (!file_info->filehandler->is_open()) {
     mysqlsh::current_console()->print_error("Cannot open file '" +
                                             file_info->filename + "'\n");
     return 1;
   }
 
-  off64_t offset = lseek64(file_info->fd, file_info->chunk_start, SEEK_SET);
+  off64_t offset = file_info->filehandler->seek(file_info->chunk_start);
   if (offset == static_cast<off64_t>(-1)) {
     return 1;
   }
@@ -77,11 +78,7 @@ int local_infile_read(void *userdata, char *buffer, unsigned int length) {
 
   size_t len = std::min({static_cast<size_t>(length), file_info->bytes_left});
 
-#ifdef _WIN32
-  int bytes = _read(file_info->fd, buffer, len);
-#else
-  ssize_t bytes = read(file_info->fd, buffer, len);
-#endif
+  auto bytes = file_info->filehandler->read(buffer, len);
   if (bytes == -1) return bytes;
 
   file_info->bytes_left -= bytes;
@@ -119,7 +116,7 @@ void local_infile_end(void *userdata) {
     }
   }
 
-  detail::file_close(file_info->fd);
+  file_info->filehandler->close();
 }
 
 int local_infile_error(void *userdata, char *error_msg,
@@ -161,6 +158,7 @@ void Load_data_worker::operator()() {
 
     File_info fi;
     fi.filename = m_opt.full_path();
+    fi.filehandler = make_file_handler(m_opt.full_path());
     fi.worker_id = m_thread_id;
     fi.prog = m_opt.show_progress() ? m_progress : nullptr;
     fi.prog_bytes = &m_prog_sent_bytes;
@@ -201,6 +199,7 @@ void Load_data_worker::operator()() {
     for (const auto &col : columns) {
       sql << col;
     }
+    sql.done();
 
     char worker_name[64];
     snprintf(worker_name, sizeof(worker_name), "[Worker%03u] ",
@@ -231,6 +230,28 @@ void Load_data_worker::operator()() {
         mysqlsh::current_console()->print_error(error_msg);
         m_progress->show_status(!m_use_json);
         throw std::runtime_error(error_msg);
+      } catch (const mysqlshdk::rest::Connection_error &e) {
+        m_thread_exception[m_thread_id] = std::current_exception();
+        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
+        m_progress->clear_status();
+        const std::string error_msg{
+            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
+            e.what() + " @ file bytes range [" + std::to_string(r.begin) +
+            ", " + std::to_string(r.end) + ")"};
+        mysqlsh::current_console()->print_error(error_msg);
+        m_progress->show_status(!m_use_json);
+        throw std::runtime_error(error_msg);
+      } catch (const std::exception &e) {
+        m_thread_exception[m_thread_id] = std::current_exception();
+        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
+        m_progress->clear_status();
+        const std::string error_msg{
+            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
+            e.what() + " @ file bytes range [" + std::to_string(r.begin) +
+            ", " + std::to_string(r.end) + ")"};
+        mysqlsh::current_console()->print_error(error_msg);
+        m_progress->show_status(!m_use_json);
+        throw std::exception(e);
       }
 
       const auto warnings_num =

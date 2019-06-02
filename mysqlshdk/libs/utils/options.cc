@@ -435,7 +435,7 @@ std::vector<std::string> Options::get_options_description(
   }
   first_column_width += 2;
 
-  for (auto &it : named_options) {
+  for (const auto &it : named_options) {
     opts::Generic_option *opt = it.second;
     std::stringstream ss;
     ss << opt->get_name();

@@ -85,6 +85,7 @@ constexpr const char kConnectTimeout[] = "connect-timeout";
 constexpr const char kNetReadTimeout[] = "net-read-timeout";
 constexpr const char kCompression[] = "compression";
 constexpr const char kLocalInfile[] = "local-infile";
+constexpr const char kNetBufferLength[] = "net-buffer-length";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
 
 constexpr const char kSslModeDisabled[] = "disabled";
@@ -137,8 +138,8 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kConnectionAttributes};
 
 const std::set<std::string> uri_extra_options = {
-    kAuthMethod,     kGetServerPublicKey, kServerPublicKeyPath,
-    kConnectTimeout, kCompression,        kLocalInfile};
+    kAuthMethod,  kGetServerPublicKey, kServerPublicKeyPath, kConnectTimeout,
+    kCompression, kLocalInfile,        kNetBufferLength};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

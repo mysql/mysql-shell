@@ -25,6 +25,7 @@
 #define MODULES_UTIL_IMPORT_TABLE_LOAD_DATA_H_
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -46,9 +47,9 @@ namespace import_table {
 struct File_info {
   mysqlshdk::utils::Rate_limit rate_limit{};  //< Rate limiter
   int64_t max_rate = 0;    //< Max rate value for rate limiter
-  int fd = 0;              //< File descriptor with data to import
   int64_t worker_id = -1;  //< Thread worker id
   std::string filename;    //< Import data filename path
+  std::unique_ptr<IFile> filehandler = nullptr;
   size_t chunk_start = 0;  //< File chunk start offset
   size_t bytes_left = 0;   //< Bytes left to read from file
 

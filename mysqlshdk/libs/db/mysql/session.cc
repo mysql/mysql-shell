@@ -149,6 +149,22 @@ void Session_impl::connect(
   _mysql->options.local_infile_error = m_local_infile.error;
   _mysql->options.local_infile_userdata = m_local_infile.userdata;
 
+  // set max_allowed_packet and net_buffer_length
+  {
+    unsigned long opt_max_allowed_packet = 32 * 1024L * 1024L;  // 32MB
+    mysql_options(_mysql, MYSQL_OPT_MAX_ALLOWED_PACKET,
+                  &opt_max_allowed_packet);
+  }
+
+  if (connection_options.has(mysqlshdk::db::kNetBufferLength)) {
+    const unsigned long net_buffer_length =
+        std::stoul(connection_options.get(kNetBufferLength));
+    mysql_options(_mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &net_buffer_length);
+  } else {
+    unsigned long opt_net_buffer_length = 2 * 1024L * 1024L;
+    mysql_options(_mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &opt_net_buffer_length);
+  }
+
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
 
   if (!mysql_real_connect(

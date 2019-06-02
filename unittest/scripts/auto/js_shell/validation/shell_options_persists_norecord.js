@@ -274,6 +274,8 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  interactive                     true
  logLevel                        5
+ oci.configFile                  <<<_defaultOciConfigFile>>>
+ oci.profile                     DEFAULT
  outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
@@ -300,6 +302,8 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
+ oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
+ oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
@@ -375,6 +379,8 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  interactive                     true
  logLevel                        5
+ oci.configFile                  <<<_defaultOciConfigFile>>>
+ oci.profile                     DEFAULT
  outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
@@ -402,6 +408,8 @@ Switching to SQL mode... Commands end with ;
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
+ oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
+ oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)

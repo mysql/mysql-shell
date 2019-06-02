@@ -126,6 +126,7 @@ std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);
 
 void clear_buffer(char *buffer, size_t size);
+void clear_buffer(std::string *buffer);
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 

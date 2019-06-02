@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,43 +21,48 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/import_table/helpers.h"
+#ifndef MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
+#define MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#if defined(_WIN32)
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-
+#include <memory>
 #include <string>
+
+#include "modules/util/import_table/file_backends/ifile.h"
+#include "mysqlshdk/libs/rest/rest_service.h"
 
 namespace mysqlsh {
 namespace import_table {
-namespace detail {
 
-int file_open(const std::string &pathname) {
-  int fd = -1;
-#ifdef _WIN32
-  _sopen_s(&fd, pathname.c_str(), _O_BINARY | _O_RDONLY, _SH_DENYWR, _S_IREAD);
-#else
-  fd = ::open(pathname.c_str(), O_RDONLY);
-#endif
-  return fd;
-}
+class Http_get : public IFile {
+ public:
+  Http_get() = delete;
+  explicit Http_get(const std::string &uri);
+  Http_get(const Http_get &other) = delete;
+  Http_get(Http_get &&other) = default;
 
-void file_close(int fd) {
-  if (fd >= 0) {
-#ifdef _WIN32
-    _close(fd);
-#else
-    close(fd);
-#endif
-  }
-}
-}  // namespace detail
+  Http_get &operator=(const Http_get &other) = delete;
+  Http_get &operator=(Http_get &&other) = default;
+
+  ~Http_get() = default;
+
+  void open() override;
+  bool is_open() override;
+  void close() override;
+
+  size_t file_size() override;
+  std::string file_name() override;
+  off64_t seek(off64_t offset) override;
+  ssize_t read(void *buffer, size_t length) override;
+
+ private:
+  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
+  off64_t m_offset = 0;
+  mysqlshdk::rest::Response::Status_code m_open_status_code;
+  size_t m_file_size = 0;
+  std::string m_uri;
+};
+
 }  // namespace import_table
 }  // namespace mysqlsh
+
+#endif  // MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
