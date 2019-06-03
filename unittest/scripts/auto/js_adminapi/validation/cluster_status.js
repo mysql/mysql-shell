@@ -216,8 +216,6 @@ Cluster.status: The cluster 'cluster' is no longer registered in the Metadata. (
 //@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (true).
 WARNING: The 'queryMembers' option is deprecated. Please use the 'extended' option with value 3 instead.
 
-Enabling 'queryMembers' sets 'extended' to 3.
-
 {
 
 //@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (false).

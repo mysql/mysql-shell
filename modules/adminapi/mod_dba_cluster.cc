@@ -681,11 +681,9 @@ shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
 
     // Currently, the queryMembers option overrides the extended option when
     // set to true. Thus, this behaviour is maintained until the option is
-    // removed, but that information is now showed to users (to be more clear).
+    // removed.
     if (*query_members) {
       extended = 3;
-      console->print_info("Enabling 'queryMembers' sets 'extended' to 3.");
-      console->println();
     }
   }
 
