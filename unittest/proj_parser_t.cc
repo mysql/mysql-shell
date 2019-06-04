@@ -44,7 +44,7 @@ void print_tokens(const Proj_parser &p, std::stringstream &out) {
       first = false;
     else
       out << ", ";
-    out << it->get_type();
+    out << static_cast<int>(it->get_type());
   }
   out << "]";
 }
@@ -81,10 +81,15 @@ TEST(Proj_parser_tests, x_test) {
 
   parse_and_assert_expr("col1", "[19]", "projection (col1)");
   parse_and_assert_expr("a as x1", "[19, 56, 19]", "projection (a as x1)");
-  EXPECT_ANY_THROW(parse_and_assert_expr(
-      "a as x1, col1 as x2, b as x3",
-      "[19, 56, 19, 24, 19, 56, 19, 24, 19, 56, 19]",
-      "projection (a as x1, col1 as x2, b as x3)", false, false));
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("a as x1, col1 as x2, b as x3",
+                            "[19, 56, 19, 24, 19, 56, 19, 24, 19, 56, 19]",
+                            "projection (a as x1, col1 as x2, b as x3)", false,
+                            false),
+      Parser_error,
+      "Expected end of expression, at position 2,\n"
+      "in: a as x1, col1 as x2, b as x3\n"
+      "      ^^                        ");
   parse_and_assert_expr("$.x.a[1][0].c",
                         "[77, 22, 19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19]",
                         "projection ($.x.a[1][0].c as $.x.a[1][0].c)", true);
@@ -92,16 +97,30 @@ TEST(Proj_parser_tests, x_test) {
       "$.x.a[1][0].c as mycol",
       "[77, 22, 19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19]",
       "projection ($.x.a[1][0].c as mycol)", true);
-  EXPECT_ANY_THROW(parse_and_assert_expr(
-      "x.a[1][0].c as mycol, col1 as alias1",
-      "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]",
-      "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true));
-  EXPECT_ANY_THROW(parse_and_assert_expr(
-      "x.a[1][0].c as mycol, col1 as alias1",
-      "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]",
-      "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true, false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("$foo.bar", "[77, 19, 22, 19]",
-                                         "projection ($.foo.bar)"));
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr(
+          "x.a[1][0].c as mycol, col1 as alias1",
+          "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]",
+          "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true),
+      Parser_error,
+      "Expected end of expression, at position 20,\n"
+      "in: x.a[1][0].c as mycol, col1 as alias1\n"
+      "                        ^               ");
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr(
+          "x.a[1][0].c as mycol, col1 as alias1",
+          "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]",
+          "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true, false),
+      Parser_error,
+      "Expected end of expression, at position 12,\n"
+      "in: x.a[1][0].c as mycol, col1 as alias1\n"
+      "                ^^                      ");
+  EXPECT_THROW_MSG(parse_and_assert_expr("$foo.bar", "[77, 19, 22, 19]",
+                                         "projection ($.foo.bar)"),
+                   Parser_error,
+                   "Unexpected $ in expression, at position 0,\n"
+                   "in: $foo.bar\n"
+                   "    ^       ");
 
   parse_and_assert_expr("bar->'$.foo.bar'",
                         "[19, 82, 83, 77, 22, 19, 22, 19, 83]",
@@ -121,46 +140,88 @@ TEST(Proj_parser_tests, x_test) {
   parse_and_assert_expr("bar->>'$.foo.bar' bla",
                         "[19, 85, 83, 77, 22, 19, 22, 19, 83, 19]",
                         "projection (JSON_UNQUOTE(bar$.foo.bar) as bla)");
-  EXPECT_ANY_THROW(parse_and_assert_expr("bar$foo.bar bla",
-                                         "[19, 77, 19, 22, 19, 19]",
-                                         "projection ($.foo.bar)", true));
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("bar$foo.bar bla", "[19, 77, 19, 22, 19, 19]",
+                            "projection ($.foo.bar)", true),
+      Parser_error,
+      "Expected end of expression, at position 3,\n"
+      "in: bar$foo.bar bla\n"
+      "       ^           ");
   parse_and_assert_expr("$.foo.bar", "[77, 22, 19, 22, 19]",
                         "projection ($.foo.bar as $.foo.bar)", true);
-  EXPECT_ANY_THROW(parse_and_assert_expr(
-      "foo.bar as a.b.c", "[19, 22, 19, 56, 19, 22, 19, 22, 19]",
-      "projection ($.foo.bar as a.b.c)", true));
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("foo.bar as a.b.c",
+                            "[19, 22, 19, 56, 19, 22, 19, 22, 19]",
+                            "projection ($.foo.bar as a.b.c)", true),
+      Parser_error,
+      "Expected end of expression, at position 12,\n"
+      "in: foo.bar as a.b.c\n"
+      "                ^   ");
   parse_and_assert_expr("$.foo.bar as aaa", "[77, 22, 19, 22, 19, 56, 19]",
                         "projection ($.foo.bar as aaa)", true);
 
   parse_and_assert_expr("$.foo.bar as `a.b.c`", "[77, 22, 19, 22, 19, 56, 19]",
                         "projection ($.foo.bar as a.b.c)", true);
   parse_and_assert_expr("bla", "[19]", "projection ($.bla as bla)", true);
-  EXPECT_ANY_THROW(parse_and_assert_expr("bla, ble", "[19, 24, 19]",
-                                         "projection ($.foo.bar, ble)", true));
+  EXPECT_THROW_MSG(parse_and_assert_expr("bla, ble", "[19, 24, 19]",
+                                         "projection ($.foo.bar, ble)", true),
+                   Parser_error,
+                   "Expected end of expression, at position 3,\n"
+                   "in: bla, ble\n"
+                   "       ^    ");
 
   parse_and_assert_expr("$foo.bar", "[77, 19, 22, 19]",
                         "projection ($.foo.bar as $foo.bar)", true);
 
   // Some negative cases for ->
-  EXPECT_ANY_THROW(parse_and_assert_expr("foo->$.foo ", "[19, 82, 77, 22, 19]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("foo->$", "[19, 82, 77]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("foo->", "[19, 82]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("foo->$$", "[19, 82, 77, 77]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("->", "[82]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("-->'$.foo'",
-                                         "[37, 82, 83, 77, 22, 19, 83]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("-->>'$.foo'",
-                                         "[37, 85, 83, 77, 22, 19, 83]",
-                                         "projection ($.foo.bar, ble)", false));
-  EXPECT_ANY_THROW(parse_and_assert_expr("->>>'$.foo'",
-                                         "[85, 27, 83, 77, 22, 19, 83]",
-                                         "projection ($.foo.bar, ble)", false));
+  EXPECT_THROW_MSG(parse_and_assert_expr("foo->$.foo ", "[19, 82, 77, 22, 19]",
+                                         "projection ($.foo.bar, ble)", false),
+                   Parser_error,
+                   "Expected ' but found $, at position 5,\n"
+                   "in: foo->$.foo \n"
+                   "         ^     ");
+  EXPECT_THROW_MSG(parse_and_assert_expr("foo->$", "[19, 82, 77]",
+                                         "projection ($.foo.bar, ble)", false),
+                   Parser_error,
+                   "Expected ' but found $, at position 5,\n"
+                   "in: foo->$\n"
+                   "         ^");
+  EXPECT_THROW_MSG(parse_and_assert_expr("foo->", "[19, 82]",
+                                         "projection ($.foo.bar, ble)", false),
+                   Parser_error, "Unexpected end of expression.");
+  EXPECT_THROW_MSG(parse_and_assert_expr("foo->$$", "[19, 82, 77, 77]",
+                                         "projection ($.foo.bar, ble)", false),
+                   Parser_error,
+                   "Expected ' but found $, at position 5,\n"
+                   "in: foo->$$\n"
+                   "         ^ ");
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("->", "[82]", "projection ($.foo.bar, ble)", false),
+      Parser_error,
+      "Unexpected -> in expression, at position 0,\n"
+      "in: ->\n"
+      "    ^^");
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("-->'$.foo'", "[37, 82, 83, 77, 22, 19, 83]",
+                            "projection ($.foo.bar, ble)", false),
+      Parser_error,
+      "Unexpected -> in expression, at position 1,\n"
+      "in: -->'$.foo'\n"
+      "     ^^       ");
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("-->>'$.foo'", "[37, 85, 83, 77, 22, 19, 83]",
+                            "projection ($.foo.bar, ble)", false),
+      Parser_error,
+      "Unexpected ->> in expression, at position 1,\n"
+      "in: -->>'$.foo'\n"
+      "     ^^^       ");
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr("->>>'$.foo'", "[85, 27, 83, 77, 22, 19, 83]",
+                            "projection ($.foo.bar, ble)", false),
+      Parser_error,
+      "Unexpected ->> in expression, at position 0,\n"
+      "in: ->>>'$.foo'\n"
+      "    ^^^        ");
 
   parse_and_assert_expr(
       "concat(foo, ' ', bar)", "[19, 6, 19, 24, 20, 24, 19, 7]",
@@ -176,5 +237,6 @@ TEST(Proj_parser_tests, x_test) {
                         "[6, 76, 36, 76, 7, 14, 6, 76, 24, 76, 24, 76, 7]",
                         "projection ((1 + 3) IN (3, 4, 5))");
 }
-};  // namespace proj_parser_tests
-};  // namespace shcore
+
+}  // namespace proj_parser_tests
+}  // namespace shcore

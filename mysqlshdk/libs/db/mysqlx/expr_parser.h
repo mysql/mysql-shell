@@ -58,7 +58,7 @@ class Expr_parser {
   std::unique_ptr<Mysqlx::Expr::Expr> atomic_expr();
   std::unique_ptr<Mysqlx::Expr::Expr> array_();
   std::unique_ptr<Mysqlx::Expr::Expr> parse_left_assoc_binary_op_expr(
-      std::set<Token::TokenType> &types, inner_parser_t inner_parser);
+      std::set<Token::Type> &types, inner_parser_t inner_parser);
   std::unique_ptr<Mysqlx::Expr::Expr> mul_div_expr();
   std::unique_ptr<Mysqlx::Expr::Expr> add_sub_expr();
   std::unique_ptr<Mysqlx::Expr::Expr> shift_expr();
@@ -76,39 +76,39 @@ class Expr_parser {
 
  protected:
   struct operator_list {
-    std::set<Token::TokenType> mul_div_expr_types;
-    std::set<Token::TokenType> add_sub_expr_types;
-    std::set<Token::TokenType> shift_expr_types;
-    std::set<Token::TokenType> bit_expr_types;
-    std::set<Token::TokenType> comp_expr_types;
-    std::set<Token::TokenType> and_expr_types;
-    std::set<Token::TokenType> or_expr_types;
+    std::set<Token::Type> mul_div_expr_types;
+    std::set<Token::Type> add_sub_expr_types;
+    std::set<Token::Type> shift_expr_types;
+    std::set<Token::Type> bit_expr_types;
+    std::set<Token::Type> comp_expr_types;
+    std::set<Token::Type> and_expr_types;
+    std::set<Token::Type> or_expr_types;
 
     operator_list() {
-      mul_div_expr_types.insert(Token::MUL);
-      mul_div_expr_types.insert(Token::DIV);
-      mul_div_expr_types.insert(Token::MOD);
+      mul_div_expr_types.insert(Token::Type::MUL);
+      mul_div_expr_types.insert(Token::Type::DIV);
+      mul_div_expr_types.insert(Token::Type::MOD);
 
-      add_sub_expr_types.insert(Token::PLUS);
-      add_sub_expr_types.insert(Token::MINUS);
+      add_sub_expr_types.insert(Token::Type::PLUS);
+      add_sub_expr_types.insert(Token::Type::MINUS);
 
-      shift_expr_types.insert(Token::LSHIFT);
-      shift_expr_types.insert(Token::RSHIFT);
+      shift_expr_types.insert(Token::Type::LSHIFT);
+      shift_expr_types.insert(Token::Type::RSHIFT);
 
-      bit_expr_types.insert(Token::BITAND);
-      bit_expr_types.insert(Token::BITOR);
-      bit_expr_types.insert(Token::BITXOR);
+      bit_expr_types.insert(Token::Type::BITAND);
+      bit_expr_types.insert(Token::Type::BITOR);
+      bit_expr_types.insert(Token::Type::BITXOR);
 
-      comp_expr_types.insert(Token::GE);
-      comp_expr_types.insert(Token::GT);
-      comp_expr_types.insert(Token::LE);
-      comp_expr_types.insert(Token::LT);
-      comp_expr_types.insert(Token::EQ);
-      comp_expr_types.insert(Token::NE);
+      comp_expr_types.insert(Token::Type::GE);
+      comp_expr_types.insert(Token::Type::GT);
+      comp_expr_types.insert(Token::Type::LE);
+      comp_expr_types.insert(Token::Type::LT);
+      comp_expr_types.insert(Token::Type::EQ);
+      comp_expr_types.insert(Token::Type::NE);
 
-      and_expr_types.insert(Token::AND);
+      and_expr_types.insert(Token::Type::AND);
 
-      or_expr_types.insert(Token::OR);
+      or_expr_types.insert(Token::Type::OR);
     }
   };
 

@@ -45,7 +45,7 @@ void print_tokens(const Orderby_parser &p, std::stringstream &out) {
       first = false;
     else
       out << ", ";
-    out << it->get_type();
+    out << static_cast<int>(it->get_type());
   }
   out << "]";
 }
@@ -73,9 +73,14 @@ TEST(Orderby_parser_tests, simple) {
   parse_and_assert_expr("a", "[19]", "orderby (a asc)");
   parse_and_assert_expr("`asc` asc", "[19, 57]", "orderby (asc asc)");
   parse_and_assert_expr("asc asc", "[57, 57]", "orderby (asc asc)");
-  EXPECT_ANY_THROW(parse_and_assert_expr("a asc, col1 desc, b asc",
+  EXPECT_THROW_MSG(parse_and_assert_expr("a asc, col1 desc, b asc",
                                          "[19, 57, 24, 19, 58, 24, 19, 57]",
-                                         "orderby (a asc, col1 desc, b asc)"));
+                                         "orderby (a asc, col1 desc, b asc)"),
+                   Parser_error,
+                   "Expected end of expression, at position 5,\n"
+                   "in: a asc, col1 desc, b asc\n"
+                   "         ^                 ");
 }
-};  // namespace Orderby_parser_tests
-};  // namespace shcore
+
+}  // namespace Orderby_parser_tests
+}  // namespace shcore

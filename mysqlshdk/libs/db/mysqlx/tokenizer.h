@@ -34,7 +34,7 @@
 namespace mysqlx {
 class Token {
  public:
-  enum TokenType {
+  enum class Type {
     NOT = 1,
     AND = 2,
     OR = 3,
@@ -122,17 +122,18 @@ class Token {
     TWOHEADARROW = 85  // literal ->>
   };
 
-  Token(Token::TokenType type, const std::string &text, int cur_pos);
+  Token(Token::Type type, const std::string &text, size_t cur_pos);
 
-  const std::string &get_text() const { return _text; }
-  TokenType get_type() const { return _type; }
+  const std::string &get_text() const { return m_text; }
+  Type get_type() const { return m_type; }
   const std::string &get_type_name() const;
-  int get_pos() const { return _pos; }
+  size_t get_pos() const { return m_pos; }
+  size_t get_length() const { return m_text.length(); }
 
  private:
-  TokenType _type;
-  std::string _text;
-  int _pos;
+  Type m_type;
+  std::string m_text;
+  size_t m_pos;
 };
 
 class Tokenizer {
@@ -142,12 +143,12 @@ class Tokenizer {
   typedef std::vector<Token> tokens_t;
 
   bool next_char_is(tokens_t::size_type i, int tok);
-  void assert_cur_token(Token::TokenType type);
-  bool cur_token_type_is(Token::TokenType type);
+  void assert_cur_token(Token::Type type);
+  bool cur_token_type_is(Token::Type type);
   bool cur_token_type_is_keyword();
-  bool next_token_type(Token::TokenType type);
-  bool pos_token_type_is(tokens_t::size_type pos, Token::TokenType type);
-  const std::string &consume_token(Token::TokenType type);
+  bool next_token_type(Token::Type type);
+  bool pos_token_type_is(tokens_t::size_type pos, Token::Type type);
+  const std::string &consume_token(Token::Type type);
   const Token &peek_token();
   void unget_token();
   void inc_pos_token();
@@ -156,7 +157,7 @@ class Tokenizer {
   void assert_tok_position();
   bool tokens_available();
   bool is_interval_units_type();
-  bool is_type_within_set(const std::set<Token::TokenType> &types);
+  bool is_type_within_set(const std::set<Token::Type> &types);
 
   std::vector<Token>::const_iterator begin() const { return _tokens.begin(); }
   std::vector<Token>::const_iterator end() const { return _tokens.end(); }
@@ -175,9 +176,9 @@ class Tokenizer {
   };
 
   struct Maps {
-    typedef std::map<std::string, Token::TokenType, Cmp_icase> reserved_words_t;
+    typedef std::map<std::string, Token::Type, Cmp_icase> reserved_words_t;
     reserved_words_t reserved_words;
-    std::set<Token::TokenType> interval_units;
+    std::set<Token::Type> interval_units;
     std::map<std::string, std::string, Cmp_icase> operator_names;
     std::map<std::string, std::string, Cmp_icase> unary_operator_names;
 
@@ -190,14 +191,16 @@ class Tokenizer {
 
 class Parser_error : public std::runtime_error {
  public:
-  explicit Parser_error(const std::string &msg)
-      : std::runtime_error(msg), column(-1) {}
-  Parser_error(const std::string &msg, const std::string &line_, int column_)
-      : std::runtime_error(msg), line(line_), column(column_) {}
+  explicit Parser_error(const std::string &msg) : std::runtime_error(msg) {}
+  Parser_error(const std::string &msg, const Token &token,
+               const std::string &line = "");
 
-  std::string line;
-  int column;
+ private:
+  static std::string format(const Token &token, const std::string &line);
 };
+
+const std::string &to_string(const Token::Type &type);
+
 }  // namespace mysqlx
 
 #endif

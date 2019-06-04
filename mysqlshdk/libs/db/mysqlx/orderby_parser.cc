@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,11 +35,11 @@ Orderby_parser::Orderby_parser(const std::string &expr_str, bool document_mode)
 void Orderby_parser::column_identifier(Mysqlx::Crud::Order &orderby_expr) {
   orderby_expr.set_allocated_expr(my_expr().release());
 
-  if (_tokenizer.cur_token_type_is(Token::ASC)) {
+  if (_tokenizer.cur_token_type_is(Token::Type::ASC)) {
     orderby_expr.set_direction(Mysqlx::Crud::Order_Direction_ASC);
-    _tokenizer.consume_token(Token::ASC);
-  } else if (_tokenizer.cur_token_type_is(Token::DESC)) {
+    _tokenizer.consume_token(Token::Type::ASC);
+  } else if (_tokenizer.cur_token_type_is(Token::Type::DESC)) {
     orderby_expr.set_direction(Mysqlx::Crud::Order_Direction_DESC);
-    _tokenizer.consume_token(Token::DESC);
+    _tokenizer.consume_token(Token::Type::DESC);
   }
 }

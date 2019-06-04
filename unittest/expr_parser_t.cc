@@ -43,7 +43,7 @@ void print_tokens(const Expr_parser &p, std::stringstream &out) {
       first = false;
     else
       out << ", ";
-    out << it->get_type();
+    out << static_cast<int>(it->get_type());
   }
   out << "]";
 }
@@ -240,7 +240,8 @@ TEST(Expr_parser_tests, x_test_3) {
   parse_and_assert_expr("a + 314.1592e-2", "[19, 36, 21]", "(a + 3.141592)");
   parse_and_assert_expr("a + 0.0271e+2", "[19, 36, 21]", "(a + 2.710000)");
   parse_and_assert_expr("a + 0.0271e2", "[19, 36, 21]", "(a + 2.710000)");
-  EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
+  EXPECT_THROW_MSG(parse_and_assert_expr("`ident\\``", "", ""), Parser_error,
+                   "Unterminated quoted string starting at position 1");
   parse_and_assert_expr("*", "[38]", "*");
   parse_and_assert_expr("table1.*", "[19, 22, 38]", "table1.*");
   parse_and_assert_expr("schema.table1.*", "[19, 22, 19, 22, 38]",
@@ -334,8 +335,6 @@ TEST(Expr_parser_tests, arrow_operator) {
   parse_and_assert_expr("doc->'$.\"a b\"'=42",
                         "[19, 82, 83, 77, 22, 20, 83, 25, 76]",
                         "(doc$.a b == 42)");
-
-  EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
 }
 
 TEST(Expr_parser_tests, twoheadrightarrow_operator) {
@@ -368,11 +367,16 @@ TEST(Expr_parser_tests, x_test_6) {
       "[19, 22, 19, 25, 79, 19, 2, 19, 22, 19, 25, 79, 19]",
       "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))", true);
 
-  EXPECT_ANY_THROW(parse_and_assert_expr(
-      "$.geography.Region = :geo and $.geography.SurfaceArea = :area",
-      "[77, 22, 19, 22, 19, 25, 79, 19, 2, 77, 22, 19, 22, 19, 25, 79, 19]",
-      "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))",
-      false));
+  EXPECT_THROW_MSG(
+      parse_and_assert_expr(
+          "$.geography.Region = :geo and $.geography.SurfaceArea = :area",
+          "[77, 22, 19, 22, 19, 25, 79, 19, 2, 77, 22, 19, 22, 19, 25, 79, 19]",
+          "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))",
+          false),
+      Parser_error,
+      "Unexpected $ in expression, at position 0,\n"
+      "in: $.geography.Region = :geo and $.geography.SurfaceArea = :area\n"
+      "    ^                                                            ");
   parse_and_assert_expr(
       "geography.Region = :geo and geography.SurfaceArea = :area",
       "[19, 22, 19, 25, 79, 19, 2, 19, 22, 19, 25, 79, 19]",
@@ -457,7 +461,8 @@ TEST(Expr_parser_tests, keywords_as_doc_fields) {
     if (incomplete.find(kwd.first) != incomplete.end()) {
       p.reset(new Expr_parser(kwd.first, true));
       std::unique_ptr<Mysqlx::Expr::Expr> e;
-      EXPECT_THROW(e = p->expr(), Parser_error);
+      EXPECT_THROW_MSG(e = p->expr(), Parser_error,
+                       "Unexpected end of expression.");
     } else {
       p.reset(new Expr_parser(kwd.first, true));
       std::unique_ptr<Mysqlx::Expr::Expr> e;
@@ -563,17 +568,39 @@ TEST(Expr_parser_tests, keywords_in_expressions) {
 
 // WL12767-TS4_1
 TEST(Expr_parser_tests, overlaps_negative) {
-  std::vector<std::string> input{"overlaps `field`", "`field` overlaps",
-                                 "overlaps overlaps"};
+  std::vector<std::vector<std::string>> input{
+      {"overlaps `field`",
+       "Expected end of expression, at position 10,\n"
+       "in: overlaps `field`\n"
+       "              ^^^^^ "},
+      {"`field` overlaps", "Unexpected end of expression."},
+      {"overlaps overlaps", "Unexpected end of expression."}};
 
   for (const auto &value : input) {
     std::unique_ptr<Expr_parser> p;
-    SCOPED_TRACE(value);
-    p.reset(new Expr_parser(value, true));
+    SCOPED_TRACE(value[0]);
+    p.reset(new Expr_parser(value[0], true));
     std::unique_ptr<Mysqlx::Expr::Expr> e;
-    EXPECT_THROW(e = p->expr(), Parser_error);
+    EXPECT_THROW_MSG(e = p->expr(), Parser_error, value[1]);
   }
 }
 
-};  // namespace expr_parser_tests
-};  // namespace shcore
+TEST(Expr_parser_tests, exception_with_location) {
+  Expr_parser parser("(c AS col)", true);
+  EXPECT_THROW_MSG(parser.expr(), Parser_error,
+                   "Expected ) but found AS, at position 3,\n"
+                   "in: (c AS col)\n"
+                   "       ^^     ");
+}
+
+TEST(Expr_parser_tests, too_many_parts) {
+  EXPECT_THROW_MSG(Expr_parser("one.two.three.").expr(), Parser_error,
+                   "Unexpected end of expression.");
+  EXPECT_THROW_MSG(Expr_parser("one.two.three.four").expr(), Parser_error,
+                   "Too many parts to identifier, at position 13,\n"
+                   "in: one.two.three.four\n"
+                   "                 ^    ");
+}
+
+}  // namespace expr_parser_tests
+}  // namespace shcore

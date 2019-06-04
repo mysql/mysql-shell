@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,10 +41,8 @@ class Orderby_parser : public Expr_parser {
 
     if (_tokenizer.tokens_available()) {
       const mysqlx::Token &tok = _tokenizer.peek_token();
-      throw Parser_error(
-          shcore::str_format("Orderby parser: Expected EOF, instead stopped at "
-                             "token '%s' at position %d",
-                             tok.get_text().c_str(), tok.get_pos()));
+      throw Parser_error("Expected end of expression", tok,
+                         _tokenizer.get_input());
     }
   }
 

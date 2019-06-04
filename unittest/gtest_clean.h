@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,5 +84,55 @@ extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
   do {                                                                   \
     g_pending_fixes.push_back({__FILE__ ":" STRINGIFY(__LINE__), note}); \
   } while (0)
+
+namespace testing {
+namespace internal {
+
+struct String_msg {
+  String_msg(const char *str) : value(str) {}
+  operator bool() const { return true; }
+  std::string value;
+};
+
+}  // namespace internal
+}  // namespace testing
+
+#define TEST_THROW_MSG_(statement, expected_exception, msg, fail)             \
+  GTEST_AMBIGUOUS_ELSE_BLOCKER_                                               \
+  if (::testing::internal::String_msg gtest_msg = "") {                       \
+    bool gtest_caught_expected = false;                                       \
+    try {                                                                     \
+      GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement);              \
+    } catch (expected_exception const &ee) {                                  \
+      if (std::string(ee.what()) == msg) {                                    \
+        gtest_caught_expected = true;                                         \
+      } else {                                                                \
+        gtest_msg.value = "Expected: " #statement                             \
+                          " throws an exception with message \"" +            \
+                          std::string(msg) + "\".\n  Actual: message is \"" + \
+                          std::string(ee.what()) + "\".";                     \
+        goto GTEST_CONCAT_TOKEN_(gtest_label_testthrowmsg_, __LINE__);        \
+      }                                                                       \
+    } catch (...) {                                                           \
+      gtest_msg.value = "Expected: " #statement                               \
+                        " throws an exception of type " #expected_exception   \
+                        ".\n  Actual: it throws a different type.";           \
+      goto GTEST_CONCAT_TOKEN_(gtest_label_testthrowmsg_, __LINE__);          \
+    }                                                                         \
+    if (!gtest_caught_expected) {                                             \
+      gtest_msg.value = "Expected: " #statement                               \
+                        " throws an exception of type " #expected_exception   \
+                        ".\n  Actual: it throws nothing.";                    \
+      goto GTEST_CONCAT_TOKEN_(gtest_label_testthrowmsg_, __LINE__);          \
+    }                                                                         \
+  } else                                                                      \
+    GTEST_CONCAT_TOKEN_(gtest_label_testthrowmsg_, __LINE__)                  \
+        : fail(gtest_msg.value.c_str())
+
+#define EXPECT_THROW_MSG(statement, expected_exception, msg) \
+  TEST_THROW_MSG_(statement, expected_exception, msg, GTEST_NONFATAL_FAILURE_)
+
+#define ASSERT_THROW_MSG(statement, expected_exception, msg) \
+  TEST_THROW_MSG_(statement, expected_exception, msg, GTEST_FATAL_FAILURE_)
 
 #endif  // UNITTEST_INCLUDE_GTEST_H_

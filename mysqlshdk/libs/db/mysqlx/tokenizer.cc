@@ -32,164 +32,162 @@
 #include <stdexcept>
 #include <utility>
 
-#ifndef WIN32
-#include <strings.h>
-#define _stricmp strcasecmp
-#endif
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlx {
 
+namespace {
+
+const std::map<Token::Type, std::string> k_token_name = {
+    {Token::Type::NOT, "NOT"},
+    {Token::Type::AND, "AND"},
+    {Token::Type::OR, "OR"},
+    {Token::Type::XOR, "XOR"},
+    {Token::Type::IS, "IS"},
+    {Token::Type::LPAREN, "("},
+    {Token::Type::RPAREN, ")"},
+    {Token::Type::LSQBRACKET, "["},
+    {Token::Type::RSQBRACKET, "]"},
+    {Token::Type::BETWEEN, "BETWEEN"},
+    {Token::Type::OVERLAPS, "OVERLAPS"},
+    {Token::Type::TRUE_, "TRUE"},
+    {Token::Type::T_NULL, "NULL"},
+    {Token::Type::FALSE_, "FALSE"},
+    {Token::Type::IN_, "IN"},
+    {Token::Type::LIKE, "LIKE"},
+    {Token::Type::INTERVAL, "INTERVAL"},
+    {Token::Type::REGEXP, "REGEXP"},
+    {Token::Type::ESCAPE, "ESCAPE"},
+    {Token::Type::IDENT, "identifier"},
+    {Token::Type::LSTRING, "string"},
+    {Token::Type::LNUM, "number"},
+    {Token::Type::DOT, "."},
+    //{Token::Type::AT, "AT"},
+    {Token::Type::COMMA, ","},
+    {Token::Type::EQ, "="},
+    {Token::Type::NE, "!="},
+    {Token::Type::GT, ">"},
+    {Token::Type::GE, ">="},
+    {Token::Type::LT, "<"},
+    {Token::Type::LE, "<="},
+    {Token::Type::BITAND, "&"},
+    {Token::Type::BITOR, "|"},
+    {Token::Type::BITXOR, "^"},
+    {Token::Type::LSHIFT, "<<"},
+    {Token::Type::RSHIFT, ">>"},
+    {Token::Type::PLUS, "+"},
+    {Token::Type::MINUS, "-"},
+    {Token::Type::MUL, "*"},
+    {Token::Type::DIV, "/"},
+    {Token::Type::HEX, "HEX"},
+    {Token::Type::BIN, "BIN"},
+    {Token::Type::NEG, "~"},
+    {Token::Type::BANG, "!"},
+    {Token::Type::MICROSECOND, "MICROSECOND"},
+    {Token::Type::SECOND, "SECOND"},
+    {Token::Type::MINUTE, "MINUTE"},
+    {Token::Type::HOUR, "HOUR"},
+    {Token::Type::DAY, "DAY"},
+    {Token::Type::WEEK, "WEEK"},
+    {Token::Type::MONTH, "MONTH"},
+    {Token::Type::QUARTER, "QUARTER"},
+    {Token::Type::YEAR, "YEAR"},
+    {Token::Type::PLACEHOLDER, "?"},
+    {Token::Type::DOUBLESTAR, "**"},
+    {Token::Type::MOD, "%"},
+    {Token::Type::AS, "AS"},
+    {Token::Type::ASC, "ASC"},
+    {Token::Type::DESC, "DESC"},
+    {Token::Type::CAST, "CAST"},
+    {Token::Type::CHARACTER, "CHARACTER"},
+    {Token::Type::SET, "SET"},
+    {Token::Type::CHARSET, "CHARSET"},
+    {Token::Type::ASCII, "ASCII"},
+    {Token::Type::UNICODE, "UNICODE"},
+    {Token::Type::BYTE, "BYTE"},
+    {Token::Type::BINARY, "BINARY"},
+    {Token::Type::CHAR, "CHAR"},
+    {Token::Type::NCHAR, "NCHAR"},
+    {Token::Type::DATE, "DATE"},
+    {Token::Type::DATETIME, "DATETIME"},
+    {Token::Type::TIME, "TIME"},
+    {Token::Type::DECIMAL, "DECIMAL"},
+    {Token::Type::SIGNED, "SIGNED"},
+    {Token::Type::UNSIGNED, "UNSIGNED"},
+    {Token::Type::INTEGER, "INTEGER"},
+    {Token::Type::LINTEGER, "integer"},
+    {Token::Type::DOLLAR, "$"},
+    {Token::Type::JSON, "JSON"},
+    {Token::Type::COLON, ":"},
+    {Token::Type::LCURLY, "{"},
+    {Token::Type::RCURLY, "}"},
+    {Token::Type::ARROW, "->"},
+    {Token::Type::QUOTE, "'"},
+    {Token::Type::TWOHEADARROW, "->>"}};
+}  // namespace
+
 struct Tokenizer::Maps Tokenizer::map;
 
-static const std::map<int, std::string> TokenName(
-    std::initializer_list<std::pair<const int, std::string>>{
-        {0, "invalid"},
-        {Token::NOT, "NOT"},
-        {Token::AND, "AND"},
-        {Token::OR, "OR"},
-        {Token::XOR, "XOR"},
-        {Token::IS, "IS"},
-        {Token::LPAREN, "("},
-        {Token::RPAREN, ")"},
-        {Token::LSQBRACKET, "["},
-        {Token::RSQBRACKET, "]"},
-        {Token::BETWEEN, "BETWEEN"},
-        {Token::OVERLAPS, "OVERLAPS"},
-        {Token::TRUE_, "TRUE"},
-        {Token::T_NULL, "NULL"},
-        {Token::FALSE_, "FALSE"},
-        {Token::IN_, "IN"},
-        {Token::LIKE, "LIKE"},
-        {Token::INTERVAL, "INTERVAL"},
-        {Token::REGEXP, "REGEXP"},
-        {Token::ESCAPE, "ESCAPE"},
-        {Token::IDENT, "IDENT"},
-        {Token::LSTRING, "LSTRING"},
-        {Token::LNUM, "LNUM"},
-        {Token::DOT, "."},
-        //{Token::AT, "AT"},
-        {Token::COMMA, ","},
-        {Token::EQ, "="},
-        {Token::NE, "NE"},
-        {Token::GT, ">"},
-        {Token::GE, ">="},
-        {Token::LT, "<"},
-        {Token::LE, "<="},
-        {Token::BITAND, "&"},
-        {Token::BITOR, "|"},
-        {Token::BITXOR, "^"},
-        {Token::LSHIFT, "<<"},
-        {Token::RSHIFT, ">>"},
-        {Token::PLUS, "+"},
-        {Token::MINUS, "-"},
-        {Token::MUL, "*"},
-        {Token::DIV, "/"},
-        {Token::HEX, "HEX"},
-        {Token::BIN, "BIN"},
-        {Token::NEG, "NEG"},
-        {Token::BANG, "!"},
-        {Token::MICROSECOND, "MICROSECOND"},
-        {Token::SECOND, "SECOND"},
-        {Token::MINUTE, "MINUTE"},
-        {Token::HOUR, "HOUR"},
-        {Token::DAY, "DAY"},
-        {Token::WEEK, "WEEK"},
-        {Token::MONTH, "MONTH"},
-        {Token::QUARTER, "QUARTER"},
-        {Token::YEAR, "YEAR"},
-        {Token::PLACEHOLDER, "PLACEHOLDER"},
-        {Token::DOUBLESTAR, "DOUBLESTAR"},
-        {Token::MOD, "MOD"},
-        {Token::AS, "AS"},
-        {Token::ASC, "ASC"},
-        {Token::DESC, "DESC"},
-        {Token::CAST, "CAST"},
-        {Token::CHARACTER, "CHARACTER"},
-        {Token::SET, "SET"},
-        {Token::CHARSET, "CHARSET"},
-        {Token::ASCII, "ASCII"},
-        {Token::UNICODE, "UNICODE"},
-        {Token::BYTE, "BYTE"},
-        {Token::BINARY, "BINARY"},
-        {Token::CHAR, "CHAR"},
-        {Token::NCHAR, "NCHAR"},
-        {Token::DATE, "DATE"},
-        {Token::DATETIME, "DATETIME"},
-        {Token::TIME, "TIME"},
-        {Token::DECIMAL, "DECIMAL"},
-        {Token::SIGNED, "SIGNED"},
-        {Token::UNSIGNED, "UNSIGNED"},
-        {Token::INTEGER, "INTEGER"},
-        {Token::LINTEGER, "number"},
-        {Token::DOLLAR, "DOLLAR"},
-        {Token::JSON, "JSON"},
-        {Token::COLON, "COLON"},
-        {Token::LCURLY, "{"},
-        {Token::RCURLY, "}"},
-        {Token::ARROW, "ARROW"},
-        {Token::QUOTE, "QUOTE"},
-        {Token::TWOHEADARROW, "TWOHEADARROW"}});
-
 Tokenizer::Maps::Maps() {
-  reserved_words["and"] = Token::AND;
-  reserved_words["or"] = Token::OR;
-  reserved_words["xor"] = Token::XOR;
-  reserved_words["is"] = Token::IS;
-  reserved_words["not"] = Token::NOT;
-  reserved_words["like"] = Token::LIKE;
-  reserved_words["in"] = Token::IN_;
-  reserved_words["regexp"] = Token::REGEXP;
-  reserved_words["between"] = Token::BETWEEN;
-  reserved_words["overlaps"] = Token::OVERLAPS;
-  reserved_words["interval"] = Token::INTERVAL;
-  reserved_words["escape"] = Token::ESCAPE;
-  reserved_words["div"] = Token::DIV;
-  reserved_words["hex"] = Token::HEX;
-  reserved_words["bin"] = Token::BIN;
-  reserved_words["true"] = Token::TRUE_;
-  reserved_words["false"] = Token::FALSE_;
-  reserved_words["null"] = Token::T_NULL;
-  reserved_words["second"] = Token::SECOND;
-  reserved_words["minute"] = Token::MINUTE;
-  reserved_words["hour"] = Token::HOUR;
-  reserved_words["day"] = Token::DAY;
-  reserved_words["week"] = Token::WEEK;
-  reserved_words["month"] = Token::MONTH;
-  reserved_words["quarter"] = Token::QUARTER;
-  reserved_words["year"] = Token::YEAR;
-  reserved_words["microsecond"] = Token::MICROSECOND;
-  reserved_words["as"] = Token::AS;
-  reserved_words["asc"] = Token::ASC;
-  reserved_words["desc"] = Token::DESC;
-  reserved_words["cast"] = Token::CAST;
-  reserved_words["character"] = Token::CHARACTER;
-  reserved_words["set"] = Token::SET;
-  reserved_words["charset"] = Token::CHARSET;
-  reserved_words["ascii"] = Token::ASCII;
-  reserved_words["unicode"] = Token::UNICODE;
-  reserved_words["byte"] = Token::BYTE;
-  reserved_words["binary"] = Token::BINARY;
-  reserved_words["char"] = Token::CHAR;
-  reserved_words["nchar"] = Token::NCHAR;
-  reserved_words["date"] = Token::DATE;
-  reserved_words["datetime"] = Token::DATETIME;
-  reserved_words["time"] = Token::TIME;
-  reserved_words["decimal"] = Token::DECIMAL;
-  reserved_words["signed"] = Token::SIGNED;
-  reserved_words["unsigned"] = Token::UNSIGNED;
-  reserved_words["integer"] = Token::INTEGER;
-  reserved_words["int"] = Token::INTEGER;
-  reserved_words["json"] = Token::JSON;
+  reserved_words["and"] = Token::Type::AND;
+  reserved_words["or"] = Token::Type::OR;
+  reserved_words["xor"] = Token::Type::XOR;
+  reserved_words["is"] = Token::Type::IS;
+  reserved_words["not"] = Token::Type::NOT;
+  reserved_words["like"] = Token::Type::LIKE;
+  reserved_words["in"] = Token::Type::IN_;
+  reserved_words["regexp"] = Token::Type::REGEXP;
+  reserved_words["between"] = Token::Type::BETWEEN;
+  reserved_words["overlaps"] = Token::Type::OVERLAPS;
+  reserved_words["interval"] = Token::Type::INTERVAL;
+  reserved_words["escape"] = Token::Type::ESCAPE;
+  reserved_words["div"] = Token::Type::DIV;
+  reserved_words["hex"] = Token::Type::HEX;
+  reserved_words["bin"] = Token::Type::BIN;
+  reserved_words["true"] = Token::Type::TRUE_;
+  reserved_words["false"] = Token::Type::FALSE_;
+  reserved_words["null"] = Token::Type::T_NULL;
+  reserved_words["second"] = Token::Type::SECOND;
+  reserved_words["minute"] = Token::Type::MINUTE;
+  reserved_words["hour"] = Token::Type::HOUR;
+  reserved_words["day"] = Token::Type::DAY;
+  reserved_words["week"] = Token::Type::WEEK;
+  reserved_words["month"] = Token::Type::MONTH;
+  reserved_words["quarter"] = Token::Type::QUARTER;
+  reserved_words["year"] = Token::Type::YEAR;
+  reserved_words["microsecond"] = Token::Type::MICROSECOND;
+  reserved_words["as"] = Token::Type::AS;
+  reserved_words["asc"] = Token::Type::ASC;
+  reserved_words["desc"] = Token::Type::DESC;
+  reserved_words["cast"] = Token::Type::CAST;
+  reserved_words["character"] = Token::Type::CHARACTER;
+  reserved_words["set"] = Token::Type::SET;
+  reserved_words["charset"] = Token::Type::CHARSET;
+  reserved_words["ascii"] = Token::Type::ASCII;
+  reserved_words["unicode"] = Token::Type::UNICODE;
+  reserved_words["byte"] = Token::Type::BYTE;
+  reserved_words["binary"] = Token::Type::BINARY;
+  reserved_words["char"] = Token::Type::CHAR;
+  reserved_words["nchar"] = Token::Type::NCHAR;
+  reserved_words["date"] = Token::Type::DATE;
+  reserved_words["datetime"] = Token::Type::DATETIME;
+  reserved_words["time"] = Token::Type::TIME;
+  reserved_words["decimal"] = Token::Type::DECIMAL;
+  reserved_words["signed"] = Token::Type::SIGNED;
+  reserved_words["unsigned"] = Token::Type::UNSIGNED;
+  reserved_words["integer"] = Token::Type::INTEGER;
+  reserved_words["int"] = Token::Type::INTEGER;
+  reserved_words["json"] = Token::Type::JSON;
 
-  interval_units.insert(Token::MICROSECOND);
-  interval_units.insert(Token::SECOND);
-  interval_units.insert(Token::MINUTE);
-  interval_units.insert(Token::HOUR);
-  interval_units.insert(Token::DAY);
-  interval_units.insert(Token::WEEK);
-  interval_units.insert(Token::MONTH);
-  interval_units.insert(Token::QUARTER);
-  interval_units.insert(Token::YEAR);
+  interval_units.insert(Token::Type::MICROSECOND);
+  interval_units.insert(Token::Type::SECOND);
+  interval_units.insert(Token::Type::MINUTE);
+  interval_units.insert(Token::Type::HOUR);
+  interval_units.insert(Token::Type::DAY);
+  interval_units.insert(Token::Type::WEEK);
+  interval_units.insert(Token::Type::MONTH);
+  interval_units.insert(Token::Type::QUARTER);
+  interval_units.insert(Token::Type::YEAR);
 
   operator_names["="] = "==";
   operator_names["and"] = "&&";
@@ -224,12 +222,10 @@ Tokenizer::Maps::Maps() {
   unary_operator_names["not"] = "not";
 }
 
-Token::Token(Token::TokenType type, const std::string &text, int cur_pos)
-    : _type(type), _text(text), _pos(cur_pos) {}
+Token::Token(Token::Type type, const std::string &text, size_t cur_pos)
+    : m_type(type), m_text(text), m_pos(cur_pos) {}
 
-const std::string &Token::get_type_name() const {
-  return TokenName.at((int)_type);
-}
+const std::string &Token::get_type_name() const { return to_string(m_type); }
 
 struct Tokenizer::Maps map;
 
@@ -239,25 +235,26 @@ bool Tokenizer::next_char_is(tokens_t::size_type i, int tok) {
   return (i + 1) < _input.size() && _input[i + 1] == tok;
 }
 
-void Tokenizer::assert_cur_token(Token::TokenType type) {
+void Tokenizer::assert_cur_token(Token::Type type) {
   assert_tok_position();
   const Token &tok = _tokens.at(_pos);
-  Token::TokenType tok_type = tok.get_type();
+  Token::Type tok_type = tok.get_type();
   if (tok_type != type) {
     std::stringstream s;
-    if (tok.get_text() == tok.get_type_name()) {
-      s << "Expected token type " << TokenName.at((int)type) << " at position "
-        << tok.get_pos() << " but found " << tok.get_text() << ".";
+
+    s << "Expected " << to_string(type) << " but found ";
+
+    if (shcore::str_caseeq(tok.get_text(), tok.get_type_name())) {
+      s << tok.get_text();
     } else {
-      s << "Expected token type " << TokenName.at((int)type) << " at position "
-        << tok.get_pos() << " but found type " << tok.get_type_name() << " ("
-        << tok.get_text() << ").";
+      s << tok.get_type_name() << " (" << tok.get_text() << ")";
     }
-    throw Parser_error(s.str());
+
+    throw Parser_error(s.str(), tok, get_input());
   }
 }
 
-bool Tokenizer::cur_token_type_is(Token::TokenType type) {
+bool Tokenizer::cur_token_type_is(Token::Type type) {
   return pos_token_type_is(_pos, type);
 }
 
@@ -270,16 +267,15 @@ bool Tokenizer::cur_token_type_is_keyword() {
   }
 }
 
-bool Tokenizer::next_token_type(Token::TokenType type) {
+bool Tokenizer::next_token_type(Token::Type type) {
   return pos_token_type_is(_pos + 1, type);
 }
 
-bool Tokenizer::pos_token_type_is(tokens_t::size_type pos,
-                                  Token::TokenType type) {
+bool Tokenizer::pos_token_type_is(tokens_t::size_type pos, Token::Type type) {
   return (pos < _tokens.size()) && (_tokens[pos].get_type() == type);
 }
 
-const std::string &Tokenizer::consume_token(Token::TokenType type) {
+const std::string &Tokenizer::consume_token(Token::Type type) {
   assert_cur_token(type);
   const std::string &v = _tokens[_pos++].get_text();
   return v;
@@ -309,7 +305,7 @@ void Tokenizer::get_tokens() {
       continue;
     } else if (std::isdigit(c)) {
       // numerical literal
-      int start = i;
+      const int start = i;
       // floating grammar is
       // float -> int '.' (int | (int expo[sign] int))
       // int -> digit +
@@ -327,106 +323,100 @@ void Tokenizer::get_tokens() {
           while (i < _input.size() && std::isdigit(_input[i])) i++;
           if (i == j)
             throw Parser_error(
-                "Missing exponential value for floating point at char " +
-                std::to_string(i));
+                "Missing exponential value for floating point at position " +
+                std::to_string(start));
         }
-        _tokens.push_back(
-            Token(Token::LNUM, std::string(_input, start, i - start), i));
+        _tokens.push_back(Token(Token::Type::LNUM,
+                                std::string(_input, start, i - start), start));
       } else {
-        _tokens.push_back(
-            Token(Token::LINTEGER, std::string(_input, start, i - start), i));
+        _tokens.push_back(Token(Token::Type::LINTEGER,
+                                std::string(_input, start, i - start), start));
       }
       if (i < _input.size()) --i;
     } else if (!std::isalpha(c) && c != '_') {
       // # non-identifier, e.g. operator or quoted literal
       if (c == '?') {
-        _tokens.push_back(Token(Token::PLACEHOLDER, std::string(1, c), i));
+        _tokens.push_back(
+            Token(Token::Type::PLACEHOLDER, std::string(1, c), i));
       } else if (c == '+') {
-        _tokens.push_back(Token(Token::PLUS, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::PLUS, std::string(1, c), i));
       } else if (c == '-') {
         if (!arrow_last && next_char_is(i, '>')) {
-          ++i;
-          if (next_char_is(i, '>')) {
-            ++i;
-            _tokens.push_back(Token(Token::TWOHEADARROW, "->>", i));
+          if (next_char_is(i + 1, '>')) {
+            _tokens.push_back(Token(Token::Type::TWOHEADARROW, "->>", i));
+            i += 2;
           } else {
-            _tokens.push_back(Token(Token::ARROW, "->", i));
+            _tokens.push_back(Token(Token::Type::ARROW, "->", i++));
           }
           arrow_last = true;
           continue;
         } else {
-          _tokens.push_back(Token(Token::MINUS, std::string(1, c), i));
+          _tokens.push_back(Token(Token::Type::MINUS, std::string(1, c), i));
         }
       } else if (c == '*') {
         if (next_char_is(i, '*')) {
-          ++i;
-          _tokens.push_back(Token(Token::DOUBLESTAR, std::string("**"), i));
+          _tokens.push_back(
+              Token(Token::Type::DOUBLESTAR, std::string("**"), i++));
         } else {
-          _tokens.push_back(Token(Token::MUL, std::string(1, c), i));
+          _tokens.push_back(Token(Token::Type::MUL, std::string(1, c), i));
         }
       } else if (c == '/') {
-        _tokens.push_back(Token(Token::DIV, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::DIV, std::string(1, c), i));
       } else if (c == '$') {
-        _tokens.push_back(Token(Token::DOLLAR, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::DOLLAR, std::string(1, c), i));
       } else if (c == '%') {
-        _tokens.push_back(Token(Token::MOD, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::MOD, std::string(1, c), i));
       } else if (c == '=') {
-        _tokens.push_back(Token(Token::EQ, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::EQ, std::string(1, c), i));
       } else if (c == '&') {
-        _tokens.push_back(Token(Token::BITAND, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::BITAND, std::string(1, c), i));
       } else if (c == '|') {
-        _tokens.push_back(Token(Token::BITOR, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::BITOR, std::string(1, c), i));
       } else if (c == '(') {
-        _tokens.push_back(Token(Token::LPAREN, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::LPAREN, std::string(1, c), i));
       } else if (c == ')') {
-        _tokens.push_back(Token(Token::RPAREN, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::RPAREN, std::string(1, c), i));
       } else if (c == '[') {
-        _tokens.push_back(Token(Token::LSQBRACKET, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::LSQBRACKET, std::string(1, c), i));
       } else if (c == ']') {
-        _tokens.push_back(Token(Token::RSQBRACKET, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::RSQBRACKET, std::string(1, c), i));
       } else if (c == '{') {
-        _tokens.push_back(Token(Token::LCURLY, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::LCURLY, std::string(1, c), i));
       } else if (c == '}') {
-        _tokens.push_back(Token(Token::RCURLY, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::RCURLY, std::string(1, c), i));
       } else if (c == '~') {
-        _tokens.push_back(Token(Token::NEG, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::NEG, std::string(1, c), i));
       } else if (c == ',') {
-        _tokens.push_back(Token(Token::COMMA, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::COMMA, std::string(1, c), i));
       } else if (c == ':') {
-        _tokens.push_back(Token(Token::COLON, std::string(1, c), i));
+        _tokens.push_back(Token(Token::Type::COLON, std::string(1, c), i));
       } else if (c == '!') {
         if (next_char_is(i, '=')) {
-          ++i;
-          _tokens.push_back(Token(Token::NE, std::string("!="), i));
+          _tokens.push_back(Token(Token::Type::NE, std::string("!="), i++));
         } else {
-          _tokens.push_back(Token(Token::BANG, std::string(1, c), i));
+          _tokens.push_back(Token(Token::Type::BANG, std::string(1, c), i));
         }
       } else if (c == '<') {
         if (next_char_is(i, '<')) {
-          ++i;
-          _tokens.push_back(Token(Token::LSHIFT, std::string("<<"), i));
+          _tokens.push_back(Token(Token::Type::LSHIFT, std::string("<<"), i++));
         } else if (next_char_is(i, '=')) {
-          ++i;
-          _tokens.push_back(Token(Token::LE, std::string("<="), i));
+          _tokens.push_back(Token(Token::Type::LE, std::string("<="), i++));
         } else if (next_char_is(i, '>')) {
-          ++i;
-          _tokens.push_back(Token(Token::NE, std::string("!="), i));
+          _tokens.push_back(Token(Token::Type::NE, std::string("!="), i++));
         } else {
-          _tokens.push_back(Token(Token::LT, std::string("<"), i));
+          _tokens.push_back(Token(Token::Type::LT, std::string("<"), i));
         }
       } else if (c == '>') {
         if (next_char_is(i, '>')) {
-          ++i;
-          _tokens.push_back(Token(Token::RSHIFT, std::string(">>"), i));
+          _tokens.push_back(Token(Token::Type::RSHIFT, std::string(">>"), i++));
         } else if (next_char_is(i, '=')) {
-          ++i;
-          _tokens.push_back(Token(Token::GE, std::string(">="), i));
+          _tokens.push_back(Token(Token::Type::GE, std::string(">="), i++));
         } else {
-          _tokens.push_back(Token(Token::GT, std::string(1, c), i));
+          _tokens.push_back(Token(Token::Type::GT, std::string(1, c), i));
         }
       } else if (c == '.') {
         if ((i + 1) < _input.size() && std::isdigit(_input[i + 1])) {
-          size_t start = i;
+          const size_t start = i;
           ++i;
           // floating grammar is
           // float -> '.' (int | (int expo[sign] int))
@@ -442,17 +432,17 @@ void Tokenizer::get_tokens() {
             while (i < _input.size() && std::isdigit(_input[i])) ++i;
             if (i == j)
               throw Parser_error(
-                  "Missing exponential value for floating point at char " +
-                  std::to_string(i));
+                  "Missing exponential value for floating point at position " +
+                  std::to_string(start));
           }
-          _tokens.push_back(
-              Token(Token::LNUM, std::string(_input, start, i - start), i));
+          _tokens.push_back(Token(
+              Token::Type::LNUM, std::string(_input, start, i - start), start));
           if (i < _input.size()) --i;
         } else {
-          _tokens.push_back(Token(Token::DOT, std::string(1, c), i));
+          _tokens.push_back(Token(Token::Type::DOT, std::string(1, c), i));
         }
       } else if (c == '\'' && arrow_last) {
-        _tokens.push_back(Token(Token::QUOTE, "'", i));
+        _tokens.push_back(Token(Token::Type::QUOTE, "'", i));
         if (!inside_arrow)
           inside_arrow = true;
         else {
@@ -486,12 +476,13 @@ void Tokenizer::get_tokens() {
               std::to_string(start));
         }
         if (quote_char == '`') {
-          _tokens.push_back(Token(Token::IDENT, val, i));
+          _tokens.push_back(Token(Token::Type::IDENT, val, start));
         } else {
-          _tokens.push_back(Token(Token::LSTRING, val, i));
+          _tokens.push_back(Token(Token::Type::LSTRING, val, start));
         }
       } else {
-        throw Parser_error("Unknown character at " + std::to_string(i));
+        throw Parser_error("Unknown character at position " +
+                           std::to_string(i));
       }
     } else {
       size_t start = i;
@@ -500,9 +491,9 @@ void Tokenizer::get_tokens() {
       std::string val(_input, start, i - start);
       Maps::reserved_words_t::const_iterator it = map.reserved_words.find(val);
       if (it != map.reserved_words.end()) {
-        _tokens.push_back(Token(it->second, val, i));
+        _tokens.push_back(Token(it->second, val, start));
       } else {
-        _tokens.push_back(Token(Token::IDENT, val, i));
+        _tokens.push_back(Token(Token::Type::IDENT, val, start));
       }
       --i;
     }
@@ -520,22 +511,40 @@ const Token &Tokenizer::consume_any_token() {
 
 void Tokenizer::assert_tok_position() {
   if (_pos >= _tokens.size())
-    throw Parser_error("Expected token at position " + std::to_string(_pos) +
-                       " but no tokens left.");
+    throw Parser_error("Unexpected end of expression.");
 }
 
 bool Tokenizer::tokens_available() { return _pos < _tokens.size(); }
 
 bool Tokenizer::is_interval_units_type() {
   assert_tok_position();
-  Token::TokenType type = _tokens[_pos].get_type();
+  Token::Type type = _tokens[_pos].get_type();
   return map.interval_units.find(type) != map.interval_units.end();
 }
 
-bool Tokenizer::is_type_within_set(const std::set<Token::TokenType> &types) {
+bool Tokenizer::is_type_within_set(const std::set<Token::Type> &types) {
   assert_tok_position();
-  Token::TokenType type = _tokens[_pos].get_type();
+  Token::Type type = _tokens[_pos].get_type();
   return types.find(type) != types.end();
+}
+
+Parser_error::Parser_error(const std::string &msg, const Token &token,
+                           const std::string &line)
+    : std::runtime_error(msg + format(token, line)) {}
+
+std::string Parser_error::format(const Token &token, const std::string &line) {
+  std::stringstream s;
+
+  s << ", at position " << token.get_pos();
+
+  if (!line.empty()) {
+    s << ",\nin: " << line << "\n"
+      << std::string(4 + token.get_pos(), ' ')
+      << std::string(token.get_length(), '^')
+      << std::string(line.length() - token.get_pos() - token.get_length(), ' ');
+  }
+
+  return s.str();
 }
 
 bool Tokenizer::Cmp_icase::operator()(const std::string &lhs,
@@ -543,7 +552,17 @@ bool Tokenizer::Cmp_icase::operator()(const std::string &lhs,
   const char *c_lhs = lhs.c_str();
   const char *c_rhs = rhs.c_str();
 
-  return _stricmp(c_lhs, c_rhs) < 0;
+  return shcore::str_casecmp(c_lhs, c_rhs) < 0;
+}
+
+const std::string &to_string(const Token::Type &type) {
+  const auto name = k_token_name.find(type);
+  if (name == k_token_name.end()) {
+    throw std::runtime_error("Could not find token type: " +
+                             std::to_string(static_cast<int>(type)));
+  } else {
+    return name->second;
+  }
 }
 
 }  // namespace mysqlx

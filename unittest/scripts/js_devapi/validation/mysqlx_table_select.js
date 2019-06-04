@@ -290,5 +290,7 @@ Jake
 Mark
 3 rows in set ([[*]])
 
-//@ BUG29794340: Expected token type QUOTE
-||Expected token type QUOTE at position 6 but found >. (RuntimeError)
+//@<ERR> BUG29794340: Expected token type QUOTE
+TableSelect.select: Expected ' but found >, at position 6,
+in: doc->>>'$.name' as names
+          ^                  (RuntimeError)
