@@ -948,8 +948,8 @@ void Shell_options::check_host_conflicts() {
   }
 }
 
-#ifdef HAVE_PYTHON
 void Shell_options::check_oci_conflicts() {
+#ifdef HAVE_PYTHON
   if (!storage.oci_profile.is_null()) {
     if (storage.initial_mode != shcore::IShell_core::Mode::Python) {
       auto error =
@@ -958,8 +958,8 @@ void Shell_options::check_oci_conflicts() {
       throw std::runtime_error(error);
     }
   }
-}
 #endif
+}
 
 #ifdef _WIN32
 #define SOCKET_NAME "named pipe"

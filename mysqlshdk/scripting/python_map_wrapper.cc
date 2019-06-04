@@ -266,7 +266,12 @@ static PyObject *dict_subscript(PyShDictObject *self, PyObject *key) {
   if (!ctx) return NULL;
 
   try {
-    return ctx->shcore_value_to_pyobj((self->map->get()->find(k))->second);
+    const auto &result = self->map->get()->find(k);
+    if (result != self->map->get()->end()) {
+      return ctx->shcore_value_to_pyobj(result->second);
+    } else {
+      Python_context::set_python_error(PyExc_KeyError, k);
+    }
   } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
   }
@@ -352,6 +357,89 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
   return NULL;
 }
 
+struct Key_iterator {
+  PyObject_HEAD;
+  shcore::Value::Map_type_ref *map;
+  size_t initial_size;
+  shcore::Value::Map_type::iterator next;
+};
+
+static void Key_iterator_dealloc(Key_iterator *self) {
+  if (self->map) {
+    delete self->map;
+  }
+  PyObject_Del(self);
+}
+
+static PyObject *Key_iterator_next_key(Key_iterator *self) {
+  const auto &map = self->map->get();
+
+  if (!map) {
+    return nullptr;
+  }
+
+  if (map->size() != self->initial_size) {
+    Python_context::set_python_error(
+        PyExc_RuntimeError, "shell.Dict changed size during iteration");
+    // invalid size makes sure that this state is remembered
+    self->initial_size = static_cast<size_t>(-1);
+    return nullptr;
+  }
+
+  if (self->next == map->end()) {
+    // we've reached the end, release the reference to the map
+    delete self->map;
+    self->map = nullptr;
+    return nullptr;
+  } else {
+    const auto key = PyString_FromString(self->next->first.c_str());
+    ++self->next;
+    return key;
+  }
+}
+
+static PyTypeObject Key_iterator_type = {
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
+    "shell.DictIter",                       /* tp_name */
+    sizeof(Key_iterator),                   /* tp_basicsize */
+    0,                                      /* tp_itemsize */
+    /* methods */
+    (destructor)Key_iterator_dealloc,    /* tp_dealloc */
+    0,                                   /* tp_print */
+    0,                                   /* tp_getattr */
+    0,                                   /* tp_setattr */
+    0,                                   /* tp_reserved */
+    0,                                   /* tp_repr */
+    0,                                   /* tp_as_number */
+    0,                                   /* tp_as_sequence */
+    0,                                   /* tp_as_mapping */
+    0,                                   /* tp_hash */
+    0,                                   /* tp_call */
+    0,                                   /* tp_str */
+    PyObject_GenericGetAttr,             /* tp_getattro */
+    0,                                   /* tp_setattro */
+    0,                                   /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,                  /* tp_flags */
+    0,                                   /* tp_doc */
+    0,                                   /* tp_traverse */
+    0,                                   /* tp_clear */
+    0,                                   /* tp_richcompare */
+    0,                                   /* tp_weaklistoffset */
+    PyObject_SelfIter,                   /* tp_iter */
+    (iternextfunc)Key_iterator_next_key, /* tp_iternext */
+    0,                                   /* tp_methods */
+    0,
+};
+
+static PyObject *dict_iter(PyShDictObject *self) {
+  Key_iterator *iterator = PyObject_New(Key_iterator, &Key_iterator_type);
+  iterator->map = new Value::Map_type_ref(*self->map);
+  const auto &map = self->map->get();
+  iterator->initial_size = map->size();
+  iterator->next = map->begin();
+  return reinterpret_cast<PyObject *>(iterator);
+}
+
 PyDoc_STRVAR(PyShDictDoc,
              "Dict() -> shcore Map\n\
                                                                               \n\
@@ -430,8 +518,8 @@ static PyTypeObject PyShDictObjectType = {
 
     /* Added in release 2.2 */
     /* Iterators */
-    0,  // getiterfunc tp_iter;
-    0,  // iternextfunc tp_iternext;
+    (getiterfunc)dict_iter,  // getiterfunc tp_iter;
+    0,                       // iternextfunc tp_iternext;
 
     /* Attribute descriptor and subclassing stuff */
     PyShDictMethods,      // struct PyMethodDef *tp_methods;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,11 +24,16 @@
 #ifndef _TYPES_PYTHON_H_
 #define _TYPES_PYTHON_H_
 
+// python_context.h has to be included first
+
 #include "scripting/python_context.h"
+
+#include <memory>
 
 #include "scripting/types.h"
 
 namespace shcore {
+
 class SHCORE_PUBLIC Python_function : public Function_base {
  public:
   Python_function(Python_context *context, PyObject *function);
@@ -51,8 +56,9 @@ class SHCORE_PUBLIC Python_function : public Function_base {
 
  private:
   Python_context *_py;
-  PyObject *_function;
+  std::weak_ptr<AutoPyObject> m_function;
 };
+
 }  // namespace shcore
 
 #endif

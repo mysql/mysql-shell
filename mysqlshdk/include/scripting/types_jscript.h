@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #ifndef _TYPES_JSCRIPT_H_
 #define _TYPES_JSCRIPT_H_
 
+#include <memory>
+
 #include "scripting/jscript_context.h"
 
 #include "scripting/types.h"
@@ -31,6 +33,24 @@
 #include "scripting/include_v8.h"
 
 namespace shcore {
+
+class JScript_function_storage {
+ public:
+  JScript_function_storage(v8::Isolate *isolate,
+                           v8::Local<v8::Function> function) {
+    m_function.Reset(isolate, function);
+  }
+
+  ~JScript_function_storage() { m_function.Reset(); }
+
+  v8::Local<v8::Function> get(v8::Isolate *isolate) const {
+    return v8::Local<v8::Function>::New(isolate, m_function);
+  }
+
+ private:
+  v8::Persistent<v8::Function> m_function;
+};
+
 class JScript_function : public Function_base {
  public:
   JScript_function(JScript_context *context, v8::Local<v8::Function> function);
@@ -53,8 +73,9 @@ class JScript_function : public Function_base {
 
  private:
   JScript_context *_js;
-  v8::Persistent<v8::Function> _function;
+  std::weak_ptr<JScript_function_storage> m_function;
 };
+
 }  // namespace shcore
 
 #endif

@@ -24,6 +24,7 @@
 #ifndef _JSCRIPT_CONTEXT_H_
 #define _JSCRIPT_CONTEXT_H_
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -38,6 +39,8 @@ class Object_registry;
 
 using JSObject =
     v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>>;
+
+class JScript_function_storage;
 
 class SHCORE_PUBLIC JScript_context {
  public:
@@ -82,6 +85,10 @@ class SHCORE_PUBLIC JScript_context {
 
   std::string translate_exception(const v8::TryCatch &exc, bool interactive);
   bool load_plugin(const std::string &file_name);
+
+  std::weak_ptr<JScript_function_storage> store(
+      v8::Local<v8::Function> function);
+  void erase(const std::shared_ptr<JScript_function_storage> &function);
 
  private:
   struct JScript_context_impl;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,11 +28,15 @@
 using namespace shcore;
 
 Python_function::Python_function(Python_context *context, PyObject *function)
-    : _py(context), _function(function) {
-  Py_INCREF(_function);
+    : _py(context) {
+  m_function = _py->store(function);
 }
 
-Python_function::~Python_function() { Py_DECREF(_function); }
+Python_function::~Python_function() {
+  if (auto ref = m_function.lock()) {
+    _py->erase(ref);
+  }
+}
 
 const std::string &Python_function::name() const {
   // TODO:
@@ -63,30 +67,36 @@ bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
 }
 
 Value Python_function::invoke(const Argument_list &args) {
-  WillEnterPython lock;
+  if (auto function = m_function.lock()) {
+    WillEnterPython lock;
 
-  const auto argc = args.size();
-  PyObject *argv = PyTuple_New(argc);
+    const auto argc = args.size();
+    PyObject *argv = PyTuple_New(argc);
 
-  for (size_t index = 0; index < argc; ++index) {
-    PyTuple_SetItem(argv, index, _py->shcore_value_to_pyobj(args[index]));
-  }
-
-  PyObject *ret_val = PyObject_CallObject(_function, argv);
-  Py_DECREF(argv);
-
-  if (ret_val == nullptr) {
-    static constexpr auto error = "User-defined function threw an exception";
-    std::string details = _py->fetch_and_clear_exception();
-
-    if (!details.empty()) {
-      details = ": " + details;
+    for (size_t index = 0; index < argc; ++index) {
+      PyTuple_SetItem(argv, index, _py->shcore_value_to_pyobj(args[index]));
     }
 
-    throw Exception::scripting_error(error + details);
+    PyObject *ret_val = PyObject_CallObject(*function, argv);
+    Py_DECREF(argv);
+
+    if (ret_val == nullptr) {
+      static constexpr auto error = "User-defined function threw an exception";
+      std::string details = _py->fetch_and_clear_exception();
+
+      if (!details.empty()) {
+        details = ": " + details;
+      }
+
+      throw Exception::scripting_error(error + details);
+    } else {
+      const auto ret = _py->pyobj_to_shcore_value(ret_val);
+      Py_DECREF(ret_val);
+      return ret;
+    }
   } else {
-    const auto ret = _py->pyobj_to_shcore_value(ret_val);
-    Py_DECREF(ret_val);
-    return ret;
+    throw Exception::scripting_error(
+        "Bound function does not exist anymore, it seems that Python context "
+        "was released");
   }
 }

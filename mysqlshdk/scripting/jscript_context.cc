@@ -33,6 +33,8 @@
 #include <libplatform/libplatform.h>
 #endif
 
+#include <list>
+
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/module_registry.h"
 #include "scripting/object_factory.h"
@@ -42,6 +44,7 @@
 #include "scripting/jscript_function_wrapper.h"
 #include "scripting/jscript_map_wrapper.h"
 #include "scripting/jscript_object_wrapper.h"
+#include "scripting/types_jscript.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
@@ -101,6 +104,7 @@ struct JScript_context::JScript_context_impl {
   std::unique_ptr<v8::ArrayBuffer::Allocator> m_allocator;
   bool m_terminating = false;
   std::vector<v8::Global<v8::Context>> m_stored_contexts;
+  std::list<std::shared_ptr<JScript_function_storage>> m_stored_functions;
 
  public:
   JScript_context_impl(JScript_context *owner_)
@@ -223,6 +227,8 @@ struct JScript_context::JScript_context_impl {
 
       m_stored_contexts.clear();
     }
+
+    m_stored_functions.clear();
 
     // release the context
     context.Reset();
@@ -839,6 +845,17 @@ struct JScript_context::JScript_context_impl {
   void store_context(v8::Local<v8::Context> context) {
     m_stored_contexts.emplace_back(isolate, context);
   }
+
+  std::weak_ptr<JScript_function_storage> store(
+      v8::Local<v8::Function> function) {
+    m_stored_functions.emplace_back(
+        std::make_shared<JScript_function_storage>(isolate, function));
+    return m_stored_functions.back();
+  }
+
+  void erase(const std::shared_ptr<JScript_function_storage> &function) {
+    m_stored_functions.remove(function);
+  }
 };
 
 JScript_context::JScript_context(Object_registry *registry)
@@ -1376,6 +1393,16 @@ bool JScript_context::load_plugin(const std::string &file_name) {
   }
 
   return ret_val;
+}
+
+std::weak_ptr<JScript_function_storage> JScript_context::store(
+    v8::Local<v8::Function> function) {
+  return _impl->store(function);
+}
+
+void JScript_context::erase(
+    const std::shared_ptr<JScript_function_storage> &function) {
+  _impl->erase(function);
 }
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data) {

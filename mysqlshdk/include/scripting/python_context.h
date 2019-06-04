@@ -32,6 +32,7 @@
 #include "utils/utils_file.h"
 
 #include <list>
+#include <memory>
 #include <string>
 #include <utility>
 #include "scripting/python_type_conversion.h"
@@ -85,7 +86,7 @@ class AutoPyObject {
     return *this;
   }
 
-  operator bool() { return object != 0; }
+  explicit operator bool() const { return object != 0; }
 
   operator PyObject *() { return object; }
 
@@ -150,6 +151,9 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool raw_execute(const std::vector<std::string> &statements,
                    std::string *error = nullptr);
 
+  std::weak_ptr<AutoPyObject> store(PyObject *object);
+  void erase(const std::shared_ptr<AutoPyObject> &object);
+
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
                                const std::string &stream);
@@ -190,11 +194,13 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *_shell_stdin_module;
   PyObject *_shell_python_support_module;
 
+  // compiler flags are needed to detect imports from __future__, so they are
+  // available for subsequent executions
+  PyCompilerFlags m_compiler_flags;
+
   std::map<PyObject *, std::shared_ptr<shcore::Object_bridge>> _modules;
 
   void register_mysqlsh_module();
-  PyObject *call_module_function(PyObject *self, PyObject *args,
-                                 PyObject *keywords, const std::string &name);
 
   bool raw_execute_helper(const std::string &statement, std::string *error);
 
@@ -211,6 +217,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   void set_argv(const std::vector<std::string> &argv);
 
   std::list<AutoPyObject> _captured_eval_result;
+
+  std::list<std::shared_ptr<AutoPyObject>> m_stored_objects;
 
  protected:
   AutoPyObject _shell_list_class;

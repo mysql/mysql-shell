@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -339,6 +339,30 @@ TEST_F(Python, map_to_py) {
   // this forces conversion of a native JS map into a Value
   shcore::Value result = py->execute_interactive("{\"submap\": 444}", cont);
   ASSERT_EQ(result, Value(map2));
+
+  // BUG29599261 - test if maps are iterable - 'in' keyword
+  EXPECT_EQ(false, py->execute_interactive("'k0' in mapval", cont).as_bool());
+  EXPECT_EQ(true, py->execute_interactive("'k1' in mapval", cont).as_bool());
+
+  // BUG29599261 - iterate over map
+  static constexpr const auto expected = R"*(k1 -> 123
+k2 -> text
+k3 -> {"submap": 444}
+k4 -> test)*";
+  output_handler.wipe_all();
+  EXPECT_EQ(Value_type::Null,
+            py->execute_interactive("for i in mapval:\n"
+                                    "  print('%s -> %s' % (i, mapval[i]))",
+                                    cont)
+                .type);
+  MY_EXPECT_STDOUT_CONTAINS(expected);
+
+  // BUG29599261, BUG29702627 - accessing non-existing key should result in
+  // KeyError exception
+  output_handler.wipe_all();
+  EXPECT_EQ(Value_type::Undefined,
+            py->execute_interactive("mapval['k0']", cont).type);
+  MY_EXPECT_STDERR_CONTAINS("KeyError: 'k0'");
 }
 
 TEST_F(Python, object_to_py) {

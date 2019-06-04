@@ -173,6 +173,8 @@ std::unique_ptr<Python_init_singleton> Python_init_singleton::s_instance;
 unsigned int Python_init_singleton::s_cnt = 0;
 
 Python_context::Python_context(bool redirect_stdio) : _types(this) {
+  m_compiler_flags.cf_flags = 0;
+
   Python_init_singleton::init_python();
 
   _global_namespace = PyImport_AddModule("__main__");
@@ -231,6 +233,8 @@ bool Python_context::raw_execute_helper(const std::string &statement,
   bool ret_val = false;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   try {
+    // we're not using the compiler flags here, as this is an internal method
+    // and we don't want to interfere with the user context
     PyObject *py_result =
         PyRun_String(statement.c_str(), Py_single_input, _globals, _locals);
 
@@ -271,25 +275,25 @@ bool Python_context::raw_execute(const std::vector<std::string> &statements,
 }
 
 Python_context::~Python_context() {
-  PyObject *key, *value;
-  Py_ssize_t pos = 0;
+  {
+    WillEnterPython lock;
 
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
-  // Release all internal module references
-  while (PyDict_Next(py_mysqlsh_dict, &pos, &key, &value)) {
-    if (PyModule_Check(value)) {
-      PyObject *keys;
-      PyObject *dict = PyModule_GetDict(value);
-      keys = PyDict_Keys(dict);
-      for (Py_ssize_t i = 0, c = PyList_GET_SIZE(keys); i < c; i++) {
-        std::string name = PyString_AsString(PyList_GetItem(keys, i));
-        if (_modules.find(value) != _modules.end()) {
-          PyDict_DelItem(dict, PyList_GetItem(keys, i));
-          break;
-        }
+    m_stored_objects.clear();
+
+    // Release all internal module references
+    const auto py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
+    const auto keys = PyDict_Keys(py_mysqlsh_dict);
+
+    for (Py_ssize_t i = 0, c = PyList_GET_SIZE(keys); i < c; ++i) {
+      const auto module_name = PyList_GetItem(keys, i);
+      const auto module = PyDict_GetItem(py_mysqlsh_dict, module_name);
+
+      if (PyModule_Check(module) && _modules.find(module) != _modules.end()) {
+        PyDict_DelItem(py_mysqlsh_dict, module_name);
       }
-      Py_XDECREF(keys);
     }
+
+    Py_XDECREF(keys);
   }
 
   PyEval_RestoreThread(_main_thread_state);
@@ -368,7 +372,8 @@ Value Python_context::execute(const std::string &code,
 
   set_argv(argv);
 
-  py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _locals);
+  py_result = PyRun_StringFlags(code.c_str(), Py_file_input, _globals, _locals,
+                                &m_compiler_flags);
 
   if (!py_result) {
     PyErr_Print();
@@ -421,7 +426,8 @@ Value Python_context::execute_interactive(const std::string &code,
 
   PyObject *py_result = nullptr;
   try {
-    py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
+    py_result = PyRun_StringFlags(code.c_str(), Py_single_input, _globals,
+                                  _locals, &m_compiler_flags);
   } catch (const std::exception &e) {
     set_python_error(PyExc_RuntimeError, e.what());
 
@@ -901,47 +907,6 @@ PyMethodDef Python_context::ShellPythonSupportMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-PyObject *Python_context::call_module_function(PyObject *self, PyObject *args,
-                                               PyObject *keywords,
-                                               const std::string &name) {
-  Python_context *ctx;
-  std::string text;
-
-  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
-
-  if (!(ctx = Python_context::get_and_check())) return NULL;
-
-  shcore::Argument_list shell_args;
-
-  if (keywords) {
-    shell_args.push_back(ctx->pyobj_to_shcore_value(keywords));
-  } else if (args) {
-    int size = static_cast<int>(PyTuple_Size(args));
-
-    for (int index = 0; index < size; index++)
-      shell_args.push_back(
-          ctx->pyobj_to_shcore_value(PyTuple_GetItem(args, index)));
-  }
-
-  PyObject *py_ret_val = nullptr;
-  try {
-    auto module = _modules[self];
-    shcore::Value ret_val = module->call(name, shell_args);
-    py_ret_val = ctx->shcore_value_to_pyobj(ret_val);
-  } catch (shcore::Exception &e) {
-    set_python_error(e);
-  }
-
-  if (py_ret_val) {
-    return py_ret_val;
-  } else {
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
-
-  return NULL;
-}
-
 void Python_context::register_mysqlsh_module() {
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
@@ -1188,6 +1153,8 @@ bool Python_context::load_plugin(const std::string &file_name) {
     // copy globals, so executed scripts does not pollute global namespace
     PyObject *globals = PyDict_Copy(_globals);
     // PyRun_FileEx() will close the file
+    // plugins are loaded in sandboxed environment, we're not using the
+    // compiler flags here
     const auto result =
         PyRun_FileEx(file, shcore::path::basename(file_name).c_str(),
                      Py_file_input, globals, nullptr, true);
@@ -1258,6 +1225,15 @@ std::string Python_context::fetch_and_clear_exception() {
   }
 
   return exception;
+}
+
+std::weak_ptr<AutoPyObject> Python_context::store(PyObject *object) {
+  m_stored_objects.emplace_back(std::make_shared<AutoPyObject>(object));
+  return m_stored_objects.back();
+}
+
+void Python_context::erase(const std::shared_ptr<AutoPyObject> &object) {
+  m_stored_objects.remove(object);
 }
 
 }  // namespace shcore

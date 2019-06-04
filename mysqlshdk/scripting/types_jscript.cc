@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -114,10 +114,17 @@ class JScript_object_factory : public Object_factory {
 JScript_function::JScript_function(JScript_context *context,
                                    v8::Local<v8::Function> function)
     : _js(context) {
-  _function.Reset(_js->isolate(), function);
+  // lifetime of the function is bound to the lifetime of JS context, we store
+  // the pointer there and here we just hold a weak reference
+  m_function = _js->store(function);
 }
 
-JScript_function::~JScript_function() { _function.Reset(); }
+JScript_function::~JScript_function() {
+  if (auto ref = m_function.lock()) {
+    // if function still exists, JS context exists as well
+    _js->erase(ref);
+  }
+}
 
 const std::string &JScript_function::name() const {
   // TODO:
@@ -148,39 +155,44 @@ bool JScript_function::operator!=(const Function_base &UNUSED(other)) const {
 }
 
 Value JScript_function::invoke(const Argument_list &args) {
-  const auto isolate = _js->isolate();
-  v8::HandleScope handle_scope(isolate);
-  v8::TryCatch try_catch{isolate};
+  if (auto function = m_function.lock()) {
+    const auto isolate = _js->isolate();
+    v8::HandleScope handle_scope(isolate);
+    v8::TryCatch try_catch{isolate};
 
-  const auto argc = args.size();
-  std::vector<v8::Local<v8::Value>> argv;
-  argv.reserve(argc);
+    const auto argc = args.size();
+    std::vector<v8::Local<v8::Value>> argv;
+    argv.reserve(argc);
 
-  for (const auto &arg : args) {
-    argv.emplace_back(_js->shcore_value_to_v8_value(arg));
-  }
-
-  v8::Local<v8::Function> callback =
-      v8::Local<v8::Function>::New(isolate, _function);
-
-  v8::Local<v8::Context> lcontext = _js->context();
-  v8::Context::Scope context_scope(lcontext);
-
-  v8::MaybeLocal<v8::Value> ret_val = callback->Call(
-      lcontext, isolate->GetCurrentContext()->Global(), argc, &argv[0]);
-
-  if (ret_val.IsEmpty()) {
-    std::string error = "User-defined function threw an exception";
-
-    if (try_catch.HasCaught()) {
-      // set interactive to false, so location is always included
-      // we're invoking a callback, location will help the user to pin-point
-      // the problem
-      error += ":\n" + _js->translate_exception(try_catch, false);
+    for (const auto &arg : args) {
+      argv.emplace_back(_js->shcore_value_to_v8_value(arg));
     }
 
-    throw Exception::scripting_error(error);
+    v8::Local<v8::Function> callback = function->get(isolate);
+
+    v8::Local<v8::Context> lcontext = _js->context();
+    v8::Context::Scope context_scope(lcontext);
+
+    v8::MaybeLocal<v8::Value> ret_val = callback->Call(
+        lcontext, isolate->GetCurrentContext()->Global(), argc, &argv[0]);
+
+    if (ret_val.IsEmpty()) {
+      std::string error = "User-defined function threw an exception";
+
+      if (try_catch.HasCaught()) {
+        // set interactive to false, so location is always included
+        // we're invoking a callback, location will help the user to pin-point
+        // the problem
+        error += ":\n" + _js->translate_exception(try_catch, false);
+      }
+
+      throw Exception::scripting_error(error);
+    } else {
+      return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
+    }
   } else {
-    return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
+    throw Exception::scripting_error(
+        "Bound function does not exist anymore, it seems that JS context was "
+        "released");
   }
 }
