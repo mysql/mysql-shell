@@ -726,41 +726,40 @@ shcore::Value ReplicaSet::rejoin_instance(
     auto target_instance = mysqlshdk::mysql::Instance(session);
 
     // Handling of GR protocol version
-    {
+    try {
       // Get the current protocol version in use in the group
       mysqlshdk::utils::Version gr_protocol_version =
           mysqlshdk::gr::get_group_protocol_version(peer_instance);
 
-      // If the target instance being rejoined does not support the GR protocol
-      // version in use on the group (because it is an older version), the
-      // rejoinInstance command must set the GR protocol of the cluster to the
-      // version of the target instance.
-      try {
-        if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
-                                                          target_instance)) {
-          mysqlshdk::gr::set_group_protocol_version(
-              peer_instance, target_instance.get_version());
-        }
-      } catch (const shcore::Exception &error) {
-        // The UDF may fail with MySQL Error 1123 if any of the members is
-        // RECOVERING In such scenario, we must abort the upgrade protocol
-        // version process and warn the user
-        if (error.code() == ER_CANT_INITIALIZE_UDF) {
-          auto console = mysqlsh::current_console();
-          console->print_note(
-              "Unable to determine the Group Replication protocol version, "
-              "while verifying if a protocol upgrade would be possible: " +
-              std::string(error.what()) + ".");
-        } else {
-          throw;
-        }
-      }
+      // If the target instance being rejoined does not support the GR
+      // protocol version in use on the group (because it is an older
+      // version), the rejoinInstance command must set the GR protocol of the
+      // cluster to the version of the target instance.
 
-      // BUG#29265869: reboot cluster overrides some GR settings.
-      // Read actual GR configurations to preserve them when rejoining the
-      // instance.
-      gr_options.read_option_values(target_instance);
+      if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
+                                                        target_instance)) {
+        mysqlshdk::gr::set_group_protocol_version(
+            peer_instance, target_instance.get_version());
+      }
+    } catch (const shcore::Exception &error) {
+      // The UDF may fail with MySQL Error 1123 if any of the members is
+      // RECOVERING In such scenario, we must abort the upgrade protocol
+      // version process and warn the user
+      if (error.code() == ER_CANT_INITIALIZE_UDF) {
+        auto console = mysqlsh::current_console();
+        console->print_note(
+            "Unable to determine the Group Replication protocol version, "
+            "while verifying if a protocol upgrade would be possible: " +
+            std::string(error.what()));
+      } else {
+        throw;
+      }
     }
+
+    // BUG#29265869: reboot cluster overrides some GR settings.
+    // Read actual GR configurations to preserve them when rejoining the
+    // instance.
+    gr_options.read_option_values(target_instance);
 
     // Resolve GR local address.
     // NOTE: Must be done only after getting the report_host used by GR and for
