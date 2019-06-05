@@ -222,9 +222,9 @@ session.close();
 //@<OUT> Dba: configureLocalInstance create different admin user
 testutil.expectPassword("*", "");  // Pass for mydba
 testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("*", "dba_test");  // account name
-testutil.expectPassword("*", "");        // account pass
-testutil.expectPassword("*", "");        // account pass confirmation
+testutil.expectPrompt("Account Name: ", "dba_test");  // account name
+testutil.expectPassword("Password for new account: ", "");        // account pass
+testutil.expectPassword("Confirm password: ", "");        // account pass confirmation
 
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
@@ -232,7 +232,7 @@ dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 testutil.expectPassword("*", "");  // Pass for mydba
 testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("*", "dba_test");  // account name
+testutil.expectPrompt("Account Name: ", "dba_test");  // account name
 
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
@@ -247,7 +247,7 @@ session.close();
 //@ Dba: configureLocalInstance create existing invalid admin user
 testutil.expectPassword("*", "");  // Pass for mydba
 testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("*", "dba_test");  // account name
+testutil.expectPrompt("Account Name: ", "dba_test");  // account name
 testutil.expectPassword("*", "");        // account pass
 testutil.expectPassword("*", "");        // account pass confirmation
 

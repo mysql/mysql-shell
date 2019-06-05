@@ -125,7 +125,7 @@ try {testutil.rmfile(good_mycnf_path);} catch (err) {}
 try {testutil.rmfile(bad_mycnf_path);} catch (err) {}
 
 // Configure it once to get things that don't matter for this test out of the way
-dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root@'%'", clusterAdminPassword: "root", restart:false});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root@'%'", restart:false});
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 // Add a bogus option, to ensure it's not lost when the file is rewritten

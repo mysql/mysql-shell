@@ -195,8 +195,6 @@ void Configure_instance::check_create_admin_user() {
   auto console = mysqlsh::current_console();
 
   if (m_cluster_admin.empty()) {
-    m_cluster_admin_password = "";
-
     // Check that the account in use isn't too restricted (like localhost only)
     if (!check_admin_account_access_restrictions(*m_target_instance,
                                                  m_current_user, m_current_host,
@@ -233,6 +231,12 @@ void Configure_instance::check_create_admin_user() {
     }
 
     if (cluster_admin_user_exists) {
+      if (!m_cluster_admin_password.is_null()) {
+        throw shcore::Exception::argument_error(
+            "The " + m_cluster_admin +
+            " account already exists, clusterAdminPassword is not allowed for "
+            "an existing account.");
+      }
       std::string error_info;
       // cluster admin account exists, so we will validate its privileges
       // and log a warning to inform that the user won't be created
@@ -464,6 +468,12 @@ void Configure_instance::prepare_config_object() {
  */
 void Configure_instance::prepare() {
   auto console = mysqlsh::current_console();
+
+  if (m_cluster_admin.empty() && !m_cluster_admin_password.is_null()) {
+    throw shcore::Exception::argument_error(
+        "The clusterAdminPassword is allowed only if clusterAdmin is "
+        "specified.");
+  }
 
   // Establish a session to the target instance if not already established
   if (!m_target_instance) {

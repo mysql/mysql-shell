@@ -1747,39 +1747,15 @@ The instance definition is the connection data for the instance.
 
 ${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-The options dictionary may contain the following options:
+${CONFIGURE_INSTANCE_COMMON_OPTIONS}
 
-@li mycnfPath: The path to the MySQL configuration file of the instance.
-@li outputMycnfPath: Alternative output path to write the MySQL configuration
-file of the instance.
-@li password: The password to be used on the connection.
-@li clusterAdmin: The name of the InnoDB cluster administrator user to be
-created. The supported format is the standard MySQL account name format.
-@li clusterAdminPassword: The password for the InnoDB cluster administrator
-account.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
-
-If the outputMycnfPath option is used, only that file is updated and mycnfPath
-is treated as read-only.
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
+${CONFIGURE_INSTANCE_COMMON_DETAILS_1}
 
 The returned descriptive text of the operation result indicates whether the
 instance was successfully configured for InnoDB Cluster usage or if it was
 already valid for InnoDB Cluster usage.
 
-If the instance was not valid for InnoDB Cluster and interaction is enabled,
-before configuring the instance a prompt to confirm the changes is presented
-and a table with the following information:
-
-@li Variable: the invalid configuration variable.
-@li Current Value: the current value for the invalid configuration variable.
-@li Required Value: the required value for the configuration variable.
+${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
 
 @throw ArgumentError in the following scenarios:
 @li If the instance parameter is empty.
@@ -1789,6 +1765,9 @@ and a table with the following information:
 invalid.
 @li If the instance definition is missing the password.
 @li If the provided password is empty.
+@li If the clusterAdminPassword is provided and clusterAdmin is not provided.
+@li If the clusterAdminPassword is provided but the clusterAdmin account already
+exists.
 @li If the configuration file path is required but not provided or wrong.
 
 @throw RuntimeError in the following scenarios:
@@ -1818,6 +1797,46 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("configureLocalInstance"));
 }
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
+The options dictionary may contain the following options:
+
+@li mycnfPath: The path to the MySQL configuration file of the instance.
+@li outputMycnfPath: Alternative output path to write the MySQL configuration
+file of the instance.
+@li password: The password to be used on the connection.
+@li clusterAdmin: The name of the InnoDB cluster administrator account.
+@li clusterAdminPassword: The password for the InnoDB cluster administrator
+account.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
+)*");
+
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_1, R"*(
+If the outputMycnfPath option is used, only that file is updated and mycnfPath
+is treated as read-only.
+
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+The clusterAdmin must be a standard MySQL account name. It could be either an
+existing account or an account to be created.
+
+The clusterAdminPassword must be specified only if the clusterAdmin account will
+be created.
+)*");
+
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_2, R"*(
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+)*");
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGUREINSTANCE, R"*(
@@ -1835,44 +1854,16 @@ The instance definition is the connection data for the instance.
 
 ${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
 
-The options dictionary may contain the following options:
-
-@li mycnfPath: The path to the MySQL configuration file of the instance.
-@li outputMycnfPath: Alternative output path to write the MySQL configuration
-file of the instance.
-@li password: The password to be used on the connection.
-@li clusterAdmin: The name of the InnoDB cluster administrator user to be
-created. The supported format is the standard MySQL account name format.
-@li clusterAdminPassword: The password for the InnoDB cluster administrator
-account.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
-
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
-
+${CONFIGURE_INSTANCE_COMMON_OPTIONS}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
 
-If the outputMycnfPath option is used, only that file is updated and mycnfPath
-is treated as read-only.
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
+${CONFIGURE_INSTANCE_COMMON_DETAILS_1}
 
 This function reviews the instance configuration to identify if it is valid for
 usage in group replication and cluster. An exception is thrown if not.
 
-If the instance was not valid for InnoDB Cluster and interaction is enabled,
-before configuring the instance a prompt to confirm the changes is presented
-and a table with the following information:
-
-@li Variable: the invalid configuration variable.
-@li Current Value: the current value for the invalid configuration variable.
-@li Required Value: the required value for the configuration variable.
-@li Required Value: the required value for the configuration variable.
-
+${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
 
 @throw ArgumentError in the following scenarios:
 @li If 'interactive' is disabled and the instance parameter is empty.
@@ -1883,6 +1874,9 @@ invalid.
 @li If 'interactive' mode is disabled and the instance definition is missing
 the password.
 @li If 'interactive' mode is enabled and the provided password is empty.
+@li If the clusterAdminPassword is provided and clusterAdmin is not provided.
+@li If the clusterAdminPassword is provided but the clusterAdmin account already
+exists.
 
 @throw RuntimeError in the following scenarios:
 @li If the configuration file path is required but not provided or wrong.

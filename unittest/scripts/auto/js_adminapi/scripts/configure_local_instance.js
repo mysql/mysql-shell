@@ -35,6 +35,12 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
+//@ test configureLocalInstance providing clusterAdminPassword without clusterAdmin
+dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdminPassword:'root'});
+
+//@ test configureLocalInstance providing clusterAdminPassword and an existing clusterAdmin
+dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf, clusterAdmin: 'root2', clusterAdminPassword: 'whatever' });
+
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");

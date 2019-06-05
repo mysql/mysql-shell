@@ -203,7 +203,7 @@ dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
-    {clusterAdmin: "dba_test", clusterAdminPassword:"",
+    {clusterAdmin: "dba_test",
         mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
@@ -216,7 +216,7 @@ session.close();
 //@# Dba: configureLocalInstance create existing invalid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
-    {clusterAdmin: "dba_test", clusterAdminPassword:"",
+    {clusterAdmin: "dba_test",
         mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@ Dba: Delete previously create an admin user with all needed privileges

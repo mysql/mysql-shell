@@ -71,6 +71,7 @@ class Testutils : public mysqlsh::Extensible_object {
                                              Integer timeout = 60);
   Undefined expectPrompt(String prompt, String answer);
   Undefined expectPassword(String prompt, String password);
+  Undefined assertNoPrompts();
   Integer makeFileReadonly(String path);
   List grepFile(String path, String pattern);
   Bool isTcpPortListening(String host, Integer port);
@@ -109,6 +110,7 @@ class Testutils : public mysqlsh::Extensible_object {
                                              int timeout = 60);
   None expect_prompt(str prompt, str answer);
   None expect_password(str prompt, str password);
+  None assert_no_prompts();
   int make_file_readonly(str path);
   list grep_file(str path, str pattern);
   bool is_tcp_port_listening(str host, int port);
@@ -140,13 +142,16 @@ class Testutils : public mysqlsh::Extensible_object {
       std::function<void(const std::string &, const std::string &)>;
 
   using Output_fn = std::function<std::string(bool)>;
+  using Assert_no_prompts_fn = std::function<void()>;
 
   void set_test_callbacks(Input_fn feed_prompt, Input_fn feed_password,
-                          Output_fn fetch_stdout, Output_fn fetch_stderr) {
+                          Output_fn fetch_stdout, Output_fn fetch_stderr,
+                          Assert_no_prompts_fn assert_no_prompts) {
     _feed_prompt = feed_prompt;
     _feed_password = feed_password;
     _fetch_stdout = fetch_stdout;
     _fetch_stderr = fetch_stderr;
+    _assert_no_prompts = assert_no_prompts;
   }
 
   void set_test_execution_context(const std::string &file, int line,
@@ -248,6 +253,7 @@ class Testutils : public mysqlsh::Extensible_object {
   // the test if it is different
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
+  void assert_no_prompts();
 
   bool version_check(const std::string &v1, const std::string &op,
                      const std::string &v2);
@@ -291,6 +297,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Input_fn _feed_password;
   Output_fn _fetch_stdout;
   Output_fn _fetch_stderr;
+  Assert_no_prompts_fn _assert_no_prompts;
   std::string _test_file;
   int _test_line = 0;
   Shell_test_env *_test_env = nullptr;

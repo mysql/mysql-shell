@@ -432,6 +432,10 @@ void Shell_core_test_wrapper::enable_testutil() {
         } else {
           return output_handler.std_err;
         }
+      },
+      [this]() -> void {
+        EXPECT_EQ(0, output_handler.prompts.size());
+        EXPECT_EQ(0, output_handler.passwords.size());
       });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)

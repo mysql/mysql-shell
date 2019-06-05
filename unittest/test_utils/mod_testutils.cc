@@ -174,6 +174,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
+  expose("assertNoPrompts", &Testutils::assert_no_prompts);
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
 
@@ -2054,6 +2055,22 @@ void Testutils::expect_prompt(const std::string &prompt,
                               const std::string &text) {
   _feed_prompt(prompt, text);
 }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Verifies that all the expected prompts were consumed.
+ *
+ * This function can be used at the end of the execution of a test chunk to
+ * ensure all the expected prompts and passwords were consumed.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::assertNoPrompts();
+#elif DOXYGEN_PY
+None Testutils::assert_no_prompts();
+#endif
+///@}
+void Testutils::assert_no_prompts() { _assert_no_prompts(); }
 
 //!<  @name Testing Utilities
 ///@{

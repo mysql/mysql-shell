@@ -64,9 +64,9 @@ instance3_id = get_server_id(session);
 session.close();
 
 //@ Configure sandboxes.
-dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: mycnf_path1});
-dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: mycnf_path2});
-dba.configureInstance(__sandbox_uri3, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: mycnf_path3});
+dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', mycnfPath: mycnf_path1});
+dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', mycnfPath: mycnf_path2});
+dba.configureInstance(__sandbox_uri3, {clusterAdmin:'root', mycnfPath: mycnf_path3});
 
 //@ Create cluster.
 shell.connect(__hostname_uri1);

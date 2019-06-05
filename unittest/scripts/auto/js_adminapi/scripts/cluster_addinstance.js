@@ -311,11 +311,11 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', mycnfPath: sandbox_cnf1});
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: sandbox_cnf2});
+dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', mycnfPath: sandbox_cnf2});
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port2);
 

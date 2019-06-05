@@ -163,9 +163,7 @@ DESCRIPTION
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
       - password: The password to be used on the connection.
-      - clusterAdmin: The name of the InnoDB cluster administrator user to be
-        created. The supported format is the standard MySQL account name
-        format.
+      - clusterAdmin: The name of the InnoDB cluster administrator account.
       - clusterAdminPassword: The password for the InnoDB cluster administrator
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
@@ -182,6 +180,12 @@ DESCRIPTION
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
 
+      The clusterAdmin must be a standard MySQL account name. It could be
+      either an existing account or an account to be created.
+
+      The clusterAdminPassword must be specified only if the clusterAdmin
+      account will be created.
+
       This function reviews the instance configuration to identify if it is
       valid for usage in group replication and cluster. An exception is thrown
       if not.
@@ -193,7 +197,6 @@ DESCRIPTION
       - Variable: the invalid configuration variable.
       - Current Value: the current value for the invalid configuration
         variable.
-      - Required Value: the required value for the configuration variable.
       - Required Value: the required value for the configuration variable.
 
 EXCEPTIONS
@@ -207,6 +210,10 @@ EXCEPTIONS
       - If 'interactive' mode is disabled and the instance definition is
         missing the password.
       - If 'interactive' mode is enabled and the provided password is empty.
+      - If the clusterAdminPassword is provided and clusterAdmin is not
+        provided.
+      - If the clusterAdminPassword is provided but the clusterAdmin account
+        already exists.
 
       RuntimeError in the following scenarios:
 
@@ -249,9 +256,7 @@ DESCRIPTION
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
       - password: The password to be used on the connection.
-      - clusterAdmin: The name of the InnoDB cluster administrator user to be
-        created. The supported format is the standard MySQL account name
-        format.
+      - clusterAdmin: The name of the InnoDB cluster administrator account.
       - clusterAdminPassword: The password for the InnoDB cluster administrator
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
@@ -265,6 +270,12 @@ DESCRIPTION
 
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
+
+      The clusterAdmin must be a standard MySQL account name. It could be
+      either an existing account or an account to be created.
+
+      The clusterAdminPassword must be specified only if the clusterAdmin
+      account will be created.
 
       The returned descriptive text of the operation result indicates whether
       the instance was successfully configured for InnoDB Cluster usage or if
@@ -289,6 +300,10 @@ EXCEPTIONS
         invalid.
       - If the instance definition is missing the password.
       - If the provided password is empty.
+      - If the clusterAdminPassword is provided and clusterAdmin is not
+        provided.
+      - If the clusterAdminPassword is provided but the clusterAdmin account
+        already exists.
       - If the configuration file path is required but not provided or wrong.
 
       RuntimeError in the following scenarios:
