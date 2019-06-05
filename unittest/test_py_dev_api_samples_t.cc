@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -18,6 +18,9 @@
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+
+#include "mysqlshdk/include/scripting/python_utils.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
@@ -192,12 +195,15 @@ TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets_3) {
 //==================>>> statement_execution
 // This specific example does not work for python 2.6 so we disable it for it
 // (OEL6)
-#if PY_MAJOR_VERSION > 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION > 6)
-
 TEST_F(Shell_py_dev_api_sample_tester, Error_Handling) {
+  auto py_version = mysqlshdk::utils::Version(
+      PY_MAJOR_VERSION, PY_MINOR_VERSION, PY_MICRO_VERSION);
+
+  if (py_version <= mysqlshdk::utils::Version(2, 6, 0))
+    SKIP_TEST("This test requires running Python > 2.6");
+
   validate_interactive("statement_execution/Error_Handling");
 }
-#endif
 
 TEST_F(Shell_py_dev_api_sample_tester, Processing_Warnings) {
   validate_interactive("statement_execution/Processing_Warnings");

@@ -159,7 +159,8 @@ class Python_init_singleton final {
         signal(SIGINT, prev_signal);
       }
 #endif
-
+      char *argv[] = {(char *)""};
+      PySys_SetArgvEx(1, argv, 0);
       m_local_initialization = true;
     }
   }
