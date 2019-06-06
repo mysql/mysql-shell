@@ -825,10 +825,9 @@ def create_sandbox(**kwargs):
                     "".format(start_ret_code,
                               os.path.join(datadir, "error.log")))
         # change password of root account
-        query = "ALTER USER 'root'@'localhost' IDENTIFIED BY '{0}'"
+        query = server.Query("ALTER USER 'root'@'localhost' IDENTIFIED BY ?", server.Secret(password))
         s.toggle_binlog(action="disable")
-        s.exec_query(query.format(password),
-                     query_to_log=query.format("******"))
+        s.exec_query(query)
         s.toggle_binlog(action="enable")
         s.disconnect()
         _LOGGER.info("Password changed.")

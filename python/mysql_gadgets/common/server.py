@@ -64,6 +64,47 @@ logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 
+class Secret(object):
+    def __init__(self, s):
+        super(Secret, self).__init__()
+        self.value = s
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return repr(self.value)
+
+
+class Query(object):
+    def __init__(self, query_string, *params):
+        super(Query, self).__init__()
+        self._query_string = query_string
+        self._params = params
+
+    def extend(self, query_string, *params):
+        self._query_string += " " + query_string
+        self._params.extend(params)
+
+    def query(self):
+        return self._query_string
+
+    def params(self, mask=False):
+        if mask:
+            return tuple(map(lambda x: "<secret>" if isinstance(x, Secret) else x, self._params))
+
+        return tuple(map(lambda x: x.value if isinstance(x, Secret) else x, self._params))
+
+    def __str__(self):
+        if self._params:
+            return "{0}, with params: {1}".format(self.query(), self.params(True))
+
+        return self.query()
+
+    def log(self):
+        return self.__str__()
+
+
 def _to_str(value, charset="utf-8"):
     """Cast value to str except when None
 
@@ -133,6 +174,7 @@ def is_valid_mysqld(mysqld_path):
     _LOGGER.debug("Invalid mysqld version (or not executable): '%s'",
                   mysqld_path)
     return False
+
 
 class MySQLUtilsCursorResult(object):
     def __init__(self, result):
@@ -705,9 +747,8 @@ class Server(object):
         :raise GadgetServerError: If an error occurs getting the user accounts
                                   information.
         """
-        res = self.exec_query("SELECT host FROM mysql.user WHERE user = '{0}' "
-                              "AND '{1}' LIKE host".format(user_name,
-                                                           host_name))
+        res = self.exec_query(Query("SELECT host FROM mysql.user WHERE user = ? "
+                                    "AND ? LIKE host", user_name, host_name))
         if res:
             return True
         return False
@@ -809,7 +850,8 @@ class Server(object):
             return db_conn
         except mysqlsh.DBError as err:
             _LOGGER.debug("Connector Error: %s", err)
-            raise GadgetCnxError(err.args[1], err.args[0], cause=err, server=self)
+            raise GadgetCnxError(
+                err.args[1], err.args[0], cause=err, server=self)
         except AttributeError as err:
             # Might be raised by mysql.connector.connect()
             raise GadgetCnxError(str(err), cause=err, server=self)
@@ -895,8 +937,7 @@ class Server(object):
         else:
             return False
 
-    def exec_query(self, query_str, options=None, exec_timeout=0,
-                   query_to_log=None):
+    def exec_query(self, query, options=None, exec_timeout=0):
         """Execute a query and return result.
 
         This is the singular method to execute queries. It should be the only
@@ -910,11 +951,12 @@ class Server(object):
             - By default a commit is performed at the end, unless 'commit'
               is set to False in the options.
 
-        :param query_str:    The statement (query) to execute.
-        :type  query_str:    string
+        :param query:    Query object or string with the SQL statement to
+                         execute.
+        :type  query:    Query
+        :type  query:    str
         :param options:      Options to control the execution of the statement.
                              The follow values are supported:
-            params         Parameters for the query.
             columns        Add column headings as first row. By default, False.
             fetch          Execute the fetch as part of the operation and
                            use a buffered cursor. By default, True.
@@ -929,10 +971,6 @@ class Server(object):
                              zero for this feature to be enabled. By default 0,
                              meaning that the query will not be killed.
         :type  exec_timeout: integer
-        :param query_to_log: The statement (query) to be logged, in case some
-                             values cannot be displayed. If None (default)
-                             query_str will be logged.
-        :type query_to_log: string
 
         :return: List of rows (tuples) or Cursor with the result of the query.
         :rtype:  list of tuples or Cursor object
@@ -945,11 +983,13 @@ class Server(object):
         """
         if options is None:
             options = {}
-        params = options.get('params', ())
         columns = options.get('columns', False)
         fetch = options.get('fetch', True)
         raw = options.get('raw', True)
         do_commit = options.get('commit', True)
+
+        if isinstance(query, str):
+            query = Query(query)
 
         # Guard for connect() prerequisite
         if not self.db_conn:
@@ -960,33 +1000,24 @@ class Server(object):
         q_killer = None
         try:
             if exec_timeout > 0:
+                if query.params():
+                    raise NotImplementedError()
                 # Spawn thread to kill query if timeout is reached.
                 # Note: set it as daemon to avoid waiting for it on exit.
-                q_killer = QueryKillerThread(self, query_str, exec_timeout)
+                q_killer = QueryKillerThread(self, query.query(), exec_timeout)
                 q_killer.daemon = True
                 q_killer.start()
             # Execute query.
             cur = None
 
-            if params == ():
-                if query_to_log:
-                    _LOGGER.debug("MySQL query: %s", query_to_log)
-                else:
-                    _LOGGER.debug("MySQL query: %s", query_str)
-                cur = MySQLUtilsCursorResult(self.db_conn.run_sql(query_str))
+            _LOGGER.debug("MySQL query: " + query.log())
+            if query.params():
+                cur = MySQLUtilsCursorResult(
+                    self.db_conn.run_sql(query.query(), query.params()))
             else:
-                if query_to_log:
-                    _LOGGER.debug("MySQL query: %s, params %s", query_to_log,
-                                  params)
-                else:
-                    _LOGGER.debug("MySQL query: %s, params %s", query_str,
-                                  params)
-                cur = MySQLUtilsCursorResult(self.db_conn.run_sql(query_str, params))
+                cur = MySQLUtilsCursorResult(
+                    self.db_conn.run_sql(query.query()))
         except mysqlsh.DBError as err:
-            # if any exception happened, mask  the query_str that will be
-            # shown in the exception messages
-            if query_to_log:
-                query_str = query_to_log
             if cur:
                 cur.close()
             if err.args[0] == CR_SERVER_LOST and exec_timeout > 0:
@@ -997,19 +1028,17 @@ class Server(object):
                 # CR_SERVER_LOST = Errno 2013 Lost connection to MySQL server
                 # during query.
                 self.connect()
-                raise GadgetQueryError("Timeout executing query", query_str,
+                raise GadgetQueryError("Timeout executing query", query.log(),
                                        errno=err.args[0], cause=err, server=self)
             else:
                 raise GadgetQueryError("Query failed. {0}".format(err),
-                                       query_str, errno=err.args[0], cause=err,
+                                       query.log(), errno=err.args[0], cause=err,
                                        server=self)
         except Exception as err:
             if cur:
                 cur.close()
-            if query_to_log:
-                query_str = query_to_log
             raise GadgetQueryError("Unknown error: {0}".format(err),
-                                   query_str, errno=0, cause=err,
+                                   query.log(), errno=0, cause=err,
                                    server=self)
         finally:
             # Stop query killer thread if alive.
@@ -1028,11 +1057,9 @@ class Server(object):
                             col_names.append(col)
                         results = col_names, results
                 except mysqlsh.DBError as err:
-                    if query_to_log:
-                        query_str = query_to_log
                     raise GadgetQueryError(
                         "Error fetching all query data: {0}".format(err),
-                        query_str, errno=err.args[0], cause=err, server=self)
+                        query.log(), errno=err.args[0], cause=err, server=self)
                 finally:
                     cur.close()
                 return results
@@ -1045,10 +1072,8 @@ class Server(object):
                 if do_commit:
                     self.db_conn.run_sql("commit")
             except mysqlsh.DBError as err:
-                if query_to_log:
-                    query_str = query_to_log
                 raise GadgetQueryError(
-                    "Error performing commit: {0}".format(err), query_str,
+                    "Error performing commit: {0}".format(err), query.log(),
                     errno=err.args[0], cause=err, server=self)
             finally:
                 cur.close()
@@ -1094,7 +1119,7 @@ class Server(object):
 
         :raise GadgetServerError: If an error occur getting the variable value.
         """
-        return self.exec_query("SHOW VARIABLES LIKE '{0}'".format(variable))
+        return self.exec_query(Query("SHOW VARIABLES LIKE ?", variable))
 
     def set_variable(self, var_name, var_value, var_type="session"):
         """Set server variable using the SET statement.
@@ -1179,9 +1204,9 @@ class Server(object):
                  changed by the user).
         :rtype: boolean
         """
-        res = self.exec_query("SELECT variable_source "
-                              "FROM performance_schema.variables_info "
-                              "WHERE variable_name='{0}'".format(var_name))
+        res = self.exec_query(Query("SELECT variable_source "
+                                    "FROM performance_schema.variables_info "
+                                    "WHERE variable_name=?", var_name))
         if res[0][0] == 'COMPILED':
             return True
         else:
@@ -1289,10 +1314,10 @@ class Server(object):
         :raise GadgetServerError: If an error occurs when checking for the
                                   plugin support.
         """
-        _PLUGIN_QUERY = (
+        _PLUGIN_QUERY = Query(
             "SELECT PLUGIN_NAME, PLUGIN_STATUS "
-            "FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE '{0}%'")
-        res = self.exec_query(_PLUGIN_QUERY.format(plugin))
+            "FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE ?", "{0}%".format(plugin))
+        res = self.exec_query(_PLUGIN_QUERY)
         if not res:
             # plugin not found.
             _LOGGER.debug("Plugin %s is not installed", plugin)
