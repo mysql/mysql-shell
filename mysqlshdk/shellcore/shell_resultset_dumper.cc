@@ -683,11 +683,11 @@ void dump_json_row(shcore::JSON_dumper *dumper,
  * being processed.
  */
 size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
-  auto metadata = m_result->get_metadata();
+  const auto &metadata = m_result->get_metadata();
   auto row = m_result->fetch_one();
   size_t row_count = 0;
-  bool as_array = m_format == "json/array";
-  bool pretty = m_format != "json/raw" && m_format != "json/array";
+  const bool as_array = m_format == "json/array";
+  const bool pretty = m_format != "json/raw" && m_format != "json/array";
 
   if (!row) return row_count;
 
@@ -719,7 +719,7 @@ size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
 }
 
 size_t Resultset_dumper_base::dump_tabbed() {
-  auto metadata = m_result->get_metadata();
+  const auto &metadata = m_result->get_metadata();
   auto row = m_result->fetch_one();
   size_t row_index = 0;
 
@@ -760,7 +760,7 @@ size_t Resultset_dumper_base::dump_tabbed() {
 }
 
 size_t Resultset_dumper_base::dump_vertical() {
-  auto metadata = m_result->get_metadata();
+  const auto &metadata = m_result->get_metadata();
 
   std::string star_separator(27, '*');
 
@@ -831,7 +831,7 @@ size_t Resultset_dumper_base::dump_json(const std::string &item_label,
 
   size_t row_count = 0;
   if (m_result->has_resultset()) {
-    auto metadata = m_result->get_metadata();
+    const auto &metadata = m_result->get_metadata();
     auto row = m_result->fetch_one();
     while (row) {
       if (is_doc_result) {
@@ -900,20 +900,15 @@ size_t Resultset_dumper_base::dump_json(const std::string &item_label,
 }
 
 size_t Resultset_dumper_base::dump_table() {
-  auto metadata = m_result->get_metadata();
-
-  std::vector<std::string> columns;
+  const auto &metadata = m_result->get_metadata();
   std::vector<Field_formatter> fmt;
-
-  size_t field_count = metadata.size();
+  const size_t field_count = metadata.size();
   if (field_count == 0) return 0;
 
   // Updates the max_length array with the maximum length between column name,
   // min column length and column max length
   for (size_t field_index = 0; field_index < field_count; field_index++) {
     auto column = metadata[field_index];
-
-    columns.push_back(column.get_column_label());
     fmt.emplace_back(ResultFormat::TABLE, column);
   }
 
