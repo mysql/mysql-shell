@@ -150,7 +150,10 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
   }
 
   _last_handled.append(query_str, query_len).append(delimiter);
-  // check if value of sql_mode have changed
+
+  // check if the value of sql_mode have changed - statement can either begin
+  // with 'SET' or, because our splitter does not strip them, with a C style
+  // comment e.g.: /*...*/ set sql_mode...
   if (ret_val && query_len > 12 &&
       (query_str[2] == 't' || query_str[2] == 'T' || query_str[1] == '*')) {
     mysqlshdk::utils::SQL_string_iterator it(_last_handled);
@@ -208,6 +211,23 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
 }
 
 void Shell_sql::handle_input(std::string &code, Input_state &state) {
+  // TODO(kolesink) this is a temporary solution and should be removed when
+  // splitter is adjusted to be able to restart parsing from previous state
+  if (state == Input_state::ContinuedSingle) {
+    bool statement_complete = false;
+    for (const auto s : {m_splitter.delimiter().c_str(), "\\G", "\\g"})
+      if (code.find(s) != std::string::npos) {
+        statement_complete = true;
+        break;
+      }
+    // no need to re-parse code until statement is complete
+    if (!statement_complete) {
+      m_buffer.append(code);
+      code.clear();
+      return;
+    }
+  }
+
   state = Input_state::Ok;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   bool got_error = false;

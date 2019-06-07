@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -418,8 +418,9 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   // SQL has not been handled yet
   EXPECT_EQ("", env.shell_sql->get_handled_input());
 
-  // Prompt for continued statement
-  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
+  // Prompt for continued statement - context is a comment because parsing is
+  // stopped until delimiter comes;
+  EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
   query = ";";
   handle_input(query, state);
