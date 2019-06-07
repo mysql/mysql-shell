@@ -448,7 +448,9 @@ class Help_manager {
                    bool insert_blank_lines = true);
 
   void add_examples_section(const std::string &tag,
-                            std::vector<std::string> *sections, size_t padding);
+                            std::vector<std::string> *sections, size_t padding,
+                            const std::string &single_title = "EXAMPLE",
+                            const std::string &multi_title = "EXAMPLES");
 
  private:
   // Holds the active mode to be used for the help handling
@@ -610,6 +612,10 @@ class Help_manager {
       #name, shcore::Topic_type::GLOBAL_OBJECT, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
 
+#define REGISTER_HELP_GLOBAL_OBJECT_MODE(name, parent, mode) \
+  shcore::Help_topic_register object_##parent##name(         \
+      #name, shcore::Topic_type::GLOBAL_OBJECT, #name, #parent, mode)
+
 #define REGISTER_HELP_MODULE(name, parent)               \
   shcore::Help_topic_register module_##parent##name(     \
       #name, shcore::Topic_type::MODULE, #name, #parent, \
@@ -619,10 +625,19 @@ class Help_manager {
   shcore::Help_topic_register function_##parent##name(     \
       #name, shcore::Topic_type::FUNCTION, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_FUNCTION_MODE(name, parent, mode) \
+  shcore::Help_topic_register function_##parent##name(  \
+      #name, shcore::Topic_type::FUNCTION, #name, #parent, mode)
+
 #define REGISTER_HELP_PROPERTY(name, parent)               \
   shcore::Help_topic_register property_##parent##name(     \
       #name, shcore::Topic_type::PROPERTY, #name, #parent, \
       shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_PROPERTY_MODE(name, parent, mode) \
+  shcore::Help_topic_register property_##parent##name(  \
+      #name, shcore::Topic_type::PROPERTY, #name, #parent, mode)
 
 #define REGISTER_HELP_TOPIC_TEXT(x, y) \
   shcore::Help_register_topic_text x(#x, y, false)

@@ -69,6 +69,35 @@ REGISTER_HELP(SCHEMA_DETAIL2,
 REGISTER_HELP(SCHEMA_DETAIL3,
               "For the purpose of this API, Views behave similar to a Table, "
               "and so they are treated as Tables.");
+REGISTER_HELP(SCHEMA_DETAIL4, "<b>Tables and Collections as Properties</b>");
+REGISTER_HELP(SCHEMA_DETAIL5, "${DYNAMIC_PROPERTIES}");
+
+REGISTER_HELP_TOPIC(Dynamic Properties, TOPIC, DYNAMIC_PROPERTIES, Schema,
+                    SCRIPTING);
+REGISTER_HELP_TOPIC_TEXT(DYNAMIC_PROPERTIES, R"*(
+A Schema object may expose tables and collections as properties, this way they
+can be accessed as:
+
+@li schema.@<collection_name@>
+@li schema.@<table_name@>
+
+This handy way of accessing tables and collections is available if they met the
+following conditions:
+
+@li They existed at the moment the Schema object was retrieved from the session.
+@li The name is a valid identifier.
+@li The name is different from any other property or function on the Schema
+object. 
+
+If any of the conditions is not met, the way to access the table or collection
+is by using the standard DevAPI functions:
+@li schema.<<<getTable>>>(@<name@>)
+@li schema.<<<getCollection>>>(@<name@>)
+)*");
+REGISTER_HELP(SCHEMA_PROPERTIES_CLOSING_DESC,
+              "Some tables and collections are also exposed as properties of "
+              "the Schema object. For details look at 'Tables and Collections "
+              "as Properties' on the DETAILS section.");
 
 Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
     : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema) {

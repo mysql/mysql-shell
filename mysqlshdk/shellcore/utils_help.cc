@@ -924,12 +924,16 @@ void Help_manager::add_simple_function_help(
       textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
   std::string fsyntax;
 
-  if (parent->is_class()) {
-    fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
+  if (parent->is_api()) {
+    if (parent->is_class()) {
+      fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
+    } else {
+      std::string parent_name =
+          function.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+      fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
+    }
   } else {
-    std::string parent_name =
-        function.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
-    fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
+    fsyntax += textui::bold(display_name);
   }
 
   // Gets the function signature
@@ -1003,6 +1007,9 @@ void Help_manager::add_simple_function_help(
   // Exceptions
   add_member_section("EXCEPTIONS", name + "_THROWS", *parent, sections,
                      SECTION_PADDING);
+
+  add_examples_section(parent->m_name + "_" + name + "_EXAMPLE", sections,
+                       SECTION_PADDING);
 }
 
 std::string Help_manager::get_signature(const Help_topic &function) {
@@ -1176,6 +1183,11 @@ void Help_manager::add_chained_function_help(
     else
       add_section(title, target_class + "_" + name + "_DETAIL", sections,
                   padding);
+
+    auto single_title = space + "Example";
+    auto multi_title = space + "Examples";
+    add_examples_section(target_class + "_" + name + "_EXAMPLE", sections,
+                         padding, single_title, multi_title);
 
     function_topics.erase(function_topics.begin());
   }
@@ -1652,7 +1664,9 @@ std::string Help_manager::format_command_help(const Help_topic &command,
 
 void Help_manager::add_examples_section(const std::string &tag,
                                         std::vector<std::string> *sections,
-                                        size_t padding) {
+                                        size_t padding,
+                                        const std::string &single_title,
+                                        const std::string &multi_title) {
   std::string current_tag(tag);
   std::string example = m_registry->get_token(current_tag);
 
@@ -1681,9 +1695,9 @@ void Help_manager::add_examples_section(const std::string &tag,
     std::string section;
 
     if (examples.size() == 1)
-      section = mysqlshdk::textui::bold("EXAMPLE");
+      section = mysqlshdk::textui::bold(single_title);
     else
-      section = mysqlshdk::textui::bold("EXAMPLES");
+      section = mysqlshdk::textui::bold(multi_title);
     section += HEADER_CONTENT_SEPARATOR;
     section += shcore::str_join(examples, "\n\n");
     sections->push_back(section);

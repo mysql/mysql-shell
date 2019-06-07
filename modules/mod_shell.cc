@@ -42,6 +42,32 @@
 using namespace std::placeholders;
 
 namespace mysqlsh {
+REGISTER_HELP_FUNCTION_MODE(dir, shellapi, shcore::Help_mode::JAVASCRIPT);
+REGISTER_HELP_FUNCTION_TEXT(SHELLAPI_DIR, R"*(
+Returns a list of enumerable properties on the target object.
+
+@param object The object whose properties will be listed.
+@returns The list of enumerable properties on the object.
+
+Traverses the object retrieving its enumerable properties. The content of the
+returned list will depend on the object:
+
+@li For a dictionary, returns the list of keys.
+@li For an API object, returns the list of members.
+
+Behavior of the function passing other types of objects is undefined and also
+unsupported.
+)*");
+#if DOXYGEN_JS
+/**
+ * \ingroup ShellAPI
+ * $(SHELLAPI_DIR_BRIEF)
+ *
+ * $(SHELLAPI_DIR)
+ */
+Array dir(Object object){};
+#endif
+
 REGISTER_HELP_GLOBAL_OBJECT(shell, shellapi);
 REGISTER_HELP(SHELL_BRIEF,
               "Gives access to general purpose functions and properties.");

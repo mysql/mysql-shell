@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -97,7 +97,18 @@ REGISTER_HELP(COLLECTIONADD_ADD_DETAIL8,
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL9, "<b>JSON as Document Expressions</b>");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL10,
               "A document can be represented as a JSON expression as follows:");
-REGISTER_HELP(COLLECTIONADD_ADD_DETAIL11, "mysqlx.expr(<JSON String>)");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL11, "mysqlx.expr(<JSON object>)");
+REGISTER_HELP(
+    COLLECTIONADD_ADD_DETAIL12,
+    "The JSON object parameter must be a string representing a JSON object.");
+REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE,
+              "collection.add({\"name\":\"John\", \"age\":25})");
+REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE_DESC,
+              "Inserts a document from a dictionary.");
+REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE1,
+              "collection.add(mysqlx.expr('{\"name\":\"John\", \"age\":25}'))");
+REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE1_DESC,
+              "Inserts a document created from a JSON String.");
 
 /**
  * $(COLLECTIONADD_ADD_BRIEF)

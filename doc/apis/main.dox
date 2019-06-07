@@ -30,6 +30,9 @@ The functionality of the APIs is exposed through modules and global objects whic
   - The <b>session</b> global object is available when a global session is established.
   - The <b>db</b> global object is available when the global session is established using a default database.
   - The \ref util global object that groups miscellaneous tools like upgrade checker and JSON import.
+\if DOXYGEN_JS
+  - The <a class ="el" href="classmysqlsh_1_1_sys.html">sys</a> global object gives access to system specific parameters.
+\endif
 
 For more information on the functionality these APIs provide see the following documentation:
 

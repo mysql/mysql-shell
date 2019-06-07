@@ -58,7 +58,16 @@ DESCRIPTION
 
       A document can be represented as a JSON expression as follows:
 
-      mysqlx.expr(<JSON String>)
+      mysqlx.expr(<JSON object>)
+
+      The JSON object parameter must be a string representing a JSON object.
+
+EXAMPLES
+      collection.add({"name":"John", "age":25})
+            Inserts a document from a dictionary.
+
+      collection.add(mysqlx.expr('{"name":"John", "age":25}'))
+            Inserts a document created from a JSON String.
 
 //@<OUT> Help on execute
 NAME

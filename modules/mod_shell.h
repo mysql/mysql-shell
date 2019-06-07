@@ -37,6 +37,10 @@
 #include "src/mysqlsh/mysql_shell.h"
 
 namespace mysqlsh {
+#if DOXYGEN_JS
+Array dir(Object object);
+#endif
+
 /**
  * \ingroup ShellAPI
  *

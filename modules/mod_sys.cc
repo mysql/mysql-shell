@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 
 namespace mysqlsh {
 
+REGISTER_HELP_GLOBAL_OBJECT_MODE(sys, shellapi, shcore::Help_mode::JAVASCRIPT);
 REGISTER_HELP(SYS_BRIEF, "Gives access to system specific parameters.");
 REGISTER_HELP(SYS_GLOBAL_BRIEF, "Gives access to system specific parameters.");
 
@@ -99,21 +100,49 @@ void Sys::set_member(const std::string &prop, shcore::Value value) {
   if (!error.empty()) throw shcore::Exception::argument_error(error);
 }
 
+REGISTER_HELP_PROPERTY_MODE(argv, sys, shcore::Help_mode::JAVASCRIPT);
+REGISTER_HELP_FUNCTION_TEXT(SYS_ARGV, R"*(
+Contains the arguments for the script execution.
+
+When the shell is used to execute a script, the arguments passed to the shell
+after the script name will be considered script arguments and will be available
+during the script execution at sys.argv which will contain:
+
+@li The first element is the path to the script being executed.
+@li Each script argument will be addded as an element of the array.
+
+For example, given the following call:
+@code
+$ mysqlsh root@localhost/sakila -f test.js first second 3
+@endcode
+
+The sys.argv array will contain:
+
+@li sys.argv[0]: "test.js"
+@li sys.argv[1]: "first"
+@li sys.argv[2]: "second"
+@li sys.argv[3]: "3"
+)*");
+
 REGISTER_HELP(
     SYS_ARGV_BRIEF,
     "Contains the list of arguments available during a script processing.");
+
+REGISTER_HELP_PROPERTY_MODE(path, sys, shcore::Help_mode::JAVASCRIPT);
 REGISTER_HELP(SYS_PATH_BRIEF,
               "Lists the search paths to load JavaScript modules.");
 
 /**
- * $(SHELL_ARGV_BRIEF)
+ * $(SYS_ARGV_BRIEF)
+ *
+ * $(SYS_ARGV)
  */
 #if DOXYGEN_JS
 Array Sys::argv;
 #endif
 
 /**
- * $(SHELL_PATH_BRIEF)
+ * $(SYS_PATH_BRIEF)
  */
 #if DOXYGEN_JS
 Array Sys::path;

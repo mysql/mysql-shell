@@ -274,8 +274,13 @@ mysql module that enables executing SQL on MySQL Servers.
 
 OBJECTS
  - shell Gives access to general purpose functions and properties.
+ - sys   Gives access to system specific parameters.
  - util  Global object that groups miscellaneous tools like upgrade checker and
          JSON import.
+
+FUNCTIONS
+      dir(object)
+            Returns a list of enumerable properties on the target object.
 
 CLASSES
  - Column Represents the metadata for a column in a result.
@@ -284,6 +289,29 @@ CLASSES
 MODULES
  - mysql Encloses the functions and classes available to interact with a MySQL
          Server using the traditional MySQL Protocol.
+
+//@<OUT> Help on dir
+NAME
+      dir - Returns a list of enumerable properties on the target object.
+
+SYNTAX
+      dir(object)
+
+WHERE
+      object: The object whose properties will be listed.
+
+RETURNS
+       The list of enumerable properties on the object.
+
+DESCRIPTION
+      Traverses the object retrieving its enumerable properties. The content of
+      the returned list will depend on the object:
+
+      - For a dictionary, returns the list of keys.
+      - For an API object, returns the list of members.
+
+      Behavior of the function passing other types of objects is undefined and
+      also unsupported.
 
 //@<OUT> Help on X DevAPI Category
 The X DevAPI allows working with MySQL databases through a modern and fluent

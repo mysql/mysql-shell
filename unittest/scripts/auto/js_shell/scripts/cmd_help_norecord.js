@@ -21,6 +21,9 @@
 //@ Help on ShellAPI Category
 \? shellapi
 
+//@ Help on dir
+\? dir
+
 //@ Help on X DevAPI Category
 \? x devapi
 

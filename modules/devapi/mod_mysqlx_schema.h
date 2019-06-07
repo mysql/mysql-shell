@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,6 +56,10 @@ class Collection;
  * $(SCHEMA_DETAIL2)
  *
  * $(SCHEMA_DETAIL3)
+ *
+ * $(SCHEMA_DETAIL4)
+ *
+ * $(DYNAMIC_PROPERTIES)
  */
 class SHCORE_PUBLIC Schema : public DatabaseObject,
                              public std::enable_shared_from_this<Schema> {
