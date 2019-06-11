@@ -10,10 +10,10 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
-dba.createCluster('devCluster', {multiPrimary: true, clearReadOnly: true});
+dba.createCluster('devCluster', {multiPrimary: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
-dba.createCluster('devCluster', {multiPrimary: true, clearReadOnly: true});
+dba.createCluster('devCluster', {multiPrimary: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
@@ -23,7 +23,7 @@ Cluster.dissolve({force: true});
 Cluster.disconnect();
 
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
+dba.createCluster('devCluster', {multiMaster: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -69,9 +69,9 @@ Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED'});
 else
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED'});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');

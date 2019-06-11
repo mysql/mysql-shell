@@ -161,7 +161,7 @@ TEST_F(Group_replication_test, generate_group_name) {
   EXPECT_STRNE(name1.c_str(), name2.c_str());
 }
 
-TEST_F(Group_replication_test, replication_user) {
+TEST_F(Group_replication_test, create_recovery_user) {
   // Confirm that there is no replication user.
   auto res =
       mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
@@ -171,10 +171,10 @@ TEST_F(Group_replication_test, replication_user) {
   EXPECT_TRUE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
 
-  // Create a replication user.
-  std::string passwd;
-  mysqlshdk::gr::create_replication_user_random_pass(*instance, "test_gr_user",
-                                                     {"%"}, &passwd);
+  // Create a recovery user with a random password.
+  auto password = mysqlshdk::utils::nullable<std::string>();
+  auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", instance,
+                                                   {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
 
@@ -182,6 +182,24 @@ TEST_F(Group_replication_test, replication_user) {
   EXPECT_EQ(std::set<std::string>{}, res.get_missing_privileges());
   EXPECT_FALSE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
+  EXPECT_EQ(creds.user, "test_gr_user");
+  // it is expected a random password is generated when using an empty password
+  // as parameter.
+  EXPECT_NE(creds.password, password);
+
+  // Drop user and recreate it with a given password
+  password = mysqlshdk::utils::nullable<std::string>("password");
+  creds = mysqlshdk::gr::create_recovery_user("test_gr_user", instance, {"%"},
+                                              password);
+  // Check replication user (now it exist and it has no missing privileges).
+  res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
+
+  EXPECT_TRUE(res.user_exists());
+  EXPECT_EQ(std::set<std::string>{}, res.get_missing_privileges());
+  EXPECT_FALSE(res.has_missing_privileges());
+  EXPECT_FALSE(res.has_grant_option());
+  EXPECT_EQ(creds.user, "test_gr_user");
+  EXPECT_EQ(creds.password, password);
 
   // Clean up (remove the create user at the end)
   instance->drop_user("test_gr_user", "%");

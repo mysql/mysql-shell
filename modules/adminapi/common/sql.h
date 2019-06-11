@@ -51,6 +51,7 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
 
 Instance_definition query_instance_info(
     const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace dba
 }  // namespace mysqlsh
 

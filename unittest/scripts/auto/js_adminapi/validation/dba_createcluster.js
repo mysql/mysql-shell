@@ -393,3 +393,6 @@ one server failure.
 
 //@ BUG#28064729: Finalization.
 ||
+
+//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+|mysql_innodb_cluster_11111, %|

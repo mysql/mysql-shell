@@ -6,10 +6,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 
 // Assumptions: reset_or_deploy_sandboxes available
-if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
-else
-  dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
+dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 
 //@# Invalid dropMetadataSchema call
 dba.dropMetadataSchema(1,2,3,4,5);
@@ -37,10 +34,8 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
-if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
-else
-  dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
+
+dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 
 dba.dropMetadataSchema()
 

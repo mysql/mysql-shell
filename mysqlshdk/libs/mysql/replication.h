@@ -221,7 +221,7 @@ Replica_gtid_state check_replica_gtid_state(
  *                all GTIDs to be applied on the instance.
  * @return Return true if the operation succeeded and false if the timeout was
  *         reached.
- * @throws an error if some issue occured when waiting for transaction to be
+ * @throws an error if some issue occurred when waiting for transaction to be
  *         applied.
  */
 bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
@@ -236,7 +236,7 @@ bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
  *                all GTIDs to be applied on the instance.
  * @return Return true if the operation succeeded and false if the timeout was
  *         reached.
- * @throws an error if some issue occured when waiting for transaction to be
+ * @throws an error if some issue occurred when waiting for transaction to be
  *         applied.
  *
  * Returns true immediately if GTID_EXECUTED from the source instance is

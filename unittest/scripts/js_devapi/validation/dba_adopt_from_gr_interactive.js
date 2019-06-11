@@ -16,9 +16,6 @@ Are you sure you want to remove the Metadata? [y/N]: Metadata Schema successfull
 //@ Check cluster status after drop metadata schema
 ||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
-//@ Get data about existing replication users before createCluster with adoptFromGR.
-||
-
 //@<OUT> Create cluster adopting from GR - answer 'yes' to prompt
 A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
@@ -28,10 +25,34 @@ Do you want to setup an InnoDB cluster based on this replication group? [Y/n]: C
 Adding Seed Instance...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Resetting distributed recovery credentials across the cluster...
+WARNING: User 'mysql_innodb_cluster_1111'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
+WARNING: User 'mysql_innodb_cluster_2222'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
 Cluster successfully created based on existing replication group.
 
-//@<OUT> Confirm no new replication user was created.
-false
+//@<OUT> Confirm new replication users were created and replaced existing ones.
+user	host
+mysql_innodb_cluster_1111	%
+mysql_innodb_cluster_2222	%
+2
+instance_name	attributes
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_1111"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_2222"}
+2
+recovery_user
+mysql_innodb_cluster_1111
+1
+user	host
+mysql_innodb_cluster_1111	%
+mysql_innodb_cluster_2222	%
+2
+instance_name	attributes
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_1111"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_2222"}
+2
+recovery_user
+mysql_innodb_cluster_2222
+1
 
 //@<OUT> Check cluster status - success
 {
@@ -77,6 +98,9 @@ Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port
 Adding Seed Instance...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Resetting distributed recovery credentials across the cluster...
+WARNING: User 'mysql_innodb_cluster_1111'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
+WARNING: User 'mysql_innodb_cluster_2222'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
 Cluster successfully created based on existing replication group.
 
 //@<OUT> Check cluster status - success - 'adoptFromGR'
@@ -117,6 +141,9 @@ Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port
 Adding Seed Instance...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Resetting distributed recovery credentials across the cluster...
+WARNING: User 'mysql_innodb_cluster_1111'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
+WARNING: User 'mysql_innodb_cluster_2222'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with new credentials.
 Cluster successfully created based on existing replication group.
 
 //@<OUT> Check cluster status - success - adopt from multi-primary

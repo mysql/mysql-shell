@@ -41,7 +41,7 @@ dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 
 try_delete_sandbox(__mysql_sandbox_port1, test_dir);
 
 //@ SETUP BUG@29725222 add restart support to sandboxes {VER(>= 8.0.17)}
-testutil.deploySandbox(__mysql_sandbox_port1, 'root');
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 session = shell.connect(__sandbox_uri1);
 
 //@ BUG@29725222 test that restart works {VER(>= 8.0.17)}

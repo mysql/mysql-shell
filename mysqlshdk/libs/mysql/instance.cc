@@ -575,41 +575,6 @@ void Instance::drop_user(const std::string &user, const std::string &host,
 }
 
 /**
- * Drop all the users with the matching regular expression.
- *
- * A supported MySQL regular expression must be specified and it will be used
- * to match the user name (not the host part) of the user accounts to remove.
- * For more information about supported MySQL regular expressions, see:
- * https://dev.mysql.com/doc/en/regexp.html
- *
- * @param regexp String with the regular expression to match the user name of
- *               the account to remove. It must be a supported MySQL regular
- *               expression.
- *
- */
-void Instance::drop_users_with_regexp(const std::string &regexp) const {
-  // Get all users matching the provided regular expression.
-  std::string users_to_drop_stmt_fmt =
-      "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-      "WHERE GRANTEE REGEXP ?";
-  shcore::sqlstring users_to_drop_stmt =
-      shcore::sqlstring(users_to_drop_stmt_fmt.c_str(), 0);
-  users_to_drop_stmt << regexp;
-  users_to_drop_stmt.done();
-  auto resultset = query(users_to_drop_stmt);
-  auto row = resultset->fetch_one();
-  std::vector<std::string> user_accounts;
-  while (row) {
-    user_accounts.push_back(row->get_string(0));
-    row = resultset->fetch_one();
-  }
-  // Remove all matching users.
-  std::string drop_stmt = "DROP USER IF EXISTS ";
-  for (std::string user_account : user_accounts)
-    execute(drop_stmt + user_account);
-}
-
-/**
  * Get all privileges of the given user.
  *
  * @param user string with the username part for the user account to check.

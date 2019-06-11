@@ -34,6 +34,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
@@ -74,6 +75,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   uint32_t insert_host(const std::string &host, const std::string &ip_address,
                        const std::string &location);
   void insert_instance(const Instance_definition &options);
+  /**
+   * Update the information on the metadata about the recovery user being used
+   * by the instance with the given uuid.
+   * @param instance_uuid The uuid of the instance
+   * @param recovery_account_user string with the username of the recovery user.
+   * If the string is empty, any existing information about the recovery user
+   * of the instance with the given uuid is dropped from the metadata.
+   * @param recovery_account_host string with the host of the recovery user.
+   */
+  void update_instance_recovery_account(
+      const std::string &instance_uuid,
+      const std::string &recovery_account_user,
+      const std::string &recovery_account_host);
+  /**
+   * Fetch from the metadata the recovery account being used by the instance
+   * with the given uuid.
+   * @param instance_uuid the uuid of the instance
+   * @return a pair with the recovery account user name and recovery account
+   * hostname
+   */
+  std::pair<std::string, std::string> get_instance_recovery_account(
+      const std::string &instance_uuid);
   void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);

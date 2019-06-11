@@ -138,7 +138,7 @@ class Add_instance : public Command_interface {
   void ensure_instance_version_compatibility() const;
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
-  void handle_replication_user();
+  bool handle_replication_user();
   void log_used_gr_options();
   void ensure_unique_server_id() const;
 };

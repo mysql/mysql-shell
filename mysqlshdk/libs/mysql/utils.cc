@@ -272,5 +272,31 @@ void create_user_with_random_password(
   }
 }
 
+void create_user_with_password(
+    const std::shared_ptr<db::ISession> &session, const std::string &user,
+    const std::vector<std::string> &hosts,
+    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+    const std::string &password, bool disable_pwd_expire) {
+  assert(!hosts.empty());
+  Instance inst(session);
+
+  for (auto &host : hosts) {
+    try {
+      inst.create_user(user, host, password, grants, disable_pwd_expire);
+    } catch (const mysqlshdk::db::Error &e) {
+      // If the error is: ERROR 1819 (HY000): Your password does not satisfy
+      // the current policy requirements
+      if (e.code() == ER_NOT_VALID_PASSWORD) {
+        throw std::runtime_error("Password provided for account " + user + "@" +
+                                 host +
+                                 " does not comply with active MySQL "
+                                 "server password policies");
+      } else {
+        throw;
+      }
+    }
+  }
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

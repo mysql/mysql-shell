@@ -108,6 +108,78 @@ function get_persisted_gr_sysvars(session) {
   return ret;
 }
 
+function get_all_gr_recovery_accounts(session) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  var query = "SELECT USER, HOST FROM mysql.user WHERE USER LIKE 'mysql_innodb_cluster_%'";
+
+  var ret = "";
+
+  var result = session.runSql(query);
+  var row = result.fetchOne();
+
+  if (row == null) {
+    if (close_session)
+      session.close();
+
+    testutil.fail("Query returned no results");
+  }
+
+  while (row) {
+    var ret_line = row[0] + ", " + row[1];
+    ret += "\n" + ret_line;
+    row = result.fetchOne();
+  }
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  return ret;
+}
+
+function get_gr_recovery_user_passwd(session) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  var query = "SELECT User_name, User_password FROM mysql.slave_master_info";
+
+  var ret = "";
+
+  var result = session.runSql(query);
+  var row = result.fetchOne();
+
+  if (row == null) {
+    if (close_session)
+      session.close();
+
+    testutil.fail("Query returned no results");
+  }
+
+  while (row) {
+    var ret_line = row[0] + ", " + row[1];
+    ret += "\n" + ret_line;
+    row = result.fetchOne();
+  }
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+
+  return ret;
+}
+
 function disable_auto_rejoin(session, port) {
   var close_session = false;
 
@@ -340,7 +412,7 @@ function EXPECT_NEXT_OUTPUT(text) {
 // ** Non-cluster/non-group standalone instances
 function StandaloneScenario(ports) {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root");
+    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
   }
   // Always connect to the 1st port
   this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);

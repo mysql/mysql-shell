@@ -2,7 +2,7 @@
 ||
 
 //@ Get initial number of replication users.
-||
+|3|
 
 //@ Remove last added instance.
 ||
@@ -10,13 +10,13 @@
 //@ Connect to removed instance.
 ||
 
-//@<OUT> Confirm that all replication users where removed.
-0
+//@<OUT> Confirm that replication user was removed and other were kept (BUG#29559303).
+2
 
 //@ Connect back to primary and get cluster.
 ||
 
-//@<OUT> Confirm that some replication user was removed.
+//@<OUT> Confirm that a single replication user was removed (BUG#29559303).
 true
 
 //@ Dissolve cluster.

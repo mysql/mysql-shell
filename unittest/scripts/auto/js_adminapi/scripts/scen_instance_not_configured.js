@@ -174,7 +174,7 @@ function prepare_cluster_seed(sandbox, server_flags) {
   var luri = SANDBOX_LOCAL_URIS[sandbox - 1];
   var huri = SANDBOX_URIS[sandbox - 1];
 
-  testutil.deploySandbox(port, 'root');
+  testutil.deploySandbox(port, 'root', {report_host: hostname});
 
   if (server_flags & SCEN_ROOT_FROM_ANY) {
     var s = mysql.getSession(luri);
@@ -201,11 +201,11 @@ function prepare_instance(sandbox, server_flags) {
 
   var s = null;
   if (server_flags & SCEN_RAW) {
-    testutil.deployRawSandbox(port, 'root');
+    testutil.deployRawSandbox(port, 'root', {report_host: hostname});
 
     s = mysql.getSession(luri);
   } else {
-    testutil.deploySandbox(port, 'root');
+    testutil.deploySandbox(port, 'root', {report_host: hostname});
     s = mysql.getSession(luri);
 
     var restart = false;

@@ -50,6 +50,10 @@ static constexpr char kPluginDisabled[] = "DISABLED";
 static constexpr char k_value_not_set[] = "<not set>";
 static constexpr char k_no_value[] = "<no value>";
 static constexpr char k_must_be_initialized[] = "<must be initialized>";
+static constexpr const char k_group_recovery_user_prefix[] =
+    "mysql_innodb_cluster_";
+static constexpr const char k_group_recovery_old_user_prefix[] =
+    "mysql_innodb_cluster_r";
 
 /**
  * Enumeration of the supported states for Group Replication members.
@@ -284,13 +288,26 @@ mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host);
 
-void create_replication_random_user_pass(
-    const mysqlshdk::mysql::IInstance &instance, std::string *out_user,
-    const std::vector<std::string> &hosts, std::string *out_pwd);
-
-void create_replication_user_random_pass(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::vector<std::string> &hosts, std::string *out_pwd);
+/**
+ * Create a replication (recovery) user with the given name and required
+ * privileges for Group Replication and a randomly generated password. NOTE: The
+ * replication (recovery) user is always created at the primary instance with
+ * disabled password expiration (see: BUG#28855764)
+ *
+ * @param username The name of the replication user we want to create
+ * @param primary instance where the account will be created
+ * @param hosts list of hosts that will be used for the user creation.
+ * @param password password to be used for the account.
+ *        If null a random password is assigned.
+ * @return a Auth_options object with information about the created user
+ * @throw std::runtime error if the replication user already exists on the
+ * target instance with any of the given hosts or if an error occurs with the
+ * user creation.
+ */
+mysqlshdk::mysql::Auth_options create_recovery_user(
+    const std::string &username, mysqlshdk::mysql::IInstance *primary,
+    const std::vector<std::string> &hosts,
+    const mysqlshdk::utils::nullable<std::string> &password);
 
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 

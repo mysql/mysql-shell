@@ -103,26 +103,6 @@ std::string get_mysqlprovision_error_string(
   return shcore::str_join(str_errors, "\n");
 }
 
-std::vector<std::string> convert_ipwhitelist_to_netmask(
-    const std::vector<std::string> &ip_whitelist) {
-  std::vector<std::string> ret;
-
-  for (const std::string &value : ip_whitelist) {
-    // Strip any blank chars from the ip_whitelist value and
-    // Translate CIDR to netmask notation
-    ret.push_back(
-        mysqlshdk::utils::Net::cidr_to_netmask(shcore::str_strip(value)));
-  }
-
-  return ret;
-}
-
-std::vector<std::string> convert_ipwhitelist_to_netmask(
-    const std::string &ip_whitelist) {
-  return convert_ipwhitelist_to_netmask(
-      shcore::str_split(shcore::str_strip(ip_whitelist), ",", -1));
-}
-
 bool is_group_replication_option_supported(
     const mysqlshdk::utils::Version &version, const std::string &option,
     const std::map<std::string, Option_availability> &options_map) {
@@ -1017,28 +997,9 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
         "For more information see: https://dev.mysql.com/doc/refman/en/"
         "server-system-variables.html#sysvar_super_read_only.");
 
-    auto show_open_sessions = [&](const std::string &message) {
-      // Get the list of open session to the instance
-      std::vector<std::pair<std::string, int>> open_sessions =
-          get_open_sessions(instance.get_session());
-      if (!open_sessions.empty()) {
-        console->print_note(message);
-        for (const auto &value : open_sessions) {
-          console->print_info(std::to_string(value.second) +
-                              " open session(s) of '" + value.first + "'. \n");
-        }
-      }
-    };
-
     if (clear_read_only.is_null() && interactive) {
       console->print_info(error_message);
       console->print_info();
-
-      show_open_sessions(
-          "There are open sessions to '" + instance.descr() +
-          "'.\n"
-          "You may want to kill these sessions to prevent them from "
-          "performing unexpected updates: \n");
 
       if (console->confirm(
               "Do you want to disable super_read_only and continue?",
@@ -1059,10 +1020,6 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
       super_read_only_changed = true;
     } else {
       console->print_error(error_message);
-
-      show_open_sessions(
-          "If you unset super_read_only you should consider closing the "
-          "following: ");
 
       throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
     }

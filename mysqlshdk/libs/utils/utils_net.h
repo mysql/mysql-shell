@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -121,17 +121,6 @@ class Net {
    * @throws out_of_range if the converted integer value of cidr is out of range
    */
   static bool strip_cidr(std::string *address, int *cidr);
-
-  /**
-   * Translates the given address using CIDR notation to the equivalent address
-   * using netmask notation
-   *
-   * @param address The address to be translated.
-   *
-   * @return The translated address using netmask notation.
-   * @throws runtime_error if address cannot be translated
-   */
-  static std::string cidr_to_netmask(const std::string &address);
 
  protected:
   /**

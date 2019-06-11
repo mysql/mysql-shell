@@ -1,8 +1,8 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id:111});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id:222});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id:333});
 
 //@ connect to instance
 shell.connect(__sandbox_uri1);
@@ -25,6 +25,11 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
+
+//@ Check that recovery account looks OK and that it was stored in the metadata and that it was configured
+shell.dumpRows(session.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%'"), "tabbed");
+shell.dumpRows(session.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
+shell.dumpRows(session.runSql("SELECT user_name FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
 
 // Connect to the future new seed node
 shell.connect(__sandbox_uri2);

@@ -184,9 +184,14 @@ testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
 cluster.disconnect();
-//@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
-cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3]});
 
+//@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
+// enable super-read-only to make sure it is automatically disabled by rebootCluster
+// also checking that clearReadOnly flag has been deprecated.
+set_sysvar(session, "super_read_only", 1);
+cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3], clearReadOnly: false});
+
+EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 session.close();
 
 //@ Finalization

@@ -45,6 +45,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
@@ -376,6 +377,101 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
       });
 
   return lowest_version;
+}
+
+mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
+    mysqlshdk::mysql::IInstance *target) {
+  assert(target);
+  mysqlshdk::mysql::Instance primary_master(get_group_session());
+  std::string recovery_user =
+      mysqlshdk::gr::k_group_recovery_user_prefix +
+      std::to_string(target->get_sysvar_int("server_id").get_safe());
+
+  log_info("Creating recovery account '%s'@'%%' for instance '%s'",
+           recovery_user.c_str(), target->descr().c_str());
+
+  // Check if the replication user already exists and delete it if it does,
+  // before creating it again.
+  bool rpl_user_exists = primary_master.user_exists(recovery_user, "%");
+  if (rpl_user_exists) {
+    auto console = current_console();
+    console->print_warning(shcore::str_format(
+        "User '%s'@'%%' already existed at instance '%s'. It will be "
+        "deleted and created again with new credentials.",
+        recovery_user.c_str(), primary_master.descr().c_str()));
+    primary_master.drop_user(recovery_user, "%");
+  }
+  return mysqlshdk::gr::create_recovery_user(recovery_user, &primary_master,
+                                             {"%"}, {});
+}
+
+void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
+  assert(target);
+  mysqlshdk::mysql::Instance primary_master(get_group_session());
+  auto console = current_console();
+
+  std::string recovery_user, recovery_user_host;
+  std::tie(recovery_user, recovery_user_host) =
+      get_metadata_storage()->get_instance_recovery_account(target->get_uuid());
+  if (recovery_user.empty()) {
+    // TODO(Miguel): WL13208: handle cases where the replication user was stolen
+    // from donor during clone
+
+    // Assuming the account was created by an older version of the shell,
+    // which did not store account name in metadata
+    log_info(
+        "No recovery account details in metadata for instance '%s', assuming "
+        "old account style",
+        target->descr().c_str());
+
+    // Get replication user (recovery) used by the instance to remove
+    // on remaining members.
+    recovery_user = mysqlshdk::gr::get_recovery_user(*target);
+
+    // Remove the replication user used by the removed instance on all
+    // cluster members through the primary (using replication).
+    // NOTE: Make sure to remove the user if it was an user created by
+    // the Shell, i.e. with the format: mysql_innodb_cluster_r[0-9]{10}
+    if (shcore::str_beginswith(
+            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
+      log_info("Removing replication user '%s'", recovery_user.c_str());
+      try {
+        mysqlshdk::mysql::drop_all_accounts_for_user(get_group_session(),
+                                                     recovery_user);
+      } catch (const std::exception &e) {
+        console->print_warning("Error dropping recovery accounts for user " +
+                               recovery_user + ": " + e.what());
+      }
+    } else {
+      console->print_note("The recovery user name for instance '" +
+                          target->descr() +
+                          "' does not match the expected format for users "
+                          "created automatically "
+                          "by InnoDB Cluster. Skipping its removal.");
+    }
+  } else {
+    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+             recovery_user.c_str(), recovery_user_host.c_str(),
+             target->descr().c_str());
+
+    try {
+      primary_master.drop_user(recovery_user, "%", true);
+    } catch (const std::exception &e) {
+      console->print_warning(shcore::str_format(
+          "Error dropping recovery account '%s'@'%s' for instance '%s'",
+          recovery_user.c_str(), recovery_user_host.c_str(),
+          target->descr().c_str()));
+    }
+
+    // Also update metadata
+    try {
+      get_metadata_storage()->update_instance_recovery_account(
+          target->get_uuid(), "", "");
+    } catch (const std::exception &e) {
+      log_warning("Could not update recovery account metadata for '%s': %s",
+                  target->descr().c_str(), e.what());
+    }
+  }
 }
 
 }  // namespace dba

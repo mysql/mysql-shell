@@ -325,6 +325,60 @@ void MetadataStorage::insert_instance(const Instance_definition &options) {
   execute_sql(query);
 }
 
+void MetadataStorage::update_instance_recovery_account(
+    const std::string &instance_uuid, const std::string &recovery_account_user,
+    const std::string &recovery_account_host) {
+  shcore::sqlstring query;
+
+  if (!recovery_account_user.empty()) {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_set(COALESCE(attributes, '{}'),"
+        "  '$.recoveryAccountUser', ?,"
+        "  '$.recoveryAccountHost', ?)"
+        " WHERE mysql_server_uuid = ?",
+        0);
+    query << recovery_account_user;
+    query << recovery_account_host;
+    query << instance_uuid;
+    query.done();
+  } else {
+    // if recovery_account user is empty, clear existing recovery attributes
+    // of the instance from the metadata.
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_remove(attributes,"
+        "  '$.recoveryAccountUser', '$.recoveryAccountHost')"
+        " WHERE mysql_server_uuid = ?",
+        0);
+    query << instance_uuid;
+    query.done();
+  }
+  execute_sql(query);
+}
+
+std::pair<std::string, std::string>
+MetadataStorage::get_instance_recovery_account(
+    const std::string &instance_uuid) {
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT (attributes->>'$.recoveryAccountUser') as recovery_user,"
+      " (attributes->>'$.recoveryAccountHost') as recovery_host"
+      " FROM mysql_innodb_cluster_metadata.instances "
+      " WHERE mysql_server_uuid = ?",
+      0};
+  query << instance_uuid;
+  query.done();
+  std::string recovery_user, recovery_host;
+
+  auto res = execute_sql(query);
+  auto row = res->fetch_one();
+  if (row) {
+    recovery_user = row->get_string(0, "");
+    recovery_host = row->get_string(1, "");
+  }
+  return std::make_pair(recovery_user, recovery_host);
+}
+
 void MetadataStorage::remove_instance(const std::string &instance_address) {
   shcore::sqlstring query;
 

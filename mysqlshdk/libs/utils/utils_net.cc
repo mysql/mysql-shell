@@ -332,57 +332,6 @@ bool Net::strip_cidr(std::string *address, int *cidr) {
   return false;
 }
 
-std::string Net::cidr_to_netmask(const std::string &address) {
-  std::string ret = address;
-  int cidr = 0;
-
-  // Validate if the address value is not empty
-  if (shcore::str_strip(address).empty())
-    throw std::runtime_error(
-        "Invalid value for address: string value cannot be empty.");
-
-  // Strip the CIDR value, if specified
-  if (strip_cidr(&ret, &cidr)) {
-    if ((cidr < 1) || (cidr > 32))
-      throw std::runtime_error(
-          "Could not translate address: subnet value in CIDR notation is not "
-          "valid.");
-  }
-
-  // Convert the CIDR value to netmask notation
-  if (cidr != 0) {
-    std::bitset<32> bitset;
-
-    // Set the cidr bits in the bit_array
-    for (int i = 31; i > (31 - cidr); i--) bitset.set(i);
-
-    std::string full_bitset = bitset.to_string();
-
-    // Split the full bit_array in the 4 blocks of 8 bits
-    std::string bitset1_str = full_bitset.substr(0, 8);
-    std::string bitset2_str = full_bitset.substr(8, 8);
-    std::string bitset3_str = full_bitset.substr(16, 8);
-    std::string bitset4_str = full_bitset.substr(24, 8);
-
-    // Convert the bit arrays to decimal representation
-    std::bitset<8> bitset1(bitset1_str);
-    std::bitset<8> bitset2(bitset2_str);
-    std::bitset<8> bitset3(bitset3_str);
-    std::bitset<8> bitset4(bitset4_str);
-
-    // Construct the final translated address
-    bitset1_str = std::to_string(bitset1.to_ulong());
-    bitset2_str = std::to_string(bitset2.to_ulong());
-    bitset3_str = std::to_string(bitset3.to_ulong());
-    bitset4_str = std::to_string(bitset4.to_ulong());
-
-    ret += "/" + bitset1_str + "." + bitset2_str + "." + bitset3_str + "." +
-           bitset4_str;
-  }
-
-  return ret;
-}
-
 std::vector<std::string> Net::get_local_addresses() {
   using namespace detail;
   std::vector<std::string> out_addrs;

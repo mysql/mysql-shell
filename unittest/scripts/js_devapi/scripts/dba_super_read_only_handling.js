@@ -48,21 +48,18 @@ dba.configureInstance(connection3, {clusterAdmin: "testUser", clusterAdminPasswo
 //@<> Connect
 shell.connect(connection1);
 
-//@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
+//@ Creates Cluster succeeds (should auto-clear)
 var cluster = dba.createCluster('sample');
 
-var local_address = session.runSql("SELECT @@group_replication_local_address").fetchOne()[0];
-if (hostname+":"+(__mysql_sandbox_port1*10+1) != local_address)
-    testutil.fail("group_replication_local_address has unexpected value " + local_address);
-
-//@<OUT> Adds a read only instance
+//@ Adds a read only instance
+ensureSuperReadOnly(connection2);
 cluster.addInstance(connection2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
-//@<OUT> Adds other instance
+//@ Adds other instance
 cluster.addInstance(connection3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -74,7 +71,7 @@ testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 testutil.startSandbox(__mysql_sandbox_port3);
 ensureSuperReadOnly(connection3);
-//@<OUT> Rejoins an instance
+//@ Rejoins an instance
 cluster.rejoinInstance(connection3);
 
 cluster.disconnect();
@@ -95,32 +92,26 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycn
 // anymore, but the x-protocol port may take a bit longer. As so, we must use
 // testutil.startSandbox() to make sure the instance is restarted.
 
-//@<> Reset gr_start_on_boot on all instances
+//@ Reset gr_start_on_boot on all instances
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 disable_auto_rejoin(__mysql_sandbox_port3);
 
 shell.connect(connection1);
 
-//@ Stop sandbox 2
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
-//@ Stop sandbox 3
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 session.close();
 
-//@ Stop sandbox 1
 testutil.stopSandbox(__mysql_sandbox_port1);
 
-//@ Start sandbox 1
 testutil.startSandbox(__mysql_sandbox_port1);
 
-//@ Start sandbox 2
 testutil.startSandbox(__mysql_sandbox_port2);
 
-//@ Start sandbox 3
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@<OUT> Reboot the cluster

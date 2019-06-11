@@ -2,39 +2,11 @@
 //@ Dba_create_cluster.clear_read_only_invalid
 ||Dba.createCluster: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
-//@<OUT> Dba_create_cluster.clear_read_only_unset
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+//@ Dba_create_cluster.clear_read_only automatically disabled and clearReadOnly deprecated
+|WARNING: The clearReadOnly option is deprecated. The super_read_only mode is now automatically cleared.|
+|Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-Instance configuration is suitable.
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
-For more information see:
-https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
-
-//@<ERR> Dba_create_cluster.clear_read_only_unset
-Dba.createCluster: Server in SUPER_READ_ONLY mode (RuntimeError)
-
-//@<OUT> Dba_create_cluster.clear_read_only_false
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-Instance configuration is suitable.
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
-
-//@<ERR> Dba_create_cluster.clear_read_only_false
-Dba.createCluster: Server in SUPER_READ_ONLY mode (RuntimeError)
-
-//@ Check unchanged
+//@ Check super read only was disabled after createCluster
 ||
 
 //@ Dba_configure_local_instance.clear_read_only_invalid
@@ -93,13 +65,8 @@ first unset it to be able to perform any changes to this instance.
 //@<ERR> Dba_drop_metadata.clear_read_only_false
 Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode (RuntimeError)
 
-//@ Dba_reboot_cluster.clear_read_only_invalid
-||Dba.rebootClusterFromCompleteOutage: Argument 'clearReadOnly' is expected to be a bool
+//@ Dba_reboot_cluster.clear_read_only automatically disabled and clearReadOnly deprecated
+|WARNING: The clearReadOnly option is deprecated. The super_read_only mode is now automatically cleared.|
 
-//@<OUT> Dba_reboot_cluster.clear_read_only_unset
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
-
-//@<ERR> Dba_reboot_cluster.clear_read_only_unset
-Dba.rebootClusterFromCompleteOutage: Server in SUPER_READ_ONLY mode (RuntimeError)
+//@ Check super read only was disabled after rebootClusterFromCompleteOutage
+||

@@ -14,14 +14,14 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 function get_rpl_users() {
     var result = session.runSql(
         "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
+        "WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\"");
     return result.fetchAll();
 }
 
 function has_new_rpl_users(rows) {
     var sql =
         "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\" " +
+        "WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\" " +
         "AND GRANTEE NOT IN (";
     for (i = 0; i < rows.length; i++) {
         sql += "\"" + rows[i][0] + "\"";
@@ -55,7 +55,7 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect(__sandbox_uri2)
+shell.connect(__sandbox_uri2);
 
 cluster.status();
 
@@ -165,7 +165,7 @@ cluster.status();
 cluster.disconnect();
 session.close();
 
-//@<OUT> Confirm no new replication user was created on other rejoinning member.
+//@<OUT> Confirm no new replication user was created on other rejoining member.
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
 shell.connect(__sandbox_uri2);
 print(has_new_rpl_users(rpl_users_rows) + "\n");

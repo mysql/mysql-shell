@@ -6,7 +6,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 function get_number_of_rpl_users() {
     var result = session.runSql(
         "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
+        "WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\"");
     var row = result.fetchOne();
     return row[0];
 }
@@ -23,6 +23,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Get initial number of replication users.
 var init_num_rpl_users = get_number_of_rpl_users();
+print(get_number_of_rpl_users() + "\n");
 
 //@ Remove last added instance.
 cluster.removeInstance(__sandbox_uri3);
@@ -32,7 +33,7 @@ session.close();
 cluster.disconnect();
 shell.connect(__sandbox_uri3);
 
-//@<OUT> Confirm that all replication users where removed.
+//@<OUT> Confirm that replication user was removed and other were kept (BUG#29559303).
 print(get_number_of_rpl_users() + "\n");
 
 //@ Connect back to primary and get cluster.
@@ -40,8 +41,8 @@ session.close();
 shell.connect(__sandbox_uri1);
 var cluster = dba.getCluster("test_cluster");
 
-//@<OUT> Confirm that some replication user was removed.
-var less_rpl_users = init_num_rpl_users > get_number_of_rpl_users();
+//@<OUT> Confirm that a single replication user was removed (BUG#29559303).
+var less_rpl_users = init_num_rpl_users-1 == get_number_of_rpl_users();
 print(less_rpl_users + "\n");
 
 //@ Dissolve cluster.

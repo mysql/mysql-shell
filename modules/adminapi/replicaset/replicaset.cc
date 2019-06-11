@@ -600,8 +600,6 @@ shcore::Value ReplicaSet::rejoin_instance(
 
   // Verify if the instance is running asynchronous (master-slave) replication
   {
-    auto console = mysqlsh::current_console();
-
     log_debug(
         "Checking if instance '%s' is running asynchronous (master-slave) "
         "replication.",
@@ -691,32 +689,6 @@ shcore::Value ReplicaSet::rejoin_instance(
              session->get_connection_options().uri_endpoint().c_str());
     session->execute("STOP GROUP_REPLICATION");
 
-    // F4. When a valid 'ipWhitelist' is used on the .rejoinInstance() command,
-    // the previously existing "replication-user" must be removed from all the
-    // cluster members and a new one created to match the 'ipWhitelist' defined
-    // filter.
-    bool keep_repl_user =
-        gr_options.ip_whitelist.is_null() || gr_options.ip_whitelist->empty();
-
-    if (!keep_repl_user) {
-      mysqlshdk::mysql::Instance instance(seed_session);
-
-      log_info("Recreating replication accounts due to 'ipWhitelist' change.");
-
-      // Remove all the replication users of the instance and the
-      // replication-user of the rejoining instance on all the members of the
-      // replicaSet
-      remove_replication_users(mysqlshdk::mysql::Instance(session), true);
-
-      // Create a new replication user to match the ipWhitelist filter
-      mysqlshdk::gr::create_replication_random_user_pass(
-          instance, &replication_user,
-          convert_ipwhitelist_to_netmask(gr_options.ip_whitelist.get_safe()),
-          &replication_user_pwd);
-
-      log_debug("Created replication user '%s'", replication_user.c_str());
-    }
-
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
     // on the rejoin operation there is no need adjust the the number of
@@ -746,7 +718,6 @@ shcore::Value ReplicaSet::rejoin_instance(
       // RECOVERING In such scenario, we must abort the upgrade protocol
       // version process and warn the user
       if (error.code() == ER_CANT_INITIALIZE_UDF) {
-        auto console = mysqlsh::current_console();
         console->print_note(
             "Unable to determine the Group Replication protocol version, "
             "while verifying if a protocol upgrade would be possible: " +
@@ -831,29 +802,9 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-/**
- * Auxiliary function to re-enable super_read_only.
- *
- * @param super_read_only boolean with the initial super_read_only value.
- * @param instance target instance object.
- * @param instance_address string with the target instance address.
- */
-static void reenable_super_read_only(
-    const mysqlshdk::utils::nullable<bool> &super_read_only,
-    const mysqlshdk::mysql::Instance &instance,
-    const std::string &instance_address) {
-  // Re-enable super_read_only if previously enabled.
-  if (*super_read_only) {
-    log_debug("Re-enabling super_read_only on instance '%s'.",
-              instance_address.c_str());
-    instance.set_sysvar("super_read_only", true,
-                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  }
-}
-
 void ReplicaSet::update_group_members_for_removed_member(
     const std::string &local_gr_address,
-    const mysqlshdk::mysql::Instance &instance, bool remove_rpl_user_on_group) {
+    const mysqlshdk::mysql::Instance &instance) {
   // Get the ReplicaSet Config Object
   auto cfg = create_config_object({}, true);
 
@@ -864,15 +815,6 @@ void ReplicaSet::update_group_members_for_removed_member(
   mysqlshdk::gr::update_group_seeds(
       cfg.get(), local_gr_address, mysqlshdk::gr::Gr_seeds_change_type::REMOVE);
   cfg->apply();
-
-  // Remove the replication users on the instance and members if
-  // remove_rpl_user_on_group = true.
-  if (remove_rpl_user_on_group) {
-    log_debug("Removing replication user on instance and replicaset members");
-  } else {
-    log_debug("Removing replication user on instance");
-  }
-  remove_replication_users(instance, remove_rpl_user_on_group);
 
   // Update the auto-increment values
   {
@@ -913,74 +855,6 @@ void ReplicaSet::update_group_members_for_removed_member(
           cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
       cfg->apply();
-    }
-  }
-}
-
-void ReplicaSet::remove_replication_users(
-    const mysqlshdk::mysql::Instance &instance, bool remove_rpl_user_on_group) {
-  std::string instance_address =
-      instance.get_connection_options().as_uri(only_transport());
-  // Check if super_read_only is enabled and disable it to remove replication
-  // users and metadata.
-  mysqlshdk::utils::nullable<bool> super_read_only = instance.get_sysvar_bool(
-      "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  if (*super_read_only) {
-    log_debug(
-        "Disabling super_read_only to remove replication users on "
-        "instance '%s'.",
-        instance_address.c_str());
-    instance.set_sysvar("super_read_only", false,
-                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  }
-
-  // Remove all replication (recovery users) on the removed instance,
-  // disabling binary logging (avoid being replicated).
-  try {
-    // Re-enable super_read_only if previously enabled when leaving "try catch".
-    auto finally =
-        shcore::on_leave_scope([super_read_only, instance, instance_address]() {
-          reenable_super_read_only(super_read_only, instance, instance_address);
-        });
-    instance.set_sysvar("sql_log_bin", static_cast<const int64_t>(0),
-                        mysqlshdk::mysql::Var_qualifier::SESSION);
-
-    log_debug("Removing InnoDB Cluster replication users on instance '%s'.",
-              instance_address.c_str());
-    instance.drop_users_with_regexp("'mysql_innodb_cluster_r[0-9]{10}.*");
-
-    instance.set_sysvar("sql_log_bin", static_cast<const int64_t>(1),
-                        mysqlshdk::mysql::Var_qualifier::SESSION);
-  } catch (const shcore::Exception &err) {
-    throw;
-  }
-
-  if (remove_rpl_user_on_group) {
-    // Get replication user (recovery) used by the instance to remove
-    // on remaining members.
-    std::string rpl_user = mysqlshdk::gr::get_recovery_user(instance);
-    Cluster_impl *cluster(get_cluster());
-
-    // Remove the replication user used by the removed instance on all
-    // cluster members through the primary (using replication).
-    // NOTE: Make sure to remove the user if it was an user created by
-    // the Shell, i.e. with the format: mysql_innodb_cluster_r[0-9]{10}
-    if (!rpl_user.empty() &&
-        shcore::str_beginswith(rpl_user, "mysql_innodb_cluster_r")) {
-      log_debug("Removing replication user '%s'", rpl_user.c_str());
-      try {
-        mysqlshdk::mysql::drop_all_accounts_for_user(
-            cluster->get_group_session(), rpl_user);
-      } catch (const std::exception &drop_accounts_error) {
-        auto console = mysqlsh::current_console();
-        console->print_warning("Failed to remove replication user '" +
-                               rpl_user + "': " + drop_accounts_error.what());
-      }
-    } else {
-      auto console = mysqlsh::current_console();
-      console->print_warning(
-          "Unable to determine replication user used for recovery. Skipping "
-          "removal of it.");
     }
   }
 }

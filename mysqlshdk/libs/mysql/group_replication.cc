@@ -36,6 +36,7 @@
 #endif
 #include <mysqld_error.h>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -938,57 +939,56 @@ mysql::User_privileges_result check_replication_user(
   return instance.get_user_privileges(user, host)->validate(gr_grants);
 }
 
-void create_replication_random_user_pass(
-    const mysqlshdk::mysql::IInstance &instance, std::string *out_user,
-    const std::vector<std::string> &hosts, std::string *out_pwd) {
-  std::string tstamp = mysqlshdk::utils::Random::get()->get_time_string();
-  // make sure the tstamp size is always 10 digits
-  if (tstamp.size() <= 10) {
-    tstamp = shcore::str_rjust(tstamp, 10, '0');
-  } else {
-    tstamp = tstamp.substr(tstamp.size() - 10);
+mysqlshdk::mysql::Auth_options create_recovery_user(
+    const std::string &username, mysqlshdk::mysql::IInstance *primary,
+    const std::vector<std::string> &hosts,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  mysqlshdk::mysql::Auth_options creds;
+  assert(primary);
+  assert(!hosts.empty());
+  assert(!username.empty());
+
+  creds.user = username;
+  try {
+    // Accounts are created at the primary replica regardless of who will use
+    // them, since they'll get replicated everywhere.
+
+    if (password.is_null()) {
+      std::string repl_password;
+      for (auto &hostname : hosts) {
+        log_debug(
+            "Creating recovery account '%s'@'%s' with random password at %s",
+            creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
+      }
+      // re-create replication with a new generated password
+      mysqlshdk::mysql::create_user_with_random_password(
+          primary->get_session(), creds.user, hosts,
+          {std::make_tuple("REPLICATION SLAVE", "*.*", false)}, &repl_password,
+          true);
+
+      creds.password = repl_password;
+    } else {
+      for (auto &hostname : hosts) {
+        log_debug(
+            "Creating recovery account '%s'@'%s' with non random password at "
+            "%s",
+            creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
+      }
+      // re-create replication with a given password
+      mysqlshdk::mysql::create_user_with_password(
+          primary->get_session(), creds.user, hosts,
+          {std::make_tuple("REPLICATION SLAVE", "*.*", false)},
+          password.get_safe(), true);
+
+      creds.password = password.get_safe();
+    }
+    creds.ssl_options = primary->get_connection_options().get_ssl_options();
+  } catch (std::exception &e) {
+    throw std::runtime_error(shcore::str_format(
+        "Unable to create the Group Replication recovery account: %s",
+        e.what()));
   }
-
-  // Generate the username string
-  std::string base_user = "mysql_innodb_cluster_rplusr";
-  *out_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
-
-  // If the hostname is '%', we must create the user in 'localhost' too
-  // otherwise the user may be treated as an anonymous user:
-  // https://dev.mysql.com/doc/refman/en/adding-users.html
-  static const std::vector<std::string> default_hosts{"%", "localhost"};
-  create_replication_user_random_pass(
-      instance, *out_user, hosts.empty() ? default_hosts : hosts, out_pwd);
-}
-
-/**
- * Create a replication (recovery) user with the required privileges for
- * Group Replication and a randomly generated password.
- *
- * NOTE: The replication (recovery) user is always created with disabled
- *       password expiration (see: BUG#28855764).
- *
- * @param instance session object to connect to the target instance.
- * @param user string with the username that will be used.
- * @param hosts list of strings with the host part for the user account. If none
- * is provide (empty) then use '%'.
- * @param out_pwd generated password is assigned
- */
-void create_replication_user_random_pass(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::vector<std::string> &hosts, std::string *out_pwd) {
-  // Create the user with the required privileges: REPLICATION SLAVE on *.*.
-  static std::vector<std::tuple<std::string, std::string, bool>> gr_grants = {
-      std::make_tuple("REPLICATION SLAVE", "*.*", false)};
-
-  // F5. If 'ipWhitelist' is not used on the "ipWhitelist commands", thus
-  // getting the default value of 'AUTOMATIC', then the replication-user is
-  // created using the wildcard '%' for the host name value.
-
-  mysql::create_user_with_random_password(
-      instance.get_session(), user,
-      hosts.empty() ? std::vector<std::string>({"%"}) : hosts, gr_grants,
-      out_pwd, true);
+  return creds;
 }
 
 /**
@@ -1003,15 +1003,15 @@ void create_replication_user_random_pass(
  *
  * @param instance instance object of target member to obtain the
  *                 replication user.
- * @return a string with the replication (recovery) user set fot the specified
+ * @return a string with the replication (recovery) user set for the specified
  *         instance. Note: If no replication user was specified an empty string
  *         is returned.
  */
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance) {
   std::string rpl_user;
-  std::shared_ptr<db::IResult> result(instance.get_session()->query(
-      "SELECT User_name FROM mysql.slave_master_info "
-      "WHERE Channel_name = 'group_replication_recovery'"));
+  std::shared_ptr<db::IResult> result(
+      instance.query("SELECT User_name FROM mysql.slave_master_info "
+                     "WHERE Channel_name = 'group_replication_recovery'"));
   auto row = result->fetch_one();
   if (row) rpl_user = row->get_string(0);
   return rpl_user;

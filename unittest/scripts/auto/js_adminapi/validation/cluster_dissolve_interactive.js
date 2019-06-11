@@ -290,7 +290,7 @@ Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
-WARNING: An error occured when trying to catch up with cluster transactions and instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' might have been left in an inconsistent state that will lead to errors if it is reused.
+WARNING: An error occurred when trying to catch up with cluster transactions and instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' might have been left in an inconsistent state that will lead to errors if it is reused.
 
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>

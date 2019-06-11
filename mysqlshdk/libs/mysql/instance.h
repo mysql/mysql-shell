@@ -130,7 +130,7 @@ class IInstance {
       bool disable_pwd_expire) const = 0;
   virtual void drop_user(const std::string &user, const std::string &host,
                          bool if_exists = false) const = 0;
-  virtual void drop_users_with_regexp(const std::string &regexp) const = 0;
+
   virtual mysqlshdk::db::Connection_options get_connection_options() const = 0;
   virtual void get_current_user(std::string *current_user,
                                 std::string *current_host) const = 0;
@@ -262,7 +262,6 @@ class Instance : public IInstance {
       bool disable_pwd_expire = false) const override;
   void drop_user(const std::string &user, const std::string &host,
                  bool if_exists = false) const override;
-  void drop_users_with_regexp(const std::string &regexp) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {
     return _session->get_connection_options();
   }

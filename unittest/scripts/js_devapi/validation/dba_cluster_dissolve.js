@@ -186,7 +186,7 @@ Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied
 ||
 
 //@<OUT> Dissolve continues because instance cannot catch up with cluster (force: true).
-WARNING: An error occured when trying to catch up with cluster transactions and instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' might have been left in an inconsistent state that will lead to errors if it is reused.
+WARNING: An error occurred when trying to catch up with cluster transactions and instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' might have been left in an inconsistent state that will lead to errors if it is reused.
 
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>

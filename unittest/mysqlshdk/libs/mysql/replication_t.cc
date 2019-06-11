@@ -383,10 +383,10 @@ TEST_F(Replication_test, get_channel_status) {
     co.last_error_timestamp co_errtime,
     w.service_state w_state, wt.processlist_state w_thread_state,
     w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime,
+    w.last_error_timestamp w_errtime /*!80011 ,
     CAST(w.last_applied_transaction_end_apply_timestamp
       - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay
+      as w_last_trx_delay */
   FROM performance_schema.replication_connection_configuration c
   JOIN performance_schema.replication_connection_status s
     ON c.channel_name = s.channel_name
@@ -1079,10 +1079,10 @@ TEST_F(Replication_test, get_incoming_channels) {
     co.last_error_timestamp co_errtime,
     w.service_state w_state, wt.processlist_state w_thread_state,
     w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime,
+    w.last_error_timestamp w_errtime /*!80011 ,
     CAST(w.last_applied_transaction_end_apply_timestamp
       - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay
+      as w_last_trx_delay */
   FROM performance_schema.replication_connection_configuration c
   JOIN performance_schema.replication_connection_status s
     ON c.channel_name = s.channel_name
@@ -1416,10 +1416,10 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
     co.last_error_timestamp co_errtime,
     w.service_state w_state, wt.processlist_state w_thread_state,
     w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime,
+    w.last_error_timestamp w_errtime /*!80011 ,
     CAST(w.last_applied_transaction_end_apply_timestamp
       - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay
+      as w_last_trx_delay */
   FROM performance_schema.replication_connection_configuration c
   JOIN performance_schema.replication_connection_status s
     ON c.channel_name = s.channel_name

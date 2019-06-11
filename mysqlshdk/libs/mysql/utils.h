@@ -58,6 +58,12 @@ void create_user_with_random_password(
     const std::vector<std::tuple<std::string, std::string, bool>> &grants,
     std::string *out_password, bool disable_pwd_expire = false);
 
+void create_user_with_password(
+    const std::shared_ptr<db::ISession> &session, const std::string &user,
+    const std::vector<std::string> &hosts,
+    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+    const std::string &password, bool disable_pwd_expire = false);
+
 std::string generate_password(size_t password_length = kPASSWORD_LENGTH);
 
 }  // namespace mysql

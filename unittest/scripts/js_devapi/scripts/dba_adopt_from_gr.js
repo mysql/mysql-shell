@@ -1,36 +1,8 @@
 // Assumptions: smart deployment rountines available
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-
-function get_rpl_users() {
-    var result = session.runSql(
-        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
-    return result.fetchAll();
-}
-
-function has_new_rpl_users(rows) {
-    var sql =
-        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
-        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\" " +
-        "AND GRANTEE NOT IN (";
-    for (i = 0; i < rows.length; i++) {
-        sql += "\"" + rows[i][0] + "\"";
-        if (i != rows.length-1) {
-            sql += ", ";
-        }
-    }
-    sql += ")";
-    var result = session.runSql(sql);
-    var new_user_rows = result.fetchAll();
-    if (new_user_rows.length == 0) {
-        return false;
-    } else {
-        return true;
-    }
-}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id: 1111});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id: 2222});
 
 shell.connect(__sandbox_uri1);
 
@@ -39,28 +11,31 @@ dba.createCluster('testCluster', {adoptFromGR: true});
 
 // create cluster with two instances and drop metadata schema
 
-//@ Create cluster
-if (__have_ssl)
-  var cluster = dba.createCluster('testCluster', {memberSslMode: 'REQUIRED'});
-else
-  var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED'});
+//@ Create group by hand
+session2 = mysql.getSession(__sandbox_uri2);
 
-//@ Adding instance to cluster
+session.runSql("CREATE USER mysql_innodb_cluster_r1@'%' IDENTIFIED BY 'aaa'");
+session.runSql("GRANT ALL ON *.* TO mysql_innodb_cluster_r1@'%'");
+session.runSql("CREATE USER some_user@'%' IDENTIFIED BY 'aaa'");
+session.runSql("GRANT ALL ON *.* TO some_user@'%'");
+
+ensure_plugin_enabled("group_replication", session);
+ensure_plugin_enabled("group_replication", session2);
+
+session.runSql("SET GLOBAL group_replication_group_name='6ed4243e-88b9-11e9-8eac-7281347dd9c6'");
+session2.runSql("SET GLOBAL group_replication_group_name='6ed4243e-88b9-11e9-8eac-7281347dd9c6'");
+session.runSql("SET GLOBAL group_replication_local_address='localhost:"+__mysql_sandbox_gr_port1+"'");
+session2.runSql("SET GLOBAL group_replication_local_address='localhost:"+__mysql_sandbox_gr_port2+"'");
+session2.runSql("SET GLOBAL group_replication_group_seeds='"+hostname+":"+__mysql_sandbox_gr_port1+"'");
+session2.runSql("SET GLOBAL group_replication_recovery_use_ssl=1");
+session.runSql("CHANGE MASTER TO master_user='mysql_innodb_cluster_r1', master_password='aaa' FOR CHANNEL 'group_replication_recovery'");
+session2.runSql("CHANGE MASTER TO master_user='some_user', master_password='aaa' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("SET GLOBAL group_replication_bootstrap_group=1");
+session.runSql("START group_replication");
+session.runSql("SET GLOBAL group_replication_bootstrap_group=0");
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-cluster.addInstance(__sandbox_uri2);
+session2.runSql("START group_replication");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-// To simulate an existing unmanaged replication group we simply drop the
-// metadata schema
-
-//@ Drop Metadata
-dba.dropMetadataSchema({force: true})
-
-//@ Check cluster status after drop metadata schema
-cluster.status();
-
-session.close();
-cluster.disconnect();
 
 // Establish a session using the hostname (set for report_host)
 // because when adopting from GR, the information in the
@@ -68,16 +43,21 @@ cluster.disconnect();
 // and not 'localhost'
 shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
-//@ Get data about existing replication users before createCluster with adoptFromGR.
-// Regression for BUG#28054500: replication users should be removed when adoptFromGR is used
-var rpl_users_rows = get_rpl_users();
-
 //@ Create cluster adopting from GR
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
 
-//@<OUT> Confirm no new replication user was created.
-// Regression for BUG#28054500: replication users should be removed when adoptFromGR is used
-print(has_new_rpl_users(rpl_users_rows) + "\n");
+// Fix for BUG#28054500 expects that mysql_innodb_cluster_r* accounts are auto-deleted
+// when adopting.
+
+//@<OUT> Confirm new replication users were created and replaced existing ones, but didn't drop the old ones that don't belong to shell (WL#12773 FR1.5 and FR3)
+// sandbox1
+shell.dumpRows(session.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%' or user = 'some_user'"), "tabbed");
+shell.dumpRows(session.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
+shell.dumpRows(session.runSql("SELECT user_name as recovery_user_name FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
+// sandbox2
+shell.dumpRows(session2.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%' or user = 'some_user'"), "tabbed");
+shell.dumpRows(session2.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
+shell.dumpRows(session2.runSql("SELECT user_name as recovery_user_name FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
 
 //@<OUT> Check cluster status
 cluster.status();

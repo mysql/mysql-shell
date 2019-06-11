@@ -290,9 +290,9 @@ function create_root_from_anywhere(session, clear_super_read_only) {
 }
 
 
-function ensure_plugin_enabled(plugin_name) {
+function ensure_plugin_enabled(plugin_name, session) {
   // For function signature simplicity I use `plugin_name` also as shared library name.
-  var sess = mysql.getClassicSession(__uripwd);
+  var sess = session === undefined ? mysql.getClassicSession(__uripwd) : session;
   var rs = sess.runSql("SELECT COUNT(1) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME like '" + plugin_name + "';");
   var is_installed = rs.fetchOne()[0];
 
@@ -305,7 +305,8 @@ function ensure_plugin_enabled(plugin_name) {
       sess.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_name + ".so';");
     }
   }
-  sess.close();
+  if (session === undefined)
+    sess.close();
 }
 
 function ensure_plugin_disabled(plugin_name) {

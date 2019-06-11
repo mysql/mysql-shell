@@ -183,21 +183,6 @@ extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
 
 /**
- * Converts an ipWhitelist to a list of addresses using the netmask notation
- *
- * @param ip_whitelist The vector of strings containing the ipWhitelist to
- * convert
- *
- * @return A vector of strings containing the ipWhitelist converted to netmask
- * notation
- */
-std::vector<std::string> convert_ipwhitelist_to_netmask(
-    const std::vector<std::string> &ip_whitelist);
-
-std::vector<std::string> convert_ipwhitelist_to_netmask(
-    const std::string &ip_whitelist);
-
-/**
  * Check if a group_replication setting is supported on the target
  * instance
  *

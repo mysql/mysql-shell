@@ -384,6 +384,8 @@ DESCRIPTION
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
 
+      ATTENTION: The clearReadOnly option will be removed in a future release.
+
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
 
@@ -792,6 +794,8 @@ DESCRIPTION
       - rejoinInstances: The list of instances to be rejoined on the cluster.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled
+
+      ATTENTION: The clearReadOnly option will be removed in a future release.
 
       This function reboots a cluster from complete outage. It picks the
       instance the MySQL Shell is connected to as new seed instance and

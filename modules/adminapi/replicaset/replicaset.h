@@ -148,36 +148,15 @@ class ReplicaSet {
    *
    * More specifically, remove the specified local address from the
    * group_replication_group_seeds variable of all alive members of the
-   * replicaset and remove the replication user on the target instance and
-   * other members (if remove_rpl_user_on_group = true).
+   * replicaset and then remove the recovery user used by the instance on the
+   * other members through a primary instance.
    *
    * @param local_gr_address string with the local GR address (XCom) to remove.
    * @param instance target instance that was removed from the replicaset.
-   * @param remove_rpl_user_on_group boolean indicating if the replication
-   *        (recovery) user used by the instance should be removed on the
-   *        remaining members of the GR group (replicaset). If true then remove
-   *        the recovery user used by the instance on the other members through
-   *        a primary instance, otherwise skip it (just remove replication users
-   *        on the target instance).
    */
   void update_group_members_for_removed_member(
       const std::string &local_gr_address,
-      const mysqlshdk::mysql::Instance &instance,
-      bool remove_rpl_user_on_group);
-
-  /**
-   * Remove the replication (recovery) users from the given instance.
-   *
-   * @param instance target Instance object to remove the replication users.
-   * @param remove_rpl_user_on_group boolean indicating if the replication
-   *        (recovery) user used by the instance should be removed on the
-   *        remaining members of the GR group (replicaset). If true then remove
-   *        the recovery user used by the instance on the other members through
-   *        a primary instance, otherwise skip it (just remove replication users
-   *        on the target instance).
-   */
-  void remove_replication_users(const mysqlshdk::mysql::Instance &instance,
-                                bool remove_rpl_user_on_group);
+      const mysqlshdk::mysql::Instance &instance);
 
   /**
    * Get the primary instance address.

@@ -353,12 +353,12 @@ shcore::Value Global_dba::drop_metadata_schema(
   shcore::Value ret_val;
   shcore::Argument_list new_args;
   bool force = false;
-  bool prompt_read_only = true;
   bool prompt_drop_confirmation = true;
   Value::Map_type_ref options;
 
   if (args.size() < 1) {
     options.reset(new shcore::Value::Map_type);
+    new_args.push_back(shcore::Value(options));
   } else {
     try {
       options = args.map_at(0);
@@ -368,12 +368,6 @@ shcore::Value Global_dba::drop_metadata_schema(
       if (opt_map.has_key("force")) {
         force = opt_map.bool_at("force");
         prompt_drop_confirmation = false;
-      }
-
-      if (opt_map.has_key("clearReadOnly")) {
-        // This call is done only to validate the passed data
-        opt_map.bool_at("clearReadOnly");
-        prompt_read_only = false;
       }
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
@@ -388,15 +382,6 @@ shcore::Value Global_dba::drop_metadata_schema(
   }
 
   if (force) {
-    // Verify the status of super_read_only and ask the user if wants
-    // to disable it
-    if (prompt_read_only) {
-      auto session = dba->get_active_shell_session();
-      if (!prompt_super_read_only(session, options)) return shcore::Value();
-
-      if (args.size() < 1) new_args.push_back(shcore::Value(options));
-    }
-
     ret_val =
         call_target("dropMetadataSchema", (args.size() < 1) ? new_args : args);
     println("Metadata Schema successfully removed.");
@@ -459,7 +444,6 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
   Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   shcore::Argument_list new_args;
   shcore::Argument_map opt_map;
-  bool prompt_read_only = true;
   bool confirm_rescan_rejoins = true, confirm_rescan_removes = true;
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
@@ -499,12 +483,6 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       if (opt_map.has_key("removeInstances")) confirm_rescan_removes = false;
 
       if (opt_map.has_key("rejoinInstances")) confirm_rescan_rejoins = false;
-
-      if (opt_map.has_key("clearReadOnly")) {
-        // This call is done only to validate the passed data
-        opt_map.bool_at("clearReadOnly");
-        prompt_read_only = false;
-      }
     } else {
       options.reset(new shcore::Value::Map_type());
     }
@@ -702,24 +680,12 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     }
 
     println();
-
-    // Verify the status of super_read_only and ask the user if wants
-    // to disable it
-    // NOTE: this is left for last to avoid setting super_read_only to true
-    // and right before some execution failure of the command leaving the
-    // instance in an incorrect state
-    if (prompt_read_only) {
-      if (!prompt_super_read_only(cluster->impl()->get_group_session(),
-                                  options))
-        return shcore::Value();
-    }
   }
   CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
       get_function_name("rebootClusterFromCompleteOutage"));
 
   if (!confirmed_rescan_rejoins->empty() ||
-      !confirmed_rescan_removes->empty() ||
-      (prompt_read_only && options->has_key("clearReadOnly"))) {
+      !confirmed_rescan_removes->empty()) {
     shcore::Argument_list new_args;
 
     if (!confirmed_rescan_rejoins->empty())
@@ -999,63 +965,4 @@ int Global_dba::prompt_menu(const std::vector<std::string> &options,
     if (i <= 0 || i > static_cast<int>(options.size())) continue;
     return i;
   }
-}
-
-bool Global_dba::prompt_super_read_only(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const shcore::Value::Map_type_ref &options) {
-  auto options_session = session->get_connection_options();
-  auto active_session_address =
-      options_session.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
-  // Get the status of super_read_only in order to verify if we need to
-  // prompt the user to disable it
-  bool super_read_only = mysqlshdk::mysql::Instance(session)
-                             .get_sysvar_bool("super_read_only")
-                             .get_safe();
-
-  if (super_read_only) {
-    println(mysqlsh::fit_screen(
-        "The MySQL instance at '" + active_session_address +
-        "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications. "
-        "You must first unset it to be able to perform any changes "
-        "to this instance.\n"
-        "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only."));
-    println();
-
-    // Get the list of open session to the instance
-    std::vector<std::pair<std::string, int>> open_sessions;
-    open_sessions = mysqlsh::dba::get_open_sessions(session);
-
-    if (!open_sessions.empty()) {
-      println("NOTE: There are open sessions to '" + active_session_address +
-              "'.\n"
-              "You may want to kill these sessions to prevent them from "
-              "performing unexpected updates: \n");
-
-      for (auto &value : open_sessions) {
-        std::string account = value.first;
-        int open_sessions = value.second;
-
-        println("" + std::to_string(open_sessions) +
-                " open session(s) of "
-                "'" +
-                account + "'. \n");
-      }
-    }
-
-    if (confirm("Do you want to disable super_read_only and continue?",
-                mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::NO) {
-      println();
-      println("Cancelled");
-      return false;
-    } else {
-      (*options)["clearReadOnly"] = shcore::Value(true);
-      println();
-      return true;
-    }
-  }
-  return true;
 }

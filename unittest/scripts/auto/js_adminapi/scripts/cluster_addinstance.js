@@ -698,3 +698,42 @@ c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+// WL#12773 AdminAPI: Simplification of internal recovery accounts
+
+//@<> WL#12773: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id: 11111});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id: 22222});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id: 33333});
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('test');
+
+// FR1 - A new auto-generated recovery account must be created whenever creating a cluster and joining an instance to a cluster
+//@<> WL#12773: FR1.1 - The account user-name shall be mysql_innodb_cluster_<server_id>
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+var result = session.runSql("SELECT COUNT(*) FROM mysql.user WHERE User = 'mysql_innodb_cluster_22222'");
+var number = result.fetchOne()[0];
+EXPECT_EQ(1, number);
+
+//@<> WL#12773: FR1.2 - The host-name shall be %
+result = session.runSql("SELECT Host FROM mysql.user WHERE User = 'mysql_innodb_cluster_22222'");
+var hostname = result.fetchOne()[0];
+EXPECT_EQ("%", hostname);
+
+//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+result = session.runSql("SELECT COUNT(*) FROM mysql.user");
+var old_account_number = result.fetchOne()[0];
+c.addInstance(__sandbox_uri3, {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+print(get_all_gr_recovery_accounts(session));
+
+result = session.runSql("SELECT COUNT(*) FROM mysql.user");
+var new_account_number = result.fetchOne()[0];
+EXPECT_EQ(old_account_number + 1, new_account_number);
+
+//@<> WL#12773: Cleanup
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

@@ -1,6 +1,6 @@
 // Assumptions: smart deployment functions available
 
-var number_of_rpl_users_query = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"";
+var number_of_rpl_users_query = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP \"mysql_innodb_cluster_[0-9]+\"";
 
 function gtid_contains_gr_group_name(session) {
     // Get GR group_name.
@@ -700,3 +700,23 @@ c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+// WL#12773 AdminAPI: Simplification of internal recovery accounts
+
+//@<> WL#12773: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id: 11111});
+shell.connect(__sandbox_uri1);
+
+//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+var result = session.runSql("SELECT COUNT(*) FROM mysql.user");
+var old_account_number = result.fetchOne()[0];
+dba.createCluster('test', {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
+print(get_all_gr_recovery_accounts(session));
+
+result = session.runSql("SELECT COUNT(*) FROM mysql.user");
+var new_account_number = result.fetchOne()[0];
+EXPECT_EQ(old_account_number + 1, new_account_number);
+
+//@<> WL#12773: Cleanup
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

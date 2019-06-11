@@ -181,7 +181,9 @@ void unserialize_channel_applier_info(const mysqlshdk::db::Row_ref_by_name &row,
       assert(0);
 
     applier.thread_state = row.get_string("w_thread_state", "");
-    applier.last_applied_trx_delay = row.get_uint("w_last_trx_delay", 0);
+    applier.last_applied_trx_delay = row.has_field("w_last_trx_delay")
+                                         ? row.get_uint("w_last_trx_delay")
+                                         : 0;
 
     extract_error(&applier.last_error, row, "w_");
     channel->appliers.push_back(applier);
@@ -200,10 +202,10 @@ static const char *k_base_channel_query = R"*(
     co.last_error_timestamp co_errtime,
     w.service_state w_state, wt.processlist_state w_thread_state,
     w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime,
+    w.last_error_timestamp w_errtime /*!80011 ,
     CAST(w.last_applied_transaction_end_apply_timestamp
       - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay
+      as w_last_trx_delay */
   FROM performance_schema.replication_connection_configuration c
   JOIN performance_schema.replication_connection_status s
     ON c.channel_name = s.channel_name

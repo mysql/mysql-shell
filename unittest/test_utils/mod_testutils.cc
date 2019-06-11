@@ -1612,10 +1612,58 @@ std::string Testutils::wait_member_state(int member_port,
   auto result = session->query(
       "SELECT member_id, member_host, member_port, member_state FROM "
       "performance_schema.replication_group_members");
-  std::cout << "replication_group_members:\n";
+  std::cout << "replication_group_members as seen from the monitoring session: "
+            << session->get_connection_options().as_uri(
+                   mysqlshdk::db::uri::formats::only_transport())
+            << "\n";
   while (auto row = result->fetch_one()) {
     std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1) << "\t"
               << row->get_as_string(2) << "\t" << row->get_as_string(3) << "\n";
+  }
+  // If we were waiting for the instance to be online and it got stuck in
+  // recovering, try to get some helpful information
+  if (states.find("ONLINE") != std::string::npos &&
+      (current_state == "RECOVERING")) {
+    std::shared_ptr<mysqlshdk::db::ISession> direct_session;
+    direct_session = connect_to_sandbox(member_port);
+    result = direct_session->query(
+        "SELECT CHANNEL_NAME, SERVICE_STATE, LAST_ERROR_NUMBER, "
+        "LAST_ERROR_MESSAGE FROM "
+        "performance_schema.replication_connection_status");
+    std::cout << "replication_connection_status seen from the stuck instance: "
+              << direct_session->get_connection_options().as_uri(
+                     mysqlshdk::db::uri::formats::only_transport())
+              << ": \n";
+    while (auto row = result->fetch_one()) {
+      std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1)
+                << "\t" << row->get_as_string(2) << "\t"
+                << row->get_as_string(3) << "\n";
+    }
+
+    std::cout << "MySQL users with passwords as seen from the monitoring "
+                 "session: "
+              << session->get_connection_options().as_uri(
+                     mysqlshdk::db::uri::formats::only_transport())
+              << ": \n";
+    result = session->query(
+        "SELECT user, host, authentication_string from mysql.user");
+    while (auto row = result->fetch_one()) {
+      std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1)
+                << "\t" << row->get_as_string(2) << "\n";
+    }
+
+    std::cout << "MySQL recovery information as seen from the stuck instance: "
+              << direct_session->get_connection_options().as_uri(
+                     mysqlshdk::db::uri::formats::only_transport())
+              << ": \n";
+    result = direct_session->query(
+        "SELECT User_name, User_password FROM mysql.slave_master_info");
+    while (auto row = result->fetch_one()) {
+      std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1)
+                << "\n";
+    }
+
+    direct_session->close();
   }
   if (direct) session->close();
 

@@ -224,8 +224,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
       std::make_shared<shcore::Value::Array_type>();
 
   for (auto &instance : newly_discovered_instances_list) {
-    auto newly_discovered_instance =
-        std::make_shared<shcore::Value::Map_type>();
+    auto newly_discovered_instance = shcore::make_dict();
     (*newly_discovered_instance)["member_id"] =
         shcore::Value(instance.member_id);
     (*newly_discovered_instance)["name"] = shcore::Value::Null();
@@ -242,6 +241,13 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
     newly_discovered_instances->push_back(
         shcore::Value(newly_discovered_instance));
   }
+  std::sort(newly_discovered_instances->begin(),
+            newly_discovered_instances->end(),
+            [](const shcore::Value &a, const shcore::Value &b) {
+              return a.as_map()->get_string("member_id") <
+                     b.as_map()->get_string("member_id");
+            });
+
   // Add the newly_discovered_instances list to the result Map
   (*replicaset_map)["newlyDiscoveredInstances"] =
       shcore::Value(newly_discovered_instances);

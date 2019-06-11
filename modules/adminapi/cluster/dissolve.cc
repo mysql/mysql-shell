@@ -329,9 +329,6 @@ void Dissolve::remove_instance(const std::string &instance_address,
     // Stop Group Replication and reset (persist) GR variables.
     mysqlsh::dba::leave_replicaset(*m_available_instances[instance_index]);
 
-    // Remove existing replications users.
-    m_cluster->get_default_replicaset()->remove_replication_users(
-        *m_available_instances[instance_index], false);
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 
@@ -345,7 +342,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
       log_error("Instance '%s' failed to leave the ReplicaSet: %s",
                 instance_address.c_str(), err.what());
       console->print_warning(
-          "An error occured when trying to remove instance '" +
+          "An error occurred when trying to remove instance '" +
           instance_address +
           "' from the cluster. The instance might have been left active "
           "and in an inconsistent state, requiring manual action to "
@@ -356,12 +353,19 @@ void Dissolve::remove_instance(const std::string &instance_address,
 }
 
 shcore::Value Dissolve::execute() {
-  // Drop the cluster's metadata.
   std::shared_ptr<MetadataStorage> metadata = m_cluster->get_metadata_storage();
+  auto console = mysqlsh::current_console();
+
+  // JOB: Remove replication accounts used for recovery of GR.
+  // Note: This operation MUST be performed before leave-replicaset to ensure
+  // that all changed are propagated to the online instances.
+  for (auto &instance : m_available_instances) {
+    m_cluster->drop_replication_user(instance.get());
+  }
+
+  // Drop the cluster's metadata.
   std::string cluster_name = m_cluster->get_name();
   metadata->drop_cluster(cluster_name);
-
-  auto console = mysqlsh::current_console();
 
   // We must stop GR on the online instances only, otherwise we'll
   // get connection failures to the (MISSING) instances
@@ -406,7 +410,7 @@ shcore::Value Dissolve::execute() {
               "%s",
               instance_address.c_str(), err.what());
           console->print_warning(
-              "An error occured when trying to catch up with cluster "
+              "An error occurred when trying to catch up with cluster "
               "transactions and instance '" +
               instance_address +
               "' might have been left in an inconsistent state that will lead "
@@ -480,7 +484,7 @@ shcore::Value Dissolve::execute() {
     warning_msg.append("in order to be able to be reused.");
     console->print_warning(warning_msg);
   } else {
-    // Full cluster sucessfuly removed.
+    // Full cluster successfully removed.
     console->println("The cluster was successfully dissolved.");
     console->println("Replication was disabled but user data was left intact.");
     console->println();

@@ -508,7 +508,8 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
-WARNING: An error occured when trying to catch up with cluster transactions and the instance might have been left in an inconsistent state that will lead to errors if it is reused.
+NOTE: The recovery user name for instance 'localhost:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Skipping its removal.
+WARNING: An error occurred when trying to catch up with cluster transactions and the instance might have been left in an inconsistent state that will lead to errors if it is reused.
 
 Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>

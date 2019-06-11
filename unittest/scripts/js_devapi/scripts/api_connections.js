@@ -310,7 +310,7 @@ delete connection_data['Ssl-Mode'];
 delete connection_data['ssl-mode'];
 
 //@<> Connection Attributes Tests
-get_connection_atts = "select ATTR_NAME, ATTR_VALUE from performance_schema.session_account_connect_attrs order by ATTR_NAME asc";
+get_connection_atts = "select ATTR_NAME, ATTR_VALUE from performance_schema.session_account_connect_attrs where processlist_id=connection_id() order by ATTR_NAME asc";
 
 function print_attributes(session) {
     var res = session.runSql(get_connection_atts);

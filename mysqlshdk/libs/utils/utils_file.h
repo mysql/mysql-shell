@@ -113,7 +113,7 @@ std::string SHCORE_PUBLIC get_absolute_path(const std::string &base_dir,
  * This function is used by the write() function, since any new configuration
  * file is first wrote to a temporary file and only at the end copied/renamed
  * to the target location if no errors occurred. This avoids undesired
- * changes to the target file in case it already exist and an error occured
+ * changes to the target file in case it already exist and an error occurred
  * during the write operation.
  *
  * @param file_path string with the path to the target on which the temporary

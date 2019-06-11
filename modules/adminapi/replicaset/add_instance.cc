@@ -341,18 +341,19 @@ void Add_instance::handle_gr_protocol_version() {
   }
 }
 
-void Add_instance::handle_replication_user() {
+bool Add_instance::handle_replication_user() {
   // Creates the replication user ONLY if not already given and if
   // skip_rpl_user was not set to true.
-  // NOTE: always create it at the seed instance.
+  // NOTE: User always created at the seed instance.
   if (!m_skip_rpl_user && m_rpl_user.empty()) {
-    mysqlshdk::gr::create_replication_random_user_pass(
-        m_seed_instance ? *m_target_instance : *m_peer_instance, &m_rpl_user,
-        convert_ipwhitelist_to_netmask(m_gr_opts.ip_whitelist.get_safe()),
-        &m_rpl_pwd);
+    auto user_creds =
+        m_replicaset.get_cluster()->create_replication_user(m_target_instance);
+    m_rpl_user = user_creds.user;
+    m_rpl_pwd = user_creds.password.get_safe();
 
-    log_debug("Created replication user '%s'", m_rpl_user.c_str());
+    return true;
   }
+  return false;
 }
 
 void Add_instance::log_used_gr_options() {
@@ -424,7 +425,7 @@ shcore::Value Add_instance::execute() {
   }
 
   // Handle the replication user creation.
-  handle_replication_user();
+  bool owns_repl_user = handle_replication_user();
 
   // Make sure the GR plugin is installed (only installed if needed).
   // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
@@ -504,9 +505,18 @@ shcore::Value Add_instance::execute() {
                               : "is being added to the Metadata...");
 
   // If the instance is not on the Metadata, we must add it.
-  if (!is_instance_on_md)
+  if (!is_instance_on_md) {
     m_replicaset.add_instance_metadata(m_instance_cnx_opts,
                                        m_instance_label.get_safe());
+  }
+  // Store the username in the Metadata instances table
+  if (owns_repl_user) {
+    log_debug("Adding recovery account to metadata");
+    m_replicaset.get_cluster()
+        ->get_metadata_storage()
+        ->update_instance_recovery_account(m_target_instance->get_uuid(),
+                                           m_rpl_user, "%");
+  }
 
   // Get the gr_address of the instance being added
   std::string added_instance_gr_address = *m_gr_opts.local_address;

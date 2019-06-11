@@ -101,7 +101,7 @@ false
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> Confirm no new replication user was created on other rejoinning member.
+//@<OUT> Confirm no new replication user was created on other rejoining member.
 false
 
 //@ Finalization

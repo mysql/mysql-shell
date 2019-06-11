@@ -832,13 +832,12 @@ int main(int argc, char **argv) {
       if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) !=
           0) {
         std::cout
-            << "ERROR: " << getenv("MYSQL_REAL_HOSTNAME")
+            << "WARNING: " << getenv("MYSQL_REAL_HOSTNAME")
             << " does not resolve to a loopback but "
                "MYSQL_HOSTNAME and MYSQL_REAL_HOSTNAME have different values. "
                "You can leave MYSQL_HOSTNAME unset unless you're "
                "in a system where the default hostname "
                "is a loopback (like Ubuntu/Debian).\n";
-        exit(1);
       }
     }
   }

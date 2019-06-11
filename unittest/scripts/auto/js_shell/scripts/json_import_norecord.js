@@ -26,7 +26,7 @@ function wait_for_server(uri) {
   }
 }
 
-testutil.deployRawSandbox(target_port, "root");
+testutil.deployRawSandbox(target_port, "root", {report_host: hostname});
 
 //@ Only X Protocol is supported
 var classic_session = mysql.getClassicSession(uri);

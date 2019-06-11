@@ -58,7 +58,11 @@ var c = dba.createCluster('c');
 // WL11889 FR2_02: force option no longer required.
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
 testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
+
 c.dissolve({interactive: true});
+
+// ensure all accounts are dropped
+shell.dumpRows(session.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%'"), "tabbed");
 session.close();
 
 //@ Create single-primary cluster

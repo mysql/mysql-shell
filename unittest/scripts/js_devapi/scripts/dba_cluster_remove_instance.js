@@ -1,10 +1,10 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id:111});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id:222});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id:333});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 function print_instances_count_for_gr() {
@@ -66,6 +66,11 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);
 //@<OUT> Cluster status after removal
 // WL#11862 - FR1_1
 cluster.status();
+
+//@ recovery account status after removal (WL#12773 FR2)
+shell.dumpRows(session.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%'"), "tabbed");
+shell.dumpRows(session.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
+shell.dumpRows(session.runSql("SELECT user_name FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
 
 //@ Adding instance on port2 back (interactive use)
 // WL#11862 - FR3_1

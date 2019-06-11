@@ -115,7 +115,6 @@ class Create_cluster : public Command_interface {
   mysqlshdk::utils::nullable<bool> m_multi_primary;
   bool m_adopt_from_gr;
   bool m_force;
-  mysqlshdk::utils::nullable<bool> m_clear_read_only;
   bool m_interactive;
 
   std::string m_address_in_metadata;
@@ -125,9 +124,12 @@ class Create_cluster : public Command_interface {
 
   void validate_create_cluster_options();
   void resolve_ssl_mode();
-  void prompt_super_read_only();
   void log_used_gr_options();
   void prepare_metadata_schema();
+  void setup_recovery(Cluster_impl *cluster,
+                      mysqlshdk::mysql::IInstance *target,
+                      std::string *out_username = nullptr);
+  void reset_recovery_all(Cluster_impl *cluster);
 };
 
 }  // namespace dba

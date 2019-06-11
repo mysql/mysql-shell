@@ -127,6 +127,9 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
         code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                   _mysql_sandbox_ports[i]);
         exec_and_out_equals(code);
+        code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
+                                  _mysql_sandbox_ports[i] * 10 + 1);
+        exec_and_out_equals(code);
         code = shcore::str_format(
             "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
             _mysql_sandbox_ports[i]);
@@ -204,11 +207,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
-    exec_and_out_equals(code);
-    code = "var __displayuri = '" + user + "@" + host + ":" + _port + "';";
-    exec_and_out_equals(code);
-    code =
-        "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
     exec_and_out_equals(code);
 
     if (_replaying)
@@ -341,7 +339,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
   validate_interactive("dba_cluster_no_interactive.js");
 
   std::vector<std::string> log{
-      R"(Created replication user 'mysql_innodb_cluster_)"};
+      "Creating recovery account 'mysql_innodb_cluster_"};
   MY_EXPECT_LOG_CONTAINS(log);
 }
 
@@ -373,7 +371,8 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
-  output_handler.set_log_level(shcore::Logger::LOG_DEBUG);
+  // we want to catch log_info output
+  output_handler.set_log_level(shcore::Logger::LOG_INFO);
 
   //@ Cluster: removeInstance errors
   output_handler.prompts.push_back({"*", "no"});
@@ -400,7 +399,7 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   validate_interactive("dba_cluster_interactive.js");
 
   std::vector<std::string> log{
-      R"(Created replication user 'mysql_innodb_cluster_)"};
+      "Creating recovery account 'mysql_innodb_cluster_"};
   MY_EXPECT_LOG_CONTAINS(log);
 }
 
@@ -444,7 +443,7 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   // error conditions.
   validate_interactive("dba_cluster_multimaster_interactive.js");
 
-  std::vector<std::string> log = {
+  std::vector<std::string> log{
       "The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary "
       "Mode. Consult its requirements and limitations in "
       "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html"};
@@ -698,17 +697,11 @@ TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   //@<OUT> Configures the instance, answers 'yes' on the read only prompt
   output_handler.prompts.push_back({"*", "y"});
 
-  //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
-  output_handler.prompts.push_back({"*", "y"});
-
   //@ Reboot the cluster
   // Confirms addition of second instance
   output_handler.prompts.push_back({"*", "y"});
 
   // Confirms addition of third instance
-  output_handler.prompts.push_back({"*", "y"});
-
-  // Confirms clean up of read only
   output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_super_read_only_handling.js");

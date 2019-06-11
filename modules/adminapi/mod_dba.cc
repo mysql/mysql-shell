@@ -785,6 +785,8 @@ ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
+@attention The clearReadOnly option will be removed in a future release.
+
 @attention The multiMaster option will be removed in a future release. Please
 use the multiPrimary option instead.
 
@@ -923,7 +925,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
       }
     }
 
-    // Verify depercation of multiMaster
+    // Verify deprecation of multiMaster
     if (options->has_key("multiMaster")) {
       if (options->has_key("multiPrimary")) {
         throw shcore::Exception::argument_error(
@@ -938,6 +940,16 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
         console->print_warning(warn_msg);
         console->println();
       }
+    }
+
+    // Verify deprecation of clearReadOnly
+    if (options->has_key("clearReadOnly")) {
+      std::string warn_msg =
+          "The clearReadOnly option is deprecated. The super_read_only mode is "
+          "now automatically cleared.";
+      auto console = mysqlsh::current_console();
+      console->print_warning(warn_msg);
+      console->println();
     }
   }
 
@@ -1936,6 +1948,8 @@ The options dictionary can contain the next values:
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled
 
+@attention The clearReadOnly option will be removed in a future release.
+
 This function reboots a cluster from complete outage. It picks the instance the
 MySQL Shell is connected to as new seed instance and recovers the cluster.
 Optionally it also updates the cluster configuration based on user provided
@@ -2004,8 +2018,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   std::string cluster_name;
   try {
     bool default_cluster = false;
-    mysqlshdk::utils::nullable<bool> clear_read_only;
-    bool interactive = current_shell_options()->get().wizards;
+    auto console = mysqlsh::current_console();
 
     if (args.size() == 0) {
       default_cluster = true;
@@ -2039,8 +2052,14 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       if (opt_map.has_key("rejoinInstances"))
         rejoin_instances_ref = opt_map.array_at("rejoinInstances");
 
-      if (opt_map.has_key("clearReadOnly"))
-        clear_read_only = opt_map.bool_at("clearReadOnly");
+      if (opt_map.has_key("clearReadOnly")) {
+        opt_map.bool_at("clearReadOnly");
+        std::string warn_msg =
+            "The clearReadOnly option is deprecated. The super_read_only mode "
+            "is now automatically cleared.";
+        console->print_warning(warn_msg);
+        console->println();
+      }
     }
 
     // Check if removeInstances and/or rejoinInstances are specified
@@ -2244,12 +2263,18 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
     // 6. Set the current session instance as the seed instance of the Cluster
     {
-      // Check if super_read_only is turned off and disable it if required
-      // NOTE: this is left for last to avoid setting super_read_only to true
-      // and right before some execution failure of the command leaving the
-      // instance in an incorrect state
-      validate_super_read_only(group_instance, clear_read_only, interactive);
-
+      // Disable super_read_only mode if it is enabled.
+      bool super_read_only =
+          group_instance.get_sysvar_bool("super_read_only").get_safe();
+      if (super_read_only) {
+        console->print_info("Disabling super_read_only mode on instance '" +
+                            group_instance.descr() + "'.");
+        log_debug(
+            "Disabling super_read_only mode on instance '%s' to run "
+            "rebootClusterFromCompleteOutage.",
+            group_instance.descr().c_str());
+        group_instance.set_sysvar("super_read_only", false);
+      }
       Group_replication_options gr_options(Group_replication_options::NONE);
 
       // The current 'group_replication_group_name' must be kept otherwise
@@ -2268,7 +2293,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // existing recovery users should be reused. Therefore the boolean to
       // skip replication users is set to true and the respective replication
       // user credentials left empty.
-      {
+      try {
         // Create the add_instance command and execute it.
         Add_instance op_add_instance(&target_instance, *default_replicaset,
                                      gr_options, {}, "", "", true, true, true);
@@ -2282,6 +2307,23 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
         // Execute add_instance operations.
         op_add_instance.execute();
+      } catch (...) {
+        // catch any exception that is thrown, restore super read-only-mode if
+        // it was enabled and re-throw the caught exception.
+        if (super_read_only) {
+          log_debug(
+              "Restoring super_read_only mode on instance '%s' to 'ON' since "
+              "it was enabled before rebootClusterFromCompleteOutage operation "
+              "started.",
+              group_instance.descr().c_str());
+          console->print_info(
+              "Restoring super_read_only mode on instance '" +
+              group_instance.descr() +
+              "' since dba.<<<rebootClusterFromCompleteOutage>>>() "
+              "operation failed.");
+          group_instance.set_sysvar("super_read_only", true);
+        }
+        throw;
       }
     }
 

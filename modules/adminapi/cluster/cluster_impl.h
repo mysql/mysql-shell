@@ -37,9 +37,6 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
-#define ACC_USER "username"
-#define ACC_PASSWORD "password"
-
 #define ATT_DEFAULT "default"
 
 namespace mysqlsh {
@@ -97,6 +94,11 @@ class Cluster_impl {
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
     return _group_session;
   }
+
+  mysqlshdk::mysql::Auth_options create_replication_user(
+      mysqlshdk::mysql::IInstance *target);
+
+  void drop_replication_user(mysqlshdk::mysql::IInstance *target);
 
   void disconnect();
 

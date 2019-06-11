@@ -399,19 +399,27 @@ shcore::Value Remove_instance::execute() {
       "instance."));
   console->println();
 
+  if (m_target_instance) {
+    // Remove recovery user being used by the target instance from the
+    // primary. NOTE: This operation MUST be performed before leave-replicaset
+    // to ensure the that user removal is also propagated to the target
+    // instance to remove (if ONLINE), but before metadata removal, since
+    // we need account info stored there.
+    m_replicaset.get_cluster()->drop_replication_user(m_target_instance);
+  }
+
   // JOB: Remove instance from the MD (metadata).
   // NOTE: This operation MUST be performed before leave-replicaset to ensure
   // that the MD change is also propagated to the target instance to
   // remove (if ONLINE). This avoid issues removing and adding an instance
   // again (error adding the instance because it is already in the MD).
   Instance_definition instance_def = remove_instance_metadata();
-
   // Only try to sync transactions with cluster and execute leave-replicaset
   // if connection to the instance was previously established (however instance
   // might still fail during the execution of those steps).
   if (m_target_instance) {
-    // JOB: Sync transactions with the cluster.
     try {
+      // JOB: Sync transactions with the cluster.
       m_replicaset.get_cluster()->sync_transactions(*m_target_instance);
     } catch (const std::exception &err) {
       // Skip error if force=true, otherwise revert instance remove from MD and
@@ -419,6 +427,8 @@ shcore::Value Remove_instance::execute() {
       if (m_force.is_null() || *m_force == false) {
         // REVERT JOB: Remove instance from the MD (metadata).
         undo_remove_instance_metadata(instance_def);
+        // TODO(alfredo): all these checks for auto-rejoin should be done in
+        // prepare(), not here
         bool is_rejoining =
             mysqlshdk::gr::is_running_gr_auto_rejoin(*m_target_instance);
         if (is_rejoining)
@@ -449,7 +459,7 @@ shcore::Value Remove_instance::execute() {
             "%s",
             m_instance_address.c_str(), err.what());
         console->print_warning(
-            "An error occured when trying to catch up with cluster "
+            "An error occurred when trying to catch up with cluster "
             "transactions and the instance might have been left in an "
             "inconsistent state that will lead to errors if it is reused.");
         console->println();
@@ -471,11 +481,12 @@ shcore::Value Remove_instance::execute() {
       mysqlsh::dba::leave_replicaset(*m_target_instance);
 
       // Update the replicaset members (group_seed variable) and remove the
-      // replication users on the instance and other members.
+      // replication user from the instance being removed from the primary
+      // instance.
       m_replicaset.get_cluster()
           ->get_default_replicaset()
           ->update_group_members_for_removed_member(local_gr_address,
-                                                    *m_target_instance, true);
+                                                    *m_target_instance);
 
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
     } catch (const std::exception &err) {

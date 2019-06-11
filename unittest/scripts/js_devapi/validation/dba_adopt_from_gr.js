@@ -4,26 +4,37 @@
 //@ it's not possible to adopt from GR without existing group replication
 ||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
-//@ Create cluster
-||
-
-//@ Adding instance to cluster
-||
-
-//@ Drop Metadata
-||
-
-//@ Check cluster status after drop metadata schema
-||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
-
-//@ Get data about existing replication users before createCluster with adoptFromGR.
+//@ Create group by hand
 ||
 
 //@ Create cluster adopting from GR
 ||
 
-//@<OUT> Confirm no new replication user was created.
-false
+//@<OUT> Confirm new replication users were created and replaced existing ones, but didn't drop the old ones that don't belong to shell (WL#12773 FR1.5 and FR3)
+user	host
+mysql_innodb_cluster_1111	%
+mysql_innodb_cluster_2222	%
+some_user	%
+3
+instance_name	attributes
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_1111"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_2222"}
+2
+recovery_user_name
+mysql_innodb_cluster_1111
+1
+user	host
+mysql_innodb_cluster_1111	%
+mysql_innodb_cluster_2222	%
+some_user	%
+3
+instance_name	attributes
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_1111"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_2222"}
+2
+recovery_user_name
+mysql_innodb_cluster_2222
+1
 
 //@<OUT> Check cluster status
 {
@@ -31,7 +42,7 @@ false
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {

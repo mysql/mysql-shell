@@ -248,8 +248,13 @@ Cluster.addInstance: The server_id '666' is already used by instance '<<<hostnam
 ||
 
 //@<OUT> BUG#28855764: Passwords for recovery users never expire (password_lifetime=0).
-Number of accounts for '<<<recovery_user_1>>>': 2
-Number of accounts for '<<<recovery_user_2>>>': 2
+Number of accounts for '<<<recovery_user_1>>>': 1
+Number of accounts for '<<<recovery_user_2>>>': 1
 
 //@ BUG#28855764: clean-up.
 ||
+
+//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+|mysql_innodb_cluster_11111, %|
+|mysql_innodb_cluster_22222, %|
+|mysql_innodb_cluster_33333, %|

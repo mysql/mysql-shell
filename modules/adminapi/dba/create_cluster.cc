@@ -56,7 +56,6 @@ Create_cluster::Create_cluster(
       m_multi_primary(multi_primary),
       m_adopt_from_gr(adopt_from_gr),
       m_force(force),
-      m_clear_read_only(clear_read_only),
       m_interactive(interactive) {}
 
 Create_cluster::~Create_cluster() {}
@@ -169,59 +168,6 @@ void Create_cluster::resolve_ssl_mode() {
   }
 }
 
-void Create_cluster::prompt_super_read_only() {
-  auto console = mysqlsh::current_console();
-
-  // Get the status of super_read_only in order to verify if we need to
-  // prompt the user to disable it
-  mysqlshdk::utils::nullable<bool> super_read_only =
-      m_target_instance->get_sysvar_bool(
-          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-  if (*super_read_only) {
-    console->println();
-    console->print_info(mysqlsh::fit_screen(
-        "The MySQL instance at '" + m_target_instance->descr() +
-        "' currently has the super_read_only system variable set to protect it "
-        "from inadvertent updates from applications. You must first unset it "
-        "to be able to perform any changes to this instance.\n"
-        "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only."));
-    console->println();
-
-    // Get the list of open session to the instance
-    std::vector<std::pair<std::string, int>> open_sessions;
-    open_sessions =
-        mysqlsh::dba::get_open_sessions(m_target_instance->get_session());
-
-    if (!open_sessions.empty()) {
-      console->print_note(
-          "There are open sessions to '" + m_target_instance->descr() +
-          "'.\n"
-          "You may want to kill these sessions to prevent them from "
-          "performing unexpected updates: \n");
-
-      for (auto &value : open_sessions) {
-        std::string account = value.first;
-        int num_open_sessions = value.second;
-
-        console->println("" + std::to_string(num_open_sessions) +
-                         " open session(s) of '" + account + "'. \n");
-      }
-    }
-
-    if (console->confirm("Do you want to disable super_read_only and continue?",
-                         mysqlsh::Prompt_answer::NO) ==
-        mysqlsh::Prompt_answer::NO) {
-      console->println();
-      throw shcore::cancelled("Cancelled");
-    } else {
-      m_clear_read_only = true;
-      console->println();
-    }
-  }
-}
-
 void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
   console->println(
@@ -238,89 +184,102 @@ void Create_cluster::prepare() {
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
 
-  if (!m_adopt_from_gr) {
-    // Check instance configuration and state, like dba.checkInstance
-    // but skip if we're adopting, since in that case the target is obviously
-    // already configured
-    ensure_instance_configuration_valid(*m_target_instance);
-
-    // Print warning if auto-rejoin is set (not 0).
-    if (!m_gr_opts.auto_rejoin_tries.is_null() &&
-        *(m_gr_opts.auto_rejoin_tries) != 0) {
-      console->print_warning(
-          "The member will only proceed according to its exitStateAction if "
-          "auto-rejoin fails (i.e. all retry attempts are exhausted).");
-      console->println();
-    }
-
-    // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
-    // - exitStateAction default value must be READ_ONLY
-    // - exitStateAction default value should only be set if supported in
-    // the target instance
-    if (m_gr_opts.exit_state_action.is_null() &&
-        is_group_replication_option_supported(m_target_instance->get_version(),
-                                              kExpelTimeout)) {
-      m_gr_opts.exit_state_action = "READ_ONLY";
-    }
-
-    // Check replication filters before creating the Metadata.
-    validate_replication_filters(*m_target_instance);
-
-    // Resolve the SSL Mode to use to configure the instance.
-    resolve_ssl_mode();
-
-    // Make sure the target instance does not already belong to a cluster.
-    mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-        *m_target_instance, m_target_instance->get_session());
-
-    // Get the address used by GR for the added instance (used in MD).
-    m_address_in_metadata = m_target_instance->get_canonical_address();
-
-    // Resolve GR local address.
-    // NOTE: Must be done only after getting the report_host used by GR and for
-    //       the metadata;
-    m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
-        m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
-        m_target_instance->get_canonical_port());
-
-    // Generate the GR group name (if needed).
-    if (m_gr_opts.group_name.is_null()) {
-      m_gr_opts.group_name =
-          mysqlshdk::gr::generate_group_name(*m_target_instance);
-    }
+  // Disable super_read_only mode if it is enabled.
+  bool super_read_only =
+      m_target_instance->get_sysvar_bool("super_read_only").get_safe();
+  if (super_read_only) {
+    console->print_info("Disabling super_read_only mode on instance '" +
+                        m_target_instance->descr() + "'.");
+    log_debug(
+        "Disabling super_read_only mode on instance '%s' to run createCluster.",
+        m_target_instance->descr().c_str());
+    m_target_instance->set_sysvar("super_read_only", false);
   }
 
-  // Determine the GR mode if the cluster is to be adopt from GR.
-  if (m_adopt_from_gr) {
-    // Get the primary UUID value to determine GR mode:
-    // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-    std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-        m_target_instance->get_session(), nullptr);
+  try {
+    if (!m_adopt_from_gr) {
+      // Check instance configuration and state, like dba.checkInstance
+      // but skip if we're adopting, since in that case the target is obviously
+      // already configured
+      ensure_instance_configuration_valid(*m_target_instance);
 
-    m_multi_primary = gr_primary_uuid.empty();
-  }
+      // Print warning if auto-rejoin is set (not 0).
+      if (!m_gr_opts.auto_rejoin_tries.is_null() &&
+          *(m_gr_opts.auto_rejoin_tries) != 0) {
+        console->print_warning(
+            "The member will only proceed according to its exitStateAction if "
+            "auto-rejoin fails (i.e. all retry attempts are exhausted).");
+        console->println();
+      }
 
-  // Verify the status of super_read_only and ask the user if wants
-  // to disable it
-  // NOTE: this is left for last to avoid setting super_read_only to true
-  // and right before some execution failure of the command leaving the
-  // instance in an incorrect state
-  if (m_interactive && m_clear_read_only.is_null()) {
-    prompt_super_read_only();
-  }
+      // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
+      // - exitStateAction default value must be READ_ONLY
+      // - exitStateAction default value should only be set if supported in
+      // the target instance
+      if (m_gr_opts.exit_state_action.is_null() &&
+          is_group_replication_option_supported(
+              m_target_instance->get_version(), kExpelTimeout)) {
+        m_gr_opts.exit_state_action = "READ_ONLY";
+      }
 
-  // Check if super_read_only is turned off and disable it if required
-  // NOTE: this is left for last to avoid setting super_read_only to true
-  // and right before some execution failure of the command leaving the
-  // instance in an incorrect state
-  validate_super_read_only(*m_target_instance, m_clear_read_only,
-                           m_interactive);
+      // Check replication filters before creating the Metadata.
+      validate_replication_filters(*m_target_instance);
 
-  if (!m_adopt_from_gr) {
-    // Set the internal configuration object: read/write configs from the
-    // server.
-    m_cfg = mysqlsh::dba::create_server_config(
-        m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
+      // Resolve the SSL Mode to use to configure the instance.
+      resolve_ssl_mode();
+
+      // Make sure the target instance does not already belong to a cluster.
+      mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+          *m_target_instance, m_target_instance->get_session());
+
+      // Get the address used by GR for the added instance (used in MD).
+      m_address_in_metadata = m_target_instance->get_canonical_address();
+
+      // Resolve GR local address.
+      // NOTE: Must be done only after getting the report_host used by GR and
+      // for the metadata;
+      m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
+          m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
+          m_target_instance->get_canonical_port());
+
+      // Generate the GR group name (if needed).
+      if (m_gr_opts.group_name.is_null()) {
+        m_gr_opts.group_name =
+            mysqlshdk::gr::generate_group_name(*m_target_instance);
+      }
+    }
+
+    // Determine the GR mode if the cluster is to be adopt from GR.
+    if (m_adopt_from_gr) {
+      // Get the primary UUID value to determine GR mode:
+      // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
+      std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
+          m_target_instance->get_session(), nullptr);
+
+      m_multi_primary = gr_primary_uuid.empty();
+    }
+
+    if (!m_adopt_from_gr) {
+      // Set the internal configuration object: read/write configs from the
+      // server.
+      m_cfg = mysqlsh::dba::create_server_config(
+          m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
+    }
+  } catch (...) {
+    // catch any exception that is thrown, restore super read-only-mode if it
+    // was enabled and re-throw the caught exception.
+    if (super_read_only) {
+      log_debug(
+          "Restoring super_read_only mode on instance '%s' to 'ON' since it "
+          "was enabled before createCluster operation started.",
+          m_target_instance->descr().c_str());
+      console->print_info(
+          "Restoring super_read_only mode on instance '" +
+          m_target_instance->descr() +
+          "' since dba.<<<createCluster>>>() operation failed.");
+      m_target_instance->set_sysvar("super_read_only", true);
+    }
+    throw;
   }
 }
 
@@ -390,6 +349,82 @@ void Create_cluster::prepare_metadata_schema() {
   mysqlsh::dba::metadata::install(m_target_instance->get_session());
 }
 
+void Create_cluster::setup_recovery(Cluster_impl *cluster,
+                                    mysqlshdk::mysql::IInstance *target,
+                                    std::string *out_username) {
+  // Setup recovery account for this seed instance, which will be used
+  // when/if it needs to rejoin.
+  mysqlshdk::mysql::Auth_options repl_account =
+      cluster->create_replication_user(target);
+
+  if (out_username) *out_username = repl_account.user;
+
+  // Insert the recovery account on the Metadata Schema.
+  cluster->get_metadata_storage()->update_instance_recovery_account(
+      target->get_uuid(), repl_account.user, "%");
+
+  // Set the GR replication (recovery) user.
+  log_debug("Changing GR recovery user details for %s",
+            target->descr().c_str());
+
+  try {
+    mysqlshdk::gr::change_recovery_credentials(*target, repl_account.user,
+                                               *repl_account.password);
+  } catch (const std::exception &e) {
+    current_console()->print_warning(
+        shcore::str_format("Error updating recovery credentials for %s: %s",
+                           target->descr().c_str(), e.what()));
+
+    cluster->drop_replication_user(target);
+  }
+}
+
+void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
+  // Iterate all members of the group and reset recovery credentials
+  auto console = mysqlsh::current_console();
+  console->print_info(
+      "Resetting distributed recovery credentials across the cluster...");
+
+  std::set<std::string> new_users;
+  std::set<std::string> old_users;
+
+  cluster->get_default_replicaset()->execute_in_members(
+      {}, cluster->get_group_session()->get_connection_options(), {},
+      [&](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+        mysqlshdk::mysql::Instance target(session);
+
+        old_users.insert(mysqlshdk::gr::get_recovery_user(target));
+
+        std::string new_user;
+        setup_recovery(cluster, &target, &new_user);
+        new_users.insert(new_user);
+        return true;
+      });
+
+  // Drop old recovery accounts if they look like they were created by
+  // the shell, since this group could have been a InnoDB cluster
+  // previously, with its metadata dropped by the user.
+  std::set<std::string> unused_users;
+  std::set_difference(old_users.begin(), old_users.end(), new_users.begin(),
+                      new_users.end(),
+                      std::inserter(unused_users, unused_users.begin()));
+
+  for (const auto &old_user : unused_users) {
+    if (shcore::str_beginswith(
+            old_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
+      log_info("Removing old replication user '%s'", old_user.c_str());
+      try {
+        mysqlshdk::mysql::drop_all_accounts_for_user(
+            cluster->get_group_session(), old_user);
+      } catch (const std::exception &e) {
+        console->print_warning(
+            "Error dropping old recovery accounts for user " + old_user + ": " +
+            e.what());
+      }
+    }
+  }
+}
+
 shcore::Value Create_cluster::execute() {
   auto console = mysqlsh::current_console();
   console->print_info("Creating InnoDB cluster '" + m_cluster_name + "' on '" +
@@ -418,32 +453,14 @@ shcore::Value Create_cluster::execute() {
   }
 
   shcore::Value ret_val;
-  std::string replication_user;
-  std::string replication_pwd;
-  try {
+  {
     console->print_info("Adding Seed Instance...");
 
-    // BUG#28064729: Do not create Metadata and recovery users before
-    // bootstrapping the GR group.
     if (!m_adopt_from_gr) {
-      // Start replicaset before creating the recovery user and metadata.
+      // Start GR before creating the recovery user and metadata, so that
+      // all transactions executed by us have the same GTID prefix
       mysqlsh::dba::start_replicaset(*m_target_instance, m_gr_opts,
                                      m_multi_primary, m_cfg.get());
-
-      // Creates the replication account to for the primary instance.
-      // BUG#28054500: Do not create new users, not needed, when creating a
-      // cluster with adoptFromGR.
-      mysqlshdk::gr::create_replication_random_user_pass(
-          *m_target_instance, &replication_user,
-          convert_ipwhitelist_to_netmask(m_gr_opts.ip_whitelist.get_safe()),
-          &replication_pwd);
-      log_debug("Created replication user '%s'", replication_user.c_str());
-
-      // Set the GR replication (recovery) user.
-      log_debug("Setting Group Replication recovery user to '%s'.",
-                replication_user.c_str());
-      mysqlshdk::gr::change_recovery_credentials(
-          *m_target_instance, replication_user, replication_pwd);
     }
 
     // Create the Metadata Schema.
@@ -481,8 +498,12 @@ shcore::Value Create_cluster::execute() {
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
       cluster->impl()->get_default_replicaset()->adopt_from_gr();
+
+      // Reset recovery channel in all instances to use our own account
+      reset_recovery_all(cluster->impl().get());
     } else {
       // Check if instance address already belong to replicaset (metadata).
+      // TODO(alfredo) - this check seems redundant?
       bool is_instance_on_md =
           cluster->impl()->get_metadata_storage()->is_instance_on_replicaset(
               cluster->impl()->get_default_replicaset()->get_id(),
@@ -496,30 +517,17 @@ shcore::Value Create_cluster::execute() {
           is_instance_on_md ? "is already in the Metadata."
                             : "is being added to the Metadata...");
 
-      // If the instance is not on the Metadata, we must add it.
-      if (!is_instance_on_md)
+      // If the instance is not in the Metadata, we must add it.
+      if (!is_instance_on_md) {
         cluster->impl()->get_default_replicaset()->add_instance_metadata(
             m_target_instance->get_connection_options());
+      }
+      setup_recovery(cluster->impl().get(), m_target_instance);
     }
 
     // If it reaches here, it means there are no exceptions
     ret_val =
         shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(cluster));
-
-  } catch (const std::exception &) {
-    // Remove the replication user if previously created.
-    if (!replication_user.empty()) {
-      log_debug("Removing replication user '%s'", replication_user.c_str());
-      try {
-        mysqlshdk::mysql::drop_all_accounts_for_user(
-            m_target_instance->get_session(), replication_user);
-      } catch (const std::exception &err) {
-        console->print_warning("Failed to remove replication user '" +
-                               replication_user + "': " + err.what());
-      }
-    }
-    // Re-throw the original exception
-    throw;
   }
 
   std::string message =
