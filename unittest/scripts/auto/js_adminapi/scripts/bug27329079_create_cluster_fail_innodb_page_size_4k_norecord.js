@@ -59,8 +59,8 @@ function cleanup_sandbox(port) {
 }
 
 //@ Deploy instances (with specific innodb_page_size).
-dba.deploySandboxInstance(__mysql_sandbox_port1, {mysqldOptions: ["innodb_page_size=4k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
-dba.deploySandboxInstance(__mysql_sandbox_port2, {mysqldOptions: ["innodb_page_size=8k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptions: ["innodb_page_size=4k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["innodb_page_size=8k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
 
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 

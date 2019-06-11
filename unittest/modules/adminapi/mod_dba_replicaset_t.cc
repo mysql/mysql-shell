@@ -59,12 +59,6 @@ class Dba_replicaset_test : public Admin_api_test {
     auto dba = _interactive_shell->shell_context()
                    ->get_global("dba")
                    .as_object<mysqlsh::dba::Dba>();
-    if (!dba) {
-      auto idba = _interactive_shell->shell_context()
-                      ->get_global("dba")
-                      .as_object<shcore::Global_dba>();
-      dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(idba->get_target());
-    }
 
     shcore::Argument_list args;
     args.emplace_back("sample");

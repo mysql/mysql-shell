@@ -31,7 +31,6 @@
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/types.h"
-#include "src/interactive/interactive_global_dba.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/admin_api_test.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"

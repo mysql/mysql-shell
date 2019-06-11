@@ -8,9 +8,6 @@ shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', 
 //@# Invalid dropMetadataSchema call
 dba.dropMetadataSchema(1,2,3,4,5);
 
-//@# drop metadata: no arguments
-dba.dropMetadataSchema()
-
 //@# create cluster
 if (__have_ssl)
   dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});

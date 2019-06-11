@@ -1,8 +1,5 @@
 //@# Invalid dropMetadataSchema call
-||Dba.dropMetadataSchema: Invalid number of arguments, expected 1 but got 5 (ArgumentError)
-
-//@# drop metadata: no arguments
-||Dba.dropMetadataSchema: Invalid number of arguments, expected 1 but got 0 (ArgumentError)
+||Dba.dropMetadataSchema: Invalid number of arguments, expected 0 to 1 but got 5 (ArgumentError)
 
 //@# create cluster
 |<Cluster:tempCluster>|

@@ -52,7 +52,6 @@ file(GLOB api_module_SOURCES
       "mod_sys.cc"
       "mod_utils.cc"
       "mod_mysql_constants.cc"
-      "interactive_object_wrapper.cc"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"
       "adminapi/common/metadata_storage.cc"

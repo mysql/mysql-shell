@@ -104,6 +104,13 @@ c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 
+//@<> Update the configuration files again {VER(<8.0.0)}
+var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
+
+
 //@<> BUG#29305551: Reset gr_start_on_boot on all instances
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);

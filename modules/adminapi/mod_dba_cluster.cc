@@ -43,7 +43,8 @@ DEBUG_OBJ_ENABLE(Cluster);
 
 namespace mysqlsh {
 namespace dba {
-
+using mysqlshdk::db::uri::formats::only_transport;
+using mysqlshdk::db::uri::formats::user_transport;
 // Documentation of the Cluster Class
 REGISTER_HELP_CLASS(Cluster, adminapi);
 REGISTER_HELP(CLUSTER_BRIEF, "Represents an InnoDB cluster.");
@@ -473,11 +474,43 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
+  bool interactive = current_shell_options()->get().wizards;
+
   // rejoin the Instance to the Default ReplicaSet
   shcore::Value ret_val;
+  mysqlshdk::db::Connection_options instance_def;
+  auto console = current_console();
   try {
-    auto instance_def =
+    m_impl->check_preconditions("rejoinInstance");
+
+    instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+
+    if (interactive) {
+      // TODO(rennox): This was done on the interactive call, wondering if
+      // either should be done only if interactive, or if it should be done at
+      // all
+      instance_def.set_default_connection_data();
+
+      std::string message =
+          "Rejoining the instance to the InnoDB cluster. "
+          "Depending on the original\n"
+          "problem that made the instance unavailable, the rejoin operation "
+          "might not be\n"
+          "successful and further manual steps will be needed to fix the "
+          "underlying\n"
+          "problem.\n"
+          "\n"
+          "Please monitor the output of the rejoin operation and take "
+          "necessary "
+          "action if\n"
+          "the instance cannot rejoin.\n\n";
+
+      console->print(message);
+
+      console->println("Rejoining instance to the cluster ...");
+      console->println();
+    }
 
     validate_connection_options(instance_def);
 
@@ -489,6 +522,13 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
     ret_val = m_impl->rejoin_instance(instance_def, options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
+
+  if (interactive) {
+    console->println("The instance '" + instance_def.as_uri(only_transport()) +
+                     ""
+                     "' was successfully rejoined on the cluster.");
+    console->println();
+  }
 
   return ret_val;
 }
@@ -973,12 +1013,75 @@ shcore::Value Cluster::force_quorum_using_partition_of(
   args.ensure_count(1, 2,
                     get_function_name("forceQuorumUsingPartitionOf").c_str());
 
+  m_impl->check_preconditions("forceQuorumUsingPartitionOf");
+
+  bool interactive = current_shell_options()->get().wizards;
+  auto console = current_console();
+
   shcore::Value ret_val;
   try {
+    auto default_rs = m_impl->get_default_replicaset();
+
+    std::string rs_name;
+
+    if (default_rs)
+      rs_name = default_rs->get_name();
+    else
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+    std::vector<mysqlsh::dba::Instance_definition> online_instances =
+        default_rs->get_online_instances();
+
+    std::vector<std::string> online_instances_array;
+    for (const auto &instance : online_instances) {
+      online_instances_array.push_back(instance.endpoint);
+    }
+
+    if (online_instances_array.empty())
+      throw shcore::Exception::logic_error(
+          "No online instances are visible "
+          "from the given one.");
+
+    auto group_peers = shcore::str_join(online_instances_array, ",");
+
+    // Remove the trailing comma of group_peers
+    if (group_peers.back() == ',') group_peers.pop_back();
+
+    if (interactive) {
+      std::string message = "Restoring replicaset '" + rs_name +
+                            "'"
+                            " from loss of quorum, by using the partition "
+                            "composed of [" +
+                            group_peers + "]\n\n";
+      console->print(message);
+
+      console->println("Restoring the InnoDB cluster ...");
+      console->println();
+    }
+
     ret_val = m_impl->force_quorum_using_partition_of(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("forceQuorumUsingPartitionOf"));
+
+  if (interactive) {
+    auto instance_def =
+        mysqlsh::get_connection_options(args, PasswordFormat::STRING);
+
+    instance_def.set_default_connection_data();
+
+    console->println(
+        "The InnoDB cluster was successfully restored using the partition from "
+        "the instance '" +
+        instance_def.as_uri(user_transport()) + "'.");
+    console->println();
+    console->println(
+        "WARNING: To avoid a split-brain scenario, ensure that all other "
+        "members "
+        "of the replicaset "
+        "are removed or joined back to the group that was restored.");
+    console->println();
+  }
 
   return ret_val;
 }

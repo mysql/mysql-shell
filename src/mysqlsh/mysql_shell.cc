@@ -59,9 +59,6 @@
 
 #include "commands/command_help.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "src/interactive/interactive_dba_cluster.h"
-#include "src/interactive/interactive_global_dba.h"
-#include "src/interactive/interactive_global_shell.h"
 #include "src/mysqlsh/commands/command_show.h"
 #include "src/mysqlsh/commands/command_watch.h"
 #include "utils/debug.h"
@@ -491,33 +488,14 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
-  if (options().wizards) {
-    auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
-        new shcore::Global_shell(*_shell.get()));
-    auto interactive_dba = std::shared_ptr<shcore::Global_dba>(
-        new shcore::Global_dba(*_shell.get()));
+  set_global_object(
+      "shell",
+      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell),
+      shcore::IShell_core::all_scripting_modes());
 
-    interactive_shell->set_target(_global_shell);
-    interactive_dba->set_target(_global_dba);
-
-    set_global_object(
-        "shell",
-        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell),
-        shcore::IShell_core::all_scripting_modes());
-    set_global_object(
-        "dba",
-        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba),
-        shcore::IShell_core::all_scripting_modes());
-  } else {
-    set_global_object(
-        "shell",
-        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell),
-        shcore::IShell_core::all_scripting_modes());
-    set_global_object(
-        "dba",
-        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
-        shcore::IShell_core::all_scripting_modes());
-  }
+  set_global_object(
+      "dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
+      shcore::IShell_core::all_scripting_modes());
 
   set_global_object(
       "sys",
@@ -1090,17 +1068,7 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
   _shell->set_global("cluster", vcluster,
                      shcore::IShell_core::all_scripting_modes());
 
-  auto cluster = vcluster.as_object<mysqlsh::dba::Cluster>();
-  if (!cluster) {
-    auto icluster = vcluster.as_object<shcore::Interactive_dba_cluster>();
-    assert(icluster);
-    if (icluster) {
-      cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(
-          icluster->get_target());
-      assert(cluster);
-    }
-  }
-  return cluster;
+  return vcluster.as_object<mysqlsh::dba::Cluster>();
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {

@@ -57,10 +57,6 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
       "shell.connect('root:root@localhost:" + shell_env.sb_str_port1() + "')");
 
   auto dba = shell_env.get_global<mysqlsh::dba::Dba>("dba");
-  if (!dba) {
-    auto idba = shell_env.get_global<shcore::Global_dba>("dba");
-    dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(idba->get_target());
-  }
 
   shcore::Argument_list args;
   shcore::Dictionary_t options = shcore::make_dict();

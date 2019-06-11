@@ -65,6 +65,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -158,6 +159,52 @@ using std::placeholders::_1;
 
 namespace mysqlsh {
 namespace dba {
+
+namespace sandbox {
+struct Op_data {
+  std::string name;
+  std::string progressive;
+  std::string past;
+};
+
+static std::map<std::string, Op_data> Operations_text{
+    {"delete", {"deleteSandboxInstance", "Deleting", "deleted"}},
+    {"kill", {"killSandboxInstance", "Killing", "killed"}},
+    {"stop", {"stopSandboxInstance", "Stopping", "stopped"}},
+    {"deploy",
+     {"deploySandboxInstance", "Deploying new", "deployed and started"}},
+    {"start", {"startSandboxInstance", "Starting", "started"}}};
+
+}  // namespace sandbox
+
+namespace {
+void validate_port(int port, const std::string &name) {
+  if (port < 1024 || port > 65535)
+    throw shcore::Exception::argument_error(
+        "Invalid value for '" + name +
+        "': Please use a valid TCP port number >= 1024 and <= 65535");
+}
+
+std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
+  std::string sandbox_dir =
+      mysqlsh::current_shell_options()->get().sandbox_directory;
+
+  if (opt_map) {
+    if (opt_map->has_key("sandboxDir")) {
+      sandbox_dir = opt_map->string_at("sandboxDir");
+
+      // NOTE this validation is not done if the sandbox dir is the one
+      // At the shell options, is that intentional?
+      if (!shcore::is_folder(sandbox_dir))
+        throw shcore::Exception::argument_error("The sandboxDir path '" +
+                                                sandbox_dir + "' is not valid");
+    }
+  }
+
+  return sandbox_dir;
+}
+
+}  // namespace
 
 #define PASSWORD_LENGHT 16
 using mysqlshdk::db::uri::formats::only_transport;
@@ -659,6 +706,8 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
 
     std::shared_ptr<MetadataStorage> metadata;
     std::shared_ptr<mysqlshdk::db::ISession> group_session;
+    auto console = mysqlsh::current_console();
+
     // This will throw if not a cluster member
     try {
       // Connect to the target cluster member and
@@ -667,8 +716,6 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       connect_to_target_group({}, &metadata, &group_session,
                               connect_to_primary);
     } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
-      auto console = mysqlsh::current_console();
-
       // Print warning in case a cluster error is found (e.g., no quorum).
       if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
         console->print_warning(
@@ -685,6 +732,29 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
         connect_to_target_group({}, &metadata, &group_session, false);
       } else {
         throw;
+      }
+    }
+
+    if (current_shell_options()->get().wizards) {
+      auto state = get_cluster_check_info(group_session);
+      if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
+        console->println(
+            "WARNING: You are connected to an instance in state '" +
+            mysqlsh::dba::ManagedInstance::describe(
+                static_cast<mysqlsh::dba::ManagedInstance::State>(
+                    state.source_state)) +
+            "'\n"
+            "Write operations on the InnoDB cluster will not be allowed.\n");
+      } else if (state.source_state !=
+                 mysqlsh::dba::ManagedInstance::OnlineRW) {
+        console->println(
+            "WARNING: You are connected to an instance in state '" +
+            mysqlsh::dba::ManagedInstance::describe(
+                static_cast<mysqlsh::dba::ManagedInstance::State>(
+                    state.source_state)) +
+            "'\n"
+            "Write operations on the InnoDB cluster will not be allowed.\n"
+            "Output from describe() and status() may be outdated.\n");
       }
     }
 
@@ -1097,7 +1167,7 @@ None Dba::drop_metadata_schema(dict options) {}
 #endif
 
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("dropMetadataSchema").c_str());
+  args.ensure_count(0, 1, get_function_name("dropMetadataSchema").c_str());
 
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<mysqlshdk::db::ISession> group_session(
@@ -1108,18 +1178,29 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 
   check_preconditions(group_session, "dropMetadataSchema");
 
+  bool interactive = current_shell_options()->get().wizards;
+  auto console = current_console();
+
   try {
-    bool force = false;
+    mysqlshdk::utils::nullable<bool> force;
     mysqlshdk::utils::nullable<bool> clear_read_only;
-    bool interactive = current_shell_options()->get().wizards;
 
     // Map with the options
-    Unpack_options(args.map_at(0))
-        .optional("force", &force)
-        .optional("clearReadOnly", &clear_read_only)
-        .end();
+    if (!args.empty()) {
+      Unpack_options(args.map_at(0))
+          .optional("force", &force)
+          .optional("clearReadOnly", &clear_read_only)
+          .end();
+    }
 
-    if (force) {
+    if (force.is_null() && interactive &&
+        console->confirm("Are you sure you want to remove the Metadata?",
+                         mysqlsh::Prompt_answer::NO) ==
+            mysqlsh::Prompt_answer::YES) {
+      force = true;
+    }
+
+    if (force.get_safe(false)) {
       mysqlshdk::mysql::Instance instance(group_session);
 
       // Check if super_read_only is turned off and disable it if required
@@ -1129,9 +1210,16 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
       validate_super_read_only(instance, clear_read_only, interactive);
 
       metadata::uninstall(metadata->get_session());
+      if (interactive) {
+        console->println("Metadata Schema successfully removed.");
+      }
     } else {
-      throw shcore::Exception::runtime_error(
-          "No operation executed, use the 'force' option");
+      if (interactive) {
+        console->println("No changes made to the Metadata Schema.");
+      } else {
+        throw shcore::Exception::runtime_error(
+            "No operation executed, use the 'force' option");
+      }
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
@@ -1279,16 +1367,18 @@ shcore::Value Dba::check_instance_configuration(
 }
 
 shcore::Value Dba::exec_instance_op(const std::string &function,
-                                    const shcore::Argument_list &args) {
+                                    const shcore::Argument_list &args,
+                                    const std::string &password) {
   shcore::Value ret_val;
 
   shcore::Value::Map_type_ref options;  // Map with the connection data
   shcore::Value mycnf_options;
 
-  int port = args.int_at(0);
-  int portx = 0;
-  std::string password;
   std::string sandbox_dir;
+  int port = args.int_at(0);
+  validate_port(port, "port");
+  int portx = 0;
+
   bool ignore_ssl_error = true;  // SSL errors are ignored by default.
 
   if (args.size() == 2) {
@@ -1297,56 +1387,39 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
     // Verification of invalid attributes on the instance commands
     shcore::Argument_map opt_map(*options);
 
+    sandbox_dir = get_sandbox_dir(&opt_map);
+
     if (function == "deploy") {
-      opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
+      if (opt_map.has_key("ignoreSslError"))
+        ignore_ssl_error = opt_map.bool_at("ignoreSslError");
 
-      if (opt_map.has_key("portx")) {
-        portx = opt_map.int_at("portx");
+      if (options->has_key("mysqldOptions"))
+        mycnf_options = (*options)["mysqldOptions"];
 
-        if (portx < 1024 || portx > 65535)
-          throw shcore::Exception::argument_error(
-              "Invalid value for 'portx': Please use a valid TCP port number "
-              ">= 1024 and <= 65535");
-      }
+      if (options->has_key("portx")) portx = opt_map.int_at("portx");
 
-      if (opt_map.has_key("password"))
-        password = opt_map.string_at("password");
-      else
-        throw shcore::Exception::argument_error(
-            "Missing root password for the deployed instance");
-    } else if (function == "stop") {
-      opt_map.ensure_keys({}, _stop_instance_opts, "the instance data");
-      if (opt_map.has_key("password"))
-        password = opt_map.string_at("password");
-      else
-        throw shcore::Exception::argument_error(
-            "Missing root password for the instance");
-    } else {
+      mycnf_options = (*options)["mysqldOptions"];
+
+    } else if (function != "stop") {
       opt_map.ensure_keys({}, _default_local_instance_opts,
                           "the instance data");
     }
-
-    if (opt_map.has_key("sandboxDir")) {
-      sandbox_dir = opt_map.string_at("sandboxDir");
-    }
-
-    if (opt_map.has_key("ignoreSslError"))
-      ignore_ssl_error = opt_map.bool_at("ignoreSslError");
-
-    if (options->has_key("mysqldOptions"))
-      mycnf_options = (*options)["mysqldOptions"];
   } else {
-    if (function == "deploy")
-      throw shcore::Exception::argument_error(
-          "Missing root password for the deployed instance");
+    sandbox_dir = get_sandbox_dir();
   }
+
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Prints the operation introductory message
+  auto console = mysqlsh::current_console();
 
   shcore::Value::Array_type_ref errors;
 
-  if (port < 1024 || port > 65535)
-    throw shcore::Exception::argument_error(
-        "Invalid value for 'port': Please use a valid TCP port number >= 1024 "
-        "and <= 65535");
+  if (interactive) {
+    console->println();
+    console->println(sandbox::Operations_text[function].progressive +
+                     " MySQL instance...");
+  }
 
   int rc = 0;
   if (function == "deploy")
@@ -1376,10 +1449,16 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
     }
 
     throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
+  } else if (interactive && function != "deploy") {
+    console->println();
+    console->println("Instance localhost:" + std::to_string(port) +
+                     " successfully " +
+                     sandbox::Operations_text[function].past + ".");
+    console->println();
   }
 
   return ret_val;
-}
+}  // namespace dba
 
 REGISTER_HELP_FUNCTION(deploySandboxInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_DEPLOYSANDBOXINSTANCE, R"*(
@@ -1441,12 +1520,29 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
 
   args.ensure_count(1, 2, get_function_name(fname).c_str());
 
+  int port = 0;
   try {
-    ret_val = exec_instance_op("deploy", args);
+    port = args.int_at(0);
+    validate_port(port, "port");
+
+    std::string remote_root;
+    std::string sandbox_dir;
+    mysqlshdk::utils::nullable<std::string> password;
 
     if (args.size() == 2) {
       auto map = args.map_at(1);
       shcore::Argument_map opt_map(*map);
+
+      opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
+
+      if (opt_map.has_key("portx")) {
+        validate_port(opt_map.int_at("portx"), "portx");
+      }
+
+      sandbox_dir = get_sandbox_dir(&opt_map);
+
+      if (opt_map.has_key("password")) password = opt_map.string_at("password");
+
       // create root@<addr> if needed
       // Valid values:
       // allowRootFrom: address
@@ -1454,51 +1550,124 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
       // allowRootFrom: null (that is, disable the option)
       if (opt_map.has_key("allowRootFrom") &&
           opt_map.at("allowRootFrom").type != shcore::Null) {
-        std::string remote_root = opt_map.string_at("allowRootFrom");
-        if (!remote_root.empty()) {
-          int port = args.int_at(0);
-          std::string uri = "root@localhost:" + std::to_string(port);
-          mysqlshdk::db::Connection_options instance_def(uri);
-          mysqlsh::set_password_from_map(&instance_def, map);
+        remote_root = opt_map.string_at("allowRootFrom");
+      }
+    } else {
+      sandbox_dir = get_sandbox_dir();
+    }
 
-          auto session = get_session(instance_def);
-          assert(session);
+    bool interactive = current_shell_options()->get().wizards;
+    auto console = mysqlsh::current_console();
+    std::string path =
+        shcore::path::join_path(sandbox_dir, std::to_string(port));
 
-          log_info("Creating root@%s account for sandbox %i",
-                   remote_root.c_str(), port);
-          session->execute("SET sql_log_bin = 0");
-          {
-            std::string pwd;
-            if (instance_def.has_password()) pwd = instance_def.get_password();
+    if (interactive) {
+      // TODO(anyone): This default value was being set on the interactive
+      // layer, for that reason is kept here only if interactive, to avoid
+      // changes in behavior. This should be fixed at BUG#27369121."
+      //
+      // When this is fixed search for the following test chunk:
+      // "//@ Deploy instances (with specific innodb_page_size)."
+      // The allowRootFrom:"%" option was added there to make this test pass
+      // after the removal of the Interactive wrappers.
+      //
+      // The only reason the test was passing before was because of a BUG on the
+      // test framework that was meant to execute the script in NON interative
+      // mode.
+      //
+      // Debugging the test it effectively had options.wizards = false,
+      // however the Interactive Wrappers were in place which means this
+      // function was getting allowRootFrom="%" even the test was not in
+      // interactive mode.
+      //
+      // I tried reproducing the chunk using the shell and it effectively fails
+      // as expected, rather than succeeding as the test suite claimed.
+      //
+      // Funny thing is that the BUG in the test suite gets fixed with the
+      // removal of the Interactive wrappers.
+      //
+      // The test mentioned above must be also revisited when BUG#27369121 is
+      // addressed.
+      if (remote_root.empty()) remote_root = "%";
 
-            shcore::sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?",
-                                          0);
-            create_user << remote_root << pwd;
-            create_user.done();
-            session->execute(create_user);
-          }
-          {
-            shcore::sqlstring grant(
-                "GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
-            grant << remote_root;
-            grant.done();
-            session->execute(grant);
-          }
-          session->execute("SET sql_log_bin = 1");
+      console->println(
+          "A new MySQL sandbox instance will be created on this host in \n" +
+          path +
+          "\n\nWarning: Sandbox instances are only suitable for deploying and "
+          "\nrunning on your local machine for testing purposes and are not "
+          "\naccessible from external networks.\n");
 
-          session->close();
+      std::string answer;
+      if (password.is_null()) {
+        if (console->prompt_password(
+                "Please enter a MySQL root password for the new instance: ",
+                &answer) == shcore::Prompt_result::Ok) {
+          password = answer;
+        } else {
+          return shcore::Value();
         }
       }
-      log_warning(
-          "Sandbox instances are only suitable for deploying and running on "
-          "your local machine for testing purposes and are not accessible from "
-          "external networks.");
+    }
+
+    if (password.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Missing root password for the deployed instance");
+    }
+
+    ret_val = exec_instance_op("deploy", args, *password);
+
+    if (!remote_root.empty()) {
+      std::string uri = "root@localhost:" + std::to_string(port);
+      mysqlshdk::db::Connection_options instance_def(uri);
+      instance_def.set_password(*password);
+
+      auto session = get_session(instance_def);
+      assert(session);
+
+      log_info("Creating root@%s account for sandbox %i", remote_root.c_str(),
+               port);
+      session->execute("SET sql_log_bin = 0");
+      {
+        std::string pwd;
+        if (instance_def.has_password()) pwd = instance_def.get_password();
+
+        shcore::sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
+        create_user << remote_root << pwd;
+        create_user.done();
+        session->execute(create_user);
+      }
+      {
+        shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
+                                0);
+        grant << remote_root;
+        grant.done();
+        session->execute(grant);
+      }
+      session->execute("SET sql_log_bin = 1");
+
+      session->close();
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
+  log_warning(
+      "Sandbox instances are only suitable for deploying and running on "
+      "your local machine for testing purposes and are not accessible "
+      "from external networks.");
+
+  if (current_shell_options()->get().wizards) {
+    auto console = current_console();
+
+    console->println();
+    console->println("Instance localhost:" + std::to_string(port) +
+                     " successfully deployed and started.");
+
+    console->println("Use shell.connect('root@localhost:" +
+                     std::to_string(port) + "'); to connect to the instance.");
+    console->println();
+  }
 
   return ret_val;
-}
+}  // namespace dba
 
 REGISTER_HELP_FUNCTION(deleteSandboxInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_DELETESANDBOXINSTANCE, R"*(
@@ -1648,7 +1817,54 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("stopSandboxInstance").c_str());
 
   try {
-    ret_val = exec_instance_op("stop", args);
+    std::string sandbox_dir;
+    int port = args.int_at(0);
+    validate_port(port, "port");
+
+    mysqlshdk::utils::nullable<std::string> password;
+
+    if (args.size() == 2) {
+      auto map = args.map_at(1);
+      shcore::Argument_map opt_map(*map);
+
+      opt_map.ensure_keys({}, _stop_instance_opts, "the instance data");
+
+      if (opt_map.has_key("password")) password = opt_map.string_at("password");
+
+      sandbox_dir = get_sandbox_dir(&opt_map);
+    } else {
+      sandbox_dir = get_sandbox_dir();
+    }
+
+    bool interactive = current_shell_options()->get().wizards;
+    auto console = mysqlsh::current_console();
+    std::string path =
+        shcore::path::join_path(sandbox_dir, std::to_string(port));
+    if (interactive) {
+      console->println("The MySQL sandbox instance on this host in \n" + path +
+                       " will be " + sandbox::Operations_text["stop"].past +
+                       "\n");
+
+      if (password.is_null()) {
+        std::string answer;
+        if (console->prompt_password(
+                "Please enter the MySQL root password for the instance "
+                "'localhost:" +
+                    std::to_string(port) + "': ",
+                &answer) == shcore::Prompt_result::Ok) {
+          password = answer;
+        } else {
+          return shcore::Value();
+        }
+      }
+    }
+
+    if (password.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Missing root password for the instance");
+    }
+
+    ret_val = exec_instance_op("stop", args, *password);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("stopSandboxInstance"));
@@ -1719,8 +1935,8 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
 
   {
     if (args.size() == 2) {
-      // Retrieves optional options if exists or leaves empty so the default is
-      // set afterwards
+      // Retrieves optional options if exists or leaves empty so the default
+      // is set afterwards
       Unpack_options(args.map_at(1))
           .optional("mycnfPath", &mycnf_path)
           .optional("outputMycnfPath", &output_mycnf_path)
@@ -2053,17 +2269,20 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
 
-  std::string cluster_name;
+  const char *cluster_name = nullptr;
+  bool interactive = current_shell_options()->get().wizards;
+  auto console = current_console();
+
   try {
     bool default_cluster = false;
-    auto console = mysqlsh::current_console();
+    mysqlshdk::utils::nullable<bool> clear_read_only;
 
     if (args.size() == 0) {
       default_cluster = true;
     } else if (args.size() == 1) {
-      cluster_name = args.string_at(0);
+      cluster_name = args.string_at(0).c_str();
     } else {
-      cluster_name = args.string_at(0);
+      cluster_name = args.string_at(0).c_str();
       options = args.map_at(1);
     }
 
@@ -2079,8 +2298,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
       shcore::Argument_map opt_map(*options);
 
-      // Case sensitive validation of the rest of the options, at this point the
-      // user and password should have been already removed
+      // Case sensitive validation of the rest of the options, at this point
+      // the user and password should have been already removed
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
                           "the options");
 
@@ -2091,13 +2310,15 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         rejoin_instances_ref = opt_map.array_at("rejoinInstances");
 
       if (opt_map.has_key("clearReadOnly")) {
-        opt_map.bool_at("clearReadOnly");
+        clear_read_only = opt_map.bool_at("clearReadOnly");
         std::string warn_msg =
             "The clearReadOnly option is deprecated. The super_read_only mode "
             "is now automatically cleared.";
         console->print_warning(warn_msg);
         console->println();
       }
+    } else {
+      options = shcore::make_dict();
     }
 
     // Check if removeInstances and/or rejoinInstances are specified
@@ -2146,17 +2367,33 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(new Cluster(cluster_name, group_session, metadata));
-
     // Getting the cluster from the metadata already complies with:
-    // 1. Ensure that a Metadata Schema exists on the current session instance.
+    // 1. Ensure that a Metadata Schema exists on the current session
+    // instance.
     // 3. Ensure that the provided cluster identifier exists on the Metadata
     // Schema
-    if (default_cluster) {
-      metadata->load_default_cluster(cluster->impl());
-    } else {
-      metadata->load_cluster(cluster_name, cluster->impl());
+    if (interactive) {
+      if (default_cluster) {
+        console->println(
+            "Reconfiguring the default cluster from complete outage...");
+      } else {
+        console->println(shcore::str_format(
+            "Reconfiguring the cluster '%s' from complete outage...",
+            cluster_name));
+      }
+      console->println();
     }
+
+    cluster = get_cluster(cluster_name, metadata, group_session);
+
+    // Verify the status of the instances
+    validate_instances_status_reboot_cluster(cluster, group_session, options);
+
+    // Get the all the instances and their status
+    // TODO(rennox): This is called inside of
+    // validate_instances_status_reboot_cluster, review if both calls are needed
+    std::vector<std::pair<std::string, std::string>> instances_status =
+        get_replicaset_instances_status(cluster, options);
 
     mysqlshdk::mysql::Instance group_instance(group_session);
 
@@ -2180,67 +2417,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
             "to the cluster: '" +
             cluster->impl()->get_name() + "'.");
 
-      // Ensure that all of the instances specified on the 'removeInstances'
-      // list exist on the Metadata Schema and are valid
-      for (const auto &value : remove_instances_list) {
-        shcore::Argument_list args;
-        args.push_back(shcore::Value(value));
-
-        std::string md_address = value;
-        try {
-          auto instance_def = mysqlsh::get_connection_options(
-              args, mysqlsh::PasswordFormat::NONE);
-
-          // Get the instance metadata address (reported host).
-          md_address = mysqlsh::dba::get_report_host_address(
-              instance_def, current_session_options);
-        } catch (const std::exception &e) {
-          std::string error(e.what());
-          throw shcore::Exception::argument_error(
-              "Invalid value '" + value + "' for 'removeInstances': " + error);
-        }
-
-        if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                 md_address))
-          throw shcore::Exception::runtime_error("The instance '" + value +
-                                                 "' does not belong "
-                                                 "to the cluster: '" +
-                                                 cluster->impl()->get_name() +
-                                                 "'.");
-      }
-
-      // Ensure that all of the instances specified on the 'rejoinInstances'
-      // list exist on the Metadata Schema and are valid
-      for (const auto &value : rejoin_instances_list) {
-        shcore::Argument_list args;
-        args.push_back(shcore::Value(value));
-
-        std::string md_address = value;
-        try {
-          auto instance_def = mysqlsh::get_connection_options(
-              args, mysqlsh::PasswordFormat::NONE);
-
-          // Get the instance metadata address (reported host).
-          md_address = mysqlsh::dba::get_report_host_address(
-              instance_def, current_session_options);
-        } catch (const std::exception &e) {
-          std::string error(e.what());
-          throw shcore::Exception::argument_error(
-              "Invalid value '" + value + "' for 'rejoinInstances': " + error);
-        }
-
-        if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                 md_address))
-          throw shcore::Exception::runtime_error("The instance '" + value +
-                                                 "' does not belong "
-                                                 "to the cluster: '" +
-                                                 cluster->impl()->get_name() +
-                                                 "'.");
-      }
-      // Get the all the instances and their status
-      std::vector<std::pair<std::string, std::string>> instances_status =
-          get_replicaset_instances_status(cluster, options);
-
       std::vector<std::string> non_reachable_rejoin_instances,
           non_reachable_instances;
 
@@ -2250,11 +2426,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           non_reachable_instances.push_back(instance.first);
         }
       }
-      // get all the list of non-reachable instances that were specified on the
-      // rejoinInstances list.
-      // Sort non_reachable_instances vector because set_intersection works on
-      // sorted collections
-      // The rejoin_instances_list vector was already sorted above.
+      // get all the list of non-reachable instances that were specified on
+      // the rejoinInstances list. Sort non_reachable_instances vector because
+      // set_intersection works on sorted collections The
+      // rejoin_instances_list vector was already sorted above.
       std::sort(non_reachable_instances.begin(), non_reachable_instances.end());
 
       std::set_intersection(
@@ -2271,14 +2446,143 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
                                  "' were specified in the rejoinInstances list "
                                  "but are not reachable.");
       }
+
+      // Ensure that all of the instances specified on the 'rejoinInstances'
+      // list exist on the Metadata Schema and are valid
+      if (rejoin_instances_ref) {
+        for (const auto &value : rejoin_instances_list) {
+          shcore::Argument_list args;
+          args.push_back(shcore::Value(value));
+
+          std::string md_address = value;
+          try {
+            auto instance_def = mysqlsh::get_connection_options(
+                args, mysqlsh::PasswordFormat::NONE);
+
+            // Get the instance metadata address (reported host).
+            md_address = mysqlsh::dba::get_report_host_address(
+                instance_def, current_session_options);
+          } catch (const std::exception &e) {
+            std::string error(e.what());
+            throw shcore::Exception::argument_error(
+                "Invalid value '" + value +
+                "' for 'rejoinInstances': " + error);
+          }
+
+          if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
+                                                   md_address))
+            throw shcore::Exception::runtime_error("The instance '" + value +
+                                                   "' does not belong "
+                                                   "to the cluster: '" +
+                                                   cluster->impl()->get_name() +
+                                                   "'.");
+        }
+      } else if (interactive) {
+        for (const auto &value : instances_status) {
+          std::string instance_address = value.first;
+          std::string instance_status = value.second;
+
+          // if the status is not empty it means the connection failed
+          // so we skip this instance
+          if (!instance_status.empty()) {
+            std::string msg = "The instance '" + instance_address +
+                              "' is not "
+                              "reachable: '" +
+                              instance_status +
+                              "'. Skipping rejoin to the Cluster.";
+            log_warning("%s", msg.c_str());
+            continue;
+          }
+          // If the instance is part of the remove_instances list we skip this
+          // instance
+          if (remove_instances_ref) {
+            auto it = std::find_if(remove_instances_list.begin(),
+                                   remove_instances_list.end(),
+                                   [&instance_address](std::string val) {
+                                     return val == instance_address;
+                                   });
+            if (it != remove_instances_list.end()) continue;
+          }
+
+          console->println("The instance '" + instance_address +
+                           "' was part of the cluster configuration.");
+
+          if (console->confirm("Would you like to rejoin it to the cluster?",
+                               mysqlsh::Prompt_answer::NO) ==
+              mysqlsh::Prompt_answer::YES) {
+            rejoin_instances_list.push_back(instance_address);
+          }
+          console->println();
+        }
+      }
+
+      // Ensure that all of the instances specified on the 'removeInstances'
+      // list exist on the Metadata Schema and are valid
+      if (remove_instances_ref) {
+        for (const auto &value : remove_instances_list) {
+          shcore::Argument_list args;
+          args.push_back(shcore::Value(value));
+
+          std::string md_address = value;
+          try {
+            auto instance_def = mysqlsh::get_connection_options(
+                args, mysqlsh::PasswordFormat::NONE);
+
+            // Get the instance metadata address (reported host).
+            md_address = mysqlsh::dba::get_report_host_address(
+                instance_def, current_session_options);
+          } catch (const std::exception &e) {
+            std::string error(e.what());
+            throw shcore::Exception::argument_error(
+                "Invalid value '" + value +
+                "' for 'removeInstances': " + error);
+          }
+
+          if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
+                                                   md_address))
+            throw shcore::Exception::runtime_error("The instance '" + value +
+                                                   "' does not belong "
+                                                   "to the cluster: '" +
+                                                   cluster->impl()->get_name() +
+                                                   "'.");
+        }
+      } else if (interactive) {
+        for (const auto &value : instances_status) {
+          std::string instance_address = value.first;
+          std::string instance_status = value.second;
+
+          // if the status is empty it means the connection succeeded
+          // so we skip this instance
+          if (instance_status.empty()) continue;
+
+          // If the instance is part of the rejoin_instances list we skip this
+          // instance
+          if (rejoin_instances_ref) {
+            auto it = std::find_if(rejoin_instances_list.begin(),
+                                   rejoin_instances_list.end(),
+                                   [&instance_address](std::string val) {
+                                     return val == instance_address;
+                                   });
+            if (it != rejoin_instances_list.end()) continue;
+          }
+          console->println("Could not open a connection to '" +
+                           instance_address + "': '" + instance_status + "'");
+
+          if (console->confirm(
+                  "Would you like to remove it from the cluster's metadata?",
+                  mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES)
+            remove_instances_list.push_back(instance_address);
+          console->println();
+        }
+      }
     } else {
       std::string message;
       if (default_cluster)
-        message = "No default cluster is configured.";
+        throw shcore::Exception::logic_error(
+            "No default cluster is configured.");
       else
-        message = "The cluster '" + cluster_name + "' is not configured.";
-
-      throw shcore::Exception::logic_error(message);
+        throw shcore::Exception::logic_error(shcore::str_format(
+            "The cluster '%s' is not configured.", cluster_name));
     }
 
     // Check if the cluster is empty
@@ -2329,13 +2633,11 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       gr_options.read_option_values(target_instance);
 
       // BUG#27344040: REBOOT CLUSTER SHOULD NOT CREATE NEW USER
-      // No new replication user should be created when rebooting a cluster and
-      // existing recovery users should be reused. Therefore the boolean to
-      // skip replication users is set to true and the respective replication
-      // user credentials left empty.
+      // No new replication user should be created when rebooting a cluster
+      // and existing recovery users should be reused. Therefore the boolean
+      // to skip replication users is set to true and the respective
+      // replication user credentials left empty.
       try {
-        bool interactive = current_shell_options()->get().wizards;
-
         // Create the add_instance command and execute it.
         Add_instance op_add_instance(&target_instance, *default_replicaset,
                                      gr_options, clone_options, {}, interactive,
@@ -2385,7 +2687,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
 
       // After removing instance, the remove command must set
-      // the GR protocol of the group to the lowest MySQL version on the group.
+      // the GR protocol of the group to the lowest MySQL version on the
+      // group.
       try {
         if (mysqlshdk::gr::is_protocol_upgrade_required(
                 cluster_session_instance,
@@ -2413,6 +2716,12 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("rebootClusterFromCompleteOutage"));
 
+  if (interactive) {
+    console->println();
+    console->println("The cluster was successfully rebooted.");
+    console->println();
+  }
+
   return ret_val;
 }
 
@@ -2432,7 +2741,8 @@ Cluster_check_info Dba::check_preconditions(
  * Given a cluster, this function verifies the connectivity status of all the
  * instances of the default replicaSet of the cluster. It returns a list of
  * pairs <instance_id, status>, on which 'status' is empty if the instance is
- * reachable, or if not reachable contains the connection failure error message
+ * reachable, or if not reachable contains the connection failure error
+ * message
  */
 std::vector<std::pair<std::string, std::string>>
 Dba::get_replicaset_instances_status(
@@ -2502,9 +2812,9 @@ static void validate_instance_belongs_to_cluster(
     const std::string &gr_group_name, const std::string &restore_function) {
   // TODO(alfredo) gr_group_name should receive the group_name as stored
   // in the metadata to validate if it matches the expected value
-  // if the name does not match, an error should be thrown asking for an option
-  // like update_mismatched_group_name to be set to ignore the validation error
-  // and adopt the new group name
+  // if the name does not match, an error should be thrown asking for an
+  // option like update_mismatched_group_name to be set to ignore the
+  // validation error and adopt the new group name
 
   GRInstanceType type = get_gr_instance_type(member_session);
 

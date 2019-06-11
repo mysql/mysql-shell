@@ -37,9 +37,6 @@ set(mysh_SRC
     mysqlsh/commands/command_help.cc
     mysqlsh/commands/command_show.cc
     mysqlsh/commands/command_watch.cc
-    interactive/interactive_dba_cluster.cc
-    interactive/interactive_global_dba.cc
-    interactive/interactive_global_shell.cc
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp

@@ -83,7 +83,6 @@ TEST_F(Shell_error_printing, python_stack) {
 
   wipe_all();
   execute("dba.deploy_sandbox_instance(-1, {'password':''})");
-  EXPECT_EQ("Deploying new MySQL instance...\n", output_handler.std_out);
   EXPECT_EQ(
       "Traceback (most recent call last):\n"
       "  File \"<string>\", line 1, in <module>\n"
@@ -109,7 +108,6 @@ TEST_F(Shell_error_printing, js_stack) {
 
   wipe_all();
   execute("dba.deploySandboxInstance(-1, {'password':''})");
-  EXPECT_EQ("Deploying new MySQL instance...\n", output_handler.std_out);
   EXPECT_EQ(
       "Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid "
       "TCP port number >= 1024 and <= 65535 (ArgumentError)\n at :1:4\nin "

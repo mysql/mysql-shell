@@ -1,7 +1,7 @@
 |<Cluster:tempCluster>|
 //@# Invalid dropMetadataSchema call
 ||Dba.dropMetadataSchema: Invalid number of arguments, expected 0 to 1 but got 5 (ArgumentError)
-||Invalid values in drop options: not_valid (ArgumentError)
+||Dba.dropMetadataSchema: Invalid options: not_valid (ArgumentError)
 
 //@# drop metadata: no user response
 |No changes made to the Metadata Schema.|

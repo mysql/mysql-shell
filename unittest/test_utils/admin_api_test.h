@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,6 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "src/interactive/interactive_global_dba.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
 

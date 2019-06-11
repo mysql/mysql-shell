@@ -121,6 +121,8 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 // Add instance 3 back to the cluster
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root');
+uri2 = hostname + ":"  + __mysql_sandbox_port2;
+uri3 = hostname + ":"  + __mysql_sandbox_port3;
 
 //@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
 // if server version is greater than 8.0.11 then the GR settings will be
@@ -128,7 +130,6 @@ testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root');
 // rebooted. We just need to add it back to the metadata.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
 testutil.expectPassword("Please provide the password for 'root@" + hostname + ":" + __mysql_sandbox_port3 + "': ", "root");
-uri3 = hostname + ":"  + __mysql_sandbox_port3;
 cluster.rescan();
 
 //@ Add instance 3 back to the cluster {VER(<8.0.11)}
