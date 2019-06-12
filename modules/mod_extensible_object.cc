@@ -341,6 +341,13 @@ void Extensible_object::register_member(
                                             name + "' member.");
   }
 
+  std::string target_object;
+  if (m_name.empty())
+    target_object = "an unregistered extension object";
+  else
+    target_object =
+        shcore::str_format("the '%s' extension object", m_name.c_str());
+
   if (s_allowed_member_types.find(value.type) == s_allowed_member_types.end()) {
     throw shcore::Exception::argument_error("Unsupported member type.");
   } else if (value.type == shcore::Object) {
@@ -353,15 +360,22 @@ void Extensible_object::register_member(
     object->m_definition = parse_member_definition(definition);
     object->m_definition->name = name;
     register_object(object);
+    log_debug(
+        "The '%s' extension object has been registered as a member into %s.",
+        name.c_str(), target_object.c_str());
   } else {
     if (value.type == shcore::Function) {
       auto fd = parse_function_definition(definition);
       fd->name = name;
       register_function(fd, value.as_function(), false);
+      log_debug("The '%s' function has been registered into %s.", name.c_str(),
+                target_object.c_str());
     } else {
       auto md = parse_member_definition(definition);
       md->name = name;
       register_property(md, value, false);
+      log_debug("The '%s' property has been registered into %s.", name.c_str(),
+                target_object.c_str());
     }
   }
 }
@@ -776,10 +790,10 @@ void Extensible_object::register_help(const std::string &brief,
       // Creates the help topic for the object
       auto type = is_global ? shcore::Topic_type::GLOBAL_OBJECT
                             : shcore::Topic_type::OBJECT;
-      help->add_help_topic(m_name, type, m_name, parent, mask);
+      help->add_help_topic(m_name, type, m_qualified_name, parent, mask);
 
       // Now registers the object brief, parameters and details
-      auto prefix = shcore::str_upper(m_name);
+      auto prefix = shcore::str_upper(m_qualified_name);
 
       help->add_help(prefix, "BRIEF", brief);
       help->add_help(prefix, "DETAIL", &m_detail_sequence, details);
@@ -1096,6 +1110,16 @@ void Extensible_object::disable_help() {
     // make sure registered children disable help for their ancestors
     for (auto &child : m_children) child.second->disable_help();
   }
+}
+
+std::string Extensible_object::get_help_id() const {
+  auto tokens = shcore::split_string(m_qualified_name, ".");
+  std::vector<std::string> id_tokens;
+  for (const auto &token : tokens) {
+    id_tokens.push_back(
+        shcore::get_member_name(token, shcore::current_naming_style()));
+  }
+  return shcore::str_join(id_tokens, ".");
 }
 
 }  // namespace mysqlsh

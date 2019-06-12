@@ -53,6 +53,10 @@
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
 
+#ifdef WITH_OCI
+#include "modules/util/oci_setup.h"
+#endif
+
 #include "commands/command_help.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "src/interactive/interactive_dba_cluster.h"
@@ -645,6 +649,11 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
 
 void Mysql_shell::finish_init() {
+#ifdef WITH_OCI
+  // The registration of the OCI SDK should be done all the time
+  // so the user can import oci
+  mysqlsh::oci::init(shell_context());
+#endif
   Base_shell::finish_init();
 
   File_list startup_files;
@@ -666,9 +675,9 @@ void Mysql_shell::load_files(const File_list &file_list,
     const auto &files_to_load = files.second;
 
     if (!files_to_load.empty()) {
-      for (const auto &file : files_to_load) {
-        log_info("- %s", file.c_str());
-        if (!_shell->load_plugin(mode, file)) {
+      for (const auto &plugin : files_to_load) {
+        log_debug("- %s", plugin.file.c_str());
+        if (!_shell->load_plugin(mode, plugin)) {
           load_failed = true;
         }
       }
@@ -697,7 +706,7 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
         if (shcore::str_iendswith(name, ".js")) {
 #ifdef HAVE_V8
           (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
-              full_path);
+              full_path, true);
 #else
         log_warning("Ignoring startup script at '%s', JavaScript is not "
                     "available.", full_path.c_str());
@@ -705,7 +714,7 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
         } else if (shcore::str_iendswith(name, ".py")) {
 #ifdef HAVE_PYTHON
           (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
-              full_path);
+              full_path, true);
 #else
           log_warning("Ignoring startup script at '%s', Python is not"
                       " available.", full_path.c_str());
@@ -716,6 +725,90 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
       return true;
     });
   }
+}
+/**
+ * Search for initialization files at the given dir, adding them to file_list
+ * whenever the file type is supported.
+ *
+ * @param file_list: the file list where the initialization files will be added
+ * @param dir: the folder where it will search for initialization files.
+ * @param allow_recursive: indicates whether the function should look for
+ * plugins in subfolders.
+ *
+ * @returns True: when it found initialization files in the given folder or sub
+ * folders if allow_recursive was true.
+ *
+ * NOTE: This function does NOT care about whether the initialization files are
+ *       supported or not, if they are found, it returns true even if they will
+ *       be ignored.
+ *
+ * This is because the return value will be used to determine if a given folder
+ * did NOT have initialization files, to properly report an error.
+ */
+bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
+                              bool allow_recursive) {
+  bool ret_val = false;
+  if (shcore::is_folder(dir)) {
+    log_debug("Searching for plugins at '%s'", dir.c_str());
+    shcore::iterdir(dir, [this, &dir, file_list, allow_recursive,
+                          &ret_val](const std::string &name) {
+      const auto plugin_dir = shcore::path::join_path(dir, name);
+
+      if (shcore::is_folder(plugin_dir) && name[0] != '.') {
+        auto init_js = shcore::path::join_path(plugin_dir, "init.js");
+        auto init_py = shcore::path::join_path(plugin_dir, "init.py");
+
+        bool is_js = shcore::is_file(init_js);
+        bool is_py = shcore::is_file(init_py);
+
+        std::string msg;
+        if (is_js && is_py) {
+          auto msg = shcore::str_format(
+              "Found multiple plugin initialization files for plugin "
+              "'%s' at %s, ignoring plugin.",
+              name.c_str(), plugin_dir.c_str());
+          current_console()->print_warning(msg);
+        } else if (is_js) {
+          ret_val = true;
+#ifdef HAVE_V8
+          (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
+              init_js, allow_recursive);
+#else
+          log_warning("Ignoring plugin at '%s', JavaScript is not available.",
+                      plugin_dir.c_str());
+#endif
+        } else if (is_py) {
+          ret_val = true;
+#ifdef HAVE_PYTHON
+          (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
+              init_py, allow_recursive);
+#else
+          log_warning("Ignoring plugin at '%s', Python is not available.",
+                        plugin_dir.c_str());
+#endif
+        } else {
+          bool found_plugins = false;
+          if (allow_recursive) {
+            found_plugins = get_plugins(file_list, plugin_dir, false);
+          }
+
+          // So it did not have initialization files and also did not have
+          // sub-folders with plugins
+          if (!found_plugins) {
+            log_debug(
+                "Missing initialization file for plugin "
+                "'%s' at %s, ignoring plugin.",
+                name.c_str(), plugin_dir.c_str());
+          } else {
+            ret_val = true;
+          }
+        }
+      }
+
+      return true;
+    });
+  }
+  return ret_val;
 }
 
 void Mysql_shell::get_plugins(File_list *file_list) {
@@ -728,52 +821,7 @@ void Mysql_shell::get_plugins(File_list *file_list) {
   // directories, and it contains strictly one of the initialization files.
   // This loop identifies the valid plugins to be loaded.
   for (const auto &dir : plugin_directories) {
-    if (shcore::is_folder(dir)) {
-      shcore::iterdir(dir, [&dir, file_list](const std::string &name) {
-        const auto plugin_dir = shcore::path::join_path(dir, name);
-
-        if (shcore::is_folder(plugin_dir)) {
-          auto init_js = shcore::path::join_path(plugin_dir, "init.js");
-          auto init_py = shcore::path::join_path(plugin_dir, "init.py");
-
-          bool is_js = shcore::is_file(init_js);
-          bool is_py = shcore::is_file(init_py);
-
-          std::string msg;
-          if (is_js && is_py) {
-            auto msg = shcore::str_format(
-                "Found multiple plugin initialization files for plugin "
-                "'%s' at %s, ignoring plugin.",
-                name.c_str(), plugin_dir.c_str());
-            current_console()->print_warning(msg);
-          } else if (is_js) {
-#ifdef HAVE_V8
-            (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
-                init_js);
-#else
-            log_warning("Ignoring plugin at '%s', JavaScript is not available.",
-                        plugin_dir.c_str());
-#endif
-          } else if (is_py) {
-#ifdef HAVE_PYTHON
-            (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
-                init_py);
-#else
-            log_warning("Ignoring plugin at '%s', Python is not available.",
-                        plugin_dir.c_str());
-#endif
-          } else {
-            auto msg = shcore::str_format(
-                "Missing initialization file for plugin "
-                "'%s' at %s, ignoring plugin.",
-                name.c_str(), plugin_dir.c_str());
-            current_console()->print_warning(msg);
-          }
-        }
-
-        return true;
-      });
-    }
+    get_plugins(file_list, dir, true);
   }
 
   // switch back to the initial mode

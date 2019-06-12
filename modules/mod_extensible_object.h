@@ -138,6 +138,7 @@ class Extensible_object
   std::string class_name() const override {
     return m_name.empty() ? "ExtensionObject" : m_name;
   }
+  std::string get_help_id() const override;
   bool operator==(const Object_bridge &other) const override;
 
   shcore::Value get_member(const std::string &prop) const override;

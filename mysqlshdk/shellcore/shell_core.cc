@@ -310,12 +310,12 @@ void Shell_core::execute_module(const std::string &file_name,
   _langs[_mode]->execute_module(file_name);
 }
 
-bool Shell_core::load_plugin(Mode mode, const std::string &file_name) {
+bool Shell_core::load_plugin(Mode mode, const Plugin_definition &plugin) {
   assert(mode != Mode::None);
 
   init_mode(mode);
 
-  return _langs[mode]->load_plugin(file_name);
+  return _langs[mode]->load_plugin(plugin);
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

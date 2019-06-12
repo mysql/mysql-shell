@@ -804,10 +804,6 @@ int main(int argc, char **argv) {
       std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
 
 #ifdef WITH_OCI
-      // The registration of the OCI SDK should be done all the time
-      // so the user can import oci
-      mysqlsh::oci::init(shell->shell_context());
-
       if (!options.oci_profile.is_null()) {
         if (options.interactive) {
           mysqlsh::oci::load_profile(*options.oci_profile,

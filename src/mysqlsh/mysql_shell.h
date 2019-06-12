@@ -77,8 +77,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
     return shell_context()->command_handler();
   }
 
-  using File_list =
-      std::map<shcore::IShell_core::Mode, std::vector<std::string>>;
+  using File_list = std::map<shcore::IShell_core::Mode,
+                             std::vector<shcore::Plugin_definition>>;
   void load_files(const File_list &file_list, const std::string &context);
 
   /**
@@ -97,6 +97,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
    * - ${MYSQLSH_USER_CONFIG_HOME}/plugins
    */
   void get_plugins(File_list *list);
+  bool get_plugins(File_list *list, const std::string &dir,
+                   bool allow_recursive);
   void finish_init() override;
 
  protected:

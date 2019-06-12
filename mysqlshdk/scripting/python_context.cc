@@ -631,7 +631,6 @@ void Python_context::set_python_error(const shcore::Exception &exc,
 
 void Python_context::set_python_error(PyObject *obj,
                                       const std::string &location) {
-  log_info("Python error: %s", location.c_str());
   PyErr_SetString(obj, location.c_str());
 }
 
@@ -1139,38 +1138,123 @@ Value Python_context::execute_module(const std::string &file_name,
   return ret_val;
 }
 
-bool Python_context::load_plugin(const std::string &file_name) {
-  bool ret_val = true;
+bool Python_context::load_plugin(const Plugin_definition &plugin) {
   WillEnterPython lock;
+  bool ret_val = false;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  const auto file = fopen(file_name.c_str(), "r");
-
-  if (nullptr == file) {
-    ret_val = false;
-    log_error("Error loading Python file '%s':\n\tFailed opening the file: %s",
-              file_name.c_str(), errno_to_string(errno).c_str());
-  } else {
-    // copy globals, so executed scripts does not pollute global namespace
-    PyObject *globals = PyDict_Copy(_globals);
-    // PyRun_FileEx() will close the file
-    // plugins are loaded in sandboxed environment, we're not using the
-    // compiler flags here
-    const auto result =
-        PyRun_FileEx(file, shcore::path::basename(file_name).c_str(),
-                     Py_file_input, globals, nullptr, true);
-
-    if (nullptr == result) {
-      ret_val = false;
-      log_error("Error loading Python file '%s':\n\tExecution failed: %s",
-                file_name.c_str(), fetch_and_clear_exception().c_str());
+  PyObject *plugin_file = nullptr;
+  PyObject *plugin_path = nullptr;
+  PyObject *parent_plugin_path = nullptr;
+  PyObject *result = nullptr;
+  PyObject *globals = nullptr;
+  PyObject *sys_path_backup = nullptr;
+  FILE *file = nullptr;
+  bool executed = false;
+  std::string file_name = plugin.file;
+  try {
+    file = fopen(file_name.c_str(), "r");
+    if (nullptr == file) {
+      throw std::runtime_error(shcore::str_format(
+          "Failed opening the file: %s", errno_to_string(errno).c_str()));
     }
 
-    Py_XDECREF(result);
-    Py_XDECREF(globals);
+    plugin_file = PyString_FromString(file_name.c_str());
+    if (nullptr == plugin_file) {
+      throw std::runtime_error("Unable to get plugin file");
+    }
+
+    std::string plugin_dir = shcore::path::dirname(file_name);
+    plugin_path = PyString_FromString(plugin_dir.c_str());
+    if (nullptr == plugin_path) {
+      throw std::runtime_error("Unable to get plugin path");
+    }
+
+    std::string parent_plugin_dir;
+    if (!plugin.main) {
+      parent_plugin_dir = shcore::path::dirname(plugin_dir);
+      parent_plugin_path = PyString_FromString(parent_plugin_dir.c_str());
+      if (nullptr == parent_plugin_path) {
+        throw std::runtime_error("Unable to get the parent plugin path");
+      }
+    }
+
+    PyObject *sys_path = PySys_GetObject(const_cast<char *>("path"));
+    if (nullptr == sys_path) {
+      throw std::runtime_error("Failed getting sys.path");
+    }
+
+    // copy globals, so executed scripts does not pollute global
+    // namespace
+    globals = PyDict_Copy(_globals);
+    if (PyDict_SetItemString(globals, "__file__", plugin_file)) {
+      throw std::runtime_error("Failed setting __file__");
+    }
+
+    // Backups the original sys.path, in case the plugin load fails sys.path
+    // will be set back to the original content before the plugin load
+    sys_path_backup = PyList_GetSlice(sys_path, 0, PyList_Size(sys_path));
+    if (nullptr == sys_path_backup) {
+      std::string error = fetch_and_clear_exception();
+
+      throw std::runtime_error(
+          shcore::str_format("Failed backing up sys.path: %s", error.c_str()));
+    }
+
+    if (PyList_Insert(sys_path, 0, plugin_path)) {
+      throw std::runtime_error("Failed adding plugin path to sys.path");
+    }
+
+    if (!plugin.main) {
+      if (PyList_Insert(sys_path, 0, parent_plugin_path)) {
+        throw std::runtime_error(
+            "Failed adding parent plugin path to sys.path");
+      }
+    }
+
+    // PyRun_FileEx() will close the file
+    // plugins are loaded in sandboxed environment, we're not using
+    // the compiler flags here
+    result = PyRun_FileEx(file, shcore::path::basename(file_name).c_str(),
+                          Py_file_input, globals, nullptr, true);
+
+    executed = true;
+
+    // In case of an error, gets the description and clears the error condition
+    // in python to be able to restore the sys.path
+    std::string error;
+    if (nullptr == result) {
+      error = fetch_and_clear_exception();
+    }
+
+    // The plugin paths are required on sys.path at the moment the plugin is
+    // loaded, after that they are not required so the original sys.path is
+    // restored
+    PySys_SetObject(const_cast<char *>("path"), sys_path_backup);
+
+    // If there was an error, raises the corresponding exception
+    if (nullptr == result) {
+      throw std::runtime_error(
+          shcore::str_format("Execution failed: %s", error.c_str()));
+    } else {
+      ret_val = true;
+    }
+  } catch (const std::runtime_error &error) {
+    log_error("Error loading Python file '%s':\n\t%s", file_name.c_str(),
+              error.what());
+
+    if (file && !executed) {
+      fclose(file);
+    }
   }
+  Py_XDECREF(plugin_file);
+  Py_XDECREF(result);
+  Py_XDECREF(globals);
+  Py_XDECREF(plugin_path);
+  Py_XDECREF(sys_path_backup);
+
   return ret_val;
-}
+}  // namespace shcore
 
 std::string Python_context::fetch_and_clear_exception() {
   std::string exception;

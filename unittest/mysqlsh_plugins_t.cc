@@ -36,6 +36,8 @@ extern bool g_test_parallel_execution;
 
 namespace tests {
 
+using shcore::path::join_path;
+
 #ifdef _WIN32
 #define unsetenv(var) _putenv(var "=")
 #endif
@@ -60,17 +62,15 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   std::string get_plugin_folder() const {
-    return shcore::path::join_path(shcore::get_user_config_path(),
-                                   get_plugin_folder_name());
+    return join_path(shcore::get_user_config_path(), get_plugin_folder_name());
   }
 
   void write_plugin(const std::string &name, const std::string &contents) {
-    shcore::create_file(shcore::path::join_path(get_plugin_folder(), name),
-                        contents);
+    shcore::create_file(join_path(get_plugin_folder(), name), contents);
   }
 
   void delete_plugin(const std::string &name) {
-    shcore::delete_file(shcore::path::join_path(get_plugin_folder(), name));
+    shcore::delete_file(join_path(get_plugin_folder(), name));
   }
 
   void run(const std::vector<std::string> &extra = {}) {
@@ -84,7 +84,9 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     args.emplace_back(nullptr);
 
-    execute(args, nullptr, k_file);
+    auto user_config = shcore::get_user_config_path();
+    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
+    execute(args, nullptr, k_file, {user_config});
   }
 
   std::string expected_output() const {
@@ -115,6 +117,10 @@ class Mysqlsh_extension_test : public Command_line_test {
     m_expected_log_output.emplace_back(expected);
   }
 
+  void add_unexpected_log(const std::string &expected) {
+    m_unexpected_log_output.emplace_back(expected);
+  }
+
   void add_expected_js_log(const std::string &expected) {
 #ifdef HAVE_V8
     add_expected_log(expected);
@@ -127,6 +133,18 @@ class Mysqlsh_extension_test : public Command_line_test {
 #endif  // HAVE_PYTHON
   }
 
+  void add_unexpected_js_log(const std::string &unexpected) {
+#ifdef HAVE_V8
+    add_unexpected_log(unexpected);
+#endif  // HAVE_V8
+  }
+
+  void add_unexpected_py_log(const std::string &unexpected) {
+#ifdef HAVE_PYTHON
+    add_unexpected_log(unexpected);
+#endif  // HAVE_PYTHON
+  }
+
   void validate_log() const {
     const auto log = read_log_file();
 
@@ -134,6 +152,9 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     for (const auto &entry : m_expected_log_output) {
       EXPECT_THAT(log, ::testing::HasSubstr(entry));
+    }
+    for (const auto &entry : m_unexpected_log_output) {
+      EXPECT_THAT(log, Not(::testing::HasSubstr(entry)));
     }
   }
 
@@ -181,6 +202,7 @@ class Mysqlsh_extension_test : public Command_line_test {
   std::vector<std::string> m_test_input;
   std::vector<std::string> m_expected_output;
   std::vector<std::string> m_expected_log_output;
+  std::vector<std::string> m_unexpected_log_output;
 
   static const char k_file[];
 };
@@ -318,21 +340,18 @@ TEST_F(Mysqlsh_reports_test, WL11263_TSF8_3) {
   add_expected_py_log("Error loading Python file");
   add_expected_py_log("cpp_as.py");
 
-  // erase the log file
-  wipe_log_file();
-
   // run the test
   run();
+
+  // check log contents
+  validate_log();
+
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "WARNING: Found errors loading startup files, for more details look at "
       "the log at:");
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
-  wipe_out();
-
-  // check log contents
-  validate_log();
 }
 
 TEST_F(Mysqlsh_reports_test, WL11263_TSF8_4) {
@@ -421,9 +440,6 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
   add_expected_py_log("plugin.py");
   add_expected_py_log("name 'undefined_py_report' is not defined");
 
-  // erase the log file
-  wipe_log_file();
-
   // run the test
   run();
   // check the output
@@ -432,7 +448,6 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
       "the log at:");
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
-  wipe_out();
 
   // check log contents
   validate_log();
@@ -441,44 +456,45 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
 class Mysqlsh_plugin_test : public Mysqlsh_extension_test {
  public:
   std::string get_plugin_folder() const {
-    return shcore::path::join_path(shcore::get_share_folder(),
-                                   get_plugin_folder_name());
+    return join_path(shcore::get_share_folder(), get_plugin_folder_name());
   }
 
   std::string get_user_plugin_folder() const {
-    return shcore::path::join_path(shcore::get_user_config_path(),
-                                   get_plugin_folder_name());
+    return join_path(shcore::get_user_config_path(), get_plugin_folder_name());
   }
 
   void write_plugin(const std::string &name, const std::string &contents,
                     const std::string &extension) {
-    shcore::create_directory(
-        shcore::path::join_path(get_plugin_folder(), name));
+    shcore::create_directory(join_path(get_plugin_folder(), name));
     shcore::create_file(
-        shcore::path::join_path(get_plugin_folder(), name, "init" + extension),
-        contents);
+        join_path(get_plugin_folder(), name, "init" + extension), contents);
   }
 
   void write_user_plugin(const std::string &name, const std::string &contents,
                          const std::string &extension) {
-    shcore::create_directory(
-        shcore::path::join_path(get_user_plugin_folder(), name));
-    shcore::create_file(shcore::path::join_path(get_user_plugin_folder(), name,
-                                                "init" + extension),
-                        contents);
+    shcore::create_directory(join_path(get_user_plugin_folder(), name));
+    shcore::create_file(
+        join_path(get_user_plugin_folder(), name, "init" + extension),
+        contents);
   }
 
   void delete_plugin(const std::string &name) {
-    auto path = shcore::path::join_path(get_plugin_folder(), name);
+    auto path = join_path(get_plugin_folder(), name);
     if (shcore::is_folder(path)) {
       shcore::remove_directory(path);
+    } else {
+      FAIL() << "Error deleting unexisting plugin: " << path.c_str()
+             << std::endl;
     }
   }
 
   void delete_user_plugin(const std::string &name) {
-    auto path = shcore::path::join_path(get_user_plugin_folder(), name);
+    auto path = join_path(get_user_plugin_folder(), name);
     if (shcore::is_folder(path)) {
       shcore::remove_directory(path);
+    } else {
+      FAIL() << "Error deleting unexisting plugin: " << path.c_str()
+             << std::endl;
     }
   }
 
@@ -512,9 +528,15 @@ shell.register_report('third_py', 'print', report);
   add_js_test("\\show first_js", "first JS report");
   add_py_test("\\py", "Switching to Python mode...");
   add_py_test("\\show third_py", "third PY report");
-  run();
+
+  add_expected_js_log(
+      "The 'first_js' report of type 'print' has been registered.");
+  add_expected_js_log(
+      "The 'third_py' report of type 'print' has been registered.");
+  run({"--log-level=debug"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+  validate_log();
   wipe_out();
 
   delete_plugin("first-js");
@@ -540,6 +562,22 @@ shell.add_extension_object_member(obj, "selfDescribe", describe);
 shell.register_global('pyObject', obj);
 )", ".py");
 
+  // This plugin is correctly defined except that the folder starts with . so it
+  // will be ignored by the loader
+  write_user_plugin(".git", R"(def describe():
+  print('first object defined in PY')
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "selfDescribe", describe);
+shell.register_global('pyObject', obj);
+)", ".py");
+
+  add_expected_js_log(
+      join_path(get_user_plugin_folder(), "second-js", "init.js"));
+  add_expected_py_log(
+      join_path(get_user_plugin_folder(), "fourth-py", "init.py"));
+  add_unexpected_py_log(join_path(get_user_plugin_folder(), ".git", "init.py"));
+
   // check if jsObject.testFunction was properly registered in JS
   add_js_test("jsObject.testFunction()", "first object defined in JS");
   // check if jsObject.test_function was properly registered in PY
@@ -551,13 +589,17 @@ shell.register_global('pyObject', obj);
   add_js_test("\\js", "Switching to JavaScript mode...");
   add_js_test("pyObject.selfDescribe()", "first object defined in PY");
   // run the test
-  run();
+  run({"--log-level=debug"});
+
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   wipe_out();
 
+  validate_log();
+
   delete_user_plugin("second-js");
-  delete_plugin("third-py");
+  delete_user_plugin("fourth-py");
+  delete_user_plugin(".git");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_multiple_init_files) {
@@ -603,24 +645,25 @@ shell.registerReport('first_js', 'print', report);
 TEST_F(Mysqlsh_plugin_test, WL13051_no_init_files) {
   // Create folder in the plugins directory
   shcore::create_directory(
-      shcore::path::join_path(get_user_plugin_folder(), "invalid-plugin"));
+      join_path(get_user_plugin_folder(), "invalid-plugin"));
+  shcore::create_directory(join_path(get_user_plugin_folder(), ".git"));
 
-  add_expected_js_log(
-      "Warning: Missing initialization file for plugin "
-      "'invalid-plugin'");
+  add_expected_py_log(
+      "Missing initialization file for plugin 'invalid-plugin'");
+  add_unexpected_py_log("Missing initialization file for plugin '.git'");
 
   // run the test
-  run();
+  run({"--log-level=debug"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
       "WARNING: Missing initialization file for plugin "
       "'invalid-plugin'");
-  wipe_out();
 
   validate_log();
 
   delete_user_plugin("invalid-plugin");
+  delete_user_plugin(".git");
 }
 
 TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_js_plugin) {
@@ -672,4 +715,210 @@ shell.register_report('first_py', 'print', report);
 
   delete_user_plugin("error-two");
 }
+
+// This test emulates a plugin that has the function definition
+// in subfolders, while only the function registration resides
+// in the init.py file
+TEST_F(Mysqlsh_plugin_test, py_plugin_with_imports) {
+  // Creates complex-py plugin initialization file
+  write_user_plugin("complex-py", R"(
+print("Plugin File Path: {0}".format(__file__))
+
+# loads a function definition from src package
+from src import definition
+
+# loads a sibling script
+import sibling
+
+
+# Executes the plugin registration
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "test_package", definition.my_function);
+shell.add_extension_object_member(obj, "test_sibling", sibling.my_function);
+shell.register_global('pyObject', obj);
+)", ".py");
+
+  auto user_plugins = get_user_plugin_folder();
+  auto src_package = join_path(user_plugins, "complex-py", "src");
+  // Creates a sibling script with a function definition
+  shcore::create_file(join_path(user_plugins, "complex-py", "sibling.py"),
+                      R"(def my_function():
+  print("Function at complex-py/sibling.py"))");
+
+  // Creates the src sub-package with a function definition
+  shcore::create_directory(src_package);
+  shcore::create_file(join_path(src_package, "__init__.py"), "");
+  shcore::create_file(join_path(src_package, "definition.py"),
+                      R"(def my_function():
+  print("Function at complex-py/src/definition.py"))");
+
+  add_py_test("pyObject.test_package()",
+              "Function at complex-py/src/definition.py");
+
+  add_py_test("pyObject.test_sibling()", "Function at complex-py/sibling.py");
+
+  add_expected_py_log(
+      "The 'test_package' function has been registered into an unregistered "
+      "extension object.");
+
+  add_expected_py_log(
+      "The 'test_sibling' function has been registered into an unregistered "
+      "extension object.");
+
+  add_expected_py_log(
+      "The 'pyObject' extension object has been registered as a global "
+      "object.");
+
+  // run the test
+  run({"--log-level=debug"});
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+  std::string expected("Plugin File Path: ");
+  expected += join_path(get_user_plugin_folder(), "complex-py", "init.py");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected.c_str());
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output().c_str());
+
+  validate_log();
+
+  wipe_out();
+
+  delete_user_plugin("complex-py");
+}
+
+// This test emulates a folder in plugins that contains subfolders
+// with plugins
+TEST_F(Mysqlsh_plugin_test, py_multi_plugins) {
+  // Creates complex-py plugin initialization file
+  auto user_plugins = get_user_plugin_folder();
+  auto multi_plugins = join_path(user_plugins, "multi-plugins");
+  shcore::create_directory(multi_plugins);
+  shcore::create_file(join_path(multi_plugins, "plugin_common.py"),
+                      R"(import mysqlsh
+
+def global_function(caller):
+  print("Global function called from {0}".format(caller)))");
+
+  auto create_plugin = [multi_plugins](const std::string &name,
+                                       const std::string &greeting) {
+    auto plugin = join_path(multi_plugins, name);
+    shcore::create_directory(plugin);
+    std::string code =
+        R"(import plugin_common
+
+# The implementation of the function to be added to demo
+def hello_function():
+  print("Hello World From {0}".format("%s"))
+
+def global_function():
+  plugin_common.global_function("%s")
+
+
+# Ensures the demo objects is created if not exists already
+if 'demo' in globals():
+    global_obj = demo
+else:
+    global_obj = shell.create_extension_object()
+    shell.register_global("demo", global_obj)
+
+# Registers the function
+shell.add_extension_object_member(global_obj, "hello_%s", hello_function)
+shell.add_extension_object_member(global_obj, "common_%s", global_function)
+)";
+
+    shcore::create_file(
+        join_path(plugin, "init.py"),
+        shcore::str_format(code.c_str(), greeting.c_str(), greeting.c_str(),
+                           name.c_str(), name.c_str()));
+  };
+
+  // Creates the several plugins
+  create_plugin("mx", "Mexico");
+  create_plugin("pl", "Poland");
+  create_plugin("pt", "Portugal");
+  create_plugin("us", "United States");
+  create_plugin("at", "Austria");
+
+  add_py_test("demo.hello_at()", "Hello World From Austria");
+  add_py_test("demo.hello_mx()", "Hello World From Mexico");
+  add_py_test("demo.hello_pl()", "Hello World From Poland");
+  add_py_test("demo.hello_pt()", "Hello World From Portugal");
+  add_py_test("demo.hello_us()", "Hello World From United States");
+
+  add_py_test("demo.common_at()", "Global function called from Austria");
+  add_py_test("demo.common_mx()", "Global function called from Mexico");
+  add_py_test("demo.common_pl()", "Global function called from Poland");
+  add_py_test("demo.common_pt()", "Global function called from Portugal");
+  add_py_test("demo.common_us()", "Global function called from United States");
+
+  add_expected_py_log(
+      "The 'demo' extension object has been registered as a global object.");
+  add_expected_py_log(
+      "The 'hello_mx' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'hello_pl' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'hello_pt' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'hello_us' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'hello_at' function has been registered into the 'demo' extension "
+      "object.");
+
+  add_expected_py_log(
+      "The 'common_mx' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'common_pl' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'common_pt' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'common_us' function has been registered into the 'demo' extension "
+      "object.");
+  add_expected_py_log(
+      "The 'common_at' function has been registered into the 'demo' extension "
+      "object.");
+  // run the test
+  run({"--log-level=debug"});
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output().c_str());
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+
+  validate_log();
+
+  wipe_out();
+
+  delete_user_plugin("multi-plugins");
+}
+
+#ifdef WITH_OCI
+// This test emulates a plugins that uses the oci
+TEST_F(Mysqlsh_plugin_test, oci_and_paramiko_plugin) {
+  // Creates complex-py plugin initialization file
+  write_user_plugin("oci-paramiko", R"(import oci
+import paramiko
+
+print("OCI Version: {0}".format(oci.__version__))
+print("Paramiko Version: {0}".format(paramiko.__version__))
+)", ".py");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+  // NOTE: it is not important to check the OCI version, but just make sure that
+  // there were no failures
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("OCI Version: ");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Paramiko Version: 2.4.2");
+
+  wipe_out();
+
+  delete_user_plugin("oci-paramiko");
+}
+#endif
 }  // namespace tests

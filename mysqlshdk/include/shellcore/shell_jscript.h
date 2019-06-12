@@ -51,7 +51,7 @@ class Shell_javascript : public Shell_language {
   void clear_input() override;
   std::string get_continued_input_context() override;
 
-  bool load_plugin(const std::string &file_name) override;
+  bool load_plugin(const Plugin_definition &plugin) override;
 
  private:
   void abort() noexcept;

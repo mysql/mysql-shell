@@ -617,7 +617,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   help.set_mode(mode);
 
   shcore::Topic_mask mask;
-  std::string pattern = class_name();
+  std::string pattern = get_help_id();
   if (!item.empty()) {
     // This group represents the API topics that can childs
     // of another API topic

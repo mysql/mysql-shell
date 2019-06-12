@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,4 +53,13 @@
 
 #define MYSH_FULL_VERSION MYSH_VERSION EXTRA_NAME_SUFFIX
 
+namespace shcore {
+// A plugin file contains the path, and bool indicating whether it is
+// A 1st level plugin (true) or a child plugin (false)
+struct Plugin_definition {
+  Plugin_definition(const std::string f, bool m) : file(f), main(m) {}
+  std::string file;
+  bool main;
+};
+}  // namespace shcore
 #endif

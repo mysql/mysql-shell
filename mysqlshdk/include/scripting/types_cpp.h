@@ -577,6 +577,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   virtual std::string &append_repr(std::string &s_out) const;
 
   virtual shcore::Value help(const shcore::Argument_list &args);
+  virtual std::string get_help_id() const { return class_name(); }
 
  protected:
   void detect_overload_conflicts(const std::string &name,

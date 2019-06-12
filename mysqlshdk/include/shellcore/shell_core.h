@@ -129,9 +129,9 @@ class SHCORE_PUBLIC Shell_language {
    * run-time will be available, however the global scope is not going to be
    * affected by the specified script.
    *
-   * @param file_name - full path to the file which is going to be loaded.
+   * @param plugin - the information of the plugin to be loaded.
    */
-  virtual bool load_plugin(const std::string &UNUSED(file_name)) {
+  virtual bool load_plugin(const Plugin_definition &UNUSED(plugin)) {
     return true;
   }
 
@@ -200,9 +200,9 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
    * Loads the specified plugin file using the current scripting language.
    *
    * @param mode - The language in which the plugin should be loaded.
-   * @param file_name - full path to the file which is going to be loaded.
+   * @param plugin - The information of the plugin to be loaded.
    */
-  bool load_plugin(Mode mode, const std::string &file_name);
+  bool load_plugin(Mode mode, const Plugin_definition &plugin);
 
   virtual void clear_input();
 

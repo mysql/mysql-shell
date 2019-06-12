@@ -1495,6 +1495,9 @@ void Shell::register_report(const std::string &name, const std::string &type,
                             const shcore::Function_base_ref &report,
                             const shcore::Dictionary_t &description) {
   m_reports->register_report(name, type, report, description);
+
+  log_debug("The '%s' report of type '%s' has been registered.", name.c_str(),
+            type.c_str());
 }
 
 REGISTER_HELP_FUNCTION(createExtensionObject, shell);
@@ -1744,6 +1747,9 @@ void Shell::register_global(const std::string &name,
 
     object->set_registered(name);
 
+    log_debug(
+        "The '%s' extension object has been registered as a global object.",
+        name.c_str());
   } else {
     throw shcore::Exception::type_error(
         "Argument #2 is expected to be an extension object.");

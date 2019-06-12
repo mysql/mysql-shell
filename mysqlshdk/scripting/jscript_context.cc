@@ -1339,13 +1339,14 @@ std::string JScript_context::translate_exception(const v8::TryCatch &exc,
   return format_exception(get_v8_exception_data(exc, interactive));
 }
 
-bool JScript_context::load_plugin(const std::string &file_name) {
+bool JScript_context::load_plugin(const Plugin_definition &plugin) {
   bool ret_val = true;
   // load the file
   std::string source;
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
+  std::string file_name = plugin.file;
   if (load_text_file(file_name, source)) {
     const auto _isolate = isolate();
 

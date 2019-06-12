@@ -84,7 +84,7 @@ class SHCORE_PUBLIC JScript_context {
   std::string to_string(v8::Local<v8::Value> obj);
 
   std::string translate_exception(const v8::TryCatch &exc, bool interactive);
-  bool load_plugin(const std::string &file_name);
+  bool load_plugin(const Plugin_definition &plugin);
 
   std::weak_ptr<JScript_function_storage> store(
       v8::Local<v8::Function> function);

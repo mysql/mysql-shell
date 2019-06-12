@@ -536,7 +536,9 @@ void setup_test_environment() {
 
   if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
     // Override the configuration home for tests, to not mess with custom data
-    if (putenv(const_cast<char *>("MYSQLSH_USER_CONFIG_HOME=.")) != 0) {
+    auto user_config = shcore::get_binary_folder();
+    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
+    if (putenv(const_cast<char *>(user_config.c_str())) != 0) {
       std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
     }
   }
