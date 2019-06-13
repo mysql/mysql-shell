@@ -302,17 +302,6 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
       object = ctx->shcore_value_to_pyobj(member);
       self->cache->members[attrname] = object;
       return object;
-    } else if (strcmp(attrname, "__members__") == 0) {
-      std::shared_ptr<Cpp_object_bridge> cobj(
-          std::static_pointer_cast<Cpp_object_bridge>(*self->object));
-
-      std::vector<std::string> members(cobj->get_members());
-      PyObject *list = PyList_New(members.size());
-      int i = 0;
-      for (std::vector<std::string>::const_iterator iter = members.begin();
-           iter != members.end(); ++iter)
-        PyList_SET_ITEM(list, i++, PyString_FromString(iter->c_str()));
-      return list;
     } else if (!error_handled) {
       std::string err = std::string("unknown attribute: ") + attrname;
       Python_context::set_python_error(PyExc_IndexError, err.c_str());
@@ -447,6 +436,19 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
                             PyTuple_GetSlice(args, 1, PyTuple_Size(args)));
 }
 
+static PyObject *object_dir_method(PyShObjObject *self, PyObject *) {
+  const auto cobj = std::static_pointer_cast<Cpp_object_bridge>(*self->object);
+  const auto members = cobj->get_members();
+  PyObject *list = PyList_New(members.size());
+
+  int i = 0;
+  for (const auto &m : members) {
+    PyList_SET_ITEM(list, i++, PyString_FromString(m.c_str()));
+  }
+
+  return list;
+}
+
 PyDoc_STRVAR(PyShObjDoc,
              "Object(shcoreclass) -> Shcore Object\n\
 \n\
@@ -505,6 +507,7 @@ int object_assign(PyShObjObject *self, Py_ssize_t index, PyObject *value) {
 
 static PyMethodDef PyShObjMethods[] = {
     {"__callmethod__", (PyCFunction)object_callmethod, METH_VARARGS, call_doc},
+    {"__dir__", (PyCFunction)object_dir_method, METH_NOARGS, nullptr},
     {NULL, NULL, 0, NULL}};
 
 static PySequenceMethods PyShObject_as_sequence = {

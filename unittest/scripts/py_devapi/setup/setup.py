@@ -1,7 +1,7 @@
 import os.path
 
 def validate_crud_functions(crud, expected):
-	actual = crud.__members__
+	actual = dir(crud)
 
 	# Ensures expected functions are on the actual list
 	missing = []

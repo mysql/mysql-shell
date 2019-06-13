@@ -34,7 +34,26 @@
 
 #include <string>
 
+#include "mysqlshdk/libs/utils/utils_general.h"
+
 using namespace shcore;
+
+static PyObject *dict_dir(PyShDictObject *self, PyObject *) {
+  static constexpr const char *const methods[] = {
+      "keys", "items", "values", "has_key", "update", "setdefault"};
+  PyObject *members =
+      PyList_New(self->map->get()->size() + array_size(methods));
+
+  int i = 0;
+  for (const auto &m : *self->map->get()) {
+    PyList_SET_ITEM(members, i++, PyString_FromString(m.first.c_str()));
+  }
+  for (const auto &m : methods) {
+    PyList_SET_ITEM(members, i++, PyString_FromString(m));
+  }
+
+  return members;
+}
 
 static PyObject *dict_keys(PyShDictObject *self, PyObject *args) {
   if (args) {
@@ -325,31 +344,15 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
       return object;
     PyErr_Clear();
 
-    if (strcmp(attrname, "__members__") == 0) {
-      PyObject *members = PyList_New(self->map->get()->size());
+    if (self->map->get()->has_key(attrname)) {
+      Python_context *ctx = Python_context::get_and_check();
+      if (!ctx) return NULL;
 
-      int i = 0;
-      for (Value::Map_type::const_iterator iter = self->map->get()->begin();
-           iter != self->map->get()->end(); ++iter) {
-        PyObject *tmp_str = PyString_FromString(iter->first.c_str());
-        PyList_SET_ITEM(members, i++, tmp_str);
-      }
-      return members;
-    } else if (strcmp(attrname, "__methods__") == 0) {
-      PyObject *methods = Py_BuildValue("[sssss]", "keys", "items", "values",
-                                        "has_key", "update", "setdefault");
-      return methods;
+      return ctx->shcore_value_to_pyobj((**self->map)[attrname]);
     } else {
-      if (self->map->get()->has_key(attrname)) {
-        Python_context *ctx = Python_context::get_and_check();
-        if (!ctx) return NULL;
-
-        return ctx->shcore_value_to_pyobj((**self->map)[attrname]);
-      } else {
-        std::string err = std::string("unknown attribute: ") + attrname;
-        Python_context::set_python_error(PyExc_IndexError, err.c_str());
-        return NULL;
-      }
+      std::string err = std::string("unknown attribute: ") + attrname;
+      Python_context::set_python_error(PyExc_IndexError, err.c_str());
+      return NULL;
     }
   }
   Python_context::set_python_error(PyExc_KeyError,
@@ -448,6 +451,7 @@ PyDoc_STRVAR(PyShDictDoc,
 static PyMethodDef PyShDictMethods[] = {
     //{"__getitem__", (PyCFunction)dict_subscript, METH_O|METH_COEXIST,
     // getitem_doc},
+    {"__dir__", (PyCFunction)dict_dir, METH_NOARGS, nullptr},
     {"keys", (PyCFunction)dict_keys, 0, NULL},
     {"items", (PyCFunction)dict_items, 0, NULL},
     {"values", (PyCFunction)dict_values, 0, NULL},

@@ -586,7 +586,7 @@ void Crud_test_wrapper::ensure_available_functions(
   if (is_js)
     exec_and_out_equals("var real_functions = dir(crud)");
   else
-    exec_and_out_equals("real_functions = crud.__members__");
+    exec_and_out_equals("real_functions = dir(crud)");
 
   // Ensures the number of available functions is the expected
   std::stringstream ss;
