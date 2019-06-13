@@ -1,7 +1,0 @@
-# Invalid config file (with duplicated sections, case insensitive)
-
-[cLieNt]
-password=12345
-
-[client]
-port=1000
