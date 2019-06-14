@@ -56,9 +56,7 @@ REGISTER_HELP(CLASSICSESSION_GLOBAL_BRIEF,
 REGISTER_HELP(CLASSICSESSION_BRIEF,
               "Enables interaction with a MySQL Server "
               "using the MySQL Protocol.");
-REGISTER_HELP(CLASSICSESSION_DETAIL,
-              "Provides facilities to execute queries "
-              "and retrieve database objects.");
+REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries.");
 ClassicSession::ClassicSession() { init(); }
 
 ClassicSession::ClassicSession(const ClassicSession &session)

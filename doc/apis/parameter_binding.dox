@@ -12,19 +12,19 @@ Available on SQL strings, allows removing values from expression through the use
 
 \if DOXYGEN_JS
 \code{.js}
-nodeSession = mysqlx.getNodeSession('mike:s3cr3t!@localhost:33060')
+session = mysqlx.getSession('mike:s3cr3t!@localhost:33060')
 
 # Loads the adult customers whose name starts with S
-result = nodeSession.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
+result = session.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
 
 The bind function must be called for each place holder on the expression, otherwise an error will occur.
 \endcode
 \elseif DOXYGEN_PY
 \code{.py}
-nodeSession = mysqlx.get_node_session('mike:s3cr3t!@localhost:33060')
+session = mysqlx.get_session('mike:s3cr3t!@localhost:33060')
 
 # Loads the adult customers whose name starts with S
-result = nodeSession.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
+result = session.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
 
 The bind function must be called for each place holder on the expression, otherwise an error will occur.
 \endcode

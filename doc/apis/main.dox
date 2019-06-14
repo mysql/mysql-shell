@@ -27,12 +27,15 @@ The functionality of the APIs is exposed through modules and global objects whic
   - The \ref mysql module contains a lightweight development API to interact with MySQL Servers using a classic session.
   - The <a class ="el" href="classmysqlsh_1_1dba_1_1_dba.html">dba</a> global object enables you to administer InnoDB clusters using the AdminAPI.
   - The <a class ="el" href="classmysqlsh_1_1_shell.html">shell</a> global object gives access to general purpose functions and properties.
-  - The <b>session</b> global object is available when a global session is established.
-  - The <b>db</b> global object is available when the global session is established using a default database.
+  - The <b>session</b><sup>1</sup> global object is available when a global session is established.
+  - The <a class ="el" href="classmysqlsh_1_1mysqlx_1_1_schema.html">db</a> global object is available when the global session is established through the X protocol using a default database.
   - The \ref util global object that groups miscellaneous tools like upgrade checker and JSON import.
 \if DOXYGEN_JS
   - The <a class ="el" href="classmysqlsh_1_1_sys.html">sys</a> global object gives access to system specific parameters.
 \endif
+
+<sup>1</sup> The <b>session</b> global object might be either a <a class ="el" href="classmysqlsh_1_1mysql_1_1_classic_session.html">ClassicSession</a> or a <a class ="el" href="classmysqlsh_1_1mysqlx_1_1_session.html">Session</a> object depending on whether the global session was established using classic MySQL protocol or X protocol respectively.
+For additional details look at the connect function in the <a class ="el" href="classmysqlsh_1_1_shell.html">shell</a> object.
 
 For more information on the functionality these APIs provide see the following documentation:
 

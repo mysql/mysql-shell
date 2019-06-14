@@ -385,7 +385,7 @@ REGISTER_HELP(TOPIC_URI1,
               "[?option=value&option=value...]");
 
 // These lines group the description of ALL the available connection options
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "<b>SSL Connection Options</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "<b>Connection Options</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1,
               "The following options are valid for use either in a URI or in a "
               "dictionary:");
@@ -461,7 +461,7 @@ REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS5,
               "@li dbPassword: same as password.");
 REGISTER_HELP(
     TOPIC_DICT_CONNECTION_OPTIONS6,
-    "@li host: the hostname or IP address to be used on a TCP connection.");
+    "@li host: the hostname or IP address to be used on the connection.");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7,
               "@li port: the port to be used in a TCP connection.");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS8,
@@ -483,28 +483,94 @@ REGISTER_HELP(
     TOPIC_CONNECTION_DATA_DETAILS1,
     "If an option is defined more than once, an error will be generated.");
 
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL,
-              "${TOPIC_CONNECTION_OPTION_SCHEME}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL, "${TOPIC_CONNECTION_TYPES}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1,
-              "${TOPIC_CONNECTION_OPTION_SOCKET}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
               "${TOPIC_CONNECTION_OPTION_SSL_MODE}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
               "${TOPIC_CONNECTION_OPTION_TLS_VERSION}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
               "${TOPIC_CONNECTION_ATTRIBUTES}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "${TOPIC_URI_ENCODED_VALUE}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL6,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "${TOPIC_URI_ENCODED_VALUE}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5,
               "${TOPIC_URI_ENCODED_ATTRIBUTE}");
 
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME, "<b>Protocol Selection</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME1,
-              "The scheme option defines the protocol to be used on the "
-              "connection, the following are the accepted values:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME2,
-              "@li mysql: for connections using the Classic protocol.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3,
-              "@li mysqlx: for connections using the X protocol.");
+REGISTER_HELP_TOPIC(Connection Types, TOPIC, TOPIC_CONNECTION_TYPES, Contents,
+                    ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_TYPES, R"*(
+The options specified in the connection data determine the type of connection
+to be used.
+
+The scheme option defines the protocol to be used on the connection, the
+following are the accepted values:
+
+@li mysql: for connections using the MySQL protocol.
+@li mysqlx: for connections using the X protocol.
+
+If no protocol is specified in the connection data, the shell will first
+attempt connecting using the X protocol, if the connection fails it will then
+try to connect using the MySQL protocol.
+
+In general, the Shell connects to the server using TCP connections, unless the
+connection data contains the options required to create any of the connections
+described below.
+
+<b>Unix-domain Socket Connections</b>
+
+To connect to a local MySQL server using a Unix-domain socket, the host must
+be set to 'localhost', no port number should be provided and the socket path
+should be provided.
+
+When using the MySQL protocol, the socket path might not be provided, in such
+case a default path for the socket file will be used.
+
+When using a connection dictionary, the socket path is set as the value for the
+socket option.
+
+When using a URI, the socket path must be URL encoded as follows:
+
+@li user@/path%2Fto%2Fsocket.sock
+@li user@./path%2Fto%2Fsocket.sock
+@li user@../path%2Fto%2Fsocket.sock
+
+It is possible to skip the URL encoding by enclosing the socket path in
+parenthesis:
+
+@li user@(/path/to/socket.sock)
+@li user@(./path/to/socket.sock)
+@li user@(../path/to/socket.sock)
+
+<b>Windows Named Pipe Connections</b>
+
+To connect to MySQL server using a named pipe the host must be set to '.', no
+port number should be provided.
+
+If the pipe name is not provided the default pipe name will be used: MySQL.
+
+When using a connection dictionary, the named pipe name is set as the value for
+the socket option.
+
+When using a URI, if the named pipe has invalid characters for a URL, they must
+be URL encoded. URL encoding can be skipped by enclosing the pipe name in
+parenthesis:
+
+@li user@\\\\.\\named.pipe
+@li user@(\\\\.\\named.pipe)
+
+Named pipe connections are only supported on the MySQL protocol.
+
+<b>Windows Shared Memory Connections</b>
+
+Shared memory connections are only allowed if the server has shared memory
+connections enabled using the default shared memory base name: MySQL.
+
+To connect to a local MySQL server using shared memory the host should be set to
+'localhost' and no port should be provided.
+
+If the server does not have shared memory connections enabled using the default
+base name, the connection will be done using TCP.
+
+Shared memory connections are only supported on the MySQL protocol.
+)*");
 
 REGISTER_HELP_TOPIC(Connection Attributes, TOPIC, TOPIC_CONNECTION_ATTRIBUTES,
                     Contents, ALL);
@@ -541,41 +607,6 @@ Note that the connection-attribute values are expected to be strings, if other
 data type is used in the dictionary, the string representation of the used
 data will be stored on the database.
 )*");
-
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET, "<b>Socket Connections</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1,
-              "To define a socket connection, replace the host and port by the "
-              "socket path.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET2,
-              "When using a connection dictionary, the path is set as the "
-              "value for the socket option.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3,
-              "When using a URI, the socket path must be URL encoded. A socket "
-              "path may be specified in a URI in one of the following ways:");
-
-#ifdef _WIN32
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET4,
-              "${TOPIC_CONNECTION_OPTION_SOCKET_WIN}");
-#else
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET4,
-              "${TOPIC_CONNECTION_OPTION_SOCKET_UNIX}");
-#endif
-
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_WIN, "@li \\\\.\\named.pipe");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_WIN1, "@li (\\\\.\\named.pipe)");
-
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX,
-              "@li /path%2Fto%2Fsocket.sock");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX1,
-              "@li (/path/to/socket.sock)");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX2,
-              "@li ./path%2Fto%2Fsocket.sock");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX3,
-              "@li (./path/to/socket.sock)");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX4,
-              "@li ../path%2Fto%2Fsocket.sock");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET_UNIX5,
-              "@li (../path/to/socket.sock)");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1,
@@ -625,20 +656,13 @@ REGISTER_HELP(SHELL_CONNECT_PARAM1,
 REGISTER_HELP(SHELL_CONNECT_DETAIL,
               "This function will establish the global session with the "
               "received connection data.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL1, "${TOPIC_CONNECTION_DATA}");
-
-REGISTER_HELP(SHELL_CONNECT_DETAIL2,
-              "If no scheme is provided, a first attempt will be made to "
-              "establish a NodeSession, and if it detects the used port is for "
-              "the mysql protocol, it will attempt a ClassicSession");
-
-REGISTER_HELP(SHELL_CONNECT_DETAIL3,
+REGISTER_HELP(SHELL_CONNECT_DETAIL1,
               "The password may be included on the connectionData, the "
               "optional parameter should be used only "
               "if the connectionData does not contain it already. If both are "
               "specified the password parameter will override the password "
-              "defined on "
-              "the connectionData.");
+              "defined on the connectionData.");
+REGISTER_HELP(SHELL_CONNECT_DETAIL2, "${TOPIC_CONNECTION_DATA}");
 /**
  * $(SHELL_CONNECT_BRIEF)
  *
@@ -652,14 +676,9 @@ REGISTER_HELP(SHELL_CONNECT_DETAIL3,
  * Detailed description of the connection data format is available at \ref
  * connection_data
  *
- * $(SHELL_CONNECT_DETAIL2)
+ * $(SHELL_CONNECT_DETAIL1)
  *
- * $(SHELL_CONNECT_DETAIL3)
- *
- * $(SHELL_CONNECT_DETAIL4)
- * $(SHELL_CONNECT_DETAIL5)
- * $(SHELL_CONNECT_DETAIL6)
- * $(SHELL_CONNECT_DETAIL7)
+ * $(TOPIC_CONNECTION_DATA)
  */
 #if DOXYGEN_JS
 Session Shell::connect(ConnectionData connectionData, String password) {}
@@ -1665,12 +1684,33 @@ REGISTER_HELP_FUNCTION(registerGlobal, shell);
 REGISTER_HELP_FUNCTION_TEXT(SHELL_REGISTERGLOBAL, R"*(
 Registers an extension object as a shell global object.
 
-As a shell global object everything in the object will be available from both
-JavaScript and Python despite if the member implementation was done in one
-language or the other.
+@param name The name to be given to the registered global object.
+@param object The extension object to be registered as a global object.
+@param definition optional dictionary containing help information about the
+object.
 
-When the object is registered as a global, all the help data associated to the
-object and it's members is made available through the shell built in help system
+An extension object is created with the shell.<<<createExtensionObject>>>
+function. Once registered, the functionality it provides will be available for
+use.
+
+The name parameter must comply with the following restrictions:
+
+@li It must be a valid scripting identifier.
+@li It can not be the name of a built in global object.
+@li It can not be the name of a previously registered object.
+
+The name used to register an object will be exactly the name under which the
+object will be available for both Python and JavaScript modes, this is, no
+naming convention is enforced on global objects.
+
+The definition parameter is a dictionary with help information about the object
+being registered, it allows the following properties:
+
+@li brief: a string with a brief description of the object.
+@li details: a list of strings with additional information about the object.
+
+When the object is registered, the help data on the definition parameter as well
+as the object members is made available through the shell built in help system.
 (\\?).
 )*");
 /**
@@ -1679,10 +1719,10 @@ object and it's members is made available through the shell built in help system
  * $(SHELL_REGISTERGLOBAL)
  */
 #if DOXYGEN_JS
-UserObject Shell::registerGlobal(String name, Object obj,
+UserObject Shell::registerGlobal(String name, Object object,
                                  Dictionary definition) {}
 #elif DOXYGEN_PY
-UserObject Shell::register_global(str name, Object obj, dict definition) {}
+UserObject Shell::register_global(str name, Object object, dict definition) {}
 #endif
 
 void Shell::register_global(const std::string &name,

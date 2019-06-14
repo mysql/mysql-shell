@@ -66,11 +66,18 @@ result = classicSession.run_sql('select * from sample');
 print 'Inserted Documents:', len(result.fetch_all());
 
 #@ ClassicSession: Transaction handling: commit
+//! [ClassicSession: SQL execution example]
+# Begins a transaction
 classicSession.start_transaction();
+
+# Inserts some records
 res1 = classicSession.run_sql('insert into sample values ("john")');
 res2 = classicSession.run_sql('insert into sample values ("carol")');
 res3 = classicSession.run_sql('insert into sample values ("jack")');
+
+# Commits the transaction
 classicSession.commit();
+//! [ClassicSession: SQL execution example]
 
 result = classicSession.run_sql('select * from sample');
 print 'Inserted Documents:', len(result.fetch_all());

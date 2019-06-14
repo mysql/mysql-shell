@@ -64,7 +64,7 @@ FUNCTIONS
       reconnect()
             Reconnect the global session.
 
-      register_global()
+      register_global(name, object[, definition])
             Registers an extension object as a shell global object.
 
       register_report(name, type, report[, description])
@@ -215,6 +215,11 @@ DESCRIPTION
       This function will establish the global session with the received
       connection data.
 
+      The password may be included on the connectionData, the optional
+      parameter should be used only if the connectionData does not contain it
+      already. If both are specified the password parameter will override the
+      password defined on the connectionData.
+
       The connection data may be specified in the following formats:
 
       - A URI string
@@ -224,7 +229,7 @@ DESCRIPTION
 
       [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
-      SSL Connection Options
+      Connection Options
 
       The following options are valid for use either in a URI or in a
       dictionary:
@@ -268,7 +273,7 @@ DESCRIPTION
       - dbUser: alias for user.
       - password: the password to be used on the connection.
       - dbPassword: same as password.
-      - host: the hostname or IP address to be used on a TCP connection.
+      - host: the hostname or IP address to be used on the connection.
       - port: the port to be used in a TCP connection.
       - socket: the socket file name to be used on a connection through unix
         sockets.
@@ -282,15 +287,6 @@ DESCRIPTION
       If an option is defined more than once, an error will be generated.
 
       For additional information on connection data use \? connection.
-
-      If no scheme is provided, a first attempt will be made to establish a
-      NodeSession, and if it detects the used port is for the mysql protocol,
-      it will attempt a ClassicSession
-
-      The password may be included on the connectionData, the optional
-      parameter should be used only if the connectionData does not contain it
-      already. If both are specified the password parameter will override the
-      password defined on the connectionData.
 
 #@<OUT> shell.create_extension_object
 NAME
@@ -651,16 +647,38 @@ NAME
       register_global - Registers an extension object as a shell global object.
 
 SYNTAX
-      shell.register_global()
+      shell.register_global(name, object[, definition])
+
+WHERE
+      name: The name to be given to the registered global object.
+      object: The extension object to be registered as a global object.
+      definition: Dictionary containing help information about the object.
 
 DESCRIPTION
-      As a shell global object everything in the object will be available from
-      both JavaScript and Python despite if the member implementation was done
-      in one language or the other.
+      An extension object is created with the shell.create_extension_object
+      function. Once registered, the functionality it provides will be
+      available for use.
 
-      When the object is registered as a global, all the help data associated
-      to the object and it's members is made available through the shell built
-      in help system (\?).
+      The name parameter must comply with the following restrictions:
+
+      - It must be a valid scripting identifier.
+      - It can not be the name of a built in global object.
+      - It can not be the name of a previously registered object.
+
+      The name used to register an object will be exactly the name under which
+      the object will be available for both Python and JavaScript modes, this
+      is, no naming convention is enforced on global objects.
+
+      The definition parameter is a dictionary with help information about the
+      object being registered, it allows the following properties:
+
+      - brief: a string with a brief description of the object.
+      - details: a list of strings with additional information about the
+        object.
+
+      When the object is registered, the help data on the definition parameter
+      as well as the object members is made available through the shell built
+      in help system. (\?).
 
 #@<OUT> shell.register_report
 NAME
@@ -864,7 +882,7 @@ A basic URI string has the following format:
 
 [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
-SSL Connection Options
+Connection Options
 
 The following options are valid for use either in a URI or in a dictionary:
 
@@ -906,7 +924,7 @@ Base Connection Options
 - dbUser: alias for user.
 - password: the password to be used on the connection.
 - dbPassword: same as password.
-- host: the hostname or IP address to be used on a TCP connection.
+- host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
 - schema: the schema to be selected once the connection is done.
@@ -918,36 +936,79 @@ The connection options are case insensitive and can only be defined once.
 
 If an option is defined more than once, an error will be generated.
 
-Protocol Selection
+The options specified in the connection data determine the type of connection
+to be used.
 
 The scheme option defines the protocol to be used on the connection, the
 following are the accepted values:
 
-- mysql: for connections using the Classic protocol.
+- mysql: for connections using the MySQL protocol.
 - mysqlx: for connections using the X protocol.
 
-Socket Connections
+If no protocol is specified in the connection data, the shell will first
+attempt connecting using the X protocol, if the connection fails it will then
+try to connect using the MySQL protocol.
 
-To define a socket connection, replace the host and port by the socket path.
+In general, the Shell connects to the server using TCP connections, unless the
+connection data contains the options required to create any of the connections
+described below.
 
-When using a connection dictionary, the path is set as the value for the socket
-option.
+Unix-domain Socket Connections
 
-When using a URI, the socket path must be URL encoded. A socket path may be
-specified in a URI in one of the following ways:
+To connect to a local MySQL server using a Unix-domain socket, the host must be
+set to 'localhost', no port number should be provided and the socket path
+should be provided.
 
-?{__os_type=='windows'}
-- \.\named.pipe
-- (\.\named.pipe)
-?{}
-?{__os_type!='windows'}
-- /path%2Fto%2Fsocket.sock
-- (/path/to/socket.sock)
-- ./path%2Fto%2Fsocket.sock
-- (./path/to/socket.sock)
-- ../path%2Fto%2Fsocket.sock
-- (../path/to/socket.sock)
-?{}
+When using the MySQL protocol, the socket path might not be provided, in such
+case a default path for the socket file will be used.
+
+When using a connection dictionary, the socket path is set as the value for the
+socket option.
+
+When using a URI, the socket path must be URL encoded as follows:
+
+- user@/path%2Fto%2Fsocket.sock
+- user@./path%2Fto%2Fsocket.sock
+- user@../path%2Fto%2Fsocket.sock
+
+It is possible to skip the URL encoding by enclosing the socket path in
+parenthesis:
+
+- user@(/path/to/socket.sock)
+- user@(./path/to/socket.sock)
+- user@(../path/to/socket.sock)
+
+Windows Named Pipe Connections
+
+To connect to MySQL server using a named pipe the host must be set to '.', no
+port number should be provided.
+
+If the pipe name is not provided the default pipe name will be used: MySQL.
+
+When using a connection dictionary, the named pipe name is set as the value for
+the socket option.
+
+When using a URI, if the named pipe has invalid characters for a URL, they must
+be URL encoded. URL encoding can be skipped by enclosing the pipe name in
+parenthesis:
+
+- user@\\.\named.pipe
+- user@(\\.\named.pipe)
+
+Named pipe connections are only supported on the MySQL protocol.
+
+Windows Shared Memory Connections
+
+Shared memory connections are only allowed if the server has shared memory
+connections enabled using the default shared memory base name: MySQL.
+
+To connect to a local MySQL server using shared memory the host should be set
+to 'localhost' and no port should be provided.
+
+If the server does not have shared memory connections enabled using the default
+base name, the connection will be done using TCP.
+
+Shared memory connections are only supported on the MySQL protocol.
 
 SSL Mode
 
@@ -1027,7 +1088,7 @@ A basic URI string has the following format:
 
 [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
-SSL Connection Options
+Connection Options
 
 The following options are valid for use either in a URI or in a dictionary:
 
@@ -1069,7 +1130,7 @@ Base Connection Options
 - dbUser: alias for user.
 - password: the password to be used on the connection.
 - dbPassword: same as password.
-- host: the hostname or IP address to be used on a TCP connection.
+- host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
 - schema: the schema to be selected once the connection is done.
@@ -1081,36 +1142,79 @@ The connection options are case insensitive and can only be defined once.
 
 If an option is defined more than once, an error will be generated.
 
-Protocol Selection
+The options specified in the connection data determine the type of connection
+to be used.
 
 The scheme option defines the protocol to be used on the connection, the
 following are the accepted values:
 
-- mysql: for connections using the Classic protocol.
+- mysql: for connections using the MySQL protocol.
 - mysqlx: for connections using the X protocol.
 
-Socket Connections
+If no protocol is specified in the connection data, the shell will first
+attempt connecting using the X protocol, if the connection fails it will then
+try to connect using the MySQL protocol.
 
-To define a socket connection, replace the host and port by the socket path.
+In general, the Shell connects to the server using TCP connections, unless the
+connection data contains the options required to create any of the connections
+described below.
 
-When using a connection dictionary, the path is set as the value for the socket
-option.
+Unix-domain Socket Connections
 
-When using a URI, the socket path must be URL encoded. A socket path may be
-specified in a URI in one of the following ways:
+To connect to a local MySQL server using a Unix-domain socket, the host must be
+set to 'localhost', no port number should be provided and the socket path
+should be provided.
 
-?{__os_type=='windows'}
-- \.\named.pipe
-- (\.\named.pipe)
-?{}
-?{__os_type!='windows'}
-- /path%2Fto%2Fsocket.sock
-- (/path/to/socket.sock)
-- ./path%2Fto%2Fsocket.sock
-- (./path/to/socket.sock)
-- ../path%2Fto%2Fsocket.sock
-- (../path/to/socket.sock)
-?{}
+When using the MySQL protocol, the socket path might not be provided, in such
+case a default path for the socket file will be used.
+
+When using a connection dictionary, the socket path is set as the value for the
+socket option.
+
+When using a URI, the socket path must be URL encoded as follows:
+
+- user@/path%2Fto%2Fsocket.sock
+- user@./path%2Fto%2Fsocket.sock
+- user@../path%2Fto%2Fsocket.sock
+
+It is possible to skip the URL encoding by enclosing the socket path in
+parenthesis:
+
+- user@(/path/to/socket.sock)
+- user@(./path/to/socket.sock)
+- user@(../path/to/socket.sock)
+
+Windows Named Pipe Connections
+
+To connect to MySQL server using a named pipe the host must be set to '.', no
+port number should be provided.
+
+If the pipe name is not provided the default pipe name will be used: MySQL.
+
+When using a connection dictionary, the named pipe name is set as the value for
+the socket option.
+
+When using a URI, if the named pipe has invalid characters for a URL, they must
+be URL encoded. URL encoding can be skipped by enclosing the pipe name in
+parenthesis:
+
+- user@\\.\named.pipe
+- user@(\\.\named.pipe)
+
+Named pipe connections are only supported on the MySQL protocol.
+
+Windows Shared Memory Connections
+
+Shared memory connections are only allowed if the server has shared memory
+connections enabled using the default shared memory base name: MySQL.
+
+To connect to a local MySQL server using shared memory the host should be set
+to 'localhost' and no port should be provided.
+
+If the server does not have shared memory connections enabled using the default
+base name, the connection will be done using TCP.
+
+Shared memory connections are only supported on the MySQL protocol.
 
 SSL Mode
 

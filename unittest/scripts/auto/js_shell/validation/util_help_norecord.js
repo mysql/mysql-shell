@@ -63,7 +63,7 @@ DESCRIPTION
 
       [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
-      SSL Connection Options
+      Connection Options
 
       The following options are valid for use either in a URI or in a
       dictionary:
@@ -107,7 +107,7 @@ DESCRIPTION
       - dbUser: alias for user.
       - password: the password to be used on the connection.
       - dbPassword: same as password.
-      - host: the hostname or IP address to be used on a TCP connection.
+      - host: the hostname or IP address to be used on the connection.
       - port: the port to be used in a TCP connection.
       - socket: the socket file name to be used on a connection through unix
         sockets.
@@ -121,7 +121,6 @@ DESCRIPTION
       If an option is defined more than once, an error will be generated.
 
       For additional information on connection data use \? connection.
-
 
 //@<OUT> util importJson help
 NAME
@@ -405,3 +404,4 @@ DESCRIPTION
       - SET unique_checks = 0
       - SET foreign_key_checks = 0
       - SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+

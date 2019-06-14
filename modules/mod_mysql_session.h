@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,22 +54,17 @@ class Connection;
  * $(CLASSICSESSION_BRIEF)
  *
  * $(CLASSICSESSION_DETAIL)
- *
- * \code{.js}
- * // Establishes the connection.
- * var mysql = require('mysql');
- * var session = mysql.getClassicSession("myuser@localhost", pwd);
- *
- * // Getting a schema through the getSchema function
- * var schema = session.getSchema("sakila");
- *
- * // Getting a schema through a session property
- * var schema = session.sakila;
- * \endcode
- *
- * \sa mysql.getClassicSession(String connectionData, String password)
- * \sa mysql.getClassicSession(Map connectionData, String password)
  */
+#if DOXYGEN_JS
+/**
+ * \snippet mysql_session.js ClassicSession: SQL execution example
+ */
+#elif DOXYGEN_PY
+/**
+ * \snippet mysql_session.py ClassicSession: SQL execution example
+ */
+#endif
+
 class SHCORE_PUBLIC ClassicSession
     : public ShellBaseSession,
       public std::enable_shared_from_this<ClassicSession> {

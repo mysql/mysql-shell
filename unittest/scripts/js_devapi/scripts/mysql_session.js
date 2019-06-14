@@ -59,11 +59,18 @@ var result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);
 
 //@ ClassicSession: Transaction handling: commit
+//! [ClassicSession: SQL execution example]
+// Begins a transaction
 classicSession.startTransaction();
+
+// Inserts some records
 var res1 = classicSession.runSql('insert into sample values ("john")');
 var res2 = classicSession.runSql('insert into sample values ("carol")');
 var res3 = classicSession.runSql('insert into sample values ("jack")');
+
+// Commits the transaction
 classicSession.commit();
+//! [ClassicSession: SQL execution example]
 
 var result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);

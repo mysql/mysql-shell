@@ -4,7 +4,7 @@ NAME
                        Protocol.
 
 DESCRIPTION
-      Provides facilities to execute queries and retrieve database objects.
+      Provides facilities to execute queries.
 
 PROPERTIES
       uri
