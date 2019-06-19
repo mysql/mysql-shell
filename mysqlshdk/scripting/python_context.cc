@@ -1145,13 +1145,19 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
 
   PyObject *plugin_file = nullptr;
   PyObject *plugin_path = nullptr;
-  PyObject *parent_plugin_path = nullptr;
   PyObject *result = nullptr;
   PyObject *globals = nullptr;
   PyObject *sys_path_backup = nullptr;
   FILE *file = nullptr;
   bool executed = false;
   std::string file_name = plugin.file;
+
+  // The path to the plugins folder needs to be in sys.path while the plugin is
+  // being loaded
+  std::string plugin_dir = shcore::path::dirname(file_name);
+  if (!plugin.main) plugin_dir = shcore::path::dirname(plugin_dir);
+  plugin_dir = shcore::path::dirname(plugin_dir);
+
   try {
     file = fopen(file_name.c_str(), "r");
     if (nullptr == file) {
@@ -1164,19 +1170,9 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
       throw std::runtime_error("Unable to get plugin file");
     }
 
-    std::string plugin_dir = shcore::path::dirname(file_name);
     plugin_path = PyString_FromString(plugin_dir.c_str());
     if (nullptr == plugin_path) {
       throw std::runtime_error("Unable to get plugin path");
-    }
-
-    std::string parent_plugin_dir;
-    if (!plugin.main) {
-      parent_plugin_dir = shcore::path::dirname(plugin_dir);
-      parent_plugin_path = PyString_FromString(parent_plugin_dir.c_str());
-      if (nullptr == parent_plugin_path) {
-        throw std::runtime_error("Unable to get the parent plugin path");
-      }
     }
 
     PyObject *sys_path = PySys_GetObject(const_cast<char *>("path"));
@@ -1205,13 +1201,6 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
       throw std::runtime_error("Failed adding plugin path to sys.path");
     }
 
-    if (!plugin.main) {
-      if (PyList_Insert(sys_path, 0, parent_plugin_path)) {
-        throw std::runtime_error(
-            "Failed adding parent plugin path to sys.path");
-      }
-    }
-
     // PyRun_FileEx() will close the file
     // plugins are loaded in sandboxed environment, we're not using
     // the compiler flags here
@@ -1220,8 +1209,8 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
 
     executed = true;
 
-    // In case of an error, gets the description and clears the error condition
-    // in python to be able to restore the sys.path
+    // In case of an error, gets the description and clears the error
+    // condition in python to be able to restore the sys.path
     std::string error;
     if (nullptr == result) {
       error = fetch_and_clear_exception();

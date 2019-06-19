@@ -720,15 +720,15 @@ shell.register_report('first_py', 'print', report);
 // in subfolders, while only the function registration resides
 // in the init.py file
 TEST_F(Mysqlsh_plugin_test, py_plugin_with_imports) {
-  // Creates complex-py plugin initialization file
-  write_user_plugin("complex-py", R"(
+  // Creates complex_py plugin initialization file
+  write_user_plugin("complex_py", R"(
 print("Plugin File Path: {0}".format(__file__))
 
 # loads a function definition from src package
-from src import definition
+from complex_py.src import definition
 
 # loads a sibling script
-import sibling
+from complex_py import sibling
 
 
 # Executes the plugin registration
@@ -739,23 +739,28 @@ shell.register_global('pyObject', obj);
 )", ".py");
 
   auto user_plugins = get_user_plugin_folder();
-  auto src_package = join_path(user_plugins, "complex-py", "src");
+  auto main_package = join_path(user_plugins, "complex_py");
+  auto src_package = join_path(main_package, "src");
+
+  // Creates __init__.py to make the main plugin a package
+  shcore::create_file(join_path(main_package, "__init__.py"), "");
+
   // Creates a sibling script with a function definition
-  shcore::create_file(join_path(user_plugins, "complex-py", "sibling.py"),
+  shcore::create_file(join_path(main_package, "sibling.py"),
                       R"(def my_function():
-  print("Function at complex-py/sibling.py"))");
+  print("Function at complex_py/sibling.py"))");
 
   // Creates the src sub-package with a function definition
   shcore::create_directory(src_package);
   shcore::create_file(join_path(src_package, "__init__.py"), "");
   shcore::create_file(join_path(src_package, "definition.py"),
                       R"(def my_function():
-  print("Function at complex-py/src/definition.py"))");
+  print("Function at complex_py/src/definition.py"))");
 
   add_py_test("pyObject.test_package()",
-              "Function at complex-py/src/definition.py");
+              "Function at complex_py/src/definition.py");
 
-  add_py_test("pyObject.test_sibling()", "Function at complex-py/sibling.py");
+  add_py_test("pyObject.test_sibling()", "Function at complex_py/sibling.py");
 
   add_expected_py_log(
       "The 'test_package' function has been registered into an unregistered "
@@ -774,7 +779,7 @@ shell.register_global('pyObject', obj);
   // check the output
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
   std::string expected("Plugin File Path: ");
-  expected += join_path(get_user_plugin_folder(), "complex-py", "init.py");
+  expected += join_path(get_user_plugin_folder(), "complex_py", "init.py");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected.c_str());
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output().c_str());
 
@@ -782,28 +787,32 @@ shell.register_global('pyObject', obj);
 
   wipe_out();
 
-  delete_user_plugin("complex-py");
+  delete_user_plugin("complex_py");
 }
 
 // This test emulates a folder in plugins that contains subfolders
 // with plugins
 TEST_F(Mysqlsh_plugin_test, py_multi_plugins) {
-  // Creates complex-py plugin initialization file
+  // Creates multi_plugins plugin initialization file
   auto user_plugins = get_user_plugin_folder();
-  auto multi_plugins = join_path(user_plugins, "multi-plugins");
-  shcore::create_directory(multi_plugins);
-  shcore::create_file(join_path(multi_plugins, "plugin_common.py"),
+  auto main_package = join_path(user_plugins, "multi_plugins");
+
+  // Creates __init__.py to make the main plugin a package
+  shcore::create_directory(main_package);
+  shcore::create_file(join_path(main_package, "__init__.py"), "");
+
+  shcore::create_file(join_path(main_package, "plugin_common.py"),
                       R"(import mysqlsh
 
 def global_function(caller):
   print("Global function called from {0}".format(caller)))");
 
-  auto create_plugin = [multi_plugins](const std::string &name,
-                                       const std::string &greeting) {
-    auto plugin = join_path(multi_plugins, name);
+  auto create_plugin = [main_package](const std::string &name,
+                                      const std::string &greeting) {
+    auto plugin = join_path(main_package, name);
     shcore::create_directory(plugin);
     std::string code =
-        R"(import plugin_common
+        R"(from multi_plugins import plugin_common
 
 # The implementation of the function to be added to demo
 def hello_function():
@@ -893,13 +902,13 @@ shell.add_extension_object_member(global_obj, "common_%s", global_function)
 
   wipe_out();
 
-  delete_user_plugin("multi-plugins");
+  delete_user_plugin("multi_plugins");
 }
 
 #ifdef WITH_OCI
 // This test emulates a plugins that uses the oci
 TEST_F(Mysqlsh_plugin_test, oci_and_paramiko_plugin) {
-  // Creates complex-py plugin initialization file
+  // Creates oci-paramiko plugin initialization file
   write_user_plugin("oci-paramiko", R"(import oci
 import paramiko
 
