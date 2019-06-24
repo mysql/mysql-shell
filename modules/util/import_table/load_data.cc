@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,13 +158,6 @@ void Load_data_worker::operator()() {
 
     mysqlsh::Mysql_thread t;
     auto const conn_opts = m_opt.connection_options();
-    session->connect(conn_opts);
-
-    // set session variables
-    session->execute("SET unique_checks = 0");
-    session->execute("SET foreign_key_checks = 0");
-    session->execute(
-        "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
     File_info fi;
     fi.filename = m_opt.full_path();
@@ -180,6 +173,14 @@ void Load_data_worker::operator()() {
     session->set_local_infile_read(local_infile_read);
     session->set_local_infile_end(local_infile_end);
     session->set_local_infile_error(local_infile_error);
+
+    session->connect(conn_opts);
+
+    // set session variables
+    session->execute("SET unique_checks = 0");
+    session->execute("SET foreign_key_checks = 0");
+    session->execute(
+        "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
     const std::string on_duplicate_rows =
         m_opt.replace_duplicates() ? std::string{"REPLACE "} : std::string{};

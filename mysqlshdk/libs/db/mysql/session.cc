@@ -47,12 +47,12 @@ void Session_impl::throw_on_connection_fail() {
   throw exception;
 }
 
-Session_impl::Session_impl() : _mysql(NULL) {}
+Session_impl::Session_impl() {}
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
-  _mysql = mysql_init(NULL);
+  _mysql = mysql_init(nullptr);
 
   _connection_options = connection_options;
 
@@ -142,6 +142,12 @@ void Session_impl::connect(
     const int local_infile = 1;
     mysql_options(_mysql, MYSQL_OPT_LOCAL_INFILE, &local_infile);
   }
+
+  _mysql->options.local_infile_init = m_local_infile.init;
+  _mysql->options.local_infile_read = m_local_infile.read;
+  _mysql->options.local_infile_end = m_local_infile.end;
+  _mysql->options.local_infile_error = m_local_infile.error;
+  _mysql->options.local_infile_userdata = m_local_infile.userdata;
 
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
 
@@ -261,8 +267,8 @@ void Session_impl::close() {
   if (_mysql) {
     DBUG_LOG("sql", get_thread_id() << ": DISCONNECT");
     mysql_close(_mysql);
+    _mysql = nullptr;
   }
-  _mysql = nullptr;
 }
 
 std::shared_ptr<IResult> Session_impl::query(const char *sql, size_t len,
@@ -352,10 +358,7 @@ void Session_impl::prepare_fetch(Result *target) {
   }
 }
 
-Session_impl::~Session_impl() {
-  _prev_result.reset();
-  close();
-}
+Session_impl::~Session_impl() { close(); }
 
 std::vector<std::string> Session_impl::get_last_gtids() const {
   const char *data;
