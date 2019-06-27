@@ -422,8 +422,35 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     primary_master.drop_user(recovery_user, "%");
   }
 
-  bool clone_available = target->get_version() >=
-                         mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+  // Check if clone is available on ALL cluster members, to avoid a failing SQL
+  // query because BACKUP_ADMIN is not supported
+  bool clone_available_all_members = false;
+  {
+    get_default_replicaset()->execute_in_members(
+        {"'ONLINE'", "'RECOVERING'"},
+        get_group_session()->get_connection_options(), {},
+        [&clone_available_all_members](
+            const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+          mysqlshdk::mysql::Instance instance(session);
+          mysqlshdk::utils::Version version = instance.get_version();
+          if (version >=
+              mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+            clone_available_all_members = true;
+          } else {
+            clone_available_all_members = false;
+          }
+
+          return clone_available_all_members;
+        });
+  }
+
+  // Check if clone is supported on the target instance
+  bool clone_available_on_target =
+      target->get_version() >=
+      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+
+  bool clone_available =
+      clone_available_all_members && clone_available_on_target;
 
   return mysqlshdk::gr::create_recovery_user(recovery_user, &primary_master,
                                              {"%"}, {}, clone_available);
