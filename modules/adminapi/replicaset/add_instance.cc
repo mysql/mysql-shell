@@ -836,6 +836,20 @@ bool Add_instance::handle_replication_user() {
   return false;
 }
 
+/**
+ * Clean (drop) the replication user only if it was created, in case the
+ * operation fails.
+ */
+void Add_instance::clean_replication_user() {
+  if (!m_rpl_user.empty()) {
+    mysqlshdk::mysql::Instance primary(
+        m_replicaset.get_cluster()->get_group_session());
+    log_debug("Dropping recovery user '%s'@'%%' at instance '%s'.",
+              m_rpl_user.c_str(), primary.descr().c_str());
+    primary.drop_user(m_rpl_user, "%", true);
+  }
+}
+
 void Add_instance::log_used_gr_options() {
   auto console = mysqlsh::current_console();
 
@@ -1155,8 +1169,8 @@ shcore::Value Add_instance::execute() {
 }
 
 void Add_instance::rollback() {
-  // Do nothing right now, but it might be used in the future when
-  // transactional command execution feature will be available.
+  // Clean (drop) the replication user (if created).
+  clean_replication_user();
 }
 
 void Add_instance::finish() {

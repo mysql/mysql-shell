@@ -258,3 +258,9 @@ Number of accounts for '<<<recovery_user_2>>>': 1
 |mysql_innodb_cluster_11111, %|
 |mysql_innodb_cluster_22222, %|
 |mysql_innodb_cluster_33333, %|
+
+//@<OUT> BUG#25503159: number of recovery users before executing addInstance().
+Number of recovery user before addInstance(): 1
+
+//@<ERR> BUG#25503159: add instance fail (using an invalid localaddress).
+Cluster.addInstance: Group Replication failed to start: [[*]]

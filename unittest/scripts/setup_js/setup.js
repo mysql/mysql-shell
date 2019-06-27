@@ -122,6 +122,15 @@ function get_persisted_gr_sysvars(session) {
   return ret;
 }
 
+function number_of_gr_recovery_accounts(session) {
+  // All internal recovery users have the prefix: 'mysql_innodb_cluster_'.
+  var res = session.runSql(
+      "SELECT COUNT(*)  FROM mysql.user u " +
+      "WHERE u.user LIKE 'mysql_innodb_cluster_%'");
+  var row = res.fetchOne();
+  return row[0];
+}
+
 function get_all_gr_recovery_accounts(session) {
   var close_session = false;
 

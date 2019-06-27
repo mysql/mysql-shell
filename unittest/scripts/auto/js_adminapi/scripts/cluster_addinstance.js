@@ -718,8 +718,8 @@ EXPECT_EQ(1, number);
 
 //@<> WL#12773: FR1.2 - The host-name shall be %
 result = session.runSql("SELECT Host FROM mysql.user WHERE User = 'mysql_innodb_cluster_22222'");
-var hostname = result.fetchOne()[0];
-EXPECT_EQ("%", hostname);
+var user_host = result.fetchOne()[0];
+EXPECT_EQ("%", user_host);
 
 //@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
 result = session.runSql("SELECT COUNT(*) FROM mysql.user");
@@ -737,3 +737,30 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+
+// BUG#25503159: addInstance() does not drop recovery user when it fails
+//@<> BUG#25503159: deploy sandboxes.
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+//@<> BUG#25503159: create cluster.
+shell.connect(__hostname_uri1);
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
+//var c = dba.createCluster('test');
+
+//@ BUG#25503159: number of recovery users before executing addInstance().
+var num_recovery_users = number_of_gr_recovery_accounts(session);
+print("Number of recovery user before addInstance(): " + num_recovery_users + "\n");
+
+//@ BUG#25503159: add instance fail (using an invalid localaddress).
+c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
+
+//@<> BUG#25503159: number of recovery users is the same.
+var num_recovery_users_after = number_of_gr_recovery_accounts(session);
+EXPECT_EQ(num_recovery_users, num_recovery_users_after);
+
+//@<> BUG#25503159: clean-up.
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

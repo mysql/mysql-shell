@@ -248,13 +248,13 @@ void ReplicaSet::add_instance(
           "' is already part of this InnoDB cluster");
   }
 
-  // Add the Instance to the ReplicaSet
-  {
-    // Create the add_instance command and execute it.
-    Add_instance op_add_instance(target_coptions, *this, gr_options,
-                                 clone_options, label, interactive,
-                                 wait_recovery);
+  // Create the add_instance command to be executed.
+  Add_instance op_add_instance(target_coptions, *this, gr_options,
+                               clone_options, label, interactive,
+                               wait_recovery);
 
+  // Add the Instance to the ReplicaSet
+  try {
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
         [&op_add_instance]() { op_add_instance.finish(); });
@@ -264,6 +264,9 @@ void ReplicaSet::add_instance(
 
     // Execute add_instance operations.
     op_add_instance.execute();
+  } catch (...) {
+    op_add_instance.rollback();
+    throw;
   }
 }
 

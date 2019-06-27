@@ -100,8 +100,8 @@ class Add_instance : public Command_interface {
 
   /**
    * Rollback the command.
-   *
-   * NOTE: Not currently used (does nothing).
+   * Perform some cleaning in case the operation fails:
+   * - drop the replication (recovery) user if created.
    */
   void rollback() override;
 
@@ -155,6 +155,7 @@ class Add_instance : public Command_interface {
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
   bool handle_replication_user();
+  void clean_replication_user();
   void log_used_gr_options();
   void ensure_unique_server_id() const;
   void handle_recovery_account() const;
