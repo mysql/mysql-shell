@@ -947,8 +947,9 @@ void Extensible_object::get_param_help_detail(
           param->validator<shcore::String_validator>()->allowed();
 
       if (!values.empty()) {
-        help_entry += " accepts the following values: " +
-                      shcore::str_join(values, ", ") + ".";
+        help_entry +=
+            " accepts the following values: " + shcore::str_join(values, ", ") +
+            ".";
         details->emplace_back(std::move(help_entry));
       }
 

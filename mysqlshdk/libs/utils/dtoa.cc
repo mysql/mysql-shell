@@ -1,4 +1,4 @@
-/* Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2007, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -2428,7 +2428,7 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
       b = multadd(b, 10, 0, &alloc);
     }
 
-      /* Round off last digit */
+    /* Round off last digit */
 
 #ifdef Honor_FLT_ROUNDS
   switch (rounding) {

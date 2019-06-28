@@ -234,12 +234,12 @@ void Shell_console::println(const std::string &text) const {
 
 namespace {
 std::string format(const std::string &text) {
-  return shcore::str_subvars(text,
-                             [](const std::string &var) {
-                               return shcore::get_member_name(
-                                   var, shcore::current_naming_style());
-                             },
-                             "<<<", ">>>");
+  return shcore::str_subvars(
+      text,
+      [](const std::string &var) {
+        return shcore::get_member_name(var, shcore::current_naming_style());
+      },
+      "<<<", ">>>");
 }
 }  // namespace
 

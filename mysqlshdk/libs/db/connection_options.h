@@ -42,8 +42,8 @@ enum class SessionType { Auto, X, Classic };
 
 namespace mysqlshdk {
 namespace db {
-using utils::Nullable_options;
 using utils::nullable;
+using utils::Nullable_options;
 using utils::nullable_options::Comparison_mode;
 enum Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);

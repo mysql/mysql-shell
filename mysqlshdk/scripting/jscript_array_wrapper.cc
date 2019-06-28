@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,7 +107,8 @@ void JScript_array_wrapper::handler_getter(
   marray->Set(0, v8_string(info.GetIsolate(), "length"));
   info.GetReturnValue().Set(marray);
   }
-  else*/ if (prop == "length") {
+  else*/
+  if (prop == "length") {
     info.GetReturnValue().Set(
         v8::Integer::New(info.GetIsolate(), array->size()));
   }

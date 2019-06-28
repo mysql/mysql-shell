@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -32,10 +32,10 @@
 namespace shcore {
 
 using opts::Basic_type;
+using opts::cmdline;
 using opts::Range;
 using opts::Read_only;
 using opts::Source;
-using opts::cmdline;
 
 class Options_test : public Shell_core_test_wrapper, public Options {
  public:

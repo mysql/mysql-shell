@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,9 +26,9 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+using mysql::secret_store::common::get_helper_exception;
 using mysql::secret_store::common::Helper_exception;
 using mysql::secret_store::common::Helper_exception_code;
-using mysql::secret_store::common::get_helper_exception;
 
 namespace mysql {
 namespace secret_store {

@@ -35,8 +35,8 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
-using mysql::secret_store::common::Helper_exception_code;
 using mysql::secret_store::common::get_helper_exception;
+using mysql::secret_store::common::Helper_exception_code;
 
 namespace mysql {
 namespace secret_store {

@@ -444,7 +444,7 @@ TEST_F(Interrupt_mysqlsh, js_file_batch) {
 }
 #endif
 
-  //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #if 0
 // Not feasible because signal is sent to the shell, not mp

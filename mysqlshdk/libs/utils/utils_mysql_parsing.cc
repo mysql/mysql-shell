@@ -532,13 +532,14 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
     std::string *delimiter) {
   std::vector<std::tuple<std::string, std::string, size_t>> results;
-  iterate_sql_stream(stream, chunk_size,
-                     [&results](const char *s, size_t len,
-                                const std::string &delim, size_t lnum) {
-                       results.emplace_back(std::string(s, len), delim, lnum);
-                       return true;
-                     },
-                     err_callback, ansi_quotes, delimiter);
+  iterate_sql_stream(
+      stream, chunk_size,
+      [&results](const char *s, size_t len, const std::string &delim,
+                 size_t lnum) {
+        results.emplace_back(std::string(s, len), delim, lnum);
+        return true;
+      },
+      err_callback, ansi_quotes, delimiter);
   return results;
 }
 

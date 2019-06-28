@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,12 +40,12 @@
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
 
+using mysql::secret_store::api::get_available_helpers;
+using mysql::secret_store::api::get_helper;
 using mysql::secret_store::api::Helper_interface;
 using mysql::secret_store::api::Helper_name;
 using mysql::secret_store::api::Secret_spec;
 using mysql::secret_store::api::Secret_type;
-using mysql::secret_store::api::get_available_helpers;
-using mysql::secret_store::api::get_helper;
 
 namespace tests {
 

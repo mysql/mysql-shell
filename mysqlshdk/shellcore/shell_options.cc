@@ -126,10 +126,10 @@ static std::string get_session_type_name(mysqlsh::SessionType type) {
 }
 
 using mysqlshdk::db::Ssl_options;
-using shcore::opts::Source;
 using shcore::opts::assign_value;
 using shcore::opts::cmdline;
 using shcore::opts::deprecated;
+using shcore::opts::Source;
 using std::placeholders::_1;
 using std::placeholders::_2;
 

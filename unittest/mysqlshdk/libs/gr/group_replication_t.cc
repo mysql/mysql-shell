@@ -763,8 +763,8 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
   using mysqlshdk::gr::Config_types;
   using mysqlshdk::gr::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::Version;
   using mysqlshdk::utils::nullable;
+  using mysqlshdk::utils::Version;
 
   // Get current server_id variable value to restore at the end.
   nullable<int64_t> cur_server_id =
@@ -861,8 +861,8 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   using mysqlshdk::gr::Config_types;
   using mysqlshdk::gr::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::Version;
   using mysqlshdk::utils::nullable;
+  using mysqlshdk::utils::Version;
 
   std::string instance_port =
       std::to_string(instance->get_connection_options().get_port());
@@ -1403,8 +1403,8 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
 
 TEST_F(Group_replication_test, check_instance_version_compatibility) {
   using mysqlshdk::db::Type;
-  using mysqlshdk::utils::Version;
   using mysqlshdk::utils::nullable;
+  using mysqlshdk::utils::Version;
 
   auto test = [](const nullable<bool> &gr_allow_lower_version_join,
                  const Version &instance_version,
@@ -1535,8 +1535,8 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
 
 TEST_F(Group_replication_test, is_instance_only_read_compatible) {
   using mysqlshdk::db::Type;
-  using mysqlshdk::utils::Version;
   using mysqlshdk::utils::nullable;
+  using mysqlshdk::utils::Version;
 
   auto test = [](const Version &instance_version,
                  const Version &lowest_cluster_version,

@@ -1500,7 +1500,6 @@ WHERE c.channel_name = '%s')*";
                 "",
                 "0000-00-00 00:00:00.000000",
                 "0"}}}});
-
   };
 
   // channel is stopped

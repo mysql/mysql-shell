@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,14 +37,15 @@ size_t execute_sql_script(
     const std::function<void(const std::string &)> &err_callback) {
   std::stringstream stream(script);
   size_t count = 0;
-  utils::iterate_sql_stream(&stream, 1024 * 64,
-                            [session, &count](const char *s, size_t len,
-                                              const std::string &, size_t) {
-                              session->query({s, len});
-                              ++count;
-                              return true;
-                            },
-                            err_callback);
+  utils::iterate_sql_stream(
+      &stream, 1024 * 64,
+      [session, &count](const char *s, size_t len, const std::string &,
+                        size_t) {
+        session->query({s, len});
+        ++count;
+        return true;
+      },
+      err_callback);
   return count;
 }
 

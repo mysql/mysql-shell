@@ -34,12 +34,12 @@ namespace shcore {
 
 using mysqlshdk::db::Connection_options;
 
+using mysql::secret_store::api::get_available_helpers;
+using mysql::secret_store::api::get_helper;
 using mysql::secret_store::api::Helper_interface;
 using mysql::secret_store::api::Helper_name;
 using mysql::secret_store::api::Secret_spec;
 using mysql::secret_store::api::Secret_type;
-using mysql::secret_store::api::get_available_helpers;
-using mysql::secret_store::api::get_helper;
 using mysql::secret_store::api::set_logger;
 
 namespace {
@@ -215,14 +215,15 @@ void Credential_manager::register_options(Options *options) {
         } else {
           return m_helper_string;
         }
-      })(&m_save_passwords, Save_passwords::PROMPT, k_save_passwords_option,
-         k_save_passwords_env, cmdline(k_save_passwords_cmdline),
-         "Controls automatic storage of passwords. Allowed values are: "
-         "always, prompt, never.",
-         [](const std::string &val, opts::Source) {
-           return to_save_passwords(val);
-         },
-         [](const Save_passwords &val) { return to_string(val); })(
+      })(
+      &m_save_passwords, Save_passwords::PROMPT, k_save_passwords_option,
+      k_save_passwords_env, cmdline(k_save_passwords_cmdline),
+      "Controls automatic storage of passwords. Allowed values are: "
+      "always, prompt, never.",
+      [](const std::string &val, opts::Source) {
+        return to_save_passwords(val);
+      },
+      [](const Save_passwords &val) { return to_string(val); })(
       &m_ignore_filters, std::vector<std::string>{}, k_exclude_filters_option,
       "A list of strings specifying which server URLs should be excluded "
       "from automatic storage of passwords.",

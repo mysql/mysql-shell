@@ -514,7 +514,8 @@ TEST_F(Mysqlsh_plugin_test, WL13051_OK_shell_plugins) {
 }
 
 shell.registerReport('first_js', 'print', report);
-)", ".js");
+)",
+               ".js");
 
   // create third-py plugin, which defines a custom report
   write_plugin("third-py", R"(def report(s):
@@ -522,7 +523,8 @@ shell.registerReport('first_js', 'print', report);
   return {'report' : []};
 
 shell.register_report('third_py', 'print', report);
-)", ".py");
+)",
+               ".py");
 
   // check if first_js report is available
   add_js_test("\\show first_js", "first JS report");
@@ -551,7 +553,8 @@ TEST_F(Mysqlsh_plugin_test, WL13051_OK_user_plugins) {
 var obj = shell.createExtensionObject();
 shell.addExtensionObjectMember(obj, "testFunction", sample);
 shell.registerGlobal('jsObject', obj);
-)", ".js");
+)",
+                    ".js");
 
   // create fourth-py plugin - which defines a new global object
   write_user_plugin("fourth-py", R"(def describe():
@@ -560,7 +563,8 @@ shell.registerGlobal('jsObject', obj);
 obj = shell.create_extension_object()
 shell.add_extension_object_member(obj, "selfDescribe", describe);
 shell.register_global('pyObject', obj);
-)", ".py");
+)",
+                    ".py");
 
   // This plugin is correctly defined except that the folder starts with . so it
   // will be ignored by the loader
@@ -570,7 +574,8 @@ shell.register_global('pyObject', obj);
 obj = shell.create_extension_object()
 shell.add_extension_object_member(obj, "selfDescribe", describe);
 shell.register_global('pyObject', obj);
-)", ".py");
+)",
+                    ".py");
 
   add_expected_js_log(
       join_path(get_user_plugin_folder(), "second-js", "init.js"));
@@ -610,7 +615,8 @@ TEST_F(Mysqlsh_plugin_test, WL13051_multiple_init_files) {
 }
 
 shell.registerReport('first_js', 'print', report);
-)", ".js");
+)",
+                    ".js");
 
   write_user_plugin("error-one", R"(function report(s) {
   println('first JS report');
@@ -618,7 +624,8 @@ shell.registerReport('first_js', 'print', report);
 }
 
 shell.registerReport('first_js', 'print', report);
-)", ".py");
+)",
+                    ".py");
 
   // check if first JS report is available
 
@@ -674,7 +681,8 @@ TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_js_plugin) {
 }
 
 shell.registerReport('first_js', 'print', report);
-)", ".js");
+)",
+                    ".js");
 
   add_expected_js_log("Error loading JavaScript file");
 
@@ -699,7 +707,8 @@ TEST_F(Mysqlsh_plugin_test, WL13051_errors_in_py_plugin) {
 }
 
 shell.register_report('first_py', 'print', report);
-)", ".py");
+)",
+                    ".py");
 
   add_expected_py_log("Error loading Python file");
 
@@ -736,7 +745,8 @@ obj = shell.create_extension_object()
 shell.add_extension_object_member(obj, "test_package", definition.my_function);
 shell.add_extension_object_member(obj, "test_sibling", sibling.my_function);
 shell.register_global('pyObject', obj);
-)", ".py");
+)",
+                    ".py");
 
   auto user_plugins = get_user_plugin_folder();
   auto main_package = join_path(user_plugins, "complex_py");
@@ -914,7 +924,8 @@ import paramiko
 
 print("OCI Version: {0}".format(oci.__version__))
 print("Paramiko Version: {0}".format(paramiko.__version__))
-)", ".py");
+)",
+                    ".py");
 
   // run the test
   run();

@@ -1002,8 +1002,7 @@ select 1;
 TEST_P(Statement_splitter, ansi_quotes) {
   // if ansi_quotes then "" is handled the same way as ``
   EXPECT_EQ(strv({R"*("a"";b";)*", "'a'';b';", "`a``;b`;"}),
-            split_batch(
-                R"*("a"";b"; 'a'';b'; `a``;b`;)*", false));
+            split_batch(R"*("a"";b"; 'a'';b'; `a``;b`;)*", false));
 
   const auto s1 = R"*("a\";b"; 'a\';b'; `a\`;b`;)*";
   const auto expected_s1 =
@@ -1011,13 +1010,11 @@ TEST_P(Statement_splitter, ansi_quotes) {
   EXPECT_EQ(expected_s1, split_batch(s1, false));
 
   EXPECT_EQ(strv({R"*("a"";b";)*", "'a'';b';", "`a``;b`;"}),
-            split_batch(
-                R"*("a"";b"; 'a'';b'; `a``;b`;)*", true));
+            split_batch(R"*("a"";b"; 'a'';b'; `a``;b`;)*", true));
 
   const auto s2 = R"*("a\";b; 'a\';b'; `a\`;b;)*";
   const auto expected_s2 =
-      strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*",
-            R"*(b;)*"});
+      strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*", R"*(b;)*"});
   EXPECT_EQ(expected_s2, split_batch(s2, true));
 }
 

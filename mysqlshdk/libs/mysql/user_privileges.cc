@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -495,8 +495,8 @@ void User_privileges::read_global_privileges(
       "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
       "WHERE GRANTEE = ?";
 
-  read_privileges(session, query, [](const db::IRow *const, Mapped_row *) {},
-                  user_role);
+  read_privileges(
+      session, query, [](const db::IRow *const, Mapped_row *) {}, user_role);
 }
 
 void User_privileges::read_schema_privileges(
@@ -507,11 +507,12 @@ void User_privileges::read_schema_privileges(
       "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
       "WHERE GRANTEE = ? ORDER BY TABLE_SCHEMA";
 
-  read_privileges(session, query,
-                  [](const db::IRow *const row, Mapped_row *result) {
-                    result->schema = row->get_string(2);
-                  },
-                  user_role);
+  read_privileges(
+      session, query,
+      [](const db::IRow *const row, Mapped_row *result) {
+        result->schema = row->get_string(2);
+      },
+      user_role);
 }
 
 void User_privileges::read_table_privileges(
@@ -522,12 +523,13 @@ void User_privileges::read_table_privileges(
       "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
       "WHERE GRANTEE = ? ORDER BY TABLE_SCHEMA, TABLE_NAME";
 
-  read_privileges(session, query,
-                  [](const db::IRow *const row, Mapped_row *result) {
-                    result->schema = row->get_string(2);
-                    result->table = row->get_string(3);
-                  },
-                  user_role);
+  read_privileges(
+      session, query,
+      [](const db::IRow *const row, Mapped_row *result) {
+        result->schema = row->get_string(2);
+        result->table = row->get_string(3);
+      },
+      user_role);
 }
 
 void User_privileges::read_privileges(
