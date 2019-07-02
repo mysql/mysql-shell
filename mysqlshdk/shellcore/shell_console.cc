@@ -106,17 +106,12 @@ class Shell_pager : public IPager {
       current_console()->remove_print_handler(&m_handler);
 
       // inform of any errors
-#ifdef _WIN32
-      const auto exit_code = status;
-      const bool error_occurred = 0 != exit_code;
-#else   // !_WIN32
-      const auto exit_code = WEXITSTATUS(status);
-      const bool error_occurred = WIFEXITED(status) && 0 != exit_code;
-#endif  // !_WIN32
-      if (error_occurred) {
-        current_console()->print_error(
-            "Pager \"" + current_shell_options()->get().pager +
-            "\" returned exit code: " + std::to_string(exit_code) + ".");
+      std::string error;
+
+      if (!shcore::verify_status_code(status, &error)) {
+        current_console()->print_error("Pager \"" +
+                                       current_shell_options()->get().pager +
+                                       "\" " + error + ".");
       }
     }
   }

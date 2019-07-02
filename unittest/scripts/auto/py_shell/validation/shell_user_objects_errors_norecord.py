@@ -343,6 +343,7 @@ The following shell commands are available:
  - \                   Start multi-line input when in SQL mode.
  - \connect    (\c)    Connects the shell to a MySQL server and assigns the
                        global session.
+ - \edit       (\e)    Launch a system editor to edit a command to be executed.
  - \exit               Exits the MySQL Shell, same as \quit.
  - \help       (\?,\h) Prints help information about a specific topic.
  - \history            View and edit command line history.
@@ -361,6 +362,7 @@ The following shell commands are available:
  - \sql                Executes SQL statement or switches to SQL processing
                        mode when no statement is given.
  - \status     (\s)    Print information about the current global session.
+ - \system     (\!)    Execute a system shell command.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
  - \watch              Executes the given report with provided options and

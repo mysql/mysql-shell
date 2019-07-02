@@ -34,8 +34,10 @@ set(mysh_SRC
     mysqlsh/mysql_shell.cc
     mysqlsh/prompt_renderer.cc
     mysqlsh/prompt_manager.cc
+    mysqlsh/commands/command_edit.cc
     mysqlsh/commands/command_help.cc
     mysqlsh/commands/command_show.cc
+    mysqlsh/commands/command_system.cc
     mysqlsh/commands/command_watch.cc
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp

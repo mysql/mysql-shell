@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,10 +31,6 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace tests {
-
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#endif
 
 #ifdef HAVE_V8
 
@@ -71,8 +67,8 @@ class Mysqlsh_pager_test : public Command_line_test {
     Command_line_test::SetUp();
 
     cleanup();
-    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME=invalid"));
-    putenv(const_cast<char *>("MYSQLSH_TERM_COLOR_MODE=nocolor"));
+    shcore::setenv("MYSQLSH_PROMPT_THEME", "invalid");
+    shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
   }
 
   void TearDown() override {
@@ -83,9 +79,9 @@ class Mysqlsh_pager_test : public Command_line_test {
 
  private:
   void cleanup() {
-    unsetenv("PAGER");
-    unsetenv("MYSQLSH_PROMPT_THEME");
-    unsetenv("MYSQLSH_TERM_COLOR_MODE");
+    shcore::unsetenv("PAGER");
+    shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+    shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
     execute({_mysqlsh, SCRIPTING_MODE, "-e",
              "shell.options." UNSET_PERSIST "('pager')", nullptr});
     wipe_out();
@@ -126,7 +122,7 @@ class Pager_initialization_test : public Mysqlsh_pager_test {
     execute(args, nullptr, k_file);
   }
 
-  void set_environment_variable() { putenv(const_cast<char *>("PAGER=env")); }
+  void set_environment_variable() { shcore::setenv("PAGER", "env"); }
 
   void persist_pager() {
     execute({_mysqlsh, SCRIPTING_MODE, "-e",

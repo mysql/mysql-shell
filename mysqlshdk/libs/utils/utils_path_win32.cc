@@ -30,6 +30,7 @@
 
 #include <ShlObj.h>
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -269,6 +270,18 @@ std::string SHCORE_PUBLIC basename(const std::string &path) {
 bool exists(const std::string &filename) {
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());
   return dwAttrib != INVALID_FILE_ATTRIBUTES;
+}
+
+std::string SHCORE_PUBLIC tmpdir() {
+  TCHAR buffer[MAX_PATH + 1] = {0};
+  const auto length = array_size(buffer);
+
+  if (GetTempPath(length, buffer) == 0) {
+    throw std::runtime_error("Unable to obtain the temporary directory: " +
+                             last_error_to_string(GetLastError()));
+  }
+
+  return buffer;
 }
 
 }  // namespace path

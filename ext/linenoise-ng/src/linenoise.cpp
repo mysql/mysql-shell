@@ -129,6 +129,8 @@
 #include "linenoise.h"
 #include "ConvertUTF.h"
 
+#include <map>
+#include <new>
 #include <string>
 #include <vector>
 #include <memory>
@@ -972,6 +974,155 @@ static const int PAGE_DOWN_KEY = 0x11200000;
 
 static const char* unsupported_term[] = {"dumb", "cons25", "emacs", NULL};
 static linenoiseCompletionCallback* completionCallback = NULL;
+
+class Custom_commands {
+ public:
+  struct Command {
+    int call(const char *input, char **output) const {
+      return callback(input, data, output);
+    }
+
+    linenoiseCustomCommand *callback = nullptr;
+    void *data = nullptr;
+  };
+
+  void add(const char *sequence, linenoiseCustomCommand *cmd, void *data) {
+    const auto length = strlen(sequence);
+
+    if (length == 0) {
+      throw std::logic_error("Custom command must have at least one character");
+    }
+
+    Entry *parent = &m_root;
+
+    for (size_t idx = 0; idx < length - 1; ++idx) {
+      const auto pos = parent->entries.find(sequence[idx]);
+
+      if (parent->entries.end() == pos) {
+        parent = &parent->entries
+                      .emplace(std::piecewise_construct,
+                               std::forward_as_tuple(sequence[idx]),
+                               std::forward_as_tuple(Entry::Type::BRANCH))
+                      .first->second;
+      } else {
+        parent = &pos->second;
+      }
+
+      // we're starting with the root, so it's safe to check the entry type
+      // after a next character in sequence is found
+      if (parent->type != Entry::Type::BRANCH) {
+        throw std::logic_error("Custom command conflict");
+      }
+    }
+
+    if (parent->entries.end() != parent->entries.find(sequence[length - 1])) {
+      throw std::logic_error("Duplicate custom command");
+    }
+
+    parent->entries.emplace(std::piecewise_construct,
+                            std::forward_as_tuple(sequence[length - 1]),
+                            std::forward_as_tuple(cmd, data));
+  }
+
+  void remove(const char *sequence) {
+    const auto length = strlen(sequence);
+
+    if (length == 0) {
+      return;
+    }
+
+    Entry *parent = &m_root;
+
+    for (size_t idx = 0; idx < length - 1; ++idx) {
+      const auto pos = parent->entries.find(sequence[idx]);
+
+      if (parent->entries.end() == pos ||
+          Entry::Type::BRANCH != pos->second.type) {
+        return;
+      }
+
+      parent = &pos->second;
+    }
+
+    const auto pos = parent->entries.find(sequence[length - 1]);
+
+    if (parent->entries.end() != pos && Entry::Type::LEAF == pos->second.type) {
+      parent->entries.erase(pos);
+    }
+  }
+
+  bool begin(char c) {
+    m_iterator = &m_root;
+    return next(c);
+  }
+
+  bool begin(int c) { return begin(static_cast<char>(c)); }
+
+  bool next(char c) {
+    if ((nullptr != m_iterator) && (Entry::Type::BRANCH == m_iterator->type)) {
+      const auto pos = m_iterator->entries.find(c);
+
+      if (m_iterator->entries.end() != pos) {
+        m_iterator = &pos->second;
+        return true;
+      } else {
+        m_iterator = nullptr;
+      }
+    }
+
+    return false;
+  }
+
+  bool next(int c) { return next(static_cast<char>(c)); }
+
+  bool is_finished() const {
+    return (nullptr != m_iterator) && (Entry::Type::LEAF == m_iterator->type);
+  }
+
+  Command get() const {
+    if (is_finished()) {
+      return m_iterator->command;
+    } else {
+      return {};
+    }
+  }
+
+ private:
+  struct Entry {
+    enum class Type {
+      BRANCH,
+      LEAF,
+    };
+
+    explicit Entry(Type t = Type::BRANCH) : type(t) {
+      if (Type::BRANCH == t) {
+        new (&entries) std::map<char, Entry>();
+      }
+    }
+
+    Entry(linenoiseCustomCommand *cmd, void *data) : Entry(Type::LEAF) {
+      command.callback = cmd;
+      command.data = data;
+    }
+
+    ~Entry() {
+      if (Type::BRANCH == type) {
+        entries.~map();
+      }
+    }
+
+    const Type type;
+    union {
+      std::map<char, Entry> entries;
+      Command command;
+    };
+  };
+
+  Entry m_root;
+  Entry *m_iterator = nullptr;
+};
+
+static Custom_commands g_custom_commands;
 
 #ifdef _WIN32
 static HANDLE console_in, console_out;
@@ -2625,9 +2776,11 @@ int InputBuffer::getInputLine(PromptBase& pi) {
     size_t bufferSize = sizeof(char32_t) * len + 1;
     unique_ptr<char[]> tempBuffer(new char[bufferSize]);
     copyString32to8(tempBuffer.get(), bufferSize, buf32);
-    linenoiseHistoryAdd(tempBuffer.get());
+    // line has to be added, even if it's a duplicate, as the latest history
+    // entry is assumed to contain the current buffer
+    linenoiseHistoryAdd(tempBuffer.get(), true);
   } else {
-    linenoiseHistoryAdd("");
+    linenoiseHistoryAdd("", true);
   }
   historyIndex = historyLen - 1;
   historyRecallMostRecent = false;
@@ -2704,6 +2857,34 @@ int InputBuffer::getInputLine(PromptBase& pi) {
     if (c == -2) {
       if (!pi.write()) return -1;
       refreshLine(pi);
+      continue;
+    }
+
+    if (g_custom_commands.begin(c)) {
+      while (!g_custom_commands.is_finished()) {
+        if (!g_custom_commands.next(cleanupCtrl(linenoiseReadChar()))) {
+          beep();
+          break;
+        }
+      }
+
+      if (g_custom_commands.is_finished()) {
+        const auto command = g_custom_commands.get();
+        char *output = nullptr;
+        Utf8String input(Utf32String(buf32, len));
+
+        terminatingKeystroke = command.call(input.get(), &output);
+
+        if (nullptr != output) {
+          size_t count = 0;
+          copyString8to32(buf32, buflen, count, output);
+          len = pos = static_cast<int>(count);
+          free(output);
+
+          refreshLine(pi);
+        }
+      }
+
       continue;
     }
 
@@ -3375,7 +3556,7 @@ void linenoiseAddCompletion(linenoiseCompletions* lc, const char* str) {
   lc->completionStrings.push_back(Utf32String(str));
 }
 
-int linenoiseHistoryAdd(const char* line) {
+int linenoiseHistoryAdd(const char *line, bool force) {
   if (historyMaxLen == 0) {
     return 0;
   }
@@ -3401,12 +3582,14 @@ int linenoiseHistoryAdd(const char* line) {
     ++p;
   }
 
-  // prevent duplicate history entries
-  if (historyLen > 0 && history[historyLen - 1] != nullptr &&
-      strcmp(reinterpret_cast<char const*>(history[historyLen - 1]),
-             reinterpret_cast<char const*>(linecopy)) == 0) {
-    free(linecopy);
-    return 0;
+  if (!force) {
+    // prevent duplicate history entries
+    if (historyLen > 0 && history[historyLen - 1] != nullptr &&
+        strcmp(reinterpret_cast<char const*>(history[historyLen - 1]),
+               reinterpret_cast<char const*>(linecopy)) == 0) {
+      free(linecopy);
+      return 0;
+    }
   }
 
   if (historyLen == historyMaxLen) {
@@ -3594,4 +3777,13 @@ int linenoiseInstallWindowChangeHandler(void) {
 
 int linenoiseKeyType(void) {
   return keyType;
+}
+
+void linenoiseRegisterCustomCommand(const char *sequence,
+                                    linenoiseCustomCommand *cmd, void *data) {
+  g_custom_commands.add(sequence, cmd, data);
+}
+
+void linenoiseRemoveCustomCommand(const char *sequence) {
+  g_custom_commands.remove(sequence);
 }

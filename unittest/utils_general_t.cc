@@ -359,4 +359,63 @@ TEST(utils_general, lexical_cast) {
   EXPECT_THROW(lexical_cast<unsigned>(-12345), std::invalid_argument);
 }
 
+TEST(utils_general, environment_variables) {
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "VaLu3"));
+  EXPECT_STREQ("VaLu3", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv("TEST_ENV_VAR"));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", std::string("another value")));
+  EXPECT_STREQ("another value", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv("TEST_ENV_VAR"));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(
+      shcore::setenv(std::string("TEST_ENV_VAR"), std::string("third value")));
+  EXPECT_STREQ("third value", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv(std::string("TEST_ENV_VAR")));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv(std::string("TEST_ENV_VAR=fourth")));
+  EXPECT_STREQ("fourth", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv("TEST_ENV_VAR"));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR=fifth"));
+  EXPECT_STREQ("fifth", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv(std::string("TEST_ENV_VAR")));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "sixth"));
+  EXPECT_STREQ("sixth", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "seventh"));
+  EXPECT_STREQ("seventh", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR=eight"));
+  EXPECT_STREQ("eight", getenv("TEST_ENV_VAR"));
+  EXPECT_FALSE(shcore::setenv("TEST_ENV_VAR"));
+  EXPECT_STREQ("eight", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::unsetenv("TEST_ENV_VAR"));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "10"));
+  EXPECT_STREQ("10", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", nullptr));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "11"));
+  EXPECT_STREQ("11", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", ""));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "12"));
+  EXPECT_STREQ("12", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", std::string("")));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR", "13"));
+  EXPECT_STREQ("13", getenv("TEST_ENV_VAR"));
+  EXPECT_TRUE(shcore::setenv("TEST_ENV_VAR="));
+  EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
+}
+
 }  // namespace shcore

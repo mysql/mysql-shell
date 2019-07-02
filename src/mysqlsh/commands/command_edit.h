@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,46 +20,37 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#ifndef SRC_MYSQLSH_COMMANDS_COMMAND_EDIT_H_
+#define SRC_MYSQLSH_COMMANDS_COMMAND_EDIT_H_
 
-#ifndef SRC_MYSQLSH_HISTORY_H_
-#define SRC_MYSQLSH_HISTORY_H_
-
-#include <deque>
-#include <functional>
+#include <memory>
 #include <string>
+#include <vector>
+
+#include "src/mysqlsh/commands/shell_command_handler.h"
 
 namespace mysqlsh {
-class History {
+
+class Command_line_shell;
+class History;
+
+class Command_edit : public IShell_command {
  public:
-  History();
-  bool save(const std::string &file);
-  bool load(const std::string &file);
+  Command_edit(const std::shared_ptr<shcore::IShell_core> &shell,
+               Command_line_shell *cmdline, History *history)
+      : IShell_command(shell), m_cmdline(cmdline), m_history(history) {}
 
-  void clear();
-  void dump(const std::function<void(const std::string &)> &print);
-  void pause(bool flag);
-  void add(const std::string &s);
-  void add_temporary(const std::string &s);
-  void del(uint32_t serial_first, uint32_t serial_last);
-  void set_limit(uint32_t limit);
+  bool execute(const std::vector<std::string> &args) override;
 
-  uint32_t size() const;
-
-  uint32_t first_entry() const;
-  uint32_t last_entry() const;
-  std::string get_entry(uint32_t serial) const;
+  bool execute(const std::string &command);
 
  private:
-  uint32_t _limit = 0;
-  // history index -> serial id mapping
-  std::deque<uint32_t> _serials;
-  uint32_t _serial = 0;
-  int _paused = 0;
-  bool _last_entry_was_temporary = false;
+  std::string get_command(const std::string &command) const;
 
-  void clear_temporary();
+  Command_line_shell *m_cmdline;
+  History *m_history;
 };
 
 }  // namespace mysqlsh
 
-#endif  // SRC_MYSQLSH_HISTORY_H_
+#endif  // SRC_MYSQLSH_COMMANDS_COMMAND_EDIT_H_

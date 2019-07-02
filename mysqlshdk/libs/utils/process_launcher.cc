@@ -636,8 +636,7 @@ void Process::do_start() {
       exit(128);
     }
 
-    for (const auto &str : new_environment)
-      putenv(const_cast<char *>(str.c_str()));
+    for (const auto &str : new_environment) shcore::setenv(str);
     execvp(argv[0], (char *const *)argv);
 
     int my_errno = errno;

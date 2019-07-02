@@ -2645,11 +2645,8 @@ mysqlshdk::db::Connection_options Testutils::sandbox_connection_options(
 
 namespace {
 void setup_recorder_environment() {
-  static char mode[512];
-  static char prefix[512];
-
-  snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=");
-  snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=");
+  std::string mode;
+  std::string prefix;
 
   // If session recording is wanted, we need to append a mysqlprovision specific
   // suffix to the output path, which also has to be different for each call
@@ -2657,15 +2654,16 @@ void setup_recorder_environment() {
       mysqlshdk::db::replay::Mode::Direct) {
     if (mysqlshdk::db::replay::g_replay_mode ==
         mysqlshdk::db::replay::Mode::Record) {
-      snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=record");
+      mode = "record";
     } else {
-      snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=replay");
+      mode = "replay";
     }
-    snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=%s",
-             mysqlshdk::db::replay::external_recording_path("mysqlsh").c_str());
+
+    prefix = mysqlshdk::db::replay::external_recording_path("mysqlsh");
   }
-  putenv(mode);
-  putenv(prefix);
+
+  shcore::setenv("MYSQLSH_RECORDER_MODE", mode);
+  shcore::setenv("MYSQLSH_RECORDER_PREFIX", prefix);
 }
 }  // namespace
 

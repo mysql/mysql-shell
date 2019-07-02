@@ -36,11 +36,6 @@ extern const char *g_mysqld_path_variables;
 
 namespace tests {
 
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#define putenv _putenv
-#endif
-
 class Auto_script_py : public Shell_py_script_tester,
                        public ::testing::WithParamInterface<std::string> {
  protected:
@@ -154,9 +149,21 @@ class Auto_script_py : public Shell_py_script_tester,
 #endif
     exec_and_out_equals(code);
 
+    code = "__data_path = " +
+           shcore::quote_string(shcore::path::join_path(g_test_home, "data"),
+                                '\'');
+    exec_and_out_equals(code);
+
     code = "__import_data_path = " +
            shcore::quote_string(
                shcore::path::join_path(g_test_home, "data", "import"), '\'');
+    exec_and_out_equals(code);
+
+    code = "__tmp_dir = " + shcore::quote_string(getenv("TMPDIR"), '\'');
+    exec_and_out_equals(code);
+
+    code = "__bin_dir = " +
+           shcore::quote_string(shcore::get_binary_folder(), '\'');
     exec_and_out_equals(code);
   }
 };

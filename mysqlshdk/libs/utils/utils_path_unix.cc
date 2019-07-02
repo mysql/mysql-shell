@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -184,6 +184,16 @@ std::string SHCORE_PUBLIC basename(const std::string &path) {
 }
 
 bool exists(const std::string &path) { return access(path.c_str(), F_OK) == 0; }
+
+std::string SHCORE_PUBLIC tmpdir() {
+  const char *dir = nullptr;
+
+  if (!(dir = getenv("TMPDIR")) && !(dir = P_tmpdir)) {
+    dir = "/tmp";
+  }
+
+  return dir;
+}
 
 }  // namespace path
 }  // namespace shcore

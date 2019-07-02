@@ -259,6 +259,51 @@ std::unique_ptr<T> make_unique(Args &&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+/**
+ * Verifies the status code of an application.
+ *
+ * @param status - status code to be checked
+ * @param error - if execution was not successful, contains details on
+ *                corresponding error
+ *
+ * @returns true if status code corresponds to a successful execution of an
+ * application.
+ */
+bool verify_status_code(int status, std::string *error);
+
+/**
+ * Sets the environment variable 'name' to the value of 'value'.
+ * If value is null or empty, variable is removed instead.
+ *
+ * @param name - name of the environment variable to set
+ * @param value - value of the environment variable
+ *
+ * @returns true if the environment variable was set successfully.
+ */
+bool setenv(const char *name, const char *value);
+bool setenv(const char *name, const std::string &value);
+bool setenv(const std::string &name, const std::string &value);
+
+/**
+ * Sets the environment variable, string must be in form: name=value.
+ * If value is empty, variable is removed instead.
+ *
+ * @param name_value - name and the new value of the environment variable
+ *
+ * @returns true if the environment variable was set successfully.
+ */
+bool setenv(const std::string &name_value);
+
+/**
+ * Clears the environment variable called 'name'.
+ *
+ * @param name - name of the environment variable to clear
+ *
+ * @returns true if the environment variable was cleared successfully.
+ */
+bool unsetenv(const char *name);
+bool unsetenv(const std::string &name);
+
 #ifdef _WIN32
 #define STDIN_FILENO _fileno(stdin)
 #define STDOUT_FILENO _fileno(stdout)

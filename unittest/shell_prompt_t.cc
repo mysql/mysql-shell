@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,10 +32,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils/command_line_test.h"
-
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#endif
 
 namespace mysqlsh {
 
@@ -954,28 +950,26 @@ class Shell_prompt_exe : public tests::Command_line_test {
 
 TEST_F(Shell_prompt_exe, environment) {
 #ifdef HAVE_V8
-  std::string expect_prompt = "mysql-js>";
+  const auto expect_prompt = "mysql-js>";
 #else
-  std::string expect_prompt = "mysql-py>";
+  const auto expect_prompt = "mysql-py>";
 #endif
   std::string no_theme_prompt = expect_prompt;
 
-#ifdef _WIN32
-  // In windows this prompt is not necessarily mysql-js>
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  // by default this prompt is not necessarily the same as expect_prompt
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
-  size_t position = _output.rfind("\n");
-  if (position != std::string::npos)
+  const auto position = _output.rfind("\n");
+  if (position != std::string::npos) {
     no_theme_prompt = _output.substr(position + 1);
-#endif
+  }
 
   // TS_CP#1 set MYSQLSH_PROMPT_THEME environment variable to a file name , it
   // configures prompt correctly accordingly to file
-  char altpro[] = "MYSQLSH_PROMPT_THEME=altprompt.json";
-  putenv(altpro);
+  shcore::setenv("MYSQLSH_PROMPT_THEME", "altprompt.json");
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("ALT_PROMPT> 1\n1\nALT_PROMPT> ");
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME"));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
 
   // TS_CP#6 On startup, if an error is found in the prompt file, an error
   // message will be printed and a default prompt will be used.
@@ -984,12 +978,11 @@ TEST_F(Shell_prompt_exe, environment) {
   // a default prompt with no colors and log an error to the log file and also
 
   // to the terminal, during startup.
-  char badpro[] = "MYSQLSH_PROMPT_THEME=badprompt.json";
-  putenv(badpro);
+  shcore::setenv("MYSQLSH_PROMPT_THEME", "badprompt.json");
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Error loading prompt theme 'badprompt.json'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expect_prompt);
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
 
   // no prompt theme
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
@@ -998,13 +991,12 @@ TEST_F(Shell_prompt_exe, environment) {
   // TS_EV#3 MYSQLSH_TERM_COLOR_MODE= with invalid value will force the shell to
   // use a default prompt with no colors and log an error to the log file and
   // also to the terminal, during startup.
-  char badcolor[] = "MYSQLSH_TERM_COLOR_MODE=bla";
-  putenv(badcolor);
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "bla");
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "MYSQLSH_TERM_COLOR_MODE environment variable set to invalid value. ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expect_prompt);
-  putenv(const_cast<char *>("MYSQLSH_TERM_COLOR_MODE="));
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 TEST_F(Shell_prompt_exe, histignore) {
@@ -1046,8 +1038,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   segs.append(shcore::str_format("{\"text\": \"END\"}"));
   shcore::create_file("allvars.json", "{\"segments\": [" + segs + "]}");
 
-  char badpro[] = "MYSQLSH_PROMPT_THEME=allvars.json";
-  putenv(badpro);
+  shcore::setenv("MYSQLSH_PROMPT_THEME", "allvars.json");
 
   using mysqlshdk::utils::fmttime;
   int rc;
@@ -1143,15 +1134,14 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   }
   shcore::delete_file("allvars.json");
 
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
 }
 
 // Test sample prompts (which in turn would test the whole thing)
 TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
-  std::string v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                  "/prompt_nocolor.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=nocolor"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
 
   int rc =
       execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
@@ -1164,44 +1154,35 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
   EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] Py> ");
 #endif
 
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
-  std::string v =
-      "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() + "/prompt_16.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=16"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_16.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "16");
 
   int rc =
       execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
-#ifdef _WIN32
-  // TODO(alfredo)  Escape chars getting stripped in windows
-#ifdef HAVE_V8
-  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] JS> ");
-#else
-  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] Py> ");
-#endif
-#else
+
 #ifdef HAVE_V8
   EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mJS> ");
 #else
   EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mPy> ");
 #endif
-#endif
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
-  std::string v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                  "/prompt_256.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=256"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_256.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
       execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
@@ -1209,14 +1190,6 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef _WIN32
-  // TODO(alfredo)  Escape chars getting stripped in windows
-#ifdef HAVE_V8
-  EXPECT_PROMPT(" MySQL  " + _host + ":" + _port + "+ ssl  mysql  JS > ");
-#else
-  EXPECT_PROMPT(" MySQL  " + _host + ":" + _port + "+ ssl  mysql  Py > ");
-#endif
-#else
 #ifdef HAVE_V8
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
@@ -1234,16 +1207,15 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;25m\x1B[38;5;15m Py \x1B[0m\x1B[48;5;0m> \x1B[0m");
 #endif
-#endif
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
-  std::string v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                  "/prompt_dbl_256.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=256"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_dbl_256.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
       execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
@@ -1251,16 +1223,6 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef _WIN32
-  // TODO(alfredo)  Escape chars getting stripped in windows
-#ifdef HAVE_V8
-  EXPECT_DBL_PROMPT(" MySQL  " + _host + ":" + _port +
-                    "+ ssl  mysql  JS \n  > ");
-#else
-  EXPECT_DBL_PROMPT(" MySQL  " + _host + ":" + _port +
-                    "+ ssl  mysql  Py \n  > ");
-#endif
-#else
 #ifdef HAVE_V8
   EXPECT_DBL_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
@@ -1278,34 +1240,22 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;25m\x1B[38;5;15m Py \x1B[0m\n\x1B[48;5;0m  > \x1B[0m");
 #endif
-#endif
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
-  std::string v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                  "/prompt_256pl.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=256"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_256pl.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
       execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
-#ifdef _WIN32
-#ifdef HAVE_V8
-  // TODO(alfredo) Escape chars getting stripped in windows
-  EXPECT_PROMPT(
-      " MySQL \xEE\x82\xB0 " + _host + ":" + _port +
-      "+ \xEE\x82\xA2 \xEE\x82\xB0 mysql \xEE\x82\xB0 JS \xEE\x82\xB0 ");
-#else
-  EXPECT_PROMPT(
-      " MySQL \xEE\x82\xB0 " + _host + ":" + _port +
-      "+ \xEE\x82\xA2 \xEE\x82\xB0 mysql \xEE\x82\xB0 Py \xEE\x82\xB0 ");
-#endif
-#else
+
 #ifdef HAVE_V8
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
@@ -1329,18 +1279,17 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
       "\x1B[48;5;25m\x1B[38;5;242m\xEE\x82\xB0\x1B[0m\x1B[48;5;25m\x1B[38;5;"
       "15m Py \x1B[0m\x1B[48;5;0m\x1B[38;5;25m\xEE\x82\xB0 \x1B[0m");
 #endif
-#endif
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
 #ifdef HAVE_V8
 TEST_F(Shell_prompt_exe, bug28314383_js) {
   static constexpr auto k_file = "close.js";
-  const auto v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                 "/prompt_nocolor.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=nocolor"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
   shcore::create_file(k_file,
                       "session.close();\n"
                       "\\connect " +
@@ -1362,8 +1311,8 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
                                 "+ ssl] JS> session.close();\n"
                                 "MySQL JS> Bye!");
 
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
   shcore::delete_file(k_file);
 }
 #endif  // HAVE_V8
@@ -1371,10 +1320,9 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
 #ifdef HAVE_PYTHON
 TEST_F(Shell_prompt_exe, bug28314383_py) {
   static constexpr auto k_file = "close.py";
-  const auto v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
-                 "/prompt_nocolor.json";
-  putenv(const_cast<char *>(v.c_str()));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=nocolor"));
+  shcore::setenv("MYSQLSH_PROMPT_THEME",
+                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
   shcore::create_file(k_file,
                       "session.close();\n"
                       "\\connect " +
@@ -1396,8 +1344,8 @@ TEST_F(Shell_prompt_exe, bug28314383_py) {
                                 "+ ssl] Py> session.close();\n"
                                 "MySQL Py> Bye!");
 
-  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
-  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
   shcore::delete_file(k_file);
 }
 #endif  // HAVE_PYTHON

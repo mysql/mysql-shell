@@ -48,11 +48,8 @@ using mysqlshdk::db::uri::formats::user_transport;
 
 namespace {
 void setup_recorder_environment(const std::string &cmd) {
-  static char mode[512];
-  static char prefix[512];
-
-  snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=");
-  snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=");
+  std::string mode;
+  std::string prefix;
 
   // If session recording is wanted, we need to append a mysqlprovision specific
   // suffix to the output path, which also has to be different for each call
@@ -61,17 +58,16 @@ void setup_recorder_environment(const std::string &cmd) {
     if (cmd != "sandbox") {  // don't record sandbox ops
       if (mysqlshdk::db::replay::g_replay_mode ==
           mysqlshdk::db::replay::Mode::Record) {
-        snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=record");
+        mode = "record";
       } else {
-        snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=replay");
+        mode = "replay";
       }
-      snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=%s_%s",
-               mysqlshdk::db::replay::external_recording_path("mp").c_str(),
-               cmd.c_str());
+      prefix = mysqlshdk::db::replay::external_recording_path("mp") + "_" + cmd;
     }
   }
-  putenv(mode);
-  putenv(prefix);
+
+  shcore::setenv("MYSQLSH_RECORDER_MODE", mode);
+  shcore::setenv("MYSQLSH_RECORDER_PREFIX", prefix);
 }
 
 shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {

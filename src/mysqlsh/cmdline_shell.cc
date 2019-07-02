@@ -48,6 +48,8 @@
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
+#include "src/mysqlsh/commands/command_edit.h"
+#include "src/mysqlsh/commands/command_system.h"
 
 #ifdef WIN32
 #undef max
@@ -267,6 +269,46 @@ REGISTER_HELP(CMD_PAGER_EXAMPLE4_DESC, "Sets pager to \"more -10\".");
 REGISTER_HELP(CMD_NOPAGER_BRIEF, "Disables the current pager.");
 REGISTER_HELP(CMD_NOPAGER_SYNTAX, "<b>\\nopager</b>");
 
+REGISTER_HELP(CMD_SYSTEM_BRIEF, "Execute a system shell command.");
+REGISTER_HELP(CMD_SYSTEM_SYNTAX, "<b>\\system</b> [command [arguments...]]");
+REGISTER_HELP(CMD_SYSTEM_SYNTAX1, "<b>\\!</b> [command [arguments...]]");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE, "<b>\\system</b>");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE_DESC,
+              "With no arguments, this command displays this help.");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE1, "<b>\\system</b> ls");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE1_DESC,
+              "Executes 'ls' in the current working directory and displays the "
+              "result.");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE2, "<b>\\!</b> ls > list.txt");
+REGISTER_HELP(CMD_SYSTEM_EXAMPLE2_DESC,
+              "Executes 'ls' in the current working directory, storing the "
+              "result in the 'list.txt' file.");
+
+REGISTER_HELP(CMD_EDIT_BRIEF,
+              "Launch a system editor to edit a command to be executed.");
+REGISTER_HELP(CMD_EDIT_DETAIL,
+              "The system editor is selected using the <b>EDITOR</b> and "
+              "<b>VISUAL</b> environment variables.");
+#ifdef _WIN32
+REGISTER_HELP(CMD_EDIT_DETAIL1,
+              "If these are not set, falls back to notepad.exe.");
+#else   // !_WIN32
+REGISTER_HELP(CMD_EDIT_DETAIL1, "If these are not set, falls back to vi.");
+#endif  // !_WIN32
+REGISTER_HELP(
+    CMD_EDIT_DETAIL2,
+    "It is also possible to invoke this command by pressing CTRL-X CTRL-E.");
+REGISTER_HELP(CMD_EDIT_SYNTAX, "<b>\\edit</b> [arguments...]");
+REGISTER_HELP(CMD_EDIT_SYNTAX1, "<b>\\e</b> [arguments...]");
+REGISTER_HELP(CMD_EDIT_EXAMPLE, "<b>\\edit</b>");
+REGISTER_HELP(CMD_EDIT_EXAMPLE_DESC,
+              "Allows to edit the last command in history.");
+REGISTER_HELP(CMD_EDIT_EXAMPLE_DESC1,
+              "If there are no commands in history, editor will be blank.");
+REGISTER_HELP(CMD_EDIT_EXAMPLE1, "<b>\\e</b> print('hello world!')");
+REGISTER_HELP(CMD_EDIT_EXAMPLE1_DESC,
+              "Allows to edit the commands given as arguments.");
+
 Command_line_shell::Command_line_shell(
     std::shared_ptr<Shell_options> cmdline_options,
     std::unique_ptr<shcore::Interpreter_delegate> delegate,
@@ -302,6 +344,32 @@ Command_line_shell::Command_line_shell(
   SET_SHELL_COMMAND("\\pager|\\P", "CMD_PAGER", Command_line_shell::cmd_pager);
   SET_SHELL_COMMAND("\\nopager", "CMD_NOPAGER",
                     Command_line_shell::cmd_nopager);
+  SET_CUSTOM_SHELL_COMMAND("\\system|\\!", "CMD_SYSTEM",
+                           [this](const std::vector<std::string> &args) {
+                             return Command_system(_shell)(args);
+                           });
+  SET_CUSTOM_SHELL_COMMAND("\\edit|\\e", "CMD_EDIT",
+                           [this](const std::vector<std::string> &args) {
+                             return Command_edit(_shell, this, &_history)(args);
+                           });
+
+  linenoiseRegisterCustomCommand(
+      "\x18\x05",  // CTRL-X, CTRL-E
+      [](const char *, void *data, char **) {
+        const auto that = static_cast<Command_line_shell *>(data);
+
+        if (that->set_pending_command([that](const std::string &line) {
+              Command_edit(that->_shell, that, &that->_history)
+                  .execute(that->_input_buffer + line);
+            })) {
+          // command was registered, simulate user pressing enter
+          return 0x0A;
+        } else {
+          // it was not possible to register the edit command, continue
+          return -1;
+        }
+      },
+      this);
 
   if (!m_default_pager.empty()) {
     log_info("%s", get_pager_message(m_default_pager).c_str());
@@ -377,6 +445,8 @@ Command_line_shell::~Command_line_shell() {
   current_console()->disable_global_pager();
   // disable verbose output, since it also uses the delegate
   current_console()->set_verbose(0);
+
+  linenoiseRemoveCustomCommand("\x18\x05");
 }
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
@@ -830,7 +900,13 @@ void Command_line_shell::command_loop() {
           mysqlsh::current_console()->raw_print(
               "\n", mysqlsh::Output_stream::STDOUT, false);
         }
+
+        m_set_pending_command = true;
+
         char *tmp = Command_line_shell::readline(prompt().c_str());
+
+        m_set_pending_command = false;
+
         if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
           cmd = tmp;
           free(tmp);
@@ -1014,6 +1090,68 @@ void Command_line_shell::detect_session_change() {
   if (session_uri != m_current_session_uri) {
     m_current_session_uri = session_uri;
     request_prompt_variables_update(true);
+  }
+}
+
+void Command_line_shell::set_next_input(const std::string &input) {
+  if (!input.empty()) {
+    auto lines = shcore::str_split(input, "\n");
+
+    // trim whitespace from the right side of the lines
+    std::transform(
+        lines.begin(), lines.end(), lines.begin(),
+        [](const std::string &line) { return shcore::str_rstrip(line); });
+
+    // remove consecutive empty lines at the end
+    while (lines.size() > 1 && lines.back().empty() &&
+           std::prev(lines.end(), 2)->empty()) {
+      lines.pop_back();
+    }
+
+    // if there are only two lines, and the last one is empty, remove it as well
+    if (lines.size() == 2 && lines.back().empty()) {
+      lines.pop_back();
+    }
+
+    // the last line goes to the linenoise and can be edited
+    const auto last_line = lines.back();
+    lines.pop_back();
+
+    const auto console = current_console();
+
+    // emulate user writing the input line by line
+    _input_buffer = "";
+    _input_mode = shcore::Input_state::Ok;
+
+    for (const auto &line : lines) {
+      console->raw_print(prompt() + line + "\n", mysqlsh::Output_stream::STDOUT,
+                         false);
+
+      _input_buffer += line + "\n";
+      _input_mode = shcore::Input_state::ContinuedBlock;
+    }
+
+    // feed the last line to the linenoise
+    if (!last_line.empty()) {
+      linenoisePreloadBuffer(last_line.c_str());
+    }
+  }
+}
+
+bool Command_line_shell::set_pending_command(const Pending_command &command) {
+  if (m_set_pending_command) {
+    m_pending_command = command;
+  }
+
+  return m_set_pending_command;
+}
+
+void Command_line_shell::process_line(const std::string &line) {
+  if (m_pending_command) {
+    m_pending_command(line);
+    m_pending_command = nullptr;
+  } else {
+    Mysql_shell::process_line(line);
   }
 }
 

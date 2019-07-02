@@ -22,6 +22,7 @@
  */
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -30,9 +31,12 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
+
+extern "C" const char *g_test_home;
 
 namespace mysqlsh {
 
@@ -198,6 +202,59 @@ TEST(Cmdline_shell, help) {
   EXPECT_EQ(expected, capture);
 
   current_console()->remove_print_handler(&handler);
+}
+
+TEST(Cmdline_shell, cmd_edit_with_history) {
+  shcore::setenv(
+      "EDITOR",
+      shcore::path::join_path(shcore::get_binary_folder(), "mysqlsh") +
+          " --file " +
+          shcore::path::join_path(g_test_home, "data", "py",
+                                  "edit_command.py"));
+
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  {
+    // WL12763-TSFR2_7 - When calling the `\edit` command with no arguments and
+    // the Shell history is empty, validate that the temporary file is empty as
+    // well.
+
+    // execute \edit without arguments and an empty history
+    capture.clear();
+
+    shell.process_line("\\edit");
+    shell.process_line("");
+    EXPECT_THAT(capture,
+                ::testing::HasSubstr(
+                    "> print('empty input file')\n\nempty input file\n"));
+  }
+
+  {
+    // WL12763-TSFR2_6 - When calling the `\edit` command with no arguments,
+    // validate that the command executed prior `\edit` is loaded in the
+    // temporary file.
+
+    // execute \edit without arguments and an item in history
+    capture.clear();
+
+    shell.process_line("print('this')");
+    EXPECT_EQ("this\n", capture);
+
+    capture.clear();
+
+    shell.process_line("\\edit");
+    shell.process_line("");
+    EXPECT_THAT(capture, ::testing::HasSubstr("> print('that')\n\nthat\n"));
+  }
+
+  current_console()->remove_print_handler(&handler);
+
+  shcore::unsetenv("EDITOR");
 }
 
 }  // namespace mysqlsh

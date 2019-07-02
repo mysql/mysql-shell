@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,6 +163,13 @@ std::string SHCORE_PUBLIC search_stdpath(const std::string &name);
 std::string SHCORE_PUBLIC search_path_list(const std::string &name,
                                            const std::string &pathlist,
                                            const char separator = 0);
+
+/**
+ * Provides path to the system-specific temporary directory.
+ *
+ * @throws std::runtime_error in case of any errors
+ */
+std::string SHCORE_PUBLIC tmpdir();
 
 }  // namespace path
 }  // namespace shcore

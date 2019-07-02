@@ -1103,4 +1103,87 @@ std::istream &getline(std::istream &in, std::string &out) {
   return in;
 }
 
+bool verify_status_code(int status, std::string *error) {
+  assert(error);
+
+  if (status < 0) {
+    const auto code = errno;
+    *error = "failed to execute: " + errno_to_string(code);
+  } else {
+#ifdef _WIN32
+    const bool exited = true;
+    const auto exit_code = status;
+#else   // !_WIN32
+    const bool exited = WIFEXITED(status);
+    const auto exit_code = WEXITSTATUS(status);
+#endif  // !_WIN32
+
+    if (exited) {
+      if (0 != exit_code) {
+        *error = "returned exit code: " + std::to_string(exit_code);
+      } else {
+        return true;
+      }
+    }
+#ifndef _WIN32
+    else if (WIFSIGNALED(status)) {
+      *error = "was terminated by signal: " + std::to_string(WTERMSIG(status));
+    } else if (WIFSTOPPED(status)) {
+      *error = "was stopped by signal: " + std::to_string(WSTOPSIG(status));
+    } else {
+      *error = "failed with unknown code: " + std::to_string(status);
+    }
+#endif  // !_WIN32
+  }
+
+  return false;
+}
+
+bool setenv(const char *name, const char *value) {
+  if (nullptr == value || '\0' == *value) {
+    return shcore::unsetenv(name);
+  }
+
+  const auto ret =
+#ifdef _WIN32
+      _putenv_s(name, value);
+#else   // !_WIN32
+      ::setenv(name, value, 1 /* overwrite */);
+#endif  // !_WIN32
+  return ret == 0;
+}
+
+bool setenv(const char *name, const std::string &value) {
+  return shcore::setenv(name, value.c_str());
+}
+
+bool setenv(const std::string &name, const std::string &value) {
+  return shcore::setenv(name.c_str(), value.c_str());
+}
+
+bool setenv(const std::string &name_value) {
+  const auto pos = name_value.find('=');
+
+  if (std::string::npos != pos) {
+    return shcore::setenv(name_value.substr(0, pos),
+                          name_value.substr(pos + 1));
+  }
+
+  return false;
+}
+
+bool unsetenv(const char *name) {
+  const auto ret =
+#ifdef _WIN32
+      _putenv_s(name, "");
+#else   // !_WIN32
+      ::unsetenv(name);
+#endif  // !_WIN32
+  return ret == 0;
+}
+
+bool unsetenv(const std::string &name) {
+  return shcore::unsetenv(name.c_str());
+}
+
 }  // namespace shcore

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,10 +28,6 @@
 
 namespace tests {
 
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#endif
-
 class Mysqlsh_credential_store : public tests::Command_line_test {
  protected:
 #ifdef HAVE_V8
@@ -41,8 +37,8 @@ class Mysqlsh_credential_store : public tests::Command_line_test {
 #endif
  public:
   void SetUp() override {
-    unsetenv("MYSQLSH_CREDENTIAL_STORE_HELPER");
-    unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
+    shcore::unsetenv("MYSQLSH_CREDENTIAL_STORE_HELPER");
+    shcore::unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
 
     Command_line_test::SetUp();
   }
@@ -50,9 +46,9 @@ class Mysqlsh_credential_store : public tests::Command_line_test {
   void TearDown() override {
     Command_line_test::TearDown();
 
-    putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
-    unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
-    unsetenv("MYSQLSH_TERM_COLOR_MODE");
+    shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "<disabled>");
+    shcore::unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
+    shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
   }
 };
 
@@ -93,7 +89,7 @@ TEST_F(Mysqlsh_credential_store, cmdline_invalid_helper) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_plaintext_helper) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=plaintext"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "plaintext");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.helper'])", nullptr});
@@ -102,7 +98,7 @@ TEST_F(Mysqlsh_credential_store, env_plaintext_helper) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_disabled_helper) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "<disabled>");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.helper'])", nullptr});
@@ -113,7 +109,7 @@ TEST_F(Mysqlsh_credential_store, env_disabled_helper) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_invalid_helper) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=unknown"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "unknown");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.helper'])", nullptr});
@@ -167,7 +163,7 @@ TEST_F(Mysqlsh_credential_store, cmdline_invalid_save_passwords) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_never_save_passwords) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=never"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS", "never");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.savePasswords'])", nullptr});
@@ -177,7 +173,7 @@ TEST_F(Mysqlsh_credential_store, env_never_save_passwords) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_always_save_passwords) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=always"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS", "always");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.savePasswords'])", nullptr});
@@ -187,7 +183,7 @@ TEST_F(Mysqlsh_credential_store, env_always_save_passwords) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_prompt_save_passwords) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=prompt"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS", "prompt");
 
   execute({_mysqlsh, mode.c_str(), "-e",
            "print(shell.options['credentialStore.savePasswords'])", nullptr});
@@ -197,7 +193,7 @@ TEST_F(Mysqlsh_credential_store, env_prompt_save_passwords) {
 }
 
 TEST_F(Mysqlsh_credential_store, env_invalid_save_passwords) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=unknown"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS", "unknown");
 
   execute({_mysqlsh, nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
@@ -207,8 +203,8 @@ TEST_F(Mysqlsh_credential_store, env_invalid_save_passwords) {
 }
 
 TEST_F(Mysqlsh_credential_store, bug_28216485) {
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=unknown"));
-  putenv(const_cast<char *>("MYSQLSH_TERM_COLOR_MODE=nocolor"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "unknown");
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
 
   // If shell is running in "nocolor" mode output should not contain VTERM
   // escape characters.

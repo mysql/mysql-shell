@@ -94,6 +94,17 @@ uint32_t History::last_entry() const {
   return _serials.back();
 }
 
+std::string History::get_entry(uint32_t serial) const {
+  const auto s = std::find(_serials.begin(), _serials.end(), serial);
+  std::string entry;
+
+  if (_serials.end() != s) {
+    entry = linenoiseHistoryLine(s - _serials.begin());
+  }
+
+  return entry;
+}
+
 uint32_t History::size() const {
   // Return the real number of items (ignoring the current line buffer)
   return static_cast<uint32_t>(_serials.size());

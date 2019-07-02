@@ -147,10 +147,24 @@ class Auto_script_js : public Shell_js_script_tester,
       code = "var __recording = false;";
     exec_and_out_equals(code);
 
+    code = "var __data_path = " +
+           shcore::quote_string(shcore::path::join_path(g_test_home, "data"),
+                                '\'') +
+           ";";
+    exec_and_out_equals(code);
+
     code = "var __import_data_path = " +
            shcore::quote_string(
                shcore::path::join_path(g_test_home, "data", "import"), '\'') +
            ";";
+    exec_and_out_equals(code);
+
+    code =
+        "var __tmp_dir = " + shcore::quote_string(getenv("TMPDIR"), '\'') + ";";
+    exec_and_out_equals(code);
+
+    code = "var __bin_dir = " +
+           shcore::quote_string(shcore::get_binary_folder(), '\'') + ";";
     exec_and_out_equals(code);
   }
 

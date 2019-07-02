@@ -1529,4 +1529,25 @@ TEST_F(Shell_history, migrate_old_history) {
 #endif
 }
 
+TEST_F(Shell_history, get_entry) {
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(0, nullptr, _options_file));
+
+  const auto &history = shell._history;
+
+  EXPECT_EQ("", history.get_entry(5));
+
+  shell.process_line("a = 1");
+  EXPECT_EQ("a = 1", history.get_entry(history.first_entry()));
+  EXPECT_EQ("a = 1", history.get_entry(history.last_entry()));
+
+  shell.process_line("b = 2");
+  EXPECT_EQ("a = 1", history.get_entry(history.first_entry()));
+  EXPECT_EQ("b = 2", history.get_entry(history.last_entry()));
+
+  shell.process_line("c = 3");
+  EXPECT_EQ("a = 1", history.get_entry(history.first_entry()));
+  EXPECT_EQ("c = 3", history.get_entry(history.last_entry()));
+}
+
 }  // namespace mysqlsh

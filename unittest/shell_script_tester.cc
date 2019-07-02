@@ -346,6 +346,7 @@ size_t find_token(const std::string &source, const std::string &find,
 
 std::string Shell_script_tester::resolve_string(const std::string &source) {
   std::string updated(source);
+  auto std_out_backup = std::move(output_handler.std_out);
 
   size_t start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   size_t end;
@@ -386,7 +387,7 @@ std::string Shell_script_tester::resolve_string(const std::string &source) {
     start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   }
 
-  output_handler.wipe_out();
+  output_handler.std_out = std::move(std_out_backup);
 
   return updated;
 }
@@ -1241,7 +1242,7 @@ void Shell_script_tester::execute_script(const std::string &path,
                               ":" + full_statement + "]";
 
             // There's chance to do preprocessing
-            pre_process_line(path, line);
+            pre_process_line(path, &line);
 
             if (testutil)
               testutil->set_test_execution_context(

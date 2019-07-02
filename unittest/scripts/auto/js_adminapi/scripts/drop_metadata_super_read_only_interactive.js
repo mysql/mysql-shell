@@ -74,7 +74,7 @@ dba.dropMetadataSchema({force: true, clearReadOnly: true});
 
 EXPECT_OUTPUT_CONTAINS("Metadata Schema successfully removed.", false);
 
-EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:<<<sb_port_1>>>' currently has the super_read_only");
+EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only");
 
 
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_flag_false

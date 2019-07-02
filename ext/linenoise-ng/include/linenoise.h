@@ -54,7 +54,7 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback* fn);
 void linenoiseAddCompletion(linenoiseCompletions* lc, const char* str);
 char* linenoise(const char* prompt);
 void linenoisePreloadBuffer(const char* preloadText);
-int linenoiseHistoryAdd(const char* line);
+int linenoiseHistoryAdd(const char* line, bool force = false);
 int linenoiseHistoryDelete(int index);
 int linenoiseHistorySetMaxLen(int len);
 const char* linenoiseHistoryLine(int index);
@@ -70,6 +70,22 @@ int linenoiseInstallWindowChangeHandler(void);
 int linenoiseKeyType(void);
 
 int getWcwidth(char32_t ucs);
+
+/**
+ * Callback for a custom command.
+ *
+ * @param input - current contents of the input buffer
+ * @param data - user data
+ * @param output - if not NULL, new contents of the input buffer, linenoise
+ *                 will release this memory with free()
+ *
+ * @returns next unicode character or -1 to read the character from console
+ */
+typedef int(linenoiseCustomCommand)(const char *input, void *data,
+                                    char **output);
+void linenoiseRegisterCustomCommand(const char *sequence,
+                                    linenoiseCustomCommand *cmd, void *data);
+void linenoiseRemoveCustomCommand(const char *sequence);
 
 #ifdef __cplusplus
 }

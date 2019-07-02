@@ -73,6 +73,10 @@ class Command_line_shell : public Mysql_shell,
                          bool initializing = false,
                          bool prompt_variables_update = true) override;
 
+  void set_next_input(const std::string &input);
+
+  void process_line(const std::string &line) override;
+
  private:
   void handle_interrupt();
   bool _interrupted = false;
@@ -101,6 +105,8 @@ class Command_line_shell : public Mysql_shell,
                            shcore::Value::Map_type_ref data) override;
 
  private:
+  using Pending_command = std::function<void(const std::string &)>;
+
   static char *readline(const char *prompt);
 
   static bool deleg_print(void *self, const char *text);
@@ -125,6 +131,8 @@ class Command_line_shell : public Mysql_shell,
   std::string get_current_session_uri() const;
   void detect_session_change();
 
+  bool set_pending_command(const Pending_command &command);
+
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
 
   shcore::Interpreter_print_handler m_suppressed_handler;
@@ -135,6 +143,9 @@ class Command_line_shell : public Mysql_shell,
   bool m_prompt_requires_newline = false;
   const std::string m_default_pager;
   std::string m_current_session_uri;
+
+  bool m_set_pending_command = false;
+  Pending_command m_pending_command;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);
@@ -161,6 +172,7 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, never_filter_latest);
   FRIEND_TEST(Shell_history, history_split_by_mode);
   FRIEND_TEST(Shell_history, migrate_old_history);
+  FRIEND_TEST(Shell_history, get_entry);
   FRIEND_TEST(Shell_error_printing, print_error);
   FRIEND_TEST(Shell_error_printing, print_diag);
   friend class Test_debugger;

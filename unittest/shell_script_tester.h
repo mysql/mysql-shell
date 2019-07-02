@@ -176,7 +176,10 @@ class Shell_script_tester : public Crud_test_wrapper {
                              const std::string &actual, int srcline,
                              int valline);
   std::string resolve_string(const std::string &source);
-  virtual void pre_process_line(const std::string &path, std::string &line){};
+
+  virtual void pre_process_line(const std::string &, std::string *line) {
+    *line = resolve_string(*line);
+  }
 
   std::shared_ptr<Chunk_definition> load_chunk_definition(
       const std::string &line);

@@ -25,10 +25,6 @@
 
 #include "mysqlshdk/libs/utils/options.h"
 
-#ifdef _MSC_VER
-#define putenv _putenv
-#endif
-
 namespace shcore {
 
 using opts::Basic_type;
@@ -214,13 +210,13 @@ TEST_F(Options_test, read_environment) {
   EXPECT_TRUE(this->interactive);
 
   // Env variable with incorrect value
-  ASSERT_EQ(putenv(const_cast<char *>("DUMMY_SHELL_INTERACTIVE=DUMMY")), 0);
+  ASSERT_TRUE(shcore::setenv("DUMMY_SHELL_INTERACTIVE", "DUMMY"));
   EXPECT_THROW(it->second->handle_environment_variable(),
                std::invalid_argument);
   EXPECT_TRUE(this->interactive);
 
   // Correctly defined env variable
-  ASSERT_EQ(putenv(const_cast<char *>("DUMMY_SHELL_INTERACTIVE=0")), 0);
+  ASSERT_TRUE(shcore::setenv("DUMMY_SHELL_INTERACTIVE", "0"));
   EXPECT_NO_THROW(it->second->handle_environment_variable());
   EXPECT_FALSE(this->interactive);
 

@@ -76,10 +76,6 @@ mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
 
-#ifdef _WIN32
-#define putenv _putenv
-#endif
-
 extern "C" {
 const char *g_test_home = nullptr;
 }
@@ -240,9 +236,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
                                               : "\n");
 
   {
-    static char path[1024];
-    snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", socket_absolute.c_str());
-    if (putenv(path) != 0) {
+    if (!shcore::setenv("MYSQL_SOCKET", socket_absolute)) {
       std::cerr << "MYSQL_SOCKET putenv failed to set it\n";
       exit(1);
     }
@@ -251,23 +245,17 @@ static void detect_mysql_environment(int port, const char *pwd) {
   {
     // This environment variable makes libmysqlclient override the default
     // compiled-in socket path with the actual path in use
-    static char path[1024];
-    snprintf(path, sizeof(path), "MYSQL_UNIX_PORT=%s", socket_absolute.c_str());
-    putenv(path);
+    shcore::setenv("MYSQL_UNIX_PORT", socket_absolute);
   }
 
   {
-    static char path[1024];
-    snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", xsocket_absolute.c_str());
-    if (putenv(path) != 0) {
+    if (!shcore::setenv("MYSQLX_SOCKET", xsocket_absolute)) {
       std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
       exit(1);
     }
   }
   {
-    static char path[1024];
-    snprintf(path, sizeof(path), "MYSQLX_PORT=%i", xport);
-    if (putenv(path) != 0) {
+    if (!shcore::setenv("MYSQLX_PORT", std::to_string(xport))) {
       std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
       exit(1);
     }
@@ -284,20 +272,14 @@ static void detect_mysql_environment(int port, const char *pwd) {
   // to an address that can be reached from outside.
   // OTOH MYSQL_REAL_HOSTNAME will always have @@hostname
   if (!getenv("MYSQL_HOSTNAME")) {
-    static char my_hostname[1024];
-    snprintf(my_hostname, sizeof(my_hostname), "MYSQL_HOSTNAME=%s",
-             hostname.c_str());
-    if (putenv(my_hostname) != 0) {
+    if (!shcore::setenv("MYSQL_HOSTNAME", hostname)) {
       std::cerr << "MYSQL_HOSTNAME could not be set\n";
       exit(1);
     }
   }
 
   {
-    static char my_hostname[1024];
-    snprintf(my_hostname, sizeof(my_hostname), "MYSQL_REAL_HOSTNAME=%s",
-             hostname.c_str());
-    if (putenv(my_hostname) != 0) {
+    if (!shcore::setenv("MYSQL_REAL_HOSTNAME", hostname)) {
       std::cerr << "MYSQL_REAL_HOSTNAME could not be set\n";
       exit(1);
     }
@@ -468,10 +450,6 @@ static void catch_segv(int sig) {
 }
 #endif
 
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#endif
-
 #ifdef __APPLE__
 static std::string get_test_keychain() {
   static constexpr auto k_keychain = "mysqlsh-test-keychain";
@@ -492,8 +470,7 @@ static void setup_test_keychain() {
             << system(("security set-keychain-settings " + keychain).c_str())
             << std::endl;
 
-  static std::string env = "MYSQLSH_CREDENTIAL_STORE_KEYCHAIN=" + keychain;
-  putenv(&env[0]);
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_KEYCHAIN", keychain);
 }
 
 static void remove_test_keychain() {
@@ -561,7 +538,7 @@ static void setup_test_skipper() {
 
 void setup_test_environment() {
   if (!getenv("MYSQL_PORT")) {
-    if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
+    if (!shcore::setenv("MYSQL_PORT", "3306")) {
       std::cerr << "MYSQL_PORT was not set and putenv failed to set it\n";
       exit(1);
     }
@@ -570,14 +547,13 @@ void setup_test_environment() {
   detect_mysql_environment(atoi(getenv("MYSQL_PORT")), "");
 
   if (!getenv("MYSQL_REMOTE_HOST")) {
-    static char hostname[1024] = "MYSQL_REMOTE_HOST=";
-    if (gethostname(hostname + strlen(hostname),
-                    sizeof(hostname) - strlen(hostname)) != 0) {
+    char hostname[1024] = {0};
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
       std::cerr << "gethostname() returned error: " << strerror(errno) << "\n";
       std::cerr << "Set MYSQL_REMOTE_HOST\n";
       // exit(1); this option is not used for now, so no need to fail
     }
-    if (putenv(hostname) != 0) {
+    if (!shcore::setenv("MYSQL_REMOTE_HOST", hostname)) {
       std::cerr
           << "MYSQL_REMOTE_HOST was not set and putenv failed to set it\n";
       // exit(1);
@@ -585,7 +561,7 @@ void setup_test_environment() {
   }
 
   if (!getenv("MYSQL_REMOTE_PORT")) {
-    if (putenv(const_cast<char *>("MYSQL_REMOTE_PORT=3306")) != 0) {
+    if (!shcore::setenv("MYSQL_REMOTE_PORT", "3306")) {
       std::cerr
           << "MYSQL_REMOTE_PORT was not set and putenv failed to set it\n";
       // exit(1);
@@ -598,11 +574,10 @@ void setup_test_environment() {
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir == nullptr || strlen(tmpdir) == 0) {
     tmpdir = getenv("TEMP");  // TEMP usually used on Windows.
-    static std::string temp("TMPDIR=");
+    std::string temp;
     if (tmpdir == nullptr || strlen(tmpdir) == 0) {
       // Use the binary folder as default for the TMPDIR.
-      std::string bin_folder = shcore::get_binary_folder();
-      temp.append(bin_folder);
+      temp = shcore::get_binary_folder();
       std::cout << std::endl
                 << "WARNING: TMPDIR environment variable is "
                    "empty or not defined. It will be set with the binary "
@@ -610,9 +585,9 @@ void setup_test_environment() {
                 << temp << std::endl
                 << std::endl;
     } else {
-      temp.append(tmpdir);
+      temp = tmpdir;
     }
-    if (putenv(&temp[0]) != 0) {
+    if (!shcore::setenv("TMPDIR", temp)) {
       std::cerr << "TMPDIR was not set and putenv failed to set it\n";
       exit(1);
     }
@@ -620,9 +595,7 @@ void setup_test_environment() {
 
   // Set HOME to same as TMPDIR
   {
-    static std::string home("HOME=");
-    home.append(getenv("TMPDIR"));
-    if (putenv(&home[0]) != 0) {
+    if (!shcore::setenv("HOME", getenv("TMPDIR"))) {
       std::cerr << "HOME could not be overriden\n";
       exit(1);
     }
@@ -630,9 +603,8 @@ void setup_test_environment() {
 
   if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
     // Override the configuration home for tests, to not mess with custom data
-    auto user_config = shcore::get_binary_folder();
-    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
-    if (putenv(const_cast<char *>(user_config.c_str())) != 0) {
+    if (!shcore::setenv("MYSQLSH_USER_CONFIG_HOME",
+                        shcore::get_binary_folder())) {
       std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
     }
   }
@@ -656,13 +628,11 @@ void setup_test_environment() {
 
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"));
 
-  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "<disabled>");
 
   if (!getenv("MYSQL_TEST_LOGIN_FILE")) {
-    static std::string env =
-        "MYSQL_TEST_LOGIN_FILE=" +
-        shcore::path::join_path(getenv("TMPDIR"), ".mylogin.cnf");
-    putenv(&env[0]);
+    shcore::setenv("MYSQL_TEST_LOGIN_FILE",
+                   shcore::path::join_path(getenv("TMPDIR"), ".mylogin.cnf"));
   }
 
 #ifdef __APPLE__
@@ -670,7 +640,11 @@ void setup_test_environment() {
 #endif  // __APPLE__
 
   // disable PAGER so it doesn't break the tests
-  unsetenv("PAGER");
+  shcore::unsetenv("PAGER");
+
+  // disable \edit-related variables
+  shcore::unsetenv("EDITOR");
+  shcore::unsetenv("VISUAL");
 }
 
 int main(int argc, char **argv) {
@@ -691,7 +665,7 @@ int main(int argc, char **argv) {
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
   if (!locale) log_error("Failed to set locale to en_US.UTF-8");
-  putenv(const_cast<char *>("LC_ALL=en_US.UTF-8"));
+  shcore::setenv("LC_ALL", "en_US.UTF-8");
 #endif
 
 #if defined(WIN32)
@@ -757,8 +731,8 @@ int main(int argc, char **argv) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
 
   // Reset these environment vars to start with a clean environment
-  putenv(const_cast<char *>("MYSQLSH_RECORDER_PREFIX="));
-  putenv(const_cast<char *>("MYSQLSH_RECORDER_MODE="));
+  shcore::unsetenv("MYSQLSH_RECORDER_PREFIX");
+  shcore::unsetenv("MYSQLSH_RECORDER_MODE");
 
   bool listing_tests = false;
   bool show_all_skipped = false;

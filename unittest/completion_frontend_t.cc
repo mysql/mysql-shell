@@ -499,11 +499,11 @@ TEST_F(Completer_frontend, builtin_others) {
   EXPECT_AFTER_TAB("\\he", "\\help");
 
   auto expect =
-      strv({"\\",       "\\connect", "\\exit",       "\\help",   "\\history",
-            "\\js",     "\\nopager", "\\nowarnings", "\\option", "\\pager",
-            "\\py",     "\\quit",    "\\reconnect",  "\\rehash", "\\show",
-            "\\source", "\\sql",     "\\status",     "\\use",    "\\warnings",
-            "\\watch"});
+      strv({"\\",        "\\connect",  "\\edit",    "\\exit",       "\\help",
+            "\\history", "\\js",       "\\nopager", "\\nowarnings", "\\option",
+            "\\pager",   "\\py",       "\\quit",    "\\reconnect",  "\\rehash",
+            "\\show",    "\\source",   "\\sql",     "\\status",     "\\system",
+            "\\use",     "\\warnings", "\\watch"});
 
 #ifndef HAVE_V8
   expect.erase(std::find(expect.begin(), expect.end(), "\\js"));

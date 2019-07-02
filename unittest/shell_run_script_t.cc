@@ -219,7 +219,7 @@ select error;)*");
                         "session.sql('select 1').execute();\n");
     shcore::create_file("prompt_new_line", "[1, 2, 3]\n");
     // disable prompt theme, so we can check output along with prompt
-    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME=invalid"));
+    shcore::setenv("MYSQLSH_PROMPT_THEME", "invalid");
   }
 
   static void TearDownTestCase() {
@@ -238,7 +238,7 @@ select error;)*");
     shcore::delete_file("reconnect_mysql.py");
     shcore::delete_file("reconnect_mysqlx.py");
     shcore::delete_file("prompt_new_line");
-    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+    shcore::unsetenv("MYSQLSH_PROMPT_THEME");
   }
 };
 

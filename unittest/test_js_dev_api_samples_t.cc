@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -47,29 +47,29 @@ class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
     _new_format = true;
   }
 
-  virtual void pre_process_line(const std::string &path, std::string &line) {
+  virtual void pre_process_line(const std::string &path, std::string *line) {
     // Unit tests work using default ports, if that is not the case
     // We need to update them before being executed
     if (!_port.empty() && _port != "33060") {
       // Some examples contain a hardcoded port
       // we need to change that port by the right one
-      size_t pos = line.find("33060");
+      size_t pos = line->find("33060");
       if (pos != std::string::npos) {
-        std::string new_line = line.substr(0, pos);
+        std::string new_line = line->substr(0, pos);
         new_line += _port;
-        new_line += line.substr(pos + 5);
-        line = new_line;
+        new_line += line->substr(pos + 5);
+        *line = new_line;
       }
 
       // Other examples use an URI assumin the defaut port
       // If that's not the case, we need to add it to the URI
-      pos = line.find("'mike:paSSw0rd@localhost'");
+      pos = line->find("'mike:paSSw0rd@localhost'");
       if (pos != std::string::npos) {
-        std::string new_line = line.substr(0, pos);
+        std::string new_line = line->substr(0, pos);
         new_line += "'mike:paSSw0rd@localhost:";
         new_line += _port;
         new_line += "');";
-        line = new_line;
+        *line = new_line;
       }
     }
   }

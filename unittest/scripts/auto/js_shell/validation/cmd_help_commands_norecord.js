@@ -32,6 +32,37 @@ EXAMPLE
       \connect --mx root@localhost
             Creates a global session using the X protocol to the indicated URI.
 
+//@<OUT> Edit Command
+NAME
+      \edit - Launch a system editor to edit a command to be executed.
+
+SYNTAX
+      \edit [arguments...]
+
+      \e [arguments...]
+
+DESCRIPTION
+      The system editor is selected using the EDITOR and VISUAL environment
+      variables.
+
+?{__os_type == 'windows'}
+      If these are not set, falls back to notepad.exe.
+?{}
+?{__os_type != 'windows'}
+      If these are not set, falls back to vi.
+?{}
+
+      It is also possible to invoke this command by pressing CTRL-X CTRL-E.
+
+EXAMPLES
+      \edit
+            Allows to edit the last command in history.
+
+            If there are no commands in history, editor will be blank.
+
+      \e print('hello world!')
+            Allows to edit the commands given as arguments.
+
 //@<OUT> Exit Command
 NAME
       \exit - Exits the MySQL Shell, same as \quit.
@@ -328,6 +359,27 @@ SYNTAX
       \status
 
       \s
+
+//@<OUT> System Command
+NAME
+      \system - Execute a system shell command.
+
+SYNTAX
+      \system [command [arguments...]]
+
+      \! [command [arguments...]]
+
+EXAMPLES
+      \system
+            With no arguments, this command displays this help.
+
+      \system ls
+            Executes 'ls' in the current working directory and displays the
+            result.
+
+      \! ls > list.txt
+            Executes 'ls' in the current working directory, storing the result
+            in the 'list.txt' file.
 
 //@<OUT> Use Command
 NAME

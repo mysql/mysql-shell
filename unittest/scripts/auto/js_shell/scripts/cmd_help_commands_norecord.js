@@ -7,6 +7,13 @@
 //@ Connect Command, \c [USE:Connect Command]
 \? \connect
 
+//@ Edit Command
+// WL12763-TSFR2_2 - Validate that the help system has an entry for the `\edit` command.
+\? \edit
+
+//@ Edit Command, \e [USE: Edit Command]
+\? \e
+
 //@ Exit Command
 \? \exit
 
@@ -71,6 +78,13 @@
 
 //@ Status Command, \s [USE:Status Command]
 \? \s
+
+//@ System Command
+// WL12763-TSFR1_2 - Validate that the help system has an entry for the `\system` command.
+\? \system
+
+//@ System Command, \! [USE: System Command]
+\? \!
 
 //@ Use Command
 \? \use

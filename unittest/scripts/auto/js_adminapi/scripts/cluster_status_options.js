@@ -107,7 +107,7 @@ const base_status_templ_80 = {
                 "replicationLag": "",
                 "role": "",
                 "status": "",
-                "version": "<<<__version>>>"
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -159,7 +159,7 @@ const extended_1_status_templ_80 = {
                 "replicationLag": "",
                 "role": "",
                 "status": "",
-                "version": "<<<__version>>>"
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -227,7 +227,7 @@ const extended_2_status_templ_80 = {
                     "proposedCount": 0, 
                     "rollbackCount": 0
                 },
-                "version": "<<<__version>>>"
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -291,7 +291,7 @@ const full_status_templ_80 = {
                 "readReplicas": {},
                 "role": "", 
                 "status": "", 
-                "version": "<<<__version>>>", 
+                "version": __version,
                 "transactions": {
                     "appliedCount": 0, 
                     "checkedCount": 0, 
@@ -362,7 +362,7 @@ const full_status_templ_57 = {
                 "readReplicas": {},
                 "role": "", 
                 "status": "", 
-                "version": "<<<__version>>>", 
+                "version": __version,
                 "transactions": {
                     "checkedCount": 0, 
                     "committedAllMembers": "", 

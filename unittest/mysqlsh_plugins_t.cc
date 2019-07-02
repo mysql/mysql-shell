@@ -38,10 +38,6 @@ namespace tests {
 
 using shcore::path::join_path;
 
-#ifdef _WIN32
-#define unsetenv(var) _putenv(var "=")
-#endif
-
 class Mysqlsh_extension_test : public Command_line_test {
  protected:
   void SetUp() override {
@@ -49,8 +45,8 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     cleanup();
 
-    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME=invalid"));
-    putenv(const_cast<char *>("MYSQLSH_TERM_COLOR_MODE=nocolor"));
+    shcore::setenv("MYSQLSH_PROMPT_THEME", "invalid");
+    shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
 
     shcore::create_directory(get_plugin_folder(), true);
   }
@@ -184,8 +180,8 @@ class Mysqlsh_extension_test : public Command_line_test {
 
  private:
   void cleanup() {
-    unsetenv("MYSQLSH_PROMPT_THEME");
-    unsetenv("MYSQLSH_TERM_COLOR_MODE");
+    shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+    shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
     wipe_out();
 
     const auto folder = get_plugin_folder();
