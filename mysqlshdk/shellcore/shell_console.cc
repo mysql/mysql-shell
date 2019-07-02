@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -148,22 +149,22 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
     // verbose=4, DEBUG3
     switch (self->get_verbose()) {
       case 4:
-        if (log.level == shcore::Logger::LOG_DEBUG3) show_prefix = "verbose";
+        if (log.level == shcore::Logger::LOG_DEBUG3) show_prefix = "";
       case 3:
-        if (log.level == shcore::Logger::LOG_DEBUG2) show_prefix = "verbose";
+        if (log.level == shcore::Logger::LOG_DEBUG2) show_prefix = "";
       case 2:
-        if (log.level == shcore::Logger::LOG_DEBUG) show_prefix = "verbose";
+        if (log.level == shcore::Logger::LOG_DEBUG) show_prefix = "";
       case 1:
         switch (log.level) {
           case shcore::Logger::LOG_INFO:
-            show_prefix = "verbose";
+            show_prefix = "";
             break;
           case shcore::Logger::LOG_WARNING:
-            show_prefix = "verbose: warning";
+            show_prefix = "warning: ";
             break;
           case shcore::Logger::LOG_ERROR:
           case shcore::Logger::LOG_INTERNAL_ERROR:
-            show_prefix = "verbose: error";
+            show_prefix = "error: ";
             break;
           default:
             break;
@@ -172,14 +173,19 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
     }
 
     if (show_prefix && g_dont_log == 0) {
+      std::string ts = mysqlshdk::utils::fmttime(
+          "%Y-%m-%dT%H:%M:%SZ", mysqlshdk::utils::Time_type::LOCAL,
+          &log.timestamp);
+
       if (log.domain && *log.domain)
-        self->raw_print(shcore::str_format("%s: %s: %s\n", show_prefix,
-                                           log.domain, log.message),
-                        Output_stream::STDERR);
-      else
         self->raw_print(
-            shcore::str_format("%s: %s\n", show_prefix, log.message),
+            shcore::str_format("verbose: %s: %s%s: %s\n", ts.c_str(),
+                               show_prefix, log.domain, log.message),
             Output_stream::STDERR);
+      else
+        self->raw_print(shcore::str_format("verbose: %s: %s%s\n", ts.c_str(),
+                                           show_prefix, log.message),
+                        Output_stream::STDERR);
     }
   }
 }

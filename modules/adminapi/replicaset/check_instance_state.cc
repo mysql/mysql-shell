@@ -137,7 +137,7 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
           mysqlshdk::mysql::Instance(cluster_session), *m_target_instance,
-          false, nullptr, nullptr);
+          nullptr, nullptr);
 
   std::string reason;
   std::string status;
@@ -182,7 +182,7 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state state =
             mysqlshdk::mysql::check_replica_gtid_state(
-                instance, target_instance, false, nullptr, nullptr);
+                instance, target_instance, nullptr, nullptr);
 
         if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
           all_purged = true;

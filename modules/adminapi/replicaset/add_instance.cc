@@ -141,7 +141,7 @@ bool check_recoverable_from_any(const ReplicaSet *replicaset,
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state state =
             mysqlshdk::mysql::check_replica_gtid_state(
-                instance, *target_instance, false, nullptr, nullptr);
+                instance, *target_instance, nullptr, nullptr);
 
         if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
           recoverable = true;
@@ -167,7 +167,7 @@ void check_gtid_consistency_and_recoverability(
       mysqlshdk::mysql::check_replica_gtid_state(
           mysqlshdk::mysql::Instance(
               replicaset->get_cluster()->get_group_session()),
-          *target_instance, false, nullptr, &errant_gtid_set);
+          *target_instance, nullptr, &errant_gtid_set);
 
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::NEW:

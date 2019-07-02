@@ -336,6 +336,8 @@ std::vector<std::string> k_repl_channel_column_names = {
     "host",
     "port",
     "user",
+    "conf_heartbeat_interval",
+    "ssl_allowed",
     "source_uuid",
     "group_name",
     "last_heartbeat_timestamp",
@@ -349,55 +351,108 @@ std::vector<std::string> k_repl_channel_column_names = {
     "co_errno",
     "co_errmsg",
     "co_errtime",
+    "conf_delay",
     "w_state",
     "w_thread_state",
     "w_errno",
     "w_errmsg",
     "w_errtime",
-    "w_last_trx_delay"};
+    "time_since_last_message",
+    "applier_busy_state",
+    "lag_from_original",
+    "lag_from_immediate",
+    "queued_gtid_set_to_apply"};
 
 std::vector<db::Type> k_repl_channel_column_types = {
-    Type::String, Type::String,   Type::Integer, Type::String,   Type::Enum,
-    Type::String, Type::String,   Type::String,  Type::DateTime, Type::Integer,
-    Type::String, Type::DateTime, Type::Enum,    Type::String,   Type::Integer,
-    Type::String, Type::DateTime, Type::Enum,    Type::String,   Type::Integer,
-    Type::String, Type::DateTime, Type::UInteger};
+    Type::String,    // channel_name
+    Type::String,    // host
+    Type::Integer,   // port
+    Type::String,    // user
+    Type::Double,    // conf_heartbeat_interval
+    Type::Integer,   // ssl_allowed
+    Type::String,    // source_uuid
+    Type::String,    // group_name
+    Type::DateTime,  // last_heartbeat_timestamp
+    Type::String,    // io_state
+    Type::String,    // io_thread_state
+    Type::Integer,   // io_errno
+    Type::String,    // io_errmsg
+    Type::DateTime,  // io_errtime
+    Type::String,    // co_state
+    Type::String,    // co_thread_state
+    Type::Integer,   // co_errno
+    Type::String,    // co_errmsg
+    Type::DateTime,  // co_errtime
+    Type::Integer,   // conf_delay
+    Type::String,    // w_state
+    Type::String,    // w_thread_state
+    Type::Integer,   // w_errno
+    Type::String,    // w_errmsg
+    Type::DateTime,  // w_errtime
+    Type::DateTime,  // time_since_last_message
+    Type::String,    // applier_busy_state
+    Type::String,    // lag_from_original
+    Type::String,    // lag_from_immediate
+    Type::String     // queued_gtid_set_to_apply
+};
 
 static std::string k_null = "___NULL___";
 
 TEST_F(Replication_test, get_channel_status) {
-  const char *k_repl_channel_query = R"*(
-  SELECT
-    c.channel_name, c.host, c.port, c.user,
-    s.source_uuid, s.group_name, s.last_heartbeat_timestamp,
-    s.service_state io_state, st.processlist_state io_thread_state,
-    s.last_error_number io_errno, s.last_error_message io_errmsg,
-    s.last_error_timestamp io_errtime,
-    co.service_state co_state, cot.processlist_state co_thread_state,
-    co.last_error_number co_errno, co.last_error_message co_errmsg,
-    co.last_error_timestamp co_errtime,
-    w.service_state w_state, wt.processlist_state w_thread_state,
-    w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime /*!80011 ,
-    CAST(w.last_applied_transaction_end_apply_timestamp
-      - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay */
-  FROM performance_schema.replication_connection_configuration c
-  JOIN performance_schema.replication_connection_status s
-    ON c.channel_name = s.channel_name
-  LEFT JOIN performance_schema.replication_applier_status_by_coordinator co
-    ON c.channel_name = co.channel_name
-  JOIN performance_schema.replication_applier_status a
-    ON c.channel_name = a.channel_name
-  JOIN performance_schema.replication_applier_status_by_worker w
-    ON c.channel_name = w.channel_name
-  LEFT JOIN performance_schema.threads st
-    ON s.thread_id = st.thread_id
-  LEFT JOIN performance_schema.threads cot
-    ON co.thread_id = cot.thread_id
-  LEFT JOIN performance_schema.threads wt
-    ON w.thread_id = wt.thread_id
-WHERE c.channel_name = '%s')*";
+  const char *k_repl_channel_query =
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
+      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
+      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
+      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
+      "st.processlist_state io_thread_state,\n    s.last_error_number "
+      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
+      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
+      "co_thread_state,\n    co.last_error_number co_errno, "
+      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
+      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
+      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
+      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
+      "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
+      "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
+      "s.LAST_HEARTBEAT_TIMESTAMP\n      )) as time_since_last_message,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "\"IDLE\",\n      \"APPLYING\") as applier_busy_state,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_original,\n    IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_immediate,\n    */\n    "
+      "GTID_SUBTRACT(s.RECEIVED_TRANSACTION_SET, @@global.gtid_executed)\n     "
+      " as queued_gtid_set_to_apply\n  FROM "
+      "performance_schema.replication_connection_configuration c\n  JOIN "
+      "performance_schema.replication_connection_status s\n    ON "
+      "c.channel_name = s.channel_name\n  LEFT JOIN "
+      "performance_schema.replication_applier_status_by_coordinator co\n    ON "
+      "c.channel_name = co.channel_name\n  JOIN "
+      "performance_schema.replication_applier_configuration ac\n    ON "
+      "c.channel_name = ac.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status a\n    ON c.channel_name "
+      "= a.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status_by_worker w\n    ON "
+      "c.channel_name = w.channel_name\n  LEFT JOIN\n  /* if parallel "
+      "replication, fetch owner of most recently applied tx */\n    (SELECT "
+      "*\n      FROM performance_schema.replication_applier_status_by_worker\n "
+      "     /*!80011 ORDER BY LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP "
+      "DESC */\n      LIMIT 1) latest_w\n    ON c.channel_name = "
+      "latest_w.channel_name\n  LEFT JOIN performance_schema.threads st\n    "
+      "ON s.thread_id = st.thread_id\n  LEFT JOIN performance_schema.threads "
+      "cot\n    ON co.thread_id = cot.thread_id\n  LEFT JOIN "
+      "performance_schema.threads wt\n    ON w.thread_id = wt.thread_id\nWHERE "
+      "c.channel_name = '%s'";
 
   // no replication running
   auto mock_session = std::make_shared<Mock_session>();
@@ -427,6 +482,8 @@ WHERE c.channel_name = '%s')*";
                          "192.168.42.6",
                          "3000",
                          "mysql_innodb_asyncrs_3001",
+                         "0",
+                         "0",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -440,12 +497,17 @@ WHERE c.channel_name = '%s')*";
                          k_null,
                          k_null,
                          k_null,
+                         "0",
                          "OFF",
                          k_null,
                          "0",
                          "",
-                         "0000-00-00 00:00:00.000000",
-                         "0"}}}});
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                         ""}}}});
     EXPECT_TRUE(get_channel_status(instance, "", &ch));
 
     mock_session
@@ -457,6 +519,8 @@ WHERE c.channel_name = '%s')*";
                          "192.168.42.6",
                          "3000",
                          "mysql_innodb_asyncrs_3001",
+                         "0",
+                         "0",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -470,12 +534,17 @@ WHERE c.channel_name = '%s')*";
                          k_null,
                          k_null,
                          k_null,
+                         "0",
                          "OFF",
                          k_null,
                          "0",
                          "",
-                         "0000-00-00 00:00:00.000000",
-                         "0"}}}});
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                         ""}}}});
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::OFF);
   }
@@ -494,6 +563,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -507,12 +578,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::ON);
@@ -550,6 +626,8 @@ WHERE c.channel_name = '%s')*";
                          "192.168.42.6",
                          "3000",
                          "mysql_innodb_asyncrs_3001",
+                         "0",
+                         "0",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -563,12 +641,17 @@ WHERE c.channel_name = '%s')*";
                          k_null,
                          k_null,
                          k_null,
+                         "0",
                          "OFF",
                          k_null,
                          "0",
                          "",
-                         "0000-00-00 00:00:00.000000",
-                         "0"}}}});
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                         ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::APPLIER_OFF);
@@ -601,6 +684,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -614,12 +699,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::RECEIVER_OFF);
@@ -653,6 +743,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -666,12 +758,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::CONNECTING);
@@ -705,6 +802,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -719,12 +818,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::CONNECTION_ERROR);
@@ -763,6 +867,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -776,13 +882,18 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "OFF",
                 "",
                 "1007",
                 "Error 'Can't create database 'db'; database exists' on "
                 "query. Default database: 'db'. Query: 'create schema db'",
                 "2019-04-29 16:36:56.600064",
-                "0"}}}});
+                "0",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::APPLIER_ERROR);
@@ -820,6 +931,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -833,16 +946,24 @@ WHERE c.channel_name = '%s')*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "ON",
                 "Waiting for an event from Coordinator",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -856,16 +977,24 @@ WHERE c.channel_name = '%s')*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "ON",
                 "Waiting for an event from Coordinator",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -874,6 +1003,7 @@ WHERE c.channel_name = '%s')*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
@@ -883,8 +1013,13 @@ WHERE c.channel_name = '%s')*";
                 "Waiting for an event from Coordinator",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::ON);
@@ -929,6 +1064,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -948,16 +1085,24 @@ WHERE c.channel_name = '%s')*";
                 "performance_schema.replication_applier_status_by_worker table "
                 "for more details about this failure or others, if any.",
                 "2019-04-29 16:41:59.502796",
+                "0",
                 "OFF",
                 k_null,
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -977,16 +1122,24 @@ WHERE c.channel_name = '%s')*";
                 "performance_schema.replication_applier_status_by_worker table "
                 "for more details about this failure or others, if any.",
                 "2019-04-29 16:41:59.502796",
+                "0",
                 "OFF",
                 k_null,
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -995,6 +1148,7 @@ WHERE c.channel_name = '%s')*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "OFF",
                 k_null,
                 "1007",
@@ -1015,7 +1169,10 @@ WHERE c.channel_name = '%s')*";
                 "'db'; database exists' on query. Default database: 'db'."
                 " Query: 'create schema db'",
                 "2019-04-29 16:41:59.502796",
-                "0"}}}});
+                "0",
+                "",
+                "",
+                ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::APPLIER_ERROR);
@@ -1062,38 +1219,60 @@ WHERE c.channel_name = '%s')*";
 }
 
 TEST_F(Replication_test, get_incoming_channels) {
-  const char *k_repl_channels_query = R"*(
-  SELECT
-    c.channel_name, c.host, c.port, c.user,
-    s.source_uuid, s.group_name, s.last_heartbeat_timestamp,
-    s.service_state io_state, st.processlist_state io_thread_state,
-    s.last_error_number io_errno, s.last_error_message io_errmsg,
-    s.last_error_timestamp io_errtime,
-    co.service_state co_state, cot.processlist_state co_thread_state,
-    co.last_error_number co_errno, co.last_error_message co_errmsg,
-    co.last_error_timestamp co_errtime,
-    w.service_state w_state, wt.processlist_state w_thread_state,
-    w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime /*!80011 ,
-    CAST(w.last_applied_transaction_end_apply_timestamp
-      - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay */
-  FROM performance_schema.replication_connection_configuration c
-  JOIN performance_schema.replication_connection_status s
-    ON c.channel_name = s.channel_name
-  LEFT JOIN performance_schema.replication_applier_status_by_coordinator co
-    ON c.channel_name = co.channel_name
-  JOIN performance_schema.replication_applier_status a
-    ON c.channel_name = a.channel_name
-  JOIN performance_schema.replication_applier_status_by_worker w
-    ON c.channel_name = w.channel_name
-  LEFT JOIN performance_schema.threads st
-    ON s.thread_id = st.thread_id
-  LEFT JOIN performance_schema.threads cot
-    ON co.thread_id = cot.thread_id
-  LEFT JOIN performance_schema.threads wt
-    ON w.thread_id = wt.thread_id
-ORDER BY channel_name)*";
+  const char *k_repl_channels_query =
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
+      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
+      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
+      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
+      "st.processlist_state io_thread_state,\n    s.last_error_number "
+      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
+      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
+      "co_thread_state,\n    co.last_error_number co_errno, "
+      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
+      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
+      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
+      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
+      "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
+      "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
+      "s.LAST_HEARTBEAT_TIMESTAMP\n      )) as time_since_last_message,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "\"IDLE\",\n      \"APPLYING\") as applier_busy_state,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_original,\n    IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_immediate,\n    */\n    "
+      "GTID_SUBTRACT(s.RECEIVED_TRANSACTION_SET, @@global.gtid_executed)\n     "
+      " as queued_gtid_set_to_apply\n  FROM "
+      "performance_schema.replication_connection_configuration c\n  JOIN "
+      "performance_schema.replication_connection_status s\n    ON "
+      "c.channel_name = s.channel_name\n  LEFT JOIN "
+      "performance_schema.replication_applier_status_by_coordinator co\n    ON "
+      "c.channel_name = co.channel_name\n  JOIN "
+      "performance_schema.replication_applier_configuration ac\n    ON "
+      "c.channel_name = ac.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status a\n    ON c.channel_name "
+      "= a.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status_by_worker w\n    ON "
+      "c.channel_name = w.channel_name\n  LEFT JOIN\n  /* if parallel "
+      "replication, fetch owner of most recently applied tx */\n    (SELECT "
+      "*\n      FROM performance_schema.replication_applier_status_by_worker\n "
+      "     /*!80011 ORDER BY LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP "
+      "DESC */\n      LIMIT 1) latest_w\n    ON c.channel_name = "
+      "latest_w.channel_name\n  LEFT JOIN performance_schema.threads st\n    "
+      "ON s.thread_id = st.thread_id\n  LEFT JOIN performance_schema.threads "
+      "cot\n    ON co.thread_id = cot.thread_id\n  LEFT JOIN "
+      "performance_schema.threads wt\n    ON w.thread_id = wt.thread_id\nORDER "
+      "BY channel_name";
 
   // no replication running
   auto mock_session = std::make_shared<Mock_session>();
@@ -1116,6 +1295,8 @@ ORDER BY channel_name)*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1129,12 +1310,17 @@ ORDER BY channel_name)*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
     auto chlist = get_incoming_channels(instance);
     EXPECT_EQ(1, chlist.size());
 
@@ -1173,6 +1359,8 @@ ORDER BY channel_name)*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1186,16 +1374,23 @@ ORDER BY channel_name)*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"nother_channel",
                 "192.168.42.16",
                 "4000",
                 "mysql_innodb_asyncrs_4001",
+                "0",
+                "0",
                 "209017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1209,12 +1404,17 @@ ORDER BY channel_name)*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     auto chlist = get_incoming_channels(instance);
     EXPECT_EQ(2, chlist.size());
@@ -1276,6 +1476,8 @@ ORDER BY channel_name)*";
                 "192.168.42.16",
                 "4000",
                 "mysql_innodb_asyncrs_4001",
+                "0",
+                "0",
                 "209017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1289,16 +1491,23 @@ ORDER BY channel_name)*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1312,16 +1521,23 @@ ORDER BY channel_name)*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "ON",
                 "Waiting for an event from Coordinator",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"},
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""},
                {"mychannel",
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1335,12 +1551,17 @@ ORDER BY channel_name)*";
                 "0",
                 "",
                 "0000-00-00 00:00:00.000000",
+                "0",
                 "ON",
                 "Waiting for an event from Coordinator",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
 
     auto chlist = get_incoming_channels(instance);
     EXPECT_EQ(2, chlist.size());
@@ -1399,38 +1620,60 @@ ORDER BY channel_name)*";
 }
 
 TEST_F(Replication_test, wait_replication_done_connecting) {
-  const char *k_repl_channel_query = R"*(
-  SELECT
-    c.channel_name, c.host, c.port, c.user,
-    s.source_uuid, s.group_name, s.last_heartbeat_timestamp,
-    s.service_state io_state, st.processlist_state io_thread_state,
-    s.last_error_number io_errno, s.last_error_message io_errmsg,
-    s.last_error_timestamp io_errtime,
-    co.service_state co_state, cot.processlist_state co_thread_state,
-    co.last_error_number co_errno, co.last_error_message co_errmsg,
-    co.last_error_timestamp co_errtime,
-    w.service_state w_state, wt.processlist_state w_thread_state,
-    w.last_error_number w_errno, w.last_error_message w_errmsg,
-    w.last_error_timestamp w_errtime /*!80011 ,
-    CAST(w.last_applied_transaction_end_apply_timestamp
-      - w.last_applied_transaction_original_commit_timestamp as UNSIGNED)
-      as w_last_trx_delay */
-  FROM performance_schema.replication_connection_configuration c
-  JOIN performance_schema.replication_connection_status s
-    ON c.channel_name = s.channel_name
-  LEFT JOIN performance_schema.replication_applier_status_by_coordinator co
-    ON c.channel_name = co.channel_name
-  JOIN performance_schema.replication_applier_status a
-    ON c.channel_name = a.channel_name
-  JOIN performance_schema.replication_applier_status_by_worker w
-    ON c.channel_name = w.channel_name
-  LEFT JOIN performance_schema.threads st
-    ON s.thread_id = st.thread_id
-  LEFT JOIN performance_schema.threads cot
-    ON co.thread_id = cot.thread_id
-  LEFT JOIN performance_schema.threads wt
-    ON w.thread_id = wt.thread_id
-WHERE c.channel_name = '%s')*";
+  const char *k_repl_channel_query =
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
+      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
+      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
+      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
+      "st.processlist_state io_thread_state,\n    s.last_error_number "
+      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
+      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
+      "co_thread_state,\n    co.last_error_number co_errno, "
+      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
+      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
+      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
+      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
+      "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
+      "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
+      "s.LAST_HEARTBEAT_TIMESTAMP\n      )) as time_since_last_message,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "\"IDLE\",\n      \"APPLYING\") as applier_busy_state,\n    "
+      "IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_original,\n    IF(s.LAST_QUEUED_TRANSACTION='' OR "
+      "s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,\n      "
+      "NULL,\n      "
+      "TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,\n       "
+      " latest_w.LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP)\n      ) "
+      "as lag_from_immediate,\n    */\n    "
+      "GTID_SUBTRACT(s.RECEIVED_TRANSACTION_SET, @@global.gtid_executed)\n     "
+      " as queued_gtid_set_to_apply\n  FROM "
+      "performance_schema.replication_connection_configuration c\n  JOIN "
+      "performance_schema.replication_connection_status s\n    ON "
+      "c.channel_name = s.channel_name\n  LEFT JOIN "
+      "performance_schema.replication_applier_status_by_coordinator co\n    ON "
+      "c.channel_name = co.channel_name\n  JOIN "
+      "performance_schema.replication_applier_configuration ac\n    ON "
+      "c.channel_name = ac.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status a\n    ON c.channel_name "
+      "= a.channel_name\n  JOIN "
+      "performance_schema.replication_applier_status_by_worker w\n    ON "
+      "c.channel_name = w.channel_name\n  LEFT JOIN\n  /* if parallel "
+      "replication, fetch owner of most recently applied tx */\n    (SELECT "
+      "*\n      FROM performance_schema.replication_applier_status_by_worker\n "
+      "     /*!80011 ORDER BY LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP "
+      "DESC */\n      LIMIT 1) latest_w\n    ON c.channel_name = "
+      "latest_w.channel_name\n  LEFT JOIN performance_schema.threads st\n    "
+      "ON s.thread_id = st.thread_id\n  LEFT JOIN performance_schema.threads "
+      "cot\n    ON co.thread_id = cot.thread_id\n  LEFT JOIN "
+      "performance_schema.threads wt\n    ON w.thread_id = wt.thread_id\nWHERE "
+      "c.channel_name = '%s'";
 
   // no replication running
   auto mock_session = std::make_shared<Mock_session>();
@@ -1448,6 +1691,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1461,12 +1706,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
   };
 
   // channel IO is running, SQL running
@@ -1481,6 +1731,8 @@ WHERE c.channel_name = '%s')*";
                 "192.168.42.6",
                 "3000",
                 "mysql_innodb_asyncrs_3001",
+                "0",
+                "0",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1494,12 +1746,17 @@ WHERE c.channel_name = '%s')*";
                 k_null,
                 k_null,
                 k_null,
+                "0",
                 "ON",
                 "Slave has read all relay log; waiting for more updates",
                 "0",
                 "",
-                "0000-00-00 00:00:00.000000",
-                "0"}}}});
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""}}}});
   };
 
   // channel is stopped
@@ -1513,6 +1770,8 @@ WHERE c.channel_name = '%s')*";
                          "192.168.42.6",
                          "3000",
                          "mysql_innodb_asyncrs_3001",
+                         "0",
+                         "0",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -1526,12 +1785,17 @@ WHERE c.channel_name = '%s')*";
                          k_null,
                          k_null,
                          k_null,
+                         "0",
                          "OFF",
                          k_null,
                          "0",
                          "",
                          "0000-00-00 00:00:00.000000",
-                         "0"}}}});
+                         "0",
+                         "",
+                         "",
+                         "",
+                         ""}}}});
   };
 
   add_connecting();

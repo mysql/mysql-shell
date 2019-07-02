@@ -20,21 +20,21 @@
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W", 
-                "readReplicas": {}, 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }, 
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O", 
-                "readReplicas": {}, 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -171,7 +171,7 @@ WARNING: The following instances were not removed from the metadata because they
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W", 
-                "readReplicas": {}, 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -231,21 +231,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -268,7 +268,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -321,21 +321,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -358,7 +358,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -409,14 +409,14 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -439,7 +439,7 @@ A new instance '<<<member_address3>>>' was discovered in the ReplicaSet.
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -492,21 +492,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -529,7 +529,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -582,21 +582,21 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -622,7 +622,7 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -697,7 +697,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -726,7 +726,7 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -802,7 +802,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -831,7 +831,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -905,7 +905,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -942,7 +942,7 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the ReplicaSet.
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -1017,7 +1017,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -1046,7 +1046,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
@@ -1121,7 +1121,7 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -1200,21 +1200,21 @@ pm
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }
@@ -1244,21 +1244,21 @@ auto_increment_offset: 2
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/W",
-                "readReplicas": {},
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
                 "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
             }

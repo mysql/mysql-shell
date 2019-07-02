@@ -45,9 +45,6 @@ namespace mysqlshdk {
 namespace gr {
 
 static constexpr const char k_gr_plugin_name[] = "group_replication";
-static constexpr const char k_value_not_set[] = "<not set>";
-static constexpr const char k_no_value[] = "<no value>";
-static constexpr const char k_must_be_initialized[] = "<must be initialized>";
 static constexpr const char k_group_recovery_user_prefix[] =
     "mysql_innodb_cluster_";
 static constexpr const char k_group_recovery_old_user_prefix[] =
@@ -113,47 +110,10 @@ struct Member {
   std::string version;
 };
 
-enum class Config_type {
-  SERVER,
-  CONFIG,
-  RESTART_ONLY,
-};
-
 enum class Gr_seeds_change_type {
   ADD,
   REMOVE,
   OVERRIDE,
-};
-
-typedef mysqlshdk::utils::Enum_set<Config_type, Config_type::RESTART_ONLY>
-    Config_types;
-
-struct Invalid_config {
-  std::string var_name;
-  std::string current_val;
-  std::string required_val;
-  mysqlshdk::utils::nullable<std::string> persisted_val;
-  Config_types types;
-  bool restart;
-  shcore::Value_type val_type;
-
-  // constructors
-  Invalid_config(std::string name, std::string req_val)
-      : Invalid_config(std::move(name), k_must_be_initialized,
-                       std::move(req_val), Config_types(), false,
-                       shcore::Value_type::String) {}
-  Invalid_config(std::string name, std::string curr_val, std::string req_val,
-                 Config_types types, bool rest, shcore::Value_type val_t)
-      : var_name(std::move(name)),
-        current_val(std::move(curr_val)),
-        required_val(std::move(req_val)),
-        types(std::move(types)),
-        restart(rest),
-        val_type(val_t) {}
-  // comparison operator to be used for sorting Invalid_config objects
-  bool operator<(const Invalid_config &rhs) const {
-    return var_name < rhs.var_name;
-  }
 };
 
 // Function to check membership and state.
@@ -174,9 +134,9 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
 // Fetch various basic info bits from the group the given instance is member of
 bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            Member_state *out_member_state,
-                           std::string *out_member_id,
-                           std::string *out_group_name,
-                           bool *out_single_primary_mode,
+                           std::string *out_member_id = nullptr,
+                           std::string *out_group_name = nullptr,
+                           bool *out_single_primary_mode = nullptr,
                            bool *out_has_quorum = nullptr,
                            bool *out_is_primary = nullptr);
 
@@ -315,52 +275,6 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     bool clone_supported = false);
 
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
-
-// Function to check compliance to use GR.
-std::map<std::string, std::string> check_data_compliance(
-    const mysqlshdk::mysql::IInstance &instance, const uint16_t max_errors = 0);
-
-/**
- * Checks if several of the required MySQL variables for GR are valid.
- *
- * @param config Config object to obtain the settings to check. It can hold
- *        more than one configuration handler, for example for the server and
- *        option file (e.g., my.cnf).
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
- */
-void check_server_variables_compatibility(
-    const mysqlshdk::config::Config &config,
-    std::vector<Invalid_config> *out_invalid_vec);
-
-/**
- * Checks if the server_id variable is valid for Group Replication.
- *
- * @param instance Instance object that points to the server to be checked.
- * @param config Config object to obtain the settings to check. It can hold
- *        more than one configuration handler, for example for the server and
- *        option file (e.g., my.cnf).
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
- */
-void check_server_id_compatibility(
-    const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::config::Config &config,
-    std::vector<Invalid_config> *out_invalid_vec);
-
-/**
- * Checks if the the log_bin variable for is valid for Group Replication.
- *
- * @param instance Instance object that points to the server to be checked.
- * @param config Config object to obtain the settings to check. It can hold
- *        more than one configuration handler, for example for the server and
- *        option file (e.g., my.cnf).
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
- */
-void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
-                                 const mysqlshdk::config::Config &config,
-                                 std::vector<Invalid_config> *out_invalid_vec);
 
 /**
  * Checks if the thread for a delayed initialization of the group replication is

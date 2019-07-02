@@ -61,6 +61,12 @@ class SHCORE_PUBLIC IRow {
       uint32_t index) const = 0;
   virtual uint64_t get_bit(uint32_t index) const = 0;
 
+  inline std::string get_as_string(uint32_t index,
+                                   const std::string &default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_as_string(index);
+  }
+
   inline std::string get_string(uint32_t index,
                                 const std::string &default_if_null) const {
     if (is_null(index)) return default_if_null;

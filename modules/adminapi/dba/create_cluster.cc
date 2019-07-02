@@ -422,7 +422,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
       log_info("Removing old replication user '%s'", old_user.c_str());
       try {
         mysqlshdk::mysql::drop_all_accounts_for_user(
-            cluster->get_group_session(), old_user);
+            mysqlshdk::mysql::Instance(cluster->get_group_session()), old_user);
       } catch (const std::exception &e) {
         console->print_warning(
             "Error dropping old recovery accounts for user " + old_user + ": " +

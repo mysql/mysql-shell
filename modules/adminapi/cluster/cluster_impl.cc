@@ -484,7 +484,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
             recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
       log_info("Removing replication user '%s'", recovery_user.c_str());
       try {
-        mysqlshdk::mysql::drop_all_accounts_for_user(get_group_session(),
+        mysqlshdk::mysql::drop_all_accounts_for_user(primary_master,
                                                      recovery_user);
       } catch (const std::exception &e) {
         console->print_warning("Error dropping recovery accounts for user " +

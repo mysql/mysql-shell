@@ -130,7 +130,6 @@ class IInstance {
       bool disable_pwd_expire) const = 0;
   virtual void drop_user(const std::string &user, const std::string &host,
                          bool if_exists = false) const = 0;
-
   virtual mysqlshdk::db::Connection_options get_connection_options() const = 0;
   virtual void get_current_user(std::string *current_user,
                                 std::string *current_host) const = 0;
@@ -171,7 +170,7 @@ class IInstance {
                                        const Args &... args) const {
     auto result = query(shcore::sqlformat(sql, args...));
     if (auto row = result->fetch_one())
-      return row->get_string(column_index, default_if_null);
+      return row->get_as_string(column_index, default_if_null);
     return default_if_null;
   }
 

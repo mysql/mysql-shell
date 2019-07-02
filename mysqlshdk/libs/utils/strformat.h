@@ -57,7 +57,7 @@ std::string format_throughput_bytes(uint64_t bytes, double seconds);
 enum class Time_type { LOCAL, GMT };
 
 std::string fmttime(const char *fmt, Time_type type = Time_type::LOCAL,
-                    time_t *time_ptr = nullptr);
+                    const time_t *time_ptr = nullptr);
 
 size_t expand_to_bytes(const std::string &number);
 

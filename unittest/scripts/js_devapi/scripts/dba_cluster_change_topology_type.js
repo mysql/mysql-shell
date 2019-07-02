@@ -61,6 +61,9 @@ cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
 //@ Error checking cluster status
 cluster.status();
 
@@ -105,6 +108,9 @@ session.close();
 cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 
 //@ Error checking cluster status again
 cluster.status();

@@ -123,6 +123,9 @@ class Replicaset_status : public Command_interface {
 
   shcore::Value applier_status(const mysqlshdk::db::Row_ref_by_name &row);
 
+  void collect_basic_local_status(shcore::Dictionary_t dict,
+                                  const mysqlshdk::mysql::Instance &instance);
+
   void collect_local_status(shcore::Dictionary_t dict,
                             const mysqlshdk::mysql::Instance &instance,
                             bool recovering);

@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -71,7 +72,7 @@ void leave_replicaset(const mysqlshdk::mysql::Instance &instance);
  * @return a vector with the invalid configurations resulting from the check.
  *
  */
-std::vector<mysqlshdk::gr::Invalid_config> check_instance_config(
+std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
     const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config);
 
@@ -95,7 +96,7 @@ std::vector<mysqlshdk::gr::Invalid_config> check_instance_config(
  */
 bool configure_instance(
     mysqlshdk::config::Config *config,
-    const std::vector<mysqlshdk::gr::Invalid_config> &invalid_configs);
+    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs);
 
 /**
  * Persist Group Replication configuration.

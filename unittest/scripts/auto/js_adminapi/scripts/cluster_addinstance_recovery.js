@@ -464,5 +464,8 @@ mark_clone_disabled(false);
 
 
 //@ Cleanup
+testutil.dbugSet("");
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+

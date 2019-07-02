@@ -387,6 +387,64 @@ shcore::Value Replicaset_status::applier_status(
   return shcore::Value(dict);
 }
 
+/**
+ * Similar to collect_local_status(), but only includes basic/important
+ * stats that should be displayed in the default output.
+ */
+void Replicaset_status::collect_basic_local_status(
+    shcore::Dictionary_t dict, const mysqlshdk::mysql::Instance &instance) {
+  using mysqlshdk::utils::Version;
+
+  auto session = instance.get_session();
+  auto version = instance.get_version();
+
+  shcore::Dictionary_t applier_node = shcore::make_dict();
+  shcore::Array_t applier_workers = shcore::make_array();
+
+#define TSDIFF(prefix, start, end) \
+  "TIMEDIFF(" prefix "_" end ", " prefix "_" start ")"
+
+  std::string sql;
+
+  if (version >= Version(8, 0, 0)) {
+    sql = "SELECT ";
+    sql +=
+        "IF(c.LAST_QUEUED_TRANSACTION=''"
+        " OR c.LAST_QUEUED_TRANSACTION=a.LAST_APPLIED_TRANSACTION"
+        " OR a.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP <"
+        "  a.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,"
+        "NULL, " TSDIFF("LAST_APPLIED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
+                        "END_APPLY_TIMESTAMP") ")";
+    sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME";
+    sql +=
+        " FROM performance_schema.replication_applier_status_by_worker a"
+        " JOIN performance_schema.replication_connection_status c"
+        "   ON a.channel_name = c.channel_name"
+        " WHERE a.channel_name = 'group_replication_applier'";
+
+    // this can return multiple rows per channel for
+    // multi-threaded applier, otherwise just one. If MT, we also
+    // get stuff in the coordinator table
+    auto result = session->query(sql);
+    auto row = result->fetch_one_named();
+    if (row) {
+      std::string lag =
+          row.get_string("LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME", "");
+
+      if (!lag.empty() && lag != "00:00:00.000000")
+        (*dict)["replicationLag"] = shcore::Value(lag);
+      else
+        (*dict)["replicationLag"] = shcore::Value::Null();
+    }
+  }
+
+#undef TSDIFF
+}
+
+/**
+ * Collect per instance replication stats collected from performance_schema
+ * tables.
+ */
 void Replicaset_status::collect_local_status(
     shcore::Dictionary_t dict, const mysqlshdk::mysql::Instance &instance,
     bool recovering) {
@@ -733,6 +791,9 @@ shcore::Dictionary_t Replicaset_status::get_topology(
           collect_local_status(
               member, instance,
               minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
+        } else {
+          if (minfo.state == mysqlshdk::gr::Member_state::ONLINE)
+            collect_basic_local_status(member, instance);
         }
 
         if (minfo.state == mysqlshdk::gr::Member_state::RECOVERING) {

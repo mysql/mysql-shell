@@ -694,6 +694,14 @@ class Option_unpacker {
 
   // Case insensitive
   template <typename T>
+  Option_unpacker &optional_ci(const char *name,
+                               mysqlshdk::utils::nullable<T> *out_value) {
+    extract_value<T>(name, out_value,
+                     get_optional(name, value_type_for_native<T>::type, true));
+    return *this;
+  }
+
+  template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
     extract_value<T>(name, out_value,
                      get_optional(name, value_type_for_native<T>::type, true));

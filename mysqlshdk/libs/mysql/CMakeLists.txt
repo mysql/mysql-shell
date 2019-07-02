@@ -26,6 +26,7 @@ set(mysql_SOURCE
     script.cc
     replication.cc
     clone.cc
+    repl_config.cc
     group_replication.cc
     user_privileges.cc
     utils.cc

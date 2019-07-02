@@ -142,7 +142,7 @@ std::string format_throughput_bytes(uint64_t bytes, double seconds) {
   return buffer + unit + "B/s";
 }
 
-std::string fmttime(const char *fmt, Time_type type, time_t *time_ptr) {
+std::string fmttime(const char *fmt, Time_type type, const time_t *time_ptr) {
   time_t t;
   char buf[64];
 

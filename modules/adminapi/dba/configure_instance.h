@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 #include "scripting/lang_base.h"
 
 namespace mysqlsh {
@@ -120,7 +121,7 @@ class Configure_instance : public Command_interface {
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
   // List of invalid (incompatible) configurations to update.
-  std::vector<mysqlshdk::gr::Invalid_config> m_invalid_cfgs;
+  std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
   // Target instance to configure.
   mysqlshdk::mysql::IInstance *m_target_instance = nullptr;

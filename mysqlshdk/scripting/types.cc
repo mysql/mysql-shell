@@ -261,13 +261,12 @@ std::string Exception::format() const {
   std::string state = _error->get_string("state", "");
   std::string error_location = _error->get_string("location", "");
 
-  if (!message.empty() &&
-      !is_mysqlsh()) {  // don't show shell error codes for now
+  if (!message.empty()) {
     if (!type.empty()) error_message += type;
 
-    if (code != -1) {
+    if (code != -1 && !is_mysqlsh()) {  // don't show shell error codes for now
       if (is_mysql() || is_mysqlsh())
-        error_message += "-" + std::to_string(code);
+        error_message += " ERROR " + std::to_string(code);
       else
         error_message += " " + std::to_string(code);
       if (!state.empty()) error_message += " (" + state + ")";
@@ -278,8 +277,6 @@ std::string Exception::format() const {
     error_message += message;
 
     if (!error_location.empty()) error_message += " at " + error_location;
-
-    error_message += "\n";
   }
 
   return error_message;

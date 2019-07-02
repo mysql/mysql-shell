@@ -98,7 +98,6 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
            bool));
   MOCK_CONST_METHOD3(drop_user,
                      void(const std::string &, const std::string &, bool));
-  MOCK_CONST_METHOD1(drop_users_with_regexp, void(const std::string &));
   MOCK_CONST_METHOD0(get_connection_options,
                      mysqlshdk::db::Connection_options());
   MOCK_CONST_METHOD2(get_current_user, void(std::string *, std::string *));

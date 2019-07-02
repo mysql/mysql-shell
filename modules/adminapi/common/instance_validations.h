@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -48,7 +49,7 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
 
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 
-std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
+std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config,
     const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,

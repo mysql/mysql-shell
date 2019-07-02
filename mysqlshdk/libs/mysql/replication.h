@@ -26,7 +26,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
@@ -59,10 +58,10 @@ struct Replication_channel {
   struct Applier {
     enum State { ON, OFF };
     State state = OFF;
+    enum class Status { APPLIED_ALL, APPLYING, ON, ERROR, OFF };
+    Status status = Status::OFF;
     std::string thread_state;
     Error last_error;
-    uint64_t last_applied_trx_delay =
-        0;  // time between original_commit and apply_end, in ns
   };
 
   std::string channel_name;
@@ -70,9 +69,19 @@ struct Replication_channel {
   std::string host;
   int port = 0;
   std::string group_name;
+  bool ssl_enabled = false;
 
   std::string source_uuid;
-  std::string last_heartbeat_timestamp;
+
+  uint64_t conf_delay = 0;
+  double conf_heartbeat_interval = 0.0;
+
+  std::string time_since_last_message;
+
+  std::string repl_lag_from_original;
+  std::string repl_lag_from_immediate;
+
+  std::string queued_gtid_set_to_apply;
 
   // IO thread status
   Receiver receiver;
@@ -104,6 +113,7 @@ std::string to_string(Replication_channel::Status status);
 std::string to_string(Replication_channel::Receiver::State state);
 std::string to_string(Replication_channel::Coordinator::State state);
 std::string to_string(Replication_channel::Applier::State state);
+std::string to_string(Replication_channel::Applier::Status status);
 std::string to_string(const Replication_channel::Error &error);
 
 std::string format_status(const Replication_channel &channel,
@@ -144,12 +154,8 @@ Replication_channel wait_replication_done_connecting(
 
 /**
  * Returns GTID_EXECUTED set from the server.
- *
- * @param include_received - if true, will include GTID sets that were received
- * but not yet applied, across all channels.
  */
-std::string get_executed_gtid_set(const mysqlshdk::mysql::IInstance &server,
-                                  bool include_received = false);
+std::string get_executed_gtid_set(const mysqlshdk::mysql::IInstance &server);
 
 /**
  * Returns GTID_PURGED set from the server.
@@ -197,13 +203,10 @@ enum class Replica_gtid_state {
 /**
  * Checks the transaction state of a replica in relation to another instance
  * (its master).
- *
- * If include_received is true, transactions that were received (relay_log)
- * are included in the calculations.
  */
 Replica_gtid_state check_replica_gtid_state(
     const mysqlshdk::mysql::IInstance &master,
-    const mysqlshdk::mysql::IInstance &slave, bool include_received,
+    const mysqlshdk::mysql::IInstance &slave,
     std::string *out_missing_gtids = nullptr,
     std::string *out_errant_gtids = nullptr);
 

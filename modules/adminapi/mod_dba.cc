@@ -2955,7 +2955,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     Instance_gtid_info info;
     info.server = target_instance.get_canonical_address();
     info.gtid_executed =
-        mysqlshdk::mysql::get_executed_gtid_set(target_instance, true);
+        mysqlshdk::mysql::get_executed_gtid_set(target_instance);
     instance_gtids.push_back(info);
   }
 
@@ -2985,7 +2985,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     Instance_gtid_info info;
     info.server = inst.endpoint;
     info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(
-        mysqlshdk::mysql::Instance(session), true);
+        mysqlshdk::mysql::Instance(session));
     instance_gtids.push_back(info);
   }
 

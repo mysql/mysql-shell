@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,9 @@ class JScript_map_wrapper {
  private:
   static void handler_getter(v8::Local<v8::Name> property,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
+  static void handler_deleter(
+      v8::Local<v8::Name> property,
+      const v8::PropertyCallbackInfo<v8::Boolean> &info);
   static void handler_setter(v8::Local<v8::Name> property,
                              v8::Local<v8::Value> value,
                              const v8::PropertyCallbackInfo<v8::Value> &info);

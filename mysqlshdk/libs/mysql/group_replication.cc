@@ -36,14 +36,9 @@
 #endif
 #include <mysqld_error.h>
 
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/config/config_file_handler.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
-#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
@@ -54,7 +49,7 @@
 #include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace {
-constexpr const char *kErrorReadOnlyTimeout =
+const char *kErrorReadOnlyTimeout =
     "Timeout waiting for super_read_only to be "
     "unset after call to start Group "
     "Replication plugin.";
@@ -168,8 +163,7 @@ bool is_member(const mysqlshdk::mysql::IInstance &instance) {
       "SELECT group_name "
       "FROM performance_schema.replication_connection_status "
       "WHERE channel_name = 'group_replication_applier'";
-  auto session = instance.get_session();
-  auto resultset = session->query(is_member_stmt);
+  auto resultset = instance.query(is_member_stmt);
   auto row = resultset->fetch_one();
   if (row && !row->get_string(0).empty())
     return true;
@@ -200,8 +194,7 @@ bool is_member(const mysqlshdk::mysql::IInstance &instance,
       shcore::sqlstring(is_member_stmt_fmt.c_str(), 0);
   is_member_stmt << group_name;
   is_member_stmt.done();
-  auto session = instance.get_session();
-  auto resultset = session->query(is_member_stmt);
+  auto resultset = instance.query(is_member_stmt);
   auto row = resultset->fetch_one();
   if (row)
     return true;
@@ -220,7 +213,7 @@ bool is_member(const mysqlshdk::mysql::IInstance &instance,
  */
 bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
   try {
-    std::shared_ptr<db::IResult> resultset = instance.get_session()->query(
+    std::shared_ptr<db::IResult> resultset = instance.query(
         "SELECT NOT @@group_replication_single_primary_mode OR "
         "    (select variable_value"
         "       from performance_schema.global_status"
@@ -262,7 +255,7 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
       "      WHERE member_id = @@server_uuid) AS my_state"
       "  FROM performance_schema.replication_group_members";
 
-  std::shared_ptr<db::IResult> resultset = instance.get_session()->query(q);
+  std::shared_ptr<db::IResult> resultset = instance.query(q);
   auto row = resultset->fetch_one();
   if (!row) {
     throw std::runtime_error("Group replication query returned no results");
@@ -300,8 +293,7 @@ Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
       "SELECT member_state "
       "FROM performance_schema.replication_group_members "
       "WHERE member_id = @@server_uuid";
-  auto session = instance.get_session();
-  auto resultset = session->query(member_state_stmt);
+  auto resultset = instance.query(member_state_stmt);
   auto row = resultset->fetch_one();
   if (row) {
     return to_member_state(row->get_string(0));
@@ -442,7 +434,7 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            bool *out_single_primary_mode, bool *out_has_quorum,
                            bool *out_is_primary) {
   try {
-    std::shared_ptr<db::IResult> result(instance.get_session()->query(
+    std::shared_ptr<db::IResult> result(instance.query(
         "SELECT @@group_replication_group_name group_name, "
         " @@group_replication_single_primary_mode single_primary, "
         " @@server_uuid, "
@@ -516,8 +508,7 @@ mysqlshdk::utils::Version get_group_protocol_version(
 
       log_debug("Executing UDF: %s", get_gr_protocol_version);
 
-      auto session = instance.get_session();
-      auto resultset = session->query(get_gr_protocol_version);
+      auto resultset = instance.query(get_gr_protocol_version);
       auto row = resultset->fetch_one();
 
       if (row) {
@@ -547,7 +538,7 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
   try {
     log_debug("Executing UDF: %s", query.c_str());
 
-    instance.get_session()->query(query);
+    instance.query(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
@@ -678,7 +669,7 @@ void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &rpl_pwd) {
   std::string change_master_stmt_fmt =
       "CHANGE MASTER TO MASTER_USER = /*(*/ ? /*)*/, "
-      "MASTER_PASSWORD = /*(*/ ? /*)*/ "
+      "MASTER_PASSWORD = /*((*/ ? /*))*/ "
       "FOR CHANNEL 'group_replication_recovery'";
   shcore::sqlstring change_master_stmt =
       shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
@@ -687,8 +678,7 @@ void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
   change_master_stmt.done();
 
   try {
-    auto session = instance.get_session();
-    session->execute(change_master_stmt);
+    instance.execute(change_master_stmt);
   } catch (const std::exception &err) {
     throw std::runtime_error{
         "Cannot set Group Replication recovery user to '" + rpl_user +
@@ -728,8 +718,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
     instance.set_sysvar("group_replication_bootstrap_group", true,
                         mysqlshdk::mysql::Var_qualifier::GLOBAL);
   try {
-    auto session = instance.get_session();
-    session->execute("START GROUP_REPLICATION");
+    instance.execute("START GROUP_REPLICATION");
   } catch (const std::exception &err) {
     // Try to set the group_replication_bootstrap_group to OFF if the
     // statement to start GR failed and only then throw the error.
@@ -767,15 +756,13 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
  * @param instance session object to connect to the target instance.
  */
 void stop_group_replication(const mysqlshdk::mysql::IInstance &instance) {
-  auto session = instance.get_session();
-  session->execute("STOP GROUP_REPLICATION");
+  instance.execute("STOP GROUP_REPLICATION");
 }
 
 std::string generate_group_name(const mysqlshdk::mysql::IInstance &instance) {
   // Generate a UUID on the MySQL server.
   std::string get_uuid_stmt = "SELECT UUID()";
-  auto session = instance.get_session();
-  auto resultset = session->query(get_uuid_stmt);
+  auto resultset = instance.query(get_uuid_stmt);
   auto row = resultset->fetch_one();
 
   return row->get_string(0);
@@ -835,8 +822,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
       }
       // re-create replication with a new generated password
       mysqlshdk::mysql::create_user_with_random_password(
-          primary->get_session(), creds.user, hosts, grants, &repl_password,
-          true);
+          *primary, creds.user, hosts, grants, &repl_password, true);
 
       creds.password = repl_password;
     } else {
@@ -847,9 +833,8 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
             creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
       }
       // re-create replication with a given password
-      mysqlshdk::mysql::create_user_with_password(primary->get_session(),
-                                                  creds.user, hosts, grants,
-                                                  password.get_safe(), true);
+      mysqlshdk::mysql::create_user_with_password(
+          *primary, creds.user, hosts, grants, password.get_safe(), true);
 
       creds.password = password.get_safe();
     }
@@ -888,370 +873,11 @@ std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance) {
   return rpl_user;
 }
 
-/**
- * Check the compliance of the current data to use Group Replication.
- * More specifically, verify if all database tables use the InnoDB engine
- * and have a primary key.
- *
- * @param instance session object to connect to the target instance.
- * @param max_errors non negative integer [0, 65535] with the maximum number of
- *                   compliance errors to return, once this value is reached
- *                   the check is stopped. By default, the value is 0, meaning
- *                   that no maximum limit will be used.
- *
- * @return A map containing the result of the check operation including
- *         the details about the data compliance that were not meet.
- */
-std::map<std::string, std::string> check_data_compliance(
-    const mysqlshdk::mysql::IInstance & /*instance*/,
-    const uint16_t /*max_errors*/) {
-  // TODO(pjesus)
-  // NOTE: Consider returning vector of tuples, like
-  // std::tuple<std::string, IssueType> where IssueType is an enum
-  assert(0);
-  return {};
-}
-
-/**
- * Auxiliary function that is used to validate a given invalid config against
- * a given handler and list of valid_values
- * @param values a vector with the values to the variable with
- * @param allowed_values if true, the values list is considered the list of
- *        allowed values, if false the list of forbidden values.
- * @param handler handler that is going to be used for the validation
- * @param change Invalid config struct with the name and expected values already
- *        initialized.
- * @param change_type type of change to be used for the invalid_config
- * @param restart boolean value that is true if the variable requires a restart
- *        to change and false otherwise.
- * @param set_cur_val If true, the current_val field of the invalid config
- *        will be set with the value read from the handler if it isn't
- *        initialized yet.
- *        Note: This is necessary so that the invalid config has a value on the
- *        current value field for logging even if the value is the one expected.
- */
-void check_variable_compliance(const std::vector<std::string> &values,
-                               bool allowed_values,
-                               const config::IConfig_handler &handler,
-                               Invalid_config *change, Config_type change_type,
-                               bool restart, bool set_cur_val) {
-  std::string value;
-  // convert value to a string that we can lookup in the valid_values vector
-  try {
-    auto nullable_value = handler.get_string(change->var_name);
-    if (nullable_value.is_null())
-      value = k_no_value;
-    else
-      value = shcore::str_upper(*nullable_value);
-  } catch (const std::out_of_range &err) {
-    // variable is not defined
-    value = k_value_not_set;
-  }
-  if (set_cur_val && change->current_val == k_must_be_initialized)
-    change->current_val = value;
-  // If the value is not on the list of allowed values or if it is on the list
-  // of forbidden values, then the configuration is not valid.
-  auto found_it = std::find(values.begin(), values.end(), value);
-  if ((found_it == values.end() && allowed_values) ||
-      (found_it != values.end() && !allowed_values)) {
-    change->current_val = value;
-    change->types.set(change_type);
-    change->restart = restart;
-  }
-}
-
-void check_persisted_value_compliance(
-    const std::vector<std::string> &values, bool allowed_values,
-    const config::Config_server_handler &srv_handler, Invalid_config *change) {
-  mysqlshdk::utils::nullable<std::string> persisted_value =
-      srv_handler.get_persisted_value(change->var_name);
-
-  // Check only needed if there is a persisted value.
-  if (!persisted_value.is_null()) {
-    std::string value = shcore::str_upper(*persisted_value);
-
-    if (change->current_val != value) {
-      // When the persisted value is different from the current sysvar value
-      // check if it is valid and take the necessary action.
-
-      auto found_it = std::find(values.begin(), values.end(), value);
-      if ((found_it == values.end() && allowed_values) ||
-          (found_it != values.end() && !allowed_values)) {
-        // Persisted value is invalid, thus it must to be changed:
-        // if sysvar values is correct then the persisted value must be changed
-        // but restart is not required, otherwise maintain the current change.
-        if (!change->types.is_set(Config_type::SERVER)) {
-          // Sysvar value is correct
-          change->types.set(Config_type::SERVER);
-          change->restart = false;
-        }
-      } else {
-        // Persisted value is valid, thus only a restart is required.
-        change->restart = true;
-        change->types.unset(Config_type::SERVER);
-        change->types.set(Config_type::RESTART_ONLY);
-      }
-    }
-
-    // Add persisted value information when available.
-    change->persisted_val = value;
-  }
-}
-
-/**
- * Auxiliary function that does the logging of an invalid config.
- * @param change The Invalid config object
- */
-void log_invalid_config(const Invalid_config &change) {
-  if (change.types.empty()) {
-    log_debug("OK: '%s' value '%s' is compatible with InnoDB Cluster.",
-              change.var_name.c_str(), change.current_val.c_str());
-  } else {
-    log_debug(
-        "FAIL: '%s' value '%s' is not compatible with InnoDB Cluster. "
-        "Required value: '%s'.",
-        change.var_name.c_str(), change.current_val.c_str(),
-        change.required_val.c_str());
-  }
-}
-
-void check_server_variables_compatibility(
-    const mysqlshdk::config::Config &config,
-    std::vector<Invalid_config> *out_invalid_vec) {
-  // create a vector for all the variables required values. Each entry is
-  // a string with the name of the variable, then a vector of strings with the
-  // accepted values and finally a boolean value that says if the variable
-  // requires a restart to change or not.
-  // NOTE: The order of the variables in the vector is important since it
-  // is used by the configure operation to set the correct variable values and
-  // as such it serves as a workaround for BUG#27629719, which requires
-  // some GR required variables to be set in a certain order, namely
-  // enforce_gtid_consistency before gtid_mode.
-  std::vector<std::tuple<std::string, std::vector<std::string>, bool>>
-      requirements{std::make_tuple("binlog_format",
-                                   std::vector<std::string>{"ROW"}, false),
-                   std::make_tuple("binlog_checksum",
-                                   std::vector<std::string>{"NONE"}, false),
-                   std::make_tuple("log_slave_updates",
-                                   std::vector<std::string>{"ON", "1"}, true),
-                   std::make_tuple("enforce_gtid_consistency",
-                                   std::vector<std::string>{"ON", "1"}, true),
-                   std::make_tuple("gtid_mode",
-                                   std::vector<std::string>{"ON", "1"}, true),
-                   std::make_tuple("master_info_repository",
-                                   std::vector<std::string>{"TABLE"}, true),
-                   std::make_tuple("relay_log_info_repository",
-                                   std::vector<std::string>{"TABLE"}, true),
-                   std::make_tuple("transaction_write_set_extraction",
-                                   std::vector<std::string>{"XXHASH64", "2",
-                                                            "MURMUR32", "1"},
-                                   true)};
-
-  if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
-    // Add an extra requirement for the report_port
-    std::string report_port = *(
-        config.get_string("port", mysqlshdk::config::k_dft_cfg_server_handler));
-    std::vector<std::string> report_port_vec = {report_port};
-    requirements.emplace_back("report_port", report_port_vec, false);
-
-    // Check if MTS is enabled (slave_parallel_workers > 0) and if so, add
-    // extra requirements.
-    utils::nullable<int64_t> slave_p_workers = config.get_int(
-        "slave_parallel_workers", mysqlshdk::config::k_dft_cfg_server_handler);
-    if (!slave_p_workers.is_null() && *slave_p_workers > 0) {
-      std::vector<std::string> slave_parallel_vec = {"LOGICAL_CLOCK"};
-      std::vector<std::string> slave_commit_vec = {"ON", "1"};
-      requirements.emplace_back("slave_parallel_type", slave_parallel_vec,
-                                false);
-      requirements.emplace_back("slave_preserve_commit_order", slave_commit_vec,
-                                false);
-    }
-  }
-
-  for (auto &req : requirements) {
-    std::string var_name;
-    std::vector<std::string> valid_values;
-    bool restart;
-    std::tie(var_name, valid_values, restart) = req;
-    log_debug("Checking if '%s' is compatible with InnoDB Cluster.",
-              var_name.c_str());
-    // assuming the expected value is the first of the valid values list
-    Invalid_config change = Invalid_config(var_name, valid_values.at(0));
-    // If config object has has a config handler
-    if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-      check_variable_compliance(
-          valid_values, true,
-          *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-          &change, Config_type::CONFIG, false, true);
-    }
-
-    // If config object has has a server handler
-    if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
-      // Get the config server handler.
-      auto srv_cfg_handler =
-          dynamic_cast<mysqlshdk::config::Config_server_handler *>(
-              config.get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
-
-      // Determine if the config server handler supports SET PERSIST.
-      bool use_persist = (srv_cfg_handler->get_default_var_qualifier() ==
-                          mysqlshdk::mysql::Var_qualifier::PERSIST);
-
-      // Check the variables compliance.
-      check_variable_compliance(valid_values, true, *srv_cfg_handler, &change,
-                                Config_type::SERVER, restart, true);
-
-      // Check persisted value if supported, because it can be different from
-      // the current sysvar value (when PERSIST_ONLY was used).
-      if (use_persist) {
-        check_persisted_value_compliance(valid_values, true, *srv_cfg_handler,
-                                         &change);
-      }
-    }
-
-    log_invalid_config(change);
-    // if there are any changes to be made, add them to the vector of changes
-    if (!change.types.empty()) out_invalid_vec->push_back(std::move(change));
-  }
-}
-
-void check_server_id_compatibility(
-    const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::config::Config &config,
-    std::vector<Invalid_config> *out_invalid_vec) {
-  // initialize change object with default values for this specific variable
-  Invalid_config change = Invalid_config("server_id", "<unique ID>");
-
-  log_debug("Checking if 'server_id' is compatible with InnoDB Cluster.");
-  // If config object has has a config handler
-  if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-    std::vector<std::string> forbidden_values{"0", k_no_value, k_value_not_set};
-    check_variable_compliance(
-        forbidden_values, false,
-        *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler), &change,
-        Config_type::CONFIG, false, true);
-  }
-
-  // The test for the server_id on the server_handler is special since
-  // the 1 value can be both allowed or not depending on being the default
-  // value or not. As such we will not make use of the check_variable_compliance
-  // function.
-  if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
-    auto server_id = config.get_int(
-        "server_id", mysqlshdk::config::k_dft_cfg_server_handler);
-    // server id cannot be null on the server, so we can read its value without
-    // any problems
-    if (*server_id == 0) {
-      // if server_id is 0, then it is not valid for gr usage and must be
-      // changed
-      change.current_val = "0";
-      change.types.set(Config_type::SERVER);
-      change.restart = true;
-      change.val_type = shcore::Value_type::Integer;
-    } else if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 3) &&
-               instance.has_variable_compiled_value("server_id")) {
-      // Starting from MySQL 8.0.3, server_id = 1 by default (to enable
-      // binary logging). For this versions we check if the default value was
-      // changed by the user. Otherwise server_id is 0 (not set) by default
-      // for previous server versions (it cannot be 0 for any version).
-      change.current_val = std::to_string(*server_id);
-      change.types.set(Config_type::SERVER);
-      change.restart = true;
-      change.val_type = shcore::Value_type::Integer;
-    } else {
-      // If no invalid config was found, store the current variable value to
-      // be used for the debug message.
-      if (change.types.empty()) change.current_val = std::to_string(*server_id);
-    }
-  }
-  // if there are any changes to be made, add them to the vector of changes
-  log_invalid_config(change);
-  if (!change.types.empty()) out_invalid_vec->push_back(std::move(change));
-}
-
-void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
-                                 const mysqlshdk::config::Config &config,
-                                 std::vector<Invalid_config> *out_invalid_vec) {
-  log_debug("Checking if 'log_bin' is compatible with InnoDB Cluster.");
-  // If config object has has a config handler
-  if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-    // On MySQL 8.0.3 the binary log is enabled by default, so there is no need
-    // to add the log_bin option to the config file. However on 5.7 there is.
-    if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
-      Invalid_config change = Invalid_config("log_bin", k_no_value);
-      std::vector<std::string> forbidden_values{k_value_not_set};
-      check_variable_compliance(
-          forbidden_values, false,
-          *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-          &change, Config_type::CONFIG, false, true);
-      // if there are any changes to be made, add them to the vector of changes
-      if (!change.types.empty()) {
-        log_debug(
-            "FAIL: '%s' value '%s' is not compatible with InnoDB Cluster. "
-            "Required value: '%s'.",
-            change.var_name.c_str(), change.current_val.c_str(),
-            change.required_val.c_str());
-        out_invalid_vec->push_back(std::move(change));
-      }
-    }
-    // We must also check that neither of the skip-log-bin or disable-log-bin
-    // options are set.
-    Invalid_config change_skip =
-        Invalid_config("skip_log_bin", k_value_not_set);
-    Invalid_config change_disable =
-        Invalid_config("disable_log_bin", k_value_not_set);
-    std::vector<std::string> allowed_skip_dis_values{k_value_not_set};
-    check_variable_compliance(
-        allowed_skip_dis_values, true,
-        *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-        &change_skip, Config_type::CONFIG, false, true);
-    check_variable_compliance(
-        allowed_skip_dis_values, true,
-        *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-        &change_disable, Config_type::CONFIG, false, true);
-
-    log_invalid_config(change_disable);
-    // if there are any changes to be made, add them to the vector of changes
-    if (!change_disable.types.empty())
-      out_invalid_vec->push_back(std::move(change_disable));
-    log_invalid_config(change_skip);
-    if (!change_skip.types.empty())
-      out_invalid_vec->push_back(std::move(change_skip));
-  }
-
-  if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
-    // create invalid_config with default values for server, which are
-    // different from the ones for the config file.
-    Invalid_config change = Invalid_config("log_bin", "ON");
-    std::vector<std::string> valid_values{"1", "ON"};
-    check_variable_compliance(
-        valid_values, true,
-        *config.get_handler(mysqlshdk::config::k_dft_cfg_server_handler),
-        &change, Config_type::SERVER, true, true);
-    // If the log_bin value is not on the valid values, then the configuration
-    // is not valid.
-    if (!change.types.empty()) {
-      // If the configuration is not valid on the server, and no config file
-      // handler was provided, we must add an invalid config to fix the
-      // value on the configuration file since the value cannot cannot be
-      // persisted. If the config file handler exists, we already checked
-      // if an invalid config is required.
-      if (!config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-        out_invalid_vec->emplace_back("log_bin", k_value_not_set, k_no_value,
-                                      Config_types(Config_type::CONFIG), false,
-                                      shcore::Value_type::String);
-      }
-    }
-    log_invalid_config(change);
-    // if there are any changes to be made, add them to the vector of changes
-    if (!change.types.empty()) out_invalid_vec->push_back(std::move(change));
-  }
-}
-
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance) {
   try {
-    return instance.get_session()
-               ->query(
+    return instance
+               .query(
                    "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME "
                    "= "
                    "'thread/group_rpl/THD_delayed_initialization'")
@@ -1265,8 +891,6 @@ bool is_group_replication_delayed_starting(
 
 bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &host, const int port) {
-  // TODO(alfredo) - this is redundant and unreliable because of the match by
-  // hostname, should be replaced with a call to get_members() or something
   std::string is_active_member_stmt_fmt =
       "SELECT Member_state "
       "FROM performance_schema.replication_group_members "
@@ -1277,8 +901,7 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
   is_active_member_stmt << host;
   is_active_member_stmt << port;
   is_active_member_stmt.done();
-  auto session = instance.get_session();
-  auto resultset = session->query(is_active_member_stmt);
+  auto resultset = instance.query(is_active_member_stmt);
   auto row = resultset->fetch_one();
   if (row)
     return true;

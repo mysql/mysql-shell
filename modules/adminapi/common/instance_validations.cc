@@ -294,7 +294,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
  * @param  ret_val[out]         assigned to check results
  * @return                      [description]
  */
-std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
+std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config,
     const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
@@ -310,7 +310,7 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
   log_info("Validating configuration of %s (mycnf = %s)",
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
-  std::vector<mysqlshdk::gr::Invalid_config> invalid_cfs_vec =
+  std::vector<mysqlshdk::mysql::Invalid_config> invalid_cfs_vec =
       check_instance_config(*instance, *config);
 
   // Sort invalid cfs_vec by the name of the variable
@@ -330,16 +330,16 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
     (*map_val)["status"] = shcore::Value("error");
     shcore::Value::Array_type_ref config_errors(
         new shcore::Value::Array_type());
-    for (mysqlshdk::gr::Invalid_config &cfg : invalid_cfs_vec) {
+    for (mysqlshdk::mysql::Invalid_config &cfg : invalid_cfs_vec) {
       shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
       std::string action;
       if (!log_bin_wrong && cfg.var_name == "log_bin" &&
-          cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG)) {
+          cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG)) {
         log_bin_wrong = true;
       }
 
-      if (cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG) &&
-          cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER)) {
+      if (cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG) &&
+          cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER)) {
         *mycnf_change_needed = true;
         if (cfg.restart) {
           *restart_needed = true;
@@ -348,10 +348,10 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
           action = "server_update+config_update";
           *sysvar_change_needed = true;
         }
-      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG)) {
+      } else if (cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG)) {
         *mycnf_change_needed = true;
         action = "config_update";
-      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER)) {
+      } else if (cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER)) {
         if (cfg.restart) {
           *restart_needed = true;
           action = "server_update+restart";
@@ -359,7 +359,8 @@ std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
           action = "server_update";
           *sysvar_change_needed = true;
         }
-      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::RESTART_ONLY)) {
+      } else if (cfg.types.is_set(
+                     mysqlshdk::mysql::Config_type::RESTART_ONLY)) {
         *restart_needed = true;
         action = "restart";
       } else if (cfg.types.empty()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,7 @@ JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
   v8::NamedPropertyHandlerConfiguration config;
   config.getter = &JScript_map_wrapper::handler_getter;
   config.setter = &JScript_map_wrapper::handler_setter;
+  config.deleter = &JScript_map_wrapper::handler_deleter;
   config.enumerator = &JScript_map_wrapper::handler_enumerator;
   config.flags = v8::PropertyHandlerFlags::kOnlyInterceptStrings;
   templ->SetHandler(config);
@@ -121,6 +122,27 @@ void JScript_map_wrapper::handler_getter(
       info.GetReturnValue().Set(
           self->_context->shcore_value_to_v8_value(iter->second));
   }
+}
+
+void JScript_map_wrapper::handler_deleter(
+    v8::Local<v8::Name> property,
+    const v8::PropertyCallbackInfo<v8::Boolean> &info) {
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Local<v8::Object> obj(info.Holder());
+  const auto &map =
+      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->data();
+  if (!map) {
+    info.GetIsolate()->ThrowException(
+        v8_string(info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
+
+  const auto prop = to_string(info.GetIsolate(), property);
+
+  map->erase(prop);
+
+  info.GetReturnValue().Set(true);
 }
 
 void JScript_map_wrapper::handler_setter(

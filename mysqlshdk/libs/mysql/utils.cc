@@ -104,21 +104,21 @@ std::string replace_grantee(const std::string &grant,
 }
 }  // namespace detail
 
-void clone_user(const std::shared_ptr<db::ISession> &session,
-                const std::string &orig_user, const std::string &orig_host,
-                const std::string &new_user, const std::string &new_host,
-                const std::string &password, Account_attribute_set flags) {
+void clone_user(const IInstance &instance, const std::string &orig_user,
+                const std::string &orig_host, const std::string &new_user,
+                const std::string &new_host, const std::string &password,
+                Account_attribute_set flags) {
   std::string account = shcore::quote_identifier(new_user) + "@" +
                         shcore::quote_identifier(new_host);
 
   // create user
-  session->executef("CREATE USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*(*/ ? /*)*/",
+  instance.executef("CREATE USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*((*/ ? /*))*/",
                     new_user, new_host, password);
 
   if (flags & Account_attribute::Grants) {
     // gather all grants from the original account
     std::vector<std::string> grants;
-    auto result = session->queryf("SHOW GRANTS FOR /*(*/ ?@? /*)*/", orig_user,
+    auto result = instance.queryf("SHOW GRANTS FOR /*(*/ ?@? /*)*/", orig_user,
                                   orig_host);
     while (auto row = result->fetch_one()) {
       std::string grant = row->get_string(0);
@@ -133,16 +133,16 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
 
     // grant everything
     for (const auto &grant : grants) {
-      session->execute(grant);
+      instance.execute(grant);
     }
   }
 }
 
-void drop_all_accounts_for_user(const std::shared_ptr<db::ISession> &session,
+void drop_all_accounts_for_user(const IInstance &instance,
                                 const std::string &user) {
   std::string accounts;
 
-  auto result = session->queryf(
+  auto result = instance.queryf(
       "SELECT concat(quote(user), '@', quote(host)) from mysql.user where "
       "user=?",
       user);
@@ -152,7 +152,7 @@ void drop_all_accounts_for_user(const std::shared_ptr<db::ISession> &session,
   }
 
   if (!accounts.empty()) {
-    session->execute("DROP USER IF EXISTS " + accounts);
+    instance.execute("DROP USER IF EXISTS " + accounts);
   }
 }
 
@@ -234,19 +234,18 @@ std::string generate_password(size_t password_length) {
 }
 
 void create_user_with_random_password(
-    const std::shared_ptr<db::ISession> &session, const std::string &user,
+    const IInstance &instance, const std::string &user,
     const std::vector<std::string> &hosts,
     const std::vector<std::tuple<std::string, std::string, bool>> &grants,
     std::string *out_password, bool disable_pwd_expire) {
   assert(!hosts.empty());
-  Instance inst(session);
 
   *out_password = generate_password();
 
   for (int i = 0;; i++) {
     try {
-      inst.create_user(user, hosts.front(), *out_password, grants,
-                       disable_pwd_expire);
+      instance.create_user(user, hosts.front(), *out_password, grants,
+                           disable_pwd_expire);
       break;
     } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
@@ -268,21 +267,21 @@ void create_user_with_random_password(
 
   // subsequent user creations shouldn't fail b/c of password
   for (size_t i = 1; i < hosts.size(); i++) {
-    inst.create_user(user, hosts[i], *out_password, grants, disable_pwd_expire);
+    instance.create_user(user, hosts[i], *out_password, grants,
+                         disable_pwd_expire);
   }
 }
 
 void create_user_with_password(
-    const std::shared_ptr<db::ISession> &session, const std::string &user,
+    const IInstance &instance, const std::string &user,
     const std::vector<std::string> &hosts,
     const std::vector<std::tuple<std::string, std::string, bool>> &grants,
     const std::string &password, bool disable_pwd_expire) {
   assert(!hosts.empty());
-  Instance inst(session);
 
   for (auto &host : hosts) {
     try {
-      inst.create_user(user, host, password, grants, disable_pwd_expire);
+      instance.create_user(user, host, password, grants, disable_pwd_expire);
     } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
@@ -295,6 +294,43 @@ void create_user_with_password(
         throw;
       }
     }
+  }
+}
+
+void set_random_password(const IInstance &instance, const std::string &user,
+                         const std::vector<std::string> &hosts,
+                         std::string *out_password) {
+  assert(!hosts.empty());
+
+  *out_password = generate_password();
+
+  for (int i = 0;; i++) {
+    try {
+      instance.executef("SET PASSWORD FOR ?@? = /*((*/?/*))*/", user,
+                        hosts.front(), *out_password);
+      break;
+    } catch (const mysqlshdk::db::Error &e) {
+      // If the error is: ERROR 1819 (HY000): Your password does not satisfy
+      // the current policy requirements
+      // We regenerate the password to retry
+      if (e.code() == ER_NOT_VALID_PASSWORD) {
+        if (i == kMAX_WEAK_PASSWORD_RETRIES) {
+          throw std::runtime_error(
+              "Unable to generate a password that complies with active MySQL "
+              "server password policies for account " +
+              user + "@" + hosts.front());
+        }
+        *out_password = mysqlshdk::mysql::generate_password();
+      } else {
+        throw;
+      }
+    }
+  }
+
+  // subsequent operations shouldn't fail b/c of password
+  for (size_t i = 1; i < hosts.size(); i++) {
+    instance.executef("SET PASSWORD FOR ?@? = /*((*/?/*))*/", user, hosts[i],
+                      *out_password);
   }
 }
 

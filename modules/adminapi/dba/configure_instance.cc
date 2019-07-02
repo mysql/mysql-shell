@@ -300,8 +300,8 @@ void Configure_instance::create_admin_user() {
                  m_cluster_admin.c_str());
         mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance);
         mysqlshdk::mysql::clone_user(
-            m_target_instance->get_session(), m_current_user, m_current_host,
-            admin_user, admin_user_host, *m_cluster_admin_password);
+            *m_target_instance, m_current_user, m_current_host, admin_user,
+            admin_user_host, *m_cluster_admin_password);
       } else {
         log_info("Creating new cluster admin account %s",
                  m_cluster_admin.c_str());

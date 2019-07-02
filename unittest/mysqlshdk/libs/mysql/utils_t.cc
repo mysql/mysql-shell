@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,6 +101,7 @@ class Mysql_utils : public tests::Shell_test_env {};
 
 TEST_F(Mysql_utils, clone_user) {
   auto session = create_mysql_session();
+  mysqlshdk::mysql::Instance instance(session);
 
   session->execute("drop user if exists rootey@localhost");
   session->execute("drop user if exists testusr@localhost");
@@ -118,12 +119,12 @@ TEST_F(Mysql_utils, clone_user) {
       "testusr@localhost");
 
   // clone the current user (presumably root@localhost)
-  clone_user(session, "root", "localhost", "rootey", "localhost", "foo");
+  clone_user(instance, "root", "localhost", "rootey", "localhost", "foo");
   // compare grants through the I_S table
   COMPARE_ACCOUNTS("root", "localhost", "rootey", "localhost");
   session->execute("drop user rootey@localhost");
 
-  clone_user(session, "testusr", "localhost", "rootey", "localhost", "foo");
+  clone_user(instance, "testusr", "localhost", "rootey", "localhost", "foo");
   COMPARE_ACCOUNTS("testusr", "localhost", "rootey", "localhost");
 
   // drop the account

@@ -104,6 +104,7 @@ const base_status_templ_80 = {
                 "address": "",
                 "mode": "",
                 "readReplicas": {},
+                "replicationLag": "",
                 "role": "",
                 "status": "",
                 "version": "<<<__version>>>"
@@ -155,6 +156,7 @@ const extended_1_status_templ_80 = {
                 "memberState": "",
                 "mode": "",
                 "readReplicas": {},
+                "replicationLag": "",
                 "role": "",
                 "status": "",
                 "version": "<<<__version>>>"
@@ -251,7 +253,7 @@ const extended_2_status_templ_57 = {
                 "memberRole": "",
                 "memberState": "",
                 "mode": "", 
-                "readReplicas": {}, 
+                "readReplicas": {},
                 "role": "", 
                 "status": "", 
                 "transactions": {
@@ -286,7 +288,7 @@ const full_status_templ_80 = {
                 "memberRole": "",
                 "memberState": "",
                 "mode": "", 
-                "readReplicas": {}, 
+                "readReplicas": {},
                 "role": "", 
                 "status": "", 
                 "version": "<<<__version>>>", 
@@ -357,7 +359,7 @@ const full_status_templ_57 = {
                 "memberRole": "",
                 "memberState": "",
                 "mode": "", 
-                "readReplicas": {}, 
+                "readReplicas": {},
                 "role": "", 
                 "status": "", 
                 "version": "<<<__version>>>", 
@@ -524,7 +526,7 @@ EXPECT_EQ(stat, stat_ext_true);
 var stat = cluster.status({extended:2});
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0)}
-json_check(stat, extended_2_status_templ_80);
+json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -549,7 +551,7 @@ EXPECT_NE(undefined, transactions);
 var stat = cluster.status({extended:2, queryMembers:false});
 
 //@<> 8.0 execution 2 {VER(>=8.0)}
-json_check(stat, extended_2_status_templ_80);
+json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
 
 //@<> 5.7 execution 2 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -624,12 +626,12 @@ cluster.addInstance(__sandbox_uri2, {waitRecovery: 0});
 //@<> F7- Check that recovery stats are there 5.7 {VER(<8.0)}
 var stat = cluster.status({extended:2});
 var allowed_missing = ["transactions"];
-var allowed_unexpected = ["recovery", "recoveryStatusText"];
+var allowed_unexpected = ["recovery", "recoveryStatusText", ["replicationLag"]];
 json_check(stat, extended_2_status_templ_57, allowed_missing, allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 {VER(>=8.0)}
 var stat = cluster.status({extended:2});
-var allowed_unexpected = ["recovery", "recoveryStatusText"];
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag"];
 json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
 var stat = cluster.status({extended:3});

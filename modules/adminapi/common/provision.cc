@@ -29,6 +29,7 @@
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -220,20 +221,20 @@ void leave_replicaset(const mysqlshdk::mysql::Instance &instance) {
   }
 }
 
-std::vector<mysqlshdk::gr::Invalid_config> check_instance_config(
+std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
     const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config) {
-  auto invalid_cfgs_vec = std::vector<mysqlshdk::gr::Invalid_config>();
+  auto invalid_cfgs_vec = std::vector<mysqlshdk::mysql::Invalid_config>();
 
   // validate server_id
-  mysqlshdk::gr::check_server_id_compatibility(instance, config,
-                                               &invalid_cfgs_vec);
+  mysqlshdk::mysql::check_server_id_compatibility(instance, config,
+                                                  &invalid_cfgs_vec);
   // validate log_bin
-  mysqlshdk::gr::check_log_bin_compatibility(instance, config,
-                                             &invalid_cfgs_vec);
+  mysqlshdk::mysql::check_log_bin_compatibility(instance, config,
+                                                &invalid_cfgs_vec);
   // validate rest of server variables required for gr
-  mysqlshdk::gr::check_server_variables_compatibility(config,
-                                                      &invalid_cfgs_vec);
+  mysqlshdk::mysql::check_server_variables_compatibility(config, true,
+                                                         &invalid_cfgs_vec);
 
   // NOTE: The order in the invalid_cfgs_vec is important since this vector
   // will be used for the configure_instance operation to set the correct
@@ -258,7 +259,7 @@ std::vector<mysqlshdk::gr::Invalid_config> check_instance_config(
       // log_bin variable is a special case and needs to be handled differently
       // since it cannot be persisted it always requires a configuration file.
       if (invalid_cfg.var_name != "log_bin" && invalid_cfg.restart)
-        invalid_cfg.types.set(mysqlshdk::gr::Config_type::CONFIG);
+        invalid_cfg.types.set(mysqlshdk::mysql::Config_type::CONFIG);
     }
   }
   return invalid_cfgs_vec;
@@ -266,7 +267,7 @@ std::vector<mysqlshdk::gr::Invalid_config> check_instance_config(
 
 bool configure_instance(
     mysqlshdk::config::Config *config,
-    const std::vector<mysqlshdk::gr::Invalid_config> &invalid_configs) {
+    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs) {
   // An non-null Config with an server configuration handler is expected.
   // NOTE: a option file handler might not be needed/available.
   assert(config);
@@ -301,8 +302,9 @@ bool configure_instance(
                           mysqlshdk::mysql::Var_qualifier::PERSIST);
 
   // Lambda functions to set server variables using PERSIST_ONLY.
-  auto set_persist_only = [&srv_cfg_handler](mysqlshdk::gr::Invalid_config &ic,
-                                             uint32_t d) {
+  auto set_persist_only = [&srv_cfg_handler](
+                              mysqlshdk::mysql::Invalid_config &ic,
+                              uint32_t d) {
     if (ic.val_type == shcore::Value_type::Integer) {
       srv_cfg_handler->set(ic.var_name,
                            mysqlshdk::utils::nullable<int64_t>(
@@ -353,7 +355,7 @@ bool configure_instance(
 
     // Invalid configuration on the server.
     // NOTE: Skip it if it can only be changed on the option file.
-    if (invalid_cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER) &&
+    if (invalid_cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER) &&
         !only_opt_file) {
       log_debug(
           "Setting '%s' to '%s' on server (no change actually applied yet).",
@@ -382,12 +384,12 @@ bool configure_instance(
     }
     // Invalid configuration on the option file.
     // NOTE: Skip it if option file is not available.
-    if (invalid_cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG) &&
+    if (invalid_cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG) &&
         config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
       // Check if the option needs to be removed from the option file.
       // NOTE: Only applies to skip-log-bin and disable-log-bin options which
       //       do not have a corresponding server variable.
-      if (invalid_cfg.required_val == mysqlshdk::gr::k_value_not_set) {
+      if (invalid_cfg.required_val == mysqlshdk::mysql::k_value_not_set) {
         log_debug(
             "Removing '%s' from the option file (no change actually applied "
             "yet).",
@@ -405,7 +407,7 @@ bool configure_instance(
             invalid_cfg.var_name.c_str(), invalid_cfg.required_val.c_str());
         mysqlshdk::utils::nullable<std::string> req_val{
             invalid_cfg.required_val};
-        if (invalid_cfg.required_val == mysqlshdk::gr::k_no_value) {
+        if (invalid_cfg.required_val == mysqlshdk::mysql::k_no_value) {
           // convert special string no_value to an empty nullable.
           req_val = mysqlshdk::utils::nullable<std::string>();
         }
