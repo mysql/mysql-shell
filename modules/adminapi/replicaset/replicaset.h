@@ -101,7 +101,28 @@ class ReplicaSet {
 
   void adopt_from_gr();
 
-  std::vector<std::string> get_online_instances() const;
+  /**
+   * Get ONLINE instances from the cluster.
+   *
+   * @return vector with the Instance definition of the ONLINE instances.
+   */
+  std::vector<Instance_definition> get_online_instances() const;
+
+  /**
+   * Get an online instance from the cluster.
+   *
+   * Return an online instance from the cluster that is reachable (able
+   * to connect to it), excluding the one with the given UUID if specified.
+   *
+   * @param exclude_uuid optional string with the UUID of an instance to
+   *        exclude. By default, "" (empty) meaning that no instance will be
+   *        excluded.
+   * @return unique pointer with an Instance object for the first online
+   *         instance found, or a nullptr if no instance is available (not
+   *         reachable).
+   */
+  std::unique_ptr<mysqlshdk::mysql::Instance> get_online_instance(
+      const std::string &exclude_uuid = "") const;
 
   std::vector<Instance_definition> get_instances_from_metadata() const;
 

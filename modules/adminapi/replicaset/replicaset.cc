@@ -1170,19 +1170,47 @@ void ReplicaSet::remove_instance_metadata(
   _metadata_storage->remove_instance(instance_address);
 }
 
-std::vector<std::string> ReplicaSet::get_online_instances() const {
-  std::vector<std::string> online_instances_array;
+std::vector<Instance_definition> ReplicaSet::get_online_instances() const {
+  return _metadata_storage->get_replicaset_online_instances(_id);
+}
 
-  auto online_instances =
-      _metadata_storage->get_replicaset_online_instances(_id);
+std::unique_ptr<mysqlshdk::mysql::Instance> ReplicaSet::get_online_instance(
+    const std::string &exclude_uuid) const {
+  std::vector<mysqlsh::dba::Instance_definition> instances =
+      get_online_instances();
 
-  for (auto &instance : online_instances) {
-    // TODO(miguel): Review if end point is the right thing
-    std::string instance_host = instance.endpoint;
-    online_instances_array.push_back(instance_host);
+  // Get the cluster connection credentials to use to connect to instances.
+  mysqlshdk::db::Connection_options cluster_cnx_opts =
+      m_cluster->get_group_session()->get_connection_options();
+
+  for (const auto &instance : instances) {
+    // Skip instance with the provided UUID exception (if specified).
+    if (exclude_uuid.empty() || instance.uuid != exclude_uuid) {
+      try {
+        // Use the cluster connection credentials.
+        mysqlshdk::db::Connection_options coptions(instance.endpoint);
+        coptions.set_login_options_from(cluster_cnx_opts);
+
+        log_info("Opening session to the member of InnoDB cluster at %s...",
+                 coptions.as_uri().c_str());
+
+        std::shared_ptr<mysqlshdk::db::mysql::Session> session;
+        session = mysqlshdk::db::mysql::Session::create();
+        session->connect(coptions);
+
+        // Return the first valid (reachable) instance.
+        return shcore::make_unique<mysqlshdk::mysql::Instance>(session);
+
+      } catch (const std::exception &e) {
+        log_debug(
+            "Unable to establish a session to the cluster member '%s': %s",
+            instance.endpoint.c_str(), e.what());
+      }
+    }
   }
 
-  return online_instances_array;
+  // No reachable online instance was found.
+  return nullptr;
 }
 
 shcore::Value ReplicaSet::force_quorum_using_partition_of(

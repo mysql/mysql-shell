@@ -73,3 +73,16 @@ Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
 
 //@ Fini
 ||
+
+//@<OUT> BUG#25267603: remove the primary instance from the cluster.
+The instance will be removed from the InnoDB cluster. Depending on the instance
+being the Seed or not, the Metadata session might become invalid. If so, please
+start a new session to the Metadata Storage R/W instance.
+
+Instance '<<<__host>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance '"+__host+":"+__mysql_sandbox_port1+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+
+The instance '<<<__host>>>:<<<__mysql_sandbox_port1>>>' was successfully removed from the cluster.
+
+//@ BUG#25267603: add the old primary instance back to the cluster.
+||

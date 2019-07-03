@@ -147,8 +147,14 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
     else
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-    std::vector<std::string> online_instances_array =
+    // NOTE: This will be removed by the patch for BUG#29996051:
+    //       Removing Interactive Wrappers
+    std::vector<mysqlsh::dba::Instance_definition> online_instances =
         default_replica_set->get_online_instances();
+    std::vector<std::string> online_instances_array;
+    for (const auto &instance : online_instances) {
+      online_instances_array.push_back(instance.endpoint);
+    }
 
     if (online_instances_array.empty())
       throw shcore::Exception::logic_error(

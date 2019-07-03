@@ -207,64 +207,36 @@ bool Remove_instance::is_protocol_upgrade_required() {
 
   // Get the instance server_uuid
   mysqlshdk::utils::nullable<std::string> server_uuid;
-  mysqlshdk::mysql::Instance group_session_instance(
+  mysqlshdk::mysql::Instance group_instance(
       m_replicaset.get_cluster()->get_group_session());
 
-  // Determine which session shall be used to determine if an upgrade is
+  // Determine which instance shall be used to determine if an upgrade is
   // required and afterwards to perform the upgrade.
   // If the target_instance is leaving the group and is the same as the group
   // session, we must use another instance
   if (m_target_instance) {
-    server_uuid = m_target_instance->get_sysvar_string(
-        "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    server_uuid = m_target_instance->get_uuid();
   }
 
-  std::string group_session_uuid = *group_session_instance.get_sysvar_string(
-      "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  std::string group_instance_uuid = group_instance.get_uuid();
 
-  if (!server_uuid.is_null() && (*server_uuid == group_session_uuid)) {
-    auto metadata(mysqlshdk::innodbcluster::Metadata_mysql::create(
-        group_session_instance.get_session()));
+  if (server_uuid == group_instance_uuid) {
+    m_target_instance_protocol_upgrade =
+        m_replicaset.get_online_instance(group_instance_uuid);
 
-    // Find any online instance that is not the target instance
-    std::vector<ReplicaSet::Instance_info> replicaset_instances =
-        m_replicaset.get_instances();
-
-    const ReplicaSet::Instance_info *instance = nullptr;
-
-    for (const auto &i : replicaset_instances) {
-      if (i.uuid != *server_uuid) {
-        instance = &i;
-        break;
-      }
-    }
-
-    try {
-      mysqlshdk::db::Connection_options coptions(instance->classic_endpoint);
-
-      coptions.set_login_options_from(
-          group_session_instance.get_session()->get_connection_options());
-
-      log_info("Opening session to the member of InnoDB cluster at %s...",
-               coptions.as_uri().c_str());
-
-      std::shared_ptr<mysqlshdk::db::mysql::Session> session;
-      session = mysqlshdk::db::mysql::Session::create();
-      session->connect(coptions);
-
-      // Set the instance used for protocol upgrade to point to the newly
-      // established session
-      m_target_instance_protocol_upgrade =
-          shcore::make_unique<mysqlshdk::mysql::Instance>(session);
-    } catch (const std::exception &e) {
+    if (m_target_instance_protocol_upgrade) {
+      log_info(
+          "Using cluster member '%s' for Group Replication protocol upgrade.",
+          m_target_instance_protocol_upgrade->descr().c_str());
+    } else {
       throw shcore::Exception::runtime_error(
-          std::string("Unable to establish a session to the cluster member: ") +
-          e.what());
+          "Unable to connect to another available cluster member for Group "
+          "Replication protocol upgrade.");
     }
   } else {
     m_target_instance_protocol_upgrade =
         shcore::make_unique<mysqlshdk::mysql::Instance>(
-            group_session_instance.get_session());
+            group_instance.get_session());
   }
 
   try {
