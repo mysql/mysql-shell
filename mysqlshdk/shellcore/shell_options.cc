@@ -243,20 +243,24 @@ Shell_options::Shell_options(int argc, char **argv,
 #ifdef HAVE_V8
         [this](const std::string&, const char*) {
           storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
-        })
+        }
 #else
         [](const std::string&, const char*) {
           throw std::invalid_argument("JavaScript is not supported.");
-        })
+        }
 #endif
+    )
     (cmdline("--py", "--python"), "Start in Python mode.",
-        [this](const std::string&, const char*) {
 #ifdef HAVE_PYTHON
-      storage.initial_mode = shcore::IShell_core::Mode::Python;
+        [this](const std::string&, const char*) {
+          storage.initial_mode = shcore::IShell_core::Mode::Python;
+        }
 #else
-      throw std::invalid_argument("Python is not supported.");
+        [](const std::string&, const char*) {
+          throw std::invalid_argument("Python is not supported.");
+        }
 #endif
-      })
+    )
     (&storage.wrap_json, "off", cmdline("--json[=format]"),
         "Produce output in JSON format, allowed values: raw, pretty, and off. "
         "If no format is specified pretty format is produced.",

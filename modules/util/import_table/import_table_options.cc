@@ -98,7 +98,8 @@ size_t Import_table_options::calc_thread_size() {
 
   // We do not need to spawn more threads than file chunks
   const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
-  if (calculated_threads < std::numeric_limits<int64_t>::max()) {
+  if (calculated_threads <
+      static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
     threads_size =
         std::min(threads_size, static_cast<int64_t>(calculated_threads));
   }

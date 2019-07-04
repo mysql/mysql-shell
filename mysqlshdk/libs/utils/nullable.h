@@ -47,12 +47,13 @@ class nullable {
 
   void operator=(std::nullptr_t) { _is_null = true; }
 
-  C &operator=(const C &value) {
+  nullable<C> &operator=(const C &value) {
     _value = value;
     _is_null = false;
-
-    return _value;
+    return *this;
   }
+
+  nullable<C> &operator=(const nullable<C> &value) = default;
 
   operator bool() const { return !_is_null; }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,7 +155,8 @@ int64_t Row::get_int(uint32_t index) const {
     uint64_t unsigned_val = strtoull(_row[index], nullptr, 10);
 
     if ((errno == ERANGE && unsigned_val == ULLONG_MAX) ||
-        unsigned_val > (std::numeric_limits<int64_t>::max)())
+        unsigned_val >
+            static_cast<uint64_t>((std::numeric_limits<int64_t>::max)()))
       throw FIELD_ERROR(index, "field value exceeds allowed range");
 
     ret_val = static_cast<int64_t>(unsigned_val);

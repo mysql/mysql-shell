@@ -176,7 +176,7 @@ TEST(ValueTests, ConversionRanges) {
   //    max -> OK
   EXPECT_THROW(Value(std::numeric_limits<int64_t>::min()).as_uint(),
                shcore::Exception);
-  EXPECT_TRUE(std::numeric_limits<int64_t>::max() ==
+  EXPECT_TRUE(static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) ==
               Value(std::numeric_limits<int64_t>::max()).as_uint());
   // int64_t  -> double
   //    min -> error
@@ -197,7 +197,8 @@ TEST(ValueTests, ConversionRanges) {
   //    min -> OK
   //    max -> error
   EXPECT_TRUE(std::numeric_limits<uint64_t>::min() ==
-              Value(std::numeric_limits<uint64_t>::min()).as_int());
+              static_cast<uint64_t>(
+                  Value(std::numeric_limits<uint64_t>::min()).as_int()));
   EXPECT_THROW(Value(std::numeric_limits<uint64_t>::max()).as_int(),
                shcore::Exception);
   // uint64_t -> double
