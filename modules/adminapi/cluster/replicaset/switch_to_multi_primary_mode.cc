@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/switch_to_multi_primary_mode.h"
+#include "modules/adminapi/cluster/replicaset/switch_to_multi_primary_mode.h"
 
 #include <string>
 #include <vector>

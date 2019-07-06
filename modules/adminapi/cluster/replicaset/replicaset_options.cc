@@ -21,8 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/replicaset_options.h"
+#include "modules/adminapi/cluster/replicaset/replicaset_options.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {
@@ -61,17 +62,17 @@ void Replicaset_options::connect_to_members() {
       group_session->get_connection_options());
 
   for (const auto &inst : m_instances) {
-    mysqlshdk::db::Connection_options opts(inst.classic_endpoint);
+    mysqlshdk::db::Connection_options opts(inst.endpoint);
     if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
-      m_member_sessions[inst.classic_endpoint] = group_session;
+      m_member_sessions[inst.endpoint] = group_session;
     } else {
       opts.set_login_options_from(group_session_copts);
 
       try {
-        m_member_sessions[inst.classic_endpoint] =
+        m_member_sessions[inst.endpoint] =
             mysqlshdk::db::mysql::open_session(opts);
       } catch (const mysqlshdk::db::Error &e) {
-        m_member_connect_errors[inst.classic_endpoint] = e.format();
+        m_member_connect_errors[inst.endpoint] = e.format();
       }
     }
   }
@@ -221,15 +222,14 @@ shcore::Dictionary_t Replicaset_options::collect_replicaset_options() {
   for (const auto &inst : m_instances) {
     shcore::Dictionary_t option = shcore::make_dict();
 
-    mysqlshdk::mysql::Instance instance(
-        m_member_sessions[inst.classic_endpoint]);
+    mysqlshdk::mysql::Instance instance(m_member_sessions[inst.endpoint]);
 
     if (!instance.get_session()) {
       (*option)["shellConnectError"] =
-          shcore::Value(m_member_connect_errors[inst.classic_endpoint]);
-      (*tmp)[inst.name] = shcore::Value(option);
+          shcore::Value(m_member_connect_errors[inst.endpoint]);
+      (*tmp)[inst.label] = shcore::Value(option);
     } else {
-      (*tmp)[inst.name] = shcore::Value(get_instance_options(instance));
+      (*tmp)[inst.label] = shcore::Value(get_instance_options(instance));
     }
   }
 

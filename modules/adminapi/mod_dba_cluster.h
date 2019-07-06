@@ -32,9 +32,9 @@
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
@@ -90,9 +90,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None set_instance_option(InstanceDef instance, str option, str value);
 #endif
 
-  Cluster(const std::string &name,
-          std::shared_ptr<mysqlshdk::db::ISession> group_session,
-          std::shared_ptr<MetadataStorage> metadata_storage);
+  explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);
+
   virtual ~Cluster();
 
   std::string class_name() const override { return "Cluster"; }

@@ -339,7 +339,7 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 #@# add_instance() 1 clone {VER(>=8.0.17)}
-|NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned|
+|NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been|
 |The safest and most convenient way to provision a new instance is through|
 |automatic clone provisioning, which will completely overwrite the state of|
 |The incremental distributed state recovery may be safely used if you are sure|

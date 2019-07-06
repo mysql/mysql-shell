@@ -20,11 +20,11 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "modules/adminapi/cluster/replicaset/add_instance.h"
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/replicaset/add_instance.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"

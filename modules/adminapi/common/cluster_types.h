@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,37 +21,25 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_COMMON_SQL_H_
-#define MODULES_ADMINAPI_COMMON_SQL_H_
+#ifndef MODULES_ADMINAPI_COMMON_CLUSTER_TYPES_H_
+#define MODULES_ADMINAPI_COMMON_CLUSTER_TYPES_H_
 
 #include <string>
-#include <utility>
-#include <vector>
-
-#include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/metadata_storage.h"
-#include "scripting/common.h"
 
 namespace mysqlsh {
 namespace dba {
-GRInstanceType get_gr_instance_type(
-    std::shared_ptr<mysqlshdk::db::ISession> connection);
-void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                          int *port, std::string *datadir);
 
-Cluster_check_info get_replication_group_state(
-    const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type);
+using Cluster_id = uint32_t;
+using Instance_id = uint32_t;
 
-std::vector<std::string> get_peer_seeds(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
-    const std::string &instance_host);
-std::vector<std::pair<std::string, int>> get_open_sessions(
-    std::shared_ptr<mysqlshdk::db::ISession> connection);
+enum class Global_topology_type {
+  NONE,                // not a replicated/async cluster
+  SINGLE_PRIMARY_STAR  // 1 master/active, 1 or more slaves
+};
 
-Instance_metadata query_instance_info(
-    const mysqlshdk::mysql::IInstance &instance);
+enum class Cluster_type { NONE, GROUP_REPLICATION, ASYNC_REPLICATION };
 
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_COMMON_SQL_H_
+#endif  //  MODULES_ADMINAPI_COMMON_CLUSTER_TYPES_H_

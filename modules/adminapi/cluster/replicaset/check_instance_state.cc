@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/check_instance_state.h"
+#include "modules/adminapi/cluster/replicaset/check_instance_state.h"
 
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -174,7 +174,8 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   mysqlshdk::mysql::Instance target_instance(*m_target_instance);
 
   m_replicaset.execute_in_members(
-      {"'ONLINE'"}, m_target_instance->get_connection_options(), {},
+      {mysqlshdk::gr::Member_state::ONLINE},
+      m_target_instance->get_connection_options(), {},
       [&all_purged, &target_instance](
           const std::shared_ptr<mysqlshdk::db::ISession> &session) {
         mysqlshdk::mysql::Instance instance(session);

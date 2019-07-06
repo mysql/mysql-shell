@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
@@ -499,12 +500,19 @@ void ensure_instance_not_belong_to_metadata(
 
   // Check if the instance exists on the ReplicaSet
   log_debug("Checking if the instance belongs to the replicaset");
-  bool is_instance_on_md =
-      replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(replicaset.get_id(), address_in_metadata);
+  Instance_metadata instance_md;
+  try {
+    instance_md = replicaset.get_cluster()
+                      ->get_metadata_storage()
+                      ->get_instance_by_endpoint(address_in_metadata);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+      return;
+    }
+    throw;
+  }
 
-  if (is_instance_on_md) {
+  if (instance_md.cluster_id == replicaset.get_cluster()->get_id()) {
     // Check if instance is running auto-rejoin
     bool is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
 

@@ -31,11 +31,11 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
+#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -53,14 +53,19 @@ constexpr const char k_cluster_attribute_default[] = "default";
 constexpr const char k_instance_attribute_join_time[] = "joinTime";
 
 class MetadataStorage;
+struct Cluster_metadata;
 
 class Cluster_impl {
  public:
   friend class Cluster;
 
-  Cluster_impl(const std::string &name,
-               std::shared_ptr<mysqlshdk::db::ISession> group_session,
-               std::shared_ptr<MetadataStorage> metadata_storage);
+  Cluster_impl(const Cluster_metadata &metadata,
+               const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+               const std::shared_ptr<MetadataStorage> &metadata_storage);
+
+  Cluster_impl(const std::string &name, const std::string &group_name,
+               const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+               const std::shared_ptr<MetadataStorage> &metadata_storage);
   virtual ~Cluster_impl();
 
   uint64_t get_id() const { return _id; }
@@ -70,13 +75,8 @@ class Cluster_impl {
     return _default_replica_set;
   }
 
-  void set_default_replicaset(const std::string &name,
-                              const std::string &topology_type,
-                              const std::string &group_name);
-
-  std::shared_ptr<ReplicaSet> create_default_replicaset(
-      const std::string &name, bool multi_primary,
-      const std::string &group_name, bool is_adopted);
+  std::shared_ptr<ReplicaSet> create_default_replicaset(const std::string &name,
+                                                        bool multi_primary);
 
   std::string get_name() const { return _name; }
   std::string get_description() const { return _description; }
@@ -87,14 +87,13 @@ class Cluster_impl {
     _description = description;
   }
 
-  void set_name(const std::string &name) { _name = name; }
+  std::string get_group_name() const { return m_group_name; }
 
-  void set_options(const std::string &json) {
-    _options = shcore::Value::parse(json).as_map();
+  std::string get_topology_type() const {
+    return get_default_replicaset()->get_topology_type();
   }
-  std::string get_options() { return shcore::Value(_options).json(false); }
 
-  void insert_default_replicaset(bool multi_primary, bool is_adopted);
+  void set_name(const std::string &name) { _name = name; }
 
   bool get_gtid_set_is_complete() const;
 
@@ -108,6 +107,8 @@ class Cluster_impl {
   void drop_replication_user(mysqlshdk::mysql::IInstance *target);
 
   void disconnect();
+
+  bool contains_instance_with_address(const std::string &host_port);
 
  public:
   // TODO(alfredo) - whoever refactors these methods, should move them to
@@ -133,9 +134,6 @@ class Cluster_impl {
     return _metadata_storage;
   }
 
-  // new metadata object
-  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> metadata() const;
-
   /*
    * Synchronize transactions on target instance.
    *
@@ -151,21 +149,17 @@ class Cluster_impl {
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
  protected:
-  uint64_t _id;
+  Cluster_id _id;
   std::string _name;
+  std::string m_group_name;
   std::shared_ptr<ReplicaSet> _default_replica_set;
   std::string _description;
-  shcore::Value::Map_type_ref _options;
   // Session to a member of the group so we can query its status and other
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   // Used shell options
   void init();
-
- private:
-  friend class Dba;
-  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
  public:
   shcore::Value force_quorum_using_partition_of(

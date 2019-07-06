@@ -39,6 +39,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
@@ -46,6 +47,7 @@
 namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
+struct Instance_metadata;
 class Cluster_impl;
 
 #if DOXYGEN_CPP
@@ -55,15 +57,9 @@ class Cluster_impl;
 #endif
 class ReplicaSet {
  public:
-  using Instance_info = mysqlshdk::innodbcluster::Instance_info;
-
   ReplicaSet(const std::string &name, const std::string &topology_type,
-             const std::string &group_name,
              std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
-
-  void set_id(uint64_t id) { _id = id; }
-  uint64_t get_id() const { return _id; }
 
   void set_name(const std::string &name) { _name = name; }
   const std::string &get_name() const { return _name; }
@@ -83,18 +79,14 @@ class ReplicaSet {
     _topology_type = topology_type;
   }
 
-  const std::string &get_group_name() const { return _group_name; }
-
   void sanity_check() const;
-
-  void set_group_name(const std::string &group_name);
 
   void add_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_definition,
       const std::string &label = "") const;
 
-  void add_instance_metadata(Instance_definition *instance_definition,
-                             const std::string &canonical_hostname) const;
+  void add_instance_metadata(const mysqlshdk::mysql::IInstance &instance,
+                             const std::string &label = "") const;
 
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
@@ -102,11 +94,12 @@ class ReplicaSet {
   void adopt_from_gr();
 
   /**
-   * Get ONLINE instances from the cluster.
+   * Get ONLINE and RECOVERING instances from the cluster.
    *
-   * @return vector with the Instance definition of the ONLINE instances.
+   * @return vector with the Instance definition of the ONLINE
+   * and RECOVERING instances.
    */
-  std::vector<Instance_definition> get_online_instances() const;
+  std::vector<Instance_metadata> get_active_instances() const;
 
   /**
    * Get an online instance from the cluster.
@@ -121,19 +114,25 @@ class ReplicaSet {
    *         instance found, or a nullptr if no instance is available (not
    *         reachable).
    */
+  // TODO(alfredo) - remove this and replace with Instance_pool
   std::unique_ptr<mysqlshdk::mysql::Instance> get_online_instance(
       const std::string &exclude_uuid = "") const;
 
-  std::vector<Instance_definition> get_instances_from_metadata() const;
+  std::vector<Instance_metadata> get_instances() const;
 
-  std::vector<Instance_info> get_instances() const;
+  /**
+   * Return list of instances registered in metadata along with their current
+   * GR member state.
+   */
+  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
+  get_instances_with_state() const;
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       std::vector<std::string> ignored_instances = {},
       bool skip_invalid_state = false) const;
 
   void execute_in_members(
-      const std::vector<std::string> &states,
+      const std::vector<mysqlshdk::gr::Member_state> &states,
       const mysqlshdk::db::Connection_options &cnx_opt,
       const std::vector<std::string> &ignore_instances_vector,
       std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
@@ -214,10 +213,8 @@ class ReplicaSet {
   void verify_topology_type_change() const;
 
  protected:
-  uint64_t _id;
   std::string _name;
   std::string _topology_type;
-  std::string _group_name;
 
  private:
   Cluster_impl *m_cluster;

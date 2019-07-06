@@ -22,9 +22,9 @@
  */
 
 #include "modules/adminapi/cluster/cluster_set_option.h"
+#include "modules/adminapi/cluster/replicaset/set_option.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/replicaset/set_option.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -80,49 +80,21 @@ void Cluster_set_option::check_disable_clone_support() {
   log_debug("Checking of disableClone is not supported by all cluster members");
 
   // Get all cluster instances
-  std::vector<Instance_definition> instance_defs =
-      m_cluster->get_metadata_storage()->get_replicaset_instances(
-          m_cluster->get_default_replicaset()->get_id(), true);
+  auto members = mysqlshdk::gr::get_members(
+      mysqlshdk::mysql::Instance(m_cluster->get_group_session()));
 
-  size_t count = 0;
+  size_t bad_count = 0;
 
-  // Check if all instances have a version that does not support clone
-  for (const Instance_definition &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state =
-        mysqlshdk::gr::to_member_state(instance_def.state);
-
-    if (state == mysqlshdk::gr::Member_state::ONLINE) {
-      std::string instance_address = instance_def.endpoint;
-
-      Connection_options instance_cnx_opts =
-          shcore::get_connection_options(instance_address, false);
-      instance_cnx_opts.set_login_options_from(
-          m_cluster->get_group_session()->get_connection_options());
-
-      log_debug("Connecting to instance '%s'.", instance_address.c_str());
-      std::shared_ptr<mysqlshdk::db::ISession> session;
-
-      // Establish a session to the instance
-      try {
-        session = mysqlshdk::db::mysql::Session::create();
-        session->connect(instance_cnx_opts);
-
-        mysqlshdk::mysql::Instance instance;
-
-        if (!is_option_supported(
-                mysqlshdk::mysql::Instance(session).get_version(), m_option,
-                k_global_cluster_supported_options)) {
-          count++;
-        }
-
-        session->close();
-      } catch (const std::exception &err) {
-        log_debug("Failed to connect to instance: %s", err.what());
-      }
+  // Check if all instances have a version that supports clone
+  for (const auto &member : members) {
+    if (member.version.empty() ||
+        !is_option_supported(mysqlshdk::utils::Version(member.version),
+                             m_option, k_global_cluster_supported_options)) {
+      bad_count++;
     }
   }
 
-  if (count == instance_defs.size()) {
+  if (bad_count > 0) {
     throw shcore::Exception::runtime_error(
         "Option 'disableClone' not supported on Cluster.");
   }
@@ -130,9 +102,8 @@ void Cluster_set_option::check_disable_clone_support() {
 
 void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
   // Get all cluster instances
-  std::vector<Instance_definition> instance_defs =
-      m_cluster->get_metadata_storage()->get_replicaset_instances(
-          m_cluster->get_default_replicaset()->get_id(), true);
+  std::vector<Instance_metadata> instance_defs =
+      m_cluster->get_default_replicaset()->get_instances();
 
   // Get cluster session to use the same authentication credentials for all
   // replicaset instances.
@@ -141,7 +112,7 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
 
   size_t count = 0;
 
-  for (const Instance_definition &instance_def : instance_defs) {
+  for (const Instance_metadata &instance_def : instance_defs) {
     std::string instance_address = instance_def.endpoint;
 
     Connection_options instance_cnx_opts =
@@ -151,14 +122,12 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
     log_debug("Connecting to instance '%s'.", instance_address.c_str());
     std::shared_ptr<mysqlshdk::db::ISession> session;
 
-    mysqlshdk::mysql::Instance instance;
-
     // Establish a session to the instance
     try {
       session = mysqlshdk::db::mysql::Session::create();
       session->connect(instance_cnx_opts);
 
-      instance = mysqlshdk::mysql::Instance(session);
+      auto instance = mysqlshdk::mysql::Instance(session);
 
       if (disable_clone) {
         // Uninstall the clone plugin
@@ -285,8 +254,8 @@ shcore::Value Cluster_set_option::execute() {
                           *m_value_str + "' in the Cluster ...");
       console->println();
 
-      m_cluster->get_metadata_storage()->set_cluster_name(current_cluster_name,
-                                                          *m_value_str);
+      m_cluster->get_metadata_storage()->update_cluster_name(
+          m_cluster->get_id(), *m_value_str);
       m_cluster->set_name(*m_value_str);
 
       console->print_info("Successfully set the value of '" + m_option +

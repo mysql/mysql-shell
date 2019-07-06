@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster/replicaset/set_primary_instance.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/replicaset/set_primary_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -58,7 +58,7 @@ void Set_primary_instance::ensure_single_primary_mode() {
   mysqlshdk::gr::Topology_mode metadata_topology_mode =
       m_replicaset->get_cluster()
           ->get_metadata_storage()
-          ->get_replicaset_topology_mode(m_replicaset->get_id());
+          ->get_cluster_topology_mode(m_replicaset->get_cluster()->get_id());
 
   // Check if the topology mode match and report needed change in the
   // metadata.
@@ -89,15 +89,30 @@ void Set_primary_instance::prepare() {
   log_debug("Verifying connection options.");
   validate_connection_options(m_instance_cnx_opts);
 
+  m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
+                                                 ->get_group_session()
+                                                 ->get_connection_options());
+
   // - Ensure instance belong to replicaset;
   std::string target_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
-  m_address_in_md = mysqlsh::dba::get_report_host_address(
-      m_instance_cnx_opts, m_replicaset->get_cluster()
-                               ->get_group_session()
-                               ->get_connection_options());
+
+  std::string address_in_md;
+  try {
+    std::shared_ptr<mysqlshdk::db::ISession> session =
+        mysqlshdk::db::mysql::Session::create();
+    session->connect(m_instance_cnx_opts);
+    mysqlshdk::mysql::Instance target_instance(session);
+
+    m_target_uuid = target_instance.get_uuid();
+    address_in_md = target_instance.get_canonical_address();
+  } catch (const mysqlshdk::db::Error &e) {
+    log_debug("Failed query target instance '%s': %s",
+              target_instance_address.c_str(), e.format().c_str());
+  }
+
   ensure_target_instance_belongs_to_replicaset(target_instance_address,
-                                               m_address_in_md);
+                                               address_in_md);
 
   Topology_configuration_command::prepare();
 }
@@ -113,17 +128,7 @@ shcore::Value Set_primary_instance::execute() {
   console->println();
 
   // Execute the UDF: SELECT group_replication_set_as_primary(member_uuid)
-  {
-    // Get the server_uuid of the instance
-    std::string target_instance_uuid =
-        m_replicaset->get_cluster()
-            ->get_metadata_storage()
-            ->get_new_metadata()
-            ->get_instance_uuid_by_address(m_address_in_md);
-
-    mysqlshdk::gr::set_as_primary(*m_cluster_session_instance,
-                                  target_instance_uuid);
-  }
+  mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
 
   // Print information about the instances role changes
   print_replicaset_members_role_changes();

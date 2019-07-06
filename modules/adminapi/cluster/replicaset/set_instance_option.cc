@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/set_instance_option.h"
+#include "modules/adminapi/cluster/replicaset/set_instance_option.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -79,7 +79,8 @@ void Set_instance_option::ensure_option_valid() {
     // Check if there's already an instance with the label we want to set
     if (!m_replicaset.get_cluster()
              ->get_metadata_storage()
-             ->is_instance_label_unique(m_replicaset.get_id(), *m_value_str)) {
+             ->is_instance_label_unique(m_replicaset.get_cluster()->get_id(),
+                                        *m_value_str)) {
       throw shcore::Exception::argument_error(
           "An instance with label '" + *m_value_str +
           "' is already part of this InnoDB cluster");
@@ -98,10 +99,8 @@ void Set_instance_option::ensure_instance_belong_to_replicaset() {
   // Check if the instance exists on the ReplicaSet
   log_debug("Checking if the instance belongs to the replicaset");
   bool is_instance_on_md =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                      m_address_in_metadata);
+      m_replicaset.get_cluster()->contains_instance_with_address(
+          m_address_in_metadata);
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + m_target_instance_address +
@@ -218,10 +217,11 @@ void Set_instance_option::prepare() {
 shcore::Value Set_instance_option::execute() {
   auto console = mysqlsh::current_console();
 
-  std::string target_instance_label = m_replicaset.get_cluster()
-                                          ->get_metadata_storage()
-                                          ->get_instance(m_address_in_metadata)
-                                          .label;
+  std::string target_instance_label =
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->get_instance_by_endpoint(m_address_in_metadata)
+          .label;
 
   console->print_info(
       "Setting the value of '" + m_option + "' to '" +
@@ -231,7 +231,8 @@ shcore::Value Set_instance_option::execute() {
 
   if (m_option == "label") {
     m_replicaset.get_cluster()->get_metadata_storage()->set_instance_label(
-        m_replicaset.get_id(), target_instance_label, *m_value_str);
+        m_replicaset.get_cluster()->get_id(), target_instance_label,
+        *m_value_str);
   } else {
     // Update the option value in the target instance:
     std::string option_gr_variable =

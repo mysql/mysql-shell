@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/set_option.h"
+#include "modules/adminapi/cluster/replicaset/set_option.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -79,10 +79,8 @@ void Set_option::ensure_all_members_replicaset_online() {
   log_debug("Checking if all members of the Replicaset are ONLINE.");
 
   // Get all cluster instances
-  std::vector<Instance_definition> instance_defs =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->get_replicaset_instances(m_replicaset.get_id(), true);
+  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
+      instance_defs = m_replicaset.get_instances_with_state();
 
   // Get cluster session to use the same authentication credentials for all
   // replicaset instances.
@@ -90,14 +88,14 @@ void Set_option::ensure_all_members_replicaset_online() {
       m_cluster_session_instance->get_connection_options();
 
   // Check if all instances have the ONLINE state
-  for (const Instance_definition &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state =
-        mysqlshdk::gr::to_member_state(instance_def.state);
+  for (const auto &instance_def : instance_defs) {
+    mysqlshdk::gr::Member_state state = instance_def.second.state;
 
     if (state != mysqlshdk::gr::Member_state::ONLINE) {
-      console->print_error(
-          "The instance '" + instance_def.endpoint + "' has the status: '" +
-          mysqlshdk::gr::to_string(state) + "'. All members must be ONLINE.");
+      console->print_error("The instance '" + instance_def.first.endpoint +
+                           "' has the status: '" +
+                           mysqlshdk::gr::to_string(state) +
+                           "'. All members must be ONLINE.");
 
       throw shcore::Exception::runtime_error(
           "One or more instances of the cluster are not ONLINE.");
@@ -109,7 +107,7 @@ void Set_option::ensure_all_members_replicaset_online() {
       // Set login credentials to connect to instance.
       // NOTE: It is assumed that the same login credentials can be used to
       // connect to all replicaset instances.
-      std::string instance_address = instance_def.endpoint;
+      std::string instance_address = instance_def.first.endpoint;
 
       Connection_options instance_cnx_opts =
           shcore::get_connection_options(instance_address, false);

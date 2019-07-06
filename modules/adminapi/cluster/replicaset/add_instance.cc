@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/add_instance.h"
+#include "modules/adminapi/cluster/replicaset/add_instance.h"
 
 #include <climits>
 #include <memory>
@@ -133,7 +133,8 @@ bool check_recoverable_from_any(const ReplicaSet *replicaset,
   bool recoverable = false;
 
   replicaset->execute_in_members(
-      {"'ONLINE'"}, target_instance->get_connection_options(), {},
+      {mysqlshdk::gr::Member_state::ONLINE},
+      target_instance->get_connection_options(), {},
       [&recoverable, &target_instance](
           const std::shared_ptr<mysqlshdk::db::ISession> &session) {
         mysqlshdk::mysql::Instance instance(session);
@@ -596,14 +597,14 @@ void Add_instance::handle_recovery_account() const {
    */
 
   // Get the "donor" recovery account
-  mysqlshdk::mysql::Instance md_inst = mysqlshdk::mysql::Instance(
-      m_replicaset.get_cluster()->get_metadata_storage()->get_session());
+  mysqlshdk::mysql::Instance *md_inst =
+      m_replicaset.get_cluster()->get_metadata_storage()->get_md_server();
 
   std::string recovery_user, recovery_user_host;
   std::tie(recovery_user, recovery_user_host) =
       m_replicaset.get_cluster()
           ->get_metadata_storage()
-          ->get_instance_recovery_account(md_inst.get_uuid());
+          ->get_instance_recovery_account(md_inst->get_uuid());
 
   // Insert the "donor" recovery account into the MD of the target instance
   log_debug("Adding donor recovery account to metadata");
@@ -749,12 +750,16 @@ void Add_instance::prepare() {
     }
   }
 
-  // Check instance server UUID (must be unique among the cluster members).
-  m_replicaset.validate_server_uuid(m_target_instance->get_session());
+  // TODO(alfredo) - skip_instance_check is only true when this is called from
+  // rebootCluster. Once rebootCluster is rewritten to not use addInstance,
+  // this check can be removed along with all these extra flags
+  if (!m_skip_instance_check) {
+    // Check instance server UUID (must be unique among the cluster members).
+    m_replicaset.validate_server_uuid(m_target_instance->get_session());
 
-  // Ensure instance server ID is unique among the cluster members.
-  ensure_unique_server_id();
-
+    // Ensure instance server ID is unique among the cluster members.
+    ensure_unique_server_id();
+  }
   // Get the address used by GR for the added instance (used in MD).
   m_host_in_metadata = m_target_instance->get_canonical_hostname();
   m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -933,8 +938,8 @@ shcore::Value Add_instance::execute() {
 
   // Get the current number of replicaSet members
   uint64_t replicaset_count =
-      m_replicaset.get_cluster()->get_metadata_storage()->get_replicaset_count(
-          m_replicaset.get_id());
+      m_replicaset.get_cluster()->get_metadata_storage()->get_cluster_size(
+          m_replicaset.get_cluster()->get_id());
 
   // Clone handling
   if (m_clone_supported) {
@@ -1043,43 +1048,22 @@ shcore::Value Add_instance::execute() {
 
   // Check if instance address already belong to replicaset (metadata).
   bool is_instance_on_md =
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset.get_id(),
-                                      m_address_in_metadata);
+      m_replicaset.get_cluster()->contains_instance_with_address(
+          m_address_in_metadata);
 
-  log_debug("ReplicaSet %s: Instance '%s' %s",
-            std::to_string(m_replicaset.get_id()).c_str(),
+  log_debug("Cluster %s: Instance '%s' %s",
+            m_replicaset.get_cluster()->get_name().c_str(),
             m_instance_address.c_str(),
             is_instance_on_md ? "is already in the Metadata."
                               : "is being added to the Metadata...");
 
   // If the instance is not on the Metadata, we must add it.
   if (!is_instance_on_md) {
-    // Get the Instance_definition of the target instance to be added to the
-    // MD
-    Instance_definition instance_def;
-    std::string target_instance_canonical_hostname;
-    {
-      instance_def = query_instance_info(*m_target_instance);
-
-      // Set the label
-      if (!m_instance_label.is_null())
-        instance_def.label = m_instance_label.get_safe();
-
-      // Get the canonical hostname
-      target_instance_canonical_hostname =
-          m_target_instance->get_canonical_hostname();
-
-      // Set the GR address endpoint
-      instance_def.grendpoint = *m_gr_opts.local_address;
-    }
-
-    m_replicaset.add_instance_metadata(&instance_def,
-                                       target_instance_canonical_hostname);
+    m_replicaset.add_instance_metadata(*m_target_instance,
+                                       m_instance_label.get_safe());
     m_replicaset.get_cluster()
         ->get_metadata_storage()
-        ->update_instance_attribute(instance_def.uuid,
+        ->update_instance_attribute(m_target_instance->get_uuid(),
                                     k_instance_attribute_join_time,
                                     shcore::Value(join_begin_time));
 
@@ -1135,7 +1119,7 @@ shcore::Value Add_instance::execute() {
   mysqlshdk::gr::Topology_mode topology_mode =
       m_replicaset.get_cluster()
           ->get_metadata_storage()
-          ->get_replicaset_topology_mode(m_replicaset.get_id());
+          ->get_cluster_topology_mode(m_replicaset.get_cluster()->get_id());
 
   if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
       replicaset_count > 7) {
@@ -1234,8 +1218,10 @@ void Add_instance::refresh_target_connections() {
     }
 
     try {
-      m_replicaset.get_cluster()->get_metadata_storage()->get_session()->query(
-          "SELECT 1");
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->get_md_server()
+          ->query("SELECT 1");
     } catch (const mysqlshdk::db::Error &err) {
       auto e = shcore::Exception::mysql_error_with_code_and_state(
           err.what(), err.code(), err.sqlstate());
@@ -1246,13 +1232,12 @@ void Add_instance::refresh_target_connections() {
             "connection.",
             e.format().c_str());
 
-        m_replicaset.get_cluster()
-            ->get_metadata_storage()
-            ->get_session()
-            ->connect(m_replicaset.get_cluster()
-                          ->get_metadata_storage()
-                          ->get_session()
-                          ->get_connection_options());
+        auto md_session = m_replicaset.get_cluster()
+                              ->get_metadata_storage()
+                              ->get_md_server()
+                              ->get_session();
+
+        md_session->connect(md_session->get_connection_options());
       } else {
         throw;
       }

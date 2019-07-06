@@ -104,6 +104,7 @@ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1
 cluster.status();
 
 //@ Rejoin instance 2
+//BREAK
 if (__have_ssl)
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
 else

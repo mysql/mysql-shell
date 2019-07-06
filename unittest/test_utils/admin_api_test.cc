@@ -32,7 +32,7 @@
 
 namespace tests {
 
-// uint64_t Dba_replicaset_test::replicaset_id = 0;
+std::shared_ptr<mysqlsh::dba::Cluster> Admin_api_test::_cluster = {};
 std::shared_ptr<mysqlsh::dba::ReplicaSet> Admin_api_test::_replicaset = {};
 std::string Admin_api_test::uuid_1 = "";
 std::string Admin_api_test::uuid_2 = "";
@@ -62,11 +62,10 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shcore::Dictionary_t options = shcore::make_dict();
   options->emplace("memberSslMode", "REQUIRED");
   options->emplace("gtidSetIsComplete", true);
-  auto cluster =
+  _cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
-
-  cluster->add_instance("root:root@localhost:" + shell_env.sb_str_port2(), {});
-  _replicaset = cluster->impl()->get_default_replicaset();
+  _cluster->add_instance("root:root@localhost:" + shell_env.sb_str_port2(), {});
+  _replicaset = _cluster->impl()->get_default_replicaset();
 
   shell_env.execute("session.close()");
 

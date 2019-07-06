@@ -63,17 +63,12 @@ REGISTER_HELP(
     "For more help on a specific function use: cluster.help('<functionName>')");
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
-Cluster::Cluster(const std::string &name,
-                 std::shared_ptr<mysqlshdk::db::ISession> group_session,
-                 std::shared_ptr<MetadataStorage> metadata_storage) {
+Cluster::Cluster(const std::shared_ptr<Cluster_impl> &impl) : m_impl(impl) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
                                         .use_count());
   });
-
-  m_impl =
-      std::make_shared<Cluster_impl>(name, group_session, metadata_storage);
 
   init();
 }
@@ -1029,8 +1024,8 @@ shcore::Value Cluster::force_quorum_using_partition_of(
     else
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-    std::vector<mysqlsh::dba::Instance_definition> online_instances =
-        default_rs->get_online_instances();
+    std::vector<Instance_metadata> online_instances =
+        default_rs->get_active_instances();
 
     std::vector<std::string> online_instances_array;
     for (const auto &instance : online_instances) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,7 +78,7 @@ class Replicaset_options : public Command_interface {
   const ReplicaSet &m_replicaset;
   mysqlshdk::utils::nullable<bool> m_all;
 
-  std::vector<ReplicaSet::Instance_info> m_instances;
+  std::vector<Instance_metadata> m_instances;
   std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
       m_member_sessions;
   std::map<std::string, std::string> m_member_connect_errors;

@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/switch_to_single_primary_mode.h"
+#include "modules/adminapi/cluster/replicaset/switch_to_single_primary_mode.h"
 
 #include <string>
 #include <vector>
@@ -51,19 +51,26 @@ void Switch_to_single_primary_mode::prepare() {
   //   - Validate the connection options;
   //   - Ensure instance belong to replicaset;
   if (m_instance_cnx_opts.has_data()) {
+    m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
+                                                   ->get_group_session()
+                                                   ->get_connection_options());
+
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());
+
+    std::shared_ptr<mysqlshdk::db::ISession> session =
+        mysqlshdk::db::mysql::Session::create();
+    session->connect(m_instance_cnx_opts);
+    mysqlshdk::mysql::Instance target_instance(session);
 
     log_debug("Verifying connection options.");
 
     validate_connection_options(m_instance_cnx_opts);
 
-    m_address_in_md = mysqlsh::dba::get_report_host_address(
-        m_instance_cnx_opts, m_replicaset->get_cluster()
-                                 ->get_group_session()
-                                 ->get_connection_options());
-    ensure_target_instance_belongs_to_replicaset(target_instance_address,
-                                                 m_address_in_md);
+    m_target_uuid = target_instance.get_uuid();
+
+    ensure_target_instance_belongs_to_replicaset(
+        target_instance_address, target_instance.get_canonical_address());
   }
 }
 
@@ -76,20 +83,11 @@ shcore::Value Switch_to_single_primary_mode::execute() {
   console->println();
 
   // Execute the UDF: SELECT group_replication_switch_to_single_primary_mode()
-  {
-    if (m_instance_cnx_opts.has_data()) {
-      // Get the server_uuid of the instance
-      std::string target_instance_uuid =
-          m_replicaset->get_cluster()
-              ->get_metadata_storage()
-              ->get_new_metadata()
-              ->get_instance_uuid_by_address(m_address_in_md);
-
-      mysqlshdk::gr::switch_to_single_primary_mode(*m_cluster_session_instance,
-                                                   target_instance_uuid);
-    } else {
-      mysqlshdk::gr::switch_to_single_primary_mode(*m_cluster_session_instance);
-    }
+  if (!m_target_uuid.empty()) {
+    mysqlshdk::gr::switch_to_single_primary_mode(*m_cluster_session_instance,
+                                                 m_target_uuid);
+  } else {
+    mysqlshdk::gr::switch_to_single_primary_mode(*m_cluster_session_instance);
   }
 
   // Update the auto-increment values in all replicaset members:

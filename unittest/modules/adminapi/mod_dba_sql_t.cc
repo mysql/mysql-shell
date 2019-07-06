@@ -83,11 +83,13 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // hostname:port3
   auto session = create_session(_mysql_sandbox_ports[0]);
 
+  auto rs_id = _replicaset->get_cluster()->get_id();
+
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
       "values (0, 1, " +
-      std::to_string(_replicaset->get_id()) + ", '" + uuid_3 +
+      std::to_string(rs_id) + ", '" + uuid_3 +
       "', 'localhost:<port>', "
       "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
       "\"grLocal\": \"localhost:<port>1\", "

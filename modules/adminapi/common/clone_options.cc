@@ -129,7 +129,8 @@ void Clone_options::check_option_values(
       Unpack_target trg = target;
 
       replicaset->execute_in_members(
-          {"'ONLINE'", "'RECOVERING'"},
+          {mysqlshdk::gr::Member_state::ONLINE,
+           mysqlshdk::gr::Member_state::RECOVERING},
           replicaset->get_cluster()
               ->get_group_session()
               ->get_connection_options(),

@@ -50,7 +50,7 @@ struct NewInstanceInfo {
 struct MissingInstanceInfo {
   std::string id;
   std::string label;
-  std::string host;
+  std::string endpoint;
 };
 
 namespace ManagedInstance {

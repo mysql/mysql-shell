@@ -23,10 +23,10 @@
 
 #include <utility>
 
+#include "modules/adminapi/cluster/replicaset/replicaset_describe.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/replicaset/replicaset_describe.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {
@@ -43,9 +43,14 @@ void Replicaset_describe::prepare() {
 
   // Sanity checks
   {
-    // Verify if the cluster is still registed in the Metadata
-    if (!m_cluster->get_metadata_storage()->cluster_exists(
-            m_cluster->get_name()))
+    // TODO(alfredo) - this check seems unnecessary, there's no requirement
+    // that the cluster name can't change after getCluster() is called
+    // also this looks like a copy/paste of Replicaset_status::prepare()
+
+    // Verify if the cluster is still registered in the Metadata
+    Cluster_metadata cm;
+    if (!m_cluster->get_metadata_storage()->get_cluster_for_cluster_name(
+            m_cluster->get_name(), &cm))
       throw shcore::Exception::runtime_error(
           "The cluster '" + m_cluster->get_name() +
           "' is no longer registered in the Metadata.");
@@ -58,11 +63,11 @@ void Replicaset_describe::prepare() {
   m_instances = m_replicaset.get_instances();
 }
 
-void Replicaset_describe::feed_metadata_info(
-    shcore::Dictionary_t dict, const ReplicaSet::Instance_info &info) {
-  (*dict)["address"] = shcore::Value(info.classic_endpoint);
-  (*dict)["role"] = shcore::Value(info.role);
-  (*dict)["label"] = shcore::Value(info.name);
+void Replicaset_describe::feed_metadata_info(shcore::Dictionary_t dict,
+                                             const Instance_metadata &info) {
+  (*dict)["address"] = shcore::Value(info.endpoint);
+  (*dict)["role"] = shcore::Value(info.role_type);
+  (*dict)["label"] = shcore::Value(info.label);
 }
 
 void Replicaset_describe::feed_member_info(

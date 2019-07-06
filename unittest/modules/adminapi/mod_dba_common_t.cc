@@ -747,52 +747,6 @@ class Dba_common_cluster_functions : public Dba_common_test {
   }
 };
 
-TEST_F(Dba_common_cluster_functions, get_instances_gr) {
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  try {
-    auto result = mysqlsh::dba::get_instances_gr(metadata);
-
-    auto pos1 = std::find(result.begin(), result.end(), uuid_1);
-    EXPECT_TRUE(pos1 != result.end());
-
-    auto pos2 = std::find(result.begin(), result.end(), uuid_2);
-    EXPECT_TRUE(pos2 != result.end());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_instances_gr");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-}
-
-TEST_F(Dba_common_cluster_functions, get_instances_md) {
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  try {
-    auto result = mysqlsh::dba::get_instances_md(metadata, 1);
-
-    auto pos1 = std::find(result.begin(), result.end(), uuid_1);
-    EXPECT_TRUE(pos1 != result.end());
-
-    auto pos2 = std::find(result.begin(), result.end(), uuid_2);
-    EXPECT_TRUE(pos2 != result.end());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_instances_md");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-}
-
 // If the information on the Metadata and the GR group
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
@@ -803,8 +757,8 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
 
   try {
-    auto newly_discovered_instances_list(
-        get_newly_discovered_instances(metadata, 1));
+    auto newly_discovered_instances_list(get_newly_discovered_instances(
+        mysqlshdk::mysql::Instance(md_session), metadata, 1));
 
     EXPECT_TRUE(newly_discovered_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -826,7 +780,8 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
 
   try {
-    auto unavailable_instances_list(get_unavailable_instances(metadata, 1));
+    auto unavailable_instances_list(get_unavailable_instances(
+        mysqlshdk::mysql::Instance(md_session), metadata, 1));
 
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -845,11 +800,13 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   auto md_session = create_session(_mysql_sandbox_ports[0]);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
+  auto rs_id = _replicaset->get_cluster()->get_id();
+
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
       "values (0, 1, " +
-      std::to_string(_replicaset->get_id()) + ", '" + uuid_3 +
+      std::to_string(rs_id) + ", '" + uuid_3 +
       "', 'localhost:<port>', "
       "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
       "\"grLocal\": \"localhost:1<port>\", "
@@ -891,11 +848,13 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   auto md_session = create_session(_mysql_sandbox_ports[0]);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
+  auto rs_id = _replicaset->get_cluster()->get_id();
+
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
       "values (0, 1, " +
-      std::to_string(_replicaset->get_id()) +
+      std::to_string(rs_id) +
       ", '11111111-2222-3333-4444-555555555555', "
       "'localhost:<port>', 'HA', NULL, "
       "'{\"mysqlX\": \"localhost:<port>0\", "
@@ -905,7 +864,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));
-
+  // std::cerr << query << "\n";
   md_session->query(query);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;

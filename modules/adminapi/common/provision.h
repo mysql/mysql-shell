@@ -28,8 +28,8 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"

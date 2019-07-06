@@ -104,7 +104,7 @@ class Remove_instance : public Command_interface {
    * Verify if the instance belongs to the replicaset, otherwise it cannot be
    * removed.
    */
-  Instance_definition ensure_instance_belong_to_replicaset(
+  Instance_metadata ensure_instance_belong_to_replicaset(
       const std::string &address);
 
   /**
@@ -116,7 +116,7 @@ class Remove_instance : public Command_interface {
   /**
    * Remove the target instance from metadata.
    *
-   * This functions save the instance details (Instance_definition) at the
+   * This functions save the instance details (Instance_metadata) at the
    * begining to be able to revert the operation if needed (add it back to the
    * metadata).
    *
@@ -124,11 +124,11 @@ class Remove_instance : public Command_interface {
    * completely performed or nothing is removed if some error occur during the
    * operation.
    *
-   * @return an Instance_definition object with the state information of the
+   * @return an Instance_metadata object with the state information of the
    * removed instance, in order enable this operation to be reverted using this
    * data if needed.
    */
-  Instance_definition remove_instance_metadata();
+  Instance_metadata remove_instance_metadata();
 
   /**
    * Revert the removal of the instance from the metadata.
@@ -139,7 +139,7 @@ class Remove_instance : public Command_interface {
    * @param instance_def Object with the instance state (definition) to
    * re-insert into the metadata.
    */
-  void undo_remove_instance_metadata(const Instance_definition &instance_def);
+  void undo_remove_instance_metadata(const Instance_metadata &instance_def);
 
   /**
    * Auxiliar function used to determine the possible cause of the operation
@@ -152,7 +152,7 @@ class Remove_instance : public Command_interface {
    * cause of the failure.
    */
   void find_failure_cause(const std::exception &err,
-                          const Instance_definition &md);
+                          const Instance_metadata &md);
 
   /**
    * Auxiliar method to prompt the to use the 'force' option if the instance is

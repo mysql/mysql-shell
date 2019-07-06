@@ -27,9 +27,9 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config.h"

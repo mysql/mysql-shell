@@ -22,7 +22,7 @@
  */
 
 #include "modules/adminapi/cluster/cluster_describe.h"
-#include "modules/adminapi/replicaset/replicaset_describe.h"
+#include "modules/adminapi/cluster/replicaset/replicaset_describe.h"
 
 namespace mysqlsh {
 namespace dba {

@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/replicaset/replicaset.h"
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"

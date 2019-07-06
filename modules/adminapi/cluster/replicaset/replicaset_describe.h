@@ -79,10 +79,10 @@ class Replicaset_describe : public Command_interface {
   const ReplicaSet &m_replicaset;
   Cluster_impl *m_cluster;
 
-  std::vector<ReplicaSet::Instance_info> m_instances;
+  std::vector<Instance_metadata> m_instances;
 
   void feed_metadata_info(shcore::Dictionary_t dict,
-                          const ReplicaSet::Instance_info &info);
+                          const Instance_metadata &info);
 
   void feed_member_info(shcore::Dictionary_t dict,
                         const mysqlshdk::gr::Member &member);

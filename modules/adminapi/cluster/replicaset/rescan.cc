@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/rescan.h"
+#include "modules/adminapi/cluster/replicaset/rescan.h"
 
 #include <algorithm>
 #include <iterator>
@@ -113,7 +113,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
   auto console = mysqlsh::current_console();
   auto it = unavailable_instances.begin();
   while (it != unavailable_instances.end()) {
-    auto instance_conn_opt = mysqlshdk::db::Connection_options(it->host);
+    auto instance_conn_opt = mysqlshdk::db::Connection_options(it->endpoint);
     instance_conn_opt.set_login_options_from(group_conn_opt);
     instance_conn_opt.set_ssl_connection_options_from(
         group_conn_opt.get_ssl_options());
@@ -216,8 +216,10 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<NewInstanceInfo> newly_discovered_instances_list =
       get_newly_discovered_instances(
+          mysqlshdk::mysql::Instance(
+              m_replicaset->get_cluster()->get_group_session()),
           m_replicaset->get_cluster()->get_metadata_storage(),
-          m_replicaset->get_id());
+          m_replicaset->get_cluster()->get_id());
 
   // Creates the newlyDiscoveredInstances map
   auto newly_discovered_instances =
@@ -256,8 +258,10 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<MissingInstanceInfo> unavailable_instances_list =
       get_unavailable_instances(
+          mysqlshdk::mysql::Instance(
+              m_replicaset->get_cluster()->get_group_session()),
           m_replicaset->get_cluster()->get_metadata_storage(),
-          m_replicaset->get_id());
+          m_replicaset->get_cluster()->get_id());
 
   // Creates the unavailableInstances array
   auto unavailable_instances = std::make_shared<shcore::Value::Array_type>();
@@ -266,7 +270,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
     auto unavailable_instance = std::make_shared<shcore::Value::Map_type>();
     (*unavailable_instance)["member_id"] = shcore::Value(instance.id);
     (*unavailable_instance)["label"] = shcore::Value(instance.label);
-    (*unavailable_instance)["host"] = shcore::Value(instance.host);
+    (*unavailable_instance)["host"] = shcore::Value(instance.endpoint);
 
     unavailable_instances->push_back(shcore::Value(unavailable_instance));
   }
@@ -278,7 +282,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   mysqlshdk::gr::Topology_mode metadata_topology_mode =
       m_replicaset->get_cluster()
           ->get_metadata_storage()
-          ->get_replicaset_topology_mode(m_replicaset->get_id());
+          ->get_cluster_topology_mode(m_replicaset->get_cluster()->get_id());
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
@@ -323,7 +327,8 @@ void Rescan::update_topology_mode(
   // Update topology mode in metadata.
   m_replicaset->get_cluster()
       ->get_metadata_storage()
-      ->update_replicaset_topology_mode(m_replicaset->get_id(), topology_mode);
+      ->update_cluster_topology_mode(m_replicaset->get_cluster()->get_id(),
+                                     topology_mode);
 
   // Update the topology mode on the ReplicaSet object.
   std::string topo_mode =

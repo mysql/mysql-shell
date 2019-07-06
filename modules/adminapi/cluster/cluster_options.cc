@@ -22,8 +22,8 @@
  */
 
 #include "modules/adminapi/cluster/cluster_options.h"
+#include "modules/adminapi/cluster/replicaset/replicaset_options.h"
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/replicaset/replicaset_options.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {

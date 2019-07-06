@@ -470,71 +470,63 @@ shcore::Value Create_cluster::execute() {
                                      m_multi_primary, m_cfg.get());
     }
 
+    std::string group_name = m_target_instance->get_group_name();
+
     // Create the Metadata Schema.
     prepare_metadata_schema();
 
     // Create the cluster and insert it into the Metadata.
     std::shared_ptr<MetadataStorage> metadata =
         std::make_shared<MetadataStorage>(m_target_instance->get_session());
-    MetadataStorage::Transaction tx(metadata);
 
-    std::shared_ptr<Cluster> cluster = std::make_shared<Cluster>(
-        m_cluster_name, m_target_instance->get_session(), metadata);
+    auto cluster_impl = std::make_shared<Cluster_impl>(
+        m_cluster_name, group_name, m_target_instance->get_session(), metadata);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
-    cluster->impl()->set_description("Default Cluster");
-
-    // Insert Cluster on the Metadata Schema.
-    metadata->insert_cluster(cluster->impl());
-    metadata->update_cluster_attribute(
-        cluster->impl()->get_id(), k_cluster_attribute_assume_gtid_set_complete,
-        m_clone_opts.gtid_set_is_complete ? shcore::Value::True()
-                                          : shcore::Value::False());
-    metadata->update_cluster_attribute(cluster->impl()->get_id(),
-                                       k_cluster_attribute_default,
-                                       shcore::Value::True());
+    cluster_impl->set_description("Default Cluster");
 
     // Create the default replicaset in the Metadata and set it to the cluster.
-    cluster->impl()->insert_default_replicaset(*m_multi_primary,
-                                               m_adopt_from_gr);
+    cluster_impl->create_default_replicaset("default", *m_multi_primary);
 
-    tx.commit();
+    // Insert Cluster (and ReplicaSet) on the Metadata Schema.
+    metadata->create_cluster_record(cluster_impl.get(), m_adopt_from_gr);
 
-    // Set default_replicaset group name
-    cluster->impl()->get_default_replicaset()->set_group_name(
-        m_target_instance->get_group_name());
+    metadata->update_cluster_attribute(
+        cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,
+        m_clone_opts.gtid_set_is_complete ? shcore::Value::True()
+                                          : shcore::Value::False());
+
+    metadata->update_cluster_attribute(cluster_impl->get_id(),
+                                       k_cluster_attribute_default,
+                                       shcore::Value::True());
 
     // Insert instance into the metadata.
     if (m_adopt_from_gr) {
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
-      cluster->impl()->get_default_replicaset()->adopt_from_gr();
+      cluster_impl->get_default_replicaset()->adopt_from_gr();
 
       // Reset recovery channel in all instances to use our own account
-      reset_recovery_all(cluster->impl().get());
+      reset_recovery_all(cluster_impl.get());
     } else {
       // Check if instance address already belong to replicaset (metadata).
       // TODO(alfredo) - this check seems redundant?
       bool is_instance_on_md =
-          cluster->impl()->get_metadata_storage()->is_instance_on_replicaset(
-              cluster->impl()->get_default_replicaset()->get_id(),
-              m_address_in_metadata);
+          cluster_impl->contains_instance_with_address(m_address_in_metadata);
 
-      log_debug(
-          "Cluster %s: Instance '%s' %s",
-          std::to_string(cluster->impl()->get_default_replicaset()->get_id())
-              .c_str(),
-          m_target_instance->descr().c_str(),
-          is_instance_on_md ? "is already in the Metadata."
-                            : "is being added to the Metadata...");
+      log_debug("Cluster %s: Instance '%s' %s",
+                cluster_impl->get_name().c_str(),
+                m_target_instance->descr().c_str(),
+                is_instance_on_md ? "is already in the Metadata."
+                                  : "is being added to the Metadata...");
 
       // If the instance is not in the Metadata, we must add it.
       if (!is_instance_on_md) {
-        cluster->impl()->get_default_replicaset()->add_instance_metadata(
+        cluster_impl->get_default_replicaset()->add_instance_metadata(
             m_target_instance->get_connection_options());
       }
-      setup_recovery(cluster->impl().get(), m_target_instance);
+      setup_recovery(cluster_impl.get(), m_target_instance);
     }
 
     // Handle the clone options
@@ -543,7 +535,7 @@ shcore::Value Create_cluster::execute() {
       if (!m_clone_opts.disable_clone.is_null() &&
           *m_clone_opts.disable_clone) {
         mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
-        cluster->impl()->set_disable_clone_option(*m_clone_opts.disable_clone);
+        cluster_impl->set_disable_clone_option(*m_clone_opts.disable_clone);
       } else {
         // Install the plugin if the target instance is >= 8.0.17
         if (m_target_instance->get_version() >=
@@ -559,17 +551,19 @@ shcore::Value Create_cluster::execute() {
             console->print_info("Disabling the clone usage on the cluster.");
             console->print_info();
 
-            cluster->impl()->set_disable_clone_option(true);
+            cluster_impl->set_disable_clone_option(true);
           }
         } else {
           // If the target instance is < 8.0.17 it does not support clone, so we
           // must disable it by default
-          cluster->impl()->set_disable_clone_option(true);
+          cluster_impl->set_disable_clone_option(true);
         }
       }
     }
 
     // If it reaches here, it means there are no exceptions
+    std::shared_ptr<Cluster> cluster = std::make_shared<Cluster>(cluster_impl);
+
     ret_val =
         shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(cluster));
   }

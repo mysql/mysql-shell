@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
@@ -289,7 +290,7 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
   return ret;
 }
 
-Instance_definition query_instance_info(
+Instance_metadata query_instance_info(
     const mysqlshdk::mysql::IInstance &instance) {
   int xport = -1;
   std::string local_gr_address;
@@ -314,9 +315,10 @@ Instance_definition query_instance_info(
   } catch (const std::exception &e) {
   }
 
-  Instance_definition instance_def;
+  Instance_metadata instance_def;
 
-  instance_def.role = "HA";
+  instance_def.address = instance.get_canonical_hostname();
+  instance_def.role_type = "HA";
   instance_def.endpoint = instance.get_canonical_address();
   if (xport != -1)
     instance_def.xendpoint =

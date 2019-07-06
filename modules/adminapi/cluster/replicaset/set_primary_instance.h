@@ -21,48 +21,42 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICASET_SWITCH_TO_SINGLE_PRIMARY_MODE_H_
-#define MODULES_ADMINAPI_REPLICASET_SWITCH_TO_SINGLE_PRIMARY_MODE_H_
+#ifndef MODULES_ADMINAPI_REPLICASET_SET_PRIMARY_INSTANCE_H_
+#define MODULES_ADMINAPI_REPLICASET_SET_PRIMARY_INSTANCE_H_
 
 #include <string>
 
-#include "modules/adminapi/replicaset/topology_configuration_command.h"
+#include "modules/adminapi/cluster/replicaset/topology_configuration_command.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace dba {
 
-class Switch_to_single_primary_mode : public Topology_configuration_command {
+class Set_primary_instance : public Topology_configuration_command {
  public:
-  Switch_to_single_primary_mode(
+  Set_primary_instance(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       ReplicaSet *replicaset);
 
-  ~Switch_to_single_primary_mode() override;
+  ~Set_primary_instance() override;
 
   /**
-   * Prepare the Switch_to_single_primary_mode command for execution.
+   * Prepare the Set_primary_instance command for execution.
    * Validates parameters and others, more specifically:
-   * - If the connections options are used:
    *   - Validate the connection options;
    *   - Ensure instance belong to replicaset;
-   * - Verify user privileges to execute operation;
-   * - Verify if all the cluster members are ONLINE
+   * - Verify if the cluster is in single-primary mode
    * - Verify if all cluster members have a version >= 8.0.13
-   * - Verify if the cluster has quorum
-   * - Prepare the internal configuration object
+   * - Verify if the cluster quorum
+   * - Verify if all the cluster members are ONLINE
+   * - Verify user privileges to execute operation;
    */
   void prepare() override;
 
   /**
-   * Execute the switch_to_single_primary_mode command.
+   * Execute the set_primary_instance command.
    * More specifically:
-   * - Execute the UDF: SELECT group_replication_switch_to_single_primary_mode()
-   * - Update the auto-increment values in all cluster members:
-   *   - auto_increment_increment = 1
-   *   - auto_increment_offset = 2
-   * - Update the Metadata schema to change the replicasets.topology_type value
-   *   to "pm"
+   * - Execute the UDF: SELECT group_replication_set_as_primary(member_uuid)
    *
    * @return An empty shcore::Value.
    */
@@ -81,11 +75,16 @@ class Switch_to_single_primary_mode : public Topology_configuration_command {
   void finish() override;
 
  private:
-  const mysqlshdk::db::Connection_options &m_instance_cnx_opts;
-  std::string m_address_in_md;
+  mysqlshdk::db::Connection_options m_instance_cnx_opts;
+  std::string m_target_uuid;
+
+  /**
+   * Verify if the cluster is in single-primary mode
+   */
+  void ensure_single_primary_mode();
 };
 
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_REPLICASET_SWITCH_TO_SINGLE_PRIMARY_MODE_H_
+#endif  // MODULES_ADMINAPI_REPLICASET_SET_PRIMARY_INSTANCE_H_

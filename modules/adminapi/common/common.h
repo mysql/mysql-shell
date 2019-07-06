@@ -33,6 +33,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_utils.h"
@@ -242,14 +243,13 @@ std::string SHCORE_PUBLIC
 resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                           const mysqlshdk::mysql::IInstance &pinstance,
                           const std::string &member_ssl_mode);
-std::vector<std::string> get_instances_gr(
-    const std::shared_ptr<MetadataStorage> &metadata);
-std::vector<std::string> get_instances_md(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+    const mysqlshdk::mysql::IInstance &group_server,
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
 std::vector<MissingInstanceInfo> get_unavailable_instances(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+    const mysqlshdk::mysql::IInstance &group_server,
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
 
 bool SHCORE_PUBLIC
 validate_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session,
@@ -261,7 +261,7 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
 bool validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
 
@@ -315,7 +315,7 @@ void validate_connection_options(
  * @return the instance reported host address used in the metadata, or the
  *         given instance connection address if not able to connect to the
  *         instance.
- */
+ */ // XXX wtf delete this
 std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &cnx_opts,
     const mysqlshdk::db::Connection_options &group_cnx_opts);

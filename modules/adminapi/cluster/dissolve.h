@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/replicaset/replicaset.h"
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -102,8 +102,7 @@ class Dissolve : public Command_interface {
       m_available_instances;
   std::vector<std::string> m_skipped_instances;
   std::vector<std::string> m_sync_error_instances;
-  std::string m_primary_address;
-  std::size_t m_primary_index;
+  std::string m_primary_uuid;
 
   /**
    * Auxiliar method to prompt the user to confirm the execution of the

@@ -24,6 +24,7 @@
 #include <mysql/group_replication.h>
 
 #include "modules/adminapi/cluster/dissolve.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
@@ -40,7 +41,6 @@ Dissolve::Dissolve(const bool interactive,
                    Cluster_impl *cluster)
     : m_interactive(interactive), m_force(force), m_cluster(cluster) {
   assert(cluster);
-  m_primary_index = SIZE_MAX;
 }
 
 Dissolve::~Dissolve() {}
@@ -50,18 +50,15 @@ void Dissolve::prompt_to_confirm_dissolve() const {
   // dissolving the right cluster.
   auto console = mysqlsh::current_console();
 
-  if (!m_cluster->get_metadata_storage()->is_cluster_empty(
-          m_cluster->get_id())) {
-    // Show cluster description.
-    console->println(
-        "The cluster still has the following registered ReplicaSets:");
-    shcore::Value res = m_cluster->describe();
+  // Show cluster description.
+  console->println(
+      "The cluster still has the following registered ReplicaSets:");
+  shcore::Value res = m_cluster->describe();
 
-    // Pretty print description only if wrap_json is not json/raw.
-    bool use_pretty_print =
-        (current_shell_options()->get().wrap_json.compare("json/raw") != 0);
-    console->println(res.descr(use_pretty_print));
-  }
+  // Pretty print description only if wrap_json is not json/raw.
+  bool use_pretty_print =
+      (current_shell_options()->get().wrap_json.compare("json/raw") != 0);
+  console->println(res.descr(use_pretty_print));
 
   console->print_warning(
       "You are about to dissolve the whole cluster and lose the high "
@@ -260,6 +257,7 @@ void Dissolve::prepare() {
   // cluster instances.
   std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
       m_cluster->get_group_session();
+  mysqlshdk::mysql::Instance cluster_instance(cluster_session);
   Connection_options cluster_cnx_opt =
       cluster_session->get_connection_options();
 
@@ -268,46 +266,46 @@ void Dissolve::prepare() {
   // NOTE: This is need to avoid a new primary election in the group and GR
   //       BUG#24818604.
 
-  std::string primary =
-      mysqlshdk::gr::get_group_primary_uuid(cluster_session, nullptr);
+  bool single_primary = false;
+  std::vector<mysqlshdk::gr::Member> members = mysqlshdk::gr::get_members(
+      cluster_instance, &single_primary, nullptr, nullptr);
 
-  if (!primary.empty()) {
-    mysqlshdk::utils::nullable<mysqlshdk::innodbcluster::Instance_info> info =
-        m_cluster->get_metadata_storage()
-            ->get_new_metadata()
-            ->get_instance_info_by_uuid(primary);
-    if (info) m_primary_address = info->classic_endpoint;
-  }
+  auto get_member_state = [&members](const std::string &uuid) {
+    auto it = std::find_if(
+        members.begin(), members.end(),
+        [&](const mysqlshdk::gr::Member &m) { return m.uuid == uuid; });
+    if (it != members.end())
+      return std::make_pair(it->state,
+                            it->role == mysqlshdk::gr::Member_role::PRIMARY);
+    return std::make_pair(mysqlshdk::gr::Member_state::MISSING, false);
+  };
 
   // Get all cluster instances, including state information.
-  std::vector<Instance_definition> instance_defs =
-      m_cluster->get_metadata_storage()->get_replicaset_instances(
-          m_cluster->get_default_replicaset()->get_id(), true);
+  std::vector<Instance_metadata> instance_defs =
+      m_cluster->get_default_replicaset()->get_instances();
 
   // Check if instances can be dissolved. More specifically, verify if their
   // state is valid, if they are reachable (i.e., able to connect to them).
   // Also determine if instance removal can be skipped, according to 'force'
   // option and user prompts.
   for (const auto &instance_def : instance_defs) {
-    // Use the GR state hold by instance_def.state (but convert it to a proper
-    // mysqlshdk::gr::Member_state to be handled properly).
-    mysqlshdk::gr::Member_state state =
-        mysqlshdk::gr::to_member_state(instance_def.state);
+    mysqlshdk::gr::Member_state state;
+    bool is_primary;
+    std::tie(state, is_primary) = get_member_state(instance_def.uuid);
+
     if (state == mysqlshdk::gr::Member_state::ONLINE ||
         state == mysqlshdk::gr::Member_state::RECOVERING) {
       // Verify if active instances are reachable.
       ensure_instance_reachable(instance_def.endpoint, cluster_cnx_opt);
-
-      // If the instance is the primary then set the index in the list of
-      // available instance (to remove it last from the cluster).
-      if (!m_primary_address.empty() &&
-          m_primary_address == instance_def.endpoint) {
-        m_primary_index = m_available_instances.size() - 1;
-      }
     } else {
       // Handle not active instances, determining if they can be skipped.
       handle_unavailable_instances(instance_def.endpoint,
                                    mysqlshdk::gr::to_string(state));
+    }
+
+    // check if primary
+    if (single_primary && is_primary) {
+      m_primary_uuid = instance_def.uuid;
     }
   }
 
@@ -367,21 +365,24 @@ shcore::Value Dissolve::execute() {
   std::string cluster_name = m_cluster->get_name();
   metadata->drop_cluster(cluster_name);
 
+  size_t primary_index = SIZE_MAX;
+
   // We must stop GR on the online instances only, otherwise we'll
   // get connection failures to the (MISSING) instances
   // BUG#26001653.
   for (std::size_t i = 0; i < m_available_instances.size(); i++) {
+    auto &instance = *m_available_instances[i];
+
     // Remove all instances except the primary.
-    if (i != m_primary_index) {
-      std::string instance_address =
-          m_available_instances[i]->get_connection_options().as_uri(
-              mysqlshdk::db::uri::formats::only_transport());
+    if (instance.get_uuid() != m_primary_uuid) {
+      std::string instance_address = instance.get_connection_options().as_uri(
+          mysqlshdk::db::uri::formats::only_transport());
 
       // JOB: Sync transactions with the cluster.
       try {
         // Catch-up with all cluster transaction to ensure cluster metadata is
         // removed on the instance.
-        m_cluster->sync_transactions(*m_available_instances[i]);
+        m_cluster->sync_transactions(instance);
 
         // Remove instance from list of instance with sync error in case it was
         // previously added during initial verification, since it succeeded now.
@@ -421,17 +422,19 @@ shcore::Value Dissolve::execute() {
 
       // JOB: Remove the instance from the replicaset (Stop GR)
       remove_instance(instance_address, i);
+    } else {
+      primary_index = i;
     }
   }
 
   // Remove primary instance at the end (if there is one).
-  if (m_primary_index != SIZE_MAX) {
+  if (primary_index != SIZE_MAX) {
     // No need to catch with transactions, since it is the primary.
     // JOB: Remove the instance from the replicaset (Stop GR)
     std::string instance_address =
-        m_available_instances[m_primary_index]->get_connection_options().as_uri(
+        m_available_instances[primary_index]->get_connection_options().as_uri(
             mysqlshdk::db::uri::formats::only_transport());
-    remove_instance(instance_address, m_primary_index);
+    remove_instance(instance_address, primary_index);
   }
 
   // Disconnect all internal sessions
@@ -508,8 +511,6 @@ void Dissolve::finish() {
   m_available_instances.clear();
   m_skipped_instances.clear();
   m_sync_error_instances.clear();
-  m_primary_address.clear();
-  m_primary_index = SIZE_MAX;
 }
 
 }  // namespace dba

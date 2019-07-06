@@ -34,13 +34,13 @@
 #include "modules/adminapi/cluster/cluster_options.h"
 #include "modules/adminapi/cluster/cluster_set_option.h"
 #include "modules/adminapi/cluster/cluster_status.h"
+#include "modules/adminapi/cluster/replicaset/add_instance.h"
+#include "modules/adminapi/cluster/replicaset/remove_instance.h"
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/replicaset/add_instance.h"
-#include "modules/adminapi/replicaset/remove_instance.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -55,38 +55,30 @@ namespace mysqlsh {
 namespace dba {
 
 Cluster_impl::Cluster_impl(
-    const std::string &name,
-    std::shared_ptr<mysqlshdk::db::ISession> group_session,
-    std::shared_ptr<MetadataStorage> metadata_storage)
+    const Cluster_metadata &metadata,
+    const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+    const std::shared_ptr<MetadataStorage> &metadata_storage)
+    : _id(metadata.cluster_id),
+      _name(metadata.cluster_name),
+      m_group_name(metadata.group_name),
+      _group_session(group_session),
+      _metadata_storage(metadata_storage) {
+  _default_replica_set = std::make_shared<ReplicaSet>(
+      "default", metadata.topology_type, metadata_storage);
+
+  _default_replica_set->set_cluster(this);
+}
+
+Cluster_impl::Cluster_impl(
+    const std::string &name, const std::string &group_name,
+    const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+    const std::shared_ptr<MetadataStorage> &metadata_storage)
     : _name(name),
+      m_group_name(group_name),
       _group_session(group_session),
       _metadata_storage(metadata_storage) {}
 
 Cluster_impl::~Cluster_impl() {}
-
-std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql>
-Cluster_impl::metadata() const {
-  return _metadata_storage->get_new_metadata();
-}
-
-void Cluster_impl::insert_default_replicaset(bool multi_primary,
-                                             bool is_adopted) {
-  std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
-
-  // Check if we have a Default ReplicaSet, if so it means we already added the
-  // Seed Instance
-  if (default_rs != nullptr) {
-    uint64_t rs_id = default_rs->get_id();
-    if (!_metadata_storage->is_replicaset_empty(rs_id))
-      throw shcore::Exception::logic_error(
-          "Default ReplicaSet already initialized. Please use: addInstance() "
-          "to add more Instances to the ReplicaSet.");
-  } else {
-    // Create the Default ReplicaSet and assign it to the Cluster's
-    // default_replica_set var
-    create_default_replicaset("default", multi_primary, "", is_adopted);
-  }
-}
 
 bool Cluster_impl::get_gtid_set_is_complete() const {
   shcore::Value flag;
@@ -129,29 +121,16 @@ shcore::Value Cluster_impl::remove_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-void Cluster_impl::set_default_replicaset(const std::string &name,
-                                          const std::string &topology_type,
-                                          const std::string &group_name) {
-  _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage);
-
-  _default_replica_set->set_cluster(this);
-}
-
 std::shared_ptr<ReplicaSet> Cluster_impl::create_default_replicaset(
-    const std::string &name, bool multi_primary, const std::string &group_name,
-    bool is_adopted) {
+    const std::string &name, bool multi_primary) {
   std::string topology_type = ReplicaSet::kTopologySinglePrimary;
   if (multi_primary) {
     topology_type = ReplicaSet::kTopologyMultiPrimary;
   }
-  _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage);
+  _default_replica_set =
+      std::make_shared<ReplicaSet>(name, topology_type, _metadata_storage);
 
   _default_replica_set->set_cluster(this);
-
-  // Update the Cluster table with the Default ReplicaSet on the Metadata
-  _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
 
   return _default_replica_set;
 }
@@ -240,8 +219,8 @@ void Cluster_impl::disconnect() {
   // then get_session would thrown an exception since the session is already
   // closed
   try {
-    if (_metadata_storage->get_session()) {
-      _metadata_storage->get_session()->close();
+    if (_metadata_storage->get_md_server()) {
+      _metadata_storage->get_md_server()->get_session()->close();
     }
   } catch (...) {
   }
@@ -384,7 +363,8 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
 
   // Get the lowest server version from the available cluster instances.
   get_default_replicaset()->execute_in_members(
-      {"'ONLINE'", "'RECOVERING'"},
+      {mysqlshdk::gr::Member_state::ONLINE,
+       mysqlshdk::gr::Member_state::RECOVERING},
       get_group_session()->get_connection_options(), {cluster_instance_address},
       [&lowest_version](
           const std::shared_ptr<mysqlshdk::db::ISession> &session) {
@@ -427,7 +407,8 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   bool clone_available_all_members = false;
   {
     get_default_replicaset()->execute_in_members(
-        {"'ONLINE'", "'RECOVERING'"},
+        {mysqlshdk::gr::Member_state::ONLINE,
+         mysqlshdk::gr::Member_state::RECOVERING},
         get_group_session()->get_connection_options(), {},
         [&clone_available_all_members](
             const std::shared_ptr<mysqlshdk::db::ISession> &session) {
@@ -541,6 +522,11 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
       }
     }
   }
+}
+
+bool Cluster_impl::contains_instance_with_address(
+    const std::string &host_port) {
+  return get_metadata_storage()->is_instance_on_cluster(get_id(), host_port);
 }
 
 }  // namespace dba

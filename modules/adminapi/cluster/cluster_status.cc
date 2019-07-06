@@ -22,8 +22,9 @@
  */
 
 #include "modules/adminapi/cluster/cluster_status.h"
+#include "modules/adminapi/cluster/replicaset/replicaset_status.h"
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/replicaset/replicaset_status.h"
+#include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {
@@ -81,12 +82,12 @@ shcore::Value Cluster_status::execute() {
   std::string addr = target_instance.get_canonical_address();
   (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
 
+  auto md_server = m_cluster.get_metadata_storage()->get_md_server();
+
   // metadata server, if its a different one
-  if (m_cluster.metadata()->get_session() != m_cluster.get_group_session()) {
-    auto mdsession = m_cluster.metadata()->get_session();
-    mysqlshdk::mysql::Instance md_instance(mdsession);
+  if (md_server && md_server->get_uuid() != target_instance.get_uuid()) {
     (*dict)["metadataServer"] =
-        shcore::Value(md_instance.get_canonical_address());
+        shcore::Value(md_server->get_canonical_address());
   }
 
   return shcore::Value(dict);

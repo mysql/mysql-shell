@@ -87,7 +87,7 @@ class Replicaset_status : public Command_interface {
   Cluster_impl *m_cluster;
   mysqlshdk::utils::nullable<uint64_t> m_extended;
 
-  std::vector<ReplicaSet::Instance_info> m_instances;
+  std::vector<Instance_metadata> m_instances;
   std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
       m_member_sessions;
   std::map<std::string, std::string> m_member_connect_errors;
@@ -100,7 +100,7 @@ class Replicaset_status : public Command_interface {
       const mysqlshdk::mysql::Instance &instance,
       const std::vector<mysqlshdk::gr::Member> &members);
 
-  const ReplicaSet::Instance_info *instance_with_uuid(const std::string &uuid);
+  const Instance_metadata *instance_with_uuid(const std::string &uuid);
 
   Member_stats_map query_member_stats();
 
@@ -131,7 +131,7 @@ class Replicaset_status : public Command_interface {
                             bool recovering);
 
   void feed_metadata_info(shcore::Dictionary_t dict,
-                          const ReplicaSet::Instance_info &info);
+                          const Instance_metadata &info);
 
   void feed_member_info(shcore::Dictionary_t dict,
                         const mysqlshdk::gr::Member &member,

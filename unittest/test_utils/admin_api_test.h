@@ -81,6 +81,7 @@ class Admin_api_test : public Shell_core_test_wrapper {
     session->connect(session_args);
     return session;
   }
+  static std::shared_ptr<mysqlsh::dba::Cluster> _cluster;
   static std::shared_ptr<mysqlsh::dba::ReplicaSet> _replicaset;
   static std::string group_name;
   static std::string uuid_1;

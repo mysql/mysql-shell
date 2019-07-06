@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/topology_configuration_command.h"
+#include "modules/adminapi/cluster/replicaset/topology_configuration_command.h"
 
 #include <vector>
 
@@ -67,9 +67,8 @@ void Topology_configuration_command::
   log_debug("Checking if the instance belongs to the Replicaset.");
 
   bool is_instance_on_md =
-      m_replicaset->get_cluster()
-          ->get_metadata_storage()
-          ->is_instance_on_replicaset(m_replicaset->get_id(), metadata_address);
+      m_replicaset->get_cluster()->contains_instance_with_address(
+          metadata_address);
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + instance_address +
@@ -85,10 +84,8 @@ void Topology_configuration_command::ensure_all_members_replicaset_online() {
   log_debug("Checking if all members of the Replicaset are ONLINE.");
 
   // Get all cluster instances
-  std::vector<Instance_definition> instance_defs =
-      m_replicaset->get_cluster()
-          ->get_metadata_storage()
-          ->get_replicaset_instances(m_replicaset->get_id(), true);
+  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
+      instance_defs = m_replicaset->get_instances_with_state();
 
   // Get cluster session to use the same authentication credentials for all
   // replicaset instances.
@@ -96,14 +93,14 @@ void Topology_configuration_command::ensure_all_members_replicaset_online() {
       m_cluster_session_instance->get_connection_options();
 
   // Check if all instances have the ONLINE state
-  for (const Instance_definition &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state =
-        mysqlshdk::gr::to_member_state(instance_def.state);
+  for (const auto &instance_def : instance_defs) {
+    mysqlshdk::gr::Member_state state = instance_def.second.state;
 
     if (state != mysqlshdk::gr::Member_state::ONLINE) {
-      console->print_error(
-          "The instance '" + instance_def.endpoint + "' has the status: '" +
-          mysqlshdk::gr::to_string(state) + "'. All members must be ONLINE.");
+      console->print_error("The instance '" + instance_def.first.endpoint +
+                           "' has the status: '" +
+                           mysqlshdk::gr::to_string(state) +
+                           "'. All members must be ONLINE.");
 
       throw shcore::Exception::runtime_error(
           "One or more instances of the cluster are not ONLINE.");
@@ -115,7 +112,7 @@ void Topology_configuration_command::ensure_all_members_replicaset_online() {
       // Set login credentials to connect to instance.
       // NOTE: It is assumed that the same login credentials can be used to
       // connect to all replicaset instances.
-      std::string instance_address = instance_def.endpoint;
+      std::string instance_address = instance_def.first.endpoint;
 
       Connection_options instance_cnx_opts =
           shcore::get_connection_options(instance_address, false);
@@ -237,14 +234,14 @@ void Topology_configuration_command::update_topology_mode_metadata(
     new_metadata = shcore::make_unique<MetadataStorage>(session_to_primary);
 
     // Update the topology mode in the Metadata
-    new_metadata->update_replicaset_topology_mode(m_replicaset->get_id(),
-                                                  topology_mode);
+    new_metadata->update_cluster_topology_mode(
+        m_replicaset->get_cluster()->get_id(), topology_mode);
   } else {
     // Update the topology mode in the Metadata
     m_replicaset->get_cluster()
         ->get_metadata_storage()
-        ->update_replicaset_topology_mode(m_replicaset->get_id(),
-                                          topology_mode);
+        ->update_cluster_topology_mode(m_replicaset->get_cluster()->get_id(),
+                                       topology_mode);
   }
 }
 
@@ -252,14 +249,14 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
   auto console = mysqlsh::current_console();
 
   // Get the current members list
-  std::vector<ReplicaSet::Instance_info> replicaset_instances =
+  std::vector<Instance_metadata> replicaset_instances =
       m_replicaset->get_instances();
 
   // Get the final status of the members
   std::vector<mysqlshdk::gr::Member> final_members_info(
       mysqlshdk::gr::get_members(*m_cluster_session_instance));
 
-  const ReplicaSet::Instance_info *instance;
+  const Instance_metadata *instance;
 
   for (const auto &member : m_initial_members_info) {
     std::string old_role = mysqlshdk::gr::to_string(member.role);
@@ -275,11 +272,11 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
             new_role = mysqlshdk::gr::to_string(member_new.role);
 
             if (new_role != old_role) {
-              console->print_info("Instance '" + instance->classic_endpoint +
+              console->print_info("Instance '" + instance->endpoint +
                                   "' was switched from " + old_role + " to " +
                                   new_role + ".");
             } else {
-              console->print_info("Instance '" + instance->classic_endpoint +
+              console->print_info("Instance '" + instance->endpoint +
                                   "' remains " + old_role + ".");
             }
           }

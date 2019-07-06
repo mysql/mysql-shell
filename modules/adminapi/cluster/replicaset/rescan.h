@@ -28,8 +28,8 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/replicaset/replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 

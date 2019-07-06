@@ -37,6 +37,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/cluster/replicaset/add_instance.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -50,7 +51,6 @@
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/replicaset/add_instance.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -780,20 +780,37 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
 std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
-  std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata));
+  Cluster_metadata target_cm;
+  Cluster_metadata group_server_cm;
+
+  mysqlshdk::mysql::Instance group_server(group_session);
+
+  if (!metadata->get_cluster_for_server_uuid(group_server.get_uuid(),
+                                             &group_server_cm)) {
+    throw shcore::Exception("No cluster metadata found for " +
+                                group_server.get_uuid() + " of instance " +
+                                group_server.descr(),
+                            SHERR_DBA_METADATA_MISSING);
+  }
 
   if (!name) {
-    // Reloads the cluster (to avoid losing _default_cluster in case of error)
-    metadata->load_default_cluster(cluster->impl());
+    target_cm = group_server_cm;
   } else {
-    metadata->load_cluster(name, cluster->impl());
+    if (!metadata->get_cluster_for_cluster_name(name, &target_cm)) {
+      throw shcore::Exception(
+          shcore::str_format("The cluster with the name '%s' does not exist.",
+                             name),
+          SHERR_DBA_METADATA_MISSING);
+    }
   }
+
+  auto cluster =
+      std::make_shared<Cluster_impl>(target_cm, group_session, metadata);
+
   // Verify if the current session instance group_replication_group_name
   // value differs from the one registered in the Metadata
-  if (!validate_replicaset_group_name(
-          group_session,
-          cluster->impl()->get_default_replicaset()->get_group_name())) {
+  if (!validate_replicaset_group_name(group_session,
+                                      cluster->get_group_name())) {
     std::string nice_error =
         "Unable to get a InnoDB cluster handle. "
         "The instance '" +
@@ -810,7 +827,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     throw shcore::Exception::runtime_error(nice_error);
   }
 
-  return cluster;
+  return std::make_shared<mysqlsh::dba::Cluster>(cluster);
 }
 
 REGISTER_HELP_FUNCTION(createCluster, dba);
@@ -1209,7 +1226,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
       // instance in an incorrect state
       validate_super_read_only(instance, clear_read_only, interactive);
 
-      metadata::uninstall(metadata->get_session());
+      metadata::uninstall(metadata->get_md_server()->get_session());
       if (interactive) {
         console->println("Metadata Schema successfully removed.");
       }
@@ -2410,8 +2427,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
       // 2. Ensure that the current session instance exists on the Metadata
       // Schema
-      if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                               group_md_address))
+      if (!cluster->impl()->contains_instance_with_address(group_md_address))
         throw shcore::Exception::runtime_error(
             "The current session instance does not belong "
             "to the cluster: '" +
@@ -2469,8 +2485,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
                 "' for 'rejoinInstances': " + error);
           }
 
-          if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                   md_address))
+          if (!cluster->impl()->contains_instance_with_address(md_address))
             throw shcore::Exception::runtime_error("The instance '" + value +
                                                    "' does not belong "
                                                    "to the cluster: '" +
@@ -2538,8 +2553,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
                 "' for 'removeInstances': " + error);
           }
 
-          if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
-                                                   md_address))
+          if (!cluster->impl()->contains_instance_with_address(md_address))
             throw shcore::Exception::runtime_error("The instance '" + value +
                                                    "' does not belong "
                                                    "to the cluster: '" +
@@ -2585,11 +2599,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
             "The cluster '%s' is not configured.", cluster_name));
     }
 
-    // Check if the cluster is empty
-    if (metadata->is_cluster_empty(cluster->impl()->get_id()))
-      throw shcore::Exception::runtime_error(
-          "The cluster has no instances in it.");
-
     // 4. Verify the status of all instances of the cluster:
     // 4.1 None of the instances can belong to a GR Group
     // 4.2 If any of the instances belongs to a GR group or is already managed
@@ -2626,7 +2635,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // a new group_name started being used.
       // This must be done before rejoining the instances due to the fixes for
       // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
-      gr_options.group_name = default_replicaset->get_group_name();
+      gr_options.group_name = cluster->impl()->get_group_name();
 
       // BUG#29265869: reboot cluster overrides some GR settings.
       // Read actual GR configurations to preserve them in the seed instance.
@@ -2754,8 +2763,8 @@ Dba::get_replicaset_instances_status(
   log_info("Checking instance status for cluster '%s'",
            cluster->impl()->get_name().c_str());
 
-  std::vector<Instance_definition> instances =
-      cluster->impl()->get_default_replicaset()->get_instances_from_metadata();
+  std::vector<Instance_metadata> instances =
+      cluster->impl()->get_default_replicaset()->get_instances();
 
   auto current_session_options =
       cluster->impl()->get_group_session()->get_connection_options();
@@ -2960,8 +2969,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
   }
 
   // Get the cluster instances
-  std::vector<Instance_definition> instances =
-      cluster->impl()->get_default_replicaset()->get_instances_from_metadata();
+  std::vector<Instance_metadata> instances =
+      cluster->impl()->get_default_replicaset()->get_instances();
 
   for (const auto &inst : instances) {
     if (inst.endpoint == instance_gtids[0].server) continue;
@@ -2998,7 +3007,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     // Returned list should have at least 1 element
     assert(!primary_candidates.empty());
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_DATA_INCONSISTENT_ERRANT_TRANSACTIONS) {
+    if (e.code() == SHERR_DBA_DATA_ERRANT_TRANSACTIONS) {
       console->print_error(e.what());
       // TODO(alfredo) - suggest a way to recover from this scenario
     }

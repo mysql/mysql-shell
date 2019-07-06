@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/clone.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -635,145 +636,40 @@ std::string resolve_instance_ssl_mode(
 }
 
 /**
- * Gets the list of instances belonging to the GR group to which the metadata
- * belongs to
- *
- * @param metadata metadata object which represents the session to the metadata
- *                 storage
- * @return a vector of strings with the list of member id's (member_id) of the
- *         instances belonging to the GR group
- */
-std::vector<std::string> get_instances_gr(
-    const std::shared_ptr<MetadataStorage> &metadata) {
-  // Get the list of instances belonging to the GR group
-  std::string query =
-      "SELECT member_id FROM performance_schema.replication_group_members";
-
-  auto result = metadata->execute_sql(query);
-
-  std::vector<std::string> ret_val;
-  auto row = result->fetch_one();
-  while (row) {
-    ret_val.push_back(row->get_string(0));
-    row = result->fetch_one();
-  }
-
-  return ret_val;
-}
-
-/**
- * Gets the list of instances registered on the metadata for a specific
- * ReplicaSet
- *
- * @param metadata metadata object which represents the session to the metadata
- *                 storage
- * @param rd_id the ReplicaSet id
- * @return a vector of strings with the list of instances uuid's
- *         (mysql_server_uuid) of the instances registered on the metadata, for
- *         the replicaset with the id rs_id
- */
-std::vector<std::string> get_instances_md(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
-  // Get the list of instances registered on the Metadata
-  shcore::sqlstring query(
-      "SELECT mysql_server_uuid FROM "
-      "mysql_innodb_cluster_metadata.instances "
-      "WHERE replicaset_id = ?",
-      0);
-  query << rs_id;
-  query.done();
-
-  auto result = metadata->execute_sql(query);
-  std::vector<std::string> ret_val;
-  auto row = result->fetch_one();
-
-  while (row) {
-    ret_val.push_back(row->get_string(0));
-    row = result->fetch_one();
-  }
-
-  return ret_val;
-}
-
-/**
  * Gets the list of instances belonging to the GR group which are not
  * registered on the metadata for a specific ReplicaSet.
  *
  * @param metadata metadata object which represents the session to the metadata
  *                 storage
- * @param rd_id the ReplicaSet id
+ * @param cluster_id the Cluster id
  * @return a vector of NewInstanceInfo with the list of instances found
  * as belonging to the GR group but not registered on the Metadata
  */
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
-  std::vector<std::string> instances_gr_array, instances_md_array;
+    const mysqlshdk::mysql::IInstance &group_server,
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id) {
+  std::vector<mysqlshdk::gr::Member> instances_gr(
+      mysqlshdk::gr::get_members(group_server));
 
-  instances_gr_array = get_instances_gr(metadata);
-
-  instances_md_array = get_instances_md(metadata, rs_id);
-
-  // Check the differences between the two lists
-  std::vector<std::string> new_members;
-
-  // Sort the arrays in order to be able to use
-  // std::set_difference()
-  std::sort(instances_gr_array.begin(), instances_gr_array.end());
-  std::sort(instances_md_array.begin(), instances_md_array.end());
+  std::vector<Instance_metadata> instances_md_array =
+      metadata->get_all_instances(cluster_id);
 
   // Check if the instances_gr list has more members than the instances_md lists
   // Meaning that an instance was added to the GR group outside of the AdminAPI
-  std::set_difference(instances_gr_array.begin(), instances_gr_array.end(),
-                      instances_md_array.begin(), instances_md_array.end(),
-                      std::inserter(new_members, new_members.begin()));
-
-  // Get the metadata session version to determine how do we obtain each member
-  // version
-  auto version = metadata->get_session()->get_server_version();
-
   std::vector<NewInstanceInfo> ret;
-  for (auto i : new_members) {
-    shcore::sqlstring query;
+  for (const auto &i : instances_gr) {
+    if (std::find_if(instances_md_array.begin(), instances_md_array.end(),
+                     [&i](const Instance_metadata &md) {
+                       return md.uuid == i.uuid;
+                     }) == instances_md_array.end()) {
+      NewInstanceInfo info;
+      info.member_id = i.uuid;
+      info.host = i.host;
+      info.port = i.port;
+      info.version = i.version;
 
-    // from 8.0.3, member_version is available
-    // NOTE: the ORDER BY is required to avoid results from being listed in a
-    //       non-deterministic way (resulting in test issues for some
-    //       platforms in direct mode).
-    //       MEMBER_ID is used assuming that UUIDs of version 1 are always used
-    //       but if this changes the different columns need to be used to sort
-    //       the results.
-    if (version >= mysqlshdk::utils::Version(8, 0, 3)) {
-      query = shcore::sqlstring(
-          "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT, MEMBER_VERSION "
-          "FROM performance_schema.replication_group_members "
-          "WHERE MEMBER_ID = ? "
-          "ORDER BY MEMBER_ID",
-          0);
-    } else {
-      query = shcore::sqlstring(
-          "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT "
-          "FROM performance_schema.replication_group_members "
-          "WHERE MEMBER_ID = ? "
-          "ORDER BY MEMBER_ID",
-          0);
+      ret.push_back(info);
     }
-
-    query << i;
-    query.done();
-
-    auto result = metadata->execute_sql(query);
-    auto row = result->fetch_one();
-
-    NewInstanceInfo info;
-    info.member_id = row->get_string(0);
-    info.host = row->get_string(1);
-    info.port = row->get_int(2);
-
-    if (version >= mysqlshdk::utils::Version(8, 0, 3)) {
-      info.version = row->get_string(3);
-    }
-
-    ret.push_back(info);
   }
 
   return ret;
@@ -785,16 +681,22 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
  *
  * @param metadata metadata object which represents the session to the metadata
  *                 storage
- * @param rd_id the ReplicaSet id
+ * @param cluster_id the Cluster id
  * @return a vector of MissingInstanceInfo with the list of instances found
- * as registered on the Metadatada but not present in the GR group.
+ * as registered on the Metadata but not present in the GR group.
  */
 std::vector<MissingInstanceInfo> get_unavailable_instances(
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
+    const mysqlshdk::mysql::IInstance &group_server,
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id) {
   std::vector<std::string> instances_gr_array, instances_md_array;
 
-  instances_gr_array = get_instances_gr(metadata);
-  instances_md_array = get_instances_md(metadata, rs_id);
+  for (const mysqlshdk::gr::Member &m :
+       mysqlshdk::gr::get_members(group_server))
+    instances_gr_array.push_back(m.uuid);
+
+  std::vector<Instance_metadata> all_instances(
+      metadata->get_all_instances(cluster_id));
+  for (const auto &i : all_instances) instances_md_array.push_back(i.uuid);
 
   // Check the differences between the two lists
   std::vector<std::string> removed_members;
@@ -812,23 +714,17 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
                       std::inserter(removed_members, removed_members.begin()));
 
   std::vector<MissingInstanceInfo> ret;
-  for (auto i : removed_members) {
-    shcore::sqlstring query(
-        "SELECT mysql_server_uuid, instance_name, "
-        "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) AS host "
-        "FROM mysql_innodb_cluster_metadata.instances "
-        "WHERE mysql_server_uuid = ?",
-        0);
-    query << i;
-    query.done();
-
-    auto result = metadata->execute_sql(query);
-    auto row = result->fetch_one();
-    MissingInstanceInfo info;
-    info.id = row->get_string(0);
-    info.label = row->get_string(1);
-    info.host = row->get_string(2);
-    ret.push_back(info);
+  for (auto &i : removed_members) {
+    for (const auto &m : all_instances) {
+      if (m.uuid == i) {
+        MissingInstanceInfo info;
+        info.id = m.uuid;
+        info.label = m.label;
+        info.endpoint = m.endpoint;
+        ret.push_back(info);
+        break;
+      }
+    }
   }
 
   return ret;
@@ -1040,34 +936,36 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 }
 
 /*
- * Checks if an instance can be rejoined to a given ReplicaSet.
+ * Checks if an instance can be rejoined to a given Cluster.
  *
  * @param instance
  * @param metadata Metadata object which represents the session to the metadata
  * storage
- * @param rs_id The ReplicaSet id
+ * @param cluster_id The Cluster id
  *
  * @return a boolean value which is true if the instance can be rejoined to the
- * ReplicaSet and false otherwise.
+ * Cluster and false otherwise.
  */
 bool validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id) {
   std::string instance_uuid = instance.get_uuid();
 
-  // get the list of missing instances
-  std::vector<MissingInstanceInfo> missing_instances_list =
-      get_unavailable_instances(metadata, rs_id);
+  // Ensure that:
+  // 1 - instance is part of the given cluster
+  // 2 - instance is not ONLINE or RECOVERING
+  Instance_metadata imd;
+  try {
+    imd = metadata->get_instance_by_uuid(instance.get_uuid());
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) return false;
+    throw;
+  }
+  if (imd.cluster_id != cluster_id) return false;
 
-  // Unless the instance is missing, we cannot add it back to the cluster
-  auto it =
-      std::find_if(missing_instances_list.begin(), missing_instances_list.end(),
-                   [&instance_uuid](MissingInstanceInfo &info) {
-                     return instance_uuid == info.id;
-                   });
-  // if the instance is not on the list of missing instances, then it cannot
-  // be rejoined
-  return it != std::end(missing_instances_list);
+  auto state = mysqlshdk::gr::get_member_state(instance);
+  return state != mysqlshdk::gr::Member_state::ONLINE &&
+         state != mysqlshdk::gr::Member_state::RECOVERING;
 }
 
 /**
@@ -2035,10 +1933,10 @@ std::vector<Instance_gtid_info> filter_primary_candidates(
       // Conflicting GTID sets
       case Gtid_set_relation::DISJOINT:
       case Gtid_set_relation::INTERSECTS:
-        throw shcore::Exception(
-            "Conflicting transaction sets between " +
-                freshest_instance->server + " and " + inst.server,
-            SHERR_DBA_DATA_INCONSISTENT_ERRANT_TRANSACTIONS);
+        throw shcore::Exception("Conflicting transaction sets between " +
+                                    freshest_instance->server + " and " +
+                                    inst.server,
+                                SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
 
       case Gtid_set_relation::CONTAINED:
         // this has more transactions than the best candidate

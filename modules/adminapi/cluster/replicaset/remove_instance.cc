@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replicaset/remove_instance.h"
+#include "modules/adminapi/cluster/replicaset/remove_instance.h"
 
 #include <vector>
 
@@ -55,7 +55,7 @@ Remove_instance::Remove_instance(
 
 Remove_instance::~Remove_instance() { delete m_target_instance; }
 
-Instance_definition Remove_instance::ensure_instance_belong_to_replicaset(
+Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
     const std::string &address) {
   // Check if the instance exists on the ReplicaSet
   log_debug("Checking if the instance %s belongs to the replicaset",
@@ -63,11 +63,11 @@ Instance_definition Remove_instance::ensure_instance_belong_to_replicaset(
 
   bool is_instance_on_md;
 
-  Instance_definition instance_def;
+  Instance_metadata instance_def;
   try {
-    instance_def =
-        m_replicaset.get_cluster()->get_metadata_storage()->get_instance(
-            address);
+    instance_def = m_replicaset.get_cluster()
+                       ->get_metadata_storage()
+                       ->get_instance_by_endpoint(address);
     is_instance_on_md = true;
   } catch (const std::exception &e) {
     log_warning("Couldn't get metadata for %s: %s", address.c_str(), e.what());
@@ -97,8 +97,8 @@ void Remove_instance::ensure_not_last_instance_in_replicaset() {
   //       to a higher level (to check if the instance is the last one of the
   //       last replicaset, which should be the default replicaset).
   log_debug("Checking if the instance is the last in the replicaset");
-  if (m_replicaset.get_cluster()->get_metadata_storage()->get_replicaset_count(
-          m_replicaset.get_id()) == 1) {
+  if (m_replicaset.get_cluster()->get_metadata_storage()->get_cluster_size(
+          m_replicaset.get_cluster()->get_id()) == 1) {
     mysqlsh::current_console()->print_error(
         "The instance '" + m_instance_address +
         "' cannot be removed because it is the only member of the Cluster. "
@@ -111,13 +111,14 @@ void Remove_instance::ensure_not_last_instance_in_replicaset() {
   }
 }
 
-Instance_definition Remove_instance::remove_instance_metadata() {
+Instance_metadata Remove_instance::remove_instance_metadata() {
   // Save the instance row details (definition). This is required to be able
   // to revert the removal of the instance from the metadata if needed.
   log_debug("Saving instance definition");
-  Instance_definition instance_def =
-      m_replicaset.get_cluster()->get_metadata_storage()->get_instance(
-          m_address_in_metadata);
+  Instance_metadata instance_def =
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->get_instance_by_endpoint(m_address_in_metadata);
 
   log_debug("Removing instance from metadata");
   m_replicaset.get_cluster()->get_metadata_storage()->remove_instance(
@@ -127,19 +128,19 @@ Instance_definition Remove_instance::remove_instance_metadata() {
 }
 
 void Remove_instance::undo_remove_instance_metadata(
-    const Instance_definition &instance_def) {
+    const Instance_metadata &instance_def) {
   log_debug("Reverting instance removal from metadata");
   m_replicaset.get_cluster()->get_metadata_storage()->insert_instance(
       instance_def);
 }
 
 void Remove_instance::find_failure_cause(const std::exception &err,
-                                         const Instance_definition &md) {
+                                         const Instance_metadata &md) {
   // Check the state of the instance (from the cluster perspective) to assess
   // the possible cause of the failure.
   std::vector<mysqlshdk::gr::Member> members(
       mysqlshdk::gr::get_members(mysqlshdk::mysql::Instance(
-          m_replicaset.get_cluster()->get_metadata_storage()->get_session())));
+          m_replicaset.get_cluster()->get_group_session())));
 
   auto it = std::find_if(
       members.begin(), members.end(),
@@ -307,7 +308,7 @@ void Remove_instance::prepare() {
     // Before anything, check if the instance actually belongs to the
     // cluster, since it wouldn't make sense to ask about removing a
     // bogus instance from the metadata.
-    Instance_definition metadata(
+    Instance_metadata metadata(
         ensure_instance_belong_to_replicaset(m_address_in_metadata));
 
     // Find error cause to print more information about before prompt in
@@ -385,7 +386,7 @@ shcore::Value Remove_instance::execute() {
   // that the MD change is also propagated to the target instance to
   // remove (if ONLINE). This avoid issues removing and adding an instance
   // again (error adding the instance because it is already in the MD).
-  Instance_definition instance_def = remove_instance_metadata();
+  Instance_metadata instance_def = remove_instance_metadata();
   // Only try to sync transactions with cluster and execute leave-replicaset
   // if connection to the instance was previously established (however instance
   // might still fail during the execution of those steps).
@@ -452,14 +453,27 @@ shcore::Value Remove_instance::execute() {
       // Stop Group Replication and reset (persist) GR variables.
       mysqlsh::dba::leave_replicaset(*m_target_instance);
 
-      // Update the replicaset members (group_seed variable) and remove the
-      // replication user from the instance being removed from the primary
-      // instance.
-      m_replicaset.get_cluster()
-          ->get_default_replicaset()
-          ->update_group_members_for_removed_member(local_gr_address,
-                                                    *m_target_instance);
-
+      // FIXME: begin
+      // TODO(alfredo) - when the instance being removed is the PRIMARY and
+      // we're connected to it, the create_config_object() is effectively a
+      // no-op, because it will see all other members are MISSING. This should
+      // be fixed. This check will accomplish the same
+      // thing as before and will avoid the new exception that would be thrown
+      // in create_config_object() when it tries to query members from an
+      // instance that's not in the group anymore.
+      if (m_target_instance->get_uuid() !=
+          mysqlshdk::mysql::Instance(
+              m_replicaset.get_cluster()->get_group_session())
+              .get_uuid()) {
+        // FIXME: end
+        // Update the replicaset members (group_seed variable) and remove the
+        // replication user from the instance being removed from the primary
+        // instance.
+        m_replicaset.get_cluster()
+            ->get_default_replicaset()
+            ->update_group_members_for_removed_member(local_gr_address,
+                                                      *m_target_instance);
+      }
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
     } catch (const std::exception &err) {
       log_error("Instance '%s' failed to leave the ReplicaSet: %s",

@@ -23,10 +23,10 @@
 
 #include <utility>
 
+#include "modules/adminapi/cluster/replicaset/replicaset_status.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/replicaset/replicaset_status.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -108,9 +108,13 @@ void Replicaset_status::prepare() {
 
   // Sanity checks
   {
+    // TODO(alfredo) - this check seems unnecessary, there's no requirement
+    // that the cluster name can't change after getCluster() is called
+
     // Verify if the cluster is still registered in the Metadata
-    if (!m_cluster->get_metadata_storage()->cluster_exists(
-            m_cluster->get_name()))
+    Cluster_metadata cm;
+    if (!m_cluster->get_metadata_storage()->get_cluster_for_cluster_name(
+            m_cluster->get_name(), &cm))
       throw shcore::Exception::runtime_error(
           "The cluster '" + m_cluster->get_name() +
           "' is no longer registered in the Metadata.");
@@ -133,17 +137,17 @@ void Replicaset_status::connect_to_members() {
       group_session->get_connection_options());
 
   for (const auto &inst : m_instances) {
-    mysqlshdk::db::Connection_options opts(inst.classic_endpoint);
+    mysqlshdk::db::Connection_options opts(inst.endpoint);
     if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
-      m_member_sessions[inst.classic_endpoint] = group_session;
+      m_member_sessions[inst.endpoint] = group_session;
     } else {
       opts.set_login_options_from(group_session_copts);
 
       try {
-        m_member_sessions[inst.classic_endpoint] =
+        m_member_sessions[inst.endpoint] =
             mysqlshdk::db::mysql::open_session(opts);
       } catch (const mysqlshdk::db::Error &e) {
-        m_member_connect_errors[inst.classic_endpoint] = e.format();
+        m_member_connect_errors[inst.endpoint] = e.format();
       }
     }
   }
@@ -174,11 +178,10 @@ shcore::Dictionary_t Replicaset_status::check_group_status(
   }
 
   for (const auto &member : members) {
-    if (std::find_if(
-            m_instances.begin(), m_instances.end(),
-            [&member](const mysqlshdk::innodbcluster::Instance_info &inst) {
-              return member.uuid == inst.uuid;
-            }) != m_instances.end()) {
+    if (std::find_if(m_instances.begin(), m_instances.end(),
+                     [&member](const Instance_metadata &inst) {
+                       return member.uuid == inst.uuid;
+                     }) != m_instances.end()) {
       missing_from_md++;
     }
   }
@@ -229,7 +232,7 @@ shcore::Dictionary_t Replicaset_status::check_group_status(
   return dict;
 }
 
-const ReplicaSet::Instance_info *Replicaset_status::instance_with_uuid(
+const Instance_metadata *Replicaset_status::instance_with_uuid(
     const std::string &uuid) {
   for (const auto &i : m_instances) {
     if (i.uuid == uuid) return &i;
@@ -586,10 +589,10 @@ void Replicaset_status::collect_local_status(
   }
 }
 
-void Replicaset_status::feed_metadata_info(
-    shcore::Dictionary_t dict, const ReplicaSet::Instance_info &info) {
-  (*dict)["address"] = shcore::Value(info.classic_endpoint);
-  (*dict)["role"] = shcore::Value(info.role);
+void Replicaset_status::feed_metadata_info(shcore::Dictionary_t dict,
+                                           const Instance_metadata &info) {
+  (*dict)["address"] = shcore::Value(info.endpoint);
+  (*dict)["role"] = shcore::Value(info.role_type);
 }
 
 void Replicaset_status::feed_member_info(
@@ -768,8 +771,7 @@ shcore::Dictionary_t Replicaset_status::get_topology(
     shcore::Dictionary_t member = shcore::make_dict();
     mysqlshdk::gr::Member minfo(get_member(inst.uuid));
 
-    mysqlshdk::mysql::Instance instance(
-        m_member_sessions[inst.classic_endpoint]);
+    mysqlshdk::mysql::Instance instance(m_member_sessions[inst.endpoint]);
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;
@@ -815,7 +817,7 @@ shcore::Dictionary_t Replicaset_status::get_topology(
       }
     } else {
       (*member)["shellConnectError"] =
-          shcore::Value(m_member_connect_errors[inst.classic_endpoint]);
+          shcore::Value(m_member_connect_errors[inst.endpoint]);
     }
 
     feed_metadata_info(member, inst);
@@ -845,7 +847,7 @@ shcore::Dictionary_t Replicaset_status::get_topology(
       }
     }
 
-    (*dict)[inst.name] = shcore::Value(member);
+    (*dict)[inst.label] = shcore::Value(member);
   }
 
   return dict;
@@ -876,7 +878,8 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   mysqlshdk::mysql::Instance group_instance(group_session);
 
   if (!m_extended.is_null() && *m_extended >= 1) {
-    (*ret)["groupName"] = shcore::Value(m_replicaset.get_group_name());
+    (*ret)["groupName"] =
+        shcore::Value(m_replicaset.get_cluster()->get_group_name());
 
     try {
       (*ret)["GRProtocolVersion"] = shcore::Value(
@@ -914,15 +917,14 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
       (*ret)["primary"] = shcore::Value("?");
       for (const auto &member : member_info) {
         if (member.role == mysqlshdk::gr::Member_role::PRIMARY) {
-          const ReplicaSet::Instance_info *primary =
-              instance_with_uuid(member.uuid);
+          const Instance_metadata *primary = instance_with_uuid(member.uuid);
           if (primary) {
-            auto s = m_member_sessions.find(primary->classic_endpoint);
+            auto s = m_member_sessions.find(primary->endpoint);
             if (s != m_member_sessions.end()) {
               has_primary = true;
               primary_instance = mysqlshdk::mysql::Instance(s->second);
             }
-            (*ret)["primary"] = shcore::Value(primary->classic_endpoint);
+            (*ret)["primary"] = shcore::Value(primary->endpoint);
           }
           break;
         }

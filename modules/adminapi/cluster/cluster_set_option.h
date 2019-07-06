@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/replicaset/set_option.h"
+#include "modules/adminapi/cluster/replicaset/set_option.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/config/config.h"
 

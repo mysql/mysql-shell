@@ -24,7 +24,7 @@
 #ifndef MODULES_ADMINAPI_REPLICASET_SWITCH_TO_MULTI_PRIMARY_MODE_H_
 #define MODULES_ADMINAPI_REPLICASET_SWITCH_TO_MULTI_PRIMARY_MODE_H_
 
-#include "modules/adminapi/replicaset/topology_configuration_command.h"
+#include "modules/adminapi/cluster/replicaset/topology_configuration_command.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
