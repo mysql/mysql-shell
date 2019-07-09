@@ -203,7 +203,7 @@ void Cluster::assert_valid(const std::string &option_name) const {
                                              name + "' on a dissolved cluster");
     }
   }
-  if (!m_impl->get_group_session()) {
+  if (!m_impl->get_target_instance()) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use <Dba>." +
         get_function_name("getCluster", false) +

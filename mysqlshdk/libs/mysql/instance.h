@@ -69,6 +69,8 @@ inline bool operator==(const Auth_options &a, const Auth_options &b) {
          a.ssl_options == b.ssl_options;
 }
 
+class User_privileges;
+
 /**
  * This interface defines the low level instance operations to be available.
  */

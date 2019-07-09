@@ -60,11 +60,11 @@ class Cluster_impl {
   friend class Cluster;
 
   Cluster_impl(const Cluster_metadata &metadata,
-               const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+               const std::shared_ptr<Instance> &group_server,
                const std::shared_ptr<MetadataStorage> &metadata_storage);
 
   Cluster_impl(const std::string &name, const std::string &group_name,
-               const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+               const std::shared_ptr<Instance> &group_server,
                const std::shared_ptr<MetadataStorage> &metadata_storage);
   virtual ~Cluster_impl();
 
@@ -97,8 +97,12 @@ class Cluster_impl {
 
   bool get_gtid_set_is_complete() const;
 
+  std::shared_ptr<Instance> get_target_instance() const {
+    return m_target_server;
+  }
+
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
-    return _group_session;
+    return get_target_instance()->get_session();
   }
 
   mysqlshdk::mysql::Auth_options create_replication_user(
@@ -156,7 +160,7 @@ class Cluster_impl {
   std::string _description;
   // Session to a member of the group so we can query its status and other
   // stuff from pfs
-  std::shared_ptr<mysqlshdk::db::ISession> _group_session;
+  std::shared_ptr<Instance> m_target_server;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   // Used shell options
   void init();

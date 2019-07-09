@@ -649,10 +649,9 @@ int64_t generate_server_id() {
 }
 
 bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
-  auto session = instance.get_session();
   std::string receiver_channel_state, applier_channel_state;
 
-  assert(session);
+  assert(instance.get_session());
 
   try {
     // Get the state of the receiver and applier channels
@@ -671,7 +670,7 @@ bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
 
     log_debug("Executing query '%s'.", query.c_str());
 
-    auto resultset = session->query(query);
+    auto resultset = instance.query(query);
     auto row = resultset->fetch_one();
 
     // If the query returned no values it means async replication channels are

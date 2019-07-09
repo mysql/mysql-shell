@@ -388,7 +388,7 @@ Instance_id MetadataStorage::insert_instance(
     query = shcore::sqlstring(
         "INSERT INTO mysql_innodb_cluster_metadata.instances "
         "(host_id, replicaset_id, mysql_server_uuid, "
-        "instance_name, role, addresses, attributes)"
+        "instance_name, role, addresses, attributes) "
         "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
         "'mysqlX', ?, 'grLocal', ?), '{}')",
         0);

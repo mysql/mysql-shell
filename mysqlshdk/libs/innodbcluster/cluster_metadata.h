@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/libs/db/session.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
@@ -96,7 +96,7 @@ class Metadata_mutable : public Metadata {
 class Metadata_mysql : public Metadata_mutable {
  public:
   static std::shared_ptr<Metadata_mysql> create(
-      std::shared_ptr<db::ISession> session);
+      std::shared_ptr<mysqlsh::dba::Instance> instance);
 
   bool exists() override;
 
@@ -121,12 +121,10 @@ class Metadata_mysql : public Metadata_mutable {
   std::vector<Instance_info> get_replicaset_instances(
       const Replicaset_id &rsid) override;
 
-  std::shared_ptr<db::ISession> get_session() const { return _session; }
-
  private:
-  explicit Metadata_mysql(std::shared_ptr<db::ISession> session);
+  explicit Metadata_mysql(std::shared_ptr<mysqlsh::dba::Instance> instance);
 
-  std::shared_ptr<db::ISession> _session;
+  std::shared_ptr<mysqlsh::dba::Instance> m_md_server;
 
   std::shared_ptr<db::IResult> query(const std::string &sql);
 };

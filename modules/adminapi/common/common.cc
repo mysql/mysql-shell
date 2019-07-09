@@ -203,8 +203,8 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
   @return # of wildcarded accounts, # of other accounts
   */
 std::pair<int, int> find_cluster_admin_accounts(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, std::vector<std::string> *out_hosts) {
+    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
+    std::vector<std::string> *out_hosts) {
   shcore::sqlstring query;
   // look up the hosts the account is allowed from
   query = shcore::sqlstring(
@@ -217,7 +217,7 @@ std::pair<int, int> find_cluster_admin_accounts(
   int local = 0;
   int w = 0;
   int nw = 0;
-  auto result = session->query(query);
+  auto result = instance.query(query);
   if (result) {
     auto row = result->fetch_one();
     while (row) {
@@ -329,9 +329,8 @@ const std::map<std::string, std::map<std::string, std::set<std::string>>>
 /** Check that the provided account has privileges to manage a cluster.
  */
 bool validate_cluster_admin_user_privileges(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, const std::string &admin_host,
-    std::string *validation_error) {
+    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
+    const std::string &admin_host, std::string *validation_error) {
   bool is_valid = true;
 
   auto append_error_message = [validation_error, &is_valid](
@@ -346,7 +345,7 @@ bool validate_cluster_admin_user_privileges(
   log_info("Validating account %s@%s...", admin_user.c_str(),
            admin_host.c_str());
 
-  mysqlshdk::mysql::User_privileges user_privileges{session, admin_user,
+  mysqlshdk::mysql::User_privileges user_privileges{instance, admin_user,
                                                     admin_host};
 
   // Check global privileges.
@@ -431,7 +430,7 @@ std::vector<std::string> create_grants(const std::string &username,
 
 }  // namespace
 
-void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &username,
                                const std::string &password) {
   std::string user, host;
@@ -445,23 +444,24 @@ void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
 
   // Check if BACKUP_ADMIN should be added
   bool add_backup_admin =
-      (mysqlshdk::mysql::Instance(session).get_version() >=
+      (instance.get_version() >=
        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
           ? true
           : false;
 
-  session->execute("SET sql_log_bin = 0");
+  instance.execute("SET sql_log_bin = 0");
   try {
     log_info("Creating account %s", username.c_str());
     // Create the user
-    session->executef("CREATE USER ?@? IDENTIFIED BY ?", user, host, password);
+    instance.executef("CREATE USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", user,
+                      host, password);
     // Give the grants
     for (const auto &grant : create_grants(username, add_backup_admin))
-      session->execute(grant);
+      instance.execute(grant);
 
-    session->execute("SET sql_log_bin = 1");
+    instance.execute("SET sql_log_bin = 1");
   } catch (...) {
-    session->execute("SET sql_log_bin = 1");
+    instance.execute("SET sql_log_bin = 1");
     throw;
   }
 }
@@ -834,13 +834,13 @@ namespace {
  * @return string with the value of @@group_replication_group_name
  */
 std::string get_gr_replicaset_group_name(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
+    const mysqlshdk::mysql::IInstance &instance) {
   std::string group_name;
 
   std::string query("SELECT @@group_replication_group_name");
 
   // Any error will bubble up right away
-  auto result = session->query(query);
+  auto result = instance.query(query);
   auto row = result->fetch_one();
   if (row) {
     group_name = row->get_as_string(0);
@@ -861,10 +861,9 @@ std::string get_gr_replicaset_group_name(
  * 'group_replication_group_name' is the same as the one registered in the
  * corresponding replicaset in the Metadata
  */
-bool validate_replicaset_group_name(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &md_group_name) {
-  std::string gr_group_name = get_gr_replicaset_group_name(session);
+bool validate_replicaset_group_name(const mysqlshdk::mysql::IInstance &instance,
+                                    const std::string &md_group_name) {
+  std::string gr_group_name = get_gr_replicaset_group_name(instance);
 
   log_info("Group Replication 'group_name' value: %s", gr_group_name.c_str());
   log_info("Metadata 'group_name' value: %s", md_group_name.c_str());
@@ -983,7 +982,7 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
   int port = 0;
   std::string datadir;
 
-  mysqlsh::dba::get_port_and_datadir(instance.get_session(), &port, &datadir);
+  mysqlsh::dba::get_port_and_datadir(instance, &port, &datadir);
   std::string path_separator = datadir.substr(datadir.size() - 1);
   auto path_elements = shcore::split_string(datadir, path_separator);
 
@@ -1049,8 +1048,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
     // use the performance schema table to try and find the existing
     // configuration files
-    auto session = instance.get_session();
-    auto result = session->query(
+    auto result = instance.query(
         "select DISTINCT VARIABLE_PATH from performance_schema.variables_info "
         "WHERE VARIABLE_PATH <> ''");
     auto row = result->fetch_one();
@@ -1062,7 +1060,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   // if no config files were found, try to look in the default paths
   if (config_paths.empty()) {
     shcore::OperatingSystem os = shcore::get_os_type();
-    auto default_paths = mysqlshdk::config::get_default_config_paths(os);
+    default_paths = mysqlshdk::config::get_default_config_paths(os);
   }
   // Iterate the config_paths found in the instance checking if the user wants
   // to modify any of them
@@ -1203,9 +1201,8 @@ bool check_admin_account_access_restrictions(
   int n_wildcard_accounts, n_non_wildcard_accounts;
   std::vector<std::string> hosts;
 
-  auto session = instance.get_session();
   std::tie(n_wildcard_accounts, n_non_wildcard_accounts) =
-      mysqlsh::dba::find_cluster_admin_accounts(session, user, &hosts);
+      mysqlsh::dba::find_cluster_admin_accounts(instance, user, &hosts);
 
   // there are multiple accounts defined with the same username
   // we assume that the user knows what they're doing and skip the rest
@@ -1244,7 +1241,7 @@ bool check_admin_account_access_restrictions(
         if (whost != host) {
           std::string error_msg;
           if (mysqlsh::dba::validate_cluster_admin_user_privileges(
-                  session, user, whost, &error_msg)) {
+                  instance, user, whost, &error_msg)) {
             log_info(
                 "Account %s@%s has required privileges for cluster management",
                 user.c_str(), whost.c_str());
@@ -1387,8 +1384,7 @@ bool prompt_create_usable_admin_account(const std::string &user,
  */
 bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                             bool throw_on_error) {
-  auto session = instance.get_session();
-  auto options_session = session->get_connection_options();
+  auto options_session = instance.get_connection_options();
   auto active_session_address =
       options_session.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
@@ -1412,7 +1408,7 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
     // Get the list of open session to the instance
     std::vector<std::pair<std::string, int>> open_sessions;
-    open_sessions = mysqlsh::dba::get_open_sessions(session);
+    open_sessions = mysqlsh::dba::get_open_sessions(instance);
 
     if (!open_sessions.empty()) {
       console->print_note(
@@ -1423,9 +1419,9 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
       for (auto &value : open_sessions) {
         std::string account = value.first;
-        int open_sessions = value.second;
+        int num_open_sessions = value.second;
 
-        console->println("" + std::to_string(open_sessions) +
+        console->println("" + std::to_string(num_open_sessions) +
                          " open session(s) of "
                          "'" +
                          account + "'. \n");
@@ -1704,7 +1700,7 @@ std::string get_report_host_address(
     std::shared_ptr<mysqlshdk::db::ISession> session =
         mysqlshdk::db::mysql::Session::create();
     session->connect(target_cnx_opts);
-    mysqlshdk::mysql::Instance target_instance(session);
+    mysqlsh::dba::Instance target_instance(session);
     log_debug("Successfully connected to instance");
 
     // Get the instance report host value.

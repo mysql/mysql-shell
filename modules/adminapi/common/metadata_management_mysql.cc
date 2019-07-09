@@ -63,9 +63,9 @@ Version current_version() {
 
 Version current_public_version() { return Version(k_metadata_schema_version); }
 
-Version installed_version(std::shared_ptr<mysqlshdk::db::ISession> session) {
+Version installed_version(std::shared_ptr<Instance> instance) {
   try {
-    auto result = session->query(
+    auto result = instance->query(
         "SELECT `major`, `minor`, `patch` FROM "
         "       mysql_innodb_cluster_metadata.schema_version");
     auto row = result->fetch_one_or_throw();
@@ -78,12 +78,12 @@ Version installed_version(std::shared_ptr<mysqlshdk::db::ISession> session) {
   }
 }
 
-void install(std::shared_ptr<mysqlshdk::db::ISession> session) {
+void install(std::shared_ptr<Instance> instance) {
   auto console = mysqlsh::current_console();
   bool first_error = true;
 
   mysqlshdk::mysql::execute_sql_script(
-      session, k_metadata_schema_script,
+      *instance, k_metadata_schema_script,
       [console, &first_error](const std::string &err) {
         if (first_error) {
           console->print_error("While installing metadata schema:");
@@ -93,8 +93,8 @@ void install(std::shared_ptr<mysqlshdk::db::ISession> session) {
       });
 }
 
-void uninstall(std::shared_ptr<mysqlshdk::db::ISession> session) {
-  session->execute("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
+void uninstall(std::shared_ptr<Instance> instance) {
+  instance->execute("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
 }
 
 std::vector<const Metadata_upgrade_script *> get_upgrade_path(
@@ -130,8 +130,8 @@ std::vector<const Metadata_upgrade_script *> get_upgrade_path(
 
 void backup_metadata(std::shared_ptr<mysqlshdk::db::ISession>) {}
 
-void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session) {
-  Version version = installed_version(session);
+void upgrade(std::shared_ptr<Instance> instance) {
+  Version version = installed_version(instance);
   Version current = current_version();
   auto path = get_upgrade_path(version);
   auto console = mysqlsh::current_console();
@@ -140,15 +140,15 @@ void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session) {
     log_debug(
         "Installed metadata version at %s is equal or newer than latest known "
         "(installed %s, shell %s)",
-        session->get_connection_options().as_uri().c_str(),
-        version.get_full().c_str(), current.get_full().c_str());
+        instance->descr().c_str(), version.get_full().c_str(),
+        current.get_full().c_str());
     return;
   }
 
   log_info(
       "Upgrading InnoDB cluster metadata schema from version %s to %s at %s",
       version.get_full().c_str(), current.get_full().c_str(),
-      session->get_connection_options().as_uri().c_str());
+      instance->descr().c_str());
   log_info("Upgrade will require %zu steps", path.size());
 
   // log_info("Backing up current version of metadata schema to
@@ -164,7 +164,7 @@ void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session) {
       bool first_error = true;
 
       mysqlshdk::mysql::execute_sql_script(
-          session, upgrade->script,
+          *instance, upgrade->script,
           [console, &first_error](const std::string &err) {
             if (first_error) {
               console->print_error("While upgrading metadata schema:");
@@ -181,7 +181,7 @@ void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session) {
   }
 
   // Get the actually installed version after upgrade
-  version = installed_version(session);
+  version = installed_version(instance);
   console->print_info(
       shcore::str_format("Upgrade process successfully finished, cluster "
                          "metadata schema is now "

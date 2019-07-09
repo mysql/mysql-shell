@@ -25,7 +25,7 @@
 #define MODULES_ADMINAPI_COMMON_INSTANCE_MONITORING_H_
 
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/libs/mysql/instance.h"
+#include "modules/adminapi/common/instance_pool.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -43,7 +43,7 @@ class stop_wait {};
  * @param progress_style progress style: Recovery_progress_style
  */
 void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
-                         mysqlshdk::mysql::Instance *out_instance, int timeout,
+                         mysqlsh::dba::Instance *out_instance, int timeout,
                          Recovery_progress_style progress_style);
 
 }  // namespace dba

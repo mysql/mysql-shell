@@ -26,7 +26,8 @@
 
 #include <memory>
 #include <string>
-#include "mysqlshdk/libs/db/session.h"
+
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -41,12 +42,11 @@ mysqlshdk::utils::Version current_version();
 mysqlshdk::utils::Version current_public_version();
 
 // Metadata schema version currently installed in target
-mysqlshdk::utils::Version installed_version(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
+mysqlshdk::utils::Version installed_version(std::shared_ptr<Instance> instance);
 
-void install(std::shared_ptr<mysqlshdk::db::ISession> session);
-void upgrade(std::shared_ptr<mysqlshdk::db::ISession> session);
-void uninstall(std::shared_ptr<mysqlshdk::db::ISession> session);
+void install(std::shared_ptr<Instance> instance);
+void upgrade(std::shared_ptr<Instance> instance);
+void uninstall(std::shared_ptr<Instance> instance);
 
 }  // namespace metadata
 }  // namespace dba

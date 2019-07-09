@@ -27,8 +27,8 @@
 #include <string>
 
 #include "modules/adminapi/common/clone_progress.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
@@ -46,12 +46,12 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
 void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
                                   Recovery_progress_style /*progress_style*/);
 
-void monitor_clone_recovery(mysqlshdk::mysql::Instance *instance,
+void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
                             Recovery_progress_style progress_style,
                             int restart_timeout_sec);
 
 void monitor_post_clone_gr_recovery_status(
-    mysqlshdk::mysql::Instance *instance, const std::string &begin_time,
+    mysqlsh::dba::Instance *instance, const std::string &begin_time,
     Recovery_progress_style progress_style, int startup_timeout_sec);
 
 void monitor_gr_recovery_status(

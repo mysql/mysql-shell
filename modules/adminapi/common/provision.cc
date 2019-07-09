@@ -150,7 +150,7 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
 namespace mysqlsh {
 namespace dba {
 
-void leave_replicaset(const mysqlshdk::mysql::Instance &instance) {
+void leave_replicaset(const mysqlsh::dba::Instance &instance) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
 
@@ -438,8 +438,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   cnx_opts.clear_host();  // Clear first to avoid error for being already set.
   cnx_opts.set_host(reported_host);
   std::vector<std::string> seeds = get_peer_seeds(
-      instance.get_session(),
-      cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
+      instance, cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
 
   // Get all GR configurations.
   log_debug("Get all group replication configurations.");

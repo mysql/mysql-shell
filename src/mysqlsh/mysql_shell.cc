@@ -983,10 +983,11 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
   log_info("Redirecting session from '%s' to a %s of its InnoDB cluster...",
            uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
 
+  std::shared_ptr<mysqlsh::dba::Instance> instance =
+      std::make_shared<mysqlsh::dba::Instance>(session);
   std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> meta(
-      mysqlshdk::innodbcluster::Metadata_mysql::create(session));
+      mysqlshdk::innodbcluster::Metadata_mysql::create(instance));
 
-  mysqlshdk::mysql::Instance instance(session);
   mysqlshdk::innodbcluster::Cluster_group_client cluster(meta, session);
 
   std::vector<mysqlshdk::innodbcluster::Instance_info> candidates;
@@ -1018,7 +1019,7 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
     }
 
     // check if this session goes to a GR secondary
-    if (!mysqlshdk::gr::is_primary(instance)) {
+    if (!mysqlshdk::gr::is_primary(*instance)) {
       log_info("%s is already a secondary", uri.c_str());
       return false;
     }
@@ -1027,7 +1028,7 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
     redirect_uri = cluster.find_uri_to_any_secondary(proto);
   } else {
     // check if this session goes to a GR primary
-    if (mysqlshdk::gr::is_primary(instance)) {
+    if (mysqlshdk::gr::is_primary(*instance)) {
       log_info("%s is already a primary", uri.c_str());
       return false;
     }

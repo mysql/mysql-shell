@@ -34,22 +34,22 @@ namespace mysqlshdk {
 namespace innodbcluster {
 
 std::shared_ptr<Metadata_mysql> Metadata_mysql::create(
-    std::shared_ptr<db::ISession> session) {
-  return std::shared_ptr<Metadata_mysql>(new Metadata_mysql(session));
+    std::shared_ptr<mysqlsh::dba::Instance> instance) {
+  return std::shared_ptr<Metadata_mysql>(new Metadata_mysql(instance));
 }
 
-Metadata_mysql::Metadata_mysql(std::shared_ptr<db::ISession> session)
-    : _session(session) {}
+Metadata_mysql::Metadata_mysql(std::shared_ptr<mysqlsh::dba::Instance> instance)
+    : m_md_server(instance) {}
 
 std::shared_ptr<db::IResult> Metadata_mysql::query(const std::string &sql) {
-  assert(_session);
+  assert(m_md_server);
   log_debug("InnoDB Cluster Metadata: %s", sql.c_str());
-  return _session->query(sql);
+  return m_md_server->query(sql);
 }
 
 bool Metadata_mysql::exists() {
   try {
-    std::shared_ptr<db::IResult> result(_session->query(
+    std::shared_ptr<db::IResult> result(m_md_server->query(
         "SELECT * FROM mysql_innodb_cluster_metadata.schema_version"));
     const db::IRow *row = result->fetch_one();
     if (row) {
@@ -161,11 +161,11 @@ std::vector<Instance_info> Metadata_mysql::get_group_instances(
 
 namespace {
 std::vector<Instance_info> query_instances_with_filter(
-    db::ISession *session, const std::string &filter) {
+    const mysqlsh::dba::Instance &instance, const std::string &filter) {
   std::vector<Instance_info> instances;
 
   std::shared_ptr<db::IResult> result(
-      session->query("SELECT i.mysql_server_uuid, i.instance_name, i.role,"
+      instance.query("SELECT i.mysql_server_uuid, i.instance_name, i.role,"
                      "     i.addresses->>'$.mysqlClassic' as endpoint,"
                      "     i.addresses->>'$.mysqlX' as xendpoint,"
                      "     i.role as role"
@@ -193,12 +193,12 @@ std::vector<Instance_info> query_instances_with_filter(
 std::vector<Instance_info> Metadata_mysql::get_replicaset_instances(
     const Replicaset_id &rsid) {
   return query_instances_with_filter(
-      _session.get(), shcore::sqlstring("rs.replicaset_id = ?", 0) << rsid);
+      *m_md_server, shcore::sqlstring("rs.replicaset_id = ?", 0) << rsid);
 }
 
 utils::nullable<Instance_info> Metadata_mysql::get_instance_info_by_uuid(
     const std::string &uuid) const {
-  auto res = _session->queryf(
+  auto res = m_md_server->queryf(
       "SELECT "
       "     instance_name, "
       "     addresses->>'$.mysqlX' as x_address, "
@@ -222,7 +222,7 @@ utils::nullable<Instance_info> Metadata_mysql::get_instance_info_by_uuid(
 
 std::string Metadata_mysql::get_instance_uuid_by_address(
     const std::string &address) const {
-  auto res = _session->queryf(
+  auto res = m_md_server->queryf(
       "SELECT "
       "     mysql_server_uuid"
       "   FROM mysql_innodb_cluster_metadata.instances"

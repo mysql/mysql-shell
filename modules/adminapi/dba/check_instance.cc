@@ -76,7 +76,7 @@ bool Check_instance::check_schema_compatibility() {
         "Checking whether existing tables comply with Group Replication "
         "requirements...");
   }
-  if (checks::validate_schemas(m_target_instance->get_session())) {
+  if (checks::validate_schemas(*m_target_instance)) {
     if (!m_silent) console->print_info("No incompatible tables detected");
     return true;
   }
@@ -179,7 +179,7 @@ void Check_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session;
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance = new mysqlsh::dba::Instance(session);
   }
 
   std::string target = m_target_instance->descr();
@@ -192,11 +192,11 @@ void Check_instance::prepare() {
                           m_target_instance->descr() +
                           " for use in an InnoDB cluster...");
     } else {
-      console->print_info("Validating local MySQL instance listening at port " +
-                          std::to_string(m_target_instance->get_session()
-                                             ->get_connection_options()
-                                             .get_port()) +
-                          " for use in an InnoDB cluster...");
+      console->print_info(
+          "Validating local MySQL instance listening at port " +
+          std::to_string(
+              m_target_instance->get_connection_options().get_port()) +
+          " for use in an InnoDB cluster...");
     }
   }
 

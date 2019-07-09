@@ -87,8 +87,7 @@ class Replicaset_options : public Command_interface {
 
   shcore::Array_t collect_global_options();
 
-  shcore::Array_t get_instance_options(
-      const mysqlshdk::mysql::Instance &instance);
+  shcore::Array_t get_instance_options(const mysqlsh::dba::Instance &instance);
 
   shcore::Dictionary_t collect_replicaset_options();
 };

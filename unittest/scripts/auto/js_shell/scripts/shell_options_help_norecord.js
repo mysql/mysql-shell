@@ -50,6 +50,10 @@
 // WL#11862 - FR6_5
 \option -h dba.gtidWaitTimeout
 
+//@ dba.logSql option help text
+// WL#13294
+\option -h dba.logSql
+
 //@ Verify the help text when using filter
 \option --help history
 

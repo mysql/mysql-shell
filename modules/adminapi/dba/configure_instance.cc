@@ -38,7 +38,6 @@
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -242,8 +241,7 @@ void Configure_instance::check_create_admin_user() {
       // and log a warning to inform that the user won't be created
 
       if (!validate_cluster_admin_user_privileges(
-              m_target_instance->get_session(), admin_user, admin_user_host,
-              &error_info)) {
+              *m_target_instance, admin_user, admin_user_host, &error_info)) {
         console->print_warning(
             "User " + m_cluster_admin +
             " already exists and will not be created. However, it is missing "
@@ -264,9 +262,8 @@ void Configure_instance::check_create_admin_user() {
       // clusterAdminPassword isn't provided, prompt the user for it,
       // unless the account name is the same as the current
       if (m_current_user == admin_user) {
-        m_cluster_admin_password = m_target_instance->get_session()
-                                       ->get_connection_options()
-                                       .get_password();
+        m_cluster_admin_password =
+            m_target_instance->get_connection_options().get_password();
       } else if (m_cluster_admin_password.is_null()) {
         if (m_interactive) {
           m_cluster_admin_password = prompt_new_account_password();
@@ -305,8 +302,8 @@ void Configure_instance::create_admin_user() {
       } else {
         log_info("Creating new cluster admin account %s",
                  m_cluster_admin.c_str());
-        create_cluster_admin_user(m_target_instance->get_session(),
-                                  m_cluster_admin, *m_cluster_admin_password);
+        create_cluster_admin_user(*m_target_instance, m_cluster_admin,
+                                  *m_cluster_admin_password);
       }
     } catch (const shcore::Exception &err) {
       std::string error_msg = "Error creating clusterAdmin account: '" +
@@ -480,7 +477,7 @@ void Configure_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session;
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance = new mysqlsh::dba::Instance(session);
 
     m_local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
@@ -494,11 +491,10 @@ void Configure_instance::prepare() {
                         m_target_instance->descr() +
                         " for use in an InnoDB cluster...");
   } else {
-    console->print_info("Configuring local MySQL instance listening at port " +
-                        std::to_string(m_target_instance->get_session()
-                                           ->get_connection_options()
-                                           .get_port()) +
-                        " for use in an InnoDB cluster...");
+    console->print_info(
+        "Configuring local MySQL instance listening at port " +
+        std::to_string(m_target_instance->get_connection_options().get_port()) +
+        " for use in an InnoDB cluster...");
   }
 
   // Check if we are dealing with a sandbox instance
@@ -643,7 +639,7 @@ shcore::Value Configure_instance::execute() {
     if (m_can_restart && !m_restart.is_null() && *m_restart) {
       try {
         console->println("Restarting MySQL...");
-        m_target_instance->get_session()->query("RESTART");
+        m_target_instance->query("RESTART");
         console->print_note("MySQL server at " + m_target_instance->descr() +
                             " was restarted.");
       } catch (const mysqlshdk::db::Error &err) {

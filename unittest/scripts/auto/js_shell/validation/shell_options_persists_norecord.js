@@ -112,6 +112,13 @@
 ||
 |60|
 
+//@ dba.logSql update and set back to default using shell.options
+||
+|1|
+|"dba.logSql": "1"|
+||
+|0|
+
 //@ autocomplete.nameCache update and set back to default using \option
 ||
 |false|
@@ -216,6 +223,13 @@
 ||
 |60|
 
+//@ dba.logSql update and set back to default using \option
+||
+|2|
+|"dba.logSql": "2"|
+||
+|0|
+
 //@ credentialStore.helper update and set back to default using \option
 ||
 |plaintext|
@@ -251,6 +265,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
+ dba.logSql                      0
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -267,6 +282,7 @@
  showColumnTypeInfo              false
  showWarnings                    true
  useWizards                      true
+ verbose                         0
 
 //@<OUT> List all the options using \option and show-origin
  autocomplete.nameCache          true (Compiled default)
@@ -275,6 +291,7 @@
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
+ dba.logSql                      0 (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
@@ -291,6 +308,7 @@
  showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)
+ verbose                         0 (Compiled default)
 
 //@ List an option which origin is Compiled default
 |(Compiled default)|
@@ -315,6 +333,24 @@
 ||
 ||
 
+//@ Verify option dba.logSql
+||Malformed option value.
+||value out of range
+||value out of range
+||Incorrect option value.
+||
+||
+||
+
+//@ Verify option verbose
+||Malformed option value.
+||value out of range
+||value out of range
+||Incorrect option value.
+||
+||
+||
+
 //@ Configuration operation available in SQL mode
 |Switching to SQL mode... Commands end with ;|
 |8|
@@ -330,6 +366,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
+ dba.logSql                      0
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -346,6 +383,7 @@
  showColumnTypeInfo              false
  showWarnings                    true
  useWizards                      true
+ verbose                         0
 
 //@<OUT> List all the options using \option and show-origin for SQL mode
 Switching to SQL mode... Commands end with ;
@@ -355,6 +393,7 @@ Switching to SQL mode... Commands end with ;
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
+ dba.logSql                      0 (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
@@ -371,3 +410,4 @@ Switching to SQL mode... Commands end with ;
  showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)
+ verbose                         0 (Compiled default)

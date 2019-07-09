@@ -122,15 +122,15 @@ TEST_F(Dba_replicaset_test, bug28219398) {
   auto md_session = create_session(_mysql_sandbox_ports[0]);
 
   md_session->query("CREATE USER IF NOT EXISTS '" + replication_user +
-                    "'@'localhost' IDENTIFIED BY /*(*/ '" + replication_pwd +
-                    "' /*)*/ ");
+                    "'@'localhost' IDENTIFIED BY /*((*/ '" + replication_pwd +
+                    "' /*))*/ ");
 
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'localhost' /*)*/");
 
   md_session->query("CREATE USER IF NOT EXISTS '" + replication_user +
-                    "'@'%' IDENTIFIED BY /*(*/ '" + replication_pwd +
-                    "' /*)*/ ");
+                    "'@'%' IDENTIFIED BY /*((*/ '" + replication_pwd +
+                    "' /*))*/ ");
 
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'%' /*)*/");
@@ -169,13 +169,13 @@ TEST_F(Dba_replicaset_test, bug28219398) {
     execute("session.close()");
 
     auto session = create_session(_mysql_sandbox_ports[2]);
-    auto instance_type = mysqlsh::dba::get_gr_instance_type(session);
+    mysqlsh::dba::Instance instance(session);
+    auto instance_type = mysqlsh::dba::get_gr_instance_type(instance);
 
     mysqlsh::dba::Cluster_check_info state =
-        mysqlsh::dba::get_replication_group_state(
-            mysqlshdk::mysql::Instance(session), instance_type);
+        mysqlsh::dba::get_replication_group_state(instance, instance_type);
 
-    session->close();
+    instance.close_session();
 
     // The instance should be 'ONLINE' and not stuck in 'RECOVERING'
     EXPECT_EQ(state.source_state, mysqlsh::dba::ManagedInstance::OnlineRO);

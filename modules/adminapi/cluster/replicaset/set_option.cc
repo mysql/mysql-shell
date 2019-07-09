@@ -36,8 +36,8 @@ Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_str(value) {
-  m_cluster_session_instance = shcore::make_unique<mysqlshdk::mysql::Instance>(
-      m_replicaset.get_cluster()->get_group_session());
+  m_cluster_session_instance =
+      m_replicaset.get_cluster()->get_target_instance();
 }
 
 Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
@@ -45,8 +45,8 @@ Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_int(value) {
-  m_cluster_session_instance = shcore::make_unique<mysqlshdk::mysql::Instance>(
-      m_replicaset.get_cluster()->get_group_session());
+  m_cluster_session_instance =
+      m_replicaset.get_cluster()->get_target_instance();
 }
 
 Set_option::~Set_option() {}
@@ -116,8 +116,6 @@ void Set_option::ensure_all_members_replicaset_online() {
       log_debug("Connecting to instance '%s'.", instance_address.c_str());
       std::shared_ptr<mysqlshdk::db::ISession> session;
 
-      mysqlshdk::mysql::Instance instance;
-
       // Establish a session to the instance
       try {
         session = mysqlshdk::db::mysql::Session::create();
@@ -125,7 +123,7 @@ void Set_option::ensure_all_members_replicaset_online() {
 
         // Add the instance to instances internal list
         m_cluster_instances.emplace_back(
-            shcore::make_unique<mysqlshdk::mysql::Instance>(session));
+            shcore::make_unique<mysqlsh::dba::Instance>(session));
       } catch (const std::exception &err) {
         log_debug("Failed to connect to instance: %s", err.what());
 
@@ -232,9 +230,6 @@ void Set_option::finish() {
   for (const auto &instance : m_cluster_instances) {
     instance->close_session();
   }
-
-  // Reset all auxiliary (temporary) data used for the operation execution.
-  m_cluster_session_instance.reset();
 }
 
 }  // namespace dba

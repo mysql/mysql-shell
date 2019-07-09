@@ -28,11 +28,11 @@
 
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
@@ -40,7 +40,7 @@ namespace dba {
 
 class Create_cluster : public Command_interface {
  public:
-  Create_cluster(mysqlshdk::mysql::IInstance *target_instance,
+  Create_cluster(std::shared_ptr<Instance> target_instance,
                  const std::string &cluster_name,
                  const Group_replication_options &gr_options,
                  const Clone_options &clone_options,
@@ -111,7 +111,7 @@ class Create_cluster : public Command_interface {
   void finish() override;
 
  private:
-  mysqlshdk::mysql::IInstance *m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   const std::string m_cluster_name;
   Group_replication_options m_gr_opts;
   Clone_options m_clone_opts;

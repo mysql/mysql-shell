@@ -31,7 +31,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -42,8 +41,8 @@ Topology_configuration_command::Topology_configuration_command(
     ReplicaSet *replicaset)
     : m_replicaset(replicaset) {
   assert(replicaset);
-  m_cluster_session_instance = shcore::make_unique<mysqlshdk::mysql::Instance>(
-      m_replicaset->get_cluster()->get_group_session());
+  m_cluster_session_instance =
+      m_replicaset->get_cluster()->get_target_instance();
 }
 
 Topology_configuration_command::~Topology_configuration_command() {}
@@ -121,8 +120,6 @@ void Topology_configuration_command::ensure_all_members_replicaset_online() {
       log_debug("Connecting to instance '%s'.", instance_address.c_str());
       std::shared_ptr<mysqlshdk::db::ISession> session;
 
-      mysqlshdk::mysql::Instance instance;
-
       // Establish a session to the instance
       try {
         session = mysqlshdk::db::mysql::Session::create();
@@ -130,7 +127,7 @@ void Topology_configuration_command::ensure_all_members_replicaset_online() {
 
         // Add the instance to instances internal list
         m_cluster_instances.emplace_back(
-            shcore::make_unique<mysqlshdk::mysql::Instance>(session));
+            shcore::make_unique<mysqlsh::dba::Instance>(session));
       } catch (const std::exception &err) {
         log_debug("Failed to connect to instance: %s", err.what());
 
@@ -197,12 +194,12 @@ void Topology_configuration_command::update_topology_mode_metadata(
         m_cluster_session_instance->get_connection_options().as_uri().c_str());
 
     auto metadata(mysqlshdk::innodbcluster::Metadata_mysql::create(
-        m_cluster_session_instance->get_session()));
+        m_cluster_session_instance));
 
     mysqlshdk::innodbcluster::Cluster_group_client cluster(
         metadata, m_cluster_session_instance->get_session());
 
-    std::shared_ptr<mysqlshdk::db::ISession> session_to_primary;
+    std::shared_ptr<Instance> primary_instance;
 
     // Find the primary
     std::string primary_uri;
@@ -225,13 +222,13 @@ void Topology_configuration_command::update_topology_mode_metadata(
           mysqlshdk::db::uri::formats::only_transport());
 
       if (instance_uri == primary_uri) {
-        session_to_primary = instance->get_session();
+        primary_instance = std::make_shared<Instance>(instance->get_session());
       }
     }
 
     std::shared_ptr<MetadataStorage> new_metadata;
 
-    new_metadata = shcore::make_unique<MetadataStorage>(session_to_primary);
+    new_metadata = shcore::make_unique<MetadataStorage>(primary_instance);
 
     // Update the topology mode in the Metadata
     new_metadata->update_cluster_topology_mode(
@@ -334,7 +331,6 @@ void Topology_configuration_command::finish() {
   }
 
   // Reset all auxiliary (temporary) data used for the operation execution.
-  m_cluster_session_instance.reset();
   m_initial_members_info.clear();
 }
 

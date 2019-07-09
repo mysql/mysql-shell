@@ -178,7 +178,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
 
   // Create a recovery user with a random password.
   auto password = mysqlshdk::utils::nullable<std::string>();
-  auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", instance,
+  auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *instance,
                                                    {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
@@ -194,7 +194,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
 
   // Drop user and recreate it with a given password
   password = mysqlshdk::utils::nullable<std::string>("password");
-  creds = mysqlshdk::gr::create_recovery_user("test_gr_user", instance, {"%"},
+  creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *instance, {"%"},
                                               password);
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
@@ -1340,8 +1340,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_required) {
   mock_session
       ->expect_query(
           "SELECT m.member_id, m.member_state, m.member_host, m.member_port, "
-          "m.member_role, m.member_version, s.view_id, "
-          "@@group_replication_single_primary_mode single_primary FROM "
+          "m.member_role, m.member_version, s.view_id FROM "
           "performance_schema.replication_group_members m LEFT JOIN "
           "performance_schema.replication_group_member_stats s   ON "
           "m.member_id = s.member_id      AND s.channel_name = "
@@ -1396,8 +1395,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
   mock_session
       ->expect_query(
           "SELECT m.member_id, m.member_state, m.member_host, m.member_port, "
-          "m.member_role, m.member_version, s.view_id, "
-          "@@group_replication_single_primary_mode single_primary FROM "
+          "m.member_role, m.member_version, s.view_id FROM "
           "performance_schema.replication_group_members m LEFT JOIN "
           "performance_schema.replication_group_member_stats s   ON "
           "m.member_id = s.member_id      AND s.channel_name = "

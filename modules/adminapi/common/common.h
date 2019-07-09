@@ -227,13 +227,12 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance);
 
 std::pair<int, int> find_cluster_admin_accounts(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, std::vector<std::string> *out_hosts);
+    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
+    std::vector<std::string> *out_hosts);
 bool validate_cluster_admin_user_privileges(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, const std::string &admin_host,
-    std::string *validation_error);
-void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
+    const std::string &admin_host, std::string *validation_error);
+void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &username,
                                const std::string &password);
 std::string SHCORE_PUBLIC
@@ -251,9 +250,8 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
     const mysqlshdk::mysql::IInstance &group_server,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
 
-bool SHCORE_PUBLIC
-validate_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session,
-                               const std::string &group_name);
+bool SHCORE_PUBLIC validate_replicaset_group_name(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &group_name);
 
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                               mysqlshdk::utils::nullable<bool> clear_read_only,

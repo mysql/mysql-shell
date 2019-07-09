@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,10 +30,10 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlshdk {
 namespace innodbcluster {
@@ -96,7 +96,7 @@ class Cluster_group_client {
 
  private:
   std::shared_ptr<Metadata> _metadata;
-  std::unique_ptr<mysqlshdk::mysql::Instance> _instance;
+  std::unique_ptr<mysqlsh::dba::Instance> _instance;
   std::string _group_name;
   bool _single_primary_mode;
 };

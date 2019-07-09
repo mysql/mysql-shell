@@ -117,8 +117,7 @@ void Set_instance_option::ensure_target_member_online() {
   try {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance =
-        shcore::make_unique<mysqlshdk::mysql::Instance>(session);
+    m_target_instance = shcore::make_unique<mysqlsh::dba::Instance>(session);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -172,10 +171,10 @@ void Set_instance_option::prepare() {
 
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
-    std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-        m_replicaset.get_cluster()->get_group_session();
+    std::shared_ptr<Instance> cluster_instance =
+        m_replicaset.get_cluster()->get_target_instance();
     Connection_options cluster_cnx_opt =
-        cluster_session->get_connection_options();
+        cluster_instance->get_connection_options();
 
     if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user())
       m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());

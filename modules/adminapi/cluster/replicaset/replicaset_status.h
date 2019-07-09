@@ -97,7 +97,7 @@ class Replicaset_status : public Command_interface {
   void connect_to_members();
 
   shcore::Dictionary_t check_group_status(
-      const mysqlshdk::mysql::Instance &instance,
+      const mysqlsh::dba::Instance &instance,
       const std::vector<mysqlshdk::gr::Member> &members);
 
   const Instance_metadata *instance_with_uuid(const std::string &uuid);
@@ -124,10 +124,10 @@ class Replicaset_status : public Command_interface {
   shcore::Value applier_status(const mysqlshdk::db::Row_ref_by_name &row);
 
   void collect_basic_local_status(shcore::Dictionary_t dict,
-                                  const mysqlshdk::mysql::Instance &instance);
+                                  const mysqlsh::dba::Instance &instance);
 
   void collect_local_status(shcore::Dictionary_t dict,
-                            const mysqlshdk::mysql::Instance &instance,
+                            const mysqlsh::dba::Instance &instance,
                             bool recovering);
 
   void feed_metadata_info(shcore::Dictionary_t dict,
@@ -144,7 +144,7 @@ class Replicaset_status : public Command_interface {
 
   shcore::Dictionary_t get_topology(
       const std::vector<mysqlshdk::gr::Member> &member_info,
-      const mysqlshdk::mysql::Instance *primary_instance);
+      const mysqlsh::dba::Instance *primary_instance);
 
   shcore::Dictionary_t collect_replicaset_status();
 };

@@ -114,8 +114,7 @@ class ReplicaSet {
    *         instance found, or a nullptr if no instance is available (not
    *         reachable).
    */
-  // TODO(alfredo) - remove this and replace with Instance_pool
-  std::unique_ptr<mysqlshdk::mysql::Instance> get_online_instance(
+  std::unique_ptr<mysqlsh::dba::Instance> get_online_instance(
       const std::string &exclude_uuid = "") const;
 
   std::vector<Instance_metadata> get_instances() const;
@@ -179,7 +178,7 @@ class ReplicaSet {
    */
   void update_group_members_for_removed_member(
       const std::string &local_gr_address,
-      const mysqlshdk::mysql::Instance &instance);
+      const mysqlsh::dba::Instance &instance);
 
   /**
    * Get the primary instance address.
@@ -192,8 +191,7 @@ class ReplicaSet {
    */
   mysqlshdk::db::Connection_options pick_seed_instance() const;
 
-  void validate_server_uuid(
-      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) const;
+  void validate_server_uuid(const mysqlshdk::mysql::IInstance &instance) const;
 
   void validate_server_id(
       const mysqlshdk::mysql::IInstance &target_instance) const;

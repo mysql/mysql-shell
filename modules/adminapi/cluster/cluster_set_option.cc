@@ -80,8 +80,7 @@ void Cluster_set_option::check_disable_clone_support() {
   log_debug("Checking of disableClone is not supported by all cluster members");
 
   // Get all cluster instances
-  auto members = mysqlshdk::gr::get_members(
-      mysqlshdk::mysql::Instance(m_cluster->get_group_session()));
+  auto members = mysqlshdk::gr::get_members(*m_cluster->get_target_instance());
 
   size_t bad_count = 0;
 
@@ -108,7 +107,7 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
   // Get cluster session to use the same authentication credentials for all
   // replicaset instances.
   Connection_options cluster_cnx_opt =
-      m_cluster->get_group_session()->get_connection_options();
+      m_cluster->get_target_instance()->get_connection_options();
 
   size_t count = 0;
 
@@ -127,7 +126,7 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
       session = mysqlshdk::db::mysql::Session::create();
       session->connect(instance_cnx_opts);
 
-      auto instance = mysqlshdk::mysql::Instance(session);
+      auto instance = mysqlsh::dba::Instance(session);
 
       if (disable_clone) {
         // Uninstall the clone plugin
@@ -162,7 +161,7 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
           grant << recovery_user;
           grant << "%";
           grant.done();
-          m_cluster->get_group_session()->execute(grant);
+          m_cluster->get_target_instance()->execute(grant);
         }
       }
 
@@ -229,8 +228,7 @@ void Cluster_set_option::prepare() {
     ensure_option_valid();
 
     // Verify user privileges to execute operation;
-    mysqlshdk::mysql::Instance cluster_session(m_cluster->get_group_session());
-    ensure_user_privileges(cluster_session);
+    ensure_user_privileges(*m_cluster->get_target_instance());
   } else {
     throw shcore::Exception::argument_error("Option '" + m_option +
                                             "' not supported.");

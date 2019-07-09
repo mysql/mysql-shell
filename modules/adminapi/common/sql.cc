@@ -34,7 +34,7 @@
 namespace mysqlsh {
 namespace dba {
 GRInstanceType get_gr_instance_type(
-    std::shared_ptr<mysqlshdk::db::ISession> connection) {
+    const mysqlshdk::mysql::IInstance &instance) {
   GRInstanceType ret_val = GRInstanceType::Standalone;
 
   std::string query(
@@ -44,17 +44,17 @@ GRInstanceType get_gr_instance_type(
       "NOT NULL AND MEMBER_STATE <> 'OFFLINE';");
 
   try {
-    auto result = connection->query(query);
+    auto result = instance.query(query);
     auto row = result->fetch_one();
 
     if (row) {
       if (row->get_int(0) != 0) {
         log_debug("Instance type check: %s: GR is active",
-                  connection->get_connection_options().as_uri().c_str());
+                  instance.descr().c_str());
         ret_val = GRInstanceType::GroupReplication;
       } else {
         log_debug("Instance type check: %s: GR is not active",
-                  connection->get_connection_options().as_uri().c_str());
+                  instance.descr().c_str());
       }
     }
   } catch (const mysqlshdk::db::Error &error) {
@@ -62,8 +62,7 @@ GRInstanceType get_gr_instance_type(
         error.what(), error.code(), error.sqlstate());
 
     log_debug("Error querying GR member state: %s: %i %s",
-              connection->get_connection_options().as_uri().c_str(),
-              error.code(), error.what());
+              instance.descr().c_str(), error.code(), error.what());
 
     // SELECT command denied to user 'test_user'@'localhost' for table
     // 'replication_group_members' (MySQL Error 1142)
@@ -82,22 +81,21 @@ GRInstanceType get_gr_instance_type(
         "select count(*) from mysql_innodb_cluster_metadata.instances "
         "where mysql_server_uuid = @@server_uuid";
     try {
-      auto result = connection->query(query);
+      auto result = instance.query(query);
       auto row = result->fetch_one();
 
       if (row) {
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: Metadata record found",
-                    connection->get_connection_options().as_uri().c_str());
+                    instance.descr().c_str());
           ret_val = GRInstanceType::InnoDBCluster;
         } else {
           log_debug("Instance type check: %s: Metadata record not found",
-                    connection->get_connection_options().as_uri().c_str());
+                    instance.descr().c_str());
         }
       }
     } catch (const mysqlshdk::db::Error &error) {
-      log_debug("Error querying metadata: %s: %i %s",
-                connection->get_connection_options().as_uri().c_str(),
+      log_debug("Error querying metadata: %s: %i %s", instance.descr().c_str(),
                 error.code(), error.what());
 
       // Ignore error table does not exist (error 1146) for 5.7 or database
@@ -112,29 +110,29 @@ GRInstanceType get_gr_instance_type(
 
     query = shcore::sqlstring("show databases like ?", 0) << schema;
 
-    auto result = connection->query(query);
+    auto result = instance.query(query);
     auto row = result->fetch_one();
 
     if (row && row->get_string(0) == schema) {
       log_debug("Instance type check: %s: Metadata found",
-                connection->get_connection_options().as_uri().c_str());
+                instance.descr().c_str());
       ret_val = GRInstanceType::StandaloneWithMetadata;
 
       query =
           "select count(*) from mysql_innodb_cluster_metadata.instances "
           "where mysql_server_uuid = @@server_uuid";
 
-      result = connection->query(query);
+      result = instance.query(query);
       row = result->fetch_one();
 
       if (row) {
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: instance is in Metadata",
-                    connection->get_connection_options().as_uri().c_str());
+                    instance.descr().c_str());
           ret_val = GRInstanceType::StandaloneInMetadata;
         } else {
           log_debug("Instance type check: %s: instance is not in Metadata",
-                    connection->get_connection_options().as_uri().c_str());
+                    instance.descr().c_str());
         }
       }
     }
@@ -143,7 +141,7 @@ GRInstanceType get_gr_instance_type(
   return ret_val;
 }
 
-void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
+void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
                           int *port, std::string *datadir) {
   assert(port);
   assert(datadir);
@@ -151,7 +149,7 @@ void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
   std::string query("select @@port, @@datadir;");
 
   // Any error will bubble up right away
-  auto result = connection->query(query);
+  auto result = instance.query(query);
   auto row = result->fetch_one();
 
   *port = row->get_int(0);
@@ -219,7 +217,7 @@ Cluster_check_info get_replication_group_state(
  * instance_host
  */
 std::vector<std::string> get_peer_seeds(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
+    const mysqlshdk::mysql::IInstance &instance,
     const std::string &instance_host) {
   std::vector<std::string> ret_val;
   shcore::sqlstring query = shcore::sqlstring(
@@ -238,14 +236,14 @@ std::vector<std::string> get_peer_seeds(
   try {
     // Get current GR group seeds value
     auto result =
-        connection->query("SELECT @@global.group_replication_group_seeds");
+        instance.query("SELECT @@global.group_replication_group_seeds");
     auto row = result->fetch_one();
     std::string group_seeds_str = row->get_string(0);
     if (!group_seeds_str.empty())
       ret_val = shcore::split_string(group_seeds_str, ",");
 
     // Get the list of known seeds from the metadata.
-    result = connection->query(query);
+    result = instance.query(query);
     row = result->fetch_one();
     while (row) {
       std::string seed = row->get_string(0);
@@ -265,7 +263,7 @@ std::vector<std::string> get_peer_seeds(
 }
 
 std::vector<std::pair<std::string, int>> get_open_sessions(
-    std::shared_ptr<mysqlshdk::db::ISession> connection) {
+    const mysqlshdk::mysql::IInstance &instance) {
   std::vector<std::pair<std::string, int>> ret;
 
   std::string query(
@@ -276,7 +274,7 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
       "GROUP BY acct;");
 
   // Any error will bubble up right away
-  auto result = connection->query(query);
+  auto result = instance.query(query);
   auto row = result->fetch_one();
 
   while (row) {

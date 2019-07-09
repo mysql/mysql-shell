@@ -105,12 +105,12 @@ shcore::Dictionary_t Replicaset_describe::collect_replicaset_description() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_session = m_cluster->get_group_session();
+  auto group_instance = m_cluster->get_target_instance();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(group_session, nullptr);
+      mysqlshdk::gr::get_group_primary_uuid(*group_instance, nullptr);
 
   std::string topology_mode =
       !gr_primary_uuid.empty()
@@ -123,11 +123,9 @@ shcore::Dictionary_t Replicaset_describe::collect_replicaset_description() {
   (*ret)["name"] = shcore::Value(m_replicaset.get_name());
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
-  mysqlshdk::mysql::Instance group_instance(group_session);
-
   bool single_primary;
   std::vector<mysqlshdk::gr::Member> member_info(
-      mysqlshdk::gr::get_members(group_instance, &single_primary));
+      mysqlshdk::gr::get_members(*group_instance, &single_primary));
 
   (*ret)["topology"] = shcore::Value(get_topology(member_info));
 
@@ -155,22 +153,21 @@ shcore::Value Replicaset_describe::execute() {
   //
   // If that's the case, a warning must be added to the resulting JSON object
   {
-    auto group_session = m_cluster->get_group_session();
+    auto group_instance = m_cluster->get_target_instance();
 
-    auto state =
-        get_replication_group_state(mysqlshdk::mysql::Instance(group_session),
-                                    get_gr_instance_type(group_session));
+    auto state = get_replication_group_state(
+        *group_instance, get_gr_instance_type(*group_instance));
 
     bool warning = (state.source_state != ManagedInstance::OnlineRW &&
                     state.source_state != ManagedInstance::OnlineRO);
     if (warning) {
-      std::string warning =
+      std::string warning_msg =
           "The cluster description may be inaccurate as it was generated from "
           "an instance in ";
-      warning.append(ManagedInstance::describe(
+      warning_msg.append(ManagedInstance::describe(
           static_cast<ManagedInstance::State>(state.source_state)));
-      warning.append(" state");
-      (*replicaset_dict)["warning"] = shcore::Value(warning);
+      warning_msg.append(" state");
+      (*replicaset_dict)["warning"] = shcore::Value(warning_msg);
     }
   }
 

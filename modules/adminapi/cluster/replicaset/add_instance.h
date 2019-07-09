@@ -51,7 +51,7 @@ class Add_instance : public Command_interface {
                bool overwrite_seed = false, bool skip_instance_check = false,
                bool skip_rpl_user = false);
 
-  Add_instance(mysqlshdk::mysql::IInstance *target_instance,
+  Add_instance(mysqlsh::dba::Instance *target_instance,
                const ReplicaSet &replicaset,
                const Group_replication_options &gr_options,
                const Clone_options &clone_options,
@@ -132,11 +132,11 @@ class Add_instance : public Command_interface {
   bool m_skip_rpl_user;
 
   std::string m_instance_address;
-  mysqlshdk::mysql::IInstance *m_target_instance = nullptr;
+  mysqlsh::dba::Instance *m_target_instance = nullptr;
   bool m_reuse_session_for_target_instance = false;
   std::string m_host_in_metadata;
   std::string m_address_in_metadata;
-  std::unique_ptr<mysqlshdk::mysql::Instance> m_peer_instance;
+  std::unique_ptr<mysqlsh::dba::Instance> m_peer_instance;
   bool m_use_cluster_session_for_peer = true;
 
   // Configuration object (to read and set instance configurations).

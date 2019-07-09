@@ -25,8 +25,9 @@
 #define MODULES_ADMINAPI_COMMON_VALIDATIONS_H_
 
 #include <memory>
+
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {

@@ -30,10 +30,10 @@
 
 #include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
@@ -53,7 +53,7 @@ namespace dba {
  *
  * @param instance target Instance object to remove from the replicaset.
  */
-void leave_replicaset(const mysqlshdk::mysql::Instance &instance);
+void leave_replicaset(const mysqlsh::dba::Instance &instance);
 
 /**
  * Check the instance configuration.

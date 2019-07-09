@@ -28,7 +28,6 @@
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -151,7 +150,7 @@ void validate_group_session(
                               shcore::Exception::runtime_error);
 
   if (mysqlshdk::gr::is_group_replication_delayed_starting(
-          mysqlshdk::mysql::Instance(group_session)))
+          mysqlsh::dba::Instance(group_session)))
     throw shcore::Exception::runtime_error(
         "Cannot perform operation while group replication is "
         "starting up");
@@ -225,18 +224,14 @@ void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
 }
 
 Cluster_check_info get_cluster_check_info(
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
-  validate_group_session(group_session);
-
-  mysqlshdk::mysql::Instance group_instance(group_session);
+    const std::shared_ptr<Instance> &group_server) {
+  validate_group_session(group_server->get_session());
 
   Cluster_check_info state;
-  // TODO(ak) make get_gr_instance_type() check the metadata of the MD server
-  // instead
   // Retrieves the instance configuration type from the perspective of the
   // active session
   try {
-    state.source_type = get_gr_instance_type(group_session);
+    state.source_type = get_gr_instance_type(*group_server);
   } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
       throw;
@@ -251,7 +246,7 @@ Cluster_check_info get_cluster_check_info(
       state.source_type == GRInstanceType::InnoDBCluster) {
     // Retrieves the instance cluster statues from the perspective of the
     // active session (The Metadata Session)
-    state = get_replication_group_state(group_instance, state.source_type);
+    state = get_replication_group_state(*group_server, state.source_type);
   } else {
     state.quorum = ReplicationQuorum::Normal;
     state.source_state = ManagedInstance::Offline;
@@ -358,14 +353,14 @@ void check_preconditions(const std::string &function_name,
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+    const std::shared_ptr<Instance> &group_server) {
   assert(function_name.find('.') != std::string::npos);
 
-  if (!group_session)
+  if (!group_server || !group_server->get_session())
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation.");
 
-  Cluster_check_info info = get_cluster_check_info(group_session);
+  Cluster_check_info info = get_cluster_check_info(group_server);
 
   check_preconditions(function_name, info);
 

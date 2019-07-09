@@ -29,13 +29,14 @@
 #include <vector>
 
 #include "modules/adminapi/common/cluster_types.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {
 namespace dba {
 
-using Instance = mysqlshdk::mysql::Instance;
+using Instance = mysqlsh::dba::Instance;
 
 struct Instance_metadata {
   Cluster_id cluster_id = 0;
@@ -81,12 +82,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   MetadataStorage &operator=(MetadataStorage &&other) = delete;
 
   explicit MetadataStorage(const std::shared_ptr<Instance> &instance);
-
-  // TODO(alfredo) - Temporary code, to be removed with Instance pool
-  explicit MetadataStorage(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-    m_md_server = std::make_shared<Instance>(session);
-  }
 
   virtual ~MetadataStorage();
 

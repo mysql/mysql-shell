@@ -479,6 +479,9 @@ DESCRIPTION
         allowed values: "always", "prompt" or "never"
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
+      - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0
+        - logging disabled; 1 - log statements other than SELECT and SHOW; 2 -
+        log all statements.
       - defaultCompress: Enable compression in client/server protocol by
         default in global shell sessions.
       - defaultMode: shell mode to use when shell is started, allowed values:

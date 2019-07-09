@@ -140,7 +140,7 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            bool *out_has_quorum = nullptr,
                            bool *out_is_primary = nullptr);
 
-std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
+std::string get_group_primary_uuid(const mysqlshdk::mysql::IInstance &instance,
                                    bool *out_single_primary_mode);
 
 /**
@@ -269,7 +269,7 @@ mysql::User_privileges_result check_replication_user(
  * user creation.
  */
 mysqlshdk::mysql::Auth_options create_recovery_user(
-    const std::string &username, mysqlshdk::mysql::IInstance *primary,
+    const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
     bool clone_supported = false);

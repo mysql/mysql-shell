@@ -94,6 +94,13 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 1 and 8 or any of [none, internal, error,
                                 warning, info, debug, debug2, debug3]
                                 respectively.
+  --dba-log-sql[=0|1|2]         Log SQL statements executed by AdminAPI
+                                operations: 0 - logging disabled; 1 - log
+                                statements other than SELECT and SHOW; 2 - log
+                                all statements.
+  --verbose[=level]             Verbose output level. Enable diagnostic message
+                                output. If level is given, it can go up to 4
+                                for maximum verbosity, otherwise 1 is assumed.
   --passwords-from-stdin        Read passwords from stdin instead of the tty.
   --show-warnings=<true|false>  Automatically display SQL warnings on SQL mode
                                 if available.
@@ -111,9 +118,6 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 ENV variable PAGER. This option only works in
                                 interactive mode. This option is disabled by
                                 default.
-  --verbose[=level]             Verbose output level. Enable diagnostic message
-                                output. If level is given, it can go up to 4
-                                for maximum verbosity, otherwise 1 is assumed.
   --name-cache                  Enable database name caching for autocompletion
                                 and DevAPI (default).
   -A, --no-name-cache           Disable automatic database name caching for
@@ -260,6 +264,13 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 1 and 8 or any of [none, internal, error,
                                 warning, info, debug, debug2, debug3]
                                 respectively.
+  --dba-log-sql[=0|1|2]         Log SQL statements executed by AdminAPI
+                                operations: 0 - logging disabled; 1 - log
+                                statements other than SELECT and SHOW; 2 - log
+                                all statements.
+  --verbose[=level]             Verbose output level. Enable diagnostic message
+                                output. If level is given, it can go up to 4
+                                for maximum verbosity, otherwise 1 is assumed.
   --passwords-from-stdin        Read passwords from stdin instead of the tty.
   --show-warnings=<true|false>  Automatically display SQL warnings on SQL mode
                                 if available.
@@ -277,9 +288,6 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 ENV variable PAGER. This option only works in
                                 interactive mode. This option is disabled by
                                 default.
-  --verbose[=level]             Verbose output level. Enable diagnostic message
-                                output. If level is given, it can go up to 4
-                                for maximum verbosity, otherwise 1 is assumed.
   --name-cache                  Enable database name caching for autocompletion
                                 and DevAPI (default).
   -A, --no-name-cache           Disable automatic database name caching for

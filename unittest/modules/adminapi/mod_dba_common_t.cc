@@ -80,10 +80,11 @@ class Dba_common_test : public tests::Admin_api_test {
 
   void disable_ssl_on_instance(int port, const std::string &unsecure_user) {
     auto session = create_session(port);
-    session->query("create user " + unsecure_user +
+    mysqlsh::dba::Instance instance(session);
+    instance.query("create user " + unsecure_user +
                    "@'%' identified with "
-                   "mysql_native_password by 'root'");
-    session->close();
+                   "mysql_native_password by /*((*/ 'root' /*))*/");
+    instance.close_session();
 
     testutil->stop_sandbox(port);
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
@@ -752,9 +753,10 @@ class Dba_common_cluster_functions : public Dba_common_test {
 // result return an empty list
 TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
   auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     auto newly_discovered_instances_list(get_newly_discovered_instances(
@@ -775,9 +777,10 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
 // should return an empty list
 TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
   auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     auto unavailable_instances_list(get_unavailable_instances(
@@ -798,6 +801,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   // the metadata list but does not belong to the GR list.
 
   auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
   auto rs_id = _replicaset->get_cluster()->get_id();
@@ -816,10 +820,10 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));
 
-  md_session->query(query);
+  md_instance->query(query);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
@@ -846,6 +850,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   // to neither the metadata nor GR lists.
 
   auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
   auto rs_id = _replicaset->get_cluster()->get_id();
@@ -864,11 +869,11 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));
-  // std::cerr << query << "\n";
-  md_session->query(query);
+
+  md_instance->query(query);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
@@ -894,10 +899,11 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
   // There are no missing instances and the instance we are checking belongs
   // to both the metadata and GR lists.
   auto md_session = create_session(_mysql_sandbox_ports[0]);
+  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
   auto instance_session = create_session(_mysql_sandbox_ports[1]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(

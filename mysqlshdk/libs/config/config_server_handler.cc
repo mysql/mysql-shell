@@ -56,7 +56,7 @@ Config_server_handler::Config_server_handler(
 Config_server_handler::~Config_server_handler() {
   // Check if the unique_ptr attribute was set and if so, close the session
   if (m_instance_unique_ptr) {
-    m_instance_unique_ptr->get_session()->close();
+    m_instance_unique_ptr->close_session();
   }
 }
 

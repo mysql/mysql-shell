@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -77,7 +77,8 @@ TEST_F(User_privileges_test, validate_user_does_not_exist) {
           {}  // No Records
       }});
 
-  User_privileges up{m_session, "notexist_user", "notexist_host"};
+  User_privileges up{mysqlshdk::mysql::Instance(m_session), "notexist_user",
+                     "notexist_host"};
   EXPECT_FALSE(up.user_exists());
 
   auto test = [&up](const std::set<std::string> &tested_privileges,
@@ -161,7 +162,8 @@ TEST_F(User_privileges_test, validate_invalid_privileges) {
                      {Type::String},
                      {{"mandatory_roles", ""}}}});
 
-  User_privileges up{m_session, "test_user", "test_host"};
+  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user",
+                     "test_host"};
 
   EXPECT_TRUE(up.user_exists());
 
@@ -245,7 +247,8 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   // test_db.t1, test_db.t2, test_db.t3, test_db2.t1 and mysql.user
   std::set<std::string> test_priv = {"SELECT", "Insert", "UPDATE"};
 
-  User_privileges up{m_session, "test_user", "test_host"};
+  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user",
+                     "test_host"};
   EXPECT_TRUE(up.user_exists());
 
   auto test = [&up, &test_priv](
@@ -547,7 +550,8 @@ TEST_F(User_privileges_test, validate_all_privileges) {
   // test_db.t2, test_db.t3, test_db2.t1, and mysql.user
   std::set<std::string> test_priv = {"All"};
 
-  User_privileges up{m_session, "dba_user", "dba_host"};
+  User_privileges up{mysqlshdk::mysql::Instance(m_session), "dba_user",
+                     "dba_host"};
   EXPECT_TRUE(up.user_exists());
 
   using User_privileges = mysqlshdk::mysql::User_privileges;
@@ -662,7 +666,8 @@ TEST_F(User_privileges_test, get_user_roles) {
             {}  // No Records.
         }});
 
-    User_privileges up_no_roles{m_session, "dba_user", "dba_host"};
+    User_privileges up_no_roles{mysqlshdk::mysql::Instance(m_session),
+                                "dba_user", "dba_host"};
     std::set<std::string> res = up_no_roles.get_user_roles();
     EXPECT_TRUE(res.empty());
   }
@@ -711,7 +716,8 @@ TEST_F(User_privileges_test, get_user_roles) {
     expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'");
     expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'");
 
-    User_privileges up_roles{m_session, "dba_user", "dba_host"};
+    User_privileges up_roles{mysqlshdk::mysql::Instance(m_session), "dba_user",
+                             "dba_host"};
     std::set<std::string> res = up_roles.get_user_roles();
     EXPECT_EQ(res.size(), 2);
     EXPECT_THAT(res, UnorderedElementsAre("'admin_role'@'dba_host'",
@@ -767,7 +773,8 @@ TEST_F(User_privileges_test, get_user_roles) {
     expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'");
     expect_no_privileges(m_mock_session, "\\'write_role\\'@\\'dba_host\\'");
 
-    User_privileges up_all_roles{m_session, "dba_user", "dba_host"};
+    User_privileges up_all_roles{mysqlshdk::mysql::Instance(m_session),
+                                 "dba_user", "dba_host"};
     std::set<std::string> res = up_all_roles.get_user_roles();
     EXPECT_EQ(res.size(), 3);
     EXPECT_THAT(res, UnorderedElementsAre("'admin_role'@'dba_host'",
@@ -812,7 +819,8 @@ TEST_F(User_privileges_test, get_user_roles) {
     expect_no_privileges(m_mock_session, "\\'role3\\'@\\'%\\'");
     expect_no_privileges(m_mock_session, "\\'role4\\'@\\'localhost\\'");
 
-    User_privileges up_mr_roles{m_session, "dba_user", "dba_host"};
+    User_privileges up_mr_roles{mysqlshdk::mysql::Instance(m_session),
+                                "dba_user", "dba_host"};
     std::set<std::string> res = up_mr_roles.get_user_roles();
     EXPECT_EQ(res.size(), 4);
     EXPECT_THAT(
@@ -1008,7 +1016,7 @@ TEST_F(User_privileges_test, validate_role_privileges) {
 
   // Test test_user has all expected privileges inherited from its roles:
   // SELECT, INSERT, UPDATE; DELETE, CREATE, ALTER ON *.* (no grant option)
-  User_privileges up{m_session, "test_user", "%"};
+  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user", "%"};
   std::set<std::string> test_priv = {"Select", "INSERT", "UPDATE",
                                      "DELETE", "create", "ALTER"};
 

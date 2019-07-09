@@ -138,9 +138,8 @@ void Remove_instance::find_failure_cause(const std::exception &err,
                                          const Instance_metadata &md) {
   // Check the state of the instance (from the cluster perspective) to assess
   // the possible cause of the failure.
-  std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(mysqlshdk::mysql::Instance(
-          m_replicaset.get_cluster()->get_group_session())));
+  std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
+      *m_replicaset.get_cluster()->get_target_instance()));
 
   auto it = std::find_if(
       members.begin(), members.end(),
@@ -208,8 +207,8 @@ bool Remove_instance::is_protocol_upgrade_required() {
 
   // Get the instance server_uuid
   mysqlshdk::utils::nullable<std::string> server_uuid;
-  mysqlshdk::mysql::Instance group_instance(
-      m_replicaset.get_cluster()->get_group_session());
+  std::shared_ptr<Instance> group_instance =
+      m_replicaset.get_cluster()->get_target_instance();
 
   // Determine which instance shall be used to determine if an upgrade is
   // required and afterwards to perform the upgrade.
@@ -219,7 +218,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
     server_uuid = m_target_instance->get_uuid();
   }
 
-  std::string group_instance_uuid = group_instance.get_uuid();
+  std::string group_instance_uuid = group_instance->get_uuid();
 
   if (server_uuid == group_instance_uuid) {
     m_target_instance_protocol_upgrade =
@@ -236,8 +235,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
     }
   } else {
     m_target_instance_protocol_upgrade =
-        shcore::make_unique<mysqlshdk::mysql::Instance>(
-            group_instance.get_session());
+        shcore::make_unique<Instance>(group_instance->get_session());
   }
 
   try {
@@ -276,10 +274,10 @@ void Remove_instance::prepare() {
 
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
-    std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-        m_replicaset.get_cluster()->get_group_session();
+    std::shared_ptr<Instance> cluster_instance =
+        m_replicaset.get_cluster()->get_target_instance();
     Connection_options cluster_cnx_opt =
-        cluster_session->get_connection_options();
+        cluster_instance->get_connection_options();
 
     if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user())
       m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
@@ -299,7 +297,7 @@ void Remove_instance::prepare() {
   try {
     auto session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance = new mysqlsh::dba::Instance(session);
     log_debug("Successfully connected to instance");
   } catch (const std::exception &err) {
     log_warning("Failed to connect to %s: %s",
@@ -462,9 +460,7 @@ shcore::Value Remove_instance::execute() {
       // in create_config_object() when it tries to query members from an
       // instance that's not in the group anymore.
       if (m_target_instance->get_uuid() !=
-          mysqlshdk::mysql::Instance(
-              m_replicaset.get_cluster()->get_group_session())
-              .get_uuid()) {
+          m_replicaset.get_cluster()->get_target_instance()->get_uuid()) {
         // FIXME: end
         // Update the replicaset members (group_seed variable) and remove the
         // replication user from the instance being removed from the primary

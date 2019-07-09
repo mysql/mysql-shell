@@ -114,6 +114,14 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 shell.options.unsetPersist("dba.gtidWaitTimeout");
 shell.options["dba.gtidWaitTimeout"]
 
+//@ dba.logSql update and set back to default using shell.options
+// WL#13294
+shell.options.setPersist("dba.logSql", "1");
+shell.options["dba.logSql"]
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+shell.options.unsetPersist("dba.logSql");
+shell.options["dba.logSql"]
+
 //@ autocomplete.nameCache update and set back to default using \option
 \option --persist autocomplete.nameCache = false
 \option autocomplete.nameCache
@@ -225,6 +233,14 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option --unset --persist dba.gtidWaitTimeout
 \option dba.gtidWaitTimeout
 
+//@ dba.logSql update and set back to default using \option
+// WL#13294
+\option --persist dba.logSql = 2
+\option dba.logSql
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist dba.logSql
+\option dba.logSql
+
 //@ credentialStore.helper update and set back to default using \option
 \option --persist credentialStore.helper = plaintext
 \option credentialStore.helper
@@ -282,6 +298,25 @@ shell.options.unset(InvalidOption)
 \option dba.gtidWaitTimeout = 0
 \option dba.gtidWaitTimeout = 1
 \option --unset dba.gtidWaitTimeout
+
+//@ Verify option dba.logSql
+// WL#13294
+\option dba.logSql = 0.2
+\option dba.logSql = -1
+\option dba.logSql = 3
+\option dba.logSql = "not valid"
+\option dba.logSql = 0
+\option dba.logSql = 2
+\option --unset dba.logSql
+
+//@ Verify option verbose
+\option verbose = 0.2
+\option verbose = -1
+\option verbose = 5
+\option verbose = "not valid"
+\option verbose = 0
+\option verbose = 5
+\option --unset verbose
 
 //@ Configuration operation available in SQL mode
 \sql

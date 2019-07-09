@@ -59,6 +59,10 @@ storage, allowed values: "always", "prompt" or "never"
 @li dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
 synchronized
 
+@li dba.logSql: 0..2, log SQL statements executed by AdminAPI operations:
+0 - logging disabled; 1 - log statements other than SELECT and SHOW; 2 - log
+all statements.
+
 @li defaultCompress: Enable compression in client/server
 protocol by default in global shell sessions.
 

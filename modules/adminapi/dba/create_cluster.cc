@@ -47,7 +47,7 @@
 namespace mysqlsh {
 namespace dba {
 
-Create_cluster::Create_cluster(mysqlshdk::mysql::IInstance *target_instance,
+Create_cluster::Create_cluster(std::shared_ptr<Instance> target_instance,
                                const std::string &cluster_name,
                                const Group_replication_options &gr_options,
                                const Clone_options &clone_options,
@@ -77,8 +77,7 @@ void Create_cluster::validate_create_cluster_options() {
   }
 
   // Get the instance GR state
-  GRInstanceType instance_type =
-      get_gr_instance_type(m_target_instance->get_session());
+  GRInstanceType instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
       !m_adopt_from_gr) {
@@ -237,7 +236,7 @@ void Create_cluster::prepare() {
 
       // Make sure the target instance does not already belong to a cluster.
       mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-          *m_target_instance, m_target_instance->get_session());
+          *m_target_instance, m_target_instance);
 
       // Get the address used by GR for the added instance (used in MD).
       m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -260,8 +259,8 @@ void Create_cluster::prepare() {
     if (m_adopt_from_gr) {
       // Get the primary UUID value to determine GR mode:
       // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-      std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-          m_target_instance->get_session(), nullptr);
+      std::string gr_primary_uuid =
+          mysqlshdk::gr::get_group_primary_uuid(*m_target_instance, nullptr);
 
       m_multi_primary = gr_primary_uuid.empty();
     }
@@ -270,7 +269,7 @@ void Create_cluster::prepare() {
       // Set the internal configuration object: read/write configs from the
       // server.
       m_cfg = mysqlsh::dba::create_server_config(
-          m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
+          m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
     }
   } catch (...) {
     // catch any exception that is thrown, restore super read-only-mode if it
@@ -351,9 +350,9 @@ void Create_cluster::prepare_metadata_schema() {
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlsh::dba::metadata::uninstall(m_target_instance->get_session());
+  mysqlsh::dba::metadata::uninstall(m_target_instance);
 
-  mysqlsh::dba::metadata::install(m_target_instance->get_session());
+  mysqlsh::dba::metadata::install(m_target_instance);
 }
 
 void Create_cluster::setup_recovery(Cluster_impl *cluster,
@@ -396,9 +395,9 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
   std::set<std::string> old_users;
 
   cluster->get_default_replicaset()->execute_in_members(
-      {}, cluster->get_group_session()->get_connection_options(), {},
+      {}, cluster->get_target_instance()->get_connection_options(), {},
       [&](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlshdk::mysql::Instance target(session);
+        mysqlsh::dba::Instance target(session);
 
         old_users.insert(mysqlshdk::gr::get_recovery_user(target));
 
@@ -422,7 +421,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
       log_info("Removing old replication user '%s'", old_user.c_str());
       try {
         mysqlshdk::mysql::drop_all_accounts_for_user(
-            mysqlshdk::mysql::Instance(cluster->get_group_session()), old_user);
+            *cluster->get_target_instance(), old_user);
       } catch (const std::exception &e) {
         console->print_warning(
             "Error dropping old recovery accounts for user " + old_user + ": " +
@@ -477,10 +476,10 @@ shcore::Value Create_cluster::execute() {
 
     // Create the cluster and insert it into the Metadata.
     std::shared_ptr<MetadataStorage> metadata =
-        std::make_shared<MetadataStorage>(m_target_instance->get_session());
+        std::make_shared<MetadataStorage>(m_target_instance);
 
     auto cluster_impl = std::make_shared<Cluster_impl>(
-        m_cluster_name, group_name, m_target_instance->get_session(), metadata);
+        m_cluster_name, group_name, m_target_instance, metadata);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
@@ -526,7 +525,8 @@ shcore::Value Create_cluster::execute() {
         cluster_impl->get_default_replicaset()->add_instance_metadata(
             m_target_instance->get_connection_options());
       }
-      setup_recovery(cluster_impl.get(), m_target_instance);
+
+      setup_recovery(cluster_impl.get(), m_target_instance.get());
     }
 
     // Handle the clone options

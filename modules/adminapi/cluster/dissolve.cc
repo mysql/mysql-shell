@@ -103,7 +103,8 @@ void Dissolve::ensure_instance_reachable(
   try {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(instance_cnx_opts);
-    m_available_instances.emplace_back(new mysqlshdk::mysql::Instance(session));
+    m_available_instances.emplace_back(
+        shcore::make_unique<mysqlsh::dba::Instance>(session));
     log_debug("Successfully connected to instance");
   } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
@@ -255,11 +256,9 @@ void Dissolve::prepare() {
 
   // Get cluster session to use the same authentication credentials for all
   // cluster instances.
-  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-      m_cluster->get_group_session();
-  mysqlshdk::mysql::Instance cluster_instance(cluster_session);
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_instance();
   Connection_options cluster_cnx_opt =
-      cluster_session->get_connection_options();
+      cluster_instance->get_connection_options();
 
   // Determine the primary (if it exists), in order to be the last to be
   // removed from the cluster. Only for single primary mode.
@@ -268,7 +267,7 @@ void Dissolve::prepare() {
 
   bool single_primary = false;
   std::vector<mysqlshdk::gr::Member> members = mysqlshdk::gr::get_members(
-      cluster_instance, &single_primary, nullptr, nullptr);
+      *cluster_instance, &single_primary, nullptr, nullptr);
 
   auto get_member_state = [&members](const std::string &uuid) {
     auto it = std::find_if(

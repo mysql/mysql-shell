@@ -59,6 +59,11 @@
  dba.gtidWaitTimeout  Timeout value in seconds to wait for GTIDs to be
                       synchronized.
 
+//@<OUT> dba.logSql option help text
+ dba.logSql  Log SQL statements executed by AdminAPI operations: 0 - logging
+             disabled; 1 - log statements other than SELECT and SHOW; 2 - log
+             all statements.
+
 //@<OUT> Verify the help text when using filter
  history.autoSave           Shell's history autosave.
  history.maxSize            Shell's history maximum size

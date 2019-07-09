@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,10 +28,10 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "scripting/lang_base.h"
 
 namespace mysqlsh {

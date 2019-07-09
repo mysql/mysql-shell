@@ -85,7 +85,7 @@ Add_instance::Add_instance(
 }
 
 Add_instance::Add_instance(
-    mysqlshdk::mysql::IInstance *target_instance, const ReplicaSet &replicaset,
+    mysqlsh::dba::Instance *target_instance, const ReplicaSet &replicaset,
     const Group_replication_options &gr_options,
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
@@ -137,7 +137,7 @@ bool check_recoverable_from_any(const ReplicaSet *replicaset,
       target_instance->get_connection_options(), {},
       [&recoverable, &target_instance](
           const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlshdk::mysql::Instance instance(session);
+        mysqlsh::dba::Instance instance(session);
 
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state state =
@@ -166,9 +166,8 @@ void check_gtid_consistency_and_recoverability(
   // Get the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
-          mysqlshdk::mysql::Instance(
-              replicaset->get_cluster()->get_group_session()),
-          *target_instance, nullptr, &errant_gtid_set);
+          *replicaset->get_cluster()->get_target_instance(), *target_instance,
+          nullptr, &errant_gtid_set);
 
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::NEW:
@@ -597,7 +596,7 @@ void Add_instance::handle_recovery_account() const {
    */
 
   // Get the "donor" recovery account
-  mysqlshdk::mysql::Instance *md_inst =
+  auto md_inst =
       m_replicaset.get_cluster()->get_metadata_storage()->get_md_server();
 
   std::string recovery_user, recovery_user_host;
@@ -635,7 +634,7 @@ void Add_instance::prepare() {
     // Get instance user information from the cluster session if missing.
     if (!m_instance_cnx_opts.has_user()) {
       Connection_options cluster_cnx_opt = m_replicaset.get_cluster()
-                                               ->get_group_session()
+                                               ->get_target_instance()
                                                ->get_connection_options();
 
       if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user())
@@ -644,7 +643,7 @@ void Add_instance::prepare() {
 
     std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
         m_instance_cnx_opts, current_shell_options()->get().wizards)};
-    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance = new Instance(session);
   }
 
   //  Override connection option if no password was initially provided.
@@ -657,7 +656,7 @@ void Add_instance::prepare() {
     mysqlshdk::db::Connection_options peer(m_replicaset.pick_seed_instance());
     std::shared_ptr<mysqlshdk::db::ISession> peer_session;
     if (peer.uri_endpoint() != m_replicaset.get_cluster()
-                                   ->get_group_session()
+                                   ->get_target_instance()
                                    ->get_connection_options()
                                    .uri_endpoint()) {
       peer_session =
@@ -666,8 +665,7 @@ void Add_instance::prepare() {
     } else {
       peer_session = m_replicaset.get_cluster()->get_group_session();
     }
-    m_peer_instance =
-        shcore::make_unique<mysqlshdk::mysql::Instance>(peer_session);
+    m_peer_instance = shcore::make_unique<mysqlsh::dba::Instance>(peer_session);
   }
 
   // Validate the GR options.
@@ -718,7 +716,7 @@ void Add_instance::prepare() {
 
   // Make sure the target instance does not already belong to a cluster.
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-      *m_target_instance, m_replicaset.get_cluster()->get_group_session());
+      *m_target_instance, m_replicaset.get_cluster()->get_target_instance());
 
   // Check GTID consistency and whether clone is needed
   m_clone_opts.recovery_method = validate_instance_recovery();
@@ -755,7 +753,7 @@ void Add_instance::prepare() {
   // this check can be removed along with all these extra flags
   if (!m_skip_instance_check) {
     // Check instance server UUID (must be unique among the cluster members).
-    m_replicaset.validate_server_uuid(m_target_instance->get_session());
+    m_replicaset.validate_server_uuid(*m_target_instance);
 
     // Ensure instance server ID is unique among the cluster members.
     ensure_unique_server_id();
@@ -847,11 +845,10 @@ bool Add_instance::handle_replication_user() {
  */
 void Add_instance::clean_replication_user() {
   if (!m_rpl_user.empty()) {
-    mysqlshdk::mysql::Instance primary(
-        m_replicaset.get_cluster()->get_group_session());
+    auto primary = m_replicaset.get_cluster()->get_target_instance();
     log_debug("Dropping recovery user '%s'@'%%' at instance '%s'.",
-              m_rpl_user.c_str(), primary.descr().c_str());
-    primary.drop_user(m_rpl_user, "%", true);
+              m_rpl_user.c_str(), primary->descr().c_str());
+    primary->drop_user(m_rpl_user, "%", true);
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,13 +26,14 @@
 
 #include <memory>
 #include <string>
-#include "mysqlshdk/libs/db/session.h"
+
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlshdk {
 namespace mysql {
 
 size_t execute_sql_script(
-    std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &script,
+    const mysqlshdk::mysql::IInstance &instance, const std::string &script,
     const std::function<void(const std::string &)> &err_callback);
 
 }  // namespace mysql

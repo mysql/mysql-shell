@@ -68,11 +68,11 @@ namespace checks {
  * - GR compatible storage engines only (InnoDB and MEMORY)
  * - all tables must have a PK or a UNIQUE NOT NULL key
  *
- * @param  session session for the schema. Must be authenticated with an account
- *          with SELECT access to all schemas.
- * @return         true if no issues found.
+ * @param  instance target instance for the validation. Must be authenticated
+ *         with an account with SELECT access to all schemas.
+ * @return true if no issues found.
  */
-bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session) {
+bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
   bool ok = true;
   std::string k_gr_compliance_skip_schemas =
       "('mysql', 'sys', 'performance_schema', 'information_schema')";
@@ -81,7 +81,7 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session) {
   auto console = mysqlsh::current_console();
 
   {
-    std::shared_ptr<mysqlshdk::db::IResult> result = session->query(
+    std::shared_ptr<mysqlshdk::db::IResult> result = instance.query(
         "SELECT table_schema, table_name, engine "
         " FROM information_schema.tables "
         " WHERE engine NOT IN " +
@@ -107,7 +107,7 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session) {
     }
   }
   {
-    std::shared_ptr<mysqlshdk::db::IResult> result = session->query(
+    std::shared_ptr<mysqlshdk::db::IResult> result = instance.query(
         "SELECT t.table_schema, t.table_name "
         "FROM information_schema.tables t "
         "    LEFT JOIN (SELECT table_schema, table_name "
@@ -438,9 +438,8 @@ void validate_performance_schema_enabled(
 
 void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<mysqlshdk::db::ISession> &cluster_session) {
-  GRInstanceType type =
-      mysqlsh::dba::get_gr_instance_type(instance.get_session());
+    const std::shared_ptr<Instance> &cluster_instance) {
+  GRInstanceType type = mysqlsh::dba::get_gr_instance_type(instance);
 
   if (type != GRInstanceType::Standalone &&
       type != GRInstanceType::StandaloneWithMetadata &&
@@ -449,8 +448,8 @@ void ensure_instance_not_belong_to_cluster(
     std::string uuid = instance.get_uuid();
 
     // Verifies if this UUID is part of the current replication group
-    std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
-        mysqlshdk::mysql::Instance(cluster_session)));
+    std::vector<mysqlshdk::gr::Member> members(
+        mysqlshdk::gr::get_members(*cluster_instance));
 
     if (std::find_if(members.begin(), members.end(),
                      [&uuid](const mysqlshdk::gr::Member &member) {

@@ -96,12 +96,11 @@ void Replicaset_options::connect_to_members() {
 shcore::Array_t Replicaset_options::collect_global_options() {
   shcore::Array_t array = shcore::make_array();
 
-  auto group_session = m_replicaset.get_cluster()->get_group_session();
-  mysqlshdk::mysql::Instance group_instance(group_session);
+  auto group_instance = m_replicaset.get_cluster()->get_target_instance();
 
   for (const auto &cfg : k_global_options) {
     shcore::Dictionary_t option = shcore::make_dict();
-    std::string value = *group_instance.get_sysvar_string(
+    std::string value = *group_instance->get_sysvar_string(
         cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
     (*option)["option"] = shcore::Value(cfg.first);
@@ -142,7 +141,7 @@ shcore::Array_t Replicaset_options::collect_global_options() {
  * ReplicaSet configuration options information
  */
 shcore::Array_t Replicaset_options::get_instance_options(
-    const mysqlshdk::mysql::Instance &instance) {
+    const mysqlsh::dba::Instance &instance) {
   shcore::Array_t array = shcore::make_array();
 
   if (m_all.is_null() || *m_all == false) {
@@ -222,7 +221,7 @@ shcore::Dictionary_t Replicaset_options::collect_replicaset_options() {
   for (const auto &inst : m_instances) {
     shcore::Dictionary_t option = shcore::make_dict();
 
-    mysqlshdk::mysql::Instance instance(m_member_sessions[inst.endpoint]);
+    mysqlsh::dba::Instance instance(m_member_sessions[inst.endpoint]);
 
     if (!instance.get_session()) {
       (*option)["shellConnectError"] =

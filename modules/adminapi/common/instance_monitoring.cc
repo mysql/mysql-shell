@@ -33,7 +33,7 @@ namespace mysqlsh {
 namespace dba {
 
 void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
-                         mysqlshdk::mysql::Instance *out_instance, int timeout,
+                         mysqlsh::dba::Instance *out_instance, int timeout,
                          Recovery_progress_style progress_style) {
   mysqlshdk::textui::Spinny_stick stick("* Waiting for server restart...");
 
@@ -52,7 +52,7 @@ void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
     try {
       auto session = mysqlshdk::db::mysql::Session::create();
       session->connect(instance_def);
-      *out_instance = mysqlshdk::mysql::Instance(session);
+      *out_instance = mysqlsh::dba::Instance(session);
       if (progress_style != Recovery_progress_style::NOWAIT &&
           progress_style != Recovery_progress_style::NOINFO) {
         stick.done("ready");

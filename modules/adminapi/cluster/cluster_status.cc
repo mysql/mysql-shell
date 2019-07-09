@@ -77,15 +77,14 @@ shcore::Value Cluster_status::execute() {
 
   // Iterate all replicasets and get the status for each one
 
-  mysqlshdk::mysql::Instance target_instance(m_cluster.get_group_session());
-
-  std::string addr = target_instance.get_canonical_address();
+  std::string addr = m_cluster.get_target_instance()->get_canonical_address();
   (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
 
   auto md_server = m_cluster.get_metadata_storage()->get_md_server();
 
   // metadata server, if its a different one
-  if (md_server && md_server->get_uuid() != target_instance.get_uuid()) {
+  if (md_server &&
+      md_server->get_uuid() != m_cluster.get_target_instance()->get_uuid()) {
     (*dict)["metadataServer"] =
         shcore::Value(md_server->get_canonical_address());
   }

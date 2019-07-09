@@ -35,18 +35,18 @@
 namespace mysqlsh {
 namespace dba {
 GRInstanceType get_gr_instance_type(
-    std::shared_ptr<mysqlshdk::db::ISession> connection);
-void get_port_and_datadir(std::shared_ptr<mysqlshdk::db::ISession> connection,
+    const mysqlshdk::mysql::IInstance &instance);
+void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
                           int *port, std::string *datadir);
 
 Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type);
 
 std::vector<std::string> get_peer_seeds(
-    std::shared_ptr<mysqlshdk::db::ISession> connection,
+    const mysqlshdk::mysql::IInstance &instance,
     const std::string &instance_host);
 std::vector<std::pair<std::string, int>> get_open_sessions(
-    std::shared_ptr<mysqlshdk::db::ISession> connection);
+    const mysqlshdk::mysql::IInstance &instance);
 
 Instance_metadata query_instance_info(
     const mysqlshdk::mysql::IInstance &instance);

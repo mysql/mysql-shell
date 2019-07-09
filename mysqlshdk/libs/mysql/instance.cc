@@ -592,7 +592,7 @@ void Instance::drop_user(const std::string &user, const std::string &host,
 std::unique_ptr<User_privileges> Instance::get_user_privileges(
     const std::string &user, const std::string &host) const {
   return std::unique_ptr<User_privileges>(
-      new User_privileges(_session, user, host));
+      new User_privileges(*this, user, host));
 }
 
 bool Instance::is_read_only(bool super) const {

@@ -24,9 +24,10 @@
 #ifndef MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 
-#include <mysql/instance.h>
 #include <string>
 #include <vector>
+
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"

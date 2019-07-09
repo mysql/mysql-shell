@@ -73,8 +73,8 @@ void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance) {
   instance.get_current_user(&current_user, &current_host);
 
   std::string error_info;
-  if (!validate_cluster_admin_user_privileges(
-          instance.get_session(), current_user, current_host, &error_info)) {
+  if (!validate_cluster_admin_user_privileges(instance, current_user,
+                                              current_host, &error_info)) {
     auto console = mysqlsh::current_console();
     console->print_error(error_info);
     console->println("For more information, see the online documentation.");

@@ -21,18 +21,17 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/dba/configure_local_instance.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
-
-#include "modules/adminapi/dba/configure_local_instance.h"
 
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -64,7 +63,7 @@ void Configure_local_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session;
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlshdk::mysql::Instance(session);
+    m_target_instance = new mysqlsh::dba::Instance(session);
 
     m_local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
@@ -82,7 +81,7 @@ void Configure_local_instance::prepare() {
     m_is_cnf_from_sandbox = true;
   }
 
-  m_instance_type = get_gr_instance_type(m_target_instance->get_session());
+  m_instance_type = get_gr_instance_type(*m_target_instance);
 
   // configure_local_instance() has 2 different operation modes:
   // - configuring instance before it joins a cluster

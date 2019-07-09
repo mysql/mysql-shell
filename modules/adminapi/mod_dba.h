@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_common.h"
@@ -99,7 +100,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual shcore::Value get_member(const std::string &prop) const;
 
   Cluster_check_info check_preconditions(
-      std::shared_ptr<mysqlshdk::db::ISession> group_session,
+      std::shared_ptr<Instance> target_instance,
       const std::string &function_name) const;
 
   shcore::IShell_core *get_owner() { return _shell_core; }
@@ -108,17 +109,16 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const;
 
   virtual void connect_to_target_group(
-      std::shared_ptr<mysqlshdk::db::ISession> target_member_session,
+      std::shared_ptr<Instance> target_member_session,
       std::shared_ptr<MetadataStorage> *out_metadata,
-      std::shared_ptr<mysqlshdk::db::ISession> *out_group_session,
+      std::shared_ptr<Instance> *out_group_server,
       bool connect_to_primary) const;
 
-  virtual std::shared_ptr<mysqlshdk::db::ISession> connect_to_target_member()
-      const;
+  virtual std::shared_ptr<Instance> connect_to_target_member() const;
 
   std::shared_ptr<Cluster> get_cluster(
       const char *name, std::shared_ptr<MetadataStorage> metadata,
-      std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
+      std::shared_ptr<Instance> group_server) const;
 
   shcore::Value do_configure_instance(const shcore::Argument_list &args,
                                       bool local);
@@ -150,7 +150,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   virtual void validate_instances_status_reboot_cluster(
       std::shared_ptr<Cluster> cluster,
-      std::shared_ptr<mysqlshdk::db::ISession> member_session,
+      const mysqlshdk::mysql::IInstance &target_instance,
       shcore::Value::Map_type_ref options);
   virtual void validate_instances_gtid_reboot_cluster(
       std::shared_ptr<Cluster> cluster,

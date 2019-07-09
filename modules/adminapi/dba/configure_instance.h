@@ -29,12 +29,12 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 #include "scripting/lang_base.h"
 
@@ -124,7 +124,7 @@ class Configure_instance : public Command_interface {
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
   // Target instance to configure.
-  mysqlshdk::mysql::IInstance *m_target_instance = nullptr;
+  mysqlsh::dba::Instance *m_target_instance = nullptr;
 };
 
 }  // namespace dba

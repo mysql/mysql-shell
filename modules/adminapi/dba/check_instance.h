@@ -27,11 +27,11 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -66,7 +66,7 @@ class Check_instance : public Command_interface {
  private:
   const mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_mycnf_path;
-  mysqlshdk::mysql::IInstance *m_target_instance;
+  mysqlsh::dba::Instance *m_target_instance;
   bool m_is_valid = false;
   mysqlshdk::utils::nullable<bool> m_can_set_persist;
   shcore::Value m_ret_val;

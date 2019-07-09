@@ -52,7 +52,7 @@ void Set_primary_instance::ensure_single_primary_mode() {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      m_replicaset->get_cluster()->get_group_session(), nullptr);
+      *m_replicaset->get_cluster()->get_target_instance(), nullptr);
 
   // Get the topology mode from the metadata.
   mysqlshdk::gr::Topology_mode metadata_topology_mode =
@@ -90,7 +90,7 @@ void Set_primary_instance::prepare() {
   validate_connection_options(m_instance_cnx_opts);
 
   m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                                 ->get_group_session()
+                                                 ->get_target_instance()
                                                  ->get_connection_options());
 
   // - Ensure instance belong to replicaset;
@@ -102,7 +102,7 @@ void Set_primary_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session =
         mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    mysqlshdk::mysql::Instance target_instance(session);
+    mysqlsh::dba::Instance target_instance(session);
 
     m_target_uuid = target_instance.get_uuid();
     address_in_md = target_instance.get_canonical_address();

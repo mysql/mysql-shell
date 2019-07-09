@@ -154,7 +154,7 @@ void Replicaset_status::connect_to_members() {
 }
 
 shcore::Dictionary_t Replicaset_status::check_group_status(
-    const mysqlshdk::mysql::Instance &instance,
+    const mysqlsh::dba::Instance &instance,
     const std::vector<mysqlshdk::gr::Member> &members) {
   shcore::Dictionary_t dict = shcore::make_dict();
 
@@ -242,9 +242,9 @@ const Instance_metadata *Replicaset_status::instance_with_uuid(
 
 Member_stats_map Replicaset_status::query_member_stats() {
   Member_stats_map stats;
-  auto group_session = m_cluster->get_group_session();
+  auto group_instance = m_cluster->get_target_instance();
 
-  auto member_stats = group_session->query(
+  auto member_stats = group_instance->query(
       "SELECT * FROM performance_schema.replication_group_member_stats");
 
   while (auto row = member_stats->fetch_one_named()) {
@@ -395,10 +395,9 @@ shcore::Value Replicaset_status::applier_status(
  * stats that should be displayed in the default output.
  */
 void Replicaset_status::collect_basic_local_status(
-    shcore::Dictionary_t dict, const mysqlshdk::mysql::Instance &instance) {
+    shcore::Dictionary_t dict, const mysqlsh::dba::Instance &instance) {
   using mysqlshdk::utils::Version;
 
-  auto session = instance.get_session();
   auto version = instance.get_version();
 
   shcore::Dictionary_t applier_node = shcore::make_dict();
@@ -428,7 +427,7 @@ void Replicaset_status::collect_basic_local_status(
     // this can return multiple rows per channel for
     // multi-threaded applier, otherwise just one. If MT, we also
     // get stuff in the coordinator table
-    auto result = session->query(sql);
+    auto result = instance.query(sql);
     auto row = result->fetch_one_named();
     if (row) {
       std::string lag =
@@ -449,11 +448,10 @@ void Replicaset_status::collect_basic_local_status(
  * tables.
  */
 void Replicaset_status::collect_local_status(
-    shcore::Dictionary_t dict, const mysqlshdk::mysql::Instance &instance,
+    shcore::Dictionary_t dict, const mysqlsh::dba::Instance &instance,
     bool recovering) {
   using mysqlshdk::utils::Version;
 
-  auto session = instance.get_session();
   auto version = instance.get_version();
 
   shcore::Dictionary_t recovery_node = shcore::make_dict();
@@ -494,7 +492,7 @@ void Replicaset_status::collect_local_status(
   // this can return multiple rows per channel for
   // multi-threaded applier, otherwise just one. If MT, we also
   // get stuff in the coordinator table
-  auto result = session->query(sql);
+  auto result = instance.query(sql);
   auto row = result->fetch_one_named();
   while (row) {
     std::string channel_name = row.get_string("CHANNEL_NAME");
@@ -527,7 +525,7 @@ void Replicaset_status::collect_local_status(
     sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
   }
   sql += " FROM performance_schema.replication_applier_status_by_coordinator";
-  result = session->query(sql);
+  result = instance.query(sql);
   row = result->fetch_one_named();
   while (row) {
     std::string channel_name = row.get_string("CHANNEL_NAME");
@@ -560,7 +558,7 @@ void Replicaset_status::collect_local_status(
     sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
   }
   sql += " FROM performance_schema.replication_connection_status";
-  result = session->query(sql);
+  result = instance.query(sql);
   row = result->fetch_one_named();
   while (row) {
     std::string channel_name = row.get_string("CHANNEL_NAME");
@@ -755,7 +753,7 @@ std::pair<std::string, shcore::Value> recovery_status(
 
 shcore::Dictionary_t Replicaset_status::get_topology(
     const std::vector<mysqlshdk::gr::Member> &member_info,
-    const mysqlshdk::mysql::Instance *primary_instance) {
+    const mysqlsh::dba::Instance *primary_instance) {
   Member_stats_map member_stats = query_member_stats();
 
   shcore::Dictionary_t dict = shcore::make_dict();
@@ -771,7 +769,7 @@ shcore::Dictionary_t Replicaset_status::get_topology(
     shcore::Dictionary_t member = shcore::make_dict();
     mysqlshdk::gr::Member minfo(get_member(inst.uuid));
 
-    mysqlshdk::mysql::Instance instance(m_member_sessions[inst.endpoint]);
+    mysqlsh::dba::Instance instance(m_member_sessions[inst.endpoint]);
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;
@@ -857,12 +855,12 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_session = m_cluster->get_group_session();
+  auto group_instance = m_cluster->get_target_instance();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(group_session, nullptr);
+      mysqlshdk::gr::get_group_primary_uuid(*group_instance, nullptr);
 
   std::string topology_mode =
       !gr_primary_uuid.empty()
@@ -875,15 +873,14 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   (*ret)["name"] = shcore::Value(m_replicaset.get_name());
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
-  mysqlshdk::mysql::Instance group_instance(group_session);
-
   if (!m_extended.is_null() && *m_extended >= 1) {
     (*ret)["groupName"] =
         shcore::Value(m_replicaset.get_cluster()->get_group_name());
 
     try {
       (*ret)["GRProtocolVersion"] = shcore::Value(
-          mysqlshdk::gr::get_group_protocol_version(group_instance).get_full());
+          mysqlshdk::gr::get_group_protocol_version(*group_instance)
+              .get_full());
     } catch (const shcore::Exception &error) {
       // The UDF may fail with MySQL Error 1123 if any of the members is
       // RECOVERING or the group does not have quorum In such scenario we cannot
@@ -894,7 +891,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
     }
   }
 
-  auto ssl_mode = group_instance.get_sysvar_string(
+  auto ssl_mode = group_instance->get_sysvar_string(
       "group_replication_ssl_mode", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   if (ssl_mode)
     (*ret)["ssl"] = shcore::Value(*ssl_mode);
@@ -903,14 +900,14 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
 
   bool single_primary;
   std::vector<mysqlshdk::gr::Member> member_info(
-      mysqlshdk::gr::get_members(group_instance, &single_primary));
+      mysqlshdk::gr::get_members(*group_instance, &single_primary));
 
-  tmp = check_group_status(group_instance, member_info);
+  tmp = check_group_status(*group_instance, member_info);
   (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
   (*ret)["status"] = shcore::Value(tmp->get_string("status"));
 
   bool has_primary = false;
-  mysqlshdk::mysql::Instance primary_instance;
+  mysqlsh::dba::Instance primary_instance;
   {
     if (single_primary) {
       // In single primary mode we need to add the "primary" field
@@ -922,7 +919,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
             auto s = m_member_sessions.find(primary->endpoint);
             if (s != m_member_sessions.end()) {
               has_primary = true;
-              primary_instance = mysqlshdk::mysql::Instance(s->second);
+              primary_instance = mysqlsh::dba::Instance(s->second);
             }
             (*ret)["primary"] = shcore::Value(primary->endpoint);
           }
@@ -959,11 +956,10 @@ shcore::Value Replicaset_status::execute() {
   //
   // If that's the case, a warning must be added to the resulting JSON object
   {
-    auto group_session = m_cluster->get_group_session();
+    auto group_instance = m_cluster->get_target_instance();
 
-    auto state =
-        get_replication_group_state(mysqlshdk::mysql::Instance(group_session),
-                                    get_gr_instance_type(group_session));
+    auto state = get_replication_group_state(
+        *group_instance, get_gr_instance_type(*group_instance));
 
     bool show_warning = (state.source_state != ManagedInstance::OnlineRW &&
                          state.source_state != ManagedInstance::OnlineRO);

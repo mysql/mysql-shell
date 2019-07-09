@@ -56,12 +56,12 @@ namespace dba {
 
 Cluster_impl::Cluster_impl(
     const Cluster_metadata &metadata,
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+    const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
     : _id(metadata.cluster_id),
       _name(metadata.cluster_name),
       m_group_name(metadata.group_name),
-      _group_session(group_session),
+      m_target_server(group_server),
       _metadata_storage(metadata_storage) {
   _default_replica_set = std::make_shared<ReplicaSet>(
       "default", metadata.topology_type, metadata_storage);
@@ -71,11 +71,11 @@ Cluster_impl::Cluster_impl(
 
 Cluster_impl::Cluster_impl(
     const std::string &name, const std::string &group_name,
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session,
+    const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
     : _name(name),
       m_group_name(group_name),
-      _group_session(group_session),
+      m_target_server(group_server),
       _metadata_storage(metadata_storage) {}
 
 Cluster_impl::~Cluster_impl() {}
@@ -209,10 +209,10 @@ void Cluster_impl::rescan(const shcore::Dictionary_t &options) {
 }
 
 void Cluster_impl::disconnect() {
-  if (_group_session) {
+  if (m_target_server) {
     // no preconditions check needed for just disconnecting everything
-    _group_session->close();
-    _group_session.reset();
+    m_target_server->close_session();
+    m_target_server.reset();
   }
 
   // If _group_session is the same as the session from the metadata,
@@ -220,7 +220,7 @@ void Cluster_impl::disconnect() {
   // closed
   try {
     if (_metadata_storage->get_md_server()) {
-      _metadata_storage->get_md_server()->get_session()->close();
+      _metadata_storage->get_md_server()->close_session();
     }
   } catch (...) {
   }
@@ -325,7 +325,7 @@ void Cluster_impl::set_instance_option(const Connection_options &instance_def,
 Cluster_check_info Cluster_impl::check_preconditions(
     const std::string &function_name) const {
   return check_function_preconditions("Cluster." + function_name,
-                                      _group_session);
+                                      get_target_instance());
 }
 
 void Cluster_impl::sync_transactions(
@@ -333,7 +333,7 @@ void Cluster_impl::sync_transactions(
   // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
   // the GTID of ALL transactions, otherwise only a set of transactions written
   // to the cache in the current session might be returned.
-  std::string gtid_set = _group_session->query("SELECT @@GLOBAL.GTID_EXECUTED")
+  std::string gtid_set = m_target_server->query("SELECT @@GLOBAL.GTID_EXECUTED")
                              ->fetch_one()
                              ->get_string(0);
 
@@ -354,21 +354,22 @@ void Cluster_impl::sync_transactions(
 mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
   // Get the server version of the current cluster instance and initialize
   // the lowest cluster session.
-  mysqlshdk::mysql::Instance cluster_instance(get_group_session());
-  mysqlshdk::utils::Version lowest_version = cluster_instance.get_version();
+  mysqlshdk::utils::Version lowest_version =
+      get_target_instance()->get_version();
 
   // Get address of the cluster instance to skip it in the next step.
   std::string cluster_instance_address =
-      cluster_instance.get_canonical_address();
+      get_target_instance()->get_canonical_address();
 
   // Get the lowest server version from the available cluster instances.
   get_default_replicaset()->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE,
        mysqlshdk::gr::Member_state::RECOVERING},
-      get_group_session()->get_connection_options(), {cluster_instance_address},
+      get_target_instance()->get_connection_options(),
+      {cluster_instance_address},
       [&lowest_version](
           const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlshdk::mysql::Instance instance(session);
+        mysqlsh::dba::Instance instance(session);
         mysqlshdk::utils::Version version = instance.get_version();
         if (version < lowest_version) {
           lowest_version = version;
@@ -382,7 +383,7 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
 mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     mysqlshdk::mysql::IInstance *target) {
   assert(target);
-  mysqlshdk::mysql::Instance primary_master(get_group_session());
+
   std::string recovery_user =
       mysqlshdk::gr::k_group_recovery_user_prefix +
       std::to_string(target->get_sysvar_int("server_id").get_safe());
@@ -392,14 +393,14 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
-  bool rpl_user_exists = primary_master.user_exists(recovery_user, "%");
+  bool rpl_user_exists = get_target_instance()->user_exists(recovery_user, "%");
   if (rpl_user_exists) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "User '%s'@'%%' already existed at instance '%s'. It will be "
         "deleted and created again with a new password.",
-        recovery_user.c_str(), primary_master.descr().c_str()));
-    primary_master.drop_user(recovery_user, "%");
+        recovery_user.c_str(), get_target_instance()->descr().c_str()));
+    get_target_instance()->drop_user(recovery_user, "%");
   }
 
   // Check if clone is available on ALL cluster members, to avoid a failing SQL
@@ -409,10 +410,10 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     get_default_replicaset()->execute_in_members(
         {mysqlshdk::gr::Member_state::ONLINE,
          mysqlshdk::gr::Member_state::RECOVERING},
-        get_group_session()->get_connection_options(), {},
+        get_target_instance()->get_connection_options(), {},
         [&clone_available_all_members](
             const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-          mysqlshdk::mysql::Instance instance(session);
+          mysqlsh::dba::Instance instance(session);
           mysqlshdk::utils::Version version = instance.get_version();
           if (version >=
               mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
@@ -433,13 +434,12 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   bool clone_available =
       clone_available_all_members && clone_available_on_target;
 
-  return mysqlshdk::gr::create_recovery_user(recovery_user, &primary_master,
-                                             {"%"}, {}, clone_available);
+  return mysqlshdk::gr::create_recovery_user(
+      recovery_user, *get_target_instance(), {"%"}, {}, clone_available);
 }
 
 void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   assert(target);
-  mysqlshdk::mysql::Instance primary_master(get_group_session());
   auto console = current_console();
 
   std::string recovery_user, recovery_user_host;
@@ -465,7 +465,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
             recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
       log_info("Removing replication user '%s'", recovery_user.c_str());
       try {
-        mysqlshdk::mysql::drop_all_accounts_for_user(primary_master,
+        mysqlshdk::mysql::drop_all_accounts_for_user(*get_target_instance(),
                                                      recovery_user);
       } catch (const std::exception &e) {
         console->print_warning("Error dropping recovery accounts for user " +
@@ -504,7 +504,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
                target->descr().c_str());
 
       try {
-        primary_master.drop_user(recovery_user, "%", true);
+        get_target_instance()->drop_user(recovery_user, "%", true);
       } catch (const std::exception &e) {
         console->print_warning(shcore::str_format(
             "Error dropping recovery account '%s'@'%s' for instance '%s'",

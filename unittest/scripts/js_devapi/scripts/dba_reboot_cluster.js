@@ -61,7 +61,7 @@ cluster.status();
 
 //@ Add instance 2
 cluster.addInstance(__sandbox_uri2);
-                                                                                                                                       3
+
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

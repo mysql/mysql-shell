@@ -57,9 +57,10 @@ TEST_F(Dba_sql_test, get_peer_seeds_md_in_synch) {
   // ------------------------------------
   // hostname:port2
   auto session = create_session(_mysql_sandbox_ports[0]);
+  mysqlsh::dba::Instance instance(session);
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, hostname() + ":" + std::to_string(_mysql_sandbox_ports[0]));
+        instance, hostname() + ":" + std::to_string(_mysql_sandbox_ports[0]));
     std::vector<std::string> result = {
         hostname() + ":" + std::to_string(_mysql_sandbox_ports[1]) + "1"};
     EXPECT_EQ(result, seeds);
@@ -82,6 +83,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // hostname:port2
   // hostname:port3
   auto session = create_session(_mysql_sandbox_ports[0]);
+  mysqlsh::dba::Instance instance(session);
 
   auto rs_id = _replicaset->get_cluster()->get_id();
 
@@ -103,7 +105,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
 
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, hostname() + ":" + std::to_string(_mysql_sandbox_ports[0]));
+        instance, hostname() + ":" + std::to_string(_mysql_sandbox_ports[0]));
     std::vector<std::string> result = {
         hostname() + ":" + std::to_string(_mysql_sandbox_ports[1]) + "1",
         "localhost:" + std::to_string(_mysql_sandbox_ports[2]) + "1"};
@@ -145,6 +147,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_not_in_metadata) {
   add_get_peer_seeds_queries(&queries, metadata_values, gr_group_seed,
                              "localhost:3300");*/
   auto session = create_session(_mysql_sandbox_ports[0]);
+  mysqlsh::dba::Instance instance(session);
   session->query(
       "delete from mysql_innodb_cluster_metadata.instances "
       " where mysql_server_uuid = '" +
@@ -152,7 +155,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_not_in_metadata) {
 
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, "localhost:" + std::to_string(_mysql_sandbox_ports[0]));
+        instance, "localhost:" + std::to_string(_mysql_sandbox_ports[0]));
     std::vector<std::string> result = {
         "localhost:" + std::to_string(_mysql_sandbox_ports[1]) + "1"};
     EXPECT_EQ(result, seeds);

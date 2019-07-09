@@ -26,6 +26,8 @@
 
 #include <memory>
 #include <string>
+
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlsh {
@@ -92,14 +94,14 @@ struct Cluster_check_info {
 void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
 Cluster_check_info get_cluster_check_info(
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session);
+    const std::shared_ptr<Instance> &group_server);
 
 void check_preconditions(const std::string &function_name,
                          const Cluster_check_info &info);
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session);
+    const std::shared_ptr<Instance> &group_server);
 
 }  // namespace dba
 }  // namespace mysqlsh

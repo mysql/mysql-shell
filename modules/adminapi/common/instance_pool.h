@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,33 +21,31 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/mysql/script.h"
+#ifndef MODULES_ADMINAPI_COMMON_INSTANCE_POOL_H_
+#define MODULES_ADMINAPI_COMMON_INSTANCE_POOL_H_
 
-#include <cassert>
-#include <memory>
-#include <stack>
+#include <string>
 
-#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
-namespace mysqlshdk {
-namespace mysql {
+namespace mysqlsh {
+namespace dba {
 
-size_t execute_sql_script(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &script,
-    const std::function<void(const std::string &)> &err_callback) {
-  std::stringstream stream(script);
-  size_t count = 0;
-  utils::iterate_sql_stream(
-      &stream, 1024 * 64,
-      [&instance, &count](const char *s, size_t len, const std::string &,
-                          size_t) {
-        instance.query({s, len});
-        ++count;
-        return true;
-      },
-      err_callback);
-  return count;
-}
+class Instance : public mysqlshdk::mysql::Instance {
+ public:
+  Instance(){};
+  explicit Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
-}  // namespace mysql
-}  // namespace mysqlshdk
+  std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::string &sql, bool buffered = false) const override;
+
+  void execute(const std::string &sql) const override;
+
+ private:
+  void log_sql(const std::string &sql) const;
+};
+
+}  // namespace dba
+}  // namespace mysqlsh
+
+#endif  // MODULES_ADMINAPI_COMMON_INSTANCE_POOL_H_

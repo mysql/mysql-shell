@@ -107,7 +107,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     std::vector<MissingInstanceInfo> &unavailable_instances) const {
   mysqlshdk::db::Connection_options group_conn_opt =
       m_replicaset->get_cluster()
-          ->get_group_session()
+          ->get_target_instance()
           ->get_connection_options();
 
   auto console = mysqlsh::current_console();
@@ -122,7 +122,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     try {
       session->connect(instance_conn_opt);
       is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(
-          mysqlshdk::mysql::Instance(session));
+          mysqlsh::dba::Instance(session));
       session->close();
     } catch (const std::exception &e) {
       // if you cant connect to the instance then we assume it really is offline
@@ -154,10 +154,10 @@ std::vector<std::string> Rescan::detect_invalid_members(
         "Checking if the instance '%s' is %san active member of the group.",
         instance_address.c_str(), check_type);
 
-    mysqlshdk::mysql::Instance cluster_instance(
-        m_replicaset->get_cluster()->get_group_session());
+    std::shared_ptr<Instance> cluster_instance =
+        m_replicaset->get_cluster()->get_target_instance();
 
-    if (mysqlshdk::gr::is_active_member(cluster_instance, cnx_opt.get_host(),
+    if (mysqlshdk::gr::is_active_member(*cluster_instance, cnx_opt.get_host(),
                                         cnx_opt.get_port()) != is_active) {
       invalid_instances.push_back(instance_address);
     }
@@ -216,8 +216,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<NewInstanceInfo> newly_discovered_instances_list =
       get_newly_discovered_instances(
-          mysqlshdk::mysql::Instance(
-              m_replicaset->get_cluster()->get_group_session()),
+          *m_replicaset->get_cluster()->get_target_instance(),
           m_replicaset->get_cluster()->get_metadata_storage(),
           m_replicaset->get_cluster()->get_id());
 
@@ -258,8 +257,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<MissingInstanceInfo> unavailable_instances_list =
       get_unavailable_instances(
-          mysqlshdk::mysql::Instance(
-              m_replicaset->get_cluster()->get_group_session()),
+          *m_replicaset->get_cluster()->get_target_instance(),
           m_replicaset->get_cluster()->get_metadata_storage(),
           m_replicaset->get_cluster()->get_id());
 
@@ -287,7 +285,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      m_replicaset->get_cluster()->get_group_session(), nullptr);
+      *m_replicaset->get_cluster()->get_target_instance(), nullptr);
 
   // Check if the topology mode match and report needed change in the metadata.
   if (gr_primary_uuid.empty() &&
@@ -355,7 +353,7 @@ void Rescan::add_instance_to_metadata(
     // It is assumed that the same login options of the cluster can be
     // used to connect to the instance, if no login (user) was provided.
     cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                        ->get_group_session()
+                                        ->get_target_instance()
                                         ->get_connection_options());
   }
 
@@ -570,8 +568,8 @@ shcore::Value Rescan::execute() {
   // Handling of GR protocol version:
   // Verify if an upgrade of the protocol is required
   if (!missing_instances.get()->empty()) {
-    mysqlshdk::mysql::Instance cluster_session_instance(
-        m_replicaset->get_cluster()->get_group_session());
+    std::shared_ptr<Instance> cluster_instance =
+        m_replicaset->get_cluster()->get_target_instance();
 
     mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
 
@@ -579,18 +577,16 @@ shcore::Value Rescan::execute() {
     // the GR protocol of the group to the lowest MySQL version on the group.
     try {
       if (mysqlshdk::gr::is_protocol_upgrade_required(
-              cluster_session_instance,
-              mysqlshdk::utils::nullable<std::string>(),
+              *cluster_instance, mysqlshdk::utils::nullable<std::string>(),
               &gr_protocol_version_to_upgrade)) {
         mysqlshdk::gr::set_group_protocol_version(
-            cluster_session_instance, gr_protocol_version_to_upgrade);
+            *cluster_instance, gr_protocol_version_to_upgrade);
       }
     } catch (const shcore::Exception &error) {
       // The UDF may fail with MySQL Error 1123 if any of the members is
       // RECOVERING In such scenario, we must abort the upgrade protocol version
       // process and warn the user
       if (error.code() == ER_CANT_INITIALIZE_UDF) {
-        auto console = mysqlsh::current_console();
         console->print_note(
             "Unable to determine the Group Replication protocol version, while "
             "verifying if a protocol upgrade would be possible: " +

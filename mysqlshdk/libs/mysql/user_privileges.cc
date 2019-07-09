@@ -163,12 +163,12 @@ struct User_privileges::Mapped_row {
   std::string table;
 };
 
-User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
+User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &user,
                                  const std::string &host) {
   m_account = shcore::make_account(user, host);
 
-  read_global_privileges(session, m_account);
+  read_global_privileges(instance, m_account);
 
   if (m_privileges[m_account][k_wildcard][k_wildcard].empty()) {
     // User does not exist (all users have at least one privilege: USAGE)
@@ -177,15 +177,15 @@ User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
 
   m_user_exists = true;
 
-  read_schema_privileges(session, m_account);
-  read_table_privileges(session, m_account);
+  read_schema_privileges(instance, m_account);
+  read_table_privileges(instance, m_account);
 
   // Use of roles is only supported starting from MySQL 8.0.0.
-  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
     // Read user roles.
     try {
       log_debug("Reading roles information for user %s", m_account.c_str());
-      read_user_roles(session);
+      read_user_roles(instance);
     } catch (const mysqlshdk::db::Error &err) {
       log_debug("%s", err.format().c_str());
       if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
@@ -203,9 +203,9 @@ User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
     // Read privileges for all user roles.
     for (const std::string &user_role : m_roles) {
       log_debug("Reading privileges for role/user %s", user_role.c_str());
-      read_global_privileges(session, user_role);
-      read_schema_privileges(session, user_role);
-      read_table_privileges(session, user_role);
+      read_global_privileges(instance, user_role);
+      read_schema_privileges(instance, user_role);
+      read_table_privileges(instance, user_role);
     }
   }
 }
@@ -347,10 +347,10 @@ void User_privileges::parse_privileges(
 }
 
 std::set<std::string> User_privileges::get_mandatory_roles(
-    const std::shared_ptr<db::ISession> &session) const {
+    const mysqlshdk::mysql::IInstance &instance) const {
   // Get value of the system variable with the mandatory roles.
   std::string query{"SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'"};
-  auto result = session->query(query);
+  auto result = instance.query(query);
   auto row = result->fetch_one();
   std::string str_roles = row->get_string(1);
 
@@ -384,16 +384,16 @@ std::set<std::string> User_privileges::get_mandatory_roles(
 }
 
 void User_privileges::read_user_roles(
-    const std::shared_ptr<db::ISession> &session) {
+    const mysqlshdk::mysql::IInstance &instance) {
   // Get user and host parts from the user account.
   std::string user, host;
   shcore::split_account(m_account, &user, &host);
 
   // Get value of system variable that indicates if all roles are active.
   std::string query{"SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'"};
-  auto result = session->query(query);
+  auto result = instance.query(query);
   auto row = result->fetch_one();
-  bool all_roles_active = (row->get_string(1) == "ON") ? true : false;
+  bool all_roles_active = (row->get_string(1) == "ON");
 
   std::set<std::string> active_roles;
   if (!all_roles_active) {
@@ -406,7 +406,7 @@ void User_privileges::read_user_roles(
     sql_query << user;
     sql_query << host;
     sql_query.done();
-    result = session->query(sql_query);
+    result = instance.query(sql_query);
     row = result->fetch_one();
 
     // If there are no active roles then exit.
@@ -428,7 +428,7 @@ void User_privileges::read_user_roles(
   query =
       "SELECT from_user, from_host, to_user, to_host "
       "FROM mysql.role_edges";
-  result = session->query(query);
+  result = instance.query(query);
   row = result->fetch_one();
   while (row) {
     std::string from_role =
@@ -449,7 +449,7 @@ void User_privileges::read_user_roles(
   }
 
   // Get mandatory roles and add them to the user.
-  std::set<std::string> mandatory_roles = get_mandatory_roles(session);
+  std::set<std::string> mandatory_roles = get_mandatory_roles(instance);
   if (!mandatory_roles.empty()) {
     auto it = all_roles.find(m_account);
     if (it == all_roles.end()) {
@@ -488,27 +488,25 @@ void User_privileges::read_user_roles(
 }
 
 void User_privileges::read_global_privileges(
-    const std::shared_ptr<db::ISession> &session,
-    const std::string &user_role) {
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
       "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
       "WHERE GRANTEE = ?";
 
   read_privileges(
-      session, query, [](const db::IRow *const, Mapped_row *) {}, user_role);
+      instance, query, [](const db::IRow *const, Mapped_row *) {}, user_role);
 }
 
 void User_privileges::read_schema_privileges(
-    const std::shared_ptr<db::ISession> &session,
-    const std::string &user_role) {
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
       "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
       "WHERE GRANTEE = ? ORDER BY TABLE_SCHEMA";
 
   read_privileges(
-      session, query,
+      instance, query,
       [](const db::IRow *const row, Mapped_row *result) {
         result->schema = row->get_string(2);
       },
@@ -516,15 +514,14 @@ void User_privileges::read_schema_privileges(
 }
 
 void User_privileges::read_table_privileges(
-    const std::shared_ptr<db::ISession> &session,
-    const std::string &user_role) {
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
       "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
       "WHERE GRANTEE = ? ORDER BY TABLE_SCHEMA, TABLE_NAME";
 
   read_privileges(
-      session, query,
+      instance, query,
       [](const db::IRow *const row, Mapped_row *result) {
         result->schema = row->get_string(2);
         result->table = row->get_string(3);
@@ -533,14 +530,14 @@ void User_privileges::read_table_privileges(
 }
 
 void User_privileges::read_privileges(
-    const std::shared_ptr<db::ISession> &session, const char *const query,
+    const mysqlshdk::mysql::IInstance &instance, const char *const query,
     Row_mapper map_row, const std::string &user_role) {
   shcore::sqlstring sql_query = shcore::sqlstring(query, 0);
 
   sql_query << user_role;
   sql_query.done();
 
-  parse_privileges(session->query(sql_query), map_row, user_role);
+  parse_privileges(instance.query(sql_query), map_row, user_role);
 }
 
 User_privileges_result::User_privileges_result(

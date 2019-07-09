@@ -79,7 +79,7 @@ class Topology_configuration_command : public Command_interface {
  protected:
   ReplicaSet *m_replicaset = nullptr;
 
-  std::unique_ptr<mysqlshdk::mysql::Instance> m_cluster_session_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_cluster_session_instance;
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
@@ -120,7 +120,7 @@ class Topology_configuration_command : public Command_interface {
 
  private:
   std::vector<mysqlshdk::gr::Member> m_initial_members_info;
-  std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>> m_cluster_instances;
+  std::vector<std::unique_ptr<mysqlsh::dba::Instance>> m_cluster_instances;
 };
 
 }  // namespace dba

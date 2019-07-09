@@ -334,8 +334,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     query =
         "SELECT m.member_id, m.member_state, m.member_host, m.member_port,"
-        " m.member_role, m.member_version, s.view_id,"
-        " @@group_replication_single_primary_mode single_primary"
+        " m.member_role, m.member_version, s.view_id"
         " FROM performance_schema.replication_group_members m"
         " LEFT JOIN performance_schema.replication_group_member_stats s"
         "   ON m.member_id = s.member_id"
@@ -345,14 +344,13 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
     // query the old way
     query =
         "SELECT m.member_id, m.member_state, m.member_host, m.member_port,"
-        "   IF(NOT @@group_replication_single_primary_mode OR"
-        "     m.member_id = (select variable_value"
-        "       from performance_schema.global_status"
-        "       where variable_name = 'group_replication_primary_member'),"
+        "   IF(g.primary_uuid = '' OR m.member_id = g.primary_uuid,"
         "   'PRIMARY', 'SECONDARY') as member_role,"
-        "    NULL as member_version, s.view_id,"
-        "    @@group_replication_single_primary_mode single_primary"
-        " FROM performance_schema.replication_group_members m"
+        "    NULL as member_version, s.view_id"
+        " FROM (SELECT IFNULL(variable_value, '') AS primary_uuid"
+        "       FROM performance_schema.global_status"
+        "       WHERE variable_name = 'group_replication_primary_member') g,"
+        "      performance_schema.replication_group_members m"
         " LEFT JOIN performance_schema.replication_group_member_stats s"
         "   ON m.member_id = s.member_id"
         "     AND s.channel_name = 'group_replication_applier'"
@@ -390,8 +388,6 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
     member.port = row.get_int("member_port");
     member.role = to_member_role(row.get_string("member_role"));
     member.version = row.get_string("member_version", "");
-    if (out_single_primary_mode)
-      *out_single_primary_mode = row.get_int("single_primary");
     if (out_group_view_id && !row.is_null("view_id")) {
       *out_group_view_id = row.get_string("view_id");
     }
@@ -407,6 +403,12 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
   assert(!out_group_view_id || !out_group_view_id->empty());
 
   if (out_has_quorum) *out_has_quorum = online_members > members.size() / 2;
+
+  if (out_single_primary_mode) {
+    // Single primary mode if group_replication_primary_member is not empty.
+    *out_single_primary_mode =
+        !mysqlshdk::gr::get_group_primary_uuid(instance, nullptr).empty();
+  }
 
   return members;
 }
@@ -477,9 +479,9 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
   }
 }
 
-std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
+std::string get_group_primary_uuid(const mysqlshdk::mysql::IInstance &instance,
                                    bool *out_single_primary_mode) {
-  auto res = session->query(
+  auto res = instance.query(
       "SELECT @@group_replication_single_primary_mode, "
       "       variable_value AS primary_uuid"
       "   FROM performance_schema.global_status"
@@ -790,12 +792,11 @@ mysql::User_privileges_result check_replication_user(
 }
 
 mysqlshdk::mysql::Auth_options create_recovery_user(
-    const std::string &username, mysqlshdk::mysql::IInstance *primary,
+    const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
     bool clone_supported) {
   mysqlshdk::mysql::Auth_options creds;
-  assert(primary);
   assert(!hosts.empty());
   assert(!username.empty());
 
@@ -818,11 +819,11 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
       for (auto &hostname : hosts) {
         log_debug(
             "Creating recovery account '%s'@'%s' with random password at %s",
-            creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
+            creds.user.c_str(), hostname.c_str(), primary.descr().c_str());
       }
       // re-create replication with a new generated password
       mysqlshdk::mysql::create_user_with_random_password(
-          *primary, creds.user, hosts, grants, &repl_password, true);
+          primary, creds.user, hosts, grants, &repl_password, true);
 
       creds.password = repl_password;
     } else {
@@ -830,15 +831,15 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
         log_debug(
             "Creating recovery account '%s'@'%s' with non random password at "
             "%s",
-            creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
+            creds.user.c_str(), hostname.c_str(), primary.descr().c_str());
       }
       // re-create replication with a given password
       mysqlshdk::mysql::create_user_with_password(
-          *primary, creds.user, hosts, grants, password.get_safe(), true);
+          primary, creds.user, hosts, grants, password.get_safe(), true);
 
       creds.password = password.get_safe();
     }
-    creds.ssl_options = primary->get_connection_options().get_ssl_options();
+    creds.ssl_options = primary.get_connection_options().get_ssl_options();
   } catch (std::exception &e) {
     throw std::runtime_error(shcore::str_format(
         "Unable to create the Group Replication recovery account: %s",

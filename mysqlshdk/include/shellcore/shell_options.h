@@ -34,6 +34,7 @@
 
 #define SHCORE_SANDBOX_DIR "sandboxDir"
 #define SHCORE_DBA_GTID_WAIT_TIMEOUT "dba.gtidWaitTimeout"
+#define SHCORE_DBA_LOG_SQL "dba.logSql"
 
 #define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
@@ -110,6 +111,7 @@ class Shell_options : public shcore::Options {
     std::string execute_dba_statement;
     std::string sandbox_directory;
     int dba_gtid_wait_timeout;
+    int dba_log_sql;
     std::string gadgets_path;
     shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;
     int verbose_level = 0;

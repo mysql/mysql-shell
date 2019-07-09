@@ -28,11 +28,11 @@
 #include <string>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -93,9 +93,8 @@ class Remove_instance : public Command_interface {
   const ReplicaSet &m_replicaset;
 
   std::string m_instance_address;
-  mysqlshdk::mysql::Instance *m_target_instance = nullptr;
-  std::unique_ptr<mysqlshdk::mysql::Instance>
-      m_target_instance_protocol_upgrade;
+  mysqlsh::dba::Instance *m_target_instance = nullptr;
+  std::unique_ptr<mysqlsh::dba::Instance> m_target_instance_protocol_upgrade;
   std::string m_address_in_metadata;
   bool m_upgrade_gr_protocol_version = false;
   mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;

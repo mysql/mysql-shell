@@ -29,10 +29,10 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/replicaset/replicaset.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
@@ -45,7 +45,7 @@ namespace checks {
 void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
                            int verbose);
 
-bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
+bool validate_schemas(const mysqlshdk::mysql::IInstance &instance);
 
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 
@@ -66,7 +66,7 @@ void validate_performance_schema_enabled(
 
 void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<mysqlshdk::db::ISession> &cluster_session);
+    const std::shared_ptr<Instance> &cluster_instance);
 
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,

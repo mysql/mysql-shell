@@ -60,8 +60,7 @@ void Check_instance_state::ensure_target_instance_reachable() {
   try {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance =
-        shcore::make_unique<mysqlshdk::mysql::Instance>(session);
+    m_target_instance = shcore::make_unique<mysqlsh::dba::Instance>(session);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -83,8 +82,7 @@ void Check_instance_state::ensure_target_instance_reachable() {
  */
 void Check_instance_state::ensure_instance_valid_gr_state() {
   // Get the instance GR state
-  GRInstanceType instance_type =
-      get_gr_instance_type(m_target_instance->get_session());
+  GRInstanceType instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type != GRInstanceType::Standalone) {
     std::string error = "The instance '" + m_target_instance_address;
@@ -130,14 +128,13 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
 shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-      m_replicaset.get_cluster()->get_group_session();
+  std::shared_ptr<Instance> cluster_instance =
+      m_replicaset.get_cluster()->get_target_instance();
 
   // Check the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
-          mysqlshdk::mysql::Instance(cluster_session), *m_target_instance,
-          nullptr, nullptr);
+          *cluster_instance, *m_target_instance, nullptr, nullptr);
 
   std::string reason;
   std::string status;
@@ -171,19 +168,18 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
 
   // Check if the GTIDs were purged from the whole cluster
   bool all_purged = false;
-  mysqlshdk::mysql::Instance target_instance(*m_target_instance);
 
   m_replicaset.execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE},
       m_target_instance->get_connection_options(), {},
-      [&all_purged, &target_instance](
-          const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlshdk::mysql::Instance instance(session);
+      [&all_purged,
+       this](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+        mysqlsh::dba::Instance instance(session);
 
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state state =
             mysqlshdk::mysql::check_replica_gtid_state(
-                instance, target_instance, nullptr, nullptr);
+                instance, *m_target_instance, nullptr, nullptr);
 
         if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
           all_purged = true;
@@ -297,10 +293,10 @@ void Check_instance_state::prepare() {
 
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
-    std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-        m_replicaset.get_cluster()->get_group_session();
+    std::shared_ptr<Instance> cluster_instance =
+        m_replicaset.get_cluster()->get_target_instance();
     Connection_options cluster_cnx_opt =
-        cluster_session->get_connection_options();
+        cluster_instance->get_connection_options();
 
     if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user())
       m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());

@@ -24,7 +24,6 @@
 #ifndef MODULES_ADMINAPI_COMMON_CLONE_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_CLONE_OPTIONS_H_
 
-#include <mysql/instance.h>
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba_cluster.h"

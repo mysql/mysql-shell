@@ -52,7 +52,7 @@ void Switch_to_single_primary_mode::prepare() {
   //   - Ensure instance belong to replicaset;
   if (m_instance_cnx_opts.has_data()) {
     m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                                   ->get_group_session()
+                                                   ->get_target_instance()
                                                    ->get_connection_options());
 
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
@@ -61,7 +61,7 @@ void Switch_to_single_primary_mode::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session =
         mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    mysqlshdk::mysql::Instance target_instance(session);
+    mysqlsh::dba::Instance target_instance(session);
 
     log_debug("Verifying connection options.");
 

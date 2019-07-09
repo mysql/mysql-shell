@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,12 +30,13 @@
 #include <unordered_map>
 
 #include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlshdk {
 namespace mysql {
 
 class User_privileges_result;
+class IInstance;
 
 /**
  * Holds privileges for the given user.
@@ -50,11 +51,11 @@ class User_privileges {
   /**
    * Gathers privileges for the given user using provided session.
    *
-   * @param session The session object used to query the database.
+   * @param instance The Instance object used to query the database.
    * @param user The username part for the user account to check.
    * @param host The host part for the user account to check.
    */
-  User_privileges(const std::shared_ptr<db::ISession> &session,
+  User_privileges(const mysqlshdk::mysql::IInstance &instance,
                   const std::string &user, const std::string &host);
 
   User_privileges(const User_privileges &) = delete;
@@ -132,39 +133,39 @@ class User_privileges {
   /**
    * Reads global privileges of a user or role.
    *
-   * @param session A session object for communication with database.
+   * @param instance A Instance object for communication with database.
    * @param user_role string with the target user or role.
    */
-  void read_global_privileges(const std::shared_ptr<db::ISession> &session,
+  void read_global_privileges(const mysqlshdk::mysql::IInstance &instance,
                               const std::string &user_role);
 
   /**
    * Reads privileges of a user or role on all schemas.
    *
-   * @param session A session object for communication with database.
+   * @param instance A Instance object for communication with database.
    * @param user_role string with the target user or role.
    */
-  void read_schema_privileges(const std::shared_ptr<db::ISession> &session,
+  void read_schema_privileges(const mysqlshdk::mysql::IInstance &instance,
                               const std::string &user_role);
 
   /**
    * Reads privileges of a user or role on all tables.
    *
-   * @param session A session object for communication with database.
+   * @param instance A Instance object for communication with database.
    * @param user_role string with the target user or role.
    */
-  void read_table_privileges(const std::shared_ptr<db::ISession> &session,
+  void read_table_privileges(const mysqlshdk::mysql::IInstance &instance,
                              const std::string &user_role);
 
   /**
    * Reads privileges of a user/role from result of specified query.
    *
-   * @param session A session object for communication with database.
+   * @param instance A Instance object for communication with database.
    * @param query A query to be executed.
    * @param map_row Converts a single row into readable data.
    * @param user_role string with the target user/role.
    */
-  void read_privileges(const std::shared_ptr<db::ISession> &session,
+  void read_privileges(const mysqlshdk::mysql::IInstance &instance,
                        const char *const query, Row_mapper map_row,
                        const std::string &user_role);
 
@@ -173,20 +174,20 @@ class User_privileges {
    *
    * NOTE: the returned roles might not be active.
    *
-   * @param session The session object used to query the database.
+   * @param instance The Instance object used to query the database.
    * @return a set of strings with the defined mandatory role, each role in the
    *         set has the format '<user>'@'<host>' (empty set if there are no
    *         mandatory roles).
    */
   std::set<std::string> get_mandatory_roles(
-      const std::shared_ptr<db::ISession> &session) const;
+      const mysqlshdk::mysql::IInstance &instance) const;
 
   /**
    * Read roles/users granted to the user.
    *
-   * @param session The session object used to query the database.
+   * @param instance The Instance object used to query the database.
    */
-  void read_user_roles(const std::shared_ptr<db::ISession> &session);
+  void read_user_roles(const mysqlshdk::mysql::IInstance &instance);
 
   /**
    * Checks if the given user account has GRANT OPTION privilege on specified

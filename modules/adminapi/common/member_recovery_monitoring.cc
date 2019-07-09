@@ -111,7 +111,7 @@ void throw_distributed_recovery_error(
 // - 2 wait with textual info only
 // - 3 wait with progressbar
 void do_monitor_gr_recovery_status(
-    mysqlshdk::mysql::Instance *instance,
+    mysqlsh::dba::Instance *instance,
     mysqlshdk::gr::Group_member_recovery_status method,
     const std::string &begin_time, Recovery_progress_style progress_style,
     int startup_timeout_sec, int restart_timeout_sec) {
@@ -229,7 +229,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
   timeout_sec = adjust_timeout(timeout_sec, k_recovery_status_poll_interval_ms);
   bool reconnect = true;
 
-  mysqlshdk::mysql::Instance instance;
+  mysqlsh::dba::Instance instance;
   std::shared_ptr<mysqlshdk::db::ISession> session;
 
   bool stop = false;
@@ -338,7 +338,7 @@ void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
   console->print_info();
 }
 
-void monitor_clone_recovery(mysqlshdk::mysql::Instance *instance,
+void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
                             Recovery_progress_style progress_style,
                             int restart_timeout_sec) {
   auto console = current_console();
@@ -456,7 +456,7 @@ void monitor_clone_recovery(mysqlshdk::mysql::Instance *instance,
 }
 
 void monitor_post_clone_gr_recovery_status(
-    mysqlshdk::mysql::Instance *instance, const std::string &begin_time,
+    mysqlsh::dba::Instance *instance, const std::string &begin_time,
     Recovery_progress_style progress_style, int startup_timeout_sec) {
   bool stop = false;
   shcore::Interrupt_handler intr([&stop]() {
@@ -516,7 +516,7 @@ void monitor_gr_recovery_status(
 
     auto session = mysqlshdk::db::mysql::Session::create();
     session->connect(instance_def);
-    mysqlshdk::mysql::Instance instance(session);
+    mysqlsh::dba::Instance instance(session);
 
     do_monitor_gr_recovery_status(&instance, method, begin_time, progress_style,
                                   startup_timeout_sec, restart_timeout_sec);

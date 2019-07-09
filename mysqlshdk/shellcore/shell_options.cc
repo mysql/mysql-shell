@@ -365,6 +365,15 @@ Shell_options::Shell_options(int argc, char **argv,
           }
           return shcore::Logger::parse_log_level(value);
         })
+    (&storage.dba_log_sql, 0, SHCORE_DBA_LOG_SQL,
+        cmdline("--dba-log-sql[=0|1|2]"),
+        "Log SQL statements executed by AdminAPI operations: "
+        "0 - logging disabled; 1 - log statements other than SELECT and SHOW; "
+        "2 - log all statements.", shcore::opts::Range<int>(0, 2))
+    (&storage.verbose_level, 0, SHCORE_VERBOSE, cmdline("--verbose[=level]"),
+        "Verbose output level. Enable diagnostic message output. "
+        "If level is given, it can go up to 4 for maximum verbosity, "
+        "otherwise 1 is assumed.", shcore::opts::Range<int>(0, 4))
     (&storage.passwords_from_stdin, false, "passwordsFromStdin",
         cmdline("--passwords-from-stdin"),
         "Read passwords from stdin instead of the tty.")
@@ -404,12 +413,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "by default.")
     (&storage.default_compress, false, SHCORE_DEFAULT_COMPRESS,
         "Enable compression in client/server protocol by default "
-        "in global shell sessions.")
-    (&storage.verbose_level, 0, SHCORE_VERBOSE, cmdline("--verbose[=level]"),
-        "Verbose output level. Enable diagnostic message output. "
-        "If level is given, it can go up to 4 for maximum verbosity, "
-        "otherwise 1 is assumed.",
-        shcore::opts::Range<int>(0, 10));
+        "in global shell sessions.");
 
   add_startup_options()
     (cmdline("--name-cache"),
