@@ -908,7 +908,7 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
     // Identifies the version for the chunk expectations
     // If no version is specified assigns '*'
     auto start = chunk_id.find("{");
-    auto end = chunk_id.find("}");
+    auto end = chunk_id.find_last_of("}");
 
     if (start != std::string::npos && end != std::string::npos && start < end) {
       chunk_context = chunk_id.substr(start + 1, end - start - 1);
@@ -1633,6 +1633,23 @@ bool Shell_script_tester::context_enabled(const std::string &context) {
 
       code = shcore::str_replace(code, old_func, new_func);
       function_pos = code.find("VER(");
+    }
+
+    function_pos = code.find("DEF(");
+    while (function_pos != std::string::npos) {
+      size_t closing_pos = code.find(")", function_pos);
+
+      if (closing_pos == std::string::npos)
+        throw std::invalid_argument("Invalid syntax for DEF(variable) macro.");
+
+      std::string old_func =
+          code.substr(function_pos, closing_pos - function_pos + 1);
+      std::string variable = shcore::str_strip(
+          code.substr(function_pos + 4, closing_pos - function_pos - 4));
+
+      std::string new_func = get_if_def(variable);
+      code = shcore::str_replace(code, old_func, new_func);
+      function_pos = code.find("DEF(");
     }
 
     output_handler.wipe_out();

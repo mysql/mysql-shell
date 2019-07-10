@@ -1,6 +1,6 @@
 //@<> deploy the sandbox
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}, false);
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 

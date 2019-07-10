@@ -31,6 +31,7 @@
 #include "unittest/shell_script_tester.h"
 
 extern "C" const char *g_test_home;
+extern const char *g_mysqld_path_variables;
 
 namespace tests {
 
@@ -178,6 +179,16 @@ class Auto_script_js : public Shell_js_script_tester,
     // else, but I don't know where.
     set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js",
                                              "setup.js"));
+
+    if (g_mysqld_path_variables && folder == "js_mixed_versions") {
+      auto variables = shcore::str_split(g_mysqld_path_variables, ",");
+      for (const auto &variable : variables) {
+        std::string code = shcore::str_format(
+            "var %s = os.getenv('%s')", variable.c_str(), variable.c_str());
+        exec_and_out_equals(code);
+      }
+    }
+
     const std::vector<std::string> argv;
     _interactive_shell->process_file(_setup_script, argv);
 
@@ -230,6 +241,10 @@ INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
                         testing::ValuesIn(find_js_tests("js_devapi", ".js")));
+
+INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_js,
+                        testing::ValuesIn(find_js_tests("js_mixed_versions",
+                                                        ".js")));
 
 namespace {
 

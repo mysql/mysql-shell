@@ -1,4 +1,5 @@
 
+
 function create_root_from_anywhere(session, clear_super_read_only) {
   var super_read_only = get_sysvar(session, "super_read_only");
   var super_read_only_enabled = super_read_only === "ON";
@@ -10,6 +11,24 @@ function create_root_from_anywhere(session, clear_super_read_only) {
   if (clear_super_read_only && super_read_only_enabled)
     set_sysvar(session, "super_read_only", 1);
   session.runSql("SET SQL_LOG_BIN=1");
+}
+
+/**
+ * Verifies if a variable is defined, returning true or false accordingly
+ * @param cb An anonymous function that simply executes the variable to be
+ * verified, example:
+ * 
+ * defined(function(){myVar})
+ * 
+ * Will return true if myVar is defined or false if not.
+ */
+function defined(cb) {
+  try {
+    cb();
+    return true;
+  } catch {
+    return false
+  }
 }
 
 function set_sysvar(session, variable, value) {

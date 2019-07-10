@@ -1424,9 +1424,9 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   int rc = 0;
   if (function == "deploy")
     // First we need to create the instance
-    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir,
-                                                 password, mycnf_options, true,
-                                                 ignore_ssl_error, 0, &errors);
+    rc = _provisioning_interface->create_sandbox(
+        port, portx, sandbox_dir, password, mycnf_options, true,
+        ignore_ssl_error, 0, "", &errors);
   else if (function == "delete")
     rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, &errors);
   else if (function == "kill")

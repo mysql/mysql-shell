@@ -140,6 +140,7 @@ class Testutils : public mysqlsh::Extensible_object {
 
   static void validate_boilerplate(const std::string &sandbox_dir,
                                    bool delete_if_expired = true);
+  static std::string get_mysqld_version(const std::string &mysqld_path);
 
   using Input_fn =
       std::function<void(const std::string &, const std::string &)>;
@@ -172,11 +173,11 @@ class Testutils : public mysqlsh::Extensible_object {
  public:
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass,
-                      const shcore::Dictionary_t &opts = {},
-                      bool create_remote_root = true);
+                      const shcore::Dictionary_t &my_cnf_opts = {},
+                      const shcore::Dictionary_t &opts = {});
   void deploy_raw_sandbox(int port, const std::string &rootpass,
-                          const shcore::Dictionary_t &opts = {},
-                          bool create_remote_root = true);
+                          const shcore::Dictionary_t &my_cnf_opts = {},
+                          const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
@@ -319,10 +320,12 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void handle_remote_root_user(const std::string &rootpass, int port,
                                bool create_remote_root = true) const;
-  void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
+  void prepare_sandbox_boilerplate(const std::string &rootpass, int port,
+                                   const std::string &mysqld_path);
   bool deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,
-                                       bool raw = false);
+                                       bool raw,
+                                       const std::string &mysqld_path);
   void change_sandbox_uuid(int port, const std::string &server_uuid);
   std::string get_sandbox_datadir(int port);
   void try_rename(const std::string &source, const std::string &target);

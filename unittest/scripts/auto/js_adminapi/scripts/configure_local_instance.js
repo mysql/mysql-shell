@@ -1,5 +1,5 @@
 //@ deploy the sandbox
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}, false);
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 var mycnf = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -102,7 +102,7 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname}, false);
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum",
     "CRC32");

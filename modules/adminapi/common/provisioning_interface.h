@@ -49,6 +49,7 @@ class ProvisioningInterface {
                      const std::string &password,
                      const shcore::Value &mycnf_options, bool start,
                      bool ignore_ssl_error, int timeout,
+                     const std::string &mysqld_path,
                      shcore::Value::Array_type_ref *errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
                      shcore::Value::Array_type_ref *errors);

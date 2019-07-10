@@ -32,6 +32,7 @@
 #include <stdlib.h>
 
 extern "C" const char *g_test_home;
+extern const char *g_mysqld_path_variables;
 
 namespace tests {
 
@@ -183,6 +184,16 @@ TEST_P(Auto_script_py, run_and_check) {
   else
     output_handler.set_answers_to_stdout(false);
 
+  if (g_mysqld_path_variables && folder == "py_mixed_versions") {
+    auto variables = shcore::str_split(g_mysqld_path_variables, ",");
+    exec_and_out_equals("import os");
+    for (const auto &variable : variables) {
+      std::string code = shcore::str_format("%s = os.getenv('%s')",
+                                            variable.c_str(), variable.c_str());
+      exec_and_out_equals(code);
+    }
+  }
+
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());
   exec_and_out_equals("__script_file = '" + GetParam() + "'");
 
@@ -213,5 +224,9 @@ INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,
                         testing::ValuesIn(find_py_tests("py_devapi", ".py")));
+
+INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_mixed_versions",
+                                                        ".py")));
 
 }  // namespace tests

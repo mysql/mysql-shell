@@ -101,8 +101,8 @@ class Shell_script_tester : public Crud_test_wrapper {
   // You can define per-test set-up and tear-down logic as usual.
   Shell_script_tester();
 
-  virtual void SetUp();
-  virtual void TearDown();
+  void SetUp() override;
+  void TearDown() override;
 
   void validate_batch(const std::string &name);
   void validate_interactive(const std::string &name);
@@ -111,10 +111,13 @@ class Shell_script_tester : public Crud_test_wrapper {
   void execute(const std::string &code);
 
  protected:
-  virtual void set_defaults();
-  virtual void reset_shell();
+  void set_defaults() override;
+  void reset_shell() override;
   virtual void set_scripting_context();
   void def_var(const std::string &var, const std::string &value);
+  virtual std::string get_if_def(const std::string &variable) {
+    return variable;
+  }
 
   std::streambuf *_cout_backup;
   std::ostringstream _cout;
@@ -145,7 +148,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   std::string _extension;
   bool _new_format;
 
-  void execute_setup();
+  void execute_setup() override;
   void add_to_cfg_file(const std::string &cfgfile_path,
                        const std::string &option);
   void remove_from_cfg_file(const std::string &cfgfile_path,
@@ -192,16 +195,19 @@ class Shell_script_tester : public Crud_test_wrapper {
 class Shell_js_script_tester : public Shell_script_tester {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void set_defaults();
+  void set_defaults() override;
 
-  virtual std::string get_comment_token() { return "//"; }
-  virtual std::string get_chunk_token() { return "//@"; }
-  virtual std::string get_chunk_by_line_token() { return "//@#"; }
-  virtual std::string get_assumptions_token() { return "// Assumptions:"; }
-  virtual std::string get_variable_prefix() { return "var "; }
-  virtual std::string get_switch_mode_command() { return "\\js"; }
-  virtual shcore::NamingStyle get_naming_style() {
+  std::string get_comment_token() override { return "//"; }
+  std::string get_chunk_token() override { return "//@"; }
+  std::string get_chunk_by_line_token() override { return "//@#"; }
+  std::string get_assumptions_token() override { return "// Assumptions:"; }
+  std::string get_variable_prefix() override { return "var "; }
+  std::string get_switch_mode_command() override { return "\\js"; }
+  shcore::NamingStyle get_naming_style() override {
     return shcore::LowerCamelCase;
+  }
+  std::string get_if_def(const std::string &variable) override {
+    return "defined(function(){" + variable + "})";
   }
 };
 
@@ -211,15 +217,18 @@ class Shell_js_script_tester : public Shell_script_tester {
 class Shell_py_script_tester : public Shell_script_tester {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void set_defaults();
+  void set_defaults() override;
 
-  virtual std::string get_comment_token() { return "#"; };
-  virtual std::string get_chunk_token() { return "#@"; }
-  virtual std::string get_chunk_by_line_token() { return "#@#"; }
-  virtual std::string get_assumptions_token() { return "# Assumptions:"; }
-  virtual std::string get_variable_prefix() { return ""; }
-  virtual std::string get_switch_mode_command() { return "\\py"; }
-  virtual shcore::NamingStyle get_naming_style() {
+  std::string get_comment_token() override { return "#"; };
+  std::string get_chunk_token() override { return "#@"; }
+  std::string get_chunk_by_line_token() override { return "#@#"; }
+  std::string get_assumptions_token() override { return "# Assumptions:"; }
+  std::string get_variable_prefix() override { return ""; }
+  std::string get_switch_mode_command() override { return "\\py"; }
+  shcore::NamingStyle get_naming_style() override {
     return shcore::LowerCaseUnderscores;
+  }
+  std::string get_if_def(const std::string &variable) override {
+    return "defined(lambda:" + variable + ")";
   }
 };

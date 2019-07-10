@@ -84,6 +84,7 @@ extern "C" {
 const char *g_test_home = nullptr;
 }
 const char *g_mysqlsh_path;
+const char *g_mysqld_path_variables;
 char *g_mppath = nullptr;
 bool g_profile_test_scripts = false;
 
@@ -301,6 +302,100 @@ static void detect_mysql_environment(int port, const char *pwd) {
       exit(1);
     }
   }
+}
+
+static std::string verify_target_server(
+    const std::string &variable,
+    const mysqlshdk::utils::Version &expected_version,
+    std::vector<std::string> *path_variables) {
+  const char *path = getenv(variable.c_str());
+
+  if (!path) {
+    return shcore::str_format(
+        "The environment variable %s must be defined with the path to the "
+        "MySQL Server %s binary",
+        variable.c_str(), expected_version.get_base().c_str());
+  } else {
+    mysqlshdk::utils::Version actual_version(
+        tests::Testutils::get_mysqld_version(path));
+
+    if (expected_version != actual_version) {
+      return shcore::str_format(
+          "The environment variable %s must be defined with the path to the "
+          "MySQL Server %s binary, it points to a MySQL Server %s",
+          variable.c_str(), expected_version.get_base().c_str(),
+          actual_version.get_base().c_str());
+    } else {
+      path_variables->push_back(variable);
+    }
+  }
+  return "";
+}
+
+/*
+ * Verifies the target servers to be used on the test session.
+ * returns the base server version.
+ */
+static std::string verify_target_servers(const std::string &target,
+                                         std::string *path_variables) {
+  std::vector<std::string> path_var_list;
+  std::string new_target;
+  if (target.empty()) {
+    new_target = g_target_server_version.get_base();
+  } else {
+    auto versions = shcore::str_split(target, "+");
+
+    // The base server version is the first one
+    new_target = versions[0];
+
+    // The rest must have their paths defined in MYSQLD<M><m>[r]_PATH env
+    // variables
+    auto count = versions.size();
+    std::vector<std::string> errors;
+    // if just 2 versions are given, a MYSQLDMm_PATH env var should be required
+    // with the specific server version (only if the major version differs from
+    // the major version of the base server)
+    if (count == 2) {
+      mysqlshdk::utils::Version secondary(versions[1]);
+
+      if (g_target_server_version.get_major() != secondary.get_major() ||
+          g_target_server_version.get_minor() != secondary.get_minor()) {
+        std::string variable = shcore::str_format(
+            "MYSQLD%d%d_PATH", secondary.get_major(), secondary.get_minor());
+
+        std::string error =
+            verify_target_server(variable, secondary, &path_var_list);
+        if (!error.empty()) errors.push_back(error);
+      }
+    }
+
+    // If no target variables yet and server count is more than 1 then specific
+    // MYSQLDMmp_PATH variables should be defined
+    if (count > 1 && path_var_list.empty() && errors.empty()) {
+      for (size_t index = 1; index < versions.size(); index++) {
+        mysqlshdk::utils::Version secondary(versions[index]);
+
+        std::string variable =
+            shcore::str_format("MYSQLD%d%d%d_PATH", secondary.get_major(),
+                               secondary.get_minor(), secondary.get_patch());
+
+        std::string error =
+            verify_target_server(variable, secondary, &path_var_list);
+        if (!error.empty()) errors.push_back(error);
+      }
+    }
+
+    if (!errors.empty()) {
+      std::cerr << "Please correct the following errors regarding the target "
+                   "servers for the test execution:\n"
+                << shcore::str_join(errors, "\n").c_str() << std::endl;
+      exit(1);
+    } else {
+      *path_variables = shcore::str_join(path_var_list, ",");
+    }
+  }
+
+  return new_target;
 }
 
 static bool delete_sandbox(int port) {
@@ -688,8 +783,12 @@ int main(int argc, char **argv) {
       listing_tests = true;
     } else if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
       got_filter = true;
-    } else if (shcore::str_caseeq(argv[index], "--direct")) {
+    } else if (shcore::str_beginswith(argv[index], "--direct")) {
       g_test_recording_mode = mysqlshdk::db::replay::Mode::Direct;
+      char *p = strchr(argv[index], '=');
+      if (p) {
+        target = p + 1;
+      }
     } else if (shcore::str_beginswith(argv[index], "--record")) {
       g_test_recording_mode = mysqlshdk::db::replay::Mode::Record;
       char *p = strchr(argv[index], '=');
@@ -756,6 +855,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  std::string mysqld_path_variables;
   if (!listing_tests) {
     setup_test_environment();
 
@@ -763,6 +863,12 @@ int main(int argc, char **argv) {
       extern void enable_tdb(bool);
       enable_tdb(tdb_step);
     }
+
+    // The call to the verify_target_servers is needed so the path to the
+    // different mysqld servers gets in place for every execution mode
+    if (!target.empty())
+      target = verify_target_servers(target, &mysqld_path_variables);
+    g_mysqld_path_variables = mysqld_path_variables.c_str();
 
     if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
       if (target.empty()) target = g_target_server_version.get_base();

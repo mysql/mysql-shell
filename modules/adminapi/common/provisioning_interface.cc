@@ -389,7 +389,8 @@ int ProvisioningInterface::exec_sandbox_op(
 int ProvisioningInterface::create_sandbox(
     int port, int portx, const std::string &sandbox_dir,
     const std::string &password, const shcore::Value &mycnf_options, bool start,
-    bool ignore_ssl_error, int timeout, shcore::Value::Array_type_ref *errors) {
+    bool ignore_ssl_error, int timeout, const std::string &mysqld_path,
+    shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   if (mycnf_options) {
     kwargs["opt"] = mycnf_options;
@@ -402,6 +403,8 @@ int ProvisioningInterface::create_sandbox(
   if (!password.empty()) kwargs["passwd"] = shcore::Value(password);
 
   if (timeout > 0) kwargs["timeout"] = shcore::Value(timeout);
+
+  if (!mysqld_path.empty()) kwargs["mysqld_path"] = shcore::Value(mysqld_path);
 
   return exec_sandbox_op("create", port, portx, sandbox_dir, kwargs, errors);
 }

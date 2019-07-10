@@ -9,6 +9,21 @@ def get_members(object):
 
   return exports
 
+##
+# Verifies if a variable is defined, returning true or false accordingly
+# @param cb An anonymous function that simply executes the variable to be
+# verified, example:
+# 
+# defined(lambda:myVar)
+# 
+# Will return True if myVar is defined or False if not.
+##
+def defined(cb):
+  try:
+    cb();
+    return True;
+  except:
+    return False
 
 def create_root_from_anywhere(session):
   session.run_sql("SET SQL_LOG_BIN=0")
@@ -40,6 +55,12 @@ def EXPECT_THROWS(func, etext):
     exception_message = str(e)
     if exception_message.find(etext) == -1:
       testutil.fail("<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + exception_message)
+
+def EXPECT_NO_THROWS(func, context):
+  try:
+    func()
+  except:
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>");
 
 def EXPECT_STDOUT_CONTAINS(text):
   out = testutil.fetch_captured_stdout(False)

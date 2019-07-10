@@ -97,21 +97,6 @@ extern int g_test_trace_scripts;
 extern int g_test_color_output;
 
 namespace tests {
-
-namespace {
-std::string get_mysqld_version() {
-  static const char *argv[] = {"mysqld", "--version", nullptr};
-  std::string version = mysqlshdk::utils::run_and_catch_output(argv, true);
-  if (!version.empty()) {
-    auto tokens = shcore::str_split(version, " ", -1, true);
-    if (tokens[1] == "Ver") {
-      return tokens[2];
-    }
-  }
-  return "";
-}
-}  // namespace
-
 constexpr int k_wait_sandbox_dead_timeout = 120;
 constexpr int k_wait_sandbox_alive_timeout = 120;
 constexpr int k_wait_member_timeout = 120;
@@ -132,9 +117,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
     std::cerr << "testutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
-         "?options", "?create_remote_root", true);
+         "?myCnfOptions", "?options");
   expose("deployRawSandbox", &Testutils::deploy_raw_sandbox, "port", "rootpass",
-         "?options", "?create_remote_root", true);
+         "?myCnfOptions", "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
@@ -209,6 +194,21 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
   _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
+}
+
+std::string Testutils::get_mysqld_version(const std::string &mysqld_path) {
+  std::string mysqld_active_path{"mysqld"};
+  if (!mysqld_path.empty()) mysqld_active_path = mysqld_path;
+
+  const char *argv[] = {mysqld_active_path.c_str(), "--version", nullptr};
+  std::string version = mysqlshdk::utils::run_and_catch_output(argv, true);
+  if (!version.empty()) {
+    auto tokens = shcore::str_split(version, " ", -1, true);
+    if (tokens[1] == "Ver") {
+      return tokens[2];
+    }
+  }
+  return "";
 }
 
 void Testutils::dbug_set(const std::string &s) { DBUG_SET(s.c_str()); }
@@ -924,8 +924,16 @@ None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
 void Testutils::deploy_sandbox(int port, const std::string &rootpass,
-                               const shcore::Dictionary_t &opts,
-                               bool create_remote_root) {
+                               const shcore::Dictionary_t &my_cnf_options,
+                               const shcore::Dictionary_t &opts) {
+  bool create_remote_root{true};
+  std::string mysqld_path;
+
+  if (opts) {
+    create_remote_root = opts->get_bool("createRemoteRoot", true);
+    mysqld_path = opts->get_string("mysqldPath", "");
+  }
+
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
@@ -933,15 +941,16 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
 
     // Sandbox from a boilerplate
     if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port);
-      if (!deploy_sandbox_from_boilerplate(port, opts)) {
+      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
+      if (!deploy_sandbox_from_boilerplate(port, my_cnf_options, false,
+                                           mysqld_path)) {
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
       handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
-      prepare_sandbox_boilerplate(rootpass, port);
-      deploy_sandbox_from_boilerplate(port, opts);
+      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
+      deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
       handle_remote_root_user(rootpass, port, create_remote_root);
     }
   }
@@ -965,25 +974,34 @@ None Testutils::deploy_raw_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
 void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
-                                   const shcore::Dictionary_t &opts,
-                                   bool create_remote_root) {
+                                   const shcore::Dictionary_t &my_cnf_opts,
+                                   const shcore::Dictionary_t &opts) {
+  bool create_remote_root{true};
+  std::string mysqld_path;
+
+  if (opts) {
+    create_remote_root = opts->get_bool("createRemoteRoot", true);
+    mysqld_path = opts->get_string("mysqldPath", "");
+  }
+
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     wait_sandbox_dead(port);
     // Sandbox from a boilerplate
     if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port);
+      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
       wait_sandbox_dead(port);
-      if (!deploy_sandbox_from_boilerplate(port, opts, true)) {
+      if (!deploy_sandbox_from_boilerplate(port, my_cnf_opts, true,
+                                           mysqld_path)) {
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
       handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
-      prepare_sandbox_boilerplate(rootpass, port);
+      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
       wait_sandbox_dead(port);
-      deploy_sandbox_from_boilerplate(port, opts, true);
+      deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
       handle_remote_root_user(rootpass, port, create_remote_root);
     }
   }
@@ -2279,11 +2297,15 @@ void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
 }
 
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
-                                            int port) {
+                                            int port,
+                                            const std::string &mysqld_path) {
   if (g_test_trace_scripts) std::cerr << "Preparing sandbox boilerplate...\n";
 
-  std::string boilerplate =
-      shcore::path::join_path(_sandbox_dir, "myboilerplate");
+  std::string mysqld_version = get_mysqld_version(mysqld_path);
+
+  std::string bp_folder{"myboilerplate"};
+  if (!mysqld_path.empty()) bp_folder.append("-" + mysqld_version);
+  std::string boilerplate = shcore::path::join_path(_sandbox_dir, bp_folder);
   if (shcore::is_folder(boilerplate) && _use_boilerplate) {
     if (g_test_trace_scripts)
       std::cerr << "Reusing existing sandbox boilerplate at " << boilerplate
@@ -2303,7 +2325,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
   _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
-                      true, true, 60, &errors);
+                      true, true, 60, mysqld_path, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
     for (auto &v : *errors) std::cerr << v.descr() << "\n";
@@ -2312,7 +2334,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   shcore::create_file(shcore::path::join_path(
                           _sandbox_dir, std::to_string(port), "version.txt"),
-                      get_mysqld_version());
+                      mysqld_version);
 
   stop_sandbox(port);
 
@@ -2405,7 +2427,8 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
 
 void Testutils::validate_boilerplate(const std::string &sandbox_dir,
                                      bool delete_if_expired) {
-  std::string version = get_mysqld_version();
+  // TODO(rennox): Verify if we should be passing a specific path here
+  std::string version = get_mysqld_version("");
   delete_if_expired = true;
   std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
@@ -2429,15 +2452,19 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
 }
 
 bool Testutils::deploy_sandbox_from_boilerplate(
-    int port, const shcore::Dictionary_t &opts, bool raw) {
+    int port, const shcore::Dictionary_t &opts, bool raw,
+    const std::string &mysqld_path) {
   if (g_test_trace_scripts) {
     if (raw)
       std::cerr << "Deploying raw sandbox " << port << " from boilerplate\n";
     else
       std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
   }
-  std::string boilerplate =
-      shcore::path::join_path(_sandbox_dir, "myboilerplate");
+  std::string mysqld_version = get_mysqld_version(mysqld_path);
+  std::string bp_folder{"myboilerplate"};
+  if (!mysqld_path.empty()) bp_folder.append("-" + mysqld_version);
+
+  std::string boilerplate = shcore::path::join_path(_sandbox_dir, bp_folder);
 
   std::string basedir =
       shcore::path::join_path(_sandbox_dir, std::to_string(port));
