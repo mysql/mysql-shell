@@ -539,6 +539,10 @@ std::string from_camel_case(const std::string &name) {
   return new_name;
 }
 
+std::string from_camel_case_to_dashes(const std::string &name) {
+  return str_replace(from_camel_case(name), "_", "-");
+}
+
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
                                             std::string *out_string) {
   bool seen_not_a_digit = false;

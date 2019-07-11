@@ -316,8 +316,6 @@ class Field_formatter {
 
     m_display_lengths.push_back(dlength);
     m_buffer_lengths.push_back(blength);
-
-    m_max_mb_holes = std::max<size_t>(m_max_mb_holes, blength - dlength);
   }
 
   ~Field_formatter() {}
@@ -361,7 +359,7 @@ class Field_formatter {
 
         // Updates the display length with the new size
         if (m_format == ResultFormat::TABLE) {
-          m_display_lengths[0] = tmp.length();
+          m_display_lengths[0] = m_buffer_lengths[0] = tmp.length();
         }
       }
       append(tmp.data(), tmp.length());
@@ -436,7 +434,7 @@ class Field_formatter {
       buffer_size = std::get<1>(fsizes);
     }
 
-    if (buffer_size > m_allocated) return false;
+    if (buffer_size + 1 > m_allocated) return false;
 
     size_t next_index = 0;
     if (m_format == ResultFormat::TABLE) {
@@ -471,14 +469,10 @@ class Field_formatter {
     }
 
     if (m_format == ResultFormat::TABLE) {
-      if (buffer_size > display_size) {
-        // It means some multibyte characters were found, and so we need to
-        // truncate the buffer adding the 'lost' characters
-        buffer[m_max_display_length + (buffer_size - display_size)] = 0;
-      } else {
-        // Otherwise, we truncate at _column_width
-        buffer[m_max_display_length] = 0;
-      }
+      // If some multibyte characters were found, we need to truncate the buffer
+      // adding the 'lost' characters
+      buffer[std::min(m_allocated - 1,
+                      m_max_display_length + (buffer_size - display_size))] = 0;
     } else {
       buffer[next_index] = 0;
     }
@@ -760,15 +754,20 @@ size_t Resultset_dumper_base::dump_tabbed() {
 }
 
 size_t Resultset_dumper_base::dump_vertical() {
+  return format_vertical(true, true, 0);
+}
+
+size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
+                                              size_t min_label_width) {
   const auto &metadata = m_result->get_metadata();
 
-  std::string star_separator(27, '*');
+  const std::string star_separator(27, '*');
 
   std::vector<Field_formatter> fmt;
 
   // Calculate length of a longest column description, used to right align
   // column descriptions
-  std::size_t max_col_len = 0;
+  std::size_t max_col_len = min_label_width;
   for (const auto &column : metadata) {
     max_col_len = std::max(max_col_len, column.get_column_label().length());
     fmt.emplace_back(ResultFormat::VERTICAL, column);
@@ -777,17 +776,25 @@ size_t Resultset_dumper_base::dump_vertical() {
   auto row = m_result->fetch_one();
   size_t row_index = 0;
   while (row) {
-    std::string row_header = star_separator + " " +
-                             std::to_string(row_index + 1) + ". row " +
-                             star_separator + "\n";
+    if (has_header) {
+      std::string row_header = star_separator + " " +
+                               std::to_string(row_index + 1) + ". row " +
+                               star_separator + "\n";
 
-    m_printer->print(row_header);
+      m_printer->print(row_header);
+    }
 
     for (size_t col_index = 0; col_index < metadata.size(); col_index++) {
       auto column = metadata[col_index];
 
       std::string padding(max_col_len - column.get_column_label().size(), ' ');
-      std::string label = padding + column.get_column_label() + ": ";
+      std::string label = column.get_column_label() + ": ";
+
+      if (align_right) {
+        label = padding + label;
+      } else {
+        label += padding;
+      }
 
       m_printer->print(label);
       if (fmt[col_index].put(row, col_index)) {
@@ -1057,6 +1064,10 @@ std::string Resultset_writer::write_table() {
 
 std::string Resultset_writer::write_vertical() {
   return write([this]() { dump_vertical(); });
+}
+
+std::string Resultset_writer::write_status() {
+  return write([this]() { format_vertical(false, false, 24); });
 }
 
 std::string Resultset_writer::write(const std::function<void()> &dump) {

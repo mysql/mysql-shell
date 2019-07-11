@@ -67,8 +67,27 @@ def EXPECT_STDOUT_CONTAINS(text):
   out = testutil.fetch_captured_stdout(False)
   err = testutil.fetch_captured_stderr(False)
   if out.find(text) == -1:
-    context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
+    context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
     testutil.fail(context)
+
+def WIPE_STDOUT():
+    line = testutil.fetch_captured_stdout(True)
+    while line != "":
+        line = testutil.fetch_captured_stdout(True)
+
+def EXPECT_STDOUT_MATCHES(re):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if re.match(out) is None:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.pattern + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context);
+
+def EXPECT_STDOUT_NOT_CONTAINS(text):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if out.find(text) != -1:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+        testutil.fail(context);
 
 def validate_crud_functions(crud, expected):
 	actual = dir(crud)

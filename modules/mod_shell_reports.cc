@@ -28,8 +28,10 @@
 #include <locale>
 #include <set>
 
-#include "modules/mod_utils.h"
-#include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
+#include "modules/reports/query.h"
+#include "modules/reports/thread.h"
+#include "modules/reports/threads.h"
+#include "modules/reports/utils.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/options.h"
@@ -83,9 +85,7 @@ static constexpr auto k_wildcard_character = "*";
 static constexpr auto k_report_type_list = "list";
 static constexpr auto k_report_type_report = "report";
 static constexpr auto k_report_type_print = "print";
-static constexpr size_t k_help_width = 80;
-static constexpr size_t k_help_left_padding = 0;
-static constexpr uint32_t k_asterisk = std::numeric_limits<uint32_t>::max();
+static constexpr auto k_report_type_custom = "custom";
 
 Report::Type to_report_type(const std::string &type) {
   if (k_report_type_list == type) {
@@ -95,6 +95,7 @@ Report::Type to_report_type(const std::string &type) {
   } else if (k_report_type_print == type) {
     return Report::Type::PRINT;
   } else {
+    // user cannot register reports of custom type
     throw shcore::Exception::argument_error(
         "Report type must be one of: " +
         shcore::str_join(
@@ -115,6 +116,9 @@ std::string to_string(Report::Type type) {
 
     case Report::Type::PRINT:
       return k_report_type_print;
+
+    case Report::Type::CUSTOM:
+      return k_report_type_custom;
   }
 
   throw std::logic_error("Unknown value of Report::Type");
@@ -123,7 +127,7 @@ std::string to_string(Report::Type type) {
 std::string to_string(const Report::Argc &argc) {
   std::string result;
 
-  if (argc.first == 0 && argc.second == k_asterisk) {
+  if (argc.first == 0 && argc.second == Report::k_asterisk) {
     result += "any number of";
   } else {
     result += std::to_string(argc.first);
@@ -131,7 +135,7 @@ std::string to_string(const Report::Argc &argc) {
     if (argc.first != argc.second) {
       result += "-";
 
-      if (argc.second == k_asterisk) {
+      if (argc.second == Report::k_asterisk) {
         result += k_wildcard_character;
       } else {
         result += std::to_string(argc.second);
@@ -183,7 +187,7 @@ Report::Argc get_report_argc(const std::string &argc_s) {
   switch (argc.size()) {
     case 1:
       if (argc[0] == k_wildcard_character) {
-        result = std::make_pair(0, k_asterisk);
+        result = std::make_pair(0, Report::k_asterisk);
       } else {
         const auto limit = to_uint32(argc[0]);
         result = std::make_pair(limit, limit);
@@ -192,8 +196,8 @@ Report::Argc get_report_argc(const std::string &argc_s) {
 
     case 2: {
       const auto lower = to_uint32(argc[0]);
-      const auto upper =
-          argc[1] == k_wildcard_character ? k_asterisk : to_uint32(argc[1]);
+      const auto upper = argc[1] == k_wildcard_character ? Report::k_asterisk
+                                                         : to_uint32(argc[1]);
       result = std::make_pair(lower, upper);
     } break;
 
@@ -203,6 +207,111 @@ Report::Argc get_report_argc(const std::string &argc_s) {
   }
 
   return result;
+}
+
+Report::Examples get_report_examples(const shcore::Array_t &ex) {
+  Report::Examples examples;
+
+  if (ex) {
+    for (const auto &e : *ex) {
+      if (shcore::Value_type::Map != e.type) {
+        throw shcore::Exception::argument_error(
+            "The value associated with the key named 'examples' should be a "
+            "list of dictionaries.");
+      }
+
+      Report::Example example;
+      shcore::Option_unpacker{e.as_map()}
+          .required("description", &example.description)
+          .optional("args", &example.args)
+          .optional("options", &example.options)
+          .end();
+
+      examples.emplace_back(std::move(example));
+    }
+  }
+
+  return examples;
+}
+
+Report::Option *find_option(const Report::Options &options,
+                            const std::string &name) {
+  const auto pos =
+      std::find_if(options.begin(), options.end(),
+                   [&name](const Report::Options::value_type &o) {
+                     return o->parameter->name == name || o->short_name == name;
+                   });
+
+  return options.end() == pos ? nullptr : pos->get();
+}
+
+std::vector<shcore::Help_registry::Example> get_function_examples(
+    const Report &report) {
+  std::vector<shcore::Help_registry::Example> examples;
+
+  for (const auto &example : report.examples()) {
+    shcore::Help_registry::Example e;
+
+    e.code = report.name() + "(session";
+
+    if (report.argc().second > 0 || report.has_options()) {
+      e.code.append(", [");
+
+      for (const auto &a : example.args) {
+        e.code.append(shcore::quote_string(a, '"')).append(", ");
+      }
+
+      if (!example.args.empty()) {
+        e.code.pop_back();
+        e.code.pop_back();
+      }
+
+      e.code.append("]");
+    }
+
+    if (report.has_options()) {
+      e.code.append(", {");
+
+      for (const auto &o : example.options) {
+        const auto spec = find_option(report.options(), o.first);
+        assert(spec);
+
+        e.code.append(shcore::quote_string(spec->parameter->name, '"'))
+            .append(": ");
+
+        switch (spec->parameter->type()) {
+          case shcore::Value_type::String:
+            e.code.append(shcore::quote_string(o.second, '"'));
+            break;
+
+          case shcore::Value_type::Bool:
+          case shcore::Value_type::Integer:
+          case shcore::Value_type::Float:
+            e.code.append(o.second);
+            break;
+
+          default:
+            throw std::logic_error("Unknown option type.");
+        }
+
+        e.code.append(", ");
+      }
+
+      if (!example.options.empty()) {
+        e.code.pop_back();
+        e.code.pop_back();
+      }
+
+      e.code.append("}");
+    }
+
+    e.code.append(")");
+    e.description = example.description;
+
+    examples.emplace_back(std::move(e));
+  }
+
+  return examples;
 }
 
 class Native_report_function : public shcore::Cpp_function {
@@ -255,198 +364,25 @@ class Native_report_function : public shcore::Cpp_function {
   shcore::Cpp_function::Metadata m_metadata;
 };
 
-// minimal implementation of a cursor over an array in order to reuse
-// Resultset_dumper
-class Array_as_result : public mysqlshdk::db::IResult {
- public:
-  explicit Array_as_result(const shcore::Array_t &array) {
-    if (array->size() < 1) {
-      throw shcore::Exception::runtime_error(
-          "List report should contain at least one row.");
-    }
-
-    for (const auto &row : *array) {
-      if (row.type != shcore::Value_type::Array) {
-        throw shcore::Exception::runtime_error(
-            "List report should return a list of lists.");
-      }
-
-      m_data.emplace_back();
-
-      for (const auto &value : *row.as_array()) {
-        bool is_null = value.type == shcore::Value_type::Undefined ||
-                       value.type == shcore::Value_type::Null;
-        m_data.back().emplace_back(is_null ? "NULL" : value.descr());
-      }
-    }
-
-    for (const auto &column : m_data[0]) {
-      m_metadata.emplace_back(
-          "unknown",  // catalog will not be used by dumper
-          "unknown",  // schema will not be used by dumper
-          "unknown",  // table name will not be used by dumper
-          "unknown",  // table label will not be used by dumper
-          column,     // column name
-          column,     // column label
-          1,  // length will not be used by dumper if zero-fill is set to false
-          1,  // fractional digits will not be used by dumper
-          mysqlshdk::db::Type::String,  // type
-          1,       // collation ID will not be used by dumper
-          false,   // unsigned
-          false,   // zero-fill
-          false);  // binary will not be used by dumper
-    }
-  }
-
-  const mysqlshdk::db::IRow *fetch_one() override {
-    if (!has_resultset()) {
-      return nullptr;
-    }
-
-    if (m_current_row < m_data.size()) {
-      m_row = shcore::make_unique<Vector_as_row>(m_data[m_current_row]);
-      ++m_current_row;
-      return m_row.get();
-    } else {
-      return nullptr;
-    }
-  }
-
-  bool next_resultset() override {
-    m_has_result = false;
-    return has_resultset();
-  }
-
-  bool has_resultset() override {
-    return static_cast<const Array_as_result *>(this)->has_resultset();
-  }
-
-  bool has_resultset() const { return m_has_result; }
-
-  const std::vector<mysqlshdk::db::Column> &get_metadata() const override {
-    if (!has_resultset()) {
-      throw std::logic_error("No result, unable to fetch metadata");
-    }
-
-    return m_metadata;
-  }
-
-  void buffer() override {
-    // data is always buffered
-  }
-
-  void rewind() override {
-    if (!has_resultset()) {
-      throw std::logic_error("No result, unable to rewind");
-    }
-
-    m_current_row = 1;
-  }
-
-  std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning() override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  int64_t get_auto_increment_value() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_affected_row_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_fetched_row_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_warning_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  std::string get_info() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  const std::vector<std::string> &get_gtids() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  std::shared_ptr<mysqlshdk::db::Field_names> field_names() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
- private:
-  class Vector_as_row : public mysqlshdk::db::IRow {
-   public:
-    explicit Vector_as_row(const std::vector<std::string> &row) : m_row(row) {}
-
-    mysqlshdk::db::Type get_type(uint32_t idx) const override {
-      return mysqlshdk::db::Type::String;
-    }
-
-    bool is_null(uint32_t idx) const override { return idx >= m_row.size(); }
-
-    std::string get_as_string(uint32_t idx) const override {
-      return get_string(idx);
-    }
-
-    std::string get_string(uint32_t idx) const override {
-      if (idx < m_row.size()) {
-        return m_row[idx];
-      } else {
-        return "NULL";
-      }
-    }
-
-    int64_t get_int(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint64_t get_uint(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    float get_float(uint32_t idx) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    double get_double(uint32_t idx) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint32_t num_fields() const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    std::pair<const char *, size_t> get_string_data(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint64_t get_bit(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-   private:
-    const std::vector<std::string> &m_row;
-  };
-
-  bool m_has_result = true;
-  size_t m_current_row = 1;
-  std::vector<mysqlshdk::db::Column> m_metadata;
-  std::vector<std::vector<std::string>> m_data;
-  std::unique_ptr<Vector_as_row> m_row;
-};
-
 std::string list_formatter(const shcore::Array_t &a,
                            const shcore::Dictionary_t &options) {
   bool is_vertical = false;
   shcore::Option_unpacker{options}.required(k_vertical_key, &is_vertical).end();
 
-  Array_as_result result{a};
-  Resultset_writer writer{&result};
+  if (a->size() < 1) {
+    throw shcore::Exception::runtime_error(
+        "List report should contain at least one row.");
+  }
 
-  const auto output =
-      is_vertical ? writer.write_vertical() : writer.write_table();
+  for (const auto &row : *a) {
+    if (row.type != shcore::Value_type::Array) {
+      throw shcore::Exception::runtime_error(
+          "List report should return a list of lists.");
+    }
+  }
+
+  const auto output = is_vertical ? reports::vertical_formatter(a)
+                                  : reports::table_formatter(a);
 
   // output is empty if report returned just names of columns
   return output.empty() ? "Report returned no data." : output;
@@ -466,51 +402,6 @@ std::string print_formatter(const shcore::Array_t &,
                             const shcore::Dictionary_t &) {
   // print formatter suppresses all output
   return "";
-}
-
-shcore::Dictionary_t query_report(
-    const std::shared_ptr<ShellBaseSession> &session,
-    const shcore::Array_t &argv, const shcore::Dictionary_t &) {
-  std::string query;
-
-  for (const auto &a : *argv) {
-    query += a.as_string() + " ";
-  }
-
-  query += ";";
-
-  // note: we're expecting a single resultset
-  const auto result = session->get_core_session()->query(query);
-  auto report = shcore::make_array();
-
-  // write headers
-  {
-    auto headers = shcore::make_array();
-
-    for (const auto &column : result->get_metadata()) {
-      headers->emplace_back(column.get_column_label());
-    }
-
-    report->emplace_back(std::move(headers));
-  }
-
-  // write data
-  while (const auto row = result->fetch_one()) {
-    auto json_row = shcore::make_array();
-    auto values = get_row_values(*row);
-
-    json_row->reserve(values.size());
-    json_row->insert(json_row->end(), std::make_move_iterator(values.begin()),
-                     std::make_move_iterator(values.end()));
-
-    report->emplace_back(std::move(json_row));
-  }
-
-  const auto json_result = shcore::make_dict();
-
-  json_result->emplace(k_report_key, std::move(report));
-
-  return json_result;
 }
 
 Parameter_definition::Options upcast(const Report::Options &in) {
@@ -561,70 +452,53 @@ class Shell_reports::Report_options : public shcore::Options {
         m_options(std::move(r->m_options)),
         m_argc(std::move(r->m_argc)),
         m_formatter(std::move(r->m_formatter)) {
-    // each report has an option to display help
-    add_startup_options()(&m_show_help, false, shcore::opts::cmdline("--help"),
-                          "Display this help and exit.");
+    {
+      // each report has an option to display help
+      Report::Option help{"help", shcore::Value_type::Bool};
+      help.brief = "Display this help and exit.";
+      help.short_name = "h";
+
+      add_startup_options()(&m_show_help, false, help.command_line_names(),
+                            nullptr);
+
+      m_command_line_options.emplace_back(std::move(help));
+    }
 
     // list reports can be displayed vertically
     if (Report::Type::LIST == r->type()) {
-      add_startup_options()(&m_vertical, false,
-                            shcore::opts::cmdline("--vertical", "-E"),
-                            "Display records vertically.");
+      Report::Option vertical{"vertical", shcore::Value_type::Bool};
+      vertical.brief = "Display records vertically.";
+      vertical.short_name = "E";
+
+      add_startup_options()(&m_vertical, false, vertical.command_line_names(),
+                            nullptr);
+
+      m_command_line_options.emplace_back(std::move(vertical));
     }
 
     // add options expected by the report
     for (const auto &o : m_options) {
       const auto &p = o->parameter;
-      std::vector<std::string> names;
-      std::string long_name = "--" + p->name;
-
-      // non-Boolean reports require a value
-      if (shcore::Value_type::Bool != p->type()) {
-        long_name += "=" + shcore::str_lower(shcore::type_name(p->type()));
-      }
-
-      names.emplace_back(long_name);
-
-      // options can optionally have short (one letter) form
-      if (!o->short_name.empty()) {
-        names.emplace_back("-" + o->short_name);
-      }
-
-      // Custom description ONLY applicable for options in the
-      // command line arg format
-      o->cmdline_brief = o->brief;
-      auto validator = o->parameter->validator<shcore::String_validator>();
-      if (o->is_required())
-        o->cmdline_brief = "(required) " + o->brief;
-      else
-        o->cmdline_brief = o->brief;
-
-      if (validator) {
-        auto allowed = validator->allowed();
-        if (!allowed.empty()) {
-          o->cmdline_brief +=
-              " Allowed values: " + shcore::str_join(allowed, ", ") + ".";
-        }
-      }
 
       // register the option
       add_startup_options()(
-          std::move(names), o->cmdline_brief.c_str(),
+          o->command_line_names(), nullptr,
           [&o, &p, this](const std::string &, const char *new_value) {
-            if (shcore::Value_type::String == p->type()) {
-              shcore::Parameter_context context{
-                  m_report_name + ":", {{"option '--" + p->name + "'", {}}}};
-              p->validator<shcore::String_validator>()->validate(
-                  *p, shcore::Value(new_value), &context);
-            }
-
             // convert to the expected type
             shcore::Value value;
 
             switch (p->type()) {
-              case shcore::Value_type::String:
-                value = shcore::Value(new_value);
+              case shcore::Value_type::String: {
+                value = shcore::Value(new_value ? new_value : "");
+
+                shcore::Parameter_context context{
+                    m_report_name + ":",
+                    {{"option '--" + o->command_line_name() + "'", {}}}};
+                p->validator<shcore::String_validator>()->validate(*p, value,
+                                                                   &context);
+
                 break;
+              }
 
               case shcore::Value_type::Bool:
                 value = shcore::Value(true);
@@ -668,10 +542,10 @@ class Shell_reports::Report_options : public shcore::Options {
                   m_missing_options.end());
             }
           },
-          o->parameter->name);
+          o->command_line_name());
     }
 
-    initialize_help(r->brief(), r->details());
+    initialize_help(r->brief(), r->details(), r->examples());
   }
 
   const std::string &name() const { return m_report_name; }
@@ -697,22 +571,29 @@ class Shell_reports::Report_options : public shcore::Options {
 
     // validate and parse provided arguments
     // NULL should not be included in the size of arguments
-    handle_cmdline_options(
-        raw_args.size() - 1, &raw_args[0], false, [this](Cmdline_iterator *it) {
-          // handle extra arguments
-          if (it->valid() && (it->peek()[0] != '-' || m_arguments_started)) {
-            // first option which does not begin with '-' marks the beginning of
-            // arguments
-            m_arguments_started = true;
-            m_arguments.emplace_back(it->get());
-            return true;
-          } else {
-            return false;
-          }
-        });
+    handle_cmdline_options(raw_args.size() - 1, &raw_args[0], false,
+                           [this](Iterator *it) {
+                             // handle extra arguments
+                             if (it->valid() && '-' != it->option()[0]) {
+                               // first option which does not begin with '-'
+                               // marks the beginning of arguments
+                               const auto cmdline = it->iterator();
+
+                               while (cmdline->valid()) {
+                                 m_arguments.emplace_back(cmdline->get());
+                               }
+
+                               return true;
+                             } else {
+                               return false;
+                             }
+                           });
 
     // if help was not requested, perform additional validations
     if (!show_help()) {
+      const auto usage = "For usage information please run: \\show " +
+                         m_report_name + " --help";
+
       // check if all required options are here
       if (!m_missing_options.empty()) {
         std::transform(m_missing_options.begin(), m_missing_options.end(),
@@ -720,14 +601,16 @@ class Shell_reports::Report_options : public shcore::Options {
                        [](const std::string &o) { return "--" + o; });
         throw prepare_exception("missing required option(s): " +
                                 shcore::str_join(m_missing_options, ", ") +
-                                ".");
+                                ". " + usage);
       }
 
       // check if there's the right amount of additional arguments
       const auto argc = m_arguments.size();
 
       if (argc < m_argc.first || argc > m_argc.second) {
-        throw prepare_exception("expecting " + to_string(m_argc) + ".");
+        throw prepare_exception("report is expecting " + to_string(m_argc) +
+                                ", " + std::to_string(argc) + " provided. " +
+                                usage);
       }
 
       // optionally add additional arguments
@@ -754,7 +637,9 @@ class Shell_reports::Report_options : public shcore::Options {
     return m_parsed_options;
   }
 
-  std::string help() const { return m_help; }
+  std::string help() const {
+    return shcore::Help_manager{}.get_help(*m_help_topic);
+  }
 
   bool requires_argv() const { return m_argc.second > 0 || requires_options(); }
 
@@ -767,7 +652,6 @@ class Shell_reports::Report_options : public shcore::Options {
     // reset to default values
     m_show_help = false;
     m_vertical = false;
-    m_arguments_started = false;
 
     m_missing_options.clear();
     m_arguments.clear();
@@ -783,58 +667,152 @@ class Shell_reports::Report_options : public shcore::Options {
   }
 
   void initialize_help(const std::string &brief,
-                       const std::vector<std::string> &details) {
-    if (m_help.empty()) {
-      std::vector<std::string> contents;
+                       const std::vector<std::string> &details,
+                       const Report::Examples &examples) {
+    if (nullptr == m_help_topic) {
+      const auto help = shcore::Help_registry::get();
+      const auto prefix = "CMD_SHOW_" + shcore::str_upper(m_report_name);
+      const auto topic = help->add_help_topic(
+          m_report_name, shcore::Topic_type::COMMAND, prefix, "CMD_SHOW",
+          shcore::IShell_core::all_scripting_modes());
 
-      contents.emplace_back(m_report_name + " - " + brief);
-      contents.emplace_back("");
+      if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
 
-      for (const auto &d : details) {
-        contents.emplace_back(d);
-        contents.emplace_back("");
+      const auto has_arguments = m_argc.second > 0;
+
+      {
+        std::vector<std::string> syntax;
+        std::string required;
+
+        for (const auto &o : m_options) {
+          if (o->is_required()) {
+            required.append(" ").append(
+                shcore::str_join(o->command_line_names(), "|"));
+          }
+        }
+
+        for (const auto &command : {"show", "watch"}) {
+          std::string line = "\\" + std::string(command) + " <b>" +
+                             m_report_name + "</b>" + required + " [OPTIONS]";
+
+          if (has_arguments) {
+            line += " [ARGS]";
+          }
+
+          syntax.emplace_back(std::move(line));
+        }
+
+        help->add_help(prefix, "SYNTAX", syntax);
       }
 
-      const auto argc = m_argc;
-      const auto has_arguments = argc.second > 0;
+      {
+        std::vector<std::string> contents;
 
-      contents.emplace_back("Usage:");
+        for (const auto &d : details) {
+          contents.emplace_back(d);
+        }
 
-      for (const auto &command : {"show", "watch"}) {
-        std::string line = "       \\" + std::string(command) + " " +
-                           m_report_name + " [OPTIONS]";
+        contents.emplace_back("Options:");
+
+        const auto add_option = [&contents](const Report::Option &o) {
+          std::string line;
+
+          line.append("@entrynl{");
+          line.append(shcore::str_join(o.command_line_names(), ", "));
+          line.append("} ").append(o.command_line_brief());
+
+          contents.emplace_back(std::move(line));
+        };
+
+        for (const auto &o : m_command_line_options) {
+          add_option(o);
+        }
+
+        for (const auto &o : m_options) {
+          add_option(*o);
+        }
+
+        for (const auto &o : m_options) {
+          for (const auto &d : o->details) {
+            contents.emplace_back(d);
+          }
+        }
 
         if (has_arguments) {
-          line += " [ARGUMENTS]";
+          contents.emplace_back("Arguments:");
+          contents.emplace_back("This report accepts " + to_string(m_argc) +
+                                ".");
         }
 
-        contents.emplace_back(std::move(line));
+        help->add_help(prefix, "DETAIL", contents);
       }
 
-      contents.emplace_back("");
-      contents.emplace_back("Options:");
+      {
+        // examples
+        std::vector<shcore::Help_registry::Example> ex;
 
-      for (const auto &line : get_cmdline_help(30, 48)) {
-        contents.emplace_back("  " + line);
-      }
+        for (const auto &example : examples) {
+          shcore::Help_registry::Example e;
 
-      contents.emplace_back("");
+          e.code = "\\show " + m_report_name;
 
-      for (auto &o : m_options) {
-        for (const auto &d : o->details) {
-          contents.emplace_back("  " + d);
-          contents.emplace_back("");
+          for (const auto &o : example.options) {
+            const auto spec = find_option(m_options, o.first);
+            assert(spec);
+
+            const auto name =
+                (o.first.length() > 1 ? "-" : "") + ("-" + o.first);
+
+            switch (spec->parameter->type()) {
+              case shcore::Value_type::String:
+                e.code.append(" ").append(name);
+
+                if (!o.second.empty()) {
+                  e.code.append(" ");
+
+                  if (std::string::npos != o.second.find(" ")) {
+                    e.code.append(shcore::quote_string(o.second, '"'));
+                  } else {
+                    e.code.append(o.second);
+                  }
+                }
+                break;
+
+              case shcore::Value_type::Bool:
+                if ("true" == o.second) {
+                  e.code.append(" ").append(name);
+                }
+                break;
+
+              case shcore::Value_type::Integer:
+              case shcore::Value_type::Float:
+                e.code.append(" ").append(name).append(" ").append(o.second);
+                break;
+
+              default:
+                throw std::logic_error("Unknown option type.");
+            }
+          }
+
+          for (const auto &a : example.args) {
+            e.code.append(" ");
+
+            if (std::string::npos != a.find(" ")) {
+              e.code.append(shcore::quote_string(a, '"'));
+            } else {
+              e.code.append(a);
+            }
+          }
+
+          e.description = example.description;
+
+          ex.emplace_back(std::move(e));
         }
+
+        help->add_help(prefix, ex);
       }
 
-      if (has_arguments) {
-        contents.emplace_back("Arguments:");
-        contents.emplace_back("  This report accepts " + to_string(argc) + ".");
-        contents.emplace_back("");
-      }
-
-      m_help = mysqlshdk::textui::format_markup_text(
-          contents, k_help_width, k_help_left_padding, false);
+      m_help_topic = topic;
     }
   }
 
@@ -846,14 +824,14 @@ class Shell_reports::Report_options : public shcore::Options {
   const Report::Options m_options;
   const Report::Argc m_argc;
   const Report::Formatter m_formatter;
-  std::string m_help;
+  shcore::Help_topic *m_help_topic = nullptr;
   bool m_show_help;
   bool m_vertical;
-  bool m_arguments_started;
   std::vector<std::string> m_missing_options;
   std::vector<std::string> m_arguments;
   shcore::Dictionary_t m_parsed_options;
   shcore::Array_t m_parsed_arguments;
+  std::vector<Report::Option> m_command_line_options;
 };
 
 Report::Option::Option(const std::string &n, shcore::Value_type type,
@@ -861,6 +839,57 @@ Report::Option::Option(const std::string &n, shcore::Value_type type,
     : Parameter_definition(n, type,
                            required ? shcore::Param_flag::Mandatory
                                     : shcore::Param_flag::Optional) {}
+
+std::vector<std::string> Report::Option::command_line_names() const {
+  std::vector<std::string> names;
+  const auto &p = this->parameter;
+  std::string long_name = "--" + command_line_name();
+
+  // non-Boolean reports require a value
+  if (shcore::Value_type::Bool != p->type()) {
+    if (empty) long_name += "[";
+    long_name += "=" + shcore::str_lower(shcore::type_name(p->type()));
+    if (empty) long_name += "]";
+  }
+
+  names.emplace_back(std::move(long_name));
+
+  // options can optionally have short (one letter) form
+  if (!this->short_name.empty()) {
+    names.emplace_back("-" + this->short_name);
+  }
+
+  return names;
+}
+
+std::string Report::Option::command_line_name() const {
+  return shcore::from_camel_case_to_dashes(parameter->name);
+}
+
+std::string Report::Option::command_line_brief() const {
+  std::string cmdline_brief;
+
+  if (this->is_required()) {
+    cmdline_brief += "(required) ";
+  }
+
+  cmdline_brief += this->brief;
+
+  const auto validator = this->parameter->validator<shcore::String_validator>();
+
+  if (validator) {
+    const auto &allowed = validator->allowed();
+
+    if (!allowed.empty()) {
+      cmdline_brief +=
+          " Allowed values: " + shcore::str_join(allowed, ", ") + ".";
+    }
+  }
+
+  return cmdline_brief;
+}
+
+const uint32_t Report::k_asterisk = std::numeric_limits<uint32_t>::max();
 
 Report::Report(const std::string &name, Type type,
                const shcore::Function_base_ref &function)
@@ -876,6 +905,10 @@ Report::Report(const std::string &name, Type type,
 
     case Type::PRINT:
       m_formatter = print_formatter;
+      break;
+
+    default:
+      // formatter needs to be set explicitly
       break;
   }
 }
@@ -900,6 +933,8 @@ const std::vector<std::string> &Report::details() const { return m_details; }
 void Report::set_details(const std::vector<std::string> &details) {
   m_details = details;
 }
+
+const Report::Options &Report::options() const { return m_options; }
 
 void Report::set_options(const Options &options) {
   // Validates options are not in the reserved options for the \watch
@@ -944,6 +979,16 @@ void Report::set_formatter(const Report::Formatter &formatter) {
   m_formatter = formatter;
 }
 
+const Report::Examples &Report::examples() const { return m_examples; }
+
+void Report::set_examples(Examples &&examples) {
+  for (const auto &e : examples) {
+    validate_example(e);
+  }
+
+  m_examples = std::move(examples);
+}
+
 bool Report::requires_options() const {
   return m_options.end() !=
          std::find_if(m_options.begin(), m_options.end(),
@@ -955,7 +1000,7 @@ bool Report::requires_options() const {
 
 bool Report::has_options() const { return !m_options.empty(); }
 
-void Report::validate_option(const Report::Option &option) {
+void Report::validate_option(const Option &option) {
   if (!option.short_name.empty()) {
     if (option.short_name.length() > 1) {
       throw shcore::Exception::argument_error(
@@ -975,6 +1020,45 @@ void Report::validate_option(const Report::Option &option) {
     throw shcore::Exception::argument_error(
         "Option of type 'bool' cannot be required.");
   }
+
+  if (option.empty && shcore::Value_type::String != option.parameter->type()) {
+    throw shcore::Exception::argument_error(
+        "Only option of type 'string' can accept empty values.");
+  }
+}
+
+void Report::validate_example(const Example &example) const {
+  if (example.args.size() < m_argc.first ||
+      example.args.size() > m_argc.second) {
+    throw shcore::Exception::argument_error(
+        "Report expects " + to_string(m_argc) +
+        ", example has: " + std::to_string(example.args.size()));
+  }
+
+  for (const auto &o : example.options) {
+    const auto spec = find_option(m_options, o.first);
+
+    if (nullptr == spec) {
+      throw shcore::Exception::argument_error(
+          "Option named '" + o.first + "' used in example does not exist.");
+    }
+
+    const auto type = spec->parameter->type();
+
+    if (type == shcore::Value_type::Bool && "true" != o.second &&
+        "false" != o.second) {
+      throw shcore::Exception::argument_error(
+          "Option named '" + o.first +
+          "' used in example is a Boolean, should have value 'true' or "
+          "'false'.");
+    }
+
+    if (type == shcore::Value_type::String && "" == o.second && !spec->empty) {
+      throw shcore::Exception::argument_error(
+          "Option named '" + o.first +
+          "' used in example cannot be an empty string.");
+    }
+  }
 }
 
 Shell_reports::Shell_reports(const std::string &name,
@@ -982,13 +1066,9 @@ Shell_reports::Shell_reports(const std::string &name,
     : Extensible_object(name, qualified_name, true) {
   enable_help();
 
-  // register query report
-  auto query =
-      shcore::make_unique<Report>("query", Report::Type::LIST, query_report);
-  query->set_brief("Executes the SQL statement given as arguments.");
-  query->set_argc({1, k_asterisk});
-
-  register_report(std::move(query));
+  reports::register_query_report(this);
+  reports::register_threads_report(this);
+  reports::register_thread_report(this);
 }
 
 // needs to be defined here due to Shell_reports::Report_options being
@@ -1001,6 +1081,7 @@ std::shared_ptr<Parameter_definition> Shell_reports::start_parsing_parameter(
   auto option = std::make_shared<Report::Option>("");
 
   unpacker->optional("shortcut", &option->short_name);
+  unpacker->optional("empty", &option->empty);
 
   // type is optional here, but base class requires it, insert default value if
   // not present
@@ -1028,12 +1109,14 @@ void Shell_reports::register_report(const std::string &name,
     std::vector<std::string> details;
     shcore::Array_t options;
     std::string argc;
+    shcore::Array_t examples;
 
     shcore::Option_unpacker{description}
         .optional("brief", &brief)
         .optional("details", &details)
         .optional("options", &options)
         .optional("argc", &argc)
+        .optional("examples", &examples)
         .end();
 
     new_report->set_brief(brief);
@@ -1042,6 +1125,7 @@ void Shell_reports::register_report(const std::string &name,
     new_report->set_options(downcast(
         parse_parameters(options, &context, s_report_option_types, false)));
     new_report->set_argc(get_report_argc(argc));
+    new_report->set_examples(get_report_examples(examples));
   }
 
   register_report(std::move(new_report));
@@ -1113,15 +1197,17 @@ void Shell_reports::register_report(std::unique_ptr<Report> report) {
 
   // Make sure the report_option creation does not error before
   // attempting registering both the report and the function, for
-  // that, bacups the data needed for the function registration
-  auto brief = report->brief();
-  auto function = report->function();
+  // that, backups the data needed for the function registration
+  const auto brief = report->brief();
+  const auto function = report->function();
+  const auto examples = get_function_examples(*report);
 
   auto roptions = shcore::make_unique<Report_options>(std::move(report));
 
   // Reports must have the same name in both Python and JavaScript
   auto fd = std::make_shared<Function_definition>(
-      roptions->name() + "|" + roptions->name(), parameters, brief, details);
+      roptions->name() + "|" + roptions->name(), parameters, brief, details,
+      examples);
 
   // method should have the same name in both JS and Python
   register_function(fd, function);

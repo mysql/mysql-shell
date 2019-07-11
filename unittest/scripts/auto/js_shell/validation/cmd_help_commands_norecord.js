@@ -12,7 +12,6 @@ NAME
 
 SYNTAX
       \connect [<TYPE>] <URI>
-
       \c [<TYPE>] <URI>
 
 DESCRIPTION
@@ -38,7 +37,6 @@ NAME
 
 SYNTAX
       \edit [arguments...]
-
       \e [arguments...]
 
 DESCRIPTION
@@ -76,9 +74,7 @@ NAME
 
 SYNTAX
       \help [pattern]
-
       \h [pattern]
-
       \? [pattern]
 
 DESCRIPTION
@@ -182,7 +178,6 @@ NAME
 
 SYNTAX
       \nowarnings
-
       \w
 
 //@<OUT> Option Command
@@ -216,7 +211,6 @@ NAME
 
 SYNTAX
       \pager [command]
-
       \P [command]
 
 DESCRIPTION
@@ -331,7 +325,6 @@ NAME
 
 SYNTAX
       \source <path>
-
       \. <path>
 
 DESCRIPTION
@@ -357,7 +350,6 @@ NAME
 
 SYNTAX
       \status
-
       \s
 
 //@<OUT> System Command
@@ -366,7 +358,6 @@ NAME
 
 SYNTAX
       \system [command [arguments...]]
-
       \! [command [arguments...]]
 
 EXAMPLES
@@ -387,7 +378,6 @@ NAME
 
 SYNTAX
       \use <schema>
-
       \u <schema>
 
 DESCRIPTION
@@ -410,7 +400,6 @@ NAME
 
 SYNTAX
       \warnings
-
       \W
 
 //@<OUT> Watch Command

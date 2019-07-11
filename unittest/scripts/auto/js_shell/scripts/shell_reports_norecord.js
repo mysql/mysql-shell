@@ -1029,210 +1029,210 @@ options[2]['details'] = ['Details of parameter three.'];
 shell.registerReport('ths_list_no_options_no_arguments', 'list', function(){}, {'brief' : 'testing help'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_no_options_no_arguments
-\help ths_list_no_options_no_arguments
+\help shell.reports.ths_list_no_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_no_arguments
 shell.registerReport('ths_list_options_no_arguments', 'list', function(){}, {'brief' : 'testing help', 'options' : options})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_no_arguments
-\help ths_list_options_no_arguments
+\help shell.reports.ths_list_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_list_no_options_one_argument
 shell.registerReport('ths_list_no_options_one_argument', 'list', function(){}, {'brief' : 'testing help', 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_no_options_one_argument
-\help ths_list_no_options_one_argument
+\help shell.reports.ths_list_no_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_list_no_options_unbound_arguments
 shell.registerReport('ths_list_no_options_unbound_arguments', 'list', function(){}, {'brief' : 'testing help', 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_no_options_unbound_arguments
-\help ths_list_no_options_unbound_arguments
+\help shell.reports.ths_list_no_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_list_no_options_range_of_arguments
 shell.registerReport('ths_list_no_options_range_of_arguments', 'list', function(){}, {'brief' : 'testing help', 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_no_options_range_of_arguments
-\help ths_list_no_options_range_of_arguments
+\help shell.reports.ths_list_no_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_list_no_options_unbound_range_of_arguments
 shell.registerReport('ths_list_no_options_unbound_range_of_arguments', 'list', function(){}, {'brief' : 'testing help', 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_no_options_unbound_range_of_arguments
-\help ths_list_no_options_unbound_range_of_arguments
+\help shell.reports.ths_list_no_options_unbound_range_of_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_one_argument
 shell.registerReport('ths_list_options_one_argument', 'list', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_one_argument
-\help ths_list_options_one_argument
+\help shell.reports.ths_list_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_arguments
 shell.registerReport('ths_list_options_unbound_arguments', 'list', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_unbound_arguments
-\help ths_list_options_unbound_arguments
+\help shell.reports.ths_list_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments
 shell.registerReport('ths_list_options_range_of_arguments', 'list', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_range_of_arguments
-\help ths_list_options_range_of_arguments
+\help shell.reports.ths_list_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments_details
 shell.registerReport('ths_list_options_range_of_arguments_details', 'list', function(){}, {'brief' : 'testing help', 'details' : ['More details'], 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_range_of_arguments_details
-\help ths_list_options_range_of_arguments_details
+\help shell.reports.ths_list_options_range_of_arguments_details
 
 //@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_range_of_arguments
 shell.registerReport('ths_list_options_unbound_range_of_arguments', 'list', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_list_options_unbound_range_of_arguments
-\help ths_list_options_unbound_range_of_arguments
+\help shell.reports.ths_list_options_unbound_range_of_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_no_arguments
 shell.registerReport('ths_report_no_options_no_arguments', 'report', function(){}, {'brief' : 'testing help'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_no_options_no_arguments
-\help ths_report_no_options_no_arguments
+\help shell.reports.ths_report_no_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_no_arguments
 shell.registerReport('ths_report_options_no_arguments', 'report', function(){}, {'brief' : 'testing help', 'options' : options})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_no_arguments
-\help ths_report_options_no_arguments
+\help shell.reports.ths_report_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_one_argument
 shell.registerReport('ths_report_no_options_one_argument', 'report', function(){}, {'brief' : 'testing help', 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_no_options_one_argument
-\help ths_report_no_options_one_argument
+\help shell.reports.ths_report_no_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_unbound_arguments
 shell.registerReport('ths_report_no_options_unbound_arguments', 'report', function(){}, {'brief' : 'testing help', 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_no_options_unbound_arguments
-\help ths_report_no_options_unbound_arguments
+\help shell.reports.ths_report_no_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_range_of_arguments
 shell.registerReport('ths_report_no_options_range_of_arguments', 'report', function(){}, {'brief' : 'testing help', 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_no_options_range_of_arguments
-\help ths_report_no_options_range_of_arguments
+\help shell.reports.ths_report_no_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_report_no_options_unbound_range_of_arguments
 shell.registerReport('ths_report_no_options_unbound_range_of_arguments', 'report', function(){}, {'brief' : 'testing help', 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_no_options_unbound_range_of_arguments
-\help ths_report_no_options_unbound_range_of_arguments
+\help shell.reports.ths_report_no_options_unbound_range_of_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_one_argument
 shell.registerReport('ths_report_options_one_argument', 'report', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_one_argument
-\help ths_report_options_one_argument
+\help shell.reports.ths_report_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_arguments
 shell.registerReport('ths_report_options_unbound_arguments', 'report', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_unbound_arguments
-\help ths_report_options_unbound_arguments
+\help shell.reports.ths_report_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments
 shell.registerReport('ths_report_options_range_of_arguments', 'report', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_range_of_arguments
-\help ths_report_options_range_of_arguments
+\help shell.reports.ths_report_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments_details
 shell.registerReport('ths_report_options_range_of_arguments_details', 'report', function(){}, {'brief' : 'testing help', 'details' : ['More details'], 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_range_of_arguments_details
-\help ths_report_options_range_of_arguments_details
+\help shell.reports.ths_report_options_range_of_arguments_details
 
 //@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_range_of_arguments
 shell.registerReport('ths_report_options_unbound_range_of_arguments', 'report', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_report_options_unbound_range_of_arguments
-\help ths_report_options_unbound_range_of_arguments
+\help shell.reports.ths_report_options_unbound_range_of_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_no_arguments
 shell.registerReport('ths_print_no_options_no_arguments', 'print', function(){}, {'brief' : 'testing help'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_no_options_no_arguments
-\help ths_print_no_options_no_arguments
+\help shell.reports.ths_print_no_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_no_arguments
 shell.registerReport('ths_print_options_no_arguments', 'print', function(){}, {'brief' : 'testing help', 'options' : options})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_no_arguments
-\help ths_print_options_no_arguments
+\help shell.reports.ths_print_options_no_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_one_argument
 shell.registerReport('ths_print_no_options_one_argument', 'print', function(){}, {'brief' : 'testing help', 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_no_options_one_argument
-\help ths_print_no_options_one_argument
+\help shell.reports.ths_print_no_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_unbound_arguments
 shell.registerReport('ths_print_no_options_unbound_arguments', 'print', function(){}, {'brief' : 'testing help', 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_no_options_unbound_arguments
-\help ths_print_no_options_unbound_arguments
+\help shell.reports.ths_print_no_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_range_of_arguments
 shell.registerReport('ths_print_no_options_range_of_arguments', 'print', function(){}, {'brief' : 'testing help', 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_no_options_range_of_arguments
-\help ths_print_no_options_range_of_arguments
+\help shell.reports.ths_print_no_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_print_no_options_unbound_range_of_arguments
 shell.registerReport('ths_print_no_options_unbound_range_of_arguments', 'print', function(){}, {'brief' : 'testing help', 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_no_options_unbound_range_of_arguments
-\help ths_print_no_options_unbound_range_of_arguments
+\help shell.reports.ths_print_no_options_unbound_range_of_arguments
 
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_one_argument
 shell.registerReport('ths_print_options_one_argument', 'print', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_one_argument
-\help ths_print_options_one_argument
+\help shell.reports.ths_print_options_one_argument
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_arguments
 shell.registerReport('ths_print_options_unbound_arguments', 'print', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '*'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_unbound_arguments
-\help ths_print_options_unbound_arguments
+\help shell.reports.ths_print_options_unbound_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments
 shell.registerReport('ths_print_options_range_of_arguments', 'print', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_range_of_arguments
-\help ths_print_options_range_of_arguments
+\help shell.reports.ths_print_options_range_of_arguments
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments_details
 shell.registerReport('ths_print_options_range_of_arguments_details', 'print', function(){}, {'brief' : 'testing help', 'details' : ['More details'], 'options' : options, 'argc' : '1-2'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_range_of_arguments_details
-\help ths_print_options_range_of_arguments_details
+\help shell.reports.ths_print_options_range_of_arguments_details
 
 //@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_range_of_arguments
 shell.registerReport('ths_print_options_unbound_range_of_arguments', 'print', function(){}, {'brief' : 'testing help', 'options' : options, 'argc' : '1-*'})
 
 //@ WL11263_TSF10_1 - show help - ths_print_options_unbound_range_of_arguments
-\help ths_print_options_unbound_range_of_arguments
+\help shell.reports.ths_print_options_unbound_range_of_arguments
 
 // -----------------------------------------------------------------------------
 // WL11263_TSF18_1 - Validate that the commands \show and \watch display the information about an specific report when the --help is given, example \show myreport --help.
@@ -1794,49 +1794,153 @@ shell.registerReport('report_type_report_to_test_YAML_output', 'report', functio
 \show report_type_report_to_test_YAML_output
 
 // -----------------------------------------------------------------------------
-// test 'query' report
+// examples
 
-//@ 'query' - create database
-\show query CREATE DATABASE report_test
+// -----------------------------------------------------------------------------
+// Test invalid values of 'examples' key
 
-//@ 'query' - show tables, no result
-\show query SHOW TABLES IN report_test
+//@ The 'examples' key is set to undefined
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : undefined})
 
-//@ 'query' - create sample table
-\show query CREATE TABLE report_test.sample (one VARCHAR(20), two INT, three INT UNSIGNED, four FLOAT, five DOUBLE, six DECIMAL, seven DATE, eight DATETIME, nine BIT, ten BLOB, eleven GEOMETRY, twelve JSON, thirteen TIME, fourteen ENUM('a', 'b'), fifteen SET('c', 'd'))
+//@ The 'examples' key is set to an invalid type
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : ''})
 
-//@ 'query' - show tables, result contains the table
-\show query SHOW TABLES IN report_test
+//@ The 'examples' key is set to an array of invalid types
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : ['opt']})
 
-//@ 'query' - show description of sample table
-\show query DESC report_test.sample
+//@ 'examples': Dictionary is missing the required key
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{}]})
 
-//@ 'query' - insert some values
-\show query INSERT INTO report_test.sample VALUES ('z', -1, 2, 3.14, -6.28, 123, '2018-11-23', '2018-11-23 08:06:34', 0, 'BLOB', NULL, '{\"a\" : 3}', '08:06:34', 'b', 'c,d')
+//@ 'examples': description is null
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': null}]})
 
-//@ 'query' - query for values
-\show query SELECT * FROM report_test.sample
+//@ 'examples': description is undefined
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': undefined}]})
 
-//@ 'query' - delete the database
-\show query DROP DATABASE report_test
+//@ 'examples': description is an integer
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 7}]})
 
-//@ 'query' - --help
-\show query --help
+//@ 'examples': 'args': is set to undefined
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'args': undefined}]})
 
-//@ 'query' - help system
-\help shell.reports.query
+//@ 'examples': 'args': is set to an invalid type
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'args': ''}]})
 
-//@ 'query' - call method with null arguments
-shell.reports.query(session, null)
+//@ 'examples': 'args': is set to an array of invalid types
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'args': [false]}]})
 
-//@ 'query' - call method with empty arguments [USE: 'query' - call method with null arguments]
-shell.reports.query(session, [])
+//@ 'examples': 'options': is set to undefined
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'options': undefined}]})
 
-//@ 'query' - call method with null options
-shell.reports.query(session, ['argv0'], null)
+//@ 'examples': 'options': is set to an invalid type
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'options': ''}]})
 
-//@ 'query' - call method with empty options [USE: 'query' - call method with null options]
-shell.reports.query(session, ['argv0'], {})
+//@ 'examples': 'options': is set to a map of invalid types
+shell.registerReport('invalid_report', 'print', function (){}, {'examples' : [{'description': 'desc', 'options': {'first' : 123}}]})
+
+//@ 'examples': 'args': invalid number of arguments, expected 0, given 1
+shell.registerReport('invalid_report', 'print', function (){}, {'argc': '0', 'examples' : [{'description': 'desc', 'args': ['1']}]})
+
+//@ 'examples': 'args': invalid number of arguments, expected 1, given 0
+shell.registerReport('invalid_report', 'print', function (){}, {'argc': '1', 'examples' : [{'description': 'desc', 'args': []}]})
+
+//@ 'examples': 'args': invalid number of arguments, expected 1, given 2
+shell.registerReport('invalid_report', 'print', function (){}, {'argc': '1', 'examples' : [{'description': 'desc', 'args': ['1', '2']}]})
+
+//@ 'examples': 'args': invalid number of arguments, expected 1-3, given 0
+shell.registerReport('invalid_report', 'print', function (){}, {'argc': '1-3', 'examples' : [{'description': 'desc', 'args': []}]})
+
+//@ 'examples': 'args': invalid number of arguments, expected 1-3, given 4
+shell.registerReport('invalid_report', 'print', function (){}, {'argc': '1-3', 'examples' : [{'description': 'desc', 'args': ['1', '2', '3', '4']}]})
+
+//@ 'examples': 'options': unknown long option
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o'}], 'examples' : [{'description': 'desc', 'options': {'op' : 'val'}}]})
+
+//@ 'examples': 'options': unknown short option
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o'}], 'examples' : [{'description': 'desc', 'options': {'x' : 'val'}}]})
+
+//@ 'examples': 'options': invalid value for Boolean option
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'type': 'bool'}], 'examples' : [{'description': 'desc', 'options': {'opt' : 'val'}}]})
+
+//@ 'examples': 'options': invalid value for Boolean option - empty
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'type': 'bool'}], 'examples' : [{'description': 'desc', 'options': {'o' : ''}}]})
+
+//@ 'examples': 'options': invalid value for String option - empty
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o'}], 'examples' : [{'description': 'desc', 'options': {'o' : ''}}]})
+
+// -----------------------------------------------------------------------------
+// Test values of 'examples' key
+
+//@ valid 'examples' value
+shell.registerReport('valid_examples_report', 'print', function (){}, {'argc': '0-3', 'options': [{'name': 'opt', 'shortcut': 'o', 'empty': true}, {'name': 'switch', 'shortcut': 's', 'type': 'bool'}, {'name': 'idx', 'shortcut': 'I', 'type': 'integer'}, {'name': 'precision', 'shortcut': 'p', 'type': 'float'}],
+                     'examples' : [{'description': '1st', 'args': ['1']},
+                                   {'description': '2nd', 'args': ['2', '3 4']},
+                                   {'description': '3rd', 'args': ['5 "6"', '7', "8 '9'"]},
+                                   {'description': '4th', 'options': {'opt': 'a'}},
+                                   {'description': '5th', 'options': {'o': 'b'}},
+                                   {'description': '6th', 'options': {'opt': 'c d'}},
+                                   {'description': '7th', 'options': {'opt': 'e "f"'}},
+                                   {'description': '8th', 'options': {'o': "g 'h'"}},
+                                   {'description': '9th', 'options': {'switch': 'false'}},
+                                   {'description': '10th', 'options': {'switch': 'true'}},
+                                   {'description': '11th', 'options': {'s': 'false'}},
+                                   {'description': '12th', 'options': {'s': 'true'}},
+                                   {'description': '13th', 'options': {'idx': '4'}},
+                                   {'description': '14th', 'options': {'I': '5'}},
+                                   {'description': '15th', 'options': {'precision': '6.7'}},
+                                   {'description': '16th', 'options': {'p': '8.910'}},
+                                   {'description': '17th', 'options': {'opt': ''}},
+                                   {'description': '18th', 'options': {'o': ''}},
+                                   {'description': '19th', 'args': ['x'], 'options': {'o': 'y'}}
+                                  ]})
+
+//@ valid 'examples' - --help
+\show valid_examples_report --help
+
+//@ valid 'examples' - function help
+shell.reports.help('valid_examples_report')
+
+// -----------------------------------------------------------------------------
+// empty
+
+// -----------------------------------------------------------------------------
+// Test invalid values of 'empty' key
+
+//@ 'empty': invalid value - null
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'empty': null}]})
+
+//@ 'empty': invalid value - undefined
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'empty': undefined}]})
+
+//@ 'empty': invalid value - string
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'empty': 'abc'}]})
+
+//@ 'empty': invalid type - bool
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'type': 'bool', 'empty': true}]})
+
+//@ 'empty': invalid type - integer [USE: 'empty': invalid type - bool]
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'type': 'integer', 'empty': true}]})
+
+//@ 'empty': invalid type - float [USE: 'empty': invalid type - bool]
+shell.registerReport('invalid_report', 'print', function (){}, {'options': [{'name': 'opt', 'shortcut': 'o', 'type': 'float', 'empty': true}]})
+
+// -----------------------------------------------------------------------------
+// Test values of 'empty' key
+
+//@ valid 'empty' value
+shell.registerReport('valid_report_with_empty_option', 'print', function (){println('valid_report_with_empty_option - OK'); return {'report' : []}}, {'options': [{'name': 'opt', 'shortcut': 'o', 'empty': true}]})
+
+//@ call report with an empty value
+\show valid_report_with_empty_option --opt
+
+//@ call report with an empty value - short [USE: call report with an empty value]
+\show valid_report_with_empty_option -o
+
+//@ call report with a non-empty value [USE: call report with an empty value]
+\show valid_report_with_empty_option --opt val
+
+//@ call report with a non-empty value - short [USE: call report with an empty value]
+\show valid_report_with_empty_option -o val
 
 // -----------------------------------------------------------------------------
 //@ cleanup - disconnect the session [USE: close the session immediately]

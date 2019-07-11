@@ -254,64 +254,6 @@ std::string serialize(const std::string &val) {
 
 }  // namespace opts
 
-// Will verify if the argument is the one specified by arg or larg and return
-// its associated value and advance iterator pass parsed option.
-// The function has different behaviors:
-//
-// Options come in three flavors
-// 1) --option [value] or -o [value]
-// 2) --option or -o
-// 3) --option=[value]
-//
-// They behave differently:
-// --option <value> can take the default argument (def) if def has data and
-// value is missing, error if missing and def is not defined
-// --option=[value] will get NULL value if value is missing and can
-// accept_null(i.e. --option=)
-//
-// ReturnValue: Returns the # of format found based on the list above, or 0 if
-// no valid value was found
-Options::Format Options::cmdline_arg_with_value(Cmdline_iterator *iterator,
-                                                const char *arg,
-                                                const char *larg,
-                                                const char **value,
-                                                bool accept_null) noexcept {
-  Format ret_val = Format::INVALID;
-  *value = nullptr;
-
-  if (strcmp(iterator->peek(), arg) == 0 ||
-      (larg && strcmp(iterator->peek(), larg) == 0)) {
-    // --option [value] or -o [value]
-    ret_val = Format::SEPARATE_VALUE;
-    iterator->get();
-
-    // value can be in next arg and can't start with - which indicates next
-    // option
-    if (iterator->peek() != NULL && strncmp(iterator->peek(), "-", 1) != 0)
-      *value = iterator->get();
-  } else if (larg && strncmp(iterator->peek(), larg, strlen(larg)) == 0 &&
-             strlen(iterator->peek()) > strlen(larg)) {
-    // -o<value>
-    ret_val = Format::SHORT;
-    *value = iterator->get() + strlen(larg);
-  } else if (strncmp(iterator->peek(), arg, strlen(arg)) == 0 &&
-             iterator->peek()[strlen(arg)] == '=') {
-    // --option=[value]
-    ret_val = Format::LONG;
-    const char *opt = iterator->get();
-
-    // Value was specified
-    if (strlen(opt) > (strlen(arg) + 1)) *value = opt + strlen(arg) + 1;
-  }
-
-  // Option requires an argument
-  if (Format::INVALID != ret_val && (!*value || !**value) && !accept_null) {
-    ret_val = Format::MISSING_VALUE;
-  }
-
-  return ret_val;
-}
-
 Options::Options(const std::string &config_file) : config_file(config_file) {}
 
 void Options::set(const std::string &option_name,
@@ -432,44 +374,42 @@ void Options::handle_persisted_options() {
 void Options::handle_cmdline_options(
     int argc, char const *const *argv, bool allow_unregistered_options,
     Custom_cmdline_handler custom_cmdline_handler) {
-  Cmdline_iterator iterator(argc, argv, 1);
+  Iterator iterator{Cmdline_iterator{argc, argv, 1}};
+
   while (iterator.valid()) {
     if (custom_cmdline_handler && custom_cmdline_handler(&iterator)) continue;
 
-    std::string opt(iterator.peek());
-    std::size_t epos = opt.find('=');
-
-    if (epos != std::string::npos) {
-      opt = opt.substr(0, epos);
-    }
-
-    auto it = cmdline_options.find(opt);
+    const auto opt = iterator.option();
+    const auto it = cmdline_options.find(opt);
 
     if (it != cmdline_options.end()) {
       if (it->second->accepts_no_cmdline_value()) {
-        if (epos == std::string::npos && opt == it->first) {
+        if (Iterator::Type::LONG != iterator.type()) {
           it->second->handle_command_line_input(opt, nullptr);
-          iterator.get();
+          iterator.next_no_value();
         } else {
           throw std::invalid_argument(std::string(argv[0]) + ": option " +
                                       it->first +
                                       +" does not require an argument");
         }
       } else {
-        const std::string &cmd = it->first;
-        const char *value = nullptr;
-        if (Format::MISSING_VALUE !=
-            cmdline_arg_with_value(&iterator, cmd.c_str(),
-                                   cmd[1] == '-' ? nullptr : cmd.c_str(),
-                                   &value, it->second->is_value_optional()))
-          it->second->handle_command_line_input(cmd, value);
-        else
-          throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
-                                      " requires an argument");
+        if (iterator.has_non_empty_value() || it->second->is_value_optional()) {
+          it->second->handle_command_line_input(opt, iterator.value());
+          iterator.next();
+        } else {
+          throw std::invalid_argument(std::string(argv[0]) + ": option " +
+                                      it->first + " requires an argument");
+        }
       }
     } else if (!allow_unregistered_options) {
       throw std::invalid_argument(argv[0] + std::string(": unknown option ") +
                                   opt);
+    } else {
+      if (Iterator::Type::LONG == iterator.type()) {
+        iterator.next();
+      } else {
+        iterator.next_no_value();
+      }
     }
   }
 }
@@ -605,6 +545,125 @@ opts::Generic_option &Options::get_option(
   if (op == named_options.end())
     throw std::invalid_argument("Unrecognized option: " + option_name + ".");
   return *op->second;
+}
+
+Options::Iterator::Iterator(const Options::Cmdline_iterator &iterator)
+    : m_iterator(iterator) {
+  get_data();
+}
+
+void Options::Iterator::next_no_value() {
+  if (!valid()) {
+    throw std::logic_error("Iterator is no longer valid");
+  }
+
+  switch (type()) {
+    case Type::LONG:
+      throw std::logic_error("This is --option=<value>, use next() instead");
+
+    case Type::VALUE:
+    case Type::NO_VALUE:
+    case Type::SEPARATE_VALUE:
+      m_iterator.get();
+      // fall through
+
+    case Type::SHORT:
+      get_data();
+      break;
+  }
+}
+
+void Options::Iterator::next() {
+  if (!valid()) {
+    throw std::logic_error("Iterator is no longer valid");
+  }
+
+  m_short_value_pos = 0;
+
+  switch (type()) {
+    case Type::SEPARATE_VALUE:
+      m_iterator.get();
+      // fall through
+
+    case Type::LONG:
+    case Type::SHORT:
+    case Type::VALUE:
+    case Type::NO_VALUE:
+      m_iterator.get();
+      get_data();
+      break;
+  }
+}
+
+void Options::Iterator::get_data() {
+  if (valid()) {
+    std::string data = m_iterator.peek();
+
+    if (data.length() > 1 && data[0] == '-') {
+      if (data[1] == '-') {
+        // long option
+        const auto pos = data.find('=');
+
+        if (std::string::npos == pos) {
+          m_option = std::move(data);
+          get_separate_value();
+        } else {
+          m_type = Type::LONG;
+          m_option = data.substr(0, pos);
+          m_value = m_iterator.peek() + pos + 1;
+        }
+      } else {
+        // short option
+        if (data.length() > 2) {
+          if (m_short_value_pos == 0) {
+            m_short_value_pos = 1;
+          }
+
+          m_option = std::string{"-"} + data[m_short_value_pos++];
+
+          if (m_short_value_pos < data.length()) {
+            m_value = m_iterator.peek() + m_short_value_pos;
+            m_type = Type::SHORT;
+          } else {
+            get_separate_value();
+            m_short_value_pos = 0;
+          }
+        } else {
+          m_option = std::move(data);
+          get_separate_value();
+        }
+      }
+    } else {
+      m_option = std::move(data);
+      m_value = m_iterator.peek();
+      m_type = Type::VALUE;
+    }
+  } else {
+    m_option.erase();
+    m_value = nullptr;
+  }
+
+  if (nullptr == m_value) {
+    m_type = Type::NO_VALUE;
+  }
+}
+
+void Options::Iterator::get_separate_value() {
+  m_type = Type::SEPARATE_VALUE;
+
+  m_iterator.get();
+
+  if (m_iterator.valid()) {
+    m_value = m_iterator.peek();
+
+    if (*m_value && m_value[0] == '-') {
+      m_value = nullptr;
+    }
+  } else {
+    m_value = nullptr;
+  }
+
+  m_iterator.back();
 }
 
 } /* namespace shcore */

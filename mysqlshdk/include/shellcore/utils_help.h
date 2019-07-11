@@ -165,6 +165,11 @@ class Help_registry {
   static const char HELP_COMMANDS[];
   static const char HELP_SQL[];
 
+  struct Example {
+    std::string code;
+    std::string description;
+  };
+
   virtual ~Help_registry() {}
 
   // Access to the singleton
@@ -237,6 +242,11 @@ class Help_registry {
    */
   void add_help(const std::string &prefix, const std::string &tag,
                 const std::vector<std::string> &data);
+
+  void add_help(const std::string &prefix, const std::vector<Example> &data);
+
+  void add_help(const std::string &prefix, size_t *sequence,
+                const std::vector<Example> &data);
 
   // Registers a new topic and it's associated keywords
   Help_topic *add_help_topic(const std::string &name, Topic_type type,

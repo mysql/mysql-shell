@@ -732,6 +732,8 @@ DESCRIPTION
         and * separated by a '-' specifying a range of arguments without an
         upper bound. If this is not provided, the report does not accept any
         additional arguments.
+      - examples - A list of dictionaries describing the example usage of the
+        report.
 
       The optional options list must hold dictionaries with the following keys:
 
@@ -763,6 +765,18 @@ DESCRIPTION
       - values (list of strings, optional) - list of allowed values. Only
         'string' options may have this key. If this key is not specified, this
         option accepts any values.
+      - empty (Boolean, optional) - whether this option accepts empty strings.
+        Only 'string' options may have this key. If this key is not specified,
+        defaults to false.
+
+      The optional examples list must hold dictionaries with the following
+      keys:
+
+      - description (string, required) - Description text of the example.
+      - args (list of strings, optional) - List of the arguments used in the
+        example.
+      - options (dictionary of strings, optional) - Options used in the
+        example.
 
       The type of the report determines the expected result of a report
       invocation:

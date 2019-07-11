@@ -119,6 +119,9 @@ class Resultset_dumper_base {
   size_t dump_json(const std::string &item_label, bool is_doc_result);
   void dump_warnings();
 
+  size_t format_vertical(bool has_header, bool align_right,
+                         size_t min_label_width);
+
   mysqlshdk::db::IResult *m_result;
   std::string m_wrap_json;
   std::string m_format;
@@ -163,6 +166,8 @@ class Resultset_writer : public Resultset_dumper_base {
   std::string write_table();
 
   std::string write_vertical();
+
+  std::string write_status();
 
  private:
   std::string write(const std::function<void()> &dump);

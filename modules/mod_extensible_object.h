@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
@@ -111,11 +112,15 @@ struct Parameter_definition {
  */
 struct Function_definition : public Member_definition {
   using Parameters = std::vector<std::shared_ptr<Parameter_definition>>;
+  using Examples = std::vector<shcore::Help_registry::Example>;
   Function_definition() {}
   Function_definition(const std::string &n, const Parameters &p,
-                      const std::string &b, const std::vector<std::string> &d)
-      : Member_definition(n, b, d), parameters(p) {}
+                      const std::string &b, const std::vector<std::string> &d,
+                      const Examples &e = {})
+      : Member_definition(n, b, d), parameters(p), examples(e) {}
   Parameters parameters;
+
+  Examples examples;
 };
 
 /**
@@ -328,6 +333,7 @@ class Extensible_object
    * @param brief A brief description of the function.
    * @param params A list defining the parameters for the function.
    * @param details A list defining the help details for the function.
+   * @param examples A list defining the examples for the function.
    *
    * The entries in the parameter list should come in the next format:
    *
@@ -339,9 +345,11 @@ class Extensible_object
    * Each entry help entry in params and details is registered and follows
    * the same rules as the REGISTER_HELP macro.
    */
-  void register_function_help(const std::string &name, const std::string &brief,
-                              const std::vector<std::string> &params,
-                              const std::vector<std::string> &details);
+  void register_function_help(
+      const std::string &name, const std::string &brief,
+      const std::vector<std::string> &params,
+      const std::vector<std::string> &details,
+      const Function_definition::Examples &examples = {});
 
   /**
    * Sets the registered status of this object to true.

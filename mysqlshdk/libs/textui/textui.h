@@ -206,29 +206,9 @@ inline size_t strip_color_length(const std::string &text) {
   return len;
 }
 
-inline std::string bold(const std::string &text) {
-  if (!has_color()) return text;
-  return vt100::attr(-1, -1, vt100::Bright) + text + vt100::attr();
-}
-
-inline std::string error(const std::string &text) {
+inline std::string red(const std::string &text) {
   if (!has_color()) return text;
   return vt100::attr(1, -1) + text + vt100::attr();
-}
-
-inline std::string alert(const std::string &text) {
-  if (!has_color()) return text;
-  return vt100::attr(1, -1) + text + vt100::attr();
-}
-
-inline std::string warning(const std::string &text) {
-  if (!has_color()) return text;
-  return vt100::attr(3, -1) + text + vt100::attr();
-}
-
-inline std::string notice(const std::string &text) {
-  if (!has_color()) return text;
-  return vt100::attr(6, -1) + text + vt100::attr();
 }
 
 inline std::string green(const std::string &text) {
@@ -241,10 +221,38 @@ inline std::string yellow(const std::string &text) {
   return vt100::attr(3, -1) + text + vt100::attr();
 }
 
-inline std::string red(const std::string &text) {
+inline std::string blue(const std::string &text) {
   if (!has_color()) return text;
-  return vt100::attr(1, -1) + text + vt100::attr();
+  return vt100::attr(4, -1) + text + vt100::attr();
 }
+
+inline std::string magenta(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(5, -1) + text + vt100::attr();
+}
+
+inline std::string cyan(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(6, -1) + text + vt100::attr();
+}
+
+inline std::string white(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(7, -1) + text + vt100::attr();
+}
+
+inline std::string bold(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(-1, -1, vt100::Bright) + text + vt100::attr();
+}
+
+inline std::string error(const std::string &text) { return red(text); }
+
+inline std::string alert(const std::string &text) { return red(text); }
+
+inline std::string warning(const std::string &text) { return yellow(text); }
+
+inline std::string notice(const std::string &text) { return cyan(text); }
 
 /**
  * Creates a remark.

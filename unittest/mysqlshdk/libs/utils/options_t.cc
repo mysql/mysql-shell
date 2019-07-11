@@ -332,8 +332,8 @@ TEST_F(Options_test, cmd_line_handling) {
                     "does not require an argument");
 
   char *argv16[] = {const_cast<char *>("ut"), const_cast<char *>("-mx"), NULL};
-  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv16), std::invalid_argument,
-                    "does not require an argument");
+  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv16, false),
+                    std::invalid_argument, "unknown option -x");
 }
 
 TEST_F(Options_test, persisting) {
@@ -421,4 +421,713 @@ TEST_F(Options_test, access_from_code) {
   EXPECT_EQ(11, test_options.get_cmdline_help().size());
   EXPECT_EQ(named_options.size(), get_options_description().size());
 }
+
+using Options_iterator = Options::Iterator;
+
+TEST(Options_iterator_t, short_option) {
+  const char *argv[] = {"-AEi"};
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("Ei", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("Ei", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(argv[0] + 3, it.value());
+    EXPECT_STREQ("i", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("Ei", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(argv[0] + 3, it.value());
+    EXPECT_STREQ("i", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("-i", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, short_option_followed_by_value) {
+  const char *argv[] = {"-AE", "value"};
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("value", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("value", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, short_option_followed_by_long_option) {
+  const char *argv[] = {"-AE", "--option"};
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("--option", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("--option", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, short_option_followed_by_short_option) {
+  const char *argv[] = {"-AE", "-if"};
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-i", it.option());
+    EXPECT_EQ(argv[1] + 2, it.value());
+    EXPECT_STREQ("f", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("-f", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-i", it.option());
+    EXPECT_EQ(argv[1] + 2, it.value());
+    EXPECT_STREQ("f", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-A", it.option());
+    EXPECT_EQ(argv[0] + 2, it.value());
+    EXPECT_STREQ("E", it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+    EXPECT_EQ("-E", it.option());
+    EXPECT_EQ(nullptr, it.value());
+    EXPECT_NO_THROW(it.next_no_value());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-i", it.option());
+    EXPECT_EQ(argv[1] + 2, it.value());
+    EXPECT_STREQ("f", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, long_option) {
+  {
+    const char *argv[] = {"--long"};
+
+    {
+      Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+      EXPECT_TRUE(it.valid());
+      EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+      EXPECT_EQ("--long", it.option());
+      EXPECT_EQ(nullptr, it.value());
+      EXPECT_NO_THROW(it.next_no_value());
+
+      EXPECT_FALSE(it.valid());
+      EXPECT_THROW(it.next(), std::logic_error);
+      EXPECT_THROW(it.next_no_value(), std::logic_error);
+    }
+
+    {
+      Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+      EXPECT_TRUE(it.valid());
+      EXPECT_EQ(Options_iterator::Type::NO_VALUE, it.type());
+      EXPECT_EQ("--long", it.option());
+      EXPECT_EQ(nullptr, it.value());
+      EXPECT_NO_THROW(it.next());
+
+      EXPECT_FALSE(it.valid());
+      EXPECT_THROW(it.next(), std::logic_error);
+      EXPECT_THROW(it.next_no_value(), std::logic_error);
+    }
+  }
+
+  {
+    const char *argv[] = {"--long="};
+
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("", it.value());
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=value"};
+
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long", "value"};
+
+    {
+      Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+      EXPECT_TRUE(it.valid());
+      EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+      EXPECT_EQ("--long", it.option());
+      EXPECT_EQ(argv[1], it.value());
+      EXPECT_STREQ("value", it.value());
+      EXPECT_NO_THROW(it.next());
+
+      EXPECT_FALSE(it.valid());
+      EXPECT_THROW(it.next(), std::logic_error);
+      EXPECT_THROW(it.next_no_value(), std::logic_error);
+    }
+
+    {
+      Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+      EXPECT_TRUE(it.valid());
+      EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+      EXPECT_EQ("--long", it.option());
+      EXPECT_EQ(argv[1], it.value());
+      EXPECT_STREQ("value", it.value());
+      EXPECT_NO_THROW(it.next_no_value());
+
+      EXPECT_TRUE(it.valid());
+      EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+      EXPECT_EQ("value", it.option());
+      EXPECT_EQ(argv[1], it.value());
+      EXPECT_STREQ("value", it.value());
+      EXPECT_NO_THROW(it.next());
+
+      EXPECT_FALSE(it.valid());
+      EXPECT_THROW(it.next(), std::logic_error);
+      EXPECT_THROW(it.next_no_value(), std::logic_error);
+    }
+  }
+}
+
+TEST(Options_iterator_t, long_option_followed_by_value) {
+  {
+    const char *argv[] = {"--long", "value", "diff"};
+
+    Options_iterator it{Options::Cmdline_iterator{3, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("diff", it.option());
+    EXPECT_EQ(argv[2], it.value());
+    EXPECT_STREQ("diff", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=", "diff"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("diff", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("diff", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=value", "diff"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("diff", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("diff", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, long_option_followed_by_long_option) {
+  {
+    const char *argv[] = {"--long", "value", "--opt=xyz"};
+
+    Options_iterator it{Options::Cmdline_iterator{3, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--opt", it.option());
+    EXPECT_EQ(argv[2] + 6, it.value());
+    EXPECT_STREQ("xyz", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=", "--opt=xyz"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--opt", it.option());
+    EXPECT_EQ(argv[1] + 6, it.value());
+    EXPECT_STREQ("xyz", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=value", "--opt=xyz"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--opt", it.option());
+    EXPECT_EQ(argv[1] + 6, it.value());
+    EXPECT_STREQ("xyz", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, long_option_followed_by_short_option) {
+  {
+    const char *argv[] = {"--long", "value", "-aB"};
+
+    Options_iterator it{Options::Cmdline_iterator{3, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SEPARATE_VALUE, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-a", it.option());
+    EXPECT_EQ(argv[2] + 2, it.value());
+    EXPECT_STREQ("B", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=", "-aB"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-a", it.option());
+    EXPECT_EQ(argv[1] + 2, it.value());
+    EXPECT_STREQ("B", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"--long=value", "-aB"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::LONG, it.type());
+    EXPECT_EQ("--long", it.option());
+    EXPECT_EQ(argv[0] + 7, it.value());
+    EXPECT_STREQ("value", it.value());
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::SHORT, it.type());
+    EXPECT_EQ("-a", it.option());
+    EXPECT_EQ(argv[1] + 2, it.value());
+    EXPECT_STREQ("B", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
+TEST(Options_iterator_t, values_only) {
+  {
+    const char *argv[1] = {};
+
+    Options_iterator it{Options::Cmdline_iterator{0, argv, 0}};
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"first"};
+
+    Options_iterator it{Options::Cmdline_iterator{1, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("first", it.option());
+    EXPECT_EQ(argv[0], it.value());
+    EXPECT_STREQ("first", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"first", "second"};
+
+    Options_iterator it{Options::Cmdline_iterator{2, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("first", it.option());
+    EXPECT_EQ(argv[0], it.value());
+    EXPECT_STREQ("first", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("second", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("second", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+
+  {
+    const char *argv[] = {"first", "second", "third"};
+
+    Options_iterator it{Options::Cmdline_iterator{3, argv, 0}};
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("first", it.option());
+    EXPECT_EQ(argv[0], it.value());
+    EXPECT_STREQ("first", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("second", it.option());
+    EXPECT_EQ(argv[1], it.value());
+    EXPECT_STREQ("second", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_TRUE(it.valid());
+    EXPECT_EQ(Options_iterator::Type::VALUE, it.type());
+    EXPECT_EQ("third", it.option());
+    EXPECT_EQ(argv[2], it.value());
+    EXPECT_STREQ("third", it.value());
+    EXPECT_NO_THROW(it.next());
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_THROW(it.next(), std::logic_error);
+    EXPECT_THROW(it.next_no_value(), std::logic_error);
+  }
+}
+
 }  // namespace shcore

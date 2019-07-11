@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -164,11 +164,12 @@ bool Shell_base_test::multi_value_compare(const std::string &expected,
       return expected == actual;
     } else {
       const auto right_match_position = pos + strlen(k_wildcard);
+      const auto right_match_length = expected.length() - right_match_position;
       // match values to the left and to the right of wildcard
       return (expected.substr(0, pos) == actual.substr(0, pos)) &&
+             actual.length() >= right_match_length &&
              (expected.substr(right_match_position) ==
-              actual.substr(actual.length() -
-                            (expected.length() - right_match_position)));
+              actual.substr(actual.length() - right_match_length));
     }
   };
 

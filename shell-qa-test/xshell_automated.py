@@ -522,18 +522,18 @@ class XShell_TestCases(unittest.TestCase):
     def test_2_0_11_02(self):
         '''[2.0.11]:2 Connect local Server w/Command Line Args FAILOVER: unknown option'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-vu' + LOCALHOST.user, '--password=', '-h' + LOCALHOST.host,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-v' + LOCALHOST.user, '--password=', '-h' + LOCALHOST.host,
                         '-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        found = stdout.find(bytearray("unknown option -vu", "ascii"), 0, len(stdout))
+        found = stdout.find(bytearray("unknown option -v", "ascii"), 0, len(stdout))
         if found == -1:
             results = "FAIL \n\r" + stdout.decode("ascii")
         else:
             results = "PASS"
         self.assertEqual(results, 'PASS')
 
-        #if results.find("unknown option -vu", 0, len(results)) > 0:
+        #if results.find("unknown option -v", 0, len(results)) > 0:
         #    results = "PASS"
         #self.assertEqual(results, 'PASS')
 

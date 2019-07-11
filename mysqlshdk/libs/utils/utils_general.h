@@ -112,6 +112,7 @@ bool SHCORE_PUBLIC match_glob(const std::string &pattern, const std::string &s,
 
 std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
 std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
+std::string SHCORE_PUBLIC from_camel_case_to_dashes(const std::string &name);
 
 std::string SHCORE_PUBLIC errno_to_string(int err);
 

@@ -191,7 +191,7 @@ class Shell_options : public shcore::Options {
   std::vector<std::string> get_named_options();
 
  protected:
-  bool custom_cmdline_handler(Cmdline_iterator *iterator);
+  bool custom_cmdline_handler(Iterator *iterator);
 
   void override_session_type(const std::string &option, const char *value);
   void set_ssl_mode(const std::string &option, const char *value);

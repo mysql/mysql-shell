@@ -6,18 +6,24 @@
 // WL11263_TSF12_2 - Validate that an exception is thrown using \watch command without an active session.
 
 //@<OUT> BUG#30083371 - help without session
-query - Executes the SQL statement given as arguments.
+NAME
+      query - Executes the SQL statement given as arguments.
 
-Usage:
-       \show query [OPTIONS] [ARGUMENTS]
-       \watch query [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show query [OPTIONS] [ARGS]
+      \watch query [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-* arguments.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@ create a session
 |<Session:<<<__uri>>>>|
@@ -66,7 +72,7 @@ Arguments:
 ||Unknown report: unknown_report
 
 //@ WL11263_TSF2_4 - Validate that using the \show command without a report name list the reports available.
-|Available reports: query.|
+|Available reports: query, thread, threads.|
 
 //@ WL11263_TSF5_4 - use \watch command with an invalid --interval value (below threshold)
 ||The value of '--interval' option should be a float in range [0.1, 86400], got: '0.09'.
@@ -650,13 +656,13 @@ after
 +-------+------+-------+
 
 //@ call list_report_testing_various_options using the third option and providing a value - it's treated as an argument
-||list_report_testing_various_options: expecting 0 arguments.
+||list_report_testing_various_options: report is expecting 0 arguments, 1 provided. For usage information please run: \show list_report_testing_various_options --help
 
 //@ call list_report_testing_various_options using the third option and providing a value - error
 ||list_report_testing_various_options: option --three does not require an argument
 
 //@ call list_report_testing_various_options using the third option and providing a value - short - error
-||list_report_testing_various_options: option -3 does not require an argument
+||list_report_testing_various_options: unknown option -a
 
 //@ call list_report_testing_various_options using the fourth option without value
 ||list_report_testing_various_options: option --four requires an argument
@@ -730,7 +736,7 @@ value: text
 |Report returned no data.|
 
 //@ call list_report_testing_argc_default with an argument
-||list_report_testing_argc_default: expecting 0 arguments
+||list_report_testing_argc_default: report is expecting 0 arguments, 1 provided. For usage information please run: \show list_report_testing_argc_default --help
 
 //@ register the report - list_report_testing_argc_0
 ||
@@ -739,14 +745,14 @@ value: text
 |Report returned no data.|
 
 //@ call list_report_testing_argc_0 with an argument
-||list_report_testing_argc_0: expecting 0 arguments
+||list_report_testing_argc_0: report is expecting 0 arguments, 1 provided. For usage information please run: \show list_report_testing_argc_0 --help
 
 
 //@ register the report - list_report_testing_argc_1
 ||
 
 //@ call list_report_testing_argc_1 with no arguments
-||list_report_testing_argc_1: expecting 1 argument
+||list_report_testing_argc_1: report is expecting 1 argument, 0 provided. For usage information please run: \show list_report_testing_argc_1 --help
 
 //@<OUT> call list_report_testing_argc_1 with an argument
 +------+---------+----------+
@@ -756,7 +762,7 @@ value: text
 +------+---------+----------+
 
 //@ call list_report_testing_argc_1 with two arguments
-||list_report_testing_argc_1: expecting 1 argument
+||list_report_testing_argc_1: report is expecting 1 argument, 2 provided. For usage information please run: \show list_report_testing_argc_1 --help
 
 //@ register the report - list_report_testing_argc_asterisk
 ||
@@ -782,7 +788,7 @@ value: text
 ||
 
 //@ call list_report_testing_argc_1_2 with no arguments
-||list_report_testing_argc_1_2: expecting 1-2 arguments
+||list_report_testing_argc_1_2: report is expecting 1-2 arguments, 0 provided. For usage information please run: \show list_report_testing_argc_1_2 --help
 
 //@<OUT> call list_report_testing_argc_1_2 with an argument
 +------+---------+----------+
@@ -799,13 +805,13 @@ value: text
 +------+---------+------------------+
 
 //@ call list_report_testing_argc_1_2 with three arguments
-||list_report_testing_argc_1_2: expecting 1-2 arguments
+||list_report_testing_argc_1_2: report is expecting 1-2 arguments, 3 provided. For usage information please run: \show list_report_testing_argc_1_2 --help
 
 //@ register the report - list_report_testing_argc_1_asterisk
 ||
 
 //@ call list_report_testing_argc_1_asterisk with no arguments
-||list_report_testing_argc_1_asterisk: expecting 1-* arguments
+||list_report_testing_argc_1_asterisk: report is expecting 1-* arguments, 0 provided. For usage information please run: \show list_report_testing_argc_1_asterisk --help
 
 //@<OUT> call list_report_testing_argc_1_asterisk with an argument
 +------+---------+----------+
@@ -1723,585 +1729,888 @@ DESCRIPTION
 
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_no_arguments
-ths_list_no_options_no_arguments - testing help
+NAME
+      ths_list_no_options_no_arguments - testing help
 
-Usage:
-       \show ths_list_no_options_no_arguments [OPTIONS]
-       \watch ths_list_no_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_list_no_options_no_arguments [OPTIONS]
+      \watch ths_list_no_options_no_arguments [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
+
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_no_arguments
-ths_list_options_no_arguments - testing help
+NAME
+      ths_list_options_no_arguments - testing help
 
-Usage:
-       \show ths_list_options_no_arguments [OPTIONS]
-       \watch ths_list_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_list_options_no_arguments --two=string|-2 [OPTIONS]
+      \watch ths_list_options_no_arguments --two=string|-2 [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_one_argument
-ths_list_no_options_one_argument - testing help
+NAME
+      ths_list_no_options_one_argument - testing help
 
-Usage:
-       \show ths_list_no_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_list_no_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_no_options_one_argument [OPTIONS] [ARGS]
+      \watch ths_list_no_options_one_argument [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1 argument.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_unbound_arguments
-ths_list_no_options_unbound_arguments - testing help
+NAME
+      ths_list_no_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_list_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_list_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_no_options_unbound_arguments [OPTIONS] [ARGS]
+      \watch ths_list_no_options_unbound_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts any number of arguments.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_range_of_arguments
-ths_list_no_options_range_of_arguments - testing help
+NAME
+      ths_list_no_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_list_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_list_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_no_options_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_list_no_options_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_unbound_range_of_arguments
-ths_list_no_options_unbound_range_of_arguments - testing help
+NAME
+      ths_list_no_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_list_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
-       \watch ths_list_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
+SYNTAX
+      \show ths_list_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_list_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-* arguments.
+      --help, -h  Display this help and exit.
+
+      --vertical, -E
+                  Display records vertically.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_one_argument
-ths_list_options_one_argument - testing help
+NAME
+      ths_list_options_one_argument - testing help
 
-Usage:
-       \show ths_list_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_list_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
+      \watch ths_list_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1 argument.
+      --vertical, -E
+                  Display records vertically.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_unbound_arguments
-ths_list_options_unbound_arguments - testing help
+NAME
+      ths_list_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_list_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_list_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_options_unbound_arguments --two=string|-2 [OPTIONS] [ARGS]
+      \watch ths_list_options_unbound_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts any number of arguments.
+      --vertical, -E
+                  Display records vertically.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_range_of_arguments
-ths_list_options_range_of_arguments - testing help
+NAME
+      ths_list_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_list_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_list_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
+      \watch ths_list_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --vertical, -E
+                  Display records vertically.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_range_of_arguments_details
-ths_list_options_range_of_arguments_details - testing help
+SYNTAX
+      \show ths_list_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_list_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
 
-More details
+DESCRIPTION
+      More details
 
-Usage:
-       \show ths_list_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
-       \watch ths_list_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
+      Options:
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+      --help, -h  Display this help and exit.
 
-  Details of parameter three.
+      --vertical, -E
+                  Display records vertically.
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_unbound_range_of_arguments
-ths_list_options_unbound_range_of_arguments - testing help
+NAME
+      ths_list_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_list_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_list_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_list_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_list_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-* arguments.
+      --vertical, -E
+                  Display records vertically.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_no_arguments
-ths_report_no_options_no_arguments - testing help
+NAME
+      ths_report_no_options_no_arguments - testing help
 
-Usage:
-       \show ths_report_no_options_no_arguments [OPTIONS]
-       \watch ths_report_no_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_report_no_options_no_arguments [OPTIONS]
+      \watch ths_report_no_options_no_arguments [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
+
+      --help, -h  Display this help and exit.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_no_arguments
-ths_report_options_no_arguments - testing help
+NAME
+      ths_report_options_no_arguments - testing help
 
-Usage:
-       \show ths_report_options_no_arguments [OPTIONS]
-       \watch ths_report_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_report_options_no_arguments --two=string|-2 [OPTIONS]
+      \watch ths_report_options_no_arguments --two=string|-2 [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_one_argument
-ths_report_no_options_one_argument - testing help
+NAME
+      ths_report_no_options_one_argument - testing help
 
-Usage:
-       \show ths_report_no_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_report_no_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_no_options_one_argument [OPTIONS] [ARGS]
+      \watch ths_report_no_options_one_argument [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1 argument.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_unbound_arguments
-ths_report_no_options_unbound_arguments - testing help
+NAME
+      ths_report_no_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_report_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_report_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_no_options_unbound_arguments [OPTIONS] [ARGS]
+      \watch ths_report_no_options_unbound_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts any number of arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_range_of_arguments
-ths_report_no_options_range_of_arguments - testing help
+NAME
+      ths_report_no_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_report_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_report_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_no_options_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_report_no_options_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_unbound_range_of_arguments
-ths_report_no_options_unbound_range_of_arguments - testing help
+NAME
+      ths_report_no_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_report_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
-       \watch ths_report_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
+SYNTAX
+      \show ths_report_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_report_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-* arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_one_argument
-ths_report_options_one_argument - testing help
+NAME
+      ths_report_options_one_argument - testing help
 
-Usage:
-       \show ths_report_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_report_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
+      \watch ths_report_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1 argument.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_unbound_arguments
-ths_report_options_unbound_arguments - testing help
+NAME
+      ths_report_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_report_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_report_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_options_unbound_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
+      \watch ths_report_options_unbound_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts any number of arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_range_of_arguments
-ths_report_options_range_of_arguments - testing help
+NAME
+      ths_report_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_report_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_report_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_report_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
+      \watch ths_report_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_range_of_arguments_details
-ths_report_options_range_of_arguments_details - testing help
+NAME
+      ths_report_options_range_of_arguments_details - testing help
 
-More details
+SYNTAX
+      \show ths_report_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_report_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
 
-Usage:
-       \show ths_report_options_range_of_arguments_details [OPTIONS]
-[ARGUMENTS]
-       \watch ths_report_options_range_of_arguments_details [OPTIONS]
-[ARGUMENTS]
+DESCRIPTION
+      More details
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_unbound_range_of_arguments
-ths_report_options_unbound_range_of_arguments - testing help
+NAME
+      ths_report_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_report_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
-       \watch ths_report_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
+SYNTAX
+      \show ths_report_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_report_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-* arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_no_arguments
-ths_print_no_options_no_arguments - testing help
+NAME
+      ths_print_no_options_no_arguments - testing help
 
-Usage:
-       \show ths_print_no_options_no_arguments [OPTIONS]
-       \watch ths_print_no_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_print_no_options_no_arguments [OPTIONS]
+      \watch ths_print_no_options_no_arguments [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
+
+      --help, -h  Display this help and exit.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_no_arguments
-ths_print_options_no_arguments - testing help
+NAME
+      ths_print_options_no_arguments - testing help
 
-Usage:
-       \show ths_print_options_no_arguments [OPTIONS]
-       \watch ths_print_options_no_arguments [OPTIONS]
+SYNTAX
+      \show ths_print_options_no_arguments --two=string|-2 [OPTIONS]
+      \watch ths_print_options_no_arguments --two=string|-2 [OPTIONS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
+
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_one_argument
-ths_print_no_options_one_argument - testing help
+NAME
+      ths_print_no_options_one_argument - testing help
 
-Usage:
-       \show ths_print_no_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_print_no_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_no_options_one_argument [OPTIONS] [ARGS]
+      \watch ths_print_no_options_one_argument [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1 argument.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_unbound_arguments
-ths_print_no_options_unbound_arguments - testing help
+NAME
+      ths_print_no_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_print_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_print_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_no_options_unbound_arguments [OPTIONS] [ARGS]
+      \watch ths_print_no_options_unbound_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts any number of arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_range_of_arguments
-ths_print_no_options_range_of_arguments - testing help
+NAME
+      ths_print_no_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_print_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_print_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_no_options_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_print_no_options_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_unbound_range_of_arguments
-ths_print_no_options_unbound_range_of_arguments - testing help
+NAME
+      ths_print_no_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_print_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
-       \watch ths_print_no_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
+SYNTAX
+      \show ths_print_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
+      \watch ths_print_no_options_unbound_range_of_arguments [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
+DESCRIPTION
+      Options:
 
-Arguments:
-  This report accepts 1-* arguments.
+      --help, -h  Display this help and exit.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_one_argument
-ths_print_options_one_argument - testing help
+NAME
+      ths_print_options_one_argument - testing help
 
-Usage:
-       \show ths_print_options_one_argument [OPTIONS] [ARGUMENTS]
-       \watch ths_print_options_one_argument [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
+      \watch ths_print_options_one_argument --two=string|-2 [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1 argument.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1 argument.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_unbound_arguments
-ths_print_options_unbound_arguments - testing help
+NAME
+      ths_print_options_unbound_arguments - testing help
 
-Usage:
-       \show ths_print_options_unbound_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_print_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_options_unbound_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
+      \watch ths_print_options_unbound_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts any number of arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts any number of arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_range_of_arguments
-ths_print_options_range_of_arguments - testing help
+NAME
+      ths_print_options_range_of_arguments - testing help
 
-Usage:
-       \show ths_print_options_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_print_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+SYNTAX
+      \show ths_print_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
+      \watch ths_print_options_range_of_arguments --two=string|-2 [OPTIONS]
+      [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_range_of_arguments_details
-ths_print_options_range_of_arguments_details - testing help
+NAME
+      ths_print_options_range_of_arguments_details - testing help
 
-More details
+SYNTAX
+      \show ths_print_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_print_options_range_of_arguments_details --two=string|-2
+      [OPTIONS] [ARGS]
 
-Usage:
-       \show ths_print_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
-       \watch ths_print_options_range_of_arguments_details [OPTIONS]
-[ARGUMENTS]
+DESCRIPTION
+      More details
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-2 arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-2 arguments.
 
 //@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_unbound_range_of_arguments
-ths_print_options_unbound_range_of_arguments - testing help
+NAME
+      ths_print_options_unbound_range_of_arguments - testing help
 
-Usage:
-       \show ths_print_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
-       \watch ths_print_options_unbound_range_of_arguments [OPTIONS]
-[ARGUMENTS]
+SYNTAX
+      \show ths_print_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
+      \watch ths_print_options_unbound_range_of_arguments --two=string|-2
+      [OPTIONS] [ARGS]
 
-Options:
-  --help                        Display this help and exit.
-  --one=string, -1              Option with default type. Allowed values: a, b,
-                                c.
-  --two=string, -2              (required) Option with "string" type.
-  --three, -3                   Option with "bool" type.
-  --four=integer, -4            Option with "integer" type.
-  --five=float, -5              Option with "float" type.
+DESCRIPTION
+      Options:
 
-  Details of parameter three.
+      --help, -h  Display this help and exit.
 
-Arguments:
-  This report accepts 1-* arguments.
+      --one=string, -1
+                  Option with default type. Allowed values: a, b, c.
+
+      --two=string, -2
+                  (required) Option with "string" type.
+
+      --three, -3 Option with "bool" type.
+
+      --four=integer, -4
+                  Option with "integer" type.
+
+      --five=float, -5
+                  Option with "float" type.
+
+      Details of parameter three.
+
+      Arguments:
+
+      This report accepts 1-* arguments.
 
 //@<OUT> WL11263_TSF13_1 - call shell.reports.list_report_testing_various_options() in JS mode
 {
@@ -2963,88 +3272,261 @@ right: eight
   5:
     key: value
 
-//@ 'query' - create database
-|Report returned no data.|
+//@ The 'examples' key is set to undefined
+||Shell.registerReport: Option 'examples' is expected to be of type Array, but is Undefined (TypeError)
 
-//@ 'query' - show tables, no result
-|Report returned no data.|
+//@ The 'examples' key is set to an invalid type
+||Shell.registerReport: Option 'examples' is expected to be of type Array, but is String (TypeError)
 
-//@ 'query' - create sample table
-|Report returned no data.|
+//@ The 'examples' key is set to an array of invalid types
+||Shell.registerReport: The value associated with the key named 'examples' should be a list of dictionaries. (ArgumentError)
 
-//@<OUT> 'query' - show tables, result contains the table
-+-----------------------+
-| Tables_in_report_test |
-+-----------------------+
-| sample                |
-+-----------------------+
+//@ 'examples': Dictionary is missing the required key
+||Shell.registerReport: Missing required options: description (ArgumentError)
 
-//@<OUT> 'query' - show description of sample table
-+----------+------------------+------+-----+---------+-------+
-| Field    | Type             | Null | Key | Default | Extra |
-+----------+------------------+------+-----+---------+-------+
-| one      | varchar(20)      | YES  |     | NULL    |       |
-| two      | int(11)          | YES  |     | NULL    |       |
-| three    | int(10) unsigned | YES  |     | NULL    |       |
-| four     | float            | YES  |     | NULL    |       |
-| five     | double           | YES  |     | NULL    |       |
-| six      | decimal(10,0)    | YES  |     | NULL    |       |
-| seven    | date             | YES  |     | NULL    |       |
-| eight    | datetime         | YES  |     | NULL    |       |
-| nine     | bit(1)           | YES  |     | NULL    |       |
-| ten      | blob             | YES  |     | NULL    |       |
-| eleven   | geometry         | YES  |     | NULL    |       |
-| twelve   | json             | YES  |     | NULL    |       |
-| thirteen | time             | YES  |     | NULL    |       |
-| fourteen | enum('a','b')    | YES  |     | NULL    |       |
-| fifteen  | set('c','d')     | YES  |     | NULL    |       |
-+----------+------------------+------+-----+---------+-------+
+//@ 'examples': description is null
+||Shell.registerReport: Option 'description' is expected to be of type String, but is Null (TypeError)
 
-//@ 'query' - insert some values
-|Report returned no data.|
+//@ 'examples': description is undefined
+||Shell.registerReport: Option 'description' is expected to be of type String, but is Undefined (TypeError)
 
-//@<OUT> 'query' - query for values
-+-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
-| one | two | three | four | five  | six | seven      | eight               | nine | ten  | eleven | twelve   | thirteen | fourteen | fifteen |
-+-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
-| z   | -1  | 2     | 3.14 | -6.28 | 123 | 2018-11-23 | 2018-11-23 08:06:34 | 0    | BLOB | NULL   | {"a": 3} | 08:06:34 | b        | c,d     |
-+-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
+//@ 'examples': description is an integer
+||Shell.registerReport: Option 'description' is expected to be of type String, but is Integer (TypeError)
 
-//@ 'query' - delete the database
-|Report returned no data.|
+//@ 'examples': 'args': is set to undefined
+||Shell.registerReport: Option 'args' is expected to be of type Array, but is Undefined (TypeError)
 
-//@<OUT> 'query' - --help
-query - Executes the SQL statement given as arguments.
+//@ 'examples': 'args': is set to an invalid type
+||Shell.registerReport: Option 'args' is expected to be of type Array, but is String (TypeError)
 
-Usage:
-       \show query [OPTIONS] [ARGUMENTS]
-       \watch query [OPTIONS] [ARGUMENTS]
+//@ 'examples': 'args': is set to an array of invalid types
+||Shell.registerReport: Option 'args' String expected, but value is Bool (TypeError)
 
-Options:
-  --help                        Display this help and exit.
-  --vertical, -E                Display records vertically.
+//@ 'examples': 'options': is set to undefined
+||Shell.registerReport: Option 'options' is expected to be of type Map, but is Undefined (TypeError)
 
-Arguments:
-  This report accepts 1-* arguments.
+//@ 'examples': 'options': is set to an invalid type
+||Shell.registerReport: Option 'options' is expected to be of type Map, but is String (TypeError)
 
-//@<OUT> 'query' - help system
+//@ 'examples': 'options': is set to a map of invalid types
+||Shell.registerReport: Option 'options' String expected, but value is Integer (TypeError)
+
+//@ 'examples': 'args': invalid number of arguments, expected 0, given 1
+||Shell.registerReport: Report expects 0 arguments, example has: 1 (ArgumentError)
+
+//@ 'examples': 'args': invalid number of arguments, expected 1, given 0
+||Shell.registerReport: Report expects 1 argument, example has: 0 (ArgumentError)
+
+//@ 'examples': 'args': invalid number of arguments, expected 1, given 2
+||Shell.registerReport: Report expects 1 argument, example has: 2 (ArgumentError)
+
+//@ 'examples': 'args': invalid number of arguments, expected 1-3, given 0
+||Shell.registerReport: Report expects 1-3 arguments, example has: 0 (ArgumentError)
+
+//@ 'examples': 'args': invalid number of arguments, expected 1-3, given 4
+||Shell.registerReport: Report expects 1-3 arguments, example has: 4 (ArgumentError)
+
+//@ 'examples': 'options': unknown long option
+||Shell.registerReport: Option named 'op' used in example does not exist. (ArgumentError)
+
+//@ 'examples': 'options': unknown short option
+||Shell.registerReport: Option named 'x' used in example does not exist. (ArgumentError)
+
+//@ 'examples': 'options': invalid value for Boolean option
+||Shell.registerReport: Option named 'opt' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
+
+//@ 'examples': 'options': invalid value for Boolean option - empty
+||Shell.registerReport: Option named 'o' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
+
+//@ 'examples': 'options': invalid value for String option - empty
+||Shell.registerReport: Option named 'o' used in example cannot be an empty string. (ArgumentError)
+
+//@ valid 'examples' value
+||
+
+//@<OUT> valid 'examples' - --help
 NAME
-      query - Executes the SQL statement given as arguments.
+      valid_examples_report -
 
 SYNTAX
-      shell.reports.query(session, argv)
+      \show valid_examples_report [OPTIONS] [ARGS]
+      \watch valid_examples_report [OPTIONS] [ARGS]
+
+DESCRIPTION
+      Options:
+
+      --help, -h  Display this help and exit.
+
+      --opt[=string], -o
+
+
+      --switch, -s
+
+
+      --idx=integer, -I
+
+
+      --precision=float, -p
+
+
+      Arguments:
+
+      This report accepts 0-3 arguments.
+
+EXAMPLES
+      \show valid_examples_report 1
+            1st
+
+      \show valid_examples_report 2 "3 4"
+            2nd
+
+      \show valid_examples_report "5 \"6\"" 7 "8 '9'"
+            3rd
+
+      \show valid_examples_report --opt a
+            4th
+
+      \show valid_examples_report -o b
+            5th
+
+      \show valid_examples_report --opt "c d"
+            6th
+
+      \show valid_examples_report --opt "e \"f\""
+            7th
+
+      \show valid_examples_report -o "g 'h'"
+            8th
+
+      \show valid_examples_report
+            9th
+
+      \show valid_examples_report --switch
+            10th
+
+      \show valid_examples_report
+            11th
+
+      \show valid_examples_report -s
+            12th
+
+      \show valid_examples_report --idx 4
+            13th
+
+      \show valid_examples_report -I 5
+            14th
+
+      \show valid_examples_report --precision 6.7
+            15th
+
+      \show valid_examples_report -p 8.910
+            16th
+
+      \show valid_examples_report --opt
+            17th
+
+      \show valid_examples_report -o
+            18th
+
+      \show valid_examples_report -o y x
+            19th
+
+//@<OUT> valid 'examples' - function help
+NAME
+      valid_examples_report
+
+SYNTAX
+      shell.reports.valid_examples_report(session[, argv][, options])
 
 WHERE
       session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
+      argv: Array. Extra arguments. Report expects 0-3 arguments.
+      options: Dictionary. Options expected by the report.
 
 DESCRIPTION
-      This is a 'list' type report.
+      This is a 'print' type report.
 
       The session parameter must be any of ClassicSession, Session.
 
-//@ 'query' - call method with null arguments
-||reports.query: Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
+      The options parameter accepts the following options:
 
-//@ 'query' - call method with null options
-||reports.query: Invalid number of arguments, expected 2 but got 3 (ArgumentError)
+      - opt String.
+      - switch Bool.
+      - idx Integer.
+      - precision Float.
+
+EXAMPLES
+      valid_examples_report(session, ["1"], {})
+            1st
+
+      valid_examples_report(session, ["2", "3 4"], {})
+            2nd
+
+      valid_examples_report(session, ["5 \"6\"", "7", "8 '9'"], {})
+            3rd
+
+      valid_examples_report(session, [], {"opt": "a"})
+            4th
+
+      valid_examples_report(session, [], {"opt": "b"})
+            5th
+
+      valid_examples_report(session, [], {"opt": "c d"})
+            6th
+
+      valid_examples_report(session, [], {"opt": "e \"f\""})
+            7th
+
+      valid_examples_report(session, [], {"opt": "g 'h'"})
+            8th
+
+      valid_examples_report(session, [], {"switch": false})
+            9th
+
+      valid_examples_report(session, [], {"switch": true})
+            10th
+
+      valid_examples_report(session, [], {"switch": false})
+            11th
+
+      valid_examples_report(session, [], {"switch": true})
+            12th
+
+      valid_examples_report(session, [], {"idx": 4})
+            13th
+
+      valid_examples_report(session, [], {"idx": 5})
+            14th
+
+      valid_examples_report(session, [], {"precision": 6.7})
+            15th
+
+      valid_examples_report(session, [], {"precision": 8.910})
+            16th
+
+      valid_examples_report(session, [], {"opt": ""})
+            17th
+
+      valid_examples_report(session, [], {"opt": ""})
+            18th
+
+      valid_examples_report(session, ["x"], {"opt": "y"})
+            19th
+
+//@ 'empty': invalid value - null
+||Shell.registerReport: Option 'empty' is expected to be of type Bool, but is Null (TypeError)
+
+//@ 'empty': invalid value - undefined
+||Shell.registerReport: Option 'empty' is expected to be of type Bool, but is Undefined (TypeError)
+
+//@ 'empty': invalid value - string
+||Shell.registerReport: Option 'empty' Bool expected, but value is String (TypeError)
+
+//@ 'empty': invalid type - bool
+||Shell.registerReport: Only option of type 'string' can accept empty values. (ArgumentError)
+
+//@ valid 'empty' value
+||
+
+//@ call report with an empty value
+|valid_report_with_empty_option - OK|

@@ -383,15 +383,6 @@ class Options {
   };
 
  public:
-  enum class Format {
-    INVALID,        /*!< Given argument does not match the expected one(s) */
-    MISSING_VALUE,  /*!< Given argument matches the expected one(s) but the
-                       required value is missing */
-    SEPARATE_VALUE, /*!< --option <value> or -o <value> */
-    SHORT,          /*!< -o<value> */
-    LONG            /*!< --option=<value> */
-  };
-
   class Cmdline_iterator {
    public:
     Cmdline_iterator(int argc, char const *const *argv, int start)
@@ -417,12 +408,60 @@ class Options {
     int current;
   };
 
-  using Custom_cmdline_handler = std::function<bool(Cmdline_iterator *)>;
+  class Iterator {
+   public:
+    enum class Type {
+      VALUE,          /*!< value which does not begin with '-' */
+      NO_VALUE,       /*!< --option or -o but not followed with value */
+      SEPARATE_VALUE, /*!< --option <value> or -o <value> */
+      SHORT,          /*!< -o<value> */
+      LONG            /*!< --option=<value> */
+    };
 
-  static Format cmdline_arg_with_value(Cmdline_iterator *iterator,
-                                       const char *arg, const char *larg,
-                                       const char **value,
-                                       bool accept_null = false) noexcept;
+    explicit Iterator(const Options::Cmdline_iterator &iterator);
+
+    bool valid() const { return m_iterator.valid(); }
+
+    Type type() const { return m_type; }
+
+    std::string option() const { return m_option; }
+
+    const char *value() const { return m_value; }
+
+    bool has_non_empty_value() const {
+      return nullptr != value() && '\0' != value()[0];
+    }
+
+    Options::Cmdline_iterator *iterator() { return &m_iterator; }
+
+    /**
+     * Moves iterator to the next option without consuming the value.
+     *
+     * @throws std::logic_error if iterator is not valid
+     * @throws std::logic_error if type() is Type::LONG
+     */
+    void next_no_value();
+
+    /**
+     * Moves iterator to the next option.
+     *
+     * @throws std::logic_error if iterator is not valid
+     */
+    void next();
+
+   private:
+    void get_data();
+
+    void get_separate_value();
+
+    Options::Cmdline_iterator m_iterator;
+    std::string m_option;
+    const char *m_value;
+    Type m_type;
+    size_t m_short_value_pos = 0;
+  };
+
+  using Custom_cmdline_handler = std::function<bool(Iterator *)>;
 
   explicit Options(const std::string &config_file = "");
   virtual ~Options() {}

@@ -94,7 +94,13 @@ file(GLOB api_module_SOURCES
       "adminapi/cluster/replicaset/replicaset_options.cc"
       "adminapi/cluster/replicaset/set_option.cc"
       "adminapi/cluster/replicaset/set_instance_option.cc"
-      "adminapi/cluster/replicaset/check_instance_state.cc")
+      "adminapi/cluster/replicaset/check_instance_state.cc"
+      "reports/native_report.cc"
+      "reports/query.cc"
+      "reports/thread.cc"
+      "reports/threads.cc"
+      "reports/utils.cc"
+)
 
 IF(WITH_OCI)
     LIST(APPEND api_module_SOURCES "util/oci_setup.cc")

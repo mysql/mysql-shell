@@ -626,6 +626,46 @@ std::string format_markup_text(const std::vector<std::string> &lines,
         }
 
         ret_val += formatted;
+      } else if (0 == line.find("@entry")) {
+        // a man-like entry item
+        static constexpr std::size_t indent = 12;
+        const auto append_newline = (0 == line.find("@entrynl"));
+
+        const auto begin = line.find("{");
+
+        if (std::string::npos == begin) {
+          throw std::invalid_argument("@entry has to be enclosed with {}");
+        }
+
+        const auto end = line.find("}");
+
+        if (std::string::npos == end) {
+          throw std::invalid_argument("@entry has to be enclosed with {}");
+        }
+
+        const auto entry_length = end - begin - 1;
+        const auto entry = format_markup_text(
+            "<b>" + line.substr(begin + 1, entry_length) + "</b>", width,
+            left_padding);
+
+        const auto desc = line.find_first_not_of(" \t\r\n", end + 1);
+
+        auto description = format_markup_text(
+            std::string::npos == desc ? "" : line.substr(desc), width,
+            left_padding + indent);
+
+        if (!in_list || append_newline) {
+          ret_val += "\n";
+          in_list = true;
+        }
+
+        if (entry_length > indent - 1) {
+          ret_val += entry + "\n";
+          ret_val += description;
+        } else {
+          description.replace(0, left_padding + entry_length, entry);
+          ret_val += description;
+        }
       } else {
         if ((!ret_val.empty() && paragraph_per_line) || in_list) {
           ret_val += "\n";

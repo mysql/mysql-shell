@@ -25,6 +25,7 @@
 #define MODULES_MOD_SHELL_REPORTS_H_
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -67,8 +68,9 @@ class SHCORE_PUBLIC Report final {
   enum class Type {
     LIST,    //!< List type, output is displayed in tabbed form or vertically.
     REPORT,  //!< Free-form report, output is displayed using YAML.
-    PRINT    //!< Output is printed by the report any additional output is
+    PRINT,   //!< Output is printed by the report any additional output is
              //!< suppressed.
+    CUSTOM   //!< Report has a custom formatter.
   };
 
   /*
@@ -79,31 +81,30 @@ class SHCORE_PUBLIC Report final {
            shcore::Value_type type = shcore::Value_type::String,
            bool required = false);
 
+    std::vector<std::string> command_line_names() const;
+
+    std::string command_line_name() const;
+
+    std::string command_line_brief() const;
+
     std::string short_name;
 
-    // TODO(rennox): Adding this temporary variable to achieve having a "brief"
-    // description of an option that includes the list of allowed values for
-    // the option. Thing is that such information is NOT part of he brief
-    // description of anything, as a brief description is a simple line
-    // describing WHAT the item is, rest is part of the details. But in command
-    // line args format more or less makes sense that it is shown there.
-    //
-    // This is being a problem here because of 2 main reasons:
-    // - Reports have their own handling of the help (probably because)
-    // - Shell commands have their own handling of the help
-    // - Shell options have their own handling of the help.
-    //
-    // The right solution is moving everything to the central help system and
-    // create a proper help formatter that handles options in both API format
-    // (as it exists already) and in command format (which now is implemented
-    // in the reports)
-    //
-    // In short: there's NO reason to have different help handlers, the central
-    // system should take care, that's why it was created.
-    std::string cmdline_brief;
+    bool empty = false;
   };
 
   using Options = std::vector<std::shared_ptr<Option>>;
+
+  struct Example {
+    std::string description;
+
+    std::map<std::string, std::string> options;
+
+    std::vector<std::string> args;
+  };
+
+  using Examples = std::vector<Example>;
+
+  static const uint32_t k_asterisk;
 
   Report(const std::string &name, Type type,
          const shcore::Function_base_ref &function);
@@ -149,6 +150,8 @@ class SHCORE_PUBLIC Report final {
 
   void set_details(const std::vector<std::string> &details);
 
+  const Options &options() const;
+
   void set_options(const Options &options);
 
   /*
@@ -171,6 +174,10 @@ class SHCORE_PUBLIC Report final {
 
   void set_formatter(const Formatter &formatter);
 
+  const Examples &examples() const;
+
+  void set_examples(Examples &&examples);
+
   /*
    * Checks if this report requires 'options' parameter.
    *
@@ -190,6 +197,8 @@ class SHCORE_PUBLIC Report final {
 
   static void validate_option(const Option &option);
 
+  void validate_example(const Example &example) const;
+
   std::string m_name;
   Type m_type;
   shcore::Function_base_ref m_function;
@@ -198,6 +207,7 @@ class SHCORE_PUBLIC Report final {
   Options m_options;
   Argc m_argc;
   Formatter m_formatter;
+  Examples m_examples;
 };
 
 #if defined(DOXYGEN_JS) || defined(DOXYGEN_PY)
@@ -244,6 +254,86 @@ class Reports {
    *         a list of lists.
    */
   Dict query(Session session, List argv);
+
+  /**
+   * Lists threads that belong to the user who owns the session object. This is
+   * a 'list' type report.
+   *
+   * The 'options' dictionary may contain the following key-value pairs:
+   * @li 'foreground' - Boolean, causes the report to list all foreground
+   * threads.
+   * @li 'background' - Boolean, causes the report to list all background
+   * threads.
+   * @li 'all' - Boolean, causes the report to list all threads.
+   * @li 'format' - string, allows to specify order and number of columns
+   * returned by the report, optionally defining new column names. The expected
+   * format is: <b>column[=alias][,column[=alias]]*</b>. If column with the
+   * given name does not exist, all columns that match the given prefix are
+   * selected and alias is ignored.
+   * @li 'where' - string, allows to filter the result. Expects a string in the
+   * following format: <b>column OP value [LOGIC column OP value]*</b>, where
+   * 'column' is a name of the column, value is an SQL value, OP is a relational
+   * operator (=, !=, <>, >, >=, <, <=, LIKE), LOGIC is a logical operator (AND,
+   * OR, NOT - case insensitive). The logical expressions can be grouped using
+   * parenthesis characters.
+   * @li 'order_by' - string, a comma separated list which specifies the columns
+   * to be used to sort the output.
+   * @li 'desc' - Boolean, causes the output to be sorted in descending order.
+   * @li 'limit' - integer, limits the number of returned threads.
+   *
+   * For more information on available columns, run: <b>\\show threads
+   * \-\-help</b>.
+   *
+   * @param session Session object.
+   * @param argv Empty list.
+   * @param options Configuration options of the report.
+   *
+   * @return Dictionary containing a single key named 'report' with value being
+   *         a list of lists.
+   */
+  Dict threads(Session session, List argv, Dict options);
+
+  /**
+   * Provides various information regarding the specified thread. By default
+   * lists information on the thread used by the session object.
+   *
+   * The 'options' dictionary may contain the following key-value pairs:
+   * @li 'tid' - integer, lists information for the specified thread ID.
+   * @li 'cid' - integer, lists information for the specified connection ID.
+   * @li 'brief' - Boolean, causes the report to list just a brief information
+   * on the given thread.
+   * @li 'client' - Boolean, shows additional information about the client
+   * connection and the client session.
+   * @li 'general' - Boolean, shows the basic information about the specified
+   * thread. This is the default if no other option is provided.
+   * @li 'innodb' - Boolean, shows additional information about the current
+   * InnoDB transaction.
+   * @li 'locks' - Boolean, shows additional information about locks blocking
+   * the thread and locks blocked by the thread.
+   * @li 'prep_stmts' - Boolean, lists the prepared statements allocated for the
+   * thread.
+   * @li 'status' - string, lists the session status variables for the thread.
+   * If value is empty, all variables are listed. Non-empty value should be in
+   * form: <b>prefix[,prefix]*</b>, only variables matching the given prefixes
+   * will be returned.
+   * @li 'vars' - string, lists the session system variables for the thread. If
+   * value is empty, all variables are listed. Non-empty value should be in
+   * form: <b>prefix[,prefix]*</b>, only variables matching the given prefixes
+   * will be returned.
+   * @li 'user_vars' - string, lists the user-defined variables for the thread.
+   * If value is empty, all variables are listed. Non-empty value should be in
+   * form: <b>prefix[,prefix]*</b>, only variables matching the given prefixes
+   * will be returned.
+   * @li 'all' - Boolean, provides all available information for the thread.
+   *
+   * @param session Session object.
+   * @param argv Empty list.
+   * @param options Configuration options of the report.
+   *
+   * @return Dictionary containing a single key named 'report' with value being
+   *         a list of dictionaries.
+   */
+  Dict thread(Session session, List argv, Dict options);
 };
 #endif
 

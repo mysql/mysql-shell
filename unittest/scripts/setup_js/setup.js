@@ -385,6 +385,33 @@ function EXPECT_STDERR_CONTAINS(text) {
   }
 }
 
+function EXPECT_OUTPUT_MATCHES(re) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (!re.test(out) && !re.test(err)) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_STDOUT_MATCHES(re) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (!re.test(out)) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_STDERR_MATCHES(re) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (!re.test(err)) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_SHELL_LOG_CONTAINS(text) {
   var log_path = testutil.getShellLogPath();
   var match_list = testutil.grepFile(log_path, text);
@@ -433,6 +460,24 @@ function EXPECT_OUTPUT_NOT_CONTAINS(text) {
   }
 }
 
+function EXPECT_STDOUT_NOT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.indexOf(text) >= 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_STDERR_NOT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (err.indexOf(text) >= 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_NEXT_OUTPUT_EXACT(text) {
   var line = testutil.fetchCapturedStdout(true);
   EXPECT_CONTAINS(text, line);
@@ -445,6 +490,20 @@ function EXPECT_NEXT_OUTPUT(text) {
   EXPECT_CONTAINS(text, line);
 }
 
+function WIPE_STDOUT() {
+  var line;
+  while ((line = testutil.fetchCapturedStdout(true)) !== "");
+}
+
+function WIPE_STDERR() {
+  var line;
+  while ((line = testutil.fetchCapturedStderr(true)) !== "");
+}
+
+function WIPE_OUTPUT() {
+  WIPE_STDOUT();
+  WIPE_STDERR();
+}
 
 // -------- InnoDB Cluster Scenarios
 

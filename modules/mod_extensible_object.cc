@@ -833,7 +833,8 @@ void Extensible_object::register_property_help(
 void Extensible_object::register_function_help(
     const std::string &name, const std::string &brief,
     const std::vector<std::string> &params,
-    const std::vector<std::string> &details) {
+    const std::vector<std::string> &details,
+    const Function_definition::Examples &examples) {
   auto help = shcore::Help_registry::get();
 
   auto names = shcore::str_split(name, "|");
@@ -854,6 +855,7 @@ void Extensible_object::register_function_help(
     if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
     help->add_help(prefix, "PARAM", params);
     help->add_help(prefix, "DETAIL", details);
+    help->add_help(prefix, examples);
   } else {
     topic->set_enabled(true);
   }
@@ -891,7 +893,8 @@ void Extensible_object::register_function_help(
     }
   }
 
-  register_function_help(definition->name, definition->brief, params, details);
+  register_function_help(definition->name, definition->brief, params, details,
+                         definition->examples);
 }
 
 void Extensible_object::get_param_help_brief(

@@ -369,6 +369,28 @@ void Help_registry::add_help(const std::string &prefix, const std::string &tag,
   }
 }
 
+void Help_registry::add_help(const std::string &prefix,
+                             const std::vector<Example> &data) {
+  size_t sequence = 0;
+  add_help(prefix, &sequence, data);
+}
+
+void Help_registry::add_help(const std::string &prefix, size_t *sequence,
+                             const std::vector<Example> &data) {
+  assert(sequence);
+
+  auto index = (*sequence) ? std::to_string(*sequence) : "";
+
+  for (const auto &entry : data) {
+    const auto full_prefix = prefix + "_EXAMPLE" + index;
+    add_help(full_prefix, entry.code);
+    add_help(full_prefix + "_DESC", entry.description);
+
+    (*sequence)++;
+    index = std::to_string(*sequence);
+  }
+}
+
 Help_topic *Help_registry::add_help_topic(const std::string &name,
                                           Topic_type type,
                                           const std::string &tag,
@@ -1576,7 +1598,7 @@ void Help_manager::add_section(const std::string &title, const std::string &tag,
                                size_t padding, bool insert_blank_lines) {
   std::vector<std::string> details;
   details = get_help_text(tag);
-  add_section_data(title, &details, sections, padding);
+  add_section_data(title, &details, sections, padding, insert_blank_lines);
 }
 
 std::string Help_manager::format_function_help(const Help_topic &function) {

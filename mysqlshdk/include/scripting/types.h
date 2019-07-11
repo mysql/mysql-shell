@@ -337,6 +337,15 @@ struct SHCORE_PUBLIC Value {
     return vec;
   }
 
+  std::map<std::string, std::string> to_string_map() const {
+    std::map<std::string, std::string> map;
+    check_type(Map);
+    for (const auto &v : *as_map()) {
+      map.emplace(v.first, v.second.get_string());
+    }
+    return map;
+  }
+
   std::shared_ptr<Function_base> as_function() const {
     check_type(Function);
     return std::dynamic_pointer_cast<Function_base>(
@@ -598,6 +607,15 @@ struct value_type_for_native<std::vector<std::string>> {
 };
 
 template <>
+struct value_type_for_native<std::map<std::string, std::string>> {
+  static const Value_type type = Map;
+
+  static std::map<std::string, std::string> extract(const Value &value) {
+    return value.to_string_map();
+  }
+};
+
+template <>
 struct value_type_for_native<Object_bridge *> {
   static const Value_type type = Object;
 };
@@ -637,6 +655,15 @@ struct value_type_for_native<Value> {
   static Value extract(const Value &value) { return value; }
 };
 
+template <typename T>
+struct value_type_for_native<mysqlshdk::utils::nullable<T>> {
+  static const Value_type type = value_type_for_native<T>::type;
+
+  static T extract(const Value &value) {
+    return value_type_for_native<T>::extract(value);
+  }
+};
+
 std::string SHCORE_PUBLIC type_name(Value_type type);
 
 // Extract option values from an options dictionary, with validations
@@ -670,14 +697,6 @@ class Option_unpacker {
     return *this;
   }
 
-  template <typename T>
-  Option_unpacker &optional(const char *name,
-                            mysqlshdk::utils::nullable<T> *out_value) {
-    extract_value<T>(name, out_value,
-                     get_optional(name, value_type_for_native<T>::type));
-    return *this;
-  }
-
   // Extract optional option with exact type (no conversions)
   template <typename T>
   Option_unpacker &optional_exact(const char *name, T *out_value) {
@@ -686,22 +705,7 @@ class Option_unpacker {
     return *this;
   }
 
-  template <typename T>
-  Option_unpacker &optional_exact(const char *name,
-                                  mysqlshdk::utils::nullable<T> *out_value) {
-    extract_value<T>(name, out_value,
-                     get_optional_exact(name, value_type_for_native<T>::type));
-    return *this;
-  }
-
   // Case insensitive
-  template <typename T>
-  Option_unpacker &optional_ci(const char *name,
-                               mysqlshdk::utils::nullable<T> *out_value) {
-    extract_value<T>(name, out_value,
-                     get_optional(name, value_type_for_native<T>::type, true));
-    return *this;
-  }
 
   template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {

@@ -328,7 +328,7 @@ TEST_F(Mysqlsh_reports_test, WL11263_TSF8_3) {
   write_plugin("cpp_as.py", cpp_code);
 
   // check if only build-in reports are available
-  add_test("\\show", "Available reports: query.");
+  add_test("\\show", "Available reports: query, thread, threads.");
 
   // log file should contain information about erroneous plugin files
   add_expected_js_log("Error loading JavaScript file");

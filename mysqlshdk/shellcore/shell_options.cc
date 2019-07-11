@@ -210,12 +210,6 @@ Shell_options::Shell_options(int argc, char **argv,
         "Uses connection data to create a Classic Session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
-    (cmdline("-ma"), deprecated(nullptr, std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("-mc"), deprecated("--mc", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("-mx"), deprecated("--mx", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
     (cmdline("--redirect-primary"), "Connect to the primary of the group. "
         "For use with InnoDB clusters.",
         assign_value(&storage.redirect_session,
@@ -333,7 +327,7 @@ Shell_options::Shell_options(int argc, char **argv,
       "It forces emulation of interactive mode processing. Each "
       "line on the batch is processed as if it were in interactive mode.",
       [this](const std::string&, const char* value) {
-        if (!value) {
+        if (!value || !value[0]) {
           storage.interactive = true;
           storage.full_interactive = false;
         } else if (strcmp(value, "full") == 0) {
@@ -435,8 +429,14 @@ Shell_options::Shell_options(int argc, char **argv,
         assign_value(&storage.wizards, false))
     (&storage.no_password, false, cmdline("--no-password"),
         "Sets empty password and disables prompt for password.")
-    (&print_cmd_line_version, false, cmdline("-V", "--version"),
-        "Prints the version of MySQL Shell.")
+    (cmdline("-V", "--version"),
+        "Prints the version of MySQL Shell.", [this](const std::string&, const char*) {
+        if (print_cmd_line_version) {
+          print_cmd_line_version_extra = true;
+        }
+
+        print_cmd_line_version = true;
+    })
     (cmdline("--ssl-key=name"), "X509 key in PEM format.",
         std::bind(&Ssl_options::set_key, &storage.ssl_options, _2))
     (cmdline("--ssl-cert=name"), "X509 cert in PEM format.",
@@ -486,7 +486,7 @@ Shell_options::Shell_options(int argc, char **argv,
       "2 will prevent printing any information unless it is an error. "
       "If no value is specified uses 1 as default.",
       [this](const std::string&, const char* value) {
-        if (!value || !strcmp(value, "1")) {
+        if (!value || !value[0] || !strcmp(value, "1")) {
           storage.quiet_start = Shell_options::Quiet_start::SUPRESS_BANNER;
           storage.full_interactive = false;
         } else if (strcmp(value, "2") == 0) {
@@ -631,71 +631,60 @@ std::vector<std::string> Shell_options::get_named_options() {
   return res;
 }
 
-static void handle_missing_value(shcore::Options::Cmdline_iterator *iterator,
-                                 shcore::Options::Format arg_format,
-                                 const std::string &full_opt) {
-  const auto opt = full_opt.substr(0, full_opt.find("="));
-  if (shcore::Options::Format::MISSING_VALUE == arg_format) {
-    throw std::invalid_argument(std::string(iterator->first()) + ": option " +
-                                opt + " requires an argument");
+static void handle_missing_value(shcore::Options::Iterator *it) {
+  if (nullptr == it->value() || '\0' == it->value()[0]) {
+    throw std::invalid_argument(std::string(it->iterator()->first()) +
+                                ": option " + it->option() +
+                                " requires an argument");
   }
 }
 
-bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
-  Format arg_format = Format::INVALID;
-  const char *value = nullptr;
-  const char *full_opt = iterator->peek();
+bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
+  const auto option = iterator->option();
 
-  if (strcmp(full_opt, "--") == 0) {
+  if ("--" == option) {
     if (m_shell_cli_operation)
       throw std::invalid_argument(
           "MySQL Shell can handle only one operation at a time");
-    iterator->get();
+    iterator->next_no_value();
     m_shell_cli_operation.reset(new shcore::Shell_cli_operation());
-    m_shell_cli_operation->parse(iterator);
-  } else if (strcmp(full_opt, "-VV") == 0) {
-    print_cmd_line_version = true;
-    print_cmd_line_version_extra = true;
-    iterator->get();
-  } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
-                                     iterator, "--file", "-f", &value))) {
-    handle_missing_value(iterator, arg_format, full_opt);
-    storage.run_file = value;
-    if (shcore::str_endswith(value, ".js")) {
+    m_shell_cli_operation->parse(iterator->iterator());
+  } else if ("--file" == option || "-f" == option) {
+    handle_missing_value(iterator);
+
+    const std::string file = iterator->value();
+    iterator->next();
+
+    storage.run_file = file;
+
+    if (shcore::str_endswith(file, ".js")) {
       storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
-    } else if (shcore::str_endswith(value, ".py")) {
+    } else if (shcore::str_endswith(file, ".py")) {
       storage.initial_mode = shcore::IShell_core::Mode::Python;
-    } else if (shcore::str_endswith(value, ".sql")) {
+    } else if (shcore::str_endswith(file, ".sql")) {
       storage.initial_mode = shcore::IShell_core::Mode::SQL;
     }
+
     // the rest of the cmdline options, starting from here are all passed
     // through to the script
-    storage.script_argv.push_back(value);
-    while (iterator->valid()) storage.script_argv.push_back(iterator->get());
-  } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
-                                     iterator, "--uri", NULL, &value)) ||
-             (iterator->peek()[0] != '-' && (value = iterator->get()))) {
-    handle_missing_value(iterator, arg_format, full_opt);
-    storage.uri = value;
+    storage.script_argv.push_back(file);
+    const auto cmdline = iterator->iterator();
+    while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+  } else if ("--uri" == option || '-' != option[0]) {
+    handle_missing_value(iterator);
 
+    storage.uri = iterator->value();
     uri_data = shcore::get_connection_options(storage.uri, false);
 
     if (uri_data.has_password()) {
-      const char *a = iterator->back();
-      std::string nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
-
-      // Required replacement when --uri=<value>
-      if (arg_format == Format::LONG) nopwd_uri = "--uri=" + nopwd_uri;
-
-      strncpy(const_cast<char *>(a), nopwd_uri.c_str(), strlen(a) + 1);
-      iterator->get();
+      const auto value = iterator->value();
+      const auto nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
+      strncpy(const_cast<char *>(value), nopwd_uri.c_str(), strlen(value) + 1);
     }
-  } else if (Format::INVALID !=
-                 (arg_format = cmdline_arg_with_value(iterator, "--password",
-                                                      "-p", &value, true)) ||
-             Format::INVALID !=
-                 (arg_format = cmdline_arg_with_value(iterator, "--dbpassword",
-                                                      NULL, &value, true))) {
+
+    iterator->next();
+  } else if ("--password" == option || "-p" == option ||
+             "--dbpassword" == option) {
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
     // The behavior of the password cmd line argument is as follows:
@@ -711,17 +700,7 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
     // --password=<value> sets the password to <value>
 
     {
-      // move back and check actual option name
-
-      if (Format::SEPARATE_VALUE == arg_format && value) {
-        // skip value
-        iterator->back();
-      }
-
-      // get option name
-      const auto option = iterator->back();
-
-      if (shcore::str_ibeginswith(option, "--dbpassword")) {
+      if ("--dbpassword" == option) {
         // Deprecated handler is not going to be invoked, need to inform the
         // user that --dbpassword should not longer be used.
         // Console is not available lat this time, need to use stdout.
@@ -729,57 +708,49 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
                      "please use --password instead."
                   << std::endl;
       }
-
-      // move past option name
-      iterator->get();
-
-      if (Format::SEPARATE_VALUE == arg_format && value) {
-        // move past value
-        iterator->get();
-      }
     }
 
-    if (!value) {
-      // --password=
-      if (arg_format == Format::LONG) storage.password = storage.pwd.c_str();
-      // --password
-      else
-        storage.prompt_password = true;
-    } else if (arg_format !=
-               Format::SEPARATE_VALUE) {  // --password=value || -pvalue
-      const char *a = iterator->back();
+    if (shcore::Options::Iterator::Type::NO_VALUE == iterator->type()) {
+      storage.prompt_password = true;
+      iterator->next_no_value();
+    } else if (shcore::Options::Iterator::Type::SEPARATE_VALUE !=
+               iterator->type()) {
+      // --password=value || -pvalue
+      const auto value = iterator->value();
+
       storage.pwd.assign(value);
       storage.password = storage.pwd.c_str();
 
-      std::string stars(storage.pwd.length(), '*');
-      std::string pwd = arg_format == Format::SHORT ? "-p" : "--password=";
-      pwd.append(stars);
+      const std::string stars(storage.pwd.length(), '*');
 
-      strncpy(const_cast<char *>(a), pwd.c_str(), strlen(a) + 1);
-      iterator->get();
+      strncpy(const_cast<char *>(value), stars.c_str(), strlen(value) + 1);
+
+      iterator->next();
     } else {  // --password value (value is ignored)
       storage.prompt_password = true;
-      iterator->back();
+      iterator->next_no_value();
     }
-  } else if (strcmp("--import", full_opt) == 0) {
-    storage.import_args.push_back(iterator->get());  // omit --import
+  } else if ("--import" == option) {
+    const auto cmdline = iterator->iterator();
+
+    storage.import_args.push_back(cmdline->get());  // omit --import
 
     // Gets the positional arguments for --import
     // As they define the target dtabase object for the data
-    while (iterator->valid()) {
+    while (cmdline->valid()) {
       // We append --import arguments until next shell option in program
       // argument list, i.e. -* or --*. Single char '-' is a --import argument.
-      const char *arg = iterator->peek();
+      const char *arg = cmdline->peek();
       if (arg[0] == '-' && arg[1] != '\0') {
         break;
       }
-      storage.import_args.push_back(iterator->get());
+      storage.import_args.push_back(cmdline->get());
     }
 
     if (storage.import_args[1] == "-") {
       // STDIN import will be handled directly in main
       // Here we store the import options
-      while (iterator->valid()) storage.import_opts.push_back(iterator->get());
+      while (cmdline->valid()) storage.import_opts.push_back(cmdline->get());
     } else {
       // Non STDIN import is handled as a CLI API call
       if (m_shell_cli_operation)
@@ -816,7 +787,37 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
       const std::string &file = storage.import_args.at(1);
       m_shell_cli_operation->add_argument(shcore::Value(file));
 
-      m_shell_cli_operation->parse(iterator);
+      m_shell_cli_operation->parse(cmdline);
+    }
+  } else if ("-m" == option) {
+    bool handled = false;
+
+    if (iterator->value()) {
+      const std::string value = option + iterator->value();
+      const char *replacement = nullptr;
+
+      if ("-ma" == value) {
+        handled = true;
+      } else if ("-mc" == value) {
+        replacement = "--mc";
+      } else if ("-mx" == value) {
+        replacement = "--mx";
+      }
+
+      if (nullptr != replacement) {
+        handled = true;
+      }
+
+      if (handled) {
+        deprecated(replacement, std::bind(&Shell_options::override_session_type,
+                                          this, _1, _2))(value, nullptr);
+        iterator->next();
+      }
+    }
+
+    if (!handled) {
+      throw std::invalid_argument(iterator->iterator()->first() +
+                                  std::string(": unknown option -m"));
     }
   } else {
     return false;

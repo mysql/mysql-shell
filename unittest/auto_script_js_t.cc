@@ -166,6 +166,11 @@ class Auto_script_js : public Shell_js_script_tester,
     code = "var __bin_dir = " +
            shcore::quote_string(shcore::get_binary_folder(), '\'') + ";";
     exec_and_out_equals(code);
+
+    code =
+        "var __mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'') +
+        ";";
+    exec_and_out_equals(code);
   }
 
   void run_and_check() {

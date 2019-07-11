@@ -31,7 +31,6 @@ NAME
 
 SYNTAX
       \system [command [arguments...]]
-
       \! [command [arguments...]]
 
 EXAMPLES

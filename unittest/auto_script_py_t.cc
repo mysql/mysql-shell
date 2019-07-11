@@ -165,6 +165,9 @@ class Auto_script_py : public Shell_py_script_tester,
     code = "__bin_dir = " +
            shcore::quote_string(shcore::get_binary_folder(), '\'');
     exec_and_out_equals(code);
+
+    code = "__mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'');
+    exec_and_out_equals(code);
   }
 };
 
