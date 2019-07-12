@@ -425,6 +425,10 @@ Value::Value(const std::string &s) : type(String) {
   value.s = new std::string(s);
 }
 
+Value::Value(std::string &&s) : type(String) {
+  value.s = new std::string(std::move(s));
+}
+
 Value::Value(const char *s) {
   if (s) {
     type = String;
@@ -602,6 +606,83 @@ Value &Value::operator=(const Value &other) {
         value.func = new std::shared_ptr<Function_base>(*other.value.func);
         break;
     }
+  }
+  return *this;
+}
+
+Value &Value::operator=(Value &&other) {
+  switch (type) {
+    case Undefined:
+    case shcore::Null:
+    case Bool:
+    case Integer:
+    case UInteger:
+    case Float:
+      break;
+    case String:
+      delete value.s;
+      value.s = nullptr;
+      break;
+    case Object:
+      delete value.o;
+      value.s = nullptr;
+      break;
+    case Array:
+      delete value.array;
+      value.s = nullptr;
+      break;
+    case Map:
+      delete value.map;
+      value.s = nullptr;
+      break;
+    case MapRef:
+      delete value.mapref;
+      value.s = nullptr;
+      break;
+    case Function:
+      delete value.func;
+      value.s = nullptr;
+      break;
+  }
+
+  type = Undefined;
+  std::swap(type, other.type);
+
+  switch (type) {
+    case Undefined:
+      break;
+    case shcore::Null:
+      break;
+    case Bool:
+      std::swap(value.b, other.value.b);
+      break;
+    case Integer:
+      std::swap(value.i, other.value.i);
+      break;
+    case UInteger:
+      std::swap(value.ui, other.value.ui);
+      break;
+    case Float:
+      std::swap(value.d, other.value.d);
+      break;
+    case String:
+      std::swap(value.s, other.value.s);
+      break;
+    case Object:
+      std::swap(value.o, other.value.o);
+      break;
+    case Array:
+      std::swap(value.array, other.value.array);
+      break;
+    case Map:
+      std::swap(value.map, other.value.map);
+      break;
+    case MapRef:
+      std::swap(value.mapref, other.value.mapref);
+      break;
+    case Function:
+      std::swap(value.func, other.value.func);
+      break;
   }
   return *this;
 }

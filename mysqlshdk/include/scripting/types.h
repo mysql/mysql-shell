@@ -211,6 +211,7 @@ struct SHCORE_PUBLIC Value {
   Value(const Value &copy);
 
   explicit Value(const std::string &s);
+  explicit Value(std::string &&s);
   explicit Value(const char *);
   explicit Value(const char *, size_t n);
   explicit Value(int i);
@@ -267,6 +268,7 @@ struct SHCORE_PUBLIC Value {
   ~Value();
 
   Value &operator=(const Value &other);
+  Value &operator=(Value &&other);
 
   bool operator==(const Value &other) const;
 
