@@ -1,25 +1,21 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
-// validateMemer and validateNotMember are defined on the setup script
 var mysql = require('mysql');
 
-//@ Session: validating members
+//@<> Session: validating members
 var classicSession = mysql.getClassicSession(__uripwd);
-var sessionMembers = dir(classicSession);
 
-validateMember(sessionMembers, 'close');
-validateMember(sessionMembers, 'createSchema');
-validateMember(sessionMembers, 'getCurrentSchema');
-validateMember(sessionMembers, 'getDefaultSchema');
-validateMember(sessionMembers, 'getSchema');
-validateMember(sessionMembers, 'getSchemas');
-validateMember(sessionMembers, 'getUri');
-validateMember(sessionMembers, 'setCurrentSchema');
-validateMember(sessionMembers, 'query');
-validateMember(sessionMembers, 'runSql');
-validateMember(sessionMembers, 'defaultSchema');
-validateMember(sessionMembers, 'uri');
-validateMember(sessionMembers, 'currentSchema');
+validateMembers(classicSession, [
+    'close',
+    'commit',
+    'getUri',
+    'help',
+    'isOpen',
+    'startTransaction',
+    'query',
+    'rollback',
+    'runSql',
+    'uri'])
 
 //@ ClassicSession: accessing Schemas
 var schemas = classicSession.getSchemas();

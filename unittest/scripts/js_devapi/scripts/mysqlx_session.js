@@ -1,27 +1,35 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-// validateMemer and validateNotMember are defined on the setup script
 var mysqlx = require('mysqlx');
 
-//@ Session: validating members
+//@<> Session: validating members
 var mySession = mysqlx.getSession(__uripwd);
-var mySessionMembers = dir(mySession);
-validateMember(mySessionMembers, 'close');
-validateMember(mySessionMembers, 'createSchema');
-validateMember(mySessionMembers, 'getCurrentSchema');
-validateMember(mySessionMembers, 'getDefaultSchema');
-validateMember(mySessionMembers, 'getSchema');
-validateMember(mySessionMembers, 'getSchemas');
-validateMember(mySessionMembers, 'getUri');
-validateMember(mySessionMembers, 'setCurrentSchema');
-validateMember(mySessionMembers, 'setFetchWarnings');
-validateMember(mySessionMembers, 'sql');
-validateMember(mySessionMembers, 'defaultSchema');
-validateMember(mySessionMembers, 'uri');
-validateMember(mySessionMembers, 'currentSchema');
-validateMember(mySessionMembers, 'setSavepoint');
-validateMember(mySessionMembers, 'releaseSavepoint');
-validateMember(mySessionMembers, 'rollbackTo');
+
+validateMembers(mySession, [
+    'close',
+    'commit',
+    'createSchema',
+    'dropSchema',
+    'getCurrentSchema',
+    'getDefaultSchema',
+    'getSchema',
+    'getSchemas',
+    'getUri',
+    'help',
+    'isOpen',
+    'quoteName',
+    'rollback',
+    'runSql',
+    'startTransaction',
+    'setCurrentSchema',
+    'setFetchWarnings',
+    'sql',
+    'defaultSchema',
+    'uri',
+    'currentSchema',
+    'setSavepoint',
+    'releaseSavepoint',
+    'rollbackTo'])
 
 //@ Session: accessing Schemas
 var schemas = mySession.getSchemas();

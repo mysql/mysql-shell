@@ -1,16 +1,3 @@
-//@ Session: validating members
-|close: OK|
-|createSchema: Missing|
-|getCurrentSchema: Missing|
-|getDefaultSchema: Missing|
-|getSchema: Missing|
-|getSchemas: Missing|
-|getUri: OK|
-|setCurrentSchema: Missing|
-|defaultSchema: Missing|
-|uri: OK|
-|currentSchema: Missing|
-
 //@ ClassicSession: accessing Schemas
 ||Invalid object member getSchemas
 

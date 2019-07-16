@@ -1,4 +1,4 @@
-#@<> Session: validating members
+#@<> Dba: validating members
 validate_members(dba, [
     'check_instance_configuration',
     'configure_instance',

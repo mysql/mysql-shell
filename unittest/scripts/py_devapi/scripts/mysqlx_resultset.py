@@ -10,33 +10,38 @@ schema = mySession.create_schema('js_shell_test')
 mySession.set_current_schema('js_shell_test')
 result = mySession.sql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))').execute()
 
-#@ SqlResult member validation
-sqlMembers = dir(result)
-print "SqlResult Members:", sqlMembers
-validateMember(sqlMembers, 'execution_time')
-validateMember(sqlMembers, 'warning_count')
-validateMember(sqlMembers, 'warnings')
-validateMember(sqlMembers, 'get_execution_time')
-validateMember(sqlMembers, 'get_warning_count')
-validateMember(sqlMembers, 'get_warnings')
-validateMember(sqlMembers, 'column_count')
-validateMember(sqlMembers, 'column_names')
-validateMember(sqlMembers, 'columns')
-validateMember(sqlMembers, 'get_column_count')
-validateMember(sqlMembers, 'get_column_names')
-validateMember(sqlMembers, 'get_columns')
-validateMember(sqlMembers, 'fetch_one')
-validateMember(sqlMembers, 'fetch_one_object')
-validateMember(sqlMembers, 'fetch_all')
-validateMember(sqlMembers, 'has_data')
-validateMember(sqlMembers, 'next_data_set')
-validateMember(sqlMembers, 'affected_row_count')
-validateMember(sqlMembers, 'auto_increment_value')
-validateMember(sqlMembers, 'get_affected_row_count')
-validateMember(sqlMembers, 'get_auto_increment_value')
+#@<> SqlResult member validation
+validate_members(result, [
+  'execution_time',
+  'warning_count',
+  'warnings_count',
+  'warnings',
+  'get_execution_time',
+  'get_warning_count',
+  'get_warnings',
+  'column_count',
+  'column_names',
+  'columns',
+  'get_column_count',
+  'get_column_names',
+  'get_columns',
+  'fetch_one',
+  'fetch_one_object',
+  'fetch_all',
+  'has_data',
+  'help',
+  'next_data_set',
+  'affected_row_count',
+  'affected_items_count',
+  'auto_increment_value',
+  'get_affected_row_count',
+  'get_affected_items_count',
+  'get_auto_increment_value',
+  'get_warnings_count',
+  'next_result'])
 
 
-#@ Result member validation
+#@<> Result member validation
 table = schema.get_table('buffer_table')
 result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()
 result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()
@@ -49,52 +54,67 @@ result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute()
 table = schema.get_table('buffer_table')
 collection = schema.create_collection('buffer_collection')
 
-resultMembers = dir(result)
-print "Result Members:", resultMembers
-validateMember(resultMembers, 'execution_time')
-validateMember(resultMembers, 'warning_count')
-validateMember(resultMembers, 'warnings')
-validateMember(resultMembers, 'get_execution_time')
-validateMember(resultMembers, 'get_warning_count')
-validateMember(resultMembers, 'get_warnings')
-validateMember(resultMembers, 'affected_item_count')
-validateMember(resultMembers, 'auto_increment_value')
-validateMember(resultMembers, 'generated_ids')
-validateMember(resultMembers, 'get_affected_item_count')
-validateMember(resultMembers, 'get_auto_increment_value')
-validateMember(resultMembers, 'get_generated_ids')
+validate_members(result, [
+  'execution_time',
+  'warning_count',
+  'warnings_count',
+  'warnings',
+  'get_affected_items_count',
+  'get_execution_time',
+  'get_warning_count',
+  'get_warnings',
+  'get_warnings_count',
+  'help',
+  'affected_item_count',
+  'affected_items_count',
+  'auto_increment_value',
+  'generated_ids',
+  'get_affected_item_count',
+  'get_auto_increment_value',
+  'get_generated_ids'])
 
-#@ RowResult member validation
+#@<> RowResult member validation
 result = table.select().execute()
-rowResultMembers = dir(result)
-print "RowResult Members:", rowResultMembers
-validateMember(rowResultMembers, 'execution_time')
-validateMember(rowResultMembers, 'warning_count')
-validateMember(rowResultMembers, 'warnings')
-validateMember(rowResultMembers, 'get_execution_time')
-validateMember(rowResultMembers, 'get_warning_count')
-validateMember(rowResultMembers, 'get_warnings')
-validateMember(rowResultMembers, 'column_count')
-validateMember(rowResultMembers, 'column_names')
-validateMember(rowResultMembers, 'columns')
-validateMember(rowResultMembers, 'get_column_count')
-validateMember(rowResultMembers, 'get_column_names')
-validateMember(rowResultMembers, 'get_columns')
-validateMember(rowResultMembers, 'fetch_one')
-validateMember(rowResultMembers, 'fetch_all')
 
-#@ DocResult member validation
+validate_members(result, [
+  'affected_items_count',
+  'execution_time',
+  'warning_count',
+  'warnings_count',
+  'warnings',
+  'fetch_one_object',
+  'get_affected_items_count',
+  'get_execution_time',
+  'get_warning_count',
+  'get_warnings',
+  'get_warnings_count',
+  'help',
+  'column_count',
+  'column_names',
+  'columns',
+  'get_column_count',
+  'get_column_names',
+  'get_columns',
+  'fetch_one',
+  'fetch_all'])
+
+#@<> DocResult member validation
 result = collection.find().execute()
-docResultMembers = dir(result)
-print "DocRowResult Members:", docResultMembers
-validateMember(docResultMembers, 'execution_time')
-validateMember(docResultMembers, 'warning_count')
-validateMember(docResultMembers, 'warnings')
-validateMember(docResultMembers, 'get_execution_time')
-validateMember(docResultMembers, 'get_warning_count')
-validateMember(docResultMembers, 'get_warnings')
-validateMember(docResultMembers, 'fetch_one')
-validateMember(docResultMembers, 'fetch_all')
+
+validate_members(result, [
+  'affected_items_count',
+  'execution_time',
+  'warning_count',
+  'warnings',
+  'warnings_count',
+  'get_affected_items_count',
+  'get_execution_time',
+  'get_warning_count',
+  'get_warnings',
+  'get_warnings_count',
+  'help',
+  'fetch_one',
+  'fetch_all'])
 
 #@ Resultset has_data() False
 result = mySession.sql('use js_shell_test').execute()
@@ -211,39 +231,31 @@ print object2
 #@ Resultset table
 print table.select(["count(*)"]).execute().fetch_one()[0]
 
-#@ Resultset row members
+#@<> Resultset row members
 result = mySession.sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"').execute();
 row = result.fetch_one();
 
-all_members = dir(row)
+validate_members(row, [
+  'length',
+  'get_field',
+  'get_length',
+  'help',
+  'alias',
+  'age'])
 
-# Remove the python built in members
-members = []
-for member in all_members:
-  if not member.startswith('__'):
-    members.append(member)
-
-print "Member Count: %s" % len(members)
-validateMember(members, 'length');
-validateMember(members, 'get_field');
-validateMember(members, 'get_length');
-validateMember(members, 'help');
-validateMember(members, 'alias');
-validateMember(members, 'age');
-
-# Resultset row index access
+#@ Resultset row index access
 print "Name with index: %s" % row[0]
 print "Age with index: %s" % row[1]
 print "Length with index: %s" % row[2]
 print "Gender with index: %s" % row[3]
 
-# Resultset row index access
+#@ Resultset row get_field access
 print "Name with get_field: %s" % row.get_field('alias')
 print "Age with get_field: %s" % row.get_field('age')
 print "Length with get_field: %s" % row.get_field('length')
 print "Unable to get gender from alias: %s" % row.get_field('alias')
 
-# Resultset property access
+#@ Resultset property access
 print "Name with property: %s" % row.alias
 print "Age with property: %s" % row.age
 print "Unable to get length with property: %s" %  row.length

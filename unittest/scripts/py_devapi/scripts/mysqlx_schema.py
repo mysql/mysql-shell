@@ -27,39 +27,26 @@ else:
     name_get_table="getTable"
     name_get_collection="getCollection"
 
-#@ Schema: validating members
-all_members = dir(schema)
-
-# Remove the python built in members
-members = []
-for member in all_members:
-  if not member.startswith('__'):
-    members.append(member)
-
-print "Member Count: %s" % len(members)
-
-validateMember(members, 'name')
-validateMember(members, 'schema')
-validateMember(members, 'session')
-validateMember(members, 'exists_in_database')
-validateMember(members, 'get_name')
-validateMember(members, 'get_schema')
-validateMember(members, 'get_session')
-validateMember(members, 'get_table')
-validateMember(members, 'get_tables')
-validateMember(members, 'get_collection')
-validateMember(members, 'get_collections')
-validateMember(members, 'create_collection')
-validateMember(members, 'get_collection_as_table')
-validateMember(members, 'help')
-validateMember(members, 'drop_collection')
-validateNotMember(members, 'drop_view')
-validateNotMember(members, 'drop_table')
-
-# Dynamic Properties
-validateMember(members, 'table1')
-validateMember(members, 'view1')
-validateMember(members, 'collection1')
+#@<> Schema: validating members
+validate_members(schema, [
+    'name',
+    'schema',
+    'session',
+    'exists_in_database',
+    'get_name',
+    'get_schema',
+    'get_session',
+    'get_table',
+    'get_tables',
+    'get_collection',
+    'get_collections',
+    'create_collection',
+    'get_collection_as_table',
+    'help',
+    'drop_collection',
+    'table1',
+    'view1',
+    'collection1'])
 
 #@ Testing schema name retrieving
 print 'get_name(): ' + schema.get_name()

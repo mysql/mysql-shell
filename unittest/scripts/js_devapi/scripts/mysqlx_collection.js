@@ -11,26 +11,27 @@ schema = mySession.createSchema('js_shell_test');
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
 
-//@ Validating collection members
-var members = dir(collection);
-validateMember(members, 'name');
-validateMember(members, 'session');
-validateMember(members, 'schema');
-validateMember(members, 'add');
-validateMember(members, 'addOrReplaceOne');
-validateMember(members, 'createIndex');
-validateMember(members, 'dropIndex');
-validateMember(members, 'existsInDatabase');
-validateMember(members, 'find');
-validateMember(members, 'getName');
-validateMember(members, 'getOne');
-validateMember(members, 'getSchema');
-validateMember(members, 'getSession');
-validateMember(members, 'help');
-validateMember(members, 'modify');
-validateMember(members, 'remove');
-validateMember(members, 'removeOne');
-validateMember(members, 'replaceOne');
+//@<> Validating collection members
+validateMembers(collection, [
+    'name',
+    'session',
+    'schema',
+    'add',
+    'addOrReplaceOne',
+    'createIndex',
+    'count',
+    'dropIndex',
+    'existsInDatabase',
+    'find',
+    'getName',
+    'getOne',
+    'getSchema',
+    'getSession',
+    'help',
+    'modify',
+    'remove',
+    'removeOne',
+    'replaceOne'])
 
 //@ Testing collection name retrieving
 print('getName(): ' + collection.getName());

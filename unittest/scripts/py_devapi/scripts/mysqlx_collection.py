@@ -11,35 +11,27 @@ schema = mySession.create_schema('py_shell_test')
 # Creates a test collection and inserts data into it
 collection = schema.create_collection('collection1')
 
-#@ Validating members
-all_members = dir(collection)
-
-# Remove the python built in members
-members = []
-for member in all_members:
-  if not member.startswith('__'):
-    members.append(member)
-
-print "Member Count: %s" % len(members)
-
-validateMember(members, 'name')
-validateMember(members, 'schema')
-validateMember(members, 'session')
-validateMember(members, 'add')
-validateMember(members, 'add_or_replace_one')
-validateMember(members, 'create_index')
-validateMember(members, 'drop_index')
-validateMember(members, 'exists_in_database')
-validateMember(members, 'find')
-validateMember(members, 'get_name')
-validateMember(members, 'get_one')
-validateMember(members, 'get_schema')
-validateMember(members, 'get_session')
-validateMember(members, 'help')
-validateMember(members, 'modify')
-validateMember(members, 'remove')
-validateMember(members, 'remove_one')
-validateMember(members, 'replace_one')
+#@<> Validating members
+validate_members(collection, [
+  'name',
+  'schema',
+  'session',
+  'add',
+  'add_or_replace_one',
+  'create_index',
+  'count',
+  'drop_index',
+  'exists_in_database',
+  'find',
+  'get_name',
+  'get_one',
+  'get_schema',
+  'get_session',
+  'help',
+  'modify',
+  'remove',
+  'remove_one',
+  'replace_one'])
 
 #@ Testing collection name retrieving
 print 'get_name(): ' + collection.get_name()

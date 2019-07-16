@@ -1,16 +1,3 @@
-#@ Session: validating members
-|close: OK|
-|create_schema: Missing|
-|get_current_schema: Missing|
-|get_default_schema: Missing|
-|get_schema: Missing|
-|get_schemas: Missing|
-|get_uri: OK|
-|set_current_schema: Missing|
-|default_schema: Missing|
-|uri: OK|
-|current_schema: Missing|
-
 #@ ClassicSession: accessing Schemas
 ||unknown attribute: get_schemas
 

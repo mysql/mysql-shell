@@ -1,9 +1,8 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-// validateMemer and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({force:true});
 
-//@ ReplicaSet: validating members
+//@<> ReplicaSet: validating members
 if (__have_ssl)
   var Cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
 else
@@ -11,15 +10,13 @@ else
 
 var rset = Cluster.getReplicaSet();
 
-var members = dir(rset);
-
-print("Replica Set Members:", members.length);
-validateMember(members, 'name');
-validateMember(members, 'getName');
-validateMember(members, 'addInstance');
-validateMember(members, 'removeInstance');
-validateMember(members, 'help');
-validateMember(members, 'rejoinInstance');
+validatemembers(rset, [
+  'name',
+  'getName',
+  'addInstance',
+  'removeInstance',
+  'help',
+  'rejoinInstance'])
 
 //@# ReplicaSet: addInstance errors
 rset.addInstance()

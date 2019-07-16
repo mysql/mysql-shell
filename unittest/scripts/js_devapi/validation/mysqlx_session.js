@@ -1,21 +1,3 @@
-//@ Session: validating members
-|close: OK|
-|createSchema: OK|
-|getCurrentSchema: OK|
-|getDefaultSchema: OK|
-|getSchema: OK|
-|getSchemas: OK|
-|getUri: OK|
-|setCurrentSchema: OK|
-|setFetchWarnings: OK|
-|sql: OK|
-|defaultSchema: OK|
-|uri: OK|
-|currentSchema: OK|
-|setSavepoint: OK|
-|releaseSavepoint: OK|
-|rollbackTo: OK|
-
 //@ Session: accessing Schemas
 |<Schema:mysql>|
 |<Schema:information_schema>|

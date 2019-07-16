@@ -30,6 +30,38 @@ function validate_crud_functions(crud, expected)
     }
 }
 
+function validateMembers(obj, expected)
+{
+    var actual = dir(obj);
+
+    // Ensures expected members are on the actual list
+    var missing = [];
+    for(exp of expected){
+        var pos = actual.indexOf(exp);
+        if(pos == -1){
+            missing.push(exp);
+        }
+        else{
+            actual.splice(pos, 1);
+        }
+    }
+  
+    var errors = []
+
+    if(missing.length) {
+        errors.push("Missing Members: " + missing.join(", "));
+    }
+
+    // help is ignored cuz it's always available
+    if (actual.length > 1  || (actual.length == 1 && actual[0] != 'help')) {
+      errors.push("Extra Members: " + actual.join(", "));
+    }
+  
+    if (errors.length) {
+      testutil.fail(errors.join("\n"))
+    }
+}
+
 function ensure_schema_does_not_exist(session, name){
 	try{
 		var schema = session.getSchema(name);
@@ -37,24 +69,6 @@ function ensure_schema_does_not_exist(session, name){
 	}
 	catch(err){
 		// Nothing happens, it means the schema did not exist
-	}
-}
-
-function validateMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": OK\n");
-	}
-	else{
-		print(member + ": Missing\n");
-	}
-}
-
-function validateNotMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": Unexpected\n");
-	}
-	else{
-		print(member + ": OK\n");
 	}
 }
 
@@ -347,3 +361,13 @@ function EXPECT_EQ(expected, actual, note) {
     testutil.fail(context);
   }
 }
+
+function EXPECT_STDOUT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.indexOf(text) < 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+

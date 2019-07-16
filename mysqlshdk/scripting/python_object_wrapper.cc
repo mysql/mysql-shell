@@ -439,10 +439,12 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
 static PyObject *object_dir_method(PyShObjObject *self, PyObject *) {
   const auto cobj = std::static_pointer_cast<Cpp_object_bridge>(*self->object);
   const auto members = cobj->get_members();
-  PyObject *list = PyList_New(members.size());
+  std::set<std::string> unique_names(members.begin(), members.end());
+
+  PyObject *list = PyList_New(unique_names.size());
 
   int i = 0;
-  for (const auto &m : members) {
+  for (const auto &m : unique_names) {
     PyList_SET_ITEM(list, i++, PyString_FromString(m.c_str()));
   }
 

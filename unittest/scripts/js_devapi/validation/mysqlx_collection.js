@@ -1,22 +1,3 @@
-//@ Validating collection members
-|name: OK|
-|session: OK|
-|schema: OK|
-|add: OK|
-|addOrReplaceOne: OK|
-|createIndex: OK|
-|dropIndex: OK|
-|existsInDatabase: OK|
-|find: OK|
-|getName: OK|
-|getOne: OK|
-|getSchema: OK|
-|getSession: OK|
-|help: OK|
-|modify: OK|
-|remove: OK|
-|removeOne: OK|
-|replaceOne: OK|
 
 //@ Testing collection name retrieving
 |getName(): collection1|

@@ -1,6 +1,5 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-// validateMember and validateNotMember are defined on the setup script
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 // ensure my.cnf file is saved/restored for replay in recording mode
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -9,24 +8,22 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 shell.connect("mysql://root:root@localhost:" + __mysql_sandbox_port1);
 
-//@ Session: validating members
-var members = dir(dba);
-
-print("Session Members:", members.length);
-validateMember(members, 'createCluster');
-validateMember(members, 'deleteSandboxInstance');
-validateMember(members, 'deploySandboxInstance');
-validateMember(members, 'dropMetadataSchema');
-validateMember(members, 'getCluster');
-validateMember(members, 'help');
-validateMember(members, 'killSandboxInstance');
-validateMember(members, 'startSandboxInstance');
-validateMember(members, 'checkInstanceConfiguration');
-validateMember(members, 'stopSandboxInstance');
-validateMember(members, 'configureInstance');
-validateMember(members, 'configureLocalInstance');
-validateMember(members, 'verbose');
-validateMember(members, 'rebootClusterFromCompleteOutage');
+//@<> Dba: validating members
+validateMembers(dba, [
+    'checkInstanceConfiguration',
+    'configureInstance',
+    'configureLocalInstance',
+    'createCluster',
+    'deleteSandboxInstance',
+    'deploySandboxInstance',
+    'dropMetadataSchema',
+    'getCluster',
+    'help',
+    'killSandboxInstance',
+    'rebootClusterFromCompleteOutage',
+    'startSandboxInstance',
+    'stopSandboxInstance',
+    'verbose'])
 
 //@# Dba: createCluster errors
 dba.createCluster();

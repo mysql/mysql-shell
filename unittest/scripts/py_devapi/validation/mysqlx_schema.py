@@ -1,28 +1,3 @@
-#@ Schema: validating members
-|Member Count: 18|
-
-|name: OK|
-|schema: OK|
-|session: OK|
-|exists_in_database: OK|
-|get_name: OK|
-|get_schema: OK|
-|get_session: OK|
-|get_table: OK|
-|get_tables: OK|
-|get_collection: OK|
-|get_collections: OK|
-|create_collection: OK|
-|get_collection_as_table: OK|
-|help: OK|
-|drop_collection: OK|
-|drop_view: OK|
-|drop_table: OK|
-
-|table1: OK|
-|view1: OK|
-|collection1: OK|
-
 #@ Testing schema name retrieving
 |get_name(): js_shell_test|
 |name: js_shell_test|

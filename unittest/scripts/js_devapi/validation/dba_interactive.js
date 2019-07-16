@@ -1,23 +1,6 @@
 //@ Initialization
 ||
 
-//@ Session: validating members
-|Session Members: 14|
-|createCluster: OK|
-|deleteSandboxInstance: OK|
-|deploySandboxInstance: OK|
-|dropMetadataSchema: OK|
-|getCluster: OK|
-|help: OK|
-|killSandboxInstance: OK|
-|startSandboxInstance: OK|
-|checkInstanceConfiguration: OK|
-|stopSandboxInstance: OK|
-|configureInstance: OK|
-|configureLocalInstance: OK|
-|verbose: OK|
-|rebootClusterFromCompleteOutage: OK|
-
 //@# Dba: createCluster errors
 ||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 0
 ||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 4

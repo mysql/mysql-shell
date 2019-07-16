@@ -1,5 +1,4 @@
-// Assumptions: validateMember exists
-
+// Assumptions: validateMembers exists
 var mysql = require('mysql');
 
 // The tests assume the next variables have been put in place
@@ -11,12 +10,11 @@ var mysql = require('mysql');
 // __uripwd: <uri>:<pwd>@<host>
 // __pwd: <pwd>
 
-//@ mysql module: exports
-var exports = dir(mysql);
-print('Exported Items:', exports.length);
-validateMember(exports, 'getClassicSession');
-validateMember(exports, 'getSession');
-validateMember(exports, 'help');
+//@<> mysql module: exports
+validateMembers(mysql, [
+    'getClassicSession',
+    'getSession',
+    'help'])
 
 //@# getClassicSession errors
 mysql.getClassicSession()

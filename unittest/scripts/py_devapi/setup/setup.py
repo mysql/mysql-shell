@@ -23,6 +23,37 @@ def validate_crud_functions(crud, expected):
 	else:
 		print "Extra Functions:", actual
 
+def validate_members(object, expected_members):
+  all_members = dir(object)
+
+  # Remove the python built in members
+  members = []
+  for member in all_members:
+    if not member.startswith('__'):
+      members.append(member)
+
+  missing = []
+  for expected in expected_members:
+    try:
+      index = members.index(expected)
+      members.remove(expected)
+    except:
+      missing.append(expected)
+
+  errors = []
+  error = ""
+  if len(members):
+    error = "Unexpected Members: %s" % ', '.join(members)
+    errors.append(error)
+
+  error = ""
+  if len(missing):
+    error = "Missing Members: %s" % ', '.join(missing)
+    errors.append(error)
+
+  if len(errors):
+    testutil.fail(', '.join(errors))
+
 def ensure_schema_does_not_exist(session, name):
 	try:
 		schema = session.get_schema(name)
@@ -30,30 +61,6 @@ def ensure_schema_does_not_exist(session, name):
 	except:
 		# Nothing happens, it means the schema did not exist
 		pass
-
-def validateMember(memberList, member):
-	index = -1
-	try:
-		index = memberList.index(member)
-	except:
-		pass
-
-	if index != -1:
-		print member + ": OK\n"
-	else:
-		print member + ": Missing\n"
-
-def validateNotMember(memberList, member):
-	index = -1
-	try:
-		index = memberList.index(member)
-	except:
-		pass
-
-	if index != -1:
-		print member + ": Unexpected\n"
-	else:
-		print member + ": OK\n"
 
 def getSchemaFromList(schemas, name):
   for schema in schemas:

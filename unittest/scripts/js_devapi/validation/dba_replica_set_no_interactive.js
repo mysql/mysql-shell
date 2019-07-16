@@ -1,12 +1,3 @@
-//@ ReplicaSet: validating members
-|Replica Set Members: 6|
-|name: OK|
-|getName: OK|
-|addInstance: OK|
-|removeInstance: OK|
-|help: OK|
-|rejoinInstance: OK|
-
 //@# ReplicaSet: addInstance errors
 ||Invalid number of arguments in ReplicaSet.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in ReplicaSet.addInstance, expected 1 to 2 but got 4

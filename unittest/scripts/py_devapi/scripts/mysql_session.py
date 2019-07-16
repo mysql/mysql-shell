@@ -1,32 +1,21 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
-# validateMemer and validateNotMember are defined on the setup script
 from mysqlsh import mysql
 
-#@ Session: validating members
+#@<> Session: validating members
 classicSession = mysql.get_classic_session(__uripwd)
-all_members = dir(classicSession)
 
-# Remove the python built in members
-sessionMembers = []
-for member in all_members:
-  if not member.startswith('__'):
-    sessionMembers.append(member)
-
-
-validateMember(sessionMembers, 'close')
-validateMember(sessionMembers, 'create_schema')
-validateMember(sessionMembers, 'get_current_schema')
-validateMember(sessionMembers, 'get_default_schema')
-validateMember(sessionMembers, 'get_schema')
-validateMember(sessionMembers, 'get_schemas')
-validateMember(sessionMembers, 'get_uri')
-validateMember(sessionMembers, 'set_current_schema')
-validateMember(sessionMembers, 'query')
-validateMember(sessionMembers, 'run_sql')
-validateMember(sessionMembers, 'default_schema')
-validateMember(sessionMembers, 'uri')
-validateMember(sessionMembers, 'current_schema')
+validate_members(classicSession, [
+  'close',
+  'commit',
+  'get_uri',
+  'help',
+  'is_open',
+  'query',
+  'rollback',
+  'run_sql',
+  'start_transaction',
+  'uri'])
 
 #@ ClassicSession: accessing Schemas
 schemas = classicSession.get_schemas();

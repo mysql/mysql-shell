@@ -10,32 +10,37 @@ var schema = mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 var result = mySession.sql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))').execute();
 
-//@ SqlResult member validation
-var sqlMembers = dir(result);
-print ("SqlResult Members:" + sqlMembers);
-validateMember(sqlMembers, 'executionTime');
-validateMember(sqlMembers, 'warningCount');
-validateMember(sqlMembers, 'warnings');
-validateMember(sqlMembers, 'getExecutionTime');
-validateMember(sqlMembers, 'getWarningCount');
-validateMember(sqlMembers, 'getWarnings');
-validateMember(sqlMembers, 'columnCount');
-validateMember(sqlMembers, 'columnNames');
-validateMember(sqlMembers, 'columns');
-validateMember(sqlMembers, 'getColumnCount');
-validateMember(sqlMembers, 'getColumnNames');
-validateMember(sqlMembers, 'getColumns');
-validateMember(sqlMembers, 'fetchOne');
-validateMember(sqlMembers, 'fetchOneObject');
-validateMember(sqlMembers, 'fetchAll');
-validateMember(sqlMembers, 'hasData');
-validateMember(sqlMembers, 'nextDataSet');
-validateMember(sqlMembers, 'affectedRowCount');
-validateMember(sqlMembers, 'autoIncrementValue');
-validateMember(sqlMembers, 'getAffectedRowCount');
-validateMember(sqlMembers, 'getAutoIncrementValue');
+//@<> SqlResult member validation
+validateMembers(result, [
+    'executionTime',
+    'warningCount',
+    'warnings',
+    'warningsCount',
+    'getExecutionTime',
+    'getWarningCount',
+    'getWarnings',
+    'getWarningsCount',
+    'columnCount',
+    'columnNames',
+    'columns',
+    'getColumnCount',
+    'getColumnNames',
+    'getColumns',
+    'fetchOne',
+    'fetchOneObject',
+    'fetchAll',
+    'help',
+    'hasData',
+    'nextDataSet',
+    'nextResult',
+    'affectedRowCount',
+    'autoIncrementValue',
+    'affectedItemsCount',
+    'getAffectedRowCount',
+    'getAffectedItemsCount',
+    'getAutoIncrementValue'])
 
-//@ Result member validation
+//@<> Result member validation
 var table = schema.getTable('buffer_table');
 var result = table.insert({ 'name': 'jack', 'age': 17, 'gender': 'male' }).execute();
 var result = table.insert({ 'name': 'adam', 'age': 15, 'gender': 'male' }).execute();
@@ -48,53 +53,66 @@ var result = table.insert({ 'name': 'angel', 'age': 14, 'gender': 'male' }).exec
 var table = schema.getTable('buffer_table');
 var collection = schema.createCollection('buffer_collection');
 
-var resultMembers = dir(result);
-print ("Result Members:" + resultMembers);
-validateMember(resultMembers, 'executionTime');
-validateMember(resultMembers, 'warningCount');
-validateMember(resultMembers, 'warnings');
-validateMember(resultMembers, 'getExecutionTime');
-validateMember(resultMembers, 'getWarningCount');
-validateMember(resultMembers, 'getWarnings');
-validateMember(resultMembers, 'affectedItemCount');
-validateMember(resultMembers, 'autoIncrementValue');
-validateMember(resultMembers, 'generatedIds');
-validateMember(resultMembers, 'getAffectedItemCount');
-validateMember(resultMembers, 'getAutoIncrementValue');
-validateMember(resultMembers, 'getGeneratedIds');
+validateMembers(result, [
+    'executionTime',
+    'warningCount',
+    'warnings',
+    'warningsCount',
+    'getExecutionTime',
+    'getWarningCount',
+    'getWarnings',
+    'getWarningsCount',
+    'affectedItemCount',
+    'affectedItemsCount',
+    'autoIncrementValue',
+    'generatedIds',
+    'help',
+    'getAffectedItemCount',
+    'getAffectedItemsCount',
+    'getAutoIncrementValue',
+    'getGeneratedIds'])
 
-//@ RowResult member validation
+//@<> RowResult member validation
 var result = table.select().execute();
-var rowResultMembers = dir(result);
-print ("RowResult Members:" + rowResultMembers);
-validateMember(rowResultMembers, 'executionTime');
-validateMember(rowResultMembers, 'warningCount');
-validateMember(rowResultMembers, 'warnings');
-validateMember(rowResultMembers, 'getExecutionTime');
-validateMember(rowResultMembers, 'getWarningCount');
-validateMember(rowResultMembers, 'getWarnings');
-validateMember(rowResultMembers, 'columnCount');
-validateMember(rowResultMembers, 'columnNames');
-validateMember(rowResultMembers, 'columns');
-validateMember(rowResultMembers, 'getColumnCount');
-validateMember(rowResultMembers, 'getColumnNames');
-validateMember(rowResultMembers, 'getColumns');
-validateMember(rowResultMembers, 'fetchOne');
-validateMember(rowResultMembers, 'fetchOneObject');
-validateMember(rowResultMembers, 'fetchAll');
+validateMembers(result, [
+    'affectedItemsCount',
+    'executionTime',
+    'warningCount',
+    'warnings',
+    'warningsCount',
+    'getAffectedItemsCount',
+    'getExecutionTime',
+    'getWarningCount',
+    'getWarnings',
+    'getWarningsCount',
+    'columnCount',
+    'columnNames',
+    'columns',
+    'getColumnCount',
+    'getColumnNames',
+    'getColumns',
+    'help',
+    'fetchOne',
+    'fetchOneObject',
+    'fetchAll'])
 
-//@ DocResult member validation
+//@<> DocResult member validation
 var result = collection.find().execute();
-var docResultMembers = dir(result);
-print ("DocRowResult Members:" + docResultMembers);
-validateMember(docResultMembers, 'executionTime');
-validateMember(docResultMembers, 'warningCount');
-validateMember(docResultMembers, 'warnings');
-validateMember(docResultMembers, 'getExecutionTime');
-validateMember(docResultMembers, 'getWarningCount');
-validateMember(docResultMembers, 'getWarnings');
-validateMember(docResultMembers, 'fetchOne');
-validateMember(docResultMembers, 'fetchAll');
+
+validateMembers(result, [
+    'affectedItemsCount',
+    'executionTime',
+    'warningCount',
+    'warnings',
+    'warningsCount',
+    'getAffectedItemsCount',
+    'getExecutionTime',
+    'getWarningCount',
+    'getWarnings',
+    'getWarningsCount',
+    'help',
+    'fetchOne',
+    'fetchAll'])
 
 
 //@ Resultset hasData false
@@ -209,31 +227,31 @@ println(object2)
 //@ Resultset table
 print(table.select(["count(*)"]).execute().fetchOne()[0]);
 
-//@ Resultset row members
+//@<> Resultset row members
 var result = mySession.sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"').execute();
 var row = result.fetchOne();
-var members = dir(row);
-println("Member Count: " + members.length);
-validateMember(members, 'length');
-validateMember(members, 'getField');
-validateMember(members, 'getLength');
-validateMember(members, 'help');
-validateMember(members, 'alias');
-validateMember(members, 'age');
 
-// Resultset row index access
+validateMembers(row, [
+    'length',
+    'getField',
+    'getLength',
+    'help',
+    'alias',
+    'age'])
+
+//@ Resultset row index access
 println("Name with index: " +  row[0]);
 println("Age with index: " +  row[1]);
 println("Length with index: " +  row[2]);
 println("Gender with index: " +  row[3]);
 
-// Resultset row index access
+//@ Resultset row getField access
 println("Name with getField: " +  row.getField('alias'));
 println("Age with getField: " +  row.getField('age'));
 println("Length with getField: " +  row.getField('length'));
 println("Unable to get gender from alias: " +  row.getField('alias'));
 
-// Resultset property access
+//@ Resultset property access
 println("Name with property: " +  row.alias);
 println("Age with property: " +  row.age);
 println("Unable to get length with property: " +  row.length);

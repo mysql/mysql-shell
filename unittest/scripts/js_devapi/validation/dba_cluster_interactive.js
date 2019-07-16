@@ -1,27 +1,6 @@
 //@ Initialization
 ||
 
-//@ Cluster: validating members
-|Cluster Members: 19|
-|name: OK|
-|getName: OK|
-|addInstance: OK|
-|removeInstance: OK|
-|rejoinInstance: OK|
-|checkInstanceState: OK|
-|describe: OK|
-|status: OK|
-|help: OK|
-|dissolve: OK|
-|disconnect: OK|
-|rescan: OK|
-|forceQuorumUsingPartitionOf: OK|
-|switchToSinglePrimaryMode: OK|
-|switchToMultiPrimaryMode: OK|
-|setPrimaryInstance: OK|
-|options: OK|
-|setOption: OK|
-|setInstanceOption: OK|
 
 //@ Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0

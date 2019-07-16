@@ -29,33 +29,27 @@ if (lcrow[0] == 1) {
     var name_get_collection="getCollection";
 }
 
-//@ Schema: validating members
-var members = dir(schema);
+//@<> Schema: validating members
 
-print("Member Count:", members.length);
-
-validateMember(members, 'name');
-validateMember(members, 'schema');
-validateMember(members, 'session');
-validateMember(members, 'existsInDatabase');
-validateMember(members, 'getName');
-validateMember(members, 'getSchema');
-validateMember(members, 'getSession');
-validateMember(members, 'getTable');
-validateMember(members, 'getTables');
-validateMember(members, 'getCollection');
-validateMember(members, 'getCollections');
-validateMember(members, 'createCollection');
-validateMember(members, 'getCollectionAsTable');
-validateMember(members, 'help');
-validateMember(members, 'dropCollection')
-validateNotMember(members, 'dropView')
-validateNotMember(members, 'dropTable')
-
-//Dynamic Properties
-validateMember(members, 'table1');
-validateMember(members, 'view1');
-validateMember(members, 'collection1');
+validateMembers(schema, [
+    'name',
+    'schema',
+    'session',
+    'existsInDatabase',
+    'getName',
+    'getSchema',
+    'getSession',
+    'getTable',
+    'getTables',
+    'getCollection',
+    'getCollections',
+    'createCollection',
+    'getCollectionAsTable',
+    'help',
+    'dropCollection',
+    'table1',
+    'view1',
+    'collection1'])
 
 
 //@ Testing schema name retrieving

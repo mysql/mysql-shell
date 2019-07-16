@@ -552,21 +552,3 @@ function validate_crud_functions(crud, expected)
         print("Extra Functions:", actual);
     }
 }
-
-function validateMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": OK\n");
-	}
-	else{
-		print(member + ": Missing\n");
-	}
-}
-
-function validateNotMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": Unexpected\n");
-	}
-	else{
-		print(member + ": OK\n");
-	}
-}

@@ -1,26 +1,3 @@
-#@ Validating members
-|Member Count: 19|
-
-|name: OK|
-|schema: OK|
-|session: OK|
-|add: OK|
-|add_or_replace_one: OK|
-|create_index: OK|
-|drop_index: OK|
-|exists_in_database: OK|
-|find: OK|
-|get_name: OK|
-|get_one: OK|
-|get_schema: OK|
-|get_session: OK|
-|help: OK|
-|modify: OK|
-|remove: OK|
-|remove_one: OK|
-|replace_one: OK|
-
-
 #@ Testing collection name retrieving
 |get_name(): collection1|
 |name: collection1|

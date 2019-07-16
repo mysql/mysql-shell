@@ -104,20 +104,14 @@ def validate_members(object, expected_members):
   for expected in expected_members:
     try:
       index = members.index(expected)
+      members.remove(expected)
     except:
       missing.append(expected)
 
-  unexpected = []
-  for member in members:
-    try:
-      index = expected_members.index(member)
-    except:
-      unexpected.append(member)
-
   errors = []
   error = ""
-  if len(unexpected):
-    error = "Unexpected Members: %s" % ', '.join(unexpected)
+  if len(members):
+    error = "Unexpected Members: %s" % ', '.join(members)
     errors.append(error)
 
   error = ""

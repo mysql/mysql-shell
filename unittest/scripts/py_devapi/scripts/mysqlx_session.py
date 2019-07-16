@@ -1,34 +1,35 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-# validateMemer and validateNotMember are defined on the setup script
 from mysqlsh import mysqlx
 
-#@ Session: validating members
+#@<> Session: validating members
 mySession = mysqlx.get_session(__uripwd)
-all_members = dir(mySession)
 
-# Remove the python built in members
-mySessionMembers = []
-for member in all_members:
-  if not member.startswith('__'):
-    mySessionMembers.append(member)
-
-validateMember(mySessionMembers, 'close')
-validateMember(mySessionMembers, 'create_schema')
-validateMember(mySessionMembers, 'get_current_schema')
-validateMember(mySessionMembers, 'get_default_schema')
-validateMember(mySessionMembers, 'get_schema')
-validateMember(mySessionMembers, 'get_schemas')
-validateMember(mySessionMembers, 'get_uri')
-validateMember(mySessionMembers, 'set_current_schema')
-validateMember(mySessionMembers, 'set_fetch_warnings')
-validateMember(mySessionMembers, 'sql')
-validateMember(mySessionMembers, 'default_schema')
-validateMember(mySessionMembers, 'uri')
-validateMember(mySessionMembers, 'current_schema')
-validateMember(mySessionMembers, 'set_savepoint')
-validateMember(mySessionMembers, 'release_savepoint')
-validateMember(mySessionMembers, 'rollback_to')
+validate_members(mySession, [
+  'close',
+  'commit',
+  'create_schema',
+  'drop_schema',
+  'get_current_schema',
+  'get_default_schema',
+  'get_schema',
+  'get_schemas',
+  'get_uri',
+  'help',
+  'is_open',
+  'set_current_schema',
+  'set_fetch_warnings',
+  'quote_name',
+  'rollback',
+  'run_sql',
+  'start_transaction',
+  'sql',
+  'default_schema',
+  'uri',
+  'current_schema',
+  'set_savepoint',
+  'release_savepoint',
+  'rollback_to'])
 
 #@ Session: accessing Schemas
 schemas = mySession.get_schemas()

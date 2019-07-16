@@ -1,6 +1,5 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-// validateMemer and validateNotMember are defined on the setup script
 
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
@@ -31,30 +30,28 @@ var desc = Cluster.describe();
 var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
 
 
-var members = dir(Cluster);
-
-//@ Cluster: validating members
-print("Cluster Members:", members.length);
-
-validateMember(members, 'name');
-validateMember(members, 'getName');
-validateMember(members, 'addInstance');
-validateMember(members, 'removeInstance');
-validateMember(members, 'rejoinInstance');
-validateMember(members, 'checkInstanceState');
-validateMember(members, 'describe');
-validateMember(members, 'status');
-validateMember(members, 'help');
-validateMember(members, 'dissolve');
-validateMember(members, 'disconnect');
-validateMember(members, 'rescan');
-validateMember(members, 'forceQuorumUsingPartitionOf');
-validateMember(members, 'switchToSinglePrimaryMode');
-validateMember(members, 'switchToMultiPrimaryMode');
-validateMember(members, 'setPrimaryInstance');
-validateMember(members, 'options');
-validateMember(members, 'setOption');
-validateMember(members, 'setInstanceOption');
+//@<> Cluster: validating members
+validateMembers(Cluster, [
+  'name',
+  'getName',
+  'addInstance',
+  'removeInstance',
+  'rejoinInstance',
+  'checkInstanceState',
+  'describe',
+  'status',
+  'help',
+  'dissolve',
+  'disconnect',
+  'rescan',
+  'forceQuorumUsingPartitionOf',
+  'switchToSinglePrimaryMode',
+  'switchToMultiPrimaryMode',
+  'setPrimaryInstance',
+  'options',
+  'setOption',
+  'setInstanceOption'
+])
 
 //@ Cluster: addInstance errors
 Cluster.addInstance();
