@@ -25,7 +25,7 @@ also be used to connect to and send SQL commands to MySQL server using the
 classic MySQL protocol.
 
 For more information about how to use MySQL Shell see
-https://dev.mysql.com/doc/refman/8.0/en/mysql-shell.html
+https://dev.mysql.com/doc/mysql-shell/8.0/en/
 
 For more information about how to configure and work with an InnoDB cluster
 see https://dev.mysql.com/doc/refman/en/mysql-innodb-cluster-userguide.html
@@ -53,7 +53,7 @@ For license and attribution notices for these materials, please refer to
 the LICENSE file.
 
 For more information on MySQL Shell (part of MySQL Server), visit
-  https://dev.mysql.com/doc/refman/8.0/en/mysql-shell.html
+  https://dev.mysql.com/doc/mysql-shell/8.0/en/
 
 For additional downloads and the source of MySQL Shell (part of MySQL Server),
 visit
