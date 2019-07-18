@@ -95,7 +95,7 @@ Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instanc
 ||
 
 //@<OUT> Get cluster operation must show a warning because there is no quorum
-WARNING: Cluster has no quorum and cannot process write transactions: 1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
+WARNING: Cluster has no quorum and cannot process write transactions: Group has no quorum
 
 //@ Cluster.forceQuorumUsingPartitionOf errors
 ||Cluster.forceQuorumUsingPartitionOf: Invalid number of arguments, expected 1 to 2 but got 0

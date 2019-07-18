@@ -50,13 +50,13 @@
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/dba/create_cluster.h"
+#include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -565,20 +565,17 @@ void Dba::connect_to_target_group(
         "managed");
 
   if (connect_to_primary) {
-    if (!mysqlshdk::gr::is_primary(*target_member)) {
-      log_info("%s is not a primary, will try to find one and reconnect",
-               target_member->descr().c_str());
-      auto metadata(
-          mysqlshdk::innodbcluster::Metadata_mysql::create(target_member));
+    std::string primary_uri = find_primary_member_uri(target_member, false);
 
-      // We need a primary, but the shell is not connected to one, so we need
-      // to find out where it is and connect to it
-      mysqlshdk::innodbcluster::Cluster_group_client cluster(
-          metadata, target_member->get_session());
+    if (primary_uri.empty()) {
+      throw shcore::Exception::runtime_error(
+          "Unable to find a primary member in the cluster");
+    } else if (primary_uri !=
+               target_member->get_connection_options().uri_endpoint()) {
+      log_info("%s is not a primary, will try to find one and reconnect",
+               target_member->get_connection_options().as_uri().c_str());
 
       try {
-        std::string primary_uri = cluster.find_uri_to_any_primary(
-            mysqlshdk::innodbcluster::Protocol_type::Classic);
         mysqlshdk::db::Connection_options coptions(primary_uri);
 
         coptions.set_login_options_from(
@@ -601,9 +598,6 @@ void Dba::connect_to_target_group(
             std::string("Unable to find a primary member in the cluster: ") +
             e.what());
       }
-    } else {
-      // already the primary, but check if there's quorum
-      mysqlshdk::innodbcluster::check_quorum(target_member.get());
     }
   }
 
@@ -709,9 +703,9 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       // also find the primary and connect to it, unless target is already
       // primary or connectToPrimary:false was given
       connect_to_target_group({}, &metadata, &group_server, connect_to_primary);
-    } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
+    } catch (const shcore::Exception &e) {
       // Print warning in case a cluster error is found (e.g., no quorum).
-      if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+      if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
         console->print_warning(
             "Cluster has no quorum and cannot process write transactions: " +
             std::string(e.what()));
@@ -720,8 +714,8 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
                                e.format());
       }
 
-      if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum &&
-          fallback_to_anything && connect_to_primary) {
+      if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM && fallback_to_anything &&
+          connect_to_primary) {
         log_info("Retrying getCluster() without connectToPrimary");
         connect_to_target_group({}, &metadata, &group_server, false);
       } else {
@@ -755,8 +749,8 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
     return shcore::Value(
         get_cluster(default_cluster ? nullptr : cluster_name.c_str(), metadata,
                     group_server));
-  } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
-    if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum)
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM)
       throw shcore::Exception::runtime_error(
           get_function_name("getCluster") +
           ": Unable to find a cluster PRIMARY member from the active shell "
@@ -766,9 +760,12 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
           get_function_name("getCluster") +
           "(null, {connectToPrimary:false}) to get a read-only cluster "
           "handle.");
-    throw;
+    try {
+      throw;
+    }
+    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
   }
-  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(get_function_name("getCluster"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 }
 
 std::shared_ptr<Cluster> Dba::get_cluster(
@@ -2263,7 +2260,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   try {
     connect_to_target_group({}, &metadata, &target_instance, false);
   }
-  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("rebootClusterFromCompleteOutage"));
 
   shcore::Value ret_val;

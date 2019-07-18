@@ -31,6 +31,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "modules/adminapi/dba_utils.h"
 #include "modules/devapi/mod_mysqlx.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"  // temporary
 #include "modules/devapi/mod_mysqlx_schema.h"
@@ -45,8 +46,6 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
-#include "mysqlshdk/libs/innodbcluster/cluster.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "scripting/shexcept.h"
@@ -983,33 +982,20 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
   log_info("Redirecting session from '%s' to a %s of its InnoDB cluster...",
            uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
 
-  std::shared_ptr<mysqlsh::dba::Instance> instance =
-      std::make_shared<mysqlsh::dba::Instance>(session);
-  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> meta(
-      mysqlshdk::innodbcluster::Metadata_mysql::create(instance));
-
-  mysqlshdk::innodbcluster::Cluster_group_client cluster(meta, session);
-
-  std::vector<mysqlshdk::innodbcluster::Instance_info> candidates;
   std::string redirect_uri;
 
   mysqlshdk::db::Connection_options connection =
       session->get_connection_options();
-  mysqlshdk::innodbcluster::Protocol_type proto =
-      mysqlshdk::innodbcluster::Protocol_type::X;
-  switch (connection.get_session_type()) {
-    case mysqlsh::SessionType::X:
-      proto = mysqlshdk::innodbcluster::Protocol_type::X;
-      break;
-    case mysqlsh::SessionType::Auto:
-      assert(0);  // not supposed to happen, but let it fall through in release
-    case mysqlsh::SessionType::Classic:
-      proto = mysqlshdk::innodbcluster::Protocol_type::Classic;
-      break;
-  }
+
+  auto instance = std::make_shared<mysqlsh::dba::Instance>(session);
 
   if (secondary) {
-    if (!cluster.single_primary()) {
+    bool single_primary;
+    redirect_uri = dba::find_secondary_member_uri(
+        instance, connection.get_session_type() == mysqlsh::SessionType::X,
+        &single_primary);
+
+    if (!single_primary) {
       log_error(
           "Redirection to secondary but cluster for %s is not single_primary "
           "mode",
@@ -1017,24 +1003,23 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
       throw std::runtime_error(
           "Secondary member requested, but cluster is multi-primary");
     }
-
-    // check if this session goes to a GR secondary
-    if (!mysqlshdk::gr::is_primary(*instance)) {
-      log_info("%s is already a secondary", uri.c_str());
-      return false;
+    if (redirect_uri.empty()) {
+      throw std::runtime_error("No secondaries found in InnoDB cluster group");
     }
-    log_info("Connected host %s is not secondary, trying to find one...",
-             uri.c_str());
-    redirect_uri = cluster.find_uri_to_any_secondary(proto);
   } else {
-    // check if this session goes to a GR primary
-    if (mysqlshdk::gr::is_primary(*instance)) {
-      log_info("%s is already a primary", uri.c_str());
+    bool single_primary;
+    redirect_uri = dba::find_primary_member_uri(
+        instance, connection.get_session_type() == mysqlsh::SessionType::X,
+        &single_primary);
+
+    if (!single_primary) {
       return false;
     }
-    log_info("Connected host is not primary, trying to find one...");
-    redirect_uri = cluster.find_uri_to_any_primary(proto);
+    if (redirect_uri.empty()) {
+      throw std::runtime_error("No primaries found in InnoDB cluster group");
+    }
   }
+  if (redirect_uri == connection.uri_endpoint()) return false;
 
   log_info("Reconnecting to %s instance of the InnoDB cluster (%s)...",
            redirect_uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");

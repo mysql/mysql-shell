@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 

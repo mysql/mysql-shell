@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -188,58 +189,13 @@ void Topology_configuration_command::update_topology_mode_metadata(
   // Since we're switching to single-primary mode, the active session may not
   // be to the newly elected primary, thereby we must get a session to
   // it to perform the Metadata changes
-  if (!mysqlshdk::gr::is_primary(*m_cluster_session_instance)) {
-    log_debug(
-        "%s is not a primary, will try to find one and reconnect",
-        m_cluster_session_instance->get_connection_options().as_uri().c_str());
+  m_replicaset->get_cluster()->ensure_updatable(true);
 
-    auto metadata(mysqlshdk::innodbcluster::Metadata_mysql::create(
-        m_cluster_session_instance));
-
-    mysqlshdk::innodbcluster::Cluster_group_client cluster(
-        metadata, m_cluster_session_instance->get_session());
-
-    std::shared_ptr<Instance> primary_instance;
-
-    // Find the primary
-    std::string primary_uri;
-    try {
-      primary_uri = cluster.find_uri_to_any_primary(
-          mysqlshdk::innodbcluster::Protocol_type::Classic);
-    } catch (const std::exception &e) {
-      throw shcore::Exception::runtime_error(
-          std::string("Unable to find a primary member in the cluster: ") +
-          e.what());
-    }
-
-    // Get the session of the primary
-    mysqlshdk::db::Connection_options coptions(primary_uri);
-    primary_uri =
-        coptions.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
-    for (const auto &instance : m_cluster_instances) {
-      std::string instance_uri = instance->get_connection_options().as_uri(
-          mysqlshdk::db::uri::formats::only_transport());
-
-      if (instance_uri == primary_uri) {
-        primary_instance = std::make_shared<Instance>(instance->get_session());
-      }
-    }
-
-    std::shared_ptr<MetadataStorage> new_metadata;
-
-    new_metadata = shcore::make_unique<MetadataStorage>(primary_instance);
-
-    // Update the topology mode in the Metadata
-    new_metadata->update_cluster_topology_mode(
-        m_replicaset->get_cluster()->get_id(), topology_mode);
-  } else {
-    // Update the topology mode in the Metadata
-    m_replicaset->get_cluster()
-        ->get_metadata_storage()
-        ->update_cluster_topology_mode(m_replicaset->get_cluster()->get_id(),
-                                       topology_mode);
-  }
+  // Update the topology mode in the Metadata
+  m_replicaset->get_cluster()
+      ->get_metadata_storage()
+      ->update_cluster_topology_mode(m_replicaset->get_cluster()->get_id(),
+                                     topology_mode);
 }
 
 void Topology_configuration_command::print_replicaset_members_role_changes() {

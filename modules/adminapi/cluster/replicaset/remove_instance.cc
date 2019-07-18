@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/replicaset/remove_instance.h"
 
+#include <mysqld_error.h>
 #include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
@@ -31,6 +32,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"

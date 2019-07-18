@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/common/metadata_storage.h"
 
+#include <mysql.h>
 #include <mysqld_error.h>
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/dba_errors.h"

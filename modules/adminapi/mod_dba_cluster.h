@@ -36,11 +36,9 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
 namespace mysqlsh {
 namespace dba {
-class MetadataStorage;
 
 /**
  * \ingroup AdminAPI

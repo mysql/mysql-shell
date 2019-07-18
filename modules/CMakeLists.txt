@@ -52,6 +52,7 @@ file(GLOB api_module_SOURCES
       "mod_sys.cc"
       "mod_utils.cc"
       "mod_mysql_constants.cc"
+      "adminapi/dba_utils.cc"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"
       "adminapi/common/metadata_storage.cc"

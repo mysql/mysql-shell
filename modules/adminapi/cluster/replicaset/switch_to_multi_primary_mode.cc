@@ -29,7 +29,6 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 

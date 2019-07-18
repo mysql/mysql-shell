@@ -38,7 +38,6 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_options.h"

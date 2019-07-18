@@ -21,11 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
 #include "my_dbug.h"
 #include "mysqlsh/cmdline_shell.h"
-#include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -510,9 +510,9 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
           std::cerr << "NOTE: --redirect-primary ignored because target is "
                        "already a PRIMARY\n";
         }
-      } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
+      } catch (const shcore::Exception &e) {
         std::cerr << "While handling --redirect-primary:\n";
-        if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+        if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
           std::cerr << "ERROR: The cluster appears to be under a partial "
                        "or total outage and the PRIMARY cannot be "
                        "selected.\n"
@@ -532,9 +532,9 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
           std::cerr << "NOTE: --redirect-secondary ignored because target is "
                        "already a SECONDARY\n";
         }
-      } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
+      } catch (const shcore::Exception &e) {
         std::cerr << "While handling --redirect-secondary:\n";
-        if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+        if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
           std::cerr << "ERROR: The cluster appears to be under a partial "
                        "or total outage and an ONLINE SECONDARY cannot "
                        "be selected.\n"
@@ -766,13 +766,6 @@ int main(int argc, char **argv) {
         } catch (const shcore::Exception &e) {
           std::cerr << e.format() << "\n";
           return 1;
-        } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
-          try {
-            mysqlsh::dba::translate_cluster_exception("");
-          } catch (const std::exception &e) {
-            std::cerr << e.what() << "\n";
-            return 1;
-          }
         } catch (const std::exception &e) {
           std::cerr << e.what() << "\n";
           ret_val = 1;

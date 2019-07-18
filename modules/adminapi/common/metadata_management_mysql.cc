@@ -37,7 +37,6 @@
 #include <vector>
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/utils/logger.h"
 

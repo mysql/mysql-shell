@@ -40,6 +40,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -63,8 +64,8 @@ Cluster_impl::Cluster_impl(
       m_group_name(metadata.group_name),
       m_target_server(group_server),
       _metadata_storage(metadata_storage) {
-  _default_replica_set = std::make_shared<ReplicaSet>(
-      "default", metadata.topology_type, metadata_storage);
+  _default_replica_set =
+      std::make_shared<ReplicaSet>("default", metadata.topology_type);
 
   _default_replica_set->set_cluster(this);
 }
@@ -127,8 +128,7 @@ std::shared_ptr<ReplicaSet> Cluster_impl::create_default_replicaset(
   if (multi_primary) {
     topology_type = ReplicaSet::kTopologyMultiPrimary;
   }
-  _default_replica_set =
-      std::make_shared<ReplicaSet>(name, topology_type, _metadata_storage);
+  _default_replica_set = std::make_shared<ReplicaSet>(name, topology_type);
 
   _default_replica_set->set_cluster(this);
 
@@ -527,6 +527,51 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
 bool Cluster_impl::contains_instance_with_address(
     const std::string &host_port) {
   return get_metadata_storage()->is_instance_on_cluster(get_id(), host_port);
+}
+
+/*
+ * Ensures the cluster object (and metadata) can perform update operations.
+ *
+ * For a cluster to be updatable, it's necessary that:
+ * - the MD object is connected to the PRIMARY of the
+ * primary cluster, so that the MD can be updated (and is also not lagged)
+ * - the primary of the cluster is reachable, so that cluster accounts
+ * can be created there.
+ *
+ * An exception is thrown if not possible to connect to the primary.
+ *
+ * An Instance object connected to the primary is returned. The session
+ * is owned by the cluster object.
+ */
+mysqlshdk::mysql::IInstance *Cluster_impl::ensure_updatable(bool reset) {
+  auto console = current_console();
+
+  if (!m_primary_master || reset) {
+    m_primary_master = m_target_server;
+    // m_primary_master->retain();
+  }
+  std::string uuid = m_primary_master->get_uuid();
+  std::string primary_uuid;
+
+  std::string primary_url =
+      find_primary_member_uri(m_primary_master, false, nullptr);
+
+  if (primary_url.empty()) {
+    // Shouldn't happen, because validation for PRIMARY is done first
+    throw std::logic_error("No PRIMARY member found");
+  } else if (primary_url !=
+             m_primary_master->get_connection_options().uri_endpoint()) {
+    mysqlshdk::db::Connection_options copts(primary_url);
+    log_info("Connecting to %s...", primary_url.c_str());
+    copts.set_login_options_from(m_primary_master->get_connection_options());
+
+    auto session = establish_session(copts, false);
+    m_primary_master = std::make_shared<Instance>(session);
+
+    _metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
+  }
+
+  return m_primary_master.get();
 }
 
 }  // namespace dba

@@ -40,7 +40,6 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 
@@ -313,7 +312,7 @@ void validate_connection_options(
  * @return the instance reported host address used in the metadata, or the
  *         given instance connection address if not able to connect to the
  *         instance.
- */ // XXX wtf delete this
+ */
 std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &cnx_opts,
     const mysqlshdk::db::Connection_options &group_cnx_opts);
@@ -392,33 +391,6 @@ struct Instance_gtid_info {
 std::vector<Instance_gtid_info> filter_primary_candidates(
     const mysqlshdk::mysql::IInstance &server,
     const std::vector<Instance_gtid_info> &gtid_info);
-
-inline void translate_cluster_exception(std::string operation) {
-  if (!operation.empty()) operation.append(": ");
-  try {
-    throw;
-  } catch (const mysqlshdk::innodbcluster::cluster_error &e) {
-    throw shcore::Exception::runtime_error(operation + e.format());
-  } catch (const shcore::Exception &e) {
-    auto error = e.error();
-    (*error)["message"] = shcore::Value(operation + e.what());
-    throw shcore::Exception(error);
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-  } catch (const std::runtime_error &e) {
-    throw shcore::Exception::runtime_error(operation + e.what());
-  } catch (const std::logic_error &e) {
-    throw shcore::Exception::logic_error(operation + e.what());
-  } catch (...) {
-    throw;
-  }
-}
-
-#define CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(operation)  \
-  catch (...) {                                           \
-    mysqlsh::dba::translate_cluster_exception(operation); \
-    throw;                                                \
-  }
 
 }  // namespace dba
 }  // namespace mysqlsh

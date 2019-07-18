@@ -46,7 +46,6 @@
 
 namespace mysqlsh {
 namespace dba {
-class MetadataStorage;
 struct Instance_metadata;
 class Cluster_impl;
 
@@ -57,8 +56,7 @@ class Cluster_impl;
 #endif
 class ReplicaSet {
  public:
-  ReplicaSet(const std::string &name, const std::string &topology_type,
-             std::shared_ptr<MetadataStorage> metadata_storage);
+  ReplicaSet(const std::string &name, const std::string &topology_type);
   virtual ~ReplicaSet();
 
   void set_name(const std::string &name) { _name = name; }
@@ -216,8 +214,6 @@ class ReplicaSet {
 
  private:
   Cluster_impl *m_cluster;
-
-  std::shared_ptr<MetadataStorage> _metadata_storage;
 };
 }  // namespace dba
 }  // namespace mysqlsh

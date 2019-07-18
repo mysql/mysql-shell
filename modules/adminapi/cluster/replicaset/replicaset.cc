@@ -86,11 +86,8 @@ const char *ReplicaSet::kWarningDeprecateSslMode =
     "here.";
 
 ReplicaSet::ReplicaSet(const std::string &name,
-                       const std::string &topology_type,
-                       std::shared_ptr<MetadataStorage> metadata_storage)
-    : _name(name),
-      _topology_type(topology_type),
-      _metadata_storage(metadata_storage) {
+                       const std::string &topology_type)
+    : _name(name), _topology_type(topology_type) {
   assert(topology_type == kTopologyMultiPrimary ||
          topology_type == kTopologySinglePrimary);
 }
@@ -170,8 +167,8 @@ void ReplicaSet::adopt_from_gr() {
   auto console = mysqlsh::current_console();
 
   auto newly_discovered_instances_list(get_newly_discovered_instances(
-      *get_cluster()->get_target_instance(), _metadata_storage,
-      get_cluster()->get_id()));
+      *get_cluster()->get_target_instance(),
+      get_cluster()->get_metadata_storage(), get_cluster()->get_id()));
 
   // Add all instances to the cluster metadata
   for (NewInstanceInfo &instance : newly_discovered_instances_list) {
@@ -187,7 +184,7 @@ void ReplicaSet::adopt_from_gr() {
 
     // TODO(somebody): what if the password is different on each server?
     // And what if is different from the current session?
-    auto md_instance = _metadata_storage->get_md_server();
+    auto md_instance = get_cluster()->get_metadata_storage()->get_md_server();
 
     auto session_data = md_instance->get_connection_options();
 
@@ -241,8 +238,8 @@ void ReplicaSet::add_instance(
   if (!label.is_null()) {
     mysqlsh::dba::validate_label(*label);
 
-    if (!_metadata_storage->is_instance_label_unique(get_cluster()->get_id(),
-                                                     *label))
+    if (!get_cluster()->get_metadata_storage()->is_instance_label_unique(
+            get_cluster()->get_id(), *label))
       throw shcore::Exception::argument_error(
           "An instance with label '" + *label +
           "' is already part of this InnoDB cluster");
@@ -561,8 +558,8 @@ shcore::Value ReplicaSet::rejoin_instance(
     // Check if the instance is part of the Metadata
     Instance_metadata instance_md;
     try {
-      instance_md =
-          _metadata_storage->get_instance_by_uuid(instance.get_uuid());
+      instance_md = get_cluster()->get_metadata_storage()->get_instance_by_uuid(
+          instance.get_uuid());
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
     }
@@ -663,7 +660,8 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Bug#26870329
   {
     // get server_uuid from the instance that we're trying to rejoin
-    if (!validate_instance_rejoinable(instance, _metadata_storage,
+    if (!validate_instance_rejoinable(instance,
+                                      get_cluster()->get_metadata_storage(),
                                       get_cluster()->get_id())) {
       // instance not missing, so throw an error
       auto member_state =
@@ -1033,7 +1031,8 @@ mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() const {
   if (single_primary) {
     if (!primary_uuid.empty()) {
       Instance_metadata info =
-          _metadata_storage->get_instance_by_uuid(primary_uuid);
+          get_cluster()->get_metadata_storage()->get_instance_by_uuid(
+              primary_uuid);
 
       mysqlshdk::db::Connection_options coptions(info.endpoint);
       mysqlshdk::db::Connection_options group_session_target(
@@ -1123,7 +1122,7 @@ void ReplicaSet::add_instance_metadata(
   instance_md.cluster_id = get_cluster()->get_id();
 
   // Add the instance to the metadata.
-  _metadata_storage->insert_instance(instance_md);
+  get_cluster()->get_metadata_storage()->insert_instance(instance_md);
 }
 
 void ReplicaSet::remove_instance_metadata(
@@ -1137,7 +1136,7 @@ void ReplicaSet::remove_instance_metadata(
   // Check if the instance was already added
   std::string instance_address = host + ":" + port;
 
-  _metadata_storage->remove_instance(instance_address);
+  get_cluster()->get_metadata_storage()->remove_instance(instance_address);
 }
 
 std::vector<Instance_metadata> ReplicaSet::get_active_instances() const {
@@ -1534,7 +1533,8 @@ void ReplicaSet::validate_server_uuid(
 }
 
 std::vector<Instance_metadata> ReplicaSet::get_instances() const {
-  return _metadata_storage->get_all_instances(m_cluster->get_id());
+  return get_cluster()->get_metadata_storage()->get_all_instances(
+      m_cluster->get_id());
 }
 
 std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>

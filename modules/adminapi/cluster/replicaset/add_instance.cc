@@ -23,6 +23,8 @@
 
 #include "modules/adminapi/cluster/replicaset/add_instance.h"
 
+#include <mysql.h>
+#include <mysqld_error.h>
 #include <climits>
 #include <memory>
 #include <vector>

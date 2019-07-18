@@ -24,6 +24,7 @@
 #include "modules/adminapi/cluster/replicaset/replicaset_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
 namespace mysqlsh {

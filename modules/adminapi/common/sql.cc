@@ -22,13 +22,14 @@
  */
 
 #include "modules/adminapi/common/sql.h"
-#include <utils/utils_general.h>
+#include <mysqld_error.h>
 #include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlsh {

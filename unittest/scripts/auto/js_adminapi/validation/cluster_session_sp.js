@@ -135,16 +135,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |Session type:                 Classic|
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SP - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |Session type:                 Classic|
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 
@@ -155,7 +155,7 @@
 
 //@ SP - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member
 |Session type:                 X|
@@ -171,16 +171,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SPX - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -191,7 +191,7 @@
 
 //@ SPX - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member
 |Session type:                 X|
@@ -207,16 +207,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Session type:                 X|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -227,7 +227,7 @@
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|InnoDB cluster error 10001: Cluster metadata not found: Cluster metadata schema not found|
+|InnoDB cluster metadata schema not found|
 
 //@ SP - Connect with --cluster 1
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
@@ -255,11 +255,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysql://<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 2
@@ -284,11 +284,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 2
@@ -313,11 +313,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 2
-|Reconnecting to PRIMARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to PRIMARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to SECONDARY instance of the InnoDB cluster (mysqlx://<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to SECONDARY instance of the InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 2

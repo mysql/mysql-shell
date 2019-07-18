@@ -152,6 +152,8 @@ class Cluster_impl {
   void sync_transactions(
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
+  mysqlshdk::mysql::IInstance *ensure_updatable(bool reset);
+
  protected:
   Cluster_id _id;
   std::string _name;
@@ -162,6 +164,9 @@ class Cluster_impl {
   // stuff from pfs
   std::shared_ptr<Instance> m_target_server;
   std::shared_ptr<MetadataStorage> _metadata_storage;
+
+  std::shared_ptr<Instance> m_primary_master;
+
   // Used shell options
   void init();
 
