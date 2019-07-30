@@ -100,7 +100,7 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
     code = "var __mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    for (int i = 0; i < k_max_default_sandbox_ports; i++) {
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);

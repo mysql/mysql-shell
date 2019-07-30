@@ -33,6 +33,7 @@
 
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/sandboxes.h"
 
 namespace tests {
 /**
@@ -58,12 +59,17 @@ class Shell_test_wrapper {
 
   int port() { return _mysql_port_number; }
   std::string hostname() { return _hostname; }
-  int sb_port1() { return _mysql_sandbox_nport1; }
-  int sb_port2() { return _mysql_sandbox_nport2; }
-  int sb_port3() { return _mysql_sandbox_nport3; }
-  std::string sb_str_port1() { return _mysql_sandbox_port1; }
-  std::string sb_str_port2() { return _mysql_sandbox_port2; }
-  std::string sb_str_port3() { return _mysql_sandbox_port3; }
+
+  int sb_port(int idx) const {
+    assert(idx < sandbox::k_num_ports && idx >= 0);
+    return m_sandbox_ports[idx];
+  }
+
+  std::string sb_port_str(int idx) const {
+    return std::to_string(sb_port(idx));
+  }
+
+  int sb_port_count() const { return sandbox::k_num_ports; }
 
   std::string setup_recorder(const char *sub_test_name);
   void teardown_recorder();
@@ -90,18 +96,13 @@ class Shell_test_wrapper {
   std::string
       _mysql_port;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
 
-  std::string _mysql_sandbox_port1;  //!< Port of the first sandbox
-  std::string _mysql_sandbox_port2;  //!< Port of the second sandbox
-  std::string _mysql_sandbox_port3;  //!< Port of the third sandbox
-
   int _mysql_port_number;  //!< The port for MySQL protocol sessions,
                            //!< env:MYSQL_PORT
-  int _mysql_sandbox_nport1;
-  int _mysql_sandbox_nport2;
-  int _mysql_sandbox_nport3;
 
   std::string _hostname;     //!< TBD
   std::string _hostname_ip;  //!< TBD
+
+  int m_sandbox_ports[sandbox::k_num_ports];
 };
 
 template <typename T>

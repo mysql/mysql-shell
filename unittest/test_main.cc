@@ -437,12 +437,11 @@ static bool delete_sandbox(int port) {
   return true;
 }
 
-static void check_zombie_sandboxes(
-    int sports[tests::k_max_default_sandbox_ports]) {
+static void check_zombie_sandboxes(int sports[tests::sandbox::k_num_ports]) {
   bool have_zombies = false;
   std::string ports;
 
-  for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
+  for (int i = 0; i < tests::sandbox::k_num_ports; ++i) {
     have_zombies |= !delete_sandbox(sports[i]);
     if (!ports.empty()) ports.append(", ");
     ports.append(std::to_string(sports[i]));
@@ -454,7 +453,7 @@ static void check_zombie_sandboxes(
     std::cout << "If they're left from a previous run, terminate them first\n";
     std::cout << "Or setenv TEST_SKIP_ZOMBIE_CHECK to skip this check\n";
     std::cout << "Or setenv MYSQL_SANDBOX_PORT1.."
-              << tests::k_max_default_sandbox_ports + 1
+              << tests::sandbox::k_num_ports + 1
               << " to pick different ports for "
                  "test sandboxes\n";
     exit(1);
@@ -647,22 +646,13 @@ void setup_test_environment() {
   }
   shcore::Logger::setup_instance(log_path.c_str(), false);
 
-  int sports[tests::k_max_default_sandbox_ports];  // NOLINT
-  for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
-    const char *sandbox_port =
-        getenv(shcore::str_format("MYSQL_SANDBOX_PORT%i", i + 1).c_str());
-    if (sandbox_port) {
-      sports[i] = atoi(sandbox_port);
-    } else {
-      sports[i] = std::stoi(getenv("MYSQL_PORT")) + (i + 1) * 10;
-    }
-  }
+  tests::sandbox::initialize();
 
   // Check for leftover sandbox servers
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes(sports);
+    check_zombie_sandboxes(tests::sandbox::k_ports);
   }
-  tests::Shell_test_env::setup_env(sports);
+  tests::Shell_test_env::setup_env();
 
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"));
 

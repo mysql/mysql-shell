@@ -123,7 +123,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       exec_and_out_equals(code);
       code = "var __mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
-      for (int i = 0; i < tests::k_max_default_sandbox_ports; i++) {
+      for (int i = 0; i < tests::sandbox::k_num_ports; i++) {
         code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                   _mysql_sandbox_ports[i]);
         exec_and_out_equals(code);

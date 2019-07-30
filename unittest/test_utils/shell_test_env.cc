@@ -81,13 +81,10 @@ std::string Shell_test_env::_mysql_socket;
 
 std::string Shell_test_env::_sandbox_dir;
 
-int Shell_test_env::_def_mysql_sandbox_ports[k_max_default_sandbox_ports] = {0};
-
 mysqlshdk::utils::Version Shell_test_env::_target_server_version;
 mysqlshdk::utils::Version Shell_test_env::_highest_tls_version;
 
-void Shell_test_env::setup_env(
-    const int sandbox_ports[k_max_default_sandbox_ports]) {
+void Shell_test_env::setup_env() {
   // All tests expect the following standard test server definitions
   // Tests that need something else should create a sandbox with the required
   // configurations
@@ -130,9 +127,6 @@ void Shell_test_env::setup_env(
 
   _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 
-  for (int i = 0; i < k_max_default_sandbox_ports; i++)
-    _def_mysql_sandbox_ports[i] = sandbox_ports[i];
-
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {
     _sandbox_dir.assign(tmpdir);
@@ -164,21 +158,16 @@ void Shell_test_env::setup_env(
  * @li MYSQLX_PORT The port where the base MySQL Server listens for connections
  * through the X protocol.
  *
- * @li MYSQL_SANDBOX_PORT1 The port to be used for the first sandbox on tests
+ * @li MYSQL_SANDBOX_PORTX The port to be used for the Xth sandbox on tests
  * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 10
- * @li MYSQL_SANDBOX_PORT2 The port to be used for the first sandbox on tests
- * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 20
- * @li MYSQL_SANDBOX_PORT3 The port to be used for the first sandbox on tests
- * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 30
+ * MYSQL_PORT + 10 * X (currently tests support up to 6 sandboxes).
  * @li TMPDIR The path that will be used to create sandboxes if required, if not
  * specified the path where run_unit_tests binary will be used.
  */
 Shell_test_env::Shell_test_env() {
-  for (int i = 0; i < k_max_default_sandbox_ports; i++)
-    _mysql_sandbox_ports[i] = _def_mysql_sandbox_ports[i];
+  for (int i = 0; i < sandbox::k_num_ports; ++i) {
+    _mysql_sandbox_ports[i] = sandbox::k_ports[i];
+  }
 
   _test_context = _target_server_version.get_base();
 }
@@ -186,7 +175,7 @@ Shell_test_env::Shell_test_env() {
 std::string Shell_test_env::mysql_sandbox_uri(int sbindex,
                                               const std::string &user,
                                               const std::string &pwd) {
-  assert(sbindex < k_max_default_sandbox_ports && sbindex >= 0);
+  assert(sbindex < sandbox::k_num_ports && sbindex >= 0);
   return "mysql://" + user + ":" + pwd +
          "@localhost:" + std::to_string(_mysql_sandbox_ports[sbindex]);
 }
@@ -194,7 +183,7 @@ std::string Shell_test_env::mysql_sandbox_uri(int sbindex,
 std::string Shell_test_env::mysqlx_sandbox_uri(int sbindex,
                                                const std::string &user,
                                                const std::string &pwd) {
-  assert(sbindex < k_max_default_sandbox_ports && sbindex >= 0);
+  assert(sbindex < sandbox::k_num_ports && sbindex >= 0);
   return "mysqlx://" + user + ":" + pwd +
          "@localhost:" + std::to_string(_mysql_sandbox_ports[sbindex] * 10);
 }
@@ -306,30 +295,30 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
     _replaying = true;
-    std::map<std::string, std::string> info;
+
     // Some environmental or random data can change between recording and
     // replay time. Such data must be ensured to match between both.
-    try {
-      info = mysqlshdk::db::replay::load_test_case_info();
+    auto info = mysqlshdk::db::replay::load_test_case_info();
 
-      // Note: these ports are static vars, we assume only one test will
-      // be active at a time.
+    // Note: these ports are static vars, we assume only one test will
+    // be active at a time.
 
-      // Override environment dependant data with the same values that were
-      // used and saved during recording
-      for (int i = 0; i < k_max_default_sandbox_ports; i++)
-        _mysql_sandbox_ports[i] =
-            std::stoi(info["sandbox_port" + std::to_string(i)]);
+    // Override environment dependent data with the same values that were
+    // used and saved during recording
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
+      const auto port = info.find("sandbox_port" + std::to_string(i));
 
-      m_hostname = info["hostname"];
-      m_hostname_ip = info["hostname_ip"];
-      m_real_hostname = info["real_hostname"];
-      m_real_host_is_loopback = info["real_host_is_loopback"] == "1";
-    } catch (std::exception &e) {
-      // std::cout << e.what() << "\n";
-      for (int i = 0; i < k_max_default_sandbox_ports; i++)
-        _mysql_sandbox_ports[i] = 3316 + i * 10;
+      if (info.end() != port) {
+        _mysql_sandbox_ports[i] = std::stoi(port->second);
+      } else {
+        _mysql_sandbox_ports[i] = sandbox::k_ports[i];
+      }
     }
+
+    m_hostname = info["hostname"];
+    m_hostname_ip = info["hostname_ip"];
+    m_real_hostname = info["real_hostname"];
+    m_real_host_is_loopback = info["real_host_is_loopback"] == "1";
 
     // Inject the recorded environment, so that tests that call things like
     // Net::is_loopback() will replay with the same environment as where
@@ -341,9 +330,11 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     _recording = true;
     std::map<std::string, std::string> info;
 
-    for (int i = 0; i < k_max_default_sandbox_ports; i++)
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
       info["sandbox_port" + std::to_string(i)] =
           std::to_string(_mysql_sandbox_ports[i]);
+    }
+
     info["hostname"] = s_hostname;
     info["hostname_ip"] = s_hostname_ip;
     info["real_hostname"] = s_real_hostname;

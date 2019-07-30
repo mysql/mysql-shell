@@ -37,6 +37,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils/sandboxes.h"
 
 extern "C" const char *g_argv0;
 extern int g_test_trace_scripts;
@@ -77,9 +78,6 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
   }
 
 namespace tests {
-
-// Max. number of pre-defined sandbox ports
-static constexpr const int k_max_default_sandbox_ports = 3;
 
 /**
  * \ingroup UTFramework
@@ -129,14 +127,12 @@ class Shell_test_env : public ::testing::Test {
   std::string setup_recorder(const char *sub_test_name = nullptr);
   void teardown_recorder();
 
-  static void setup_env(const int sandbox_ports[k_max_default_sandbox_ports]);
+  static void setup_env();
 
   std::string query_replace_hook(const std::string &sql);
   std::unique_ptr<mysqlshdk::db::IRow> set_replay_row_hook(
       const mysqlshdk::db::Connection_options &target, const std::string &sql,
       std::unique_ptr<mysqlshdk::db::IRow> source);
-
-  void inject_port_check_result(const std::string &host, int port, bool result);
 
   virtual void debug_print(const std::string &s) {
     fprintf(stderr, "%s\n", s.c_str());
@@ -171,11 +167,8 @@ class Shell_test_env : public ::testing::Test {
 
   static std::string _sandbox_dir;  //!< Path to the sandbox directory
 
-  // Default sandbox ports
-  static int _def_mysql_sandbox_ports[k_max_default_sandbox_ports];  //!< Ports
-
-  // Overriden sandbox ports (used for replays)
-  int _mysql_sandbox_ports[k_max_default_sandbox_ports];  //!< Ports
+  // Overridden sandbox ports (used for replays)
+  int _mysql_sandbox_ports[sandbox::k_num_ports];  //!< Ports
 
   static mysqlshdk::utils::Version
       _target_server_version;  //!< The version of the used MySQL Server

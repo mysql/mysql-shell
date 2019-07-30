@@ -68,9 +68,11 @@ class Api_connections : public Shell_js_script_tester {
 
   static void SetUpTestCase() {
     Shell_test_wrapper shell_env(true);
+    std::vector<int> ports;
 
-    std::vector<int> ports{shell_env.sb_port1(), shell_env.sb_port2(),
-                           shell_env.sb_port3()};
+    for (int i = 0; i < shell_env.sb_port_count(); ++i) {
+      ports.emplace_back(shell_env.sb_port(i));
+    }
 
     for (auto port : ports) {
       try {

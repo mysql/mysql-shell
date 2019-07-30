@@ -81,29 +81,9 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
     _mysql_port.assign(port);
   }
 
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1)
-    _mysql_sandbox_port1.assign(sandbox_port1);
-  else
-    _mysql_sandbox_port1 = std::to_string(_mysql_port_number + 10);
-
-  _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2)
-    _mysql_sandbox_port2.assign(sandbox_port2);
-  else
-    _mysql_sandbox_port2 = std::to_string(_mysql_port_number + 20);
-
-  _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3)
-    _mysql_sandbox_port3.assign(sandbox_port3);
-  else
-    _mysql_sandbox_port3 = std::to_string(_mysql_port_number + 30);
-
-  _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+  for (int i = 0; i < sandbox::k_num_ports; ++i) {
+    m_sandbox_ports[i] = sandbox::k_ports[i];
+  }
 
   _hostname = getenv("MYSQL_HOSTNAME");
   _hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(_hostname);
@@ -295,32 +275,24 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
-    std::map<std::string, std::string> info;
     // Some environmental or random data can change between recording and
     // replay time. Such data must be ensured to match between both.
-    try {
-      info = mysqlshdk::db::replay::load_test_case_info();
+    auto info = mysqlshdk::db::replay::load_test_case_info();
 
-      // Override environment dependant data with the same values that were
-      // used and saved during recording
-      _mysql_sandbox_port1 = info["sandbox_port1"];
-      _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-      _mysql_sandbox_port2 = info["sandbox_port2"];
-      _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-      _mysql_sandbox_port3 = info["sandbox_port3"];
-      _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+    // Override environment dependent data with the same values that were
+    // used and saved during recording
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
+      const auto port = info.find("sandbox_port" + std::to_string(i));
 
-      _hostname = info["hostname"];
-      _hostname_ip = info["hostname_ip"];
-    } catch (std::exception &e) {
-      // std::cout << e.what() << "\n";
-      _mysql_sandbox_port1 = "3316";
-      _mysql_sandbox_nport1 = 3316;
-      _mysql_sandbox_port2 = "3326";
-      _mysql_sandbox_nport2 = 3326;
-      _mysql_sandbox_port3 = "3336";
-      _mysql_sandbox_nport3 = 3336;
+      if (info.end() != port) {
+        m_sandbox_ports[i] = std::stoi(port->second);
+      } else {
+        m_sandbox_ports[i] = sandbox::k_ports[i];
+      }
     }
+
+    _hostname = info["hostname"];
+    _hostname_ip = info["hostname_ip"];
 
     // Inject the recorded environment, so that tests that call things like
     // Net::is_loopback() will replay with the same environment as where
@@ -330,9 +302,11 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
     std::map<std::string, std::string> info;
 
-    info["sandbox_port1"] = _mysql_sandbox_port1;
-    info["sandbox_port2"] = _mysql_sandbox_port2;
-    info["sandbox_port3"] = _mysql_sandbox_port3;
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
+      info["sandbox_port" + std::to_string(i)] =
+          std::to_string(m_sandbox_ports[i]);
+    }
+
     info["hostname"] = _hostname;
     info["hostname_ip"] = _hostname_ip;
 

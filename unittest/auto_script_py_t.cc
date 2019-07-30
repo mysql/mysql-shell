@@ -113,7 +113,7 @@ class Auto_script_py : public Shell_py_script_tester,
     exec_and_out_equals(code);
     code = "__mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    for (int i = 0; i < k_max_default_sandbox_ports; i++) {
+    for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("__mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);

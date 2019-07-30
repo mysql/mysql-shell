@@ -49,12 +49,12 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(shell_env.hostname());
 
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port1(), "root", sandbox_opts);
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port2(), "root", sandbox_opts);
-  shell_env.utils()->deploy_sandbox(shell_env.sb_port3(), "root", sandbox_opts);
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port(0), "root", sandbox_opts);
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port(1), "root", sandbox_opts);
+  shell_env.utils()->deploy_sandbox(shell_env.sb_port(2), "root", sandbox_opts);
 
   shell_env.execute(
-      "shell.connect('root:root@localhost:" + shell_env.sb_str_port1() + "')");
+      "shell.connect('root:root@localhost:" + shell_env.sb_port_str(0) + "')");
 
   auto dba = shell_env.get_global<mysqlsh::dba::Dba>("dba");
 
@@ -64,13 +64,13 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   options->emplace("gtidSetIsComplete", true);
   _cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
-  _cluster->add_instance("root:root@localhost:" + shell_env.sb_str_port2(), {});
+  _cluster->add_instance("root:root@localhost:" + shell_env.sb_port_str(1), {});
   _replicaset = _cluster->impl()->get_default_replicaset();
 
   shell_env.execute("session.close()");
 
   {
-    auto session = create_session(shell_env.sb_port1());
+    auto session = create_session(shell_env.sb_port(0));
     Instance instance(session);
     uuid_1 = *instance.get_sysvar_string("server_uuid", Var_qualifier::GLOBAL);
     group_name = *instance.get_sysvar_string("group_replication_group_name",
@@ -79,7 +79,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   }
 
   {
-    auto session = create_session(shell_env.sb_port2());
+    auto session = create_session(shell_env.sb_port(1));
     Instance instance(session);
 
     uuid_2 = *instance.get_sysvar_string("server_uuid", Var_qualifier::GLOBAL);
@@ -87,7 +87,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   }
 
   {
-    auto session = create_session(shell_env.sb_port3());
+    auto session = create_session(shell_env.sb_port(2));
     Instance instance(session);
     uuid_3 = *instance.get_sysvar_string("server_uuid", Var_qualifier::GLOBAL);
     session->close();
@@ -99,9 +99,9 @@ void Admin_api_test::TearDownSampleCluster(const char *context) {
   Shell_test_wrapper shell_env;
   shell_env.reset_replayable_shell(context);
 
-  shell_env.utils()->destroy_sandbox(shell_env.sb_port1());
-  shell_env.utils()->destroy_sandbox(shell_env.sb_port2());
-  shell_env.utils()->destroy_sandbox(shell_env.sb_port3());
+  shell_env.utils()->destroy_sandbox(shell_env.sb_port(0));
+  shell_env.utils()->destroy_sandbox(shell_env.sb_port(1));
+  shell_env.utils()->destroy_sandbox(shell_env.sb_port(2));
   shell_env.teardown_replayable_shell();
 }
 
