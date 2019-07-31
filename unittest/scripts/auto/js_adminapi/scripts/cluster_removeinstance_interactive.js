@@ -437,3 +437,4 @@ cluster.disconnect();
 //       the test.
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2, true);
+testutil.destroySandbox(__mysql_sandbox_port3, true);

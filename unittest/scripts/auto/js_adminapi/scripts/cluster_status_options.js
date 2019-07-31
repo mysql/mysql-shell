@@ -671,6 +671,8 @@ var recovery = json_find_key(stat, "recovery");
 var allowed_missing = ["currentStageProgress"];
 json_check(recovery, clone_recovery_status_templ, allowed_missing);
 
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 //@<> F4 - shutdown member2 and try again to see if connect error is included
 // TS_3_1	Verify that a shellConnectError is added to the status of a member if the shell can't connect to it when calling cluster.status().
 // WL13208-TS_FR8_4

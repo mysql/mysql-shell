@@ -60,8 +60,11 @@ _START_SERVER_CMD_UNIX = (
     u"while true ; do\n  {start_server_cmd} $*\n  "
     u"if [ $? -ne $MYSQLD_RESTART_EXIT ]; then\n    break\n  fi\ndone"
     u"".format(start_server_cmd=_START_SERVER_CMD))
+# Do not use/set MYSQLD_PARENT_PID=1 on Windows, otherwise the SHUTDOWN statement will not work properly, stopping
+# the wrong sandbox.
+# NOTE: Both RESTART and SHUTDOWN work properly on Windows without MYSQLD_PARENT_PID (not needed).
 _START_SERVER_CMD_WIN = (
-    u"chcp {code_page}\nset MYSQLD_PARENT_PID=1\nset MYSQLD_RESTART_EXIT=16\n\n:while\n"
+    u"chcp {code_page}\nset MYSQLD_RESTART_EXIT=16\n\n:while\n"
     u"{start_server_cmd} \nIF %ERRORLEVEL% EQU %MYSQLD_RESTART_EXIT% (\n"
     u"  goto :while\n)\nEXIT /B %ERRORLEVEL%"
     u"".format(start_server_cmd=_START_SERVER_CMD, code_page=_CURRENT_ANSI_CODE_PAGE))
