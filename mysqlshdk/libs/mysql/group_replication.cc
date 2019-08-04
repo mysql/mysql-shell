@@ -36,6 +36,7 @@
 #endif
 #include <mysqld_error.h>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
@@ -1213,6 +1214,38 @@ Group_member_recovery_status detect_recovery_status(
     log_error("Member %s is in state %s, when recovery was expected",
               instance.descr().c_str(), member_state.c_str());
     throw std::logic_error("Unexpected member state " + member_state);
+  }
+}
+
+bool is_endpoint_supported_by_gr(const std::string &endpoint,
+                                 const mysqlshdk::utils::Version &version) {
+  const bool supports_ipv6 = (version >= mysqlshdk::utils::Version(8, 0, 14));
+  try {
+    // split host from port, and make sure endpoint has both
+    mysqlshdk::db::Connection_options conn_opt =
+        shcore::get_connection_options(endpoint, false);
+
+    if (!conn_opt.has_host() || !conn_opt.has_port()) {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid address format: '%s'", endpoint.c_str()));
+    }
+    const bool is_ipv4 = mysqlshdk::utils::Net::is_ipv4(conn_opt.get_host());
+    if (is_ipv4) {
+      // IPv4 is supported by all versions
+      return true;
+    }
+    const bool is_ipv6 = mysqlshdk::utils::Net::is_ipv6(conn_opt.get_host());
+    if (is_ipv6) {
+      return supports_ipv6;
+    }
+    // Do not try to resolve the hostname. Even if we can resolve it, there is
+    // no guarantee that name resolution is the same across cluster instances
+    // and the instance where we are running the ngshell.
+    return true;
+
+  } catch (const std::invalid_argument &error) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid address format: '%s'", endpoint.c_str()));
   }
 }
 

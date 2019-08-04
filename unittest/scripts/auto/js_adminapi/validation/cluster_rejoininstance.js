@@ -75,3 +75,10 @@ Cluster.rejoinInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>
 
 //@ BUG#29754915: clean-up.
 ||
+
+//@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+|ERROR: Cannot use host '::1' for instance 'localhost:<<<__mysql_sandbox_port2>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
+||Cluster.rejoinInstance: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
+
+//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+||Cluster.rejoinInstance: Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)

@@ -48,6 +48,8 @@
 #include <memory>
 #include <vector>
 #include <bitset>
+#include <iomanip>
+#include <tuple>
 
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -88,8 +90,9 @@ int get_protocol_family(const std::string &address) {
   return family;
 }
 
-void get_host_ipv4_addresses(const std::string &host,
-                             std::vector<std::string> *out_addrs) {
+void get_host_ip_addresses(const std::string &host,
+                           std::vector<std::string> *out_addrs,
+                           unsigned int ip_addr_type) {
   assert(out_addrs);
 
   if (AF_INET == get_protocol_family(host)) {
@@ -111,7 +114,7 @@ void get_host_ipv4_addresses(const std::string &host,
   addrinfo hints;
 
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;  // IPv4
+  hints.ai_family = ip_addr_type;
 
   addrinfo *info = nullptr;
   int result = getaddrinfo(host.c_str(), nullptr, &hints, &info);
@@ -276,9 +279,22 @@ std::string Net::resolve_hostname_ipv4(const std::string &name) {
   return resolve_hostname_ipv4_all(name)[0];
 }
 
+std::string Net::resolve_hostname_ipv6(const std::string &name) {
+  return resolve_hostname_ipv6_all(name)[0];
+}
+
 std::vector<std::string> Net::resolve_hostname_ipv4_all(
     const std::string &name) {
   return get()->resolve_hostname_ipv4_all_impl(name);
+}
+
+std::vector<std::string> Net::resolve_hostname_ipv6_all(
+    const std::string &name) {
+  return get()->resolve_hostname_ipv6_all_impl(name);
+}
+
+std::vector<std::string> Net::get_hostname_ips(const std::string &name) {
+  return get()->resolve_hostname_ipv_any_all_impl(name);
 }
 
 bool Net::is_ipv4(const std::string &host) {
@@ -309,14 +325,15 @@ bool Net::is_port_listening(const std::string &address, int port) {
   return get()->is_port_listening_impl(address, port);
 }
 
-bool Net::strip_cidr(std::string *address, int *cidr) {
+std::tuple<std::string, mysqlshdk::utils::nullable<int>> Net::strip_cidr(
+    const std::string &address) {
   // Strip the CIDR value, if specified
-  size_t pos = address->find("/");
+  const size_t pos = address.find("/");
   if (pos != std::string::npos) {
-    std::string cidr_str = address->substr(pos + 1);
-
+    const std::string cidr_str = address.substr(pos + 1);
+    mysqlshdk::utils::nullable<int> cidr;
     try {
-      *cidr = std::stoi(cidr_str);
+      cidr = std::stoi(cidr_str);
     } catch (const std::invalid_argument &e) {
       throw std::invalid_argument("Invalid subnet CIDR value: '" + cidr_str +
                                   "': " + e.what());
@@ -324,12 +341,11 @@ bool Net::strip_cidr(std::string *address, int *cidr) {
       throw std::out_of_range("Converted CIDR value: '" + cidr_str +
                               "' out of range: " + e.what());
     }
-
-    address->erase(pos);
-
-    return true;
+    return std::tuple<std::string, mysqlshdk::utils::nullable<int>>{
+        address.substr(0, pos), cidr};
   }
-  return false;
+  return std::tuple<std::string, mysqlshdk::utils::nullable<int>>{
+      address, mysqlshdk::utils::nullable<int>{}};
 }
 
 std::vector<std::string> Net::get_local_addresses() {
@@ -360,7 +376,21 @@ void Net::set(Net *implementation) { s_implementation = implementation; }
 std::vector<std::string> Net::resolve_hostname_ipv4_all_impl(
     const std::string &name) const {
   std::vector<std::string> addrs;
-  get_host_ipv4_addresses(name, &addrs);
+  get_host_ip_addresses(name, &addrs, AF_INET);
+  return addrs;
+}
+
+std::vector<std::string> Net::resolve_hostname_ipv6_all_impl(
+    const std::string &name) const {
+  std::vector<std::string> addrs;
+  get_host_ip_addresses(name, &addrs, AF_INET6);
+  return addrs;
+}
+
+std::vector<std::string> Net::resolve_hostname_ipv_any_all_impl(
+    const std::string &name) const {
+  std::vector<std::string> addrs;
+  get_host_ip_addresses(name, &addrs, AF_UNSPEC);
   return addrs;
 }
 

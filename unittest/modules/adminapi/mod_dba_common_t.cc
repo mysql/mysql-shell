@@ -1043,10 +1043,14 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 }
 
 TEST(mod_dba_common, validate_ipwhitelist_option) {
+  std::string ip_whitelist;
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
   // NOTE: hostnames_supported = true if version >= 8.0.4, otherwise false.
+  auto ver_8014 = mysqlshdk::utils::Version(8, 0, 14);
+  auto ver_804 = mysqlshdk::utils::Version(8, 0, 4);
+  auto ver_800 = mysqlshdk::utils::Version(8, 0, 0);
 
   // Error if the ipWhitelist is empty.
   options.ip_whitelist = "";
@@ -1092,7 +1096,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
         "Invalid value for ipWhitelist '192.168.1.1/33': subnet value in CIDR "
-        "notation is not valid.",
+        "notation is not supported (version >= 8.0.14 required for IPv6 "
+        "support).",
         e.what());
   }
 
@@ -1105,7 +1110,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
         "Invalid value for ipWhitelist '1/33': subnet value in CIDR "
-        "notation is not valid.",
+        "notation is not supported (version >= 8.0.14 required for IPv6 "
+        "support).",
         e.what());
   }
 
@@ -1123,7 +1129,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
         e.what());
   }
 
-  // Error if ipWhitelist is an IPv6 address
+  // Error if ipWhitelist is an IPv6 address and not supported by server
   options.ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   try {
     options.check_option_values(Version(8, 0, 4));
@@ -1132,8 +1138,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
         "Invalid value for ipWhitelist "
-        "'2001:0db8:85a3:0000:0000:8a2e:0370:7334': IPv6 not "
-        "supported.",
+        "'2001:0db8:85a3:0000:0000:8a2e:0370:7334': IPv6 not supported "
+        "(version >= 8.0.14 required for IPv6 support).",
         e.what());
   }
 
@@ -1145,20 +1151,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '256.255.255.255': string value is "
-        "not a valid IPv4 address.",
-        e.what());
-  }
-
-  // Error if ipWhitelist is not a valid IPv4 address (supported, >= 8.0.4)
-  try {
-    options.check_option_values(Version(8, 0, 4));
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
-    ADD_FAILURE();
-  } catch (const shcore::Exception &e) {
-    EXPECT_STREQ(
-        "Invalid value for ipWhitelist '256.255.255.255': address does not "
-        "resolve to a valid IPv4 address.",
+        "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
+        "supported (version >= 8.0.4 required for hostname support).",
         e.what());
   }
 
@@ -1170,8 +1164,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '256.255.255.255/16': CIDR notation "
-        "can only be used with IPv4 addresses.",
+        "Invalid value for ipWhitelist '256.255.255.255/16': CIDR notation can "
+        "only be used with IPv4 or IPv6 addresses.",
         e.what());
   }
 
@@ -1183,20 +1177,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist 'localhost': string value is not a "
-        "valid IPv4 address.",
-        e.what());
-  }
-
-  options.ip_whitelist = "1invalid_hostname0";
-  try {
-    options.check_option_values(Version(8, 0, 4));
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
-    ADD_FAILURE();
-  } catch (const shcore::Exception &e) {
-    EXPECT_STREQ(
-        "Invalid value for ipWhitelist '1invalid_hostname0': address does "
-        "not resolve to a valid IPv4 address.",
+        "Invalid value for ipWhitelist 'localhost': hostnames are not "
+        "supported (version >= 8.0.4 required for hostname support).",
         e.what());
   }
 
@@ -1209,7 +1191,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
         "Invalid value for ipWhitelist 'localhost/8': CIDR notation can only "
-        "be used with IPv4 addresses.",
+        "be used with IPv4 or IPv6 addresses.",
         e.what());
   }
 
@@ -1221,9 +1203,51 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist 'bogus/8': CIDR notation can only "
-        "be used with IPv4 addresses.",
+        "Invalid value for ipWhitelist 'bogus/8': CIDR notation can only be "
+        "used with IPv4 or IPv6 addresses.",
         e.what());
+  }
+
+  // No error if ipWhitelist is an IPv6 address and server does support it
+  options.ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+  {
+    options.check_option_values(Version(8, 0, 14));
+    SCOPED_TRACE(
+        "No error if ipWhitelist is an IPv6 address and server does support "
+        "it");
+    EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
+  }
+
+  options.ip_whitelist = "256.255.255.255";
+  {
+    // Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4
+    // since it is not a valid IPv4 it assumes it must be an hostname and
+    // hostnames are not supported below 8.0.4
+    SCOPED_TRACE(
+        "Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4");
+    ip_whitelist = "256.255.255.255";
+    EXPECT_THROW_LIKE(
+        options.check_option_values(Version(8, 0, 0)), shcore::Exception,
+        "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
+        "supported (version >= 8.0.4 required for hostname support).");
+  }
+
+  {
+    // Error if hostname is used and server version < 8.0.4
+    options.ip_whitelist = "localhost";
+    SCOPED_TRACE("Error if hostname is used and server version < 8.0.4");
+    EXPECT_THROW_LIKE(
+        options.check_option_values(Version(8, 0, 0)), shcore::Exception,
+        "Invalid value for ipWhitelist 'localhost': hostnames are not "
+        "supported (version >= 8.0.4 required for hostname support).");
+  }
+
+  {
+    // No error if hostname is used and server version >= 8.0.4 because
+    // we don't do hostname resolution
+    SCOPED_TRACE("No error if hostname is used and server version >= 8.0.4");
+    options.ip_whitelist = "fake_hostnanme";
+    EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
   }
 
   // No error if the ipWhitelist is a valid IPv4 address
@@ -1242,6 +1266,9 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
   options.ip_whitelist = "192.168.1.1/15,192.169.1.1/1";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 3)));
+  options.ip_whitelist =
+      "2001:0db8:85a3:0000:0000:8a2e:0370:7334/16,192.168.1.1/15,192.169.1.1/1";
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
 }
 
 TEST(mod_dba_common, validate_exit_state_action_supported) {

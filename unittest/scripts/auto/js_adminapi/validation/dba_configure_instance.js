@@ -130,3 +130,26 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 No default schema selected; type \use <schema> to set one.
 <ClassicSession:repl_admin2@localhost:<<<__mysql_sandbox_port1>>>>
 
+//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+
+//@<OUT> canonical IPv4 addresses are supported WL#12758
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+
+//@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+|ERROR: Cannot use host '::1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
+||Dba.configureInstance: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)

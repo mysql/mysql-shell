@@ -56,24 +56,122 @@ TEST(utils_net, resolve_hostname_ipv4) {
 
 TEST(utils_net, resolve_hostname_ipv4_all) {
   {
-    std::vector<std::string> addrs =
-        Net::resolve_hostname_ipv4_all("localhost");
-    for (const auto &a : addrs) {
-      std::cout << "localhost: " << a << "\n";
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv4_all("localhost");
+      for (const auto &a : addrs) {
+        std::cout << "localhost: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname localhost as IPv4 address: "
+                << err.what() << std::endl;
     }
   }
+
   {
-    std::vector<std::string> addrs =
-        Net::resolve_hostname_ipv4_all("oracle.com");
-    for (const auto &a : addrs) {
-      std::cout << "oracle.com: " << a << "\n";
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv4_all("oracle.com");
+      for (const auto &a : addrs) {
+        std::cout << "oracle.com: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname oracle.com as IPv4 address: "
+                << err.what() << std::endl;
     }
   }
+
   {
-    std::vector<std::string> addrs =
-        Net::resolve_hostname_ipv4_all(Net::get_hostname());
-    for (const auto &a : addrs) {
-      std::cout << Net::get_hostname() << ": " << a << "\n";
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv4_all(Net::get_hostname());
+      for (const auto &a : addrs) {
+        std::cout << Net::get_hostname() << ": " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname " << Net::get_hostname()
+                << " as IPv4 address: " << err.what() << std::endl;
+    }
+  }
+}
+
+TEST(utils_net, resolve_hostname_ipv6_all) {
+  {
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv6_all("localhost");
+
+      for (const auto &a : addrs) {
+        std::cout << "localhost: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname localhost as IPv6 address: "
+                << err.what() << std::endl;
+    }
+  }
+
+  {
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv6_all("google.com");
+      for (const auto &a : addrs) {
+        std::cout << "google.com: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname google.com as IPv6 address: "
+                << err.what() << std::endl;
+    }
+  }
+
+  {
+    try {
+      std::vector<std::string> addrs =
+          Net::resolve_hostname_ipv6_all(Net::get_hostname());
+      for (const auto &a : addrs) {
+        std::cout << Net::get_hostname() << ": " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname " << Net::get_hostname()
+                << " as IPv6 address: " << err.what() << std::endl;
+    }
+  }
+}
+
+TEST(utils_net, get_hostname_ips) {
+  {
+    try {
+      std::vector<std::string> addrs = Net::get_hostname_ips("localhost");
+      for (const auto &a : addrs) {
+        std::cout << "localhost: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname localhost: " << err.what()
+                << std::endl;
+    }
+  }
+
+  {
+    try {
+      std::vector<std::string> addrs = Net::get_hostname_ips("oracle.com");
+      for (const auto &a : addrs) {
+        std::cout << "google.com: " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname oracle.com: " << err.what()
+                << std::endl;
+    }
+  }
+
+  {
+    try {
+      std::vector<std::string> addrs =
+          Net::get_hostname_ips(Net::get_hostname());
+      for (const auto &a : addrs) {
+        std::cout << Net::get_hostname() << ": " << a << "\n";
+      }
+    } catch (const std::runtime_error &err) {
+      std::cout << "Unable to resolve hostname " << Net::get_hostname() << ": "
+                << err.what() << std::endl;
     }
   }
 }
@@ -172,31 +270,42 @@ TEST(utils_net, get_local_addresses) {
 }
 
 TEST(utils_net, get_loopback_addresses) {
-  // Not really a unit-test, just get whatever get_loopback_addresses() returns
-  // and print out, so we can inspect visually...
+  // Not really a unit-test, just get whatever get_loopback_addresses()
+  // returns and print out, so we can inspect visually...
   for (const auto &a : Net::get_loopback_addresses()) {
     std::cout << a << "\n";
   }
 }
 
 TEST(utils_net, strip_cidr) {
-  std::string address;
-  int cidr;
-
   // Test invalid_argument
-  address = "192.168.1.1/a bad value 1";
-  EXPECT_THROW(Net::strip_cidr(&address, &cidr), std::invalid_argument);
+  {
+    const std::string address = "192.168.1.1/a bad value 1";
+    EXPECT_THROW(Net::strip_cidr(address), std::invalid_argument);
+  }
+
+  // Test missing cidr
+  {
+    const std::string address = "192.168.1.1/";
+    EXPECT_THROW(Net::strip_cidr(address), std::invalid_argument);
+  }
 
   // Address without CIDR value should return false
-  address = "192.168.1.1";
-  EXPECT_FALSE(Net::strip_cidr(&address, &cidr));
+  {
+    const std::string address = "192.168.1.1";
+    auto ip = Net::strip_cidr(address);
+    EXPECT_FALSE(!std::get<1>(ip).is_null());
+  }
 
   // Address with CIDR value should return true and the values
   // should be set
-  address = "192.168.1.1/8";
-  EXPECT_TRUE(Net::strip_cidr(&address, &cidr));
-  EXPECT_EQ("192.168.1.1", address);
-  EXPECT_EQ(8, cidr);
+  {
+    const std::string address = "192.168.1.1/8";
+    auto ip = Net::strip_cidr(address);
+    EXPECT_TRUE(!std::get<1>(ip).is_null());
+    EXPECT_EQ("192.168.1.1", std::get<0>(ip));
+    EXPECT_EQ(8, *std::get<1>(ip));
+  }
 }
 
 }  // namespace utils

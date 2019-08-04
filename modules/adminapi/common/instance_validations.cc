@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 // Naming convention for validations:
 //
@@ -196,9 +197,12 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
  * The host address will be printed to the console along with an informational
  * message.
  *
- * If the target host name resolves to a loopback address (127.*) and error
+ * If the target host name resolves to a loopback address (127.*) an error
  * will be printed and the function returns false. Unless the target is a
  * sandbox, detected by checking that the name of the datadir is sandboxdata.
+ *
+ * If an IPv6 address is used and the instance version is < 8.0.14
+ * throw an exception.
  *
  * @param  instance target instance with cached global sysvars
  * @param  verbose  if 1 additional informational messages are shown, if 2
@@ -212,15 +216,12 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
   bool report_host_set;
   std::string hostname;
   std::string report_host;
-  int port;
 
-  auto result = instance.query(
-      "SELECT @@hostname, @@report_host, COALESCE(@@report_port, @@port)");
+  auto result = instance.query("SELECT @@hostname, @@report_host");
   auto row = result->fetch_one_or_throw();
   hostname = row->get_string(0);
   report_host = row->get_string(1, "");
   report_host_set = !row->is_null(1);
-  port = row->get_int(2);
 
   if (report_host_set) {
     log_debug("Target has report_host=%s", report_host.c_str());
@@ -246,7 +247,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
     console->println();
     console->print_info(
         "This instance reports its own address as " +
-        mysqlshdk::textui::bold(hostname + ":" + std::to_string(port)));
+        mysqlshdk::textui::bold(instance.get_canonical_address()));
     if (!report_host_set && verbose > 1) {
       console->print_info(
           "Clients and other cluster members will communicate with it through "
@@ -257,21 +258,54 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
   }
 
   // Validate the IP of the hostname used for GR.
-  // IP address '127.0.1.1' is not supported by GCS leading to errors.
-  // NOTE: This IP is set by default in Debian platforms.
-  std::string seed_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
-  if (seed_ip == "127.0.1.1") {
-    console->print_error(
-        "Cannot use host '" + hostname + "' for instance '" + instance.descr() +
-        "' because it resolves to an IP address (127.0.1.1) that does not "
-        "match a real network interface, thus it is not supported by the Group "
-        "Replication communication layer. Change your system settings and/or "
-        "set the MySQL server 'report_host' variable to a hostname that "
-        "resolves to a supported IP address.");
+  try {
+    std::string seed_ip =
+        mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
+    const bool is_loopback = mysqlshdk::utils::Net::is_loopback(hostname);
+    if (is_loopback && seed_ip != "127.0.0.1") {
+      // Loopback IPv4 addresses except for 127.0.0.1 are not supported by GCS
+      // leading to errors.
+      console->print_error(shcore::str_format(
+          "Cannot use host '%s' for instance '%s' because it resolves to an IP "
+          "address (%s) that does "
+          "not "
+          "match a real network interface, thus it is not supported by the "
+          "Group "
+          "Replication communication layer. Change your system settings "
+          "and/or "
+          "set the MySQL server 'report_host' variable to a hostname that "
+          "resolves to a supported IP address.",
+          hostname.c_str(), instance.descr().c_str(), seed_ip.c_str()));
 
-    throw std::runtime_error("Invalid host/IP '" + hostname +
-                             "' resolves to '127.0.1.1' which is not "
-                             "supported by Group Replication.");
+      throw std::runtime_error(shcore::str_format(
+          "Invalid host/IP '%s' resolves to '%s' which is not "
+          "supported by Group Replication.",
+          hostname.c_str(), seed_ip.c_str()));
+    }
+  } catch (const mysqlshdk::utils::net_error &error) {
+    // if it is an IPv6 address and the instance version does not support IPv6
+    // throw an error
+    // Do not try to resolve hostnames. Even if we can resolve them, there is
+    // no guarantee that name resolution is the same across cluster instances
+    // and the instance where we are running the ngshell
+    bool is_ipv6 = mysqlshdk::utils::Net::is_ipv6(hostname);
+    bool supports_ipv6 =
+        instance.get_version() >= mysqlshdk::utils::Version(8, 0, 14);
+    if (is_ipv6 && !supports_ipv6) {
+      // Using an IPv6 address and the instance does not support it.
+      console->print_error(shcore::str_format(
+          "Cannot use host '%s' for instance '%s' "
+          "because it is an IPv6 address which is only supported by "
+          "Group Replication from MySQL version >= 8.0.14. Set the MySQL "
+          "server 'report_host' "
+          "variable to an IPv4 address or hostname that resolves an IPv4 "
+          "address.",
+          hostname.c_str(), instance.descr().c_str()));
+      throw std::runtime_error(shcore::str_format(
+          "Unsupported IP address '%s'. IPv6 is only "
+          "supported by Group Replication on MySQL version >= 8.0.14.",
+          hostname.c_str()));
+    }
   }
 }
 
@@ -424,7 +458,6 @@ void validate_performance_schema_enabled(
       "performance_schema", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
   auto console = mysqlsh::current_console();
-
   if (ps_enabled.is_null() || !*ps_enabled) {
     console->print_error("Instance '" + instance.descr() +
                          "' has the performance_schema "

@@ -15,7 +15,7 @@
 
 //@ Create cluster errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||Dba.createCluster: Group Replication failed to start:
+||Dba.createCluster: Invalid address format: 'abc'
 
 //@ Create cluster errors using groupName option
 ||Invalid value for groupName, string value cannot be empty. (ArgumentError)
@@ -83,7 +83,7 @@
 
 //@ Add instance errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-|ERROR: Unable to start Group Replication for instance 'localhost:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
+||Cluster.addInstance: Invalid address format: 'abc'
 
 //@ Add instance error using groupName (not a valid option)
 ||Invalid options: groupName (ArgumentError)

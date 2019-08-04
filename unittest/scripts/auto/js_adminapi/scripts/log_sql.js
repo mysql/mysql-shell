@@ -21,7 +21,7 @@ var configure_instance_sql = [
 ];
 
 var create_cluster_sql = [
-    "SELECT @@hostname, @@report_host, COALESCE(@@report_port, @@port)",
+    "SELECT @@hostname, @@report_host",
     "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'",
     "START GROUP_REPLICATION",
     "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, MASTER_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'"

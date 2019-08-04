@@ -41,8 +41,10 @@
 #include "my_dbug.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -521,6 +523,82 @@ void Add_instance::ensure_instance_version_compatibility() const {
   }
 }
 
+void Add_instance::validate_local_address_ip_compatibility() const {
+  // local_address must have some value
+  assert(!m_gr_opts.local_address.is_null() &&
+         !m_gr_opts.local_address.get_safe().empty());
+
+  std::string local_address = m_gr_opts.local_address.get_safe();
+
+  // Validate that the group_replication_local_address is valid for the version
+  // of the target instance.
+  if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+          local_address, m_target_instance->get_version())) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot join instance '" + m_instance_address +
+                         "' to cluster: unsupported localAddress value.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use value '%s' for option localAddress because it has "
+        "an IPv6 address which is only supported by Group Replication "
+        "from MySQL version >= 8.0.14 and the target instance version is %s.",
+        local_address.c_str(),
+        m_target_instance->get_version().get_base().c_str()));
+  }
+
+  // Validate that the localAddress values of the cluster members are
+  // compatible with the target instance we are adding
+  std::string cluster_local_addresses = m_replicaset.get_cluster_group_seeds();
+  auto local_address_list = shcore::str_split(cluster_local_addresses, ",");
+  std::vector<std::string> unsupported_addresses;
+  for (const auto &raw_local_addr : local_address_list) {
+    std::string local_addr = shcore::str_strip(raw_local_addr);
+    if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+            local_addr, m_target_instance->get_version())) {
+      unsupported_addresses.push_back(local_addr);
+    }
+  }
+  if (!unsupported_addresses.empty()) {
+    std::string value_str =
+        (unsupported_addresses.size() == 1) ? "value" : "values";
+
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + m_instance_address +
+        "' to cluster: unsupported localAddress value on the cluster.");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Instance does not support the following localAddress %s of the "
+        "cluster: '%s'. IPv6 "
+        "addresses/hostnames are only supported by Group "
+        "Replication from MySQL version >= 8.0.14 and the target instance "
+        "version is %s.",
+        value_str.c_str(),
+        shcore::str_join(unsupported_addresses.cbegin(),
+                         unsupported_addresses.cend(), ", ")
+            .c_str(),
+        m_target_instance->get_version().get_base().c_str()));
+  }
+
+  // validate that the value of the localAddress is supported by all
+  // existing cluster members
+
+  // Get the lowest cluster version
+  mysqlshdk::utils::Version lowest_cluster_version =
+      m_replicaset.get_cluster()->get_lowest_instance_version();
+  if (!mysqlshdk::gr::is_endpoint_supported_by_gr(local_address,
+                                                  lowest_cluster_version)) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + m_instance_address +
+        "' to cluster: localAddress value not supported by the cluster.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use value '%s' for option localAddress because it has "
+        "an IPv6 address which is only supported by Group Replication "
+        "from MySQL version >= 8.0.14 but the cluster "
+        "contains at least one member with version %s.",
+        local_address.c_str(), lowest_cluster_version.get_base().c_str()));
+  }
+}
+
 /**
  * Resolves SSL mode based on the given options.
  *
@@ -671,6 +749,12 @@ void Add_instance::prepare() {
   }
 
   // Validate the GR options.
+
+  // Note: If the user provides no group_seeds value, it is automatically
+  // assigned a value with the local_address values of the existing cluster
+  // members and those local_address values are already validated on the
+  // validate_local_address_ip_compatibility method, so we only need to validate
+  // the group_seeds value provided by the user.
   m_gr_opts.check_option_values(m_target_instance->get_version());
 
   // Print warning if auto-rejoin is set (not 0).
@@ -788,6 +872,16 @@ void Add_instance::prepare() {
   //               supposed to use Add_instance operation anymore.
   if (!m_skip_instance_check) {
     ensure_instance_configuration_valid(*m_target_instance);
+  }
+
+  // TODO(nelson) - skip_instance_check is only true when this is called from
+  // rebootCluster. Once rebootCluster is rewritten to not use addInstance,
+  // this check can be removed along with all these extra flags
+  if (!m_skip_instance_check) {
+    // Validate that the local_address value we want to use as well as the local
+    // address values in use on the cluster are compatible with the version of
+    // the instance being added to the cluster.
+    validate_local_address_ip_compatibility();
   }
 
   // Set the internal configuration object: read/write configs from the server.

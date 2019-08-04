@@ -338,3 +338,23 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB
 
 //@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
 ||
+
+//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+
+//@<OUT> canonical IPv4 addresses are supported WL#12758
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.

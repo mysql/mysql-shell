@@ -597,3 +597,23 @@ one server failure.
 
 //@ WL#13208: TS_FR1_1 disableClone option is not supported for server version < 8.0.17. {VER(<8.0.17)}
 ||Dba.createCluster: Option 'disableClone' not supported on target server version: '<<<__version>>>' (RuntimeError)
+
+//@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+||
+
+//@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+|ERROR: Cannot use host '::1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
+||Dba.createCluster: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
+
+//@ IPv6 local_address is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+|ERROR: Cannot create cluster on instance 'localhost:<<<__mysql_sandbox_port1>>>': unsupported localAddress value.|
+||Dba.createCluster: Cannot use value '[::1]:<<<__mysql_sandbox_gr_port1>>>' for option localAddress because it has an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+
+//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+||Dba.createCluster: Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
+
+//@ IPv6 on groupSeeds is not supported below 8.0.14 - 1 WL#12758 {VER(< 8.0.14)}
+||Dba.createCluster: Instance does not support the following groupSeed value :'[::1]:<<<__mysql_sandbox_gr_port2>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+
+//@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
+||Dba.createCluster: Instance does not support the following groupSeed values :'[::1]:<<<__mysql_sandbox_gr_port2>>>, [fe80::7e36:f49a:63c8:8ad6]:<<<__mysql_sandbox_gr_port1>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)

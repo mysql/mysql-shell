@@ -20,5 +20,14 @@ dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {mycnfPath
 
 //@ Close session
 session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
 
+//@<> Initialization IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+dba.configureLocalInstance(__sandbox_uri1);
+
+//@<> Cleanup IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -29,6 +29,7 @@
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -97,7 +98,11 @@ std::string Instance::get_canonical_address() const {
     m_hostname = row->get_string(0, "");
     m_port = row->get_int(1);
   }
-  return m_hostname + ":" + std::to_string(m_port);
+  if (mysqlshdk::utils::Net::is_ipv6(m_hostname)) {
+    return "[" + m_hostname + "]:" + std::to_string(m_port);
+  } else {
+    return m_hostname + ":" + std::to_string(m_port);
+  }
 }
 
 const std::string &Instance::get_uuid() const {

@@ -449,6 +449,26 @@ Group_member_recovery_status detect_recovery_status(
     const mysqlshdk::mysql::IInstance &instance, const std::string &start_time,
     bool *out_recovering = nullptr);
 
+/**
+ * Validate if the endpoint (host + port) is supported by Group replication.
+ * Performs "syntactic" validation of the host part when it is
+ * an IP address (either IPv4 or IPv6). Hostnames are not validated (the method
+ * returns true in these cases) because even if we could resolve them we cannot
+ * assume that name resolution is the same across all the cluster instances and
+ * the machine where the ngshell is running.
+ *
+ * // Note cannot be used for ipWhitelist validation as ipWhitelist values
+ * // don't have a port, just IP/hostname and also accept netmasks.
+ * @param endpoint The endpoint we want to check is supported by the instance to
+ * be used as either localAddress or groupSeed.
+ * @param version The version of the instance
+ * @return true if endpoint is supported with the given version or an hostname
+ * is used on the host part, false otherwise.
+ */
+
+bool is_endpoint_supported_by_gr(const std::string &endpoint,
+                                 const mysqlshdk::utils::Version &version);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

@@ -27,6 +27,7 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
@@ -70,7 +71,8 @@ void validate_ssl_instance_options(std::string ssl_mode) {
 /**
  * Validate the value specified for the localAddress option.
  *
- * @param options Map type value with containing the specified options.
+ * @param local_address string containing the value we want to set for
+ * gr_local_address
  * @throw ArgumentError if the value is empty or no host and port is specified
  *        (i.e., value is ":").
  */
@@ -195,6 +197,7 @@ void validate_auto_rejoin_tries_supported(
  * the target instance
  *
  * @param options Map type value with containing the specified options.
+ * @param version version of the target instance
  * @throw RuntimeError if the value is not supported on the target instance
  */
 void validate_member_weight_supported(
@@ -214,17 +217,40 @@ void validate_member_weight_supported(
 /**
  * Validate the value specified for the groupSeeds option.
  *
- * @param options Map type value with containing the specified options.
+ * @param version version of the target instance
+ * @param group_seeds string with the value we want to set for gr_group_seeds.
  * @throw ArgumentError if the value is empty.
  */
-void validate_group_seeds_option(std::string group_seeds) {
-  // Minimal validation is performed here the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
-  // set the group seeds when not specified)
-  group_seeds = shcore::str_strip(group_seeds);
-  if (group_seeds.empty())
+void validate_group_seeds_option(const mysqlshdk::utils::Version &version,
+                                 const std::string &group_seeds) {
+  const std::string group_seeds_strip = shcore::str_strip(group_seeds);
+  if (group_seeds_strip.empty())
     throw shcore::Exception::argument_error(
         "Invalid value for groupSeeds, string value cannot be empty.");
+
+  const auto group_seeds_list = shcore::str_split(group_seeds_strip, ",");
+  std::vector<std::string> unsupported_addresses;
+  for (const auto &raw_seed : group_seeds_list) {
+    const std::string seed = shcore::str_strip(raw_seed);
+    if (!mysqlshdk::gr::is_endpoint_supported_by_gr(seed, version)) {
+      unsupported_addresses.push_back(seed);
+    }
+  }
+
+  if (!unsupported_addresses.empty()) {
+    const std::string value_str =
+        (unsupported_addresses.size() == 1) ? "value" : "values";
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Instance does not support the following groupSeed %s :'%s'. IPv6 "
+        "addresses/hostnames are only supported by Group "
+        "Replication from MySQL version >= 8.0.14 and the target instance "
+        "version is %s.",
+        value_str.c_str(),
+        shcore::str_join(unsupported_addresses.cbegin(),
+                         unsupported_addresses.cend(), ", ")
+            .c_str(),
+        version.get_base().c_str()));
+  }
 }
 
 /**
@@ -232,34 +258,34 @@ void validate_group_seeds_option(std::string group_seeds) {
  *
  * Checks if the given ipWhitelist is valid for use in the AdminAPI.
  *
+ * @param version version of the target instance
  * @param ip_whitelist The ipWhitelist to validate
- * @param hostnames_supported boolean value to indicate whether hostnames are
- * supported or not in the ipWhitelist. (supported since version 8.0.4)
  *
  * @throws argument_error if the ipWhitelist is empty
  * @throws argument_error if the subnet in CIDR notation is not valid
- * @throws argument_error if the address section is not an IPv4 address
- * @throws argument_error if the address is IPv6
- * @throws argument_error if hostnames_supported is true but the address does
- * not resolve to a valid IPv4 address
- * @throws argument error if hostnames_supports is false and the address it nos
- * a valid IPv4 address
+ * @throws argument_error if the address if the address is a IPv6 and the server
+ * version does not support it.
+ * @throws argument_error if the address if the address is an hostname and the
+ * server version does not support it.
  */
-void validate_ip_whitelist_option(const std::string &ip_whitelist,
-                                  bool hostnames_supported) {
+void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
+                                  const std::string &ip_whitelist) {
+  const bool hostnames_supported =
+      version >= mysqlshdk::utils::Version(8, 0, 4);
+  const bool supports_ipv6 = version >= mysqlshdk::utils::Version(8, 0, 14);
+
   // Validate if the ipWhiteList value is not empty
   if (shcore::str_strip(ip_whitelist).empty())
     throw shcore::Exception::argument_error(
         "Invalid value for ipWhitelist: string value cannot be empty.");
 
   // Iterate over the ipWhitelist values
-  std::vector<std::string> ip_whitelist_list =
+  const std::vector<std::string> ip_whitelist_list =
       shcore::str_split(ip_whitelist, ",", -1);
 
-  for (std::string value : ip_whitelist_list) {
+  for (const std::string &item : ip_whitelist_list) {
     // Strip any blank chars from the ip_whitelist value
-    value = shcore::str_strip(value);
-    std::string full_value = value;
+    const std::string hostname = shcore::str_strip(item);
 
     // Check if a subnet using CIDR notation was used and validate its value
     // and separate the address
@@ -271,49 +297,57 @@ void validate_ip_whitelist_option(const std::string &ip_whitelist,
     // network mask. The IP address is expressed according to the standards of
     // IPv4 or IPv6.
 
-    int cidr = 0;
-    if (mysqlshdk::utils::Net::strip_cidr(&value, &cidr)) {
-      if ((cidr < 1) || (cidr > 32))
-        throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + full_value +
-            "': subnet value "
-            "in CIDR notation is not valid.");
+    const auto ip = mysqlshdk::utils::Net::strip_cidr(hostname);
+    const bool is_ipv6 = mysqlshdk::utils::Net::is_ipv6(std::get<0>(ip));
+    const bool is_ipv4 = mysqlshdk::utils::Net::is_ipv4(std::get<0>(ip));
+    const bool is_hostname = !is_ipv4 && !is_ipv6;
 
+    const auto &cidr = std::get<1>(ip);
+    if (!cidr.is_null()) {
       // Check if value is an hostname: hostname/cidr is not allowed
-      if (!mysqlshdk::utils::Net::is_ipv4(value))
+      if (is_hostname)
         throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + full_value +
-            "': CIDR "
-            "notation can only be used with IPv4 addresses.");
-    }
+            "Invalid value for ipWhitelist '" + hostname +
+            "': CIDR notation can only be used with IPv4 or IPv6 addresses.");
 
-    // Check if the ipWhiteList option is IPv6
-    if (mysqlshdk::utils::Net::is_ipv6(value))
-      throw shcore::Exception::argument_error(
-          "Invalid value for ipWhitelist '" + value +
-          "': IPv6 not "
-          "supported.");
+      if ((*cidr < 1) || (*cidr > 128))
+        throw shcore::Exception::argument_error(
+            "Invalid value for ipWhitelist '" + hostname +
+            "': subnet value in CIDR notation is not valid.");
 
-    // Validate if the ipWhiteList option is IPv4
-    if (!mysqlshdk::utils::Net::is_ipv4(value)) {
-      // group_replication_ip_whitelist only support hostnames in server
-      // >= 8.0.4
-      if (hostnames_supported) {
-        try {
-          mysqlshdk::utils::Net::resolve_hostname_ipv4(value);
-        } catch (const mysqlshdk::utils::net_error &error) {
+      if (*cidr > 32) {
+        if (!supports_ipv6)
           throw shcore::Exception::argument_error(
-              "Invalid value for ipWhitelist '" + value +
-              "': address does "
-              "not resolve to a valid IPv4 address.");
-        }
-      } else {
-        throw shcore::Exception::argument_error(
-            "Invalid value for ipWhitelist '" + value +
-            "': string value is "
-            "not a valid IPv4 address.");
+              "Invalid value for ipWhitelist '" + hostname +
+              "': subnet value "
+              "in CIDR notation is not supported"
+              " (version >= 8.0.14 required for IPv6 support).");
+
+        if (!is_ipv6)
+          throw shcore::Exception::argument_error(
+              "Invalid value for ipWhitelist '" + hostname +
+              "': subnet value in CIDR notation is not supported for IPv4 "
+              "addresses.");
       }
     }
+    // Do not try to resolve the hostname. Even if we can resolve it, there is
+    // no guarantee that name resolution is the same across cluster instances
+    // and the instance where we are running the ngshell.
+
+    if (is_hostname && !hostnames_supported) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for ipWhitelist '" + hostname +
+          "': hostnames are not supported (version >= 8.0.4 required for "
+          "hostname support).");
+    } else {
+      if (!supports_ipv6 && is_ipv6) {
+        throw shcore::Exception::argument_error(
+            "Invalid value for ipWhitelist '" + hostname +
+            "': IPv6 not supported (version >= 8.0.14 required for IPv6 "
+            "support).");
+      }
+    }
+    // either an IPv4 address, a supported IPv6 or an hostname
   }
 }
 
@@ -358,17 +392,7 @@ void Group_replication_options::check_option_values(
 
   if (!ip_whitelist.is_null() &&
       shcore::str_casecmp(*ip_whitelist, "AUTOMATIC") != 0) {
-    // if the ipWhitelist option was provided, we know it is a valid value
-    // since we've already done the validation above.
-    // Skip validation if default 'AUTOMATIC' is used.
-    bool hostnames_supported = false;
-
-    // Validate ip whitelist option
-    if (version >= mysqlshdk::utils::Version(8, 0, 4)) {
-      hostnames_supported = true;
-    }
-
-    validate_ip_whitelist_option(*ip_whitelist, hostnames_supported);
+    validate_ip_whitelist_option(version, *ip_whitelist);
   }
 
   if (!ssl_mode.is_null()) {
@@ -381,7 +405,7 @@ void Group_replication_options::check_option_values(
 
   // Validate group seeds option
   if (!group_seeds.is_null()) {
-    validate_group_seeds_option(*group_seeds);
+    validate_group_seeds_option(version, *group_seeds);
   }
 
   // Validate if the exitStateAction option is supported on the target

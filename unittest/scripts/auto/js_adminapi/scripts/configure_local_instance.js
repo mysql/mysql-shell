@@ -149,8 +149,29 @@ testutil.expectPrompt("Do you want to restart the instance after configuring it?
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true});
 
 //@<OUT> Confirm changes were applied and everything is fine BUG#29725222 {VER(>= 8.0.17)}
-testutil.waitSandboxAlive(__mysql_sandbox_port1)
+testutil.waitSandboxAlive(__mysql_sandbox_port1);
 dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
 
 //@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Deploy sandbox WL#12758 IPv6 {VER(>= 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+dba.configureLocalInstance(__sandbox_uri1);
+
+//@<> Cleanup WL#12758 IPV6 {VER(>= 8.0.14)}
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Deploy sandbox WL#12758 IPv4
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "127.0.0.1"});
+var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@<OUT> canonical IPv4 addresses are supported WL#12758
+dba.configureLocalInstance(__sandbox_uri1,  {mycnfPath:mycnf_path});
+
+//@<> Cleanup WL#12758 IPv4
 testutil.destroySandbox(__mysql_sandbox_port1);

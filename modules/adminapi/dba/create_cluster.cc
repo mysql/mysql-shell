@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
@@ -248,6 +249,13 @@ void Create_cluster::prepare() {
           m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
           m_target_instance->get_canonical_port());
 
+      // Validate that the group_replication_local_address is valid for the
+      // version we are using
+      // Note this has to be done here after the resolve_gr_local_address method
+      // since we need to validate both a gr_local_address value that was passed
+      // by the user or the one that is automatically chosen.
+      validate_local_address_ip_compatibility();
+
       // Generate the GR group name (if needed).
       if (m_gr_opts.group_name.is_null()) {
         m_gr_opts.group_name =
@@ -428,6 +436,30 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
             e.what());
       }
     }
+  }
+}
+
+void Create_cluster::validate_local_address_ip_compatibility() const {
+  // local_address must have some value
+  assert(!m_gr_opts.local_address.is_null() &&
+         !m_gr_opts.local_address.get_safe().empty());
+
+  std::string local_address = m_gr_opts.local_address.get_safe();
+
+  // Validate that the group_replication_local_address is valid for the version
+  // of the target instance.
+  if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+          local_address, m_target_instance->get_version())) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot create cluster on instance '" +
+                         m_target_instance->descr() +
+                         "': unsupported localAddress value.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use value '%s' for option localAddress because it has "
+        "an IPv6 address which is only supported by Group Replication "
+        "from MySQL version >= 8.0.14 and the target instance version is %s.",
+        local_address.c_str(),
+        m_target_instance->get_version().get_base().c_str()));
   }
 }
 

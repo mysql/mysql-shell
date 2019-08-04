@@ -26,7 +26,10 @@
 
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -55,6 +58,16 @@ class Net {
    * @throws net_error if address cannot be resolved.
    */
   static std::string resolve_hostname_ipv4(const std::string &name);
+
+  /**
+   * Resolves the given hostname to an IPv6 address.
+   *
+   * @param name The hostname to be resolved.
+   *
+   * @return The resolved IPv6 address.
+   * @throws net_error if address cannot be resolved.
+   */
+  static std::string resolve_hostname_ipv6(const std::string &name);
 
   /**
    * Checks if the given host is an IPv4 literal address.
@@ -109,18 +122,31 @@ class Net {
   static std::vector<std::string> resolve_hostname_ipv4_all(
       const std::string &name);
 
+  static std::vector<std::string> resolve_hostname_ipv6_all(
+      const std::string &name);
+
+  /**
+   * Gets a list of all IPs (IPv4 and IPv6) that the hostname resolves to.
+   *
+   * @param name The hostname to be resolved.
+   *
+   * @return A list with the IPv4 and IPv6 addresses the hostname resolves to.
+   * @throws net_error if address cannot be resolved.
+   */
+  static std::vector<std::string> get_hostname_ips(const std::string &name);
+
   /**
    * Strips the CIDR value from the given address and converts it to integer
    *
    * @param address The address to be stripped.
-   * @param cidr The integer reference to store the resulting cidr value
    *
-   * @return true if the address contains a CIDR value
+   * @return (IP, CIDR) tuple.
    *
    * @throws invalid_argument if the address cannot be parsed
    * @throws out_of_range if the converted integer value of cidr is out of range
    */
-  static bool strip_cidr(std::string *address, int *cidr);
+  static std::tuple<std::string, mysqlshdk::utils::nullable<int>> strip_cidr(
+      const std::string &address);
 
  protected:
   /**
@@ -139,6 +165,12 @@ class Net {
   static void set(Net *implementation);
 
   virtual std::vector<std::string> resolve_hostname_ipv4_all_impl(
+      const std::string &name) const;
+
+  virtual std::vector<std::string> resolve_hostname_ipv6_all_impl(
+      const std::string &name) const;
+
+  virtual std::vector<std::string> resolve_hostname_ipv_any_all_impl(
       const std::string &name) const;
 
   virtual bool is_loopback_impl(const std::string &address) const;

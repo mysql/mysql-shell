@@ -49,3 +49,33 @@ session.close();
 
 //@<> cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Initialization canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+dba.configureInstance(__sandbox_uri1);
+
+//@<> Cleanup canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Initialization canonical IPv4 addresses are supported WL#12758
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "127.0.0.1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@<OUT> canonical IPv4 addresses are supported WL#12758
+dba.configureInstance(__sandbox_uri1);
+
+//@<> Cleanup canonical IPv4 addresses are supported WL#12758
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Initialization IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+dba.configureInstance(__sandbox_uri1);
+
+//@<> Cleanup IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.destroySandbox(__mysql_sandbox_port1);

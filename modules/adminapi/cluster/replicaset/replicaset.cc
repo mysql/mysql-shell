@@ -414,7 +414,7 @@ void ReplicaSet::query_group_wide_option_values(
  * Get an up-to-date group seeds value based on the current list of active
  * members.
  *
- * An optional instance_session parameter can be provide that will be used to
+ * An optional instance_session parameter can be provided that will be used to
  * get its current GR group seeds value and add the local address from the
  * active members (avoiding duplicates) to that initial value, allowing to
  * preserve the GR group seeds of the specified instance. If no
@@ -793,7 +793,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
         .end();
   }
 
-  // Overide password if provided in options dictionary.
+  // Override password if provided in options dictionary.
   if (!password.empty()) {
     target_coptions.set_password(password);
   }

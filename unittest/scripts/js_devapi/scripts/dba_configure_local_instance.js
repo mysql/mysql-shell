@@ -84,3 +84,4 @@ session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 session.runSql("show global variables like 'auto_increment_%'").fetchAll();
 session.close();
+

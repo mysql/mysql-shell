@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICASET_ADD_INSTANCE_H_
-#define MODULES_ADMINAPI_REPLICASET_ADD_INSTANCE_H_
+#ifndef MODULES_ADMINAPI_CLUSTER_REPLICASET_ADD_INSTANCE_H_
+#define MODULES_ADMINAPI_CLUSTER_REPLICASET_ADD_INSTANCE_H_
 
 #include <memory>
 #include <string>
@@ -152,6 +152,14 @@ class Add_instance : public Command_interface {
   Member_recovery_method validate_instance_recovery();
 
   void ensure_instance_version_compatibility() const;
+
+  /**
+   * Validate the use of IPv6 addresses on the localAddress of the
+   * target instance and check if the target instance supports usage of
+   * IPv6 on the localAddress values being used on the cluster instances.
+   */
+  void validate_local_address_ip_compatibility() const;
+
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
   bool handle_replication_user();
@@ -167,4 +175,4 @@ class Add_instance : public Command_interface {
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_REPLICASET_ADD_INSTANCE_H_
+#endif  // MODULES_ADMINAPI_CLUSTER_REPLICASET_ADD_INSTANCE_H_

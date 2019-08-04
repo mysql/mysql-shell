@@ -1661,20 +1661,14 @@ void validate_connection_options(
   }
 
   if (options.has_host()) {
-    // host has to be an IPv4 address or resolve to an IPv4 address
+    // host has to be an IPv4 or IPv6 address or resolve to an IPv4 or IPv6
+    // address
     const std::string &host = options.get_host();
-
-    if (mysqlshdk::utils::Net::is_ipv6(host))
-      throw_exception(
-          host +
-          " is an IPv6 address, which is not supported by "
-          "the Group Replication. Please ensure an IPv4 address is used when "
-          "setting up an InnoDB cluster");
-
     try {
-      mysqlshdk::utils::Net::resolve_hostname_ipv4(host);
+      mysqlshdk::utils::Net::get_hostname_ips(host);
     } catch (const mysqlshdk::utils::net_error &error) {
-      throw_exception("unable to resolve the IPv4 address");
+      throw_exception(
+          "unable to resolve the address as either an IPv4 or IPv6 host");
     }
   }
 }
@@ -1798,8 +1792,17 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &report_host, int port) {
-  assert(!report_host.empty());  // First we need to get the report host.
+    const std::string &raw_report_host, int port) {
+  assert(!raw_report_host.empty());  // First we need to get the report host.
+
+  // if report host is an IPv6 address, surround it with []
+  // The [] are necessary for IPv6 because we later have to append a colon and
+  // the port and we need to distinguish between colon in the Ip address and the
+  // colon that separates the IP and the port.
+  std::string report_host = raw_report_host;
+  if (mysqlshdk::utils::Net::is_ipv6(raw_report_host)) {
+    report_host = "[" + raw_report_host + "]";
+  }
 
   std::string local_host, str_local_port;
   int local_port;

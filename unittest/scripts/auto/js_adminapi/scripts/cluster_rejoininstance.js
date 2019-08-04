@@ -95,3 +95,60 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+
+//@<> Initialization IPv6 addresses supported WL#12758 {VER(>= 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: "::1"});
+shell.connect(__sandbox_uri1);
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+cluster.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+shell.connect(__sandbox_uri2);
+session.runSql("STOP GROUP_REPLICATION");
+session.close();
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster();
+
+//@<> IPv6 addresses are supported on rejoinInstance ipWhitelist WL#12758 {VER(>= 8.0.14)}
+var ip_white_list = "::1, 127.0.0.1";
+cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist:ip_white_list});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+shell.connect(__sandbox_uri2);
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@<> Cleanup IPv6 addresses supported WL#12758 {VER(>= 8.0.14)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@<> Initialization canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+shell.connect(__sandbox_uri1);
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+cluster.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+shell.connect(__sandbox_uri2);
+session.runSql("STOP GROUP_REPLICATION");
+session.close();
+testutil.changeSandboxConf(__mysql_sandbox_port2, "report_host", "::1");
+testutil.restartSandbox(__mysql_sandbox_port2);
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster();
+
+//@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.changeSandboxConf(__mysql_sandbox_port2, "report_host", "127.0.0.1");
+testutil.restartSandbox(__mysql_sandbox_port2);
+cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "::1, 127.0.0.1"});
+
+//@<> Cleanup canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
