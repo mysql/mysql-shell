@@ -450,7 +450,8 @@ shcore::Value Util::check_for_server_upgrade(
           _shell_core.get_dev_session()->get_connection_options();
     }
 
-    Upgrade_check_options opts{"", MYSH_VERSION, ""};
+    using mysqlshdk::utils::Version;
+    Upgrade_check_options opts{Version(), Version(MYSH_VERSION), "", ""};
     std::string output_format(
         shcore::str_beginswith(
             mysqlsh::current_shell_options()->get().wrap_json, "json")
@@ -461,10 +462,11 @@ shcore::Value Util::check_for_server_upgrade(
         args[args.size() - 1].type == shcore::Value_type::Map) {
       auto dict = args.map_at(args.size() - 1);
       output_format = dict->get_string("outputFormat", output_format);
-      opts.target_version =
-          dict->get_string("targetVersion", opts.target_version);
-      if (opts.target_version == "8.0")
-        opts.target_version.assign(MYSH_VERSION);
+      auto target_version = dict->get_string("targetVersion", MYSH_VERSION);
+      if (target_version == "8.0")
+        opts.target_version = Version(MYSH_VERSION);
+      else
+        opts.target_version = Version(target_version);
       opts.config_path = dict->get_string("configPath", "");
     }
 
@@ -490,20 +492,21 @@ shcore::Value Util::check_for_server_upgrade(
             "privileges.");
     }
 
-    auto version_result = session->query("select @@version, @@version_comment");
+    auto version_result = session->query(
+        "select @@version, @@version_comment, UPPER(@@version_compile_os);");
     row = version_result->fetch_one();
     if (row == nullptr)
       throw std::runtime_error("Unable to get server version");
 
-    opts.server_version = row->get_string(0);
+    opts.server_version = Version(row->get_string(0));
+    opts.server_os = row->get_string(2);
 
     print->check_info(connection_options.as_uri(
                           mysqlshdk::db::uri::formats::only_transport()),
-                      opts.server_version + " - " + row->get_string(1),
-                      opts.target_version);
+                      row->get_string(0) + " - " + row->get_string(1),
+                      opts.target_version.get_base());
 
-    auto checklist = Upgrade_check::create_checklist(opts.server_version,
-                                                     opts.target_version);
+    auto checklist = Upgrade_check::create_checklist(opts);
 
     const auto update_counts = [&errors, &warnings,
                                 &notices](Upgrade_issue::Level level) {
@@ -526,7 +529,7 @@ shcore::Value Util::check_for_server_upgrade(
           std::vector<Upgrade_issue> issues = check->run(session, opts);
           for (const auto &issue : issues) update_counts(issue.level);
           print->check_results(*check, issues);
-        } catch (const Upgrade_check::CheckConfigurationError &e) {
+        } catch (const Upgrade_check::Check_configuration_error &e) {
           print->check_error(*check, e.what(), false);
         } catch (const std::exception &e) {
           print->check_error(*check, e.what());

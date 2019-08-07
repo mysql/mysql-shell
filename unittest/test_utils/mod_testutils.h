@@ -251,8 +251,8 @@ class Testutils : public mysqlsh::Extensible_object {
                    const std::string &std_input = std::string{},
                    const shcore::Array_t &env = nullptr);
   int call_mysqlsh_c(const std::vector<std::string> &args,
-                     const std::string &std_input,
-                     const std::vector<std::string> &env);
+                     const std::string &std_input = "",
+                     const std::vector<std::string> &env = {});
 
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail

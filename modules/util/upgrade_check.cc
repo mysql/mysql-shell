@@ -75,9 +75,9 @@ const Version Upgrade_check::ALL_VERSIONS("777.777.777");
 Upgrade_check::Collection Upgrade_check::s_available_checks;
 
 std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
-    const std::string &src_ver, const std::string &dst_ver) {
-  Version src_version(src_ver);
-  Version dst_version(dst_ver);
+    const Upgrade_check_options &opts) {
+  const Version &src_version(opts.server_version);
+  const Version &dst_version(opts.target_version);
 
   if (src_version < Version("5.7.0"))
     throw std::invalid_argument(
@@ -109,7 +109,10 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
   for (const auto &c : s_available_checks)
     for (const auto &ver : c.first)
       if (ver == ALL_VERSIONS || (ver > src_version && ver <= dst_version)) {
-        result.emplace_back(c.second(src_version, dst_version));
+        try {
+          result.emplace_back(c.second(opts));
+        } catch (const Check_not_needed &) {
+        }
         break;
       }
 
@@ -143,8 +146,9 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
 
   writer.write_header(oracle_copyright);
   writer.write_header();
+  Upgrade_check_options opts{TRANSLATION_MODE, TRANSLATION_MODE, "", ""};
   for (const auto &it : s_available_checks) {
-    auto check = it.second(TRANSLATION_MODE, TRANSLATION_MODE);
+    auto check = it.second(opts);
     std::string prefix(check->m_name);
     prefix += ".";
 
@@ -285,34 +289,43 @@ bool UNUSED_VARIABLE(register_old_temporal) = Upgrade_check::register_check(
 }
 
 std::unique_ptr<Sql_upgrade_check>
-Sql_upgrade_check::get_reserved_keywords_check() {
-  std::string keywords =
-      "('ADMIN', 'CUBE', 'CUME_DIST', "
-      "'DENSE_RANK', 'EMPTY', 'EXCEPT', 'FIRST_VALUE', 'FUNCTION', "
-      "'GROUPING', 'GROUPS', 'JSON_TABLE', 'LAG', 'LAST_VALUE', "
-      "'LEAD', 'NTH_VALUE', 'NTILE', 'OF', "
-      "'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', "
-      "'RANK', 'RECURSIVE', 'ROW', 'ROWS', "
-      "'ROW_NUMBER', 'SYSTEM', 'WINDOW');";
+Sql_upgrade_check::get_reserved_keywords_check(
+    const Upgrade_check_options &opts) {
+  std::string keywords;
+  const auto add_keywords = [&keywords, &opts](const char *v, const char *kws) {
+    Version kv(v);
+    if (opts.server_version < kv && opts.target_version >= kv) {
+      if (!keywords.empty()) keywords += ", ";
+      keywords += kws;
+    }
+  };
+
+  add_keywords("8.0.11",
+               "'ADMIN', 'CUBE', 'CUME_DIST', 'DENSE_RANK', 'EMPTY', 'EXCEPT', "
+               "'FIRST_VALUE', 'FUNCTION', 'GROUPING', 'GROUPS', 'JSON_TABLE', "
+               "'LAG', 'LAST_VALUE', 'LEAD', 'NTH_VALUE', 'NTILE', 'OF', "
+               "'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', 'RANK', "
+               "'RECURSIVE', 'ROW', 'ROWS', 'ROW_NUMBER', 'SYSTEM', 'WINDOW'");
+  add_keywords("8.0.14", "'LATERAL'");
+  add_keywords("8.0.17", "'ARRAY' ,'MEMBER' ");
+
+  keywords = "(" + keywords + ");";
   return shcore::make_unique<Sql_upgrade_check>(
       "reservedKeywordsCheck",
-      "Usage of db objects with names conflicting with reserved keywords "
-      "in 8.0",
+      "Usage of db objects with names conflicting with new reserved keywords",
       std::vector<std::string>{
           "select SCHEMA_NAME, 'Schema name' as WARNING from "
           "INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME in " +
               keywords,
           "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' as WARNING FROM "
           "INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE != 'VIEW' and "
-          "TABLE_NAME "
-          "in " +
+          "TABLE_NAME in " +
               keywords,
           "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, 'Column "
           "name' as WARNING FROM information_schema.columns WHERE "
           "TABLE_SCHEMA "
           "not in ('information_schema', 'performance_schema') and "
-          "COLUMN_NAME "
-          "in " +
+          "COLUMN_NAME in " +
               keywords,
           "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
           "FROM "
@@ -322,21 +335,21 @@ Sql_upgrade_check::get_reserved_keywords_check() {
           "INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME in " +
               keywords,
           "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'Routine name' as WARNING "
-          "FROM "
-          "INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME in " +
+          "FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME in " +
               keywords,
           "SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
           "INFORMATION_SCHEMA.EVENTS WHERE EVENT_NAME in " +
               keywords},
       Upgrade_issue::WARNING,
-      "The following objects have names that conflict with reserved keywords "
-      "that are new to 8.0. Ensure queries sent by your applications use "
-      "`quotes` when referring to them or they will result in errors.");
+      "The following objects have names that conflict with new reserved "
+      "keywords. Ensure queries sent by your applications use `quotes` when "
+      "referring to them or they will result in errors.");
 }
 
 namespace {
 bool UNUSED_VARIABLE(register_reserved) = Upgrade_check::register_check(
-    std::bind(&Sql_upgrade_check::get_reserved_keywords_check), "8.0.11");
+    &Sql_upgrade_check::get_reserved_keywords_check, "8.0.11", "8.0.14",
+    "8.0.17");
 }
 
 /// In this check we are only interested if any such table/database exists
@@ -344,13 +357,13 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_utf8mb3_check() {
   return shcore::make_unique<Sql_upgrade_check>(
       "utf8mb3Check", "Usage of utf8mb3 charset",
       std::vector<std::string>{
-          "select SCHEMA_NAME, concat(\"schema's default character set: \",  "
+          "select SCHEMA_NAME, concat('schema''s default character set: ',  "
           "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
           "SCHEMA_NAME not in ('information_schema', 'performance_schema', "
           "'sys') "
           "and DEFAULT_CHARACTER_SET_NAME in ('utf8', 'utf8mb3');",
-          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat(\"column's "
-          "default character set: \",CHARACTER_SET_NAME) from "
+          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column''s "
+          "default character set: ',CHARACTER_SET_NAME) from "
           "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
           "'utf8mb3') and TABLE_SCHEMA not in ('sys', 'performance_schema', "
           "'information_schema', 'mysql');"},
@@ -499,7 +512,11 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
           "sql_mode);",
           "select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
           "sql_mode' from information_schema.TRIGGERS where "
-          "find_in_set('MAXDB', sql_mode);"},
+          "find_in_set('MAXDB', sql_mode);",
+          "select concat('global system variable ', variable_name), 'defined "
+          "using obsolete MAXDB option' as reason from "
+          "performance_schema.global_variables where variable_name = "
+          "'sql_mode' and find_in_set('MAXDB', variable_value);"},
       Upgrade_issue::WARNING,
       "The following DB objects have the obsolete MAXDB option persisted for "
       "sql_mode, which will be cleared during upgrade to 8.0. It "
@@ -535,6 +552,12 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
         "select trigger_schema, trigger_name, 'TRIGGER uses obsolete %s "
         "sql_mode' from information_schema.TRIGGERS where find_in_set('%s', "
         "sql_mode);",
+        mode, mode));
+    queries.emplace_back(shcore::str_format(
+        "select concat('global system variable ', variable_name), 'defined "
+        "using obsolete %s option' as reason from "
+        "performance_schema.global_variables where variable_name = 'sql_mode' "
+        "and find_in_set('%s', variable_value);",
         mode, mode));
   }
 
@@ -610,12 +633,12 @@ bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
-    const mysqlshdk::utils::Version &ver) {
+    const Upgrade_check_options &opts) {
   return shcore::make_unique<Sql_upgrade_check>(
       "partitionedTablesInSharedTablespaceCheck",
       "Usage of partitioned tables in shared tablespaces",
       std::vector<std::string>{
-          ver < Version(8, 0, 0)
+          opts.server_version < Version(8, 0, 0)
               ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
                 "concat('Partition ', PARTITION_NAME, "
                 "' is in shared tablespace ', TABLESPACE_NAME) "
@@ -643,9 +666,7 @@ Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
 namespace {
 bool UNUSED_VARIABLE(register_sharded_tablespaces) =
     Upgrade_check::register_check(
-        std::bind(&Sql_upgrade_check::
-                      get_partitioned_tables_in_shared_tablespaces_check,
-                  std::placeholders::_1),
+        &Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check,
         "8.0.11", "8.0.13");
 }
 
@@ -934,7 +955,7 @@ std::vector<Upgrade_issue> Config_check::run(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const Upgrade_check_options &options) {
   if (options.config_path.empty())
-    throw CheckConfigurationError(
+    throw Check_configuration_error(
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
 
@@ -1019,7 +1040,7 @@ class Removed_sys_var_check : public Sql_upgrade_check {
 
 std::unique_ptr<Upgrade_check>
 Sql_upgrade_check::get_removed_sys_log_vars_check(
-    const mysqlshdk::utils::Version &ver) {
+    const Upgrade_check_options &opts) {
   const char *name = "removedSysLogVars";
   const char *title =
       "Removed system variables for error logging to the system log "
@@ -1038,8 +1059,8 @@ Sql_upgrade_check::get_removed_sys_log_vars_check(
       {"log_syslog_tag", "syseventlog.tag"},
       {"log_syslog", nullptr}};
 
-  if (ver < mysqlshdk::utils::Version(8, 0, 0) &&
-      ver >= mysqlshdk::utils::Version(5, 7, 0))
+  if (opts.server_version < mysqlshdk::utils::Version(8, 0, 0) &&
+      opts.server_version >= mysqlshdk::utils::Version(5, 7, 0))
     return shcore::make_unique<Config_check>(
         name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
         Upgrade_issue::ERROR, problem_description, title, advice);
@@ -1052,14 +1073,13 @@ Sql_upgrade_check::get_removed_sys_log_vars_check(
 namespace {
 bool UNUSED_VARIABLE(register_removed_sys_log_vars_check) =
     Upgrade_check::register_check(
-        std::bind(&Sql_upgrade_check::get_removed_sys_log_vars_check,
-                  std::placeholders::_1),
-        "8.0.13");
+        &Sql_upgrade_check::get_removed_sys_log_vars_check, "8.0.13");
 }
 
 std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
-    const mysqlshdk::utils::Version &ver,
-    const mysqlshdk::utils::Version &target) {
+    const Upgrade_check_options &opts) {
+  const auto &ver = opts.server_version;
+  const auto &target = opts.target_version;
   std::map<std::string, const char *> vars;
   if (ver < mysqlshdk::utils::Version(8, 0, 11))
     vars.insert(
@@ -1123,9 +1143,8 @@ std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
 namespace {
 bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
     Upgrade_check::register_check(
-        std::bind(&Sql_upgrade_check::get_removed_sys_vars_check,
-                  std::placeholders::_1, std::placeholders::_2),
-        "8.0.11", "8.0.13", "8.0.16");
+        &Sql_upgrade_check::get_removed_sys_vars_check, "8.0.11", "8.0.13",
+        "8.0.16");
 }
 
 std::unique_ptr<Upgrade_check>
@@ -1192,8 +1211,8 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
       "schemaInconsistencyCheck",
       "Schema inconsistencies resulting from file removal or corruption",
       std::vector<std::string>{
-       "select A.schema_name, A.table_name, \"present in INFORMATION_SCHEMA's "
-       "INNODB_SYS_TABLES table but missing from TABLES table\" from (select "
+       "select A.schema_name, A.table_name, 'present in INFORMATION_SCHEMA''s "
+       "INNODB_SYS_TABLES table but missing from TABLES table' from (select "
        "distinct "
        replace_in_SQL("substring_index(NAME, '/',1)")
        "as schema_name, "
@@ -1218,14 +1237,42 @@ bool UNUSED_VARIABLE(register_schema_inconsistency_check) =
         "8.0.11");
 }
 
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_fts_in_tablename_check(
+    const Upgrade_check_options &opts) {
+  if (opts.target_version >= Version(8, 0, 18) ||
+      shcore::str_beginswith(opts.server_os, "WIN") ||
+      shcore::str_beginswith(opts.server_os, "MAC"))
+    throw Check_not_needed();
+
+  return shcore::make_unique<Sql_upgrade_check>(
+      "ftsTablenameCheck", "Table names containing 'FTS'",
+      std::vector<std::string>{
+          "select table_schema, table_name , 'table name contains ''FTS''' "
+          "from information_schema.tables where table_name like binary "
+          "'%FTS%';"},
+      Upgrade_issue::ERROR,
+      "Upgrading from 5.7 to 8.0 does not support tables with name containing "
+      "'FTS' character string. The workaround is to rename the table for the "
+      "upgrade - e.g. it is enough to change any letter of the 'FTS' part to a "
+      "lower case. It can be renamed back again after the upgrade.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_fts_tablename_check) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_fts_in_tablename_check, "8.0.11");
+}
+
 Check_table_command::Check_table_command()
     : Upgrade_check("checkTableOutput") {}
 
 std::vector<Upgrade_issue> Check_table_command::run(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const Upgrade_check_options &) {
-  // Needed for warnings related to triggers
-  session->execute("FLUSH TABLES;");
+  // Needed for warnings related to triggers in 5.7, skipped for now for
+  // performance reasons
+  //  session->execute("FLUSH LOCAL TABLES;");
 
   std::vector<std::pair<std::string, std::string>> tables;
   auto result = session->query(
@@ -1272,7 +1319,7 @@ std::vector<Upgrade_issue> Check_table_command::run(
 
 namespace {
 bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
-    [](const Version &, const Version &) {
+    [](const Upgrade_check_options &) {
       return shcore::make_unique<Check_table_command>();
     },
     Upgrade_check::ALL_VERSIONS);
@@ -1283,8 +1330,7 @@ void Upgrade_check::register_manual_check(const char *ver, const char *name,
   s_available_checks.emplace_back(
       std::forward_list<mysqlshdk::utils::Version>{
           mysqlshdk::utils::Version(ver)},
-      [name, level](const mysqlshdk::utils::Version &,
-                    const mysqlshdk::utils::Version &) {
+      [name, level](const Upgrade_check_options &) {
         return shcore::make_unique<Manual_check>(name, level);
       });
 }

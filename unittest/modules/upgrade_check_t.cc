@@ -36,7 +36,7 @@ namespace mysqlsh {
 class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
-      : opts{_target_server_version.get_base(), MYSH_VERSION, ""} {}
+      : opts{_target_server_version, Version(MYSH_VERSION), "", ""} {}
 
  protected:
   static void SetUpTestCase() {
@@ -82,26 +82,31 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version current(MYSH_VERSION);
   Version prev(current.get_major(), current.get_minor(),
                current.get_patch() - 1);
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.7", "5.7"),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
+                        Version("5.7"), Version("5.7"), "", ""}),
                     std::invalid_argument, "This tool supports checking");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.6.11", "8.0"),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
+                        Version("5.6.11"), Version("8.0"), "", ""}),
                     std::invalid_argument, "at least at version 5.7");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.7.19", "8.1.0"),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
+                        Version("5.7.19"), Version("8.1.0"), "", ""}),
                     std::invalid_argument, "This tool supports checking");
-  EXPECT_THROW_LIKE(
-      Upgrade_check::create_checklist(current.get_base(), MYSH_VERSION),
-      std::invalid_argument, "must upgrade MySQL Shell");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("8.0.12", "8.0.12"),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+                        Upgrade_check_options{current, current, "", ""}),
+                    std::invalid_argument, "must upgrade MySQL Shell");
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
+                        Version("8.0.12"), Version("8.0.12"), "", ""}),
                     std::invalid_argument, "Target version must be greater");
+  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+      Upgrade_check_options{Version("5.7.19"), current, "", ""}));
+  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+      Upgrade_check_options{Version("5.7.17"), Version("8.0"), "", ""}));
+  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+      Upgrade_check_options{Version("5.7"), Version("8.0.12"), "", ""}));
+
   std::vector<std::unique_ptr<Upgrade_check>> checks;
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist(
-                      "5.7.19", current.get_base().c_str()));
-  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.17", "8.0"));
-  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7", "8.0.12"));
-
-  checks.clear();
-  EXPECT_NO_THROW(
-      checks = Upgrade_check::create_checklist(prev.get_base(), MYSH_VERSION));
+                      Upgrade_check_options{prev, current, "", ""}));
   // Check for table command is there for every valid version as a last check
   EXPECT_FALSE(checks.empty());
   EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
@@ -125,7 +130,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_reserved_keywords_check();
+      Sql_upgrade_check::get_reserved_keywords_check(opts);
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session, opts));
@@ -138,8 +143,12 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   ASSERT_NO_THROW(
       session->execute("create trigger first_value AFTER INSERT on System FOR "
                        "EACH ROW delete from Clone where JSON_TABLE<0;"));
+  ASSERT_NO_THROW(session->execute("create view LATERAL as select now();"));
   ASSERT_NO_THROW(
       session->execute("create view NTile as select * from System;"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE FUNCTION Array (s CHAR(20)) RETURNS CHAR(50) "
+                       "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
   ASSERT_NO_THROW(
       session->execute("CREATE FUNCTION rows (s CHAR(20)) RETURNS CHAR(50) "
                        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
@@ -148,7 +157,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
   ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_EQ(10, issues.size());
+  ASSERT_EQ(12, issues.size());
   EXPECT_EQ("grouping", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
   EXPECT_STRCASEEQ("system", issues[1].table.c_str());
@@ -158,9 +167,16 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_EQ("JSON_TABLE", issues[4].column);
   EXPECT_EQ("cube", issues[5].column);
   EXPECT_EQ("first_value", issues[6].table);
-  EXPECT_STRCASEEQ("NTile", issues[7].table.c_str());
-  EXPECT_EQ("rows", issues[8].table);
-  EXPECT_EQ("LEAD", issues[9].table);
+  EXPECT_STRCASEEQ("LATERAL", issues[7].table.c_str());
+  EXPECT_STRCASEEQ("NTile", issues[8].table.c_str());
+  EXPECT_EQ("Array", issues[9].table);
+  EXPECT_EQ("rows", issues[10].table);
+  EXPECT_EQ("LEAD", issues[11].table);
+
+  check = Sql_upgrade_check::get_reserved_keywords_check(
+      Upgrade_check_options{Version(5, 7, 0), Version(8, 0, 11), "", ""});
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_EQ(10, issues.size());
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
@@ -433,7 +449,7 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   PrepareTestDatabase("aaa_test_partitioned_in_shared");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
-          _target_server_version);
+          opts);
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session, opts));
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
@@ -631,7 +647,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
         "This test requires running against MySQL server version 5.7-8.0.13");
 
   std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_log_vars_check(_target_server_version);
+      Sql_upgrade_check::get_removed_sys_log_vars_check(opts);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-logging",
                       check->get_doc_link()));
@@ -639,7 +655,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, opts), Upgrade_check::CheckConfigurationError,
+        check->run(session, opts), Upgrade_check::Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
   } else {
@@ -660,7 +676,7 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
                        "problem");
   std::vector<Upgrade_issue> issues;
   ASSERT_THROW(issues = defined.run(session, opts),
-               Upgrade_check::CheckConfigurationError);
+               Upgrade_check::Check_configuration_error);
 
   opts.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
@@ -699,8 +715,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
         "This test requires running against MySQL server version 5.7-8.0.13");
 
   std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_vars_check(_target_server_version,
-                                                    Version(MYSH_VERSION));
+      Sql_upgrade_check::get_removed_sys_vars_check(opts);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "added-deprecated-removed.html#optvars-removed",
                       check->get_doc_link()));
@@ -708,7 +723,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, opts), Upgrade_check::CheckConfigurationError,
+        check->run(session, opts), Upgrade_check::Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
     opts.config_path.assign(
@@ -734,7 +749,7 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
   std::vector<Upgrade_issue> issues;
 
   EXPECT_THROW_LIKE(
-      check->run(session, opts), Upgrade_check::CheckConfigurationError,
+      check->run(session, opts), Upgrade_check::Check_configuration_error,
       "To run this check requires full path to MySQL server configuration "
       "file to be specified at 'configPath' key of options dictionary");
   opts.config_path.assign(
@@ -794,6 +809,38 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
   EXPECT_TRUE(issues.size() == 1 && issues[0].table == "part");
 }
 
+TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
+  const auto res = session->query("select UPPER(@@version_compile_os);");
+  const auto compile_os = res->fetch_one()->get_string(0);
+#if defined(WIN32) || defined(__APPLE__)
+  EXPECT_THROW(
+      Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
+          Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""}),
+      Upgrade_check::Check_not_needed);
+#else
+  PrepareTestDatabase("fts_tablename");
+  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(opts),
+               Upgrade_check::Check_not_needed);
+  auto check =
+      Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
+          Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""});
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `DP01_FTS_REGULATION_ACTION_HIST` ( `HJID` bigint(20) NOT "
+      "NULL, `VERSION` bigint(20) NOT NULL, PRIMARY KEY (`HJID`,`VERSION`));"));
+  ASSERT_NO_THROW(session->execute(
+      "create table `DP01_FtS_REGULATION_ACTION_HIST` (i integer);"));
+
+  EXPECT_NO_THROW(issues = check->run(session, opts));
+
+  EXPECT_TRUE(issues.size() == 1 &&
+              issues[0].table == "DP01_FTS_REGULATION_ACTION_HIST");
+#endif
+}
+
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
@@ -813,7 +860,8 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
-  auto manual = Upgrade_check::create_checklist("5.7", "8.0.11");
+  auto manual = Upgrade_check::create_checklist(
+      Upgrade_check_options{Version("5.7.0"), Version("8.0.11"), "", ""});
   manual.erase(std::remove_if(manual.begin(), manual.end(),
                               [](const std::unique_ptr<Upgrade_check> &c) {
                                 return c->is_runnable();
@@ -1057,4 +1105,48 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   EXPECT_FALSE(output_handler.passwords.empty());
   output_handler.passwords.clear();
 }
+
+TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  int sb_port = 0;
+  for (auto port : _mysql_sandbox_ports) {
+    try {
+      testutil->deploy_sandbox(port, "root");
+      sb_port = port;
+      break;
+    } catch (const std::runtime_error &err) {
+      std::cerr << err.what();
+      testutil->destroy_sandbox(port, true);
+    }
+  }
+
+  ASSERT_NE(0, sb_port);
+  try {
+    std::string uri = "root:root@localhost:" + std::to_string(sb_port);
+    auto s = mysqlshdk::db::mysql::Session::create();
+    s->connect(shcore::get_connection_options(uri));
+    EXPECT_NO_THROW(s->execute("set @@global.sql_mode='MAXDB';"));
+    auto gtid_executed = s->query("select @@global.GTID_EXECUTED;")
+                             ->fetch_one()
+                             ->get_as_string(0);
+
+    testutil->call_mysqlsh_c(
+        {"--", "util", "checkForServerUpgrade", uri.c_str()});
+    MY_EXPECT_STDOUT_NOT_CONTAINS("Check failed");
+    MY_EXPECT_STDERR_NOT_CONTAINS("Check failed");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "global system variable sql_mode - defined using obsolete MAXDB");
+    MY_EXPECT_STDOUT_CONTAINS("obsolete NO_KEY_OPTIONS");
+
+    EXPECT_EQ(gtid_executed, s->query("select @@global.GTID_EXECUTED;")
+                                 ->fetch_one()
+                                 ->get_as_string(0));
+  } catch (const std::exception &e) {
+    std::cerr << e.what();
+  }
+  testutil->destroy_sandbox(sb_port, true);
+}
+
 }  // namespace mysqlsh

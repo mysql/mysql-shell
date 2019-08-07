@@ -45,12 +45,12 @@
 https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
 * reservedKeywordsCheck.title
-# Usage of db objects with names conflicting with reserved keywords in 8.0
+# Usage of db objects with names conflicting with new reserved keywords
 
 * reservedKeywordsCheck.description
-# Warning: The following objects have names that conflict with reserved keywords that are new to
-# 8.0. Ensure queries sent by your applications use `quotes` when referring to them or they will
-# result in errors.
+# Warning: The following objects have names that conflict with new reserved keywords. Ensure
+# queries sent by your applications use `quotes` when referring to them or they will result in
+# errors.
 
 * reservedKeywordsCheck.docLink
 https://dev.mysql.com/doc/refman/en/keywords.html
@@ -151,7 +151,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * circularDirectoryCheck.description
 # Error: Following tablespaces contain circular directory references (e.g. the reference '/../') in
-# data file paths which as of MySQL 8.0.17 are not permitged by the CREATE TABLESPACE ... ADD
+# data file paths which as of MySQL 8.0.17 are not permitted by the CREATE TABLESPACE ... ADD
 # DATAFILE clause. An exception to the restriction exists on Linux, where a circular directory
 # reference is permitted if the preceding directory is a symbolic link. To avoid upgrade issues,
 # remove any circular directory references from tablespace data file paths before upgrading.
@@ -222,6 +222,16 @@ https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
 # before upgrade
 
 * schemaInconsistencyCheck.docLink
+
+* ftsTablenameCheck.title
+# Table names containing 'FTS'
+
+* ftsTablenameCheck.description
+# Warning: Upgrading from 5.7 to 8.0 does not support tables with name containing 'FTS' character
+# string. The workaround is to rename the table for the upgrade - e.g. it is enough to change any
+# letter of the 'FTS' part to a lower case. It can be renamed back again after the upgrade.
+
+* ftsTablenameCheck.docLink
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command

@@ -57,8 +57,9 @@ struct Upgrade_issue {
 };
 
 struct Upgrade_check_options {
-  std::string server_version;
-  std::string target_version;
+  mysqlshdk::utils::Version server_version;
+  mysqlshdk::utils::Version target_version;
+  std::string server_os;
   std::string config_path;
 };
 
@@ -67,16 +68,18 @@ std::string to_string(const Upgrade_issue &problem);
 class Upgrade_check {
  public:
   using Creator = std::function<std::unique_ptr<Upgrade_check>(
-      const mysqlshdk::utils::Version &, const mysqlshdk::utils::Version &)>;
+      const Upgrade_check_options &)>;
 
   using Collection = std::vector<
       std::pair<std::forward_list<mysqlshdk::utils::Version>, Creator>>;
 
-  class CheckConfigurationError : public std::runtime_error {
+  class Check_configuration_error : public std::runtime_error {
    public:
-    explicit CheckConfigurationError(const char *what)
+    explicit Check_configuration_error(const char *what)
         : std::runtime_error(what) {}
   };
+
+  class Check_not_needed : public std::exception {};
 
   static const mysqlshdk::utils::Version TRANSLATION_MODE;
   static const mysqlshdk::utils::Version ALL_VERSIONS;
@@ -103,7 +106,7 @@ class Upgrade_check {
   static void prepare_translation_file(const char *filename);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
-      const std::string &src_ver, const std::string &dst_ver);
+      const Upgrade_check_options &options);
 
   explicit Upgrade_check(const char *name) : m_name(name) {}
   virtual ~Upgrade_check() {}
@@ -133,7 +136,8 @@ class Upgrade_check {
 
 class Sql_upgrade_check : public Upgrade_check {
  public:
-  static std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check();
+  static std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
+      const Upgrade_check_options &opts);
   static std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
   static std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
   static std::unique_ptr<Sql_upgrade_check> get_zerofill_check();
@@ -146,18 +150,19 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check();
   static std::unique_ptr<Sql_upgrade_check>
   get_partitioned_tables_in_shared_tablespaces_check(
-      const mysqlshdk::utils::Version &ver);
+      const Upgrade_check_options &opts);
   static std::unique_ptr<Sql_upgrade_check> get_circular_directory_check();
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
   static std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
-      const mysqlshdk::utils::Version &ver);
+      const Upgrade_check_options &opts);
   static std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
-      const mysqlshdk::utils::Version &ver,
-      const mysqlshdk::utils::Version &target);
+      const Upgrade_check_options &opts);
 
   static std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check();
   static std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
+  static std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
+      const Upgrade_check_options &opts);
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
