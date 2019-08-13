@@ -240,10 +240,11 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_stmt(
       const std::string &ns, const std::string &command,
-      const ::xcl::Arguments &args);
+      const ::xcl::Argument_array &args);
 
   shcore::Value _execute_stmt(const std::string &ns, const std::string &command,
-                              const ::xcl::Arguments &args, bool expect_data);
+                              const ::xcl::Argument_array &args,
+                              bool expect_data);
 
   std::string _retrieve_current_schema();
 

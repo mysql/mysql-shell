@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -173,7 +173,7 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
   time_t seconds_since_epoch = ms_since_epoch / 1000;
 
   struct tm t;
-#if WIN32
+#if _WIN32
   localtime_s(&t, &seconds_since_epoch);
 #else
   localtime_r(&seconds_since_epoch, &t);

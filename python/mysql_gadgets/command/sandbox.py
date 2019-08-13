@@ -521,6 +521,9 @@ def create_sandbox(**kwargs):
 
     # Datadir
     datadir = os.path.join(sandbox_dir, "sandboxdata")
+    # Binary dir
+    sandbox_bin_dir = os.path.join(sandbox_dir, "bin")
+    enc_sandbox_bin_dir = tools.fs_encode(sandbox_bin_dir)
 
     # pid file_path
     pidf_path = os.path.join(sandbox_dir, "{0}.pid".format(port))
@@ -533,6 +536,7 @@ def create_sandbox(**kwargs):
         # Try to create it if it does not exist
         try:
             os.makedirs(enc_sandbox_dir)
+            os.makedirs(enc_sandbox_bin_dir)
         except OSError as err:
             raise exceptions.GadgetError(
                 _ERROR_CREATE_DIR.format(dir="sandbox", dir_path=sandbox_dir,
@@ -596,17 +600,17 @@ def create_sandbox(**kwargs):
     # possible AppArmor or SELinux issues.
     # Note: Creating a symbolic link will not solve the problem.
     if os.name != "nt" and sys.platform != "darwin":
-        local_mysqld_path = os.path.join(sandbox_dir, "mysqld")
+        local_mysqld_path = os.path.join(sandbox_dir, "bin", "mysqld")
         try:
             _LOGGER.debug(u"Copying mysqld binary '%s' to '%s'", mysqld_path,
                           sandbox_dir)
             shutil.copy(tools.fs_encode(mysqld_path),
                         tools.fs_encode(local_mysqld_path))
-            bindir = os.path.dirname(mysqld_path)
+            mysql_bindir = os.path.dirname(mysqld_path)
             # Symlink possibly bundled OpenSSL shared libs
-            for name in os.listdir(tools.fs_encode(bindir)):
+            for name in os.listdir(tools.fs_encode(mysql_bindir)):
                 if name.startswith("lib") and ".so" in name:
-                    path = os.path.join(bindir, name)
+                    path = os.path.join(mysql_bindir, name)
                     _LOGGER.debug(u"Symlinking '%s' to '%s'", path,
                                   sandbox_dir)
                     os.symlink(tools.fs_encode(path),
@@ -616,6 +620,55 @@ def create_sandbox(**kwargs):
             raise exceptions.GadgetError(
                 u"Unable to copy mysqld binary '{0}' to '{1}': '{2}'."
                 u"".format(mysqld_path, sandbox_dir, unicode(err)))
+
+        # Copies the protobuf libraries when they are bundled in the package
+        # it is assumed that id not bundled they are system wide and the mysqld
+        # binary will be able to find them.
+        # TODO(rennox): This should be turned into a function like get_tool_path
+        # As right now it is handling the cases of working with a package using
+        # the variants used by PB2 on the tests, but it does not guarantee it
+        # will work with a system installed MySQL.
+        if mysqld_ver >= (8, 0, 18):
+            library_path = os.path.join(basedir, "lib", "mysql", "private")
+            sandbox_lib_dir = os.path.join(sandbox_dir, "lib", "mysql",
+                "private")
+
+            if not os.path.exists(library_path):
+                library_path = os.path.join(basedir, "lib64", "mysql",
+                    "private")
+                sandbox_lib_dir = os.path.join(sandbox_dir, "lib64", "mysql",
+                    "private")
+
+            if not os.path.exists(library_path):
+                library_path = os.path.join(basedir, "lib", "private")
+                sandbox_lib_dir = os.path.join(sandbox_dir, "lib", "private")
+
+            path = ""
+            if os.path.exists(library_path):
+                enc_sandbox_lib_dir = tools.fs_encode(sandbox_lib_dir)
+                try:
+                    os.makedirs(enc_sandbox_lib_dir)
+                except OSError as err:
+                    raise exceptions.GadgetError(
+                        _ERROR_CREATE_DIR.format(dir="protobuf library",
+                                                dir_path=sandbox_lib_dir,
+                                                error=str(err)))
+
+                try:
+                    for name in os.listdir(tools.fs_encode(library_path)):
+                        if name.startswith("lib") and ".so" in name:
+                            path = os.path.join(library_path, name)
+                            target_path = os.path.join(sandbox_lib_dir, name)
+
+                            _LOGGER.debug(u"Copying library '%s' to '%s'", path,
+                            sandbox_lib_dir)
+
+                            shutil.copy(tools.fs_encode(path),
+                            tools.fs_encode(target_path))
+                except (IOError, shutil.Error) as err:
+                    raise exceptions.GadgetError(
+                        u"Unable to copy mysqld library '{0}' to '{1}': '{2}'."
+                        u"".format(path, sandbox_lib_dir, unicode(err)))
     else:
         local_mysqld_path = mysqld_path
 
@@ -898,80 +951,8 @@ def start_sandbox(**kwargs):
     mysqld_opts = kwargs.get("opt", [])
     opt_override_dict = option_list_to_dictionary(mysqld_opts)
 
+
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
-    mysqld_path = kwargs.get("mysqld_path", None)
-
-    if os.name == "nt":
-        # On non non posix systems if no value is provided for mysqld, by
-        # default search the $PATH.
-        if not mysqld_path:
-            try:
-                mysqld_path = tools.get_tool_path(
-                    None, "mysqld", search_path=True, required=True,
-                    check_tool_func=server.is_valid_mysqld)
-            except exceptions.GadgetError as err:
-                if err.errno == 1:
-                    raise exceptions.GadgetError(
-                        _ERROR_CANNOT_FIND_TOOL.format(
-                            exec_name="mysqld", path_var_name=PATH_ENV_VAR))
-                elif err.errno == 2:
-                    raise exceptions.GadgetError(
-                        _ERROR_CANNOT_FIND_VALID_TOOL.format(
-                            exec_name="mysqld",
-                            min_ver='.'.join(
-                                str(i) for i in MIN_MYSQL_VERSION),
-                            max_ver='.'.join(
-                                str(i) for i in MAX_MYSQL_VERSION),
-                            path_var_name=PATH_ENV_VAR))
-                else:
-                    raise exceptions.GadgetError(
-                        _ERROR_CHECK_VALID_TOOL.format(
-                            exec_name="mysqld", error=err.errmsg))
-    else:
-        # On posix systems, if no value is provided for mysqld, by default
-        # search for the mysqld binary inside the sandbox dir. If not found
-        # search the $PATH.
-        if not mysqld_path:
-            mysqld_path = os.path.join(sandbox_dir, "mysqld")
-            if not os.path.isfile(tools.fs_encode(mysqld_path)):
-                if sys.platform != "darwin":
-                    _LOGGER.warning(
-                        "Could not find a copy of the mysqld executable in "
-                        "'%s'. Start operation might fail if AppArmor or "
-                        "SELinux are blocking the mysqld access to the "
-                        "sandbox directory.", sandbox_dir)
-                try:
-                    mysqld_path = tools.get_tool_path(
-                        None, "mysqld", search_path=True, required=True,
-                        check_tool_func=server.is_valid_mysqld)
-                except exceptions.GadgetError as err:
-                    if err.errno == 0:
-                        raise exceptions.GadgetError(
-                            _ERROR_CANNOT_FIND_TOOL.format(
-                                exec_name="mysqld",
-                                path_var_name=PATH_ENV_VAR))
-                    else:
-                        raise exceptions.GadgetError(
-                            _ERROR_CANNOT_FIND_VALID_TOOL.format(
-                                exec_name="mysqld",
-                                min_ver='.'.join(
-                                    str(i) for i in MIN_MYSQL_VERSION),
-                                max_ver='.'.join(
-                                    str(i) for i in MAX_MYSQL_VERSION),
-                                path_var_name=PATH_ENV_VAR))
-
-    # Checking if mysqld meets requirements
-    if not tools.is_executable(mysqld_path):
-        raise exceptions.GadgetError(
-            u"Provided mysqld '{0}' is not a valid executable."
-            u"".format(mysqld_path))
-
-    mysqld_ver, version_str = server.get_mysqld_version(mysqld_path)
-    if not MIN_MYSQL_VERSION <= mysqld_ver < MAX_MYSQL_VERSION:
-        raise exceptions.GadgetError(_ERROR_VERSION_NOT_SUPPORTED.format(
-            mysqld_path, version_str,
-            '.'.join(str(i)for i in MIN_MYSQL_VERSION),
-            '.'.join(str(i) for i in MAX_MYSQL_VERSION)))
 
     # option_file path
     optf_path = os.path.join(sandbox_dir, "my.cnf")
@@ -1038,8 +1019,13 @@ def start_sandbox(**kwargs):
         # the start script from the boilerplate directory and that will have the
         # path to the mysqld binary hardcoded (so we need to update the script
         # so it points to a correct mysqld binary).
-        start_path = _create_start_script("start", sandbox_dir, mysqld_path,
-                                          optf_path)
+        start_path = os.path.join(sandbox_dir, "start")
+
+        if os.name == "nt":
+            start_path += ".bat"
+        else:
+            start_path += ".sh"
+    
         start_cmd = tools.shell_quote(start_path)
 
         if os.name == "posix" and getpass.getuser() == "root":
@@ -1181,7 +1167,6 @@ def start_sandbox(**kwargs):
                 raise exceptions.GadgetError(
                     u"Unable to remove lock file '{0}': {1}".format(
                         lock_file_path, unicode(err)))
-
 
 def stop_sandbox(**kwargs):
     """Stop an existing MySQL sandbox.

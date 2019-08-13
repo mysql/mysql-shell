@@ -78,4 +78,5 @@ target_link_libraries(mysqlshdk-static
           ${MYSQL_LIBRARIES}
           ${MYSQLX_LIBRARIES}
           ${PROTOBUF_LIBRARIES}
+          ${LZ4_LIBRARY}
           ${SSL_LIBRARIES})

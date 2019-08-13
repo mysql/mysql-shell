@@ -343,6 +343,9 @@ if (NOT BUILD_SOURCE_PACKAGE)
   # Needed for protobuf header paths, which are needed to use libmysqlxclient
   INCLUDE(protobuf)
   INCLUDE(FindMySQLx)
+  INCLUDE(lz4)
+  # Add lz4 library (Dependency for the X Client Lib)
+  MYSQL_CHECK_LZ4()
 endif()
 
 ##

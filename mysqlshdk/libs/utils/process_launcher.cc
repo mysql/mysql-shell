@@ -28,7 +28,7 @@
 #include <system_error>
 #include <utility>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <Strsafe.h>
 #include <stdio.h>
 #include <tchar.h>

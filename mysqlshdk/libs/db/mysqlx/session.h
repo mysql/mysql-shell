@@ -93,7 +93,7 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   std::shared_ptr<IResult> execute_stmt(const std::string &ns,
                                         const std::string &stmt,
-                                        const ::xcl::Arguments &args);
+                                        const ::xcl::Argument_array &args);
 
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Insert &msg);
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Update &msg);
@@ -177,9 +177,9 @@ class SHCORE_PUBLIC Session : public ISession,
     _impl->execute(sql, len);
   }
 
-  virtual std::shared_ptr<IResult> execute_stmt(const std::string &ns,
-                                                const std::string &stmt,
-                                                const ::xcl::Arguments &args) {
+  virtual std::shared_ptr<IResult> execute_stmt(
+      const std::string &ns, const std::string &stmt,
+      const ::xcl::Argument_array &args) {
     return _impl->execute_stmt(ns, stmt, args);
   }
 

@@ -31,7 +31,7 @@
 #include <cassert>
 #include <cstdio>
 #include <string>
-#ifndef WIN32
+#ifndef _WIN32
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>

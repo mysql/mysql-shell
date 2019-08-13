@@ -23,7 +23,7 @@
 
 #include "mysqlshdk/libs/utils/utils_net.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 // clang-format off
 #include <WinSock2.h>
 #include <Ws2tcpip.h>

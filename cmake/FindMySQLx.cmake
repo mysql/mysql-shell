@@ -103,7 +103,7 @@ else()
 
   set(MYSQLX_LIBRARY_PATHS
     "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
-    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol"
+    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol/protobuf"
     "${MYSQL_BUILD_DIR}/archive_output_directory"
   )
   set(MYSQL_LIBRARY_PATHS

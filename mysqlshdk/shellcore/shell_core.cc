@@ -24,7 +24,7 @@
 #include "shellcore/shell_core.h"
 #include <fstream>
 #include <locale>
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>

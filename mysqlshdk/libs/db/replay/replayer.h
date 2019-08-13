@@ -131,9 +131,9 @@ class Replayer_mysqlx : public mysqlx::Session {
   const mysqlshdk::db::Connection_options &get_connection_options()
       const override;
 
-  std::shared_ptr<IResult> execute_stmt(const std::string &ns,
-                                        const std::string &stmt,
-                                        const ::xcl::Arguments &args) override;
+  std::shared_ptr<IResult> execute_stmt(
+      const std::string &ns, const std::string &stmt,
+      const ::xcl::Argument_array &args) override;
 
   std::shared_ptr<IResult> execute_crud(
       const ::Mysqlx::Crud::Insert & /*msg*/) override {

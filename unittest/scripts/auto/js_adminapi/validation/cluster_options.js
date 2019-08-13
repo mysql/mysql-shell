@@ -460,6 +460,12 @@
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "uncompressed",
+                    "variable": "group_replication_recovery_compression_algorithms"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_recovery_get_public_key"
@@ -512,6 +518,12 @@
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "3",
+                    "variable": "group_replication_recovery_zstd_compression_level"
+                },
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_single_primary_mode"
@@ -683,6 +695,12 @@
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "uncompressed",
+                    "variable": "group_replication_recovery_compression_algorithms"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_recovery_get_public_key"
@@ -735,6 +753,12 @@
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "3",
+                    "variable": "group_replication_recovery_zstd_compression_level"
+                },
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_single_primary_mode"
@@ -906,6 +930,12 @@
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "uncompressed",
+                    "variable": "group_replication_recovery_compression_algorithms"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_recovery_get_public_key"
@@ -958,6 +988,12 @@
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
                 },
+?{VER(>=8.0.18)}
+                {
+                    "value": "3",
+                    "variable": "group_replication_recovery_zstd_compression_level"
+                },
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_single_primary_mode"

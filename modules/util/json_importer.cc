@@ -122,11 +122,11 @@ bool Prepare_json_import::create_default_collection(
     throw std::invalid_argument("Target schema must be set.");
   }
 
-  ::xcl::Object obj;
+  ::xcl::Argument_object obj;
   obj["schema"] = *m_schema;
   obj["name"] = name;
   auto statement_args = ::xcl::Argument_value{obj};
-  auto arguments = ::xcl::Arguments{statement_args};
+  auto arguments = ::xcl::Argument_array{statement_args};
   auto result =
       m_session->execute_stmt("mysqlx", "ensure_collection", arguments);
   // todo(kg): update_collection_cache

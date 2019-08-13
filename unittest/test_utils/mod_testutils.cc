@@ -2296,6 +2296,34 @@ void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
   session->close();
 }
 
+void replace_file_text(const std::string &file, const std::string &from,
+                       const std::string &to) {
+  std::vector<std::string> lines;
+  std::ifstream ifile(file);
+  if (!ifile.good()) {
+    throw std::runtime_error("Could not open file '" + from +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  std::string line;
+  while (std::getline(ifile, line)) {
+    lines.push_back(shcore::str_replace(line, from, to));
+  }
+  ifile.close();
+
+  std::ofstream ofile(file);
+  if (!ofile.good()) {
+    throw std::runtime_error("Could not open file '" + from +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  for (const auto &line : lines) {
+    ofile << line << std::endl;
+  }
+
+  ofile.close();
+}
+
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                                             int port,
                                             const std::string &mysqld_path) {
@@ -2392,6 +2420,28 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   shcore::delete_file(
       shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
 
+#ifdef _WIN32
+  std::string start("start.bat");
+  std::string stop("stop.bat");
+#else
+  std::string start("start.sh");
+  std::string stop("stop.sh");
+#endif
+
+  // Replaces the original port on the start and stop scripts by a <SBPORT>
+  // token
+  replace_file_text(shcore::path::join_path(boilerplate, start),
+                    std::to_string(port), "<SBPORT>");
+
+  replace_file_text(shcore::path::join_path(boilerplate, stop),
+                    std::to_string(port), "<SBPORT>");
+
+  replace_file_text(shcore::path::join_path(boilerplate, start), _sandbox_dir,
+                    "<SBDIR>");
+
+  replace_file_text(shcore::path::join_path(boilerplate, stop), _sandbox_dir,
+                    "<SBDIR>");
+
   if (g_test_trace_scripts)
     std::cerr << "Created sandbox boilerplate at " << boilerplate << "\n";
 }
@@ -2416,7 +2466,7 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
           return true;
         }
 #endif
-        shcore::copy_file(item_from, item_to);
+        shcore::copy_file(item_from, item_to, true);
       }
     } catch (std::runtime_error &e) {
       if (errno != ENOENT) throw;
@@ -2478,6 +2528,27 @@ bool Testutils::deploy_sandbox_from_boilerplate(
     throw std::logic_error("During lazy deployment of sandbox " +
                            std::to_string(port) + ": " + e.what());
   }
+
+#ifdef _WIN32
+  std::string start("start.bat");
+  std::string stop("stop.bat");
+#else
+  std::string start("start.sh");
+  std::string stop("stop.sh");
+#endif
+
+  // Replcaes the <SBPORT> token on the start and stop scripts for the real
+  // sandbox port
+  replace_file_text(shcore::path::join_path(basedir, start), "<SBPORT>",
+                    std::to_string(port));
+  replace_file_text(shcore::path::join_path(basedir, stop), "<SBPORT>",
+                    std::to_string(port));
+
+  replace_file_text(shcore::path::join_path(basedir, start), "<SBDIR>",
+                    _sandbox_dir);
+  replace_file_text(shcore::path::join_path(basedir, stop), "<SBDIR>",
+                    _sandbox_dir);
+
   // Customize
   change_sandbox_conf(port, "port", std::to_string(port), "*");
   change_sandbox_conf(port, "server_id", std::to_string(port + 12345),

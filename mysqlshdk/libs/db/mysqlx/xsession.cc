@@ -541,7 +541,7 @@ void XSession_impl::execute(const char *sql, size_t len) {
 
 std::shared_ptr<IResult> XSession_impl::execute_stmt(
     const std::string &ns, const std::string &stmt,
-    const xcl::Arguments &args) {
+    const xcl::Argument_array &args) {
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("execute_stmt");
   before_query();

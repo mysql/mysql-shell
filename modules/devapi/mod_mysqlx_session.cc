@@ -64,7 +64,7 @@ using namespace mysqlsh;
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
 
-#ifdef WIN32
+#ifdef _WIN32
 #define strcasecmp _stricmp
 #endif
 // Documentation of BaseSession class
@@ -1070,16 +1070,16 @@ shcore::Object_bridge_ref Session::raw_execute_sql(const std::string &query) {
 
 static ::xcl::Argument_value convert(const shcore::Value &value);
 
-static ::xcl::Object convert_map(const shcore::Dictionary_t &args) {
-  ::xcl::Object object;
+static ::xcl::Argument_object convert_map(const shcore::Dictionary_t &args) {
+  ::xcl::Argument_object object;
   for (const auto &iter : *args) {
     object[iter.first] = convert(iter.second);
   }
   return object;
 }
 
-static ::xcl::Arguments convert_array(const shcore::Array_t &args) {
-  ::xcl::Arguments object;
+static ::xcl::Argument_array convert_array(const shcore::Array_t &args) {
+  ::xcl::Argument_array object;
   for (const auto &iter : *args) {
     object.push_back(convert(iter));
   }
@@ -1112,14 +1112,14 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
   throw std::invalid_argument("Invalid argument value: " + value.descr());
 }
 
-static ::xcl::Arguments convert_args(const shcore::Dictionary_t &args) {
-  ::xcl::Arguments cargs;
+static ::xcl::Argument_array convert_args(const shcore::Dictionary_t &args) {
+  ::xcl::Argument_array cargs;
   cargs.push_back(xcl::Argument_value(convert_map(args)));
   return cargs;
 }
 
-static ::xcl::Arguments convert_args(const shcore::Argument_list &args) {
-  ::xcl::Arguments cargs;
+static ::xcl::Argument_array convert_args(const shcore::Argument_list &args) {
+  ::xcl::Argument_array cargs;
 
   for (const shcore::Value &arg : args) {
     cargs.push_back(convert(arg));
@@ -1147,7 +1147,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_mysqlx_stmt(
 
 shcore::Value Session::_execute_stmt(const std::string &ns,
                                      const std::string &command,
-                                     const ::xcl::Arguments &args,
+                                     const ::xcl::Argument_array &args,
                                      bool expect_data) {
   if (expect_data) {
     SqlResult *result = new SqlResult(execute_stmt(ns, command, args));
@@ -1161,7 +1161,7 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
 
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
     const std::string &ns, const std::string &command,
-    const ::xcl::Arguments &args) {
+    const ::xcl::Argument_array &args) {
   Interruptible intr(this);
   auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
       _session->execute_stmt(ns, command, args));

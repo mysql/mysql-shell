@@ -31,7 +31,7 @@ if(WITH_TESTS)
     ENDIF()
 
     ADD_DEFINITIONS(-DWITH_GTEST=1)
-    add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
+    add_definitions(-DGTEST_LANG_CXX11=1 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
     include_directories(SYSTEM
@@ -121,6 +121,7 @@ if(WITH_TESTS)
             api_modules
             mysqlshdk-static)
 
+    message(STATUE, "---->  ${PROTOBUF_LIBRARY}")
     target_link_libraries(run_unit_tests
             shellfe
             api_modules
@@ -129,6 +130,7 @@ if(WITH_TESTS)
             ${GTEST_LIBRARIES}
             ${MYSQLX_LIBRARIES}
             ${PROTOBUF_LIBRARY}
+            ${LZ4_LIBRARY}
             ${SSL_LIBRARIES}
             ${SSL_LIBRARIES_DL}
             ${V8_LINK_LIST}
