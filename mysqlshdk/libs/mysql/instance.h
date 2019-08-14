@@ -137,6 +137,9 @@ class IInstance {
                                 std::string *current_host) const = 0;
   virtual bool user_exists(const std::string &username,
                            const std::string &hostname) const = 0;
+  virtual void set_user_password(const std::string &username,
+                                 const std::string &hostname,
+                                 const std::string &password) const = 0;
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
@@ -276,6 +279,9 @@ class Instance : public IInstance {
                         std::string *current_host) const override;
   bool user_exists(const std::string &username,
                    const std::string &hostname) const override;
+  void set_user_password(const std::string &username,
+                         const std::string &hostname,
+                         const std::string &password) const override;
   /**
    * Determine if SET PERSIST is supported by the instance.
    *

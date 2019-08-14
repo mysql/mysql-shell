@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -185,6 +186,7 @@ class Cluster_impl {
                            const std::string &option,
                            const shcore::Value &value);
   shcore::Value check_instance_state(const Connection_options &instance_def);
+  void reset_recovery_password(const shcore::Dictionary_t &options);
 
   /**
    * Get the lowest server version of the cluster members.
@@ -195,6 +197,42 @@ class Cluster_impl {
    * @return Version object of the lowest instance version in the cluster.
    */
   mysqlshdk::utils::Version get_lowest_instance_version() const;
+
+  /**
+   * Determine the replication(recovery) user being used by the target instance.
+   *
+   * A user can have several accounts (for different hostnames).
+   * This method will try to obtain the recovery user from the metadata and if
+   * the user is not found in the Metadata it will be obtained using the
+   * get_recovery_user method (in order to support older versions of the shell).
+   * It will throw an exception if the user was not created by the AdminAPI,
+   * i.e. does not start with the 'mysql_innodb_cluster_' prefix
+   * Note: The hostname values are not quoted
+   *
+   * @param target_instance Instance whose recovery user we want to know
+   * @return a tuple with the recovery user name, the list of hostnames of
+   * for recovery user and a boolean that is true if the information was
+   * retrieved from the metadata and false otherwise.
+   * @throws shcore::Exception::runtime_error if user not created by AdminAPI
+   */
+  std::tuple<std::string, std::vector<std::string>, bool> get_replication_user(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
+
+  /**
+   * Get a session to a given instance of the cluster.
+   *
+   * This function verifies if it is possible to connect to the given instance,
+   * i.e., if it is reachable and if so returns an Instance object with an open
+   * session otherwise throws an exception.
+   *
+   * @param instance_address String with the address <host>:<port> of the
+   *                         instance to connect to.
+   *
+   * @returns unique_ptr to the Instance if it is reachable.
+   * @throws Exception if the instance is not reachable.
+   */
+  std::unique_ptr<Instance> get_session_to_cluster_instance(
+      const std::string &instance_address) const;
 };
 
 }  // namespace dba

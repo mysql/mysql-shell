@@ -37,6 +37,7 @@
 #include "modules/adminapi/cluster/replicaset/add_instance.h"
 #include "modules/adminapi/cluster/replicaset/remove_instance.h"
 #include "modules/adminapi/cluster/replicaset/replicaset.h"
+#include "modules/adminapi/cluster/reset_recovery_accounts_password.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -163,6 +164,33 @@ shcore::Value Cluster_impl::status(uint64_t extended) {
   op_status.prepare();
   // Execute Cluster_status operations.
   return op_status.execute();
+}
+
+void Cluster_impl::reset_recovery_password(
+    const shcore::Dictionary_t &options) {
+  check_preconditions("resetRecoveryAccountsPassword");
+
+  mysqlshdk::utils::nullable<bool> force;
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("force", &force)
+        .optional("interactive", &interactive)
+        .end();
+  }
+
+  // Create the reset_recovery_command.
+  {
+    Reset_recovery_accounts_password op_reset(interactive, force, *this);
+    // Always execute finish when leaving "try catch".
+    auto finally = shcore::on_leave_scope([&op_reset]() { op_reset.finish(); });
+    // Prepare the reset_recovery_accounts_password execution
+    op_reset.prepare();
+    // Execute the reset_recovery_accounts_password command.
+    op_reset.execute();
+  }
 }
 
 shcore::Value Cluster_impl::options(const shcore::Dictionary_t &options) {
@@ -442,41 +470,26 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   assert(target);
   auto console = current_console();
 
-  std::string recovery_user, recovery_user_host;
-  std::tie(recovery_user, recovery_user_host) =
-      get_metadata_storage()->get_instance_recovery_account(target->get_uuid());
-  if (recovery_user.empty()) {
-    // Assuming the account was created by an older version of the shell,
-    // which did not store account name in metadata
-    log_info(
-        "No recovery account details in metadata for instance '%s', assuming "
-        "old account style",
-        target->descr().c_str());
-
-    // Get replication user (recovery) used by the instance to remove
-    // on remaining members.
-    recovery_user = mysqlshdk::gr::get_recovery_user(*target);
-
-    // Remove the replication user used by the removed instance on all
-    // cluster members through the primary (using replication).
-    // NOTE: Make sure to remove the user if it was an user created by
-    // the Shell, i.e. with the format: mysql_innodb_cluster_r[0-9]{10}
-    if (shcore::str_beginswith(
-            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
-      log_info("Removing replication user '%s'", recovery_user.c_str());
-      try {
-        mysqlshdk::mysql::drop_all_accounts_for_user(*get_target_instance(),
-                                                     recovery_user);
-      } catch (const std::exception &e) {
-        console->print_warning("Error dropping recovery accounts for user " +
-                               recovery_user + ": " + e.what());
-      }
-    } else {
-      console->print_note("The recovery user name for instance '" +
-                          target->descr() +
-                          "' does not match the expected format for users "
-                          "created automatically "
-                          "by InnoDB Cluster. Skipping its removal.");
+  std::string recovery_user;
+  std::vector<std::string> recovery_user_hosts;
+  bool from_metadata = false;
+  try {
+    std::tie(recovery_user, recovery_user_hosts, from_metadata) =
+        get_replication_user(*target);
+  } catch (const std::exception &e) {
+    console->print_note(
+        "The recovery user name for instance '" + target->descr() +
+        "' does not match the expected format for users "
+        "created automatically by InnoDB Cluster. Skipping its removal.");
+  }
+  if (!from_metadata) {
+    log_info("Removing replication user '%s'", recovery_user.c_str());
+    try {
+      mysqlshdk::mysql::drop_all_accounts_for_user(*get_target_instance(),
+                                                   recovery_user);
+    } catch (const std::exception &e) {
+      console->print_warning("Error dropping recovery accounts for user " +
+                             recovery_user + ": " + e.what());
     }
   } else {
     /*
@@ -486,7 +499,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
 
       To avoid such situation, we re-issue the CHANGE MASTER query after
       clone to ensure the right account is used. However, if the monitoring
-      process is interruped or waitRecovery = 0, that won't be done.
+      process is interrupted or waitRecovery = 0, that won't be done.
 
       The approach to tackle this issue is to store the donor recovery account
       in the target instance MD.instances table before doing the new CHANGE
@@ -499,17 +512,15 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
       and if that's the case then it won't be dropped.
     */
     if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
-      log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
-               recovery_user.c_str(), recovery_user_host.c_str(),
-               target->descr().c_str());
+      log_info("Dropping recovery account '%s'@'%%' for instance '%s'",
+               recovery_user.c_str(), target->descr().c_str());
 
       try {
         get_target_instance()->drop_user(recovery_user, "%", true);
       } catch (const std::exception &e) {
         console->print_warning(shcore::str_format(
-            "Error dropping recovery account '%s'@'%s' for instance '%s'",
-            recovery_user.c_str(), recovery_user_host.c_str(),
-            target->descr().c_str()));
+            "Error dropping recovery account '%s'@'%%' for instance '%s'",
+            recovery_user.c_str(), target->descr().c_str()));
       }
 
       // Also update metadata
@@ -572,6 +583,73 @@ mysqlshdk::mysql::IInstance *Cluster_impl::ensure_updatable(bool reset) {
   }
 
   return m_primary_master.get();
+}
+
+std::tuple<std::string, std::vector<std::string>, bool>
+Cluster_impl::get_replication_user(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  // First check the metadata for the recovery user
+  std::string recovery_user, recovery_user_host;
+  bool from_metadata = false;
+  std::vector<std::string> recovery_user_hosts;
+  std::tie(recovery_user, recovery_user_host) =
+      get_metadata_storage()->get_instance_recovery_account(
+          target_instance.get_uuid());
+  if (recovery_user.empty()) {
+    // Assuming the account was created by an older version of the shell,
+    // which did not store account name in metadata
+    log_info(
+        "No recovery account details in metadata for instance '%s', assuming "
+        "old account style",
+        target_instance.descr().c_str());
+
+    recovery_user = mysqlshdk::gr::get_recovery_user(target_instance);
+    assert(!recovery_user.empty());
+
+    if (shcore::str_beginswith(
+            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
+      log_info("Found old account style recovery user '%s'",
+               recovery_user.c_str());
+      // old accounts were created for several hostnames
+      recovery_user_hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
+          *(get_target_instance()), recovery_user);
+    } else {
+      // account not created by InnoDB cluster
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Recovery user '%s' not created by InnoDB Cluster",
+                             recovery_user.c_str()));
+    }
+  } else {
+    from_metadata = true;
+    // new recovery user format, stored in Metadata.
+    recovery_user_hosts.push_back(recovery_user_host);
+  }
+  return std::make_tuple(recovery_user, recovery_user_hosts, from_metadata);
+}
+
+std::unique_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
+    const std::string &instance_address) const {
+  // Set login credentials to connect to instance.
+  // use the host and port from the instance address
+  Connection_options instance_cnx_opts =
+      shcore::get_connection_options(instance_address, false);
+  // Use the password from the cluster session.
+  Connection_options cluster_cnx_opt =
+      get_target_instance()->get_connection_options();
+  instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
+
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  log_debug("Connecting to instance '%s'", instance_address.c_str());
+  try {
+    // Try to connect to instance
+    session = mysqlshdk::db::mysql::Session::create();
+    session->connect(instance_cnx_opts);
+    log_debug("Successfully connected to instance");
+    return shcore::make_unique<mysqlsh::dba::Instance>(session);
+  } catch (const std::exception &err) {
+    log_debug("Failed to connect to instance: %s", err.what());
+    throw err;
+  }
 }
 
 }  // namespace dba

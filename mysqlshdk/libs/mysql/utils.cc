@@ -156,6 +156,18 @@ void drop_all_accounts_for_user(const IInstance &instance,
   }
 }
 
+std::vector<std::string> get_all_hostnames_for_user(const IInstance &instance,
+                                                    const std::string &user) {
+  std::vector<std::string> hosts;
+
+  auto result =
+      instance.queryf("SELECT host from mysql.user where user=?", user);
+  while (auto row = result->fetch_one()) {
+    hosts.push_back(row->get_string(0));
+  }
+  return hosts;
+}
+
 /*
  * Generates a random passwrd
  * with length equal to PASSWORD_LENGTH

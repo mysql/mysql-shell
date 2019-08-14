@@ -87,31 +87,13 @@ bool Dissolve::prompt_to_force_dissolve() const {
   return result;
 }
 
-void Dissolve::ensure_instance_reachable(
-    const std::string &instance_address,
-    const Connection_options &cluster_cnx_opt) {
-  // Set login credentials to connect to instance.
-  // NOTE: It is assumed that the same login credentials can be used to connect
-  //       to all cluster instances.
-  Connection_options instance_cnx_opts =
-      shcore::get_connection_options(instance_address, false);
-  instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
-
-  // Try to connect to instance and add it to list of available instances to
-  // remove from the cluster.
-  log_debug("Connecting to instance '%s'", instance_address.c_str());
-  std::shared_ptr<mysqlshdk::db::ISession> session;
+void Dissolve::ensure_instance_reachable(const std::string &instance_address) {
   try {
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(instance_cnx_opts);
     m_available_instances.emplace_back(
-        shcore::make_unique<mysqlsh::dba::Instance>(session));
-    log_debug("Successfully connected to instance");
+        m_cluster->get_session_to_cluster_instance(instance_address));
   } catch (const std::exception &err) {
-    log_debug("Failed to connect to instance: %s", err.what());
-
+    // instance not reachable
     auto console = mysqlsh::current_console();
-
     // Handle use of 'force' option.
     if (m_force.is_null() || *m_force == false) {
       console->print_error(
@@ -258,8 +240,6 @@ void Dissolve::prepare() {
   // Get cluster session to use the same authentication credentials for all
   // cluster instances.
   std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_instance();
-  Connection_options cluster_cnx_opt =
-      cluster_instance->get_connection_options();
 
   // Determine the primary (if it exists), in order to be the last to be
   // removed from the cluster. Only for single primary mode.
@@ -296,7 +276,7 @@ void Dissolve::prepare() {
     if (state == mysqlshdk::gr::Member_state::ONLINE ||
         state == mysqlshdk::gr::Member_state::RECOVERING) {
       // Verify if active instances are reachable.
-      ensure_instance_reachable(instance_def.endpoint, cluster_cnx_opt);
+      ensure_instance_reachable(instance_def.endpoint);
     } else {
       // Handle not active instances, determining if they can be skipped.
       handle_unavailable_instances(instance_def.endpoint,
@@ -384,8 +364,9 @@ shcore::Value Dissolve::execute() {
         // removed on the instance.
         m_cluster->sync_transactions(instance);
 
-        // Remove instance from list of instance with sync error in case it was
-        // previously added during initial verification, since it succeeded now.
+        // Remove instance from list of instance with sync error in case it
+        // was previously added during initial verification, since it
+        // succeeded now.
         m_sync_error_instances.erase(
             std::remove(m_sync_error_instances.begin(),
                         m_sync_error_instances.end(), instance_address),

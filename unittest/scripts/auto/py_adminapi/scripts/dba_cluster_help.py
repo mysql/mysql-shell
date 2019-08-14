@@ -186,6 +186,15 @@ c.help('switch_to_single_primary_mode')
 #@ global help for switch_to_single_primary_mode[USE:cluster.switch_to_single_primary_mode]
 \help cluster.switch_to_single_primary_mode
 
+#@ cluster.reset_recovery_accounts_password
+c.help('reset_recovery_accounts_password')
+
+#@ global ? for reset_recovery_accounts_password[USE:cluster.reset_recovery_accounts_password]
+\? cluster.reset_recovery_accounts_password
+
+#@ global help for reset_recovery_accounts_password[USE:cluster.reset_recovery_accounts_password]
+\help cluster.reset_recovery_accounts_password
+
 c.disconnect()
 
 testutil.destroy_sandbox(__mysql_sandbox_port1);

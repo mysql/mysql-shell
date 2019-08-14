@@ -106,6 +106,8 @@ void Cluster::init() {
   expose("describe", &Cluster::describe);
   expose("status", &Cluster::status, "?options");
   expose("dissolve", &Cluster::dissolve, "?options");
+  expose("resetRecoveryAccountsPassword",
+         &Cluster::reset_recovery_accounts_password, "?options");
 
   expose<shcore::Value, const std::string &, Cluster>(
       "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
@@ -852,6 +854,62 @@ void Cluster::dissolve(const shcore::Dictionary_t &options) {
 
   // Set the flag, marking this cluster instance as invalid.
   invalidate();
+}
+
+REGISTER_HELP_FUNCTION(resetRecoveryAccountsPassword, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_RESETRECOVERYACCOUNTSPASSWORD, R"*(
+Reset the password of the recovery accounts of the cluster.
+
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function resets the passwords for all internal recovery user accounts
+used by the Cluster.
+It can be used to reset the passwords of the recovery user
+accounts when needed for any security reasons. For example:
+periodically to follow some custom password lifetime policy, or after
+some security breach event.
+
+The options dictionary may contain the following attributes:
+
+@li force: boolean, indicating if the operation will continue in case an
+error occurs when trying to reset the passwords on any of the
+instances, for example if any of them is not online. By default, set to false.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+
+The use of the force option (set to true) is not recommended. Use it only
+if really needed when instances are permanently not available (no longer
+reachable) or never going to be reused again in a cluster. Prefer to bring the
+non available instances back ONLINE or remove them from the cluster if they will
+no longer be used.
+
+@throw RuntimeError in the following scenarios:
+@li If some cluster instance is not ONLINE and force option not used or set to false.
+@li If the recovery user account was not created by InnoDB Cluster.
+)*");
+
+/**
+ * $(CLUSTER_RESETRECOVERYACCOUNTSPASSWORD_BRIEF)
+ *
+ * $(CLUSTER_RESETRECOVERYACCOUNTSPASSWORD)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::resetRecoveryAccountsPassword(Dictionary options) {}
+#elif DOXYGEN_PY
+None Cluster::reset_recovery_accounts_password(dict options) {}
+#endif
+
+void Cluster::reset_recovery_accounts_password(
+    const shcore::Dictionary_t &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("resetRecoveryAccountsPassword");
+
+  // Reset the recovery passwords.
+  m_impl->reset_recovery_password(options);
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);

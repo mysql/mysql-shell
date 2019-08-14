@@ -78,6 +78,7 @@ file(GLOB api_module_SOURCES
       "adminapi/cluster/cluster_describe.cc"
       "adminapi/cluster/cluster_status.cc"
       "adminapi/cluster/dissolve.cc"
+      "adminapi/cluster/reset_recovery_accounts_password.cc"
       "adminapi/cluster/cluster_options.cc"
       "adminapi/cluster/cluster_set_option.cc"
       "adminapi/cluster/member_recovery.cc"

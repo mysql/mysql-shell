@@ -681,6 +681,22 @@ bool Instance::user_exists(const std::string &username,
   return true;
 }
 
+/**
+ * Set the password for a given mysql user account
+ *
+ * @param username account username
+ * @param hostname account hostname
+ * @param password password we want to set for the account
+ */
+void Instance::set_user_password(const std::string &username,
+                                 const std::string &hostname,
+                                 const std::string &password) const {
+  log_debug("Changing password for user %s@%s", username.c_str(),
+            hostname.c_str());
+  executef("ALTER USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*((*/ ? /*))*/", username,
+           hostname, password);
+}
+
 utils::nullable<bool> Instance::is_set_persist_supported() const {
   // Check if the instance version is >= 8.0.11 to support the SET PERSIST.
   if (get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {

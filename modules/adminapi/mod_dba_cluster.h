@@ -59,6 +59,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
+  Undefined resetRecoveryAccountsPassword(Dictionary options);
   String status(Dictionary options);
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
@@ -79,6 +80,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);
+  None reset_recovery_accounts_password(dict options);
   str status(dict options);
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
@@ -129,6 +131,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value check_instance_state(
       const mysqlshdk::db::Connection_options &instance_def);
   void rescan(const shcore::Dictionary_t &options);
+  void reset_recovery_accounts_password(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
   void disconnect();

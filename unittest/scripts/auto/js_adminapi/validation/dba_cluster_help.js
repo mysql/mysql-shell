@@ -54,6 +54,9 @@ FUNCTIONS
       rescan([options])
             Rescans the cluster.
 
+      resetRecoveryAccountsPassword(options)
+            Reset the password of the recovery accounts of the cluster.
+
       setInstanceOption(instance, option, value)
             Changes the value of a configuration option in a Cluster member.
 
@@ -1132,3 +1135,47 @@ EXCEPTIONS
       - If the cluster has no visible quorum.
       - If any of the cluster members is not ONLINE.
 
+//@<OUT> resetRecoveryAccountsPassword
+NAME
+      resetRecoveryAccountsPassword - Reset the password of the recovery
+                                      accounts of the cluster.
+
+SYNTAX
+      <Cluster>.resetRecoveryAccountsPassword(options)
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function resets the passwords for all internal recovery user
+      accounts used by the Cluster. It can be used to reset the passwords of
+      the recovery user accounts when needed for any security reasons. For
+      example: periodically to follow some custom password lifetime policy, or
+      after some security breach event.
+
+      The options dictionary may contain the following attributes:
+
+      - force: boolean, indicating if the operation will continue in case an
+        error occurs when trying to reset the passwords on any of the
+        instances, for example if any of them is not online. By default, set to
+        false.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+
+      The use of the force option (set to true) is not recommended. Use it only
+      if really needed when instances are permanently not available (no longer
+      reachable) or never going to be reused again in a cluster. Prefer to
+      bring the non available instances back ONLINE or remove them from the
+      cluster if they will no longer be used.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - If some cluster instance is not ONLINE and force option not used or set
+        to false.
+      - If the recovery user account was not created by InnoDB Cluster.

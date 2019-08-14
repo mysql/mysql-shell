@@ -139,30 +139,23 @@ void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
         // Get the recovery account in use by the instance so the grant
         // BACKUP_ADMIN is granted to its recovery account
         {
-          std::string recovery_user, recovery_user_host;
-          std::tie(recovery_user, recovery_user_host) =
-              m_cluster->get_metadata_storage()->get_instance_recovery_account(
-                  instance.get_uuid());
-          if (recovery_user.empty()) {
-            // Assuming the account was created by an older version of the
-            // shell, which did not store account name in metadata
-            log_info(
-                "No recovery account details in metadata for instance '%s', "
-                "assuming old account style",
-                instance.descr().c_str());
-
-            // Get replication user (recovery) used by the instance
-            recovery_user = mysqlshdk::gr::get_recovery_user(instance);
-          }
+          std::string recovery_user;
+          std::vector<std::string> recovery_user_hosts;
+          std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+              m_cluster->get_replication_user(instance);
+          m_cluster->get_metadata_storage()->get_instance_recovery_account(
+              instance.get_uuid());
 
           // Add the BACKUP_ADMIN grant to the instance's recovery account since
           // it may not be there if the instance was added to a cluster
           // non-supporting clone
-          shcore::sqlstring grant("GRANT BACKUP_ADMIN ON *.* TO ?@?", 0);
-          grant << recovery_user;
-          grant << "%";
-          grant.done();
-          m_cluster->get_target_instance()->execute(grant);
+          for (const auto &host : recovery_user_hosts) {
+            shcore::sqlstring grant("GRANT BACKUP_ADMIN ON *.* TO ?@?", 0);
+            grant << recovery_user;
+            grant << host;
+            grant.done();
+            m_cluster->get_target_instance()->execute(grant);
+          }
         }
       }
 

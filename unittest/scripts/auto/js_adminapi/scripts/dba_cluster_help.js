@@ -131,6 +131,14 @@ cluster.help("switchToSinglePrimaryMode")
 //@ switchToSinglePrimaryMode, \? [USE:switchToSinglePrimaryMode]
 \? cluster.switchToSinglePrimaryMode
 
+//@ resetRecoveryAccountsPassword
+cluster.help("resetRecoveryAccountsPassword")
+
+//@ resetRecoveryAccountsPassword, \? [USE:resetRecoveryAccountsPassword]
+\? cluster.resetRecoveryAccountsPassword
+
+//@ resetRecoveryAccountsPassword, \help [USE:resetRecoveryAccountsPassword]
+\help cluster.resetRecoveryAccountsPassword
 
 //@<> Finalization
 cluster.disconnect();

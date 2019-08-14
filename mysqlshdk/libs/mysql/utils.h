@@ -51,6 +51,14 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
 /** Drops all accounts for a given username */
 void drop_all_accounts_for_user(const IInstance &instance,
                                 const std::string &user);
+/**
+ * Get the list with all the hostnames for a given user account
+ * @param instance the target instance
+ * @param user the user account name
+ * @return list with all hostnames for a given user account.
+ */
+std::vector<std::string> get_all_hostnames_for_user(const IInstance &instance,
+                                                    const std::string &user);
 
 void create_user_with_random_password(
     const IInstance &instance, const std::string &user,

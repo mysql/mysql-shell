@@ -30,6 +30,7 @@ validateMembers(Cluster, [
   'dissolve',
   'disconnect',
   'rescan',
+  'resetRecoveryAccountsPassword',
   'forceQuorumUsingPartitionOf',
   'switchToSinglePrimaryMode',
   'switchToMultiPrimaryMode',

@@ -20,6 +20,7 @@ validate_members(cluster, [
     'rejoin_instance',
     'remove_instance',
     'rescan',
+    'reset_recovery_accounts_password',
     'options',
     'status',
     'set_primary_instance',

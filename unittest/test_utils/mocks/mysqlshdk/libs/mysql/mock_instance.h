@@ -103,6 +103,9 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD2(get_current_user, void(std::string *, std::string *));
   MOCK_CONST_METHOD2(user_exists,
                      bool(const std::string &, const std::string &));
+  MOCK_CONST_METHOD3(set_user_password,
+                     void(const std::string &, const std::string &,
+                          const std::string &));
   //   MOCK_CONST_METHOD2(get_user_privileges,
   //                      std::unique_ptr<mysqlshdk::mysql::User_privileges>(
   //                          const std::string &, const std::string &));

@@ -138,11 +138,8 @@ class Dissolve : public Command_interface {
    *
    * @param instance_address String with the address <host>:<port> of the
    *                         instance to check.
-   * @param cluster_cnx_opt Connection options (credentials) used for the
-   *                        cluster connection.
    */
-  void ensure_instance_reachable(const std::string &instance_address,
-                                 const Connection_options &cluster_cnx_opt);
+  void ensure_instance_reachable(const std::string &instance_address);
 
   /**
    * Validate if the given instance is able to catch up with current cluster

@@ -81,6 +81,23 @@ function ensure_plugin_enabled(plugin_name, session, plugin_soname) {
   }
 }
 
+function restart_gr_plugin(session, close) {
+  close = typeof close !== 'undefined' ? close : false;
+  var owns_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    owns_session = true;
+  }
+  session.runSql("STOP GROUP_REPLICATION;");
+  session.runSql("START GROUP_REPLICATION;");
+
+  // Close the session if established in this function
+  if (owns_session && close)
+    session.close();
+}
+
 function get_query_single_result(session, query) {
   var close_session = false;
 
