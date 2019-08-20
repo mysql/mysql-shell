@@ -224,6 +224,60 @@ TEST_F(mod_shell_test, parse_uri) {
         "required",
         _shell->unparse_uri(dict));
   }
+
+  {
+    std::string args;
+    args =
+        "user@host?tls-ciphersuites=ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-"
+        "AES256-GCM-SHA384&tls-version=TLSv1.1,TLSv1.2";
+
+    auto dict = _shell->parse_uri(args);
+
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
+    EXPECT_STREQ("user", dict->get_string(mysqlshdk::db::kUser).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPassword));
+    EXPECT_STREQ("host", dict->get_string(mysqlshdk::db::kHost).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsCiphersuites));
+    EXPECT_STREQ("ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384",
+                 dict->get_string(mysqlshdk::db::kSslTlsCiphersuites).c_str());
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsVersion));
+    EXPECT_STREQ("TLSv1.1,TLSv1.2",
+                 dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
+
+    EXPECT_EQ(
+        "user@host?tls-version=TLSv1.1%2CTLSv1.2&tls-ciphersuites=ECDHE-ECDSA-"
+        "AES128-GCM-SHA256%3AECDHE-ECDSA-AES256-GCM-SHA384",
+        _shell->unparse_uri(dict));
+  }
+
+  {
+    std::string args;
+    args =
+        "user@host?tls-ciphersuites=[ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-"
+        "AES256-GCM-SHA384]&tls-versions=[TLSv1.1,TLSv1.2]";
+
+    auto dict = _shell->parse_uri(args);
+
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kScheme));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kUser));
+    EXPECT_STREQ("user", dict->get_string(mysqlshdk::db::kUser).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPassword));
+    EXPECT_STREQ("host", dict->get_string(mysqlshdk::db::kHost).c_str());
+    EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsCiphersuites));
+    EXPECT_STREQ("ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384",
+                 dict->get_string(mysqlshdk::db::kSslTlsCiphersuites).c_str());
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsVersion));
+    EXPECT_STREQ("TLSv1.1,TLSv1.2",
+                 dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
+
+    EXPECT_EQ(
+        "user@host?tls-version=TLSv1.1%2CTLSv1.2&tls-ciphersuites=ECDHE-ECDSA-"
+        "AES128-GCM-SHA256%3AECDHE-ECDSA-AES256-GCM-SHA384",
+        _shell->unparse_uri(dict));
+  }
 }
 
 TEST_F(mod_shell_test, connect) {

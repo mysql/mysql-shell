@@ -2617,4 +2617,39 @@ TEST_F(Interactive_shell_test, sql_source_cmd_after_delimeter) {
   shcore::delete_file(file_name);
 }
 
+TEST_F(Interactive_shell_test, tls_ciphersuites) {
+  // Feature not yet supported on X protocol
+  execute("shell.connect(\"" + _uri +
+          "?tls-ciphersuites=[TLS_DHE_PSK_WITH_AES_128_GCM_SHA256,"
+          "TLS_CHACHA20_POLY1305_SHA256]\");");
+  MY_EXPECT_STDOUT_CONTAINS("tls-ciphersuites option is not yet supported");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+  execute("shell.connect(\"" + _uri +
+          "?tls-ciphersuites=TLS_DHE_PSK_WITH_AES_128_GCM_SHA256:"
+          "TLS_CHACHA20_POLY1305_SHA256\");");
+  MY_EXPECT_STDOUT_CONTAINS("tls-ciphersuites option is not yet supported");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // needed to force classic protocol to use TCP and SSL instead of unix sockets
+  std::string classic_uri =
+      shcore::str_replace(_mysql_uri, "localhost", "127.0.0.1");
+
+  // We only check if there is no error since this feature requires TLSv1.3
+  // which is not available on all the platforms e.g. Ubuntu 16.04
+  execute("shell.connect(\"" + classic_uri +
+          "?tls-ciphersuites=[TLS_DHE_PSK_WITH_AES_128_GCM_SHA256,"
+          "TLS_CHACHA20_POLY1305_SHA256]\");");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  MY_EXPECT_STDOUT_NOT_CONTAINS("tls-ciphersuites option is not yet supported");
+  wipe_all();
+  execute("shell.connect(\"" + classic_uri +
+          "?tls-ciphersuites=TLS_DHE_PSK_WITH_AES_128_GCM_SHA256:"
+          "TLS_CHACHA20_POLY1305_SHA256\");");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  MY_EXPECT_STDOUT_NOT_CONTAINS("tls-ciphersuites option is not yet supported");
+  wipe_all();
+}
+
 }  // namespace mysqlsh

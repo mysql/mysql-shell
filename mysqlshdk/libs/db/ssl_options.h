@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   bool has_crlpath() const { return has_value(kSslCrlPath); }
   bool has_cipher() const { return has_value(kSslCipher); }
   bool has_tls_version() const { return has_value(kSslTlsVersion); }
+  bool has_tls_ciphersuites() const { return has_value(kSslTlsCiphersuites); }
 
   Ssl_mode get_mode() const;
   std::string get_mode_name() const;
@@ -72,6 +73,9 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   const std::string &get_crlpath() const { return _get(kSslCrlPath); }
   const std::string &get_cipher() const { return _get(kSslCipher); }
   const std::string &get_tls_version() const { return _get(kSslTlsVersion); }
+  const std::string &get_tls_ciphersuites() const {
+    return _get(kSslTlsCiphersuites);
+  }
 
   void clear_mode() { clear_value(kSslMode); }
   void clear_ca() { clear_value(kSslCa); }
@@ -82,6 +86,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void clear_crlpath() { clear_value(kSslCrlPath); }
   void clear_cipher() { clear_value(kSslCipher); }
   void clear_tls_version() { clear_value(kSslTlsVersion); }
+  void clear_tls_ciphersuites() { clear_value(kSslTlsCiphersuites); }
 
   void set_mode(Ssl_mode value);
   void set_ca(const std::string &value);
@@ -90,6 +95,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void set_crlpath(const std::string &value);
   void set_cipher(const std::string &value);
   void set_tls_version(const std::string &value);
+  void set_tls_ciphersuites(const std::string &value);
   void set_cert(const std::string &value);
   void set_key(const std::string &value);
 
@@ -98,8 +104,10 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void validate() const;
 
   static constexpr const char *const option_str_list[] = {
-      kSslCa,      kSslCaPath, kSslCert,       kSslKey, kSslCrl,
-      kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode};
+      kSslCa,     kSslCaPath,     kSslCert,
+      kSslKey,    kSslCrl,        kSslCrlPath,
+      kSslCipher, kSslTlsVersion, kSslTlsCiphersuites,
+      kSslMode};
 
  private:
   const std::string &_get(const std::string &attribute) const;

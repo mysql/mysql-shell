@@ -110,6 +110,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->ssl_options.get_cipher();
     else if (option == "tls-version")
       return options->ssl_options.get_tls_version();
+    else if (option == "tls-ciphersuites")
+      return options->ssl_options.get_tls_ciphersuites();
     else if (option == "uri")
       return options->uri;
     else if (option == "result_format")
@@ -686,6 +688,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(!options.ssl_options.has_crlpath());
   EXPECT_TRUE(!options.ssl_options.has_cipher());
   EXPECT_TRUE(!options.ssl_options.has_tls_version());
+  EXPECT_FALSE(options.ssl_options.has_tls_ciphersuites());
   EXPECT_FALSE(options.trace_protocol);
   EXPECT_TRUE(options.uri.empty());
   EXPECT_TRUE(options.user.empty());
@@ -746,6 +749,8 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_NULLABLE);
   test_option_with_value("ssl-key", "", "some_value", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE);
+  test_option_with_value("tls-ciphersuites", "", "some_value", "",
+                         IS_CONNECTION_DATA, !IS_NULLABLE);
 
   test_option_with_value("execute", "e", "show databases;", "",
                          !IS_CONNECTION_DATA, !IS_NULLABLE,

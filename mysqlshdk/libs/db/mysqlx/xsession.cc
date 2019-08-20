@@ -389,6 +389,11 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
     mysqlsh::current_console()->print_warning(
         "X Protocol: Compression is not supported and will be ignored.");
 
+  if (ssl_options.has_tls_ciphersuites())
+    mysqlsh::current_console()->print_warning(
+        "X Protocol: tls-ciphersuites option is not yet supported and will "
+        "be ignored.");
+
   // If the account is not expired, retrieves additional session information
   if (!_expired_account) load_session_info();
 

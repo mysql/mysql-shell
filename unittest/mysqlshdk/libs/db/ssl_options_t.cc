@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -70,6 +70,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_key());
   EXPECT_FALSE(options.has_mode());
   EXPECT_FALSE(options.has_tls_version());
+  EXPECT_FALSE(options.has_tls_ciphersuites());
 
   // has verifies the existence of the option
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCa));
@@ -81,6 +82,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslKey));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslMode));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslTlsVersion));
+  EXPECT_TRUE(options.has(mysqlshdk::db::kSslTlsCiphersuites));
 
   // has_value verifies the existence of a value for the option
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCa));
@@ -92,6 +94,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslKey));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslMode));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslTlsVersion));
+  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslTlsCiphersuites));
 }
 
 TEST(Ssl_options, ca_functions) {

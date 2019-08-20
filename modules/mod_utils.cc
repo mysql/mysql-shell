@@ -303,6 +303,10 @@ shcore::Value::Map_type_ref get_connection_map(
     if (ssl.has_tls_version())
       (*map)[mysqlshdk::db::kSslTlsVersion] =
           shcore::Value(ssl.get_tls_version());
+
+    if (ssl.has_tls_ciphersuites())
+      (*map)[mysqlshdk::db::kSslTlsCiphersuites] =
+          shcore::Value(ssl.get_tls_ciphersuites());
   }
 
   for (auto &option : connection_options.get_extra_options()) {

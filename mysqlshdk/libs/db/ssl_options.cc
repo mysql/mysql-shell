@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,10 @@ void Ssl_options::set_cipher(const std::string &value) {
 
 void Ssl_options::set_tls_version(const std::string &value) {
   Nullable_options::set(kSslTlsVersion, value, Set_mode::UPDATE_NULL);
+}
+
+void Ssl_options::set_tls_ciphersuites(const std::string &value) {
+  Nullable_options::set(kSslTlsCiphersuites, value, Set_mode::UPDATE_NULL);
 }
 
 void Ssl_options::set_cert(const std::string &value) {

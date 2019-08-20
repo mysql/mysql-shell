@@ -244,7 +244,8 @@ DESCRIPTION
       - ssl-crlpath: The path of directory that contains certificate revocation
         list files.
       - ssl-cipher: SSL Cipher to use.
-      - tls-version: List of protocols permitted for secure connections
+      - tls-version: List of protocols permitted for secure connections.
+      - tls-ciphers: List of TLS v1.3 ciphers to use.
       - auth-method: Authentication method
       - get-server-public-key: Request public key from the server required for
         RSA key pair-based password exchange. Use when connecting to MySQL 8.0
@@ -913,7 +914,8 @@ The following options are valid for use either in a URI or in a dictionary:
 - ssl-crlpath: The path of directory that contains certificate revocation list
   files.
 - ssl-cipher: SSL Cipher to use.
-- tls-version: List of protocols permitted for secure connections
+- tls-version: List of protocols permitted for secure connections.
+- tls-ciphers: List of TLS v1.3 ciphers to use.
 - auth-method: Authentication method
 - get-server-public-key: Request public key from the server required for RSA
   key pair-based password exchange. Use when connecting to MySQL 8.0 servers
@@ -1119,7 +1121,8 @@ The following options are valid for use either in a URI or in a dictionary:
 - ssl-crlpath: The path of directory that contains certificate revocation list
   files.
 - ssl-cipher: SSL Cipher to use.
-- tls-version: List of protocols permitted for secure connections
+- tls-version: List of protocols permitted for secure connections.
+- tls-ciphers: List of TLS v1.3 ciphers to use.
 - auth-method: Authentication method
 - get-server-public-key: Request public key from the server required for RSA
   key pair-based password exchange. Use when connecting to MySQL 8.0 servers

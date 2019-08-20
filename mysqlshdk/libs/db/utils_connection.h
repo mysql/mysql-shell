@@ -75,6 +75,8 @@ constexpr const char kSslCrl[] = "ssl-crl";
 constexpr const char kSslCrlPath[] = "ssl-crlpath";
 constexpr const char kSslCipher[] = "ssl-cipher";
 constexpr const char kSslTlsVersion[] = "tls-version";
+constexpr const char kSslTlsVersions[] = "tls-versions";
+constexpr const char kSslTlsCiphersuites[] = "tls-ciphersuites";
 constexpr const char kSslMode[] = "ssl-mode";
 constexpr const char kAuthMethod[] = "auth-method";
 constexpr const char kGetServerPublicKey[] = "get-server-public-key";
@@ -108,6 +110,7 @@ const std::set<std::string> connection_attributes = {kHost,
                                                      kSslCrlPath,
                                                      kSslCipher,
                                                      kSslTlsVersion,
+                                                     kSslTlsCiphersuites,
                                                      kSslMode,
                                                      kAuthMethod,
                                                      kGetServerPublicKey,
@@ -124,6 +127,7 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kSslCrlPath,
                                                          kSslCipher,
                                                          kSslTlsVersion,
+                                                         kSslTlsCiphersuites,
                                                          kSslMode,
                                                          kAuthMethod,
                                                          kGetServerPublicKey,

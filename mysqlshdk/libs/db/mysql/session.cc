@@ -245,6 +245,10 @@ bool Session_impl::setup_ssl(
       mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
                     (ssl_options.get_tls_version().c_str()));
 
+    if (ssl_options.has_tls_ciphersuites())
+      mysql_options(_mysql, MYSQL_OPT_TLS_CIPHERSUITES,
+                    (ssl_options.get_tls_ciphersuites().c_str()));
+
     if (ssl_options.has_cert())
       mysql_options(_mysql, MYSQL_OPT_SSL_CERT,
                     (ssl_options.get_cert().c_str()));

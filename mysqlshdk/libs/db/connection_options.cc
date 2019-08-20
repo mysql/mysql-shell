@@ -317,13 +317,19 @@ void Connection_options::set(const std::string &name,
                              const std::vector<std::string> &values) {
   std::string iname = get_iname(name);
 
-  if (m_options.has(iname) || m_ssl_options.has(iname) ||
-      is_extra_option(iname)) {
+  if (name == kConnectionAttributes) {
+    set_connection_attributes(values);
+  } else if (shcore::str_caseeq(name, kSslTlsVersions)) {
+    m_ssl_options.set_tls_version(
+        shcore::str_join(values.begin(), values.end(), ","));
+  } else if (shcore::str_caseeq(name, kSslTlsCiphersuites)) {
+    m_ssl_options.set_tls_ciphersuites(
+        shcore::str_join(values.begin(), values.end(), ":"));
+  } else if (m_options.has(iname) || m_ssl_options.has(iname) ||
+             is_extra_option(iname)) {
     // All the connection parameters accept only 1 value
     throw std::invalid_argument("The connection option '" + name +
                                 "' requires exactly one value.");
-  } else if (name == kConnectionAttributes) {
-    set_connection_attributes(values);
   } else {
     throw std::invalid_argument("Invalid connection option '" + name + "'.");
   }

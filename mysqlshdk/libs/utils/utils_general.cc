@@ -261,6 +261,12 @@ void update_connection_data(
         ssl_options.get_tls_version());
   }
 
+  if (ssl_options.has_tls_ciphersuites()) {
+    connection_options->get_ssl_options().clear_tls_ciphersuites();
+    connection_options->get_ssl_options().set_tls_ciphersuites(
+        ssl_options.get_tls_ciphersuites());
+  }
+
   if (ssl_options.has_mode()) {
     connection_options->get_ssl_options().clear_mode();
     connection_options->get_ssl_options().set_mode(ssl_options.get_mode());

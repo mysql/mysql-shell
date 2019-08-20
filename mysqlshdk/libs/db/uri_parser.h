@@ -84,13 +84,15 @@ class SHCORE_PUBLIC Uri_parser {
   bool is_value_array(const std::pair<size_t, size_t> &range);
   std::vector<std::string> parse_values(size_t *offset);
   std::string parse_value(const std::pair<size_t, size_t> &range,
-                          size_t *offset, const std::string &finalizers);
+                          size_t *offset, const std::string &finalizers,
+                          const std::string &forbidden_delimiters = "");
   std::string parse_unencoded_value(const std::pair<size_t, size_t> &range,
                                     size_t *offset,
                                     const std::string &finalizers = "");
   std::string parse_encoded_value(const std::pair<size_t, size_t> &range,
                                   size_t *offset,
-                                  const std::string &finalizers = "");
+                                  const std::string &finalizers = "",
+                                  const std::string &forbidden_delimiters = "");
 
   char percent_decode(const std::string &value);
   std::string get_input_chunk(const std::pair<size_t, size_t> &range);

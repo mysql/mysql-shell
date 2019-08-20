@@ -197,7 +197,7 @@ void Uri_parser::parse_target() {
       }
 
       auto offset = start;
-      auto pipe = parse_value({start, end}, &offset, "");
+      auto pipe = parse_value({start, end}, &offset, "", ":");
 
       if (unencoded_pipe) {
         // unencoded pipe starts with pipe prefix, needs to be trimmed
@@ -620,7 +620,7 @@ bool Uri_parser::is_value_array(const std::pair<size_t, size_t> &range) {
 std::vector<std::string> Uri_parser::parse_values(size_t *offset) {
   std::vector<std::string> ret_val;
 
-  auto closing = _input.find(']');
+  auto closing = _input.find(']', *offset);
   while (_input[*offset] != ']') {
     // Next is a delimiter
     (*offset)++;
@@ -636,7 +636,8 @@ std::vector<std::string> Uri_parser::parse_values(size_t *offset) {
 
 std::string Uri_parser::parse_value(const std::pair<size_t, size_t> &range,
                                     size_t *offset,
-                                    const std::string &finalizers) {
+                                    const std::string &finalizers,
+                                    const std::string &forbidden_delimiters) {
   std::string ret_val;
 
   auto closing = _input.find(')', range.first);
@@ -646,7 +647,8 @@ std::string Uri_parser::parse_value(const std::pair<size_t, size_t> &range,
     ret_val = parse_unencoded_value({range.first + 1, closing - 1}, offset);
     (*offset)++;
   } else {
-    ret_val = parse_encoded_value(range, offset, finalizers);
+    ret_val =
+        parse_encoded_value(range, offset, finalizers, forbidden_delimiters);
   }
 
   return ret_val;
@@ -709,11 +711,23 @@ std::string Uri_parser::parse_unencoded_value(
 
 std::string Uri_parser::parse_encoded_value(
     const std::pair<size_t, size_t> &range, size_t *offset,
-    const std::string &finalizers) {
+    const std::string &finalizers, const std::string &forbidden_delimiters) {
+  // RFC3986:  query = ( pchar / "/" / "?" ) pchar = unreserved / pct-encoded /
+  // sub-delims (!$&'()+,;=) / ":" / "@"
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
   _tokenizer.set_complex_token("unreserved", UNRESERVED);
-  _tokenizer.set_complex_token("delims", std::string("!$'()*+;="));
+
+  std::string delims{"!$'()*+;=:,"};
+  if (!finalizers.empty() || !forbidden_delimiters.empty()) {
+    const auto forbidden = finalizers + forbidden_delimiters;
+    delims.erase(std::remove_if(delims.begin(), delims.end(),
+                                [&forbidden](const char c) {
+                                  return forbidden.find(c) != std::string::npos;
+                                }),
+                 delims.end());
+  }
+  _tokenizer.set_complex_token("delims", delims);
 
   if (!finalizers.empty()) _tokenizer.set_final_token_group("end", finalizers);
 

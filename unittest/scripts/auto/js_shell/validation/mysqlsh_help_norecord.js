@@ -138,7 +138,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 DISABLED,PREFERRED, REQUIRED, VERIFY_CA,
                                 VERIFY_IDENTITY.
   --tls-version=version         TLS version to use, permitted values are:
-                                TLSv1, TLSv1.1.
+                                TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.
+  --tls-ciphersuites=name       TLS v1.3 cipher to use.
   --auth-method=method          Authentication method to use.
   --dba=enableXProtocol         Enable the X Protocol in the server connected
                                 to. Must be used with --mysql.
@@ -308,7 +309,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 DISABLED,PREFERRED, REQUIRED, VERIFY_CA,
                                 VERIFY_IDENTITY.
   --tls-version=version         TLS version to use, permitted values are:
-                                TLSv1, TLSv1.1.
+                                TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.
+  --tls-ciphersuites=name       TLS v1.3 cipher to use.
   --auth-method=method          Authentication method to use.
   --dba=enableXProtocol         Enable the X Protocol in the server connected
                                 to. Must be used with --mysql.

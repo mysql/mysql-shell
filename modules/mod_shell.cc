@@ -418,33 +418,35 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
               "@li ssl-cipher: SSL Cipher to use.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS8,
-    "@li tls-version: List of protocols permitted for secure connections");
+    "@li tls-version: List of protocols permitted for secure connections.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
+              "@li tls-ciphers: List of TLS v1.3 ciphers to use.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10,
               "@li auth-method: Authentication method");
 REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS10,
+    TOPIC_URI_CONNECTION_OPTIONS11,
     "@li get-server-public-key: Request public key from the server required "
     "for RSA key pair-based password exchange. Use when connecting to MySQL "
     "8.0 servers with classic MySQL sessions with SSL mode DISABLED.");
 REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS11,
+    TOPIC_URI_CONNECTION_OPTIONS12,
     "@li server-public-key-path: The path name to a file containing a "
     "client-side copy of the public key required by the server for RSA key "
     "pair-based password exchange. Use when connecting to MySQL 8.0 servers "
     "with classic MySQL sessions with SSL mode DISABLED.");
 REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS12,
+    TOPIC_URI_CONNECTION_OPTIONS13,
     "@li connect-timeout: The connection timeout in milliseconds. If not "
     "provided a default timeout of 10 seconds will be used. Specifying a value "
     "of 0 disables the connection timeout.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS13,
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS14,
               "@li compression: Enable/disable compression in client/server "
               "protocol, valid values: \"true\", \"false\", \"1\", and \"0\".");
 REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS14,
+    TOPIC_URI_CONNECTION_OPTIONS15,
     "@li connection-attributes: List of connection attributes to be "
     "registered at the PERFORMANCE_SCHEMA connection attributes tables.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS15,
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS16,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 
