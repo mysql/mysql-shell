@@ -5,6 +5,20 @@
 
 // WL11263_TSF12_2 - Validate that an exception is thrown using \watch command without an active session.
 
+//@<OUT> BUG#30083371 - help without session
+query - Executes the SQL statement given as arguments.
+
+Usage:
+       \show query [OPTIONS] [ARGUMENTS]
+       \watch query [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts 1-* arguments.
+
 //@ create a session
 |<Session:<<<__uri>>>>|
 

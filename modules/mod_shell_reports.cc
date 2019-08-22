@@ -1144,12 +1144,6 @@ std::vector<std::string> Shell_reports::list_reports() const {
 std::string Shell_reports::call_report(
     const std::string &name, const std::shared_ptr<ShellBaseSession> &session,
     const std::vector<std::string> &args) {
-  // session must be open
-  if (!session || !session->is_open()) {
-    throw shcore::Exception::argument_error(
-        "Executing the report requires an existing, open session.");
-  }
-
   // report must exist
   const auto report_iterator = m_reports.find(normalize_report_name(name));
 
@@ -1165,6 +1159,12 @@ std::string Shell_reports::call_report(
     // get help
     return report_options->help();
   } else {
+    // session must be open
+    if (!session || !session->is_open()) {
+      throw shcore::Exception::argument_error(
+          "Executing the report requires an existing, open session.");
+    }
+
     // prepare arguments
     shcore::Argument_list arguments;
     arguments.push_back(shcore::Value(session));

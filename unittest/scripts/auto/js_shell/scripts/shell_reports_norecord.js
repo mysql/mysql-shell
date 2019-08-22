@@ -11,6 +11,9 @@
 //@ WL11263_TSF12_2 - run \watch without a session [USE: WL11263_TSF12_1 - run \show without a session]
 \watch query SELECT 1
 
+//@ BUG#30083371 - help without session
+\show query --help
+
 //@ create a session
 shell.connect(__uripwd);
 
@@ -23,9 +26,15 @@ session.close();
 //@ WL11263_TSF12_2 - run \watch with closed session [USE: WL11263_TSF12_1 - run \show without a session]
 \watch query SELECT 1
 
+//@ BUG#30083371 - help with closed session [USE: BUG#30083371 - help without session]
+\show query --help
+
 // -----------------------------------------------------------------------------
 //@ create a classic session
 shell.connect(__mysqluripwd);
+
+//@ BUG#30083371 - help with active session [USE: BUG#30083371 - help without session]
+\show query --help
 
 //@ classic session - switch to Python
 \py
