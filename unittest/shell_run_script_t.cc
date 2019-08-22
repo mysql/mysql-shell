@@ -218,6 +218,11 @@ select error;)*");
                         "session.sql('select 1').execute();\n"
                         "session.sql('select 1').execute();\n");
     shcore::create_file("prompt_new_line", "[1, 2, 3]\n");
+    shcore::create_file("bug30156304.py",
+                        "ext = shell.create_extension_object()\n"
+                        "shell.register_global('ext', ext)\n"
+                        "shell.add_extension_object_member(ext, 'l', lambda: "
+                        "print('lambda'))\n");
     // disable prompt theme, so we can check output along with prompt
     shcore::setenv("MYSQLSH_PROMPT_THEME", "invalid");
   }
@@ -238,6 +243,7 @@ select error;)*");
     shcore::delete_file("reconnect_mysql.py");
     shcore::delete_file("reconnect_mysqlx.py");
     shcore::delete_file("prompt_new_line");
+    shcore::delete_file("bug30156304.py");
     shcore::unsetenv("MYSQLSH_PROMPT_THEME");
   }
 };
@@ -896,6 +902,12 @@ mysql-)*";
   execute({_mysqlsh, "--interactive=full", "--json=raw", mode.c_str(), nullptr},
           nullptr, "prompt_new_line");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
+}
+
+TEST_F(ShellExeRunScript, bug30156304) {
+  // registering a Python lambda as an extension object member should not cause
+  // Shell to crash on exit
+  EXPECT_EQ(0, execute({_mysqlsh, "--py", "-f", "bug30156304.py", nullptr}));
 }
 
 }  // namespace shellcore

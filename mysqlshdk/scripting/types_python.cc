@@ -33,6 +33,7 @@ Python_function::Python_function(Python_context *context, PyObject *function)
 }
 
 Python_function::~Python_function() {
+  WillEnterPython lock;
   if (auto ref = m_function.lock()) {
     _py->erase(ref);
   }
