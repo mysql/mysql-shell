@@ -63,7 +63,7 @@
         <FeatureRef Id="ProductFeature">
         <Component Id="UpdatePath" Directory="CM_DP_main.bin" Guid="0D572FF7-1AE6-493D-8991-D2DC99E1F5C1">
         <CreateFolder/>
-        <Environment Id="UpdatePathEnv" Action="set" Name="PATH" Value="[CM_DP_main.bin]"/>
+        <Environment Id="UpdatePathEnv" Action="set" Part="first" Name="PATH" Value="[CM_DP_main.bin]"/>
         </Component>
         </FeatureRef>
 
