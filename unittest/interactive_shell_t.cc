@@ -1709,6 +1709,31 @@ TEST_F(Interactive_shell_test, reconnect_command) {
   execute("\\reconnect");
   MY_EXPECT_STDOUT_CONTAINS("successfully reconnected");
   wipe_all();
+
+  // connect to mysql schema
+  execute("\\connect " + _mysql_uri + "/mysql");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\use information_schema");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // check current schema
+  execute("\\sql select database();");
+  MY_EXPECT_STDOUT_CONTAINS("information_schema");
+  wipe_all();
+
+  execute("\\reconnect");
+  MY_EXPECT_STDOUT_CONTAINS("successfully reconnected");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // check if schema was retained
+  execute("\\sql select database();");
+  MY_EXPECT_STDOUT_CONTAINS("information_schema");
+  wipe_all();
 }
 
 TEST_F(Interactive_shell_test, mod_shell_options) {

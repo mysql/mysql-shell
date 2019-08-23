@@ -959,6 +959,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
   _global_shell->set_session_global(new_session);
 
   request_prompt_variables_update(true);
+  _last_active_schema.clear();
 
   if (options().interactive && !get_options()->get_shell_cli_operation()) {
     // Always refresh schema name completion cache because it can be used in
@@ -1692,9 +1693,10 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
 
   if (reconnect_session || force) {
     Connection_options co = session->get_connection_options();
-    if (!_last_active_schema.empty() &&
-        (!co.has_schema() || co.get_schema() != _last_active_schema))
+    if (!_last_active_schema.empty()) {
+      if (co.has_schema()) co.clear_schema();
       co.set_schema(_last_active_schema);
+    }
     if (!force)
       m_console_handler.get()->print("The global session got disconnected..\n");
     m_console_handler.get()->print("Attempting to reconnect to '" +
