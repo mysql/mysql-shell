@@ -628,11 +628,12 @@ Value Python_context::execute_interactive(const std::string &code,
     r_state = Input_state::ContinuedSingle;
   }
 
-  if (!_captured_eval_result.empty()) {
-    Value tmp(_types.pyobj_to_shcore_value(_captured_eval_result.back()));
-    _captured_eval_result.pop_back();
+  if (m_captured_eval_result) {
+    const auto tmp = _types.pyobj_to_shcore_value(m_captured_eval_result);
+    m_captured_eval_result = nullptr;
     return tmp;
   }
+
   return Value::Null();
 }
 
@@ -1008,7 +1009,7 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self),
   if (!(ctx = Python_context::get_and_check())) return NULL;
 
   if (PyTuple_Size(args) == 1) {
-    ctx->_captured_eval_result.push_back(PyTuple_GetItem(args, 0));
+    ctx->m_captured_eval_result = PyTuple_GetItem(args, 0);
   } else {
     char buff[100];
     snprintf(buff, sizeof(buff),

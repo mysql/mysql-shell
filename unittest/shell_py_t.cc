@@ -86,4 +86,23 @@ TEST_F(Shell_python, help) {
 }
 #endif
 
+TEST_F(Shell_python, bug30138755) {
+  // executing a loop where each iteration produces a value should output the
+  // last value produced
+  execute(
+      "for i in range(0, 5):\n"
+      "    i\n");
+  EXPECT_EQ("4\n", output_handler.std_out);
+  EXPECT_EQ("", output_handler.std_err);
+
+  wipe_out();
+
+  // executing a statement which does not produce a value should not output any
+  // value - before this bug was fixed it would output the penultimate value
+  // produced by the loop above
+  execute("x = 1");
+  EXPECT_EQ("", output_handler.std_out);
+  EXPECT_EQ("", output_handler.std_err);
+}
+
 }  // namespace mysqlsh

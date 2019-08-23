@@ -219,7 +219,7 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   void set_argv(const std::vector<std::string> &argv);
 
-  std::list<AutoPyObject> _captured_eval_result;
+  AutoPyObject m_captured_eval_result;
 
   std::list<std::shared_ptr<AutoPyObject>> m_stored_objects;
 
