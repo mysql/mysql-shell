@@ -74,6 +74,40 @@ Provides:      mysql-shell = %{version}-%{release}
 Obsoletes:     mysql-shell < %{version}-%{release}
 %endif
 
+# For rpm => 4.9 only: https://fedoraproject.org/wiki/Packaging:AutoProvidesAndRequiresFiltering
+%global __provides_exclude_from ^(%{_datadir}/mysqlsh/.*|%{_prefix}/lib/mysqlsh/.*)$
+
+%if 0%{?rhel} && 0%{?rhel} < 7
+# https://fedoraproject.org/wiki/EPEL:Packaging#Generic_Filtering_on_EPEL6
+%filter_provides_in %{_datadir}/mysqlsh
+%filter_provides_in %{_prefix}/lib/mysqlsh
+%endif
+
+%if 0%{?bundled_openssl:1}
+%global _openssllibs libcrypto.*|libssl.*
+%if 0%{?rhel} && 0%{?rhel} < 7
+%filter_from_requires /libcrypto/d
+%filter_from_requires /libssl/d
+%endif
+%else
+%global _openssllibs %{nil}
+%endif
+
+%if 0%{?bundled_python:1}
+%global _pythonlibs libpython.*
+%if 0%{?rhel} && 0%{?rhel} < 7
+%filter_from_requires /libpython/d
+%endif
+%else
+%global _pythonlibs %{nil}
+%endif
+
+%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs})$
+
+%if 0%{?rhel} && 0%{?rhel} < 7
+%filter_setup
+%endif
+
 %description
 @PRODUCT@
 a query and administration shell client and framework.
