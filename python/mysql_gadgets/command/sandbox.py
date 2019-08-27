@@ -603,7 +603,7 @@ def create_sandbox(**kwargs):
         local_mysqld_path = os.path.join(sandbox_dir, "bin", "mysqld")
         try:
             _LOGGER.debug(u"Copying mysqld binary '%s' to '%s'", mysqld_path,
-                          sandbox_dir)
+                          local_mysqld_path)
             shutil.copy(tools.fs_encode(mysqld_path),
                         tools.fs_encode(local_mysqld_path))
             mysql_bindir = os.path.dirname(mysqld_path)
@@ -611,11 +611,11 @@ def create_sandbox(**kwargs):
             for name in os.listdir(tools.fs_encode(mysql_bindir)):
                 if name.startswith("lib") and ".so" in name:
                     path = os.path.join(mysql_bindir, name)
+                    new_path = os.path.join(sandbox_dir, "bin", name)
                     _LOGGER.debug(u"Symlinking '%s' to '%s'", path,
-                                  sandbox_dir)
+                                  new_path)
                     os.symlink(tools.fs_encode(path),
-                               tools.fs_encode(os.path.join(sandbox_dir,
-                                                            name)))
+                               tools.fs_encode(new_path))
         except (IOError, shutil.Error) as err:
             raise exceptions.GadgetError(
                 u"Unable to copy mysqld binary '{0}' to '{1}': '{2}'."
