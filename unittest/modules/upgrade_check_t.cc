@@ -812,7 +812,7 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   const auto res = session->query("select UPPER(@@version_compile_os);");
   const auto compile_os = res->fetch_one()->get_string(0);
-#if defined(WIN32) || defined(__APPLE__)
+#if defined(WIN32)
   EXPECT_THROW(
       Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
           Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""}),
@@ -831,8 +831,10 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   ASSERT_NO_THROW(session->execute(
       "CREATE TABLE `DP01_FTS_REGULATION_ACTION_HIST` ( `HJID` bigint(20) NOT "
       "NULL, `VERSION` bigint(20) NOT NULL, PRIMARY KEY (`HJID`,`VERSION`));"));
+#ifndef __APPLE__
   ASSERT_NO_THROW(session->execute(
       "create table `DP01_FtS_REGULATION_ACTION_HIST` (i integer);"));
+#endif
 
   EXPECT_NO_THROW(issues = check->run(session, opts));
 

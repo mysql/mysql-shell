@@ -1241,8 +1241,7 @@ std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_fts_in_tablename_check(
     const Upgrade_check_options &opts) {
   if (opts.target_version >= Version(8, 0, 18) ||
-      shcore::str_beginswith(opts.server_os, "WIN") ||
-      shcore::str_beginswith(opts.server_os, "MAC"))
+      shcore::str_beginswith(opts.server_os, "WIN"))
     throw Check_not_needed();
 
   return shcore::make_unique<Sql_upgrade_check>(
@@ -1269,10 +1268,10 @@ Check_table_command::Check_table_command()
 
 std::vector<Upgrade_issue> Check_table_command::run(
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const Upgrade_check_options &) {
-  // Needed for warnings related to triggers in 5.7, skipped for now for
-  // performance reasons
-  //  session->execute("FLUSH LOCAL TABLES;");
+    const Upgrade_check_options &opts) {
+  // Needed for warnings related to triggers, incompatible types in 5.7
+  if (opts.server_version < Version(8, 0, 0))
+    session->execute("FLUSH LOCAL TABLES;");
 
   std::vector<std::pair<std::string, std::string>> tables;
   auto result = session->query(

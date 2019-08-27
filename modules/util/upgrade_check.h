@@ -233,7 +233,7 @@ class Check_table_command : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &options) override;
+      const Upgrade_check_options &opts) override;
 
   Upgrade_issue::Level get_level() const override {
     throw std::runtime_error("Unimplemented");
