@@ -24,6 +24,7 @@
 #include "scripting/jscript_array_wrapper.h"
 
 #include "mysqlshdk/include/scripting/jscript_collectable.h"
+#include "mysqlshdk/include/scripting/jscript_iterator.h"
 #include "scripting/jscript_context.h"
 
 #include <iostream>
@@ -49,9 +50,9 @@ struct Array_config {
 
 JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
     : _context(context) {
-  v8::Local<v8::ObjectTemplate> templ =
-      v8::ObjectTemplate::New(_context->isolate());
-  _array_template.Reset(_context->isolate(), templ);
+  const auto isolate = _context->isolate();
+  v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+  _array_template.Reset(isolate, templ);
 
   {
     v8::IndexedPropertyHandlerConfiguration config;
@@ -66,7 +67,8 @@ JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
     templ->SetHandler(config);
   }
 
-  templ->SetInternalFieldCount(3);
+  add_iterator<Array_collectable>(templ, isolate);
+  templ->SetInternalFieldCount(2);
 }
 
 JScript_array_wrapper::~JScript_array_wrapper() { _array_template.Reset(); }
@@ -79,11 +81,11 @@ v8::Local<v8::Object> JScript_array_wrapper::wrap(
   v8::Local<v8::Object> obj(
       templ->NewInstance(_context->context()).ToLocalChecked());
 
-  const auto holder = new Array_collectable(array, _context->isolate(), obj);
+  const auto holder =
+      new Array_collectable(array, _context->isolate(), obj, _context);
 
   obj->SetAlignedPointerInInternalField(0, &magic_pointer);
   obj->SetAlignedPointerInInternalField(1, holder);
-  obj->SetAlignedPointerInInternalField(2, this);
 
   return obj;
 }
@@ -91,7 +93,8 @@ v8::Local<v8::Object> JScript_array_wrapper::wrap(
 void JScript_array_wrapper::handler_getter(
     v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value> &info) {
-  v8::HandleScope hscope(info.GetIsolate());
+  const auto isolate = info.GetIsolate();
+  v8::HandleScope hscope(isolate);
   v8::Local<v8::Object> obj(info.Holder());
   const auto &array = static_cast<Array_collectable *>(
                           obj->GetAlignedPointerFromInternalField(1))
@@ -99,36 +102,27 @@ void JScript_array_wrapper::handler_getter(
 
   if (!array) throw std::logic_error("bug!");
 
-  const auto prop = to_string(info.GetIsolate(), property);
+  const auto prop = to_string(isolate, property);
 
-  /*if (prop == "__members__")
-  {
-  v8::Local<v8::Array> marray = v8::Array::New(info.GetIsolate());
-  marray->Set(0, v8_string(info.GetIsolate(), "length"));
-  info.GetReturnValue().Set(marray);
-  }
-  else*/
   if (prop == "length") {
-    info.GetReturnValue().Set(
-        v8::Integer::New(info.GetIsolate(), array->size()));
+    info.GetReturnValue().Set(v8::Integer::New(isolate, array->size()));
   }
 }
 
 void JScript_array_wrapper::handler_igetter(
     uint32_t index, const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Local<v8::Object> obj(info.Holder());
-  const auto &array = static_cast<Array_collectable *>(
-                          obj->GetAlignedPointerFromInternalField(1))
-                          ->data();
-  JScript_array_wrapper *self = static_cast<JScript_array_wrapper *>(
-      obj->GetAlignedPointerFromInternalField(2));
+
+  const auto collectable = static_cast<Array_collectable *>(
+      info.Holder()->GetAlignedPointerFromInternalField(1));
+  const auto context = collectable->context();
+  const auto &array = collectable->data();
 
   if (!array) throw std::logic_error("bug!");
 
   if (index < array->size()) {
     info.GetReturnValue().Set(
-        self->_context->shcore_value_to_v8_value(array->at(index)));
+        context->shcore_value_to_v8_value(array->at(index)));
   }
 }
 
@@ -152,7 +146,7 @@ void JScript_array_wrapper::handler_ienumerator(
 bool JScript_array_wrapper::unwrap(
     v8::Local<v8::Object> value,
     std::shared_ptr<Value::Array_type> *ret_object) {
-  if (value->InternalFieldCount() == 3 &&
+  if (value->InternalFieldCount() == 2 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
     const auto &array = static_cast<Array_collectable *>(
                             value->GetAlignedPointerFromInternalField(1))

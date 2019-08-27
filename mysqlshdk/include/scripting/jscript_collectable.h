@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,8 @@
 
 namespace shcore {
 
+class JScript_context;
+
 namespace details {
 
 template <typename T>
@@ -40,9 +42,11 @@ struct Collectable_config;
 template <typename T, typename Config = details::Collectable_config<T>>
 class Collectable {
  public:
+  using Type = T;
+
   Collectable(const std::shared_ptr<T> &d, v8::Isolate *isolate,
-              const v8::Local<v8::Object> &object)
-      : m_data(d) {
+              const v8::Local<v8::Object> &object, JScript_context *context)
+      : m_data(d), m_context(context) {
     m_persistent.Reset(isolate, object);
     m_persistent.SetWeak(this, destructor, v8::WeakCallbackType::kParameter);
     isolate->AdjustAmountOfExternalAllocatedMemory(
@@ -59,6 +63,8 @@ class Collectable {
 
   const v8::Persistent<v8::Object> &persistent() const { return m_persistent; }
 
+  JScript_context *context() const { return m_context; }
+
   virtual ~Collectable() { m_persistent.Reset(); }
 
  private:
@@ -72,6 +78,7 @@ class Collectable {
 
   std::shared_ptr<T> m_data;
   v8::Persistent<v8::Object> m_persistent;
+  JScript_context *m_context;
 };
 
 namespace details {

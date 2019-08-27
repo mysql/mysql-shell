@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -308,12 +308,28 @@ TEST_F(JavaScript, array_to_js) {
   env.js->execute("type(arr[0])");
 
   env.js->execute("for (i in arr) { g = i; }");
-  // enumrated array keys become strings, this is normal
+  // enumerated array keys become strings, this is normal
   ASSERT_EQ(Value("2").repr(), env.js->get_global("g").repr());
 
   // this forces conversion of a native JS array into a Value
   shcore::Value result = env.js->execute("[1,2,3]").first;
   ASSERT_EQ(result.repr(), "[1, 2, 3]");
+
+  {
+    static constexpr const auto expected = R"*(123
+text
+[
+    444
+])*";
+    Input_state cont = Input_state::Ok;
+    env.output_handler.wipe_all();
+    EXPECT_EQ(
+        Value_type::Undefined,
+        env.js->execute_interactive("for (var v of arr) println(v)", &cont)
+            .first.type);
+    env.output_handler.validate_stdout_content(expected, true);
+    EXPECT_TRUE(env.output_handler.std_err.empty());
+  }
 }
 
 TEST_F(JavaScript, map_to_js) {
@@ -365,6 +381,35 @@ TEST_F(JavaScript, map_to_js) {
 
   result = env.js->execute("mapval['invalid']").first;
   EXPECT_EQ(shcore::Undefined, result.type);
+
+  {
+    static constexpr const auto expected = R"*([
+    "k1", 
+    123
+]
+[
+    "k2", 
+    "text"
+]
+[
+    "k3", 
+    {
+        "submap": 444
+    }
+]
+[
+    "k4", 
+    "test"
+])*";
+    Input_state cont = Input_state::Ok;
+    env.output_handler.wipe_all();
+    EXPECT_EQ(
+        Value_type::Undefined,
+        env.js->execute_interactive("for (var m of mapval) println(m)", &cont)
+            .first.type);
+    env.output_handler.validate_stdout_content(expected, true);
+    EXPECT_TRUE(env.output_handler.std_err.empty());
+  }
 }
 
 TEST_F(JavaScript, object_to_js) {

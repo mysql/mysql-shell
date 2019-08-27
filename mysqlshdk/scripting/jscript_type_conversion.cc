@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -206,6 +206,8 @@ Value JScript_type_bridger::v8_value_to_shcore_value(
       }
       return Value(map_ptr);
     }
+  } else if (value->IsSymbol()) {
+    return Value(owner->to_string(value));
   } else {
     throw std::invalid_argument("Cannot convert JS value to internal value: " +
                                 owner->to_string(value));

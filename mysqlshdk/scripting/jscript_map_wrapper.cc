@@ -24,6 +24,7 @@
 #include "scripting/jscript_map_wrapper.h"
 
 #include "mysqlshdk/include/scripting/jscript_collectable.h"
+#include "mysqlshdk/include/scripting/jscript_iterator.h"
 #include "scripting/jscript_context.h"
 
 #include <cstring>
@@ -50,9 +51,9 @@ struct Map_config {
 
 JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
     : _context(context) {
-  v8::Local<v8::ObjectTemplate> templ =
-      v8::ObjectTemplate::New(_context->isolate());
-  _map_template.Reset(_context->isolate(), templ);
+  const auto isolate = _context->isolate();
+  v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+  _map_template.Reset(isolate, templ);
 
   v8::NamedPropertyHandlerConfiguration config;
   config.getter = &JScript_map_wrapper::handler_getter;
@@ -62,7 +63,8 @@ JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
   config.flags = v8::PropertyHandlerFlags::kOnlyInterceptStrings;
   templ->SetHandler(config);
 
-  templ->SetInternalFieldCount(3);
+  add_iterator<Map_collectable>(templ, isolate);
+  templ->SetInternalFieldCount(2);
 }
 
 JScript_map_wrapper::~JScript_map_wrapper() { _map_template.Reset(); }
@@ -75,11 +77,11 @@ v8::Local<v8::Object> JScript_map_wrapper::wrap(
     v8::Local<v8::Object> self(
         templ->NewInstance(_context->context()).ToLocalChecked());
     if (!self.IsEmpty()) {
-      const auto holder = new Map_collectable(map, _context->isolate(), self);
+      const auto holder =
+          new Map_collectable(map, _context->isolate(), self, _context);
 
       self->SetAlignedPointerInInternalField(0, &magic_pointer);
       self->SetAlignedPointerInInternalField(1, holder);
-      self->SetAlignedPointerInInternalField(2, this);
     }
     return self;
   }
@@ -90,12 +92,11 @@ void JScript_map_wrapper::handler_getter(
     v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Local<v8::Object> obj(info.Holder());
-  JScript_map_wrapper *self = static_cast<JScript_map_wrapper *>(
-      obj->GetAlignedPointerFromInternalField(2));
-  const auto &map =
-      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->data();
+  const auto collectable = static_cast<Map_collectable *>(
+      info.Holder()->GetAlignedPointerFromInternalField(1));
+  const auto context = collectable->context();
+  const auto &map = collectable->data();
+
   if (!map) {
     info.GetIsolate()->ThrowException(
         v8_string(info.GetIsolate(), "Reference to invalid object"));
@@ -104,23 +105,11 @@ void JScript_map_wrapper::handler_getter(
 
   const auto prop = to_string(info.GetIsolate(), property);
 
-  /*if (strcmp(prop, "__members__") == 0)
-  {
-  v8::Local<v8::Array> marray = v8::Array::New(info.GetIsolate());
-  int i = 0;
-  for (Value::Map_type::const_iterator iter = (*map)->begin(); iter !=
-  (*map)->end(); ++iter)
-  {
-  marray->Set(i++, v8_string(info.GetIsolate(), iter->first));
-  }
-  info.GetReturnValue().Set(marray);
-  }
-  else*/
   {
     Value::Map_type::const_iterator iter = map->find(prop);
     if (iter != map->end())
       info.GetReturnValue().Set(
-          self->_context->shcore_value_to_v8_value(iter->second));
+          context->shcore_value_to_v8_value(iter->second));
   }
 }
 
@@ -149,12 +138,11 @@ void JScript_map_wrapper::handler_setter(
     v8::Local<v8::Name> property, v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Local<v8::Object> obj(info.Holder());
-  JScript_map_wrapper *self = static_cast<JScript_map_wrapper *>(
-      obj->GetAlignedPointerFromInternalField(2));
-  const auto &map =
-      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->data();
+  const auto collectable = static_cast<Map_collectable *>(
+      info.Holder()->GetAlignedPointerFromInternalField(1));
+  const auto context = collectable->context();
+  const auto &map = collectable->data();
+
   if (!map) {
     info.GetIsolate()->ThrowException(
         v8_string(info.GetIsolate(), "Reference to invalid object"));
@@ -162,7 +150,7 @@ void JScript_map_wrapper::handler_setter(
   }
 
   const auto prop = to_string(info.GetIsolate(), property);
-  (*map)[prop] = self->_context->v8_value_to_shcore_value(value);
+  (*map)[prop] = context->v8_value_to_shcore_value(value);
 
   info.GetReturnValue().Set(value);
 }
@@ -189,7 +177,7 @@ void JScript_map_wrapper::handler_enumerator(
 }
 
 bool JScript_map_wrapper::is_map(v8::Local<v8::Object> value) {
-  if (value->InternalFieldCount() == 3 &&
+  if (value->InternalFieldCount() == 2 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
     return true;
   }

@@ -1441,7 +1441,8 @@ v8::Local<v8::String> v8_string(v8::Isolate *isolate, const std::string &data) {
 }
 
 std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj) {
-  const v8::String::Utf8Value utf8{isolate, obj};
+  const v8::String::Utf8Value utf8{
+      isolate, obj->IsSymbol() ? obj.As<v8::Symbol>()->Name() : obj};
   const auto ptr = *utf8;
   return nullptr == ptr ? "" : std::string(ptr, utf8.length());
 }

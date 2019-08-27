@@ -43,7 +43,7 @@ JScript_function_wrapper::JScript_function_wrapper(JScript_context *context)
   v8::Local<v8::ObjectTemplate> templ =
       v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
-  templ->SetInternalFieldCount(3);
+  templ->SetInternalFieldCount(2);
   templ->SetCallAsFunctionHandler(call);
 }
 
@@ -59,34 +59,30 @@ v8::Local<v8::Object> JScript_function_wrapper::wrap(
           .ToLocalChecked());
   if (!obj.IsEmpty()) {
     const auto holder =
-        new Function_collectable(function, _context->isolate(), obj);
+        new Function_collectable(function, _context->isolate(), obj, _context);
 
     obj->SetAlignedPointerInInternalField(0, &magic_pointer);
     obj->SetAlignedPointerInInternalField(1, holder);
-    obj->SetAlignedPointerInInternalField(2, this);
   }
   return obj;
 }
 
 void JScript_function_wrapper::call(
     const v8::FunctionCallbackInfo<v8::Value> &args) {
-  v8::Local<v8::Object> obj(args.Holder());
-  JScript_function_wrapper *self = static_cast<JScript_function_wrapper *>(
-      obj->GetAlignedPointerFromInternalField(2));
-  const auto &shared_ptr_data = static_cast<Function_collectable *>(
-                                    obj->GetAlignedPointerFromInternalField(1))
-                                    ->data();
-  std::string name = shared_ptr_data->name();
+  const auto collectable = static_cast<Function_collectable *>(
+      args.Holder()->GetAlignedPointerFromInternalField(1));
+  const auto context = collectable->context();
+  const auto &function = collectable->data();
 
-  if (self->_context->is_terminating()) return;
+  if (context->is_terminating()) return;
 
   try {
-    Value r = shared_ptr_data->invoke(self->_context->convert_args(args));
-    args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
+    Value r = function->invoke(context->convert_args(args));
+    args.GetReturnValue().Set(context->shcore_value_to_v8_value(r));
   } catch (Exception &exc) {
-    auto jsexc = self->_context->shcore_value_to_v8_value(Value(exc.error()));
+    auto jsexc = context->shcore_value_to_v8_value(Value(exc.error()));
     if (jsexc.IsEmpty())
-      jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
+      jsexc = context->shcore_value_to_v8_value(Value(exc.format()));
     args.GetIsolate()->ThrowException(jsexc);
   } catch (const std::exception &exc) {
     args.GetIsolate()->ThrowException(v8_string(args.GetIsolate(), exc.what()));
@@ -95,7 +91,7 @@ void JScript_function_wrapper::call(
 
 bool JScript_function_wrapper::unwrap(
     v8::Local<v8::Object> value, std::shared_ptr<Function_base> *ret_object) {
-  if (value->InternalFieldCount() == 3 &&
+  if (value->InternalFieldCount() == 2 &&
       value->GetAlignedPointerFromInternalField(0) == &magic_pointer) {
     const auto &object = static_cast<Function_collectable *>(
                              value->GetAlignedPointerFromInternalField(1))
