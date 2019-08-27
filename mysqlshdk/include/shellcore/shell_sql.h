@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <stack>
+#include <string>
 #include <utility>
 
 #include "mysqlshdk/libs/db/result.h"
@@ -44,7 +45,7 @@ struct Sql_result_info {
 
 class SHCORE_PUBLIC Shell_sql : public Shell_language {
  public:
-  Shell_sql(IShell_core *owner);
+  explicit Shell_sql(IShell_core *owner);
   virtual ~Shell_sql() {}
 
   void set_result_processor(
@@ -72,7 +73,7 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
   void print_exception(const shcore::Exception &e);
 
   const std::string &get_main_delimiter() const {
-    return m_splitter.delimiter();
+    return m_splitter->delimiter();
   }
 
   void kill_query(uint64_t conn_id,
@@ -81,8 +82,30 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
   void execute(const std::string &sql);
 
  private:
-  std::string m_buffer;
-  mysqlshdk::utils::Sql_splitter m_splitter;
+  struct Context {
+    explicit Context(Shell_sql *parent);
+
+    std::string buffer;
+    mysqlshdk::utils::Sql_splitter splitter;
+  };
+
+  class Context_switcher {
+   public:
+    explicit Context_switcher(Shell_sql *parent);
+    ~Context_switcher();
+
+   private:
+    Context_switcher(const Context_switcher &) = delete;
+    Context_switcher(const Context_switcher &&) = delete;
+    Context_switcher &operator=(Context_switcher const &) = delete;
+    Context_switcher &operator=(Context_switcher const &&) = delete;
+
+    Shell_sql *m_parent;
+  };
+
+  std::stack<Context> m_context_stack;
+  std::string *m_buffer = nullptr;
+  mysqlshdk::utils::Sql_splitter *m_splitter = nullptr;
 
   std::function<void(std::shared_ptr<mysqlshdk::db::IResult>,
                      const Sql_result_info &)>

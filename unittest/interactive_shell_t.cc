@@ -2592,4 +2592,29 @@ TEST_F(Interactive_shell_test, ansi_quotes) {
   }
 }
 
+TEST_F(Interactive_shell_test, sql_source_cmd_after_delimeter) {
+  std::string file_name = "f.sql";
+  if (!std::ifstream(file_name).good()) {
+    std::ofstream f(file_name);
+    f << "select 2;\n";
+    f.close();
+  }
+
+  execute("\\sql");
+  execute("\\connect " + _uri);
+  execute("select 1; \\source " + file_name);
+  int i = 0;
+  size_t pos = 0;
+  while ((pos = output_handler.std_out.find("1 row in set", pos)) !=
+         std::string::npos) {
+    i++;
+    pos++;
+  }
+  EXPECT_EQ(2, i);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  shcore::delete_file(file_name);
+}
+
 }  // namespace mysqlsh

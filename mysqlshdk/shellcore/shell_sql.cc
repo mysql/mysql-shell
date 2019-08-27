@@ -34,6 +34,7 @@
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_options.h"
+#include "utils/utils_general.h"
 #include "utils/utils_lexing.h"
 #include "utils/utils_string.h"
 
@@ -61,15 +62,33 @@ namespace shcore {
 // How many bytes at a time to process when executing large SQL scripts
 static constexpr auto k_sql_chunk_size = 64 * 1024;
 
-Shell_sql::Shell_sql(IShell_core *owner)
-    : Shell_language(owner),
-      m_splitter(
-          [this](const char *s, size_t len, bool bol, size_t /*lnum*/) {
-            return handle_command(s, len, bol);
+Shell_sql::Context::Context(Shell_sql *parent)
+    : splitter(
+          [parent](const char *s, size_t len, bool bol, size_t /*lnum*/) {
+            return parent->handle_command(s, len, bol);
           },
           [](const std::string &err) {
             mysqlsh::current_console()->print_error(err);
           }) {
+  parent->m_buffer = &buffer;
+  parent->m_splitter = &splitter;
+}
+
+Shell_sql::Context_switcher::Context_switcher(Shell_sql *parent)
+    : m_parent(parent) {
+  parent->m_context_stack.emplace(parent);
+}
+
+Shell_sql::Context_switcher::~Context_switcher() {
+  assert(m_parent->m_context_stack.size() > 1);
+  m_parent->m_context_stack.pop();
+  auto &new_context = m_parent->m_context_stack.top();
+  m_parent->m_buffer = &new_context.buffer;
+  m_parent->m_splitter = &new_context.splitter;
+}
+
+Shell_sql::Shell_sql(IShell_core *owner) : Shell_language(owner) {
+  m_context_stack.emplace(this);
   // Inject help for statement commands. Actual handling of these
   // commands is done in a way different from other commands
   SET_CUSTOM_SHELL_COMMAND("\\G", "CMD_G_UC", Shell_command_function(), true,
@@ -211,21 +230,25 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
 }
 
 void Shell_sql::handle_input(std::string &code, Input_state &state) {
+  std::unique_ptr<Context_switcher> context_switcher;
+
   // TODO(kolesink) this is a temporary solution and should be removed when
   // splitter is adjusted to be able to restart parsing from previous state
   if (state == Input_state::ContinuedSingle) {
     bool statement_complete = false;
-    for (const auto s : {m_splitter.delimiter().c_str(), "\\G", "\\g"})
+    for (const auto s : {m_splitter->delimiter().c_str(), "\\G", "\\g"})
       if (code.find(s) != std::string::npos) {
         statement_complete = true;
         break;
       }
     // no need to re-parse code until statement is complete
     if (!statement_complete) {
-      m_buffer.append(code);
+      m_buffer->append(code);
       code.clear();
       return;
     }
+  } else if (!m_buffer->empty()) {
+    context_switcher = shcore::make_unique<Context_switcher>(this);
   }
 
   state = Input_state::Ok;
@@ -243,10 +266,10 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       print_exception(shcore::Exception::logic_error("Not connected."));
     }
   }
-  m_splitter.set_ansi_quotes(ansi_quotes_enabled(session));
+  m_splitter->set_ansi_quotes(ansi_quotes_enabled(session));
   _last_handled.clear();
 
-  m_buffer.append(code);
+  m_buffer->append(code);
   code.clear();
 
   {
@@ -254,25 +277,25 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
     // Will return a range for every statement that ends with the delimiter, if
     // there is additional code after the last delimiter, a range for it will be
     // included too.
-    m_splitter.feed_chunk(&m_buffer[0], m_buffer.size());
+    m_splitter->feed_chunk(&m_buffer->at(0), m_buffer->size());
 
     mysqlshdk::utils::Sql_splitter::Range range;
     std::string delim;
 
     for (;;) {
-      if (m_splitter.next_range(&range, &delim)) {
-        if (!process_sql(&m_buffer[range.offset], range.length, delim, 0,
-                         session, &m_splitter)) {
+      if (m_splitter->next_range(&range, &delim)) {
+        if (!process_sql(&m_buffer->at(range.offset), range.length, delim, 0,
+                         session, m_splitter)) {
           got_error = true;
         }
       } else {
-        m_splitter.pack_buffer(&m_buffer, range);
-        if (m_buffer.size() > 0 && range.length > 0) {
-          state = m_splitter.context() == Sql_splitter::NONE
+        m_splitter->pack_buffer(m_buffer, range);
+        if (m_buffer->size() > 0 && range.length > 0) {
+          state = m_splitter->context() == Sql_splitter::NONE
                       ? Input_state::Ok
                       : Input_state::ContinuedSingle;
         } else {
-          m_buffer.clear();
+          m_buffer->clear();
         }
         break;
       }
@@ -284,12 +307,12 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
 }
 
 void Shell_sql::clear_input() {
-  m_buffer.clear();
-  m_splitter.reset();
+  m_buffer->clear();
+  m_splitter->reset();
 }
 
 std::string Shell_sql::get_continued_input_context() {
-  return to_string(m_splitter.context());
+  return to_string(m_splitter->context());
 }
 
 std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
@@ -332,12 +355,12 @@ void Shell_sql::execute(const std::string &sql) {
          {";", "\\G", "\\g", get_main_delimiter().c_str()}) {
       if (shcore::str_endswith(sql, d)) {
         process_sql(sql.c_str(), sql.length() - d.length(), d, 0, session,
-                    &m_splitter);
+                    m_splitter);
         return;
       }
     }
     process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session,
-                &m_splitter);
+                m_splitter);
   }
 }
 
