@@ -111,7 +111,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
       _shell(shell),
       _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
-  _sandbox_dir = sandbox_dir;
+  // When boilerplate is created, _sandbox_dir is replaced in start/stop script
+  // files with placeholders. It cannot end with a path separator character,
+  // because this may result in an unusable script.
+  _sandbox_dir = shcore::str_rstrip(sandbox_dir, "\\/");
   _dummy_sandboxes = dummy_mode;
   if (g_test_trace_scripts > 0 && dummy_mode)
     std::cerr << "testutils using dummy sandboxes\n";
