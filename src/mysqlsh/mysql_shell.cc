@@ -1709,6 +1709,18 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
         session->connect(co);
         ret_val = true;
       } catch (const shcore::Exception &e) {
+        if (co.has_schema() &&
+            strstr(e.what(), "Unknown database") != nullptr) {
+          m_console_handler.get()->println();
+          m_console_handler.get()->print_warning(
+              "Unable to reconnect to default schema '" + co.get_schema() +
+              "'");
+          co.clear_schema();
+          request_prompt_variables_update();
+          m_console_handler.get()->print(
+              "Ignoring schema, attempting to reconnect to '" + co.as_uri() +
+              "'..");
+        }
         ret_val = false;
       }
       if (!ret_val) {

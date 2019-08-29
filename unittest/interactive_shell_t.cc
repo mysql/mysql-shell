@@ -1734,6 +1734,22 @@ TEST_F(Interactive_shell_test, reconnect_command) {
   execute("\\sql select database();");
   MY_EXPECT_STDOUT_CONTAINS("information_schema");
   wipe_all();
+
+  // check reconnect when previous default schema was dropped.
+  execute("\\sql");
+  execute("CREATE DATABASE IF NOT EXISTS dropped_schema_reconnect_test;");
+  execute("\\use dropped_schema_reconnect_test");
+  execute("DROP DATABASE dropped_schema_reconnect_test;");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+  execute("\\reconnect");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: Unable to reconnect to default schema "
+      "'dropped_schema_reconnect_test'");
+  MY_EXPECT_STDOUT_CONTAINS("Ignoring schema, attempting to reconnect to");
+  MY_EXPECT_STDOUT_CONTAINS("successfully reconnected");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
 }
 
 TEST_F(Interactive_shell_test, mod_shell_options) {
