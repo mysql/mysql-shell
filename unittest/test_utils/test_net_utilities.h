@@ -92,6 +92,55 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     return result;
   }
 
+  std::vector<std::string> resolve_hostname_ipv6_all_impl(
+      const std::string &name) const override {
+    std::vector<std::string> result;
+
+    switch (m_mode) {
+      case mysqlshdk::db::replay::Mode::Record:
+        try {
+          result = Net::resolve_hostname_ipv6_all_impl(name);
+          add_recorded("resolve_hostname_ipv6_all:" + name, result);
+        } catch (std::exception &) {
+          add_recorded_exc("resolve_hostname_ipv6_all:" + name);
+          throw;
+        }
+        break;
+      case mysqlshdk::db::replay::Mode::Replay:
+        result = get_recorded_strv("resolve_hostname_ipv6_all:" + name, true);
+        break;
+      case mysqlshdk::db::replay::Mode::Direct:
+        result = Net::resolve_hostname_ipv6_all_impl(name);
+        break;
+    }
+    return result;
+  }
+
+  std::vector<std::string> resolve_hostname_ipv_any_all_impl(
+      const std::string &name) const override {
+    std::vector<std::string> result;
+
+    switch (m_mode) {
+      case mysqlshdk::db::replay::Mode::Record:
+        try {
+          result = Net::resolve_hostname_ipv_any_all_impl(name);
+          add_recorded("resolve_hostname_ipv_any_all:" + name, result);
+        } catch (std::exception &) {
+          add_recorded_exc("resolve_hostname_ipv_any_all:" + name);
+          throw;
+        }
+        break;
+      case mysqlshdk::db::replay::Mode::Replay:
+        result =
+            get_recorded_strv("resolve_hostname_ipv_any_all:" + name, true);
+        break;
+      case mysqlshdk::db::replay::Mode::Direct:
+        result = Net::resolve_hostname_ipv_any_all_impl(name);
+        break;
+    }
+    return result;
+  }
+
   bool is_local_address_impl(const std::string &address) const override {
     bool result = false;
 
