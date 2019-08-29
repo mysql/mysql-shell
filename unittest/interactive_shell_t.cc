@@ -2652,4 +2652,31 @@ TEST_F(Interactive_shell_test, tls_ciphersuites) {
   wipe_all();
 }
 
+#ifdef HAVE_V8
+TEST_F(Interactive_shell_test, js_interactive_multiline_comments) {
+  execute("\\js");
+  execute("print(1);/*");
+  execute("print(2);");
+  execute("print(3); */print(4)");
+  EXPECT_EQ("14", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("var f = function () { /*");
+  execute("print(1);");
+  execute("*/print(7)");
+  execute("}");
+  execute("");
+  execute("f();");
+  EXPECT_EQ("7", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("print(1); /*/*");
+  execute("*/print(2);");
+  EXPECT_EQ("12", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+#endif
 }  // namespace mysqlsh

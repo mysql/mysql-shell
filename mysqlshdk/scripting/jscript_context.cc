@@ -1154,11 +1154,36 @@ std::pair<Value, bool> JScript_context::execute_interactive(
   if (script.IsEmpty()) {
     // check if this was an error of type
     // SyntaxError: Unexpected end of input
-    // which we treat as a multiline mode trigger
-    const auto message = _impl->to_string(try_catch.Exception());
-    if (message == "SyntaxError: Unexpected end of input")
+    // which we treat as a multiline mode trigger or
+    // SyntaxError: Invalid or unexpected token
+    // which may be a sign of unfinished C style comment
+    const char *unexpected_end_exc = "SyntaxError: Unexpected end of input";
+    const char *unexpected_tok_exc = "SyntaxError: Invalid or unexpected token";
+    auto message = _impl->to_string(try_catch.Exception());
+    if (message == unexpected_end_exc) {
       *r_state = Input_state::ContinuedBlock;
-    else
+    } else if (message == unexpected_tok_exc) {
+      auto comment_pos = code_str.rfind("/*");
+      while (comment_pos != std::string::npos &&
+             code_str.find("*/", comment_pos + 2) == std::string::npos) {
+        try_catch.Reset();
+        if (!v8::Script::Compile(
+                 lcontext, v8_string(code_str.substr(0, comment_pos)), &origin)
+                 .IsEmpty()) {
+          *r_state = Input_state::ContinuedSingle;
+        } else {
+          message = _impl->to_string(try_catch.Exception());
+          if (message == unexpected_end_exc) {
+            *r_state = Input_state::ContinuedBlock;
+          } else if (message == unexpected_tok_exc && comment_pos > 0) {
+            comment_pos = code_str.rfind("/*", comment_pos - 1);
+            continue;
+          }
+        }
+        break;
+      }
+    }
+    if (*r_state == Input_state::Ok)
       _impl->print_exception(
           format_exception(get_v8_exception_data(try_catch, true)));
   } else {
