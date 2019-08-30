@@ -23,6 +23,10 @@ IF(NOT BUILD_SOURCE_PACKAGE AND NOT CURL_LIBRARY)
   MESSAGE(FATAL_ERROR "CURL library not found!")
 ENDIF()
 
+IF(OPENSSL_INCLUDE_DIR)
+	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+ENDIF()
+
 set(rest_SOURCES
   authentication.cc
   headers.cc
@@ -35,3 +39,7 @@ set_target_properties(rest PROPERTIES COMPILE_DEFINITIONS "${CURL_DEFINITIONS}")
 
 include_directories(SYSTEM ${CURL_INCLUDE_DIR})
 target_link_libraries(rest ${CURL_LIBRARY})
+
+if (WIN32)
+  target_link_libraries(rest Crypt32)
+endif()

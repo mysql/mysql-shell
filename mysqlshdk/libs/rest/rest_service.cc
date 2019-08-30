@@ -29,6 +29,12 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#ifdef _WIN32
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
+#include <wincrypt.h>
+#endif  // _WIN32
+
 namespace mysqlshdk {
 namespace rest {
 
@@ -78,6 +84,35 @@ Headers parse_headers(const std::string &s) {
   return headers;
 }
 
+#ifdef _WIN32
+
+static CURLcode sslctx_function(CURL *curl, void *sslctx, void *parm) {
+  const auto store = CertOpenSystemStore(NULL, "ROOT");
+
+  if (store) {
+    PCCERT_CONTEXT context = nullptr;
+    X509_STORE *cts = SSL_CTX_get_cert_store((SSL_CTX *)sslctx);
+
+    while (context = CertEnumCertificatesInStore(store, context)) {
+      // temporary variable is mandatory
+      const unsigned char *encoded_cert = context->pbCertEncoded;
+      const auto x509 =
+          d2i_X509(nullptr, &encoded_cert, context->cbCertEncoded);
+
+      if (x509) {
+        X509_STORE_add_cert(cts, x509);
+        X509_free(x509);
+      }
+    }
+
+    CertCloseStore(store, 0);
+  }
+
+  return CURLE_OK;
+}
+
+#endif  // _WIN32
+
 }  // namespace
 
 class Rest_service::Impl {
@@ -117,6 +152,13 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, nullptr);
     curl_easy_setopt(m_handle.get(), CURLOPT_READFUNCTION, request_callback);
     curl_easy_setopt(m_handle.get(), CURLOPT_WRITEFUNCTION, response_callback);
+
+#ifdef _WIN32
+    curl_easy_setopt(m_handle.get(), CURLOPT_CAINFO, nullptr);
+    curl_easy_setopt(m_handle.get(), CURLOPT_CAPATH, nullptr);
+    curl_easy_setopt(m_handle.get(), CURLOPT_SSL_CTX_FUNCTION,
+                     *sslctx_function);
+#endif  // _WIN32
   }
 
   ~Impl() = default;
