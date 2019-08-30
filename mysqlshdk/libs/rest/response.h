@@ -26,6 +26,8 @@
 
 #include "mysqlshdk/include/scripting/types.h"
 
+#include <string>
+
 #include "mysqlshdk/libs/rest/headers.h"
 
 namespace mysqlshdk {
@@ -55,6 +57,7 @@ struct Response {
     SEE_OTHER = 303,
     NOT_MODIFIED = 304,
     USE_PROXY = 305,
+    SWITCH_PROXY = 306,
     TEMPORARY_REDIRECT = 307,
     BAD_REQUEST = 400,
     UNAUTHORIZED = 401,
@@ -83,6 +86,16 @@ struct Response {
     HTTP_VERSION_NOT_SUPPORTED = 505,
   };
 
+  static std::string status_code(Status_code c);
+
+  /**
+   * Decode body as JSON object if Content-Type of the response is set to
+   * 'application/json'.
+   *
+   * @return Decoded JSON object.
+   */
+  shcore::Value json() const;
+
   /**
    * HTTP status code of the response.
    */
@@ -94,9 +107,7 @@ struct Response {
   Headers headers;
 
   /**
-   * Body of the response. If Content-Type of the response is set to
-   * 'application/json', body will hold a decoded JSON object. Otherwise, it is
-   * going to be a raw string.
+   * Body of the response. Raw string.
    */
   shcore::Value body;
 };

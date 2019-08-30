@@ -27,6 +27,7 @@ set(rest_SOURCES
   authentication.cc
   headers.cc
   rest_service.cc
+  response.cc
 )
 
 add_convenience_library(rest ${rest_SOURCES})

@@ -143,7 +143,7 @@ class Rest_service::Impl {
       throw Connection_error{m_error_buffer};
     }
 
-    return get_response(response_headers, std::move(response_body));
+    return get_raw_response(response_headers, std::move(response_body));
   }
 
   std::future<Response> execute_async(Type type, const std::string &path,
@@ -275,7 +275,7 @@ class Rest_service::Impl {
         header_list, &curl_slist_free_all};
   }
 
-  Response get_response(const std::string &headers, std::string &&body) {
+  Response get_raw_response(const std::string &headers, std::string &&body) {
     // fill in the response object
     Response response;
 
@@ -286,16 +286,7 @@ class Rest_service::Impl {
     }
 
     response.headers = parse_headers(headers);
-
-    const auto content_type = response.headers.find(k_content_type);
-
-    if (content_type != response.headers.end() &&
-        shcore::str_ibeginswith(content_type->second, k_application_json) &&
-        !body.empty()) {
-      response.body = shcore::Value::parse(body);
-    } else {
-      response.body = shcore::Value(std::move(body));
-    }
+    response.body = shcore::Value(std::move(body));
 
     return response;
   }

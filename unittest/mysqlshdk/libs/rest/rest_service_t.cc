@@ -129,9 +129,10 @@ TEST_F(Rest_service_test, cycle_methods) {
 
   auto response = m_service.get("/get", {{"one", "1"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.body.as_map()->get_map("json"));
-  EXPECT_EQ("1", response.body.as_map()->get_map("headers")->get_string("one"));
+  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
+  EXPECT_EQ("1",
+            response.json().as_map()->get_map("headers")->get_string("one"));
 
   response = m_service.head("/head", {{"two", "2"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
@@ -140,52 +141,53 @@ TEST_F(Rest_service_test, cycle_methods) {
   response = m_service.post("/post", shcore::Value::parse("{'id' : 10}"),
                             {{"three", "3"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("POST", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(10, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("POST", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(10, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("one"));
+            response.json().as_map()->get_map("headers")->get_type("one"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("two"));
+            response.json().as_map()->get_map("headers")->get_type("two"));
   EXPECT_EQ("3",
-            response.body.as_map()->get_map("headers")->get_string("three"));
+            response.json().as_map()->get_map("headers")->get_string("three"));
 
   response = m_service.put("/put", shcore::Value::parse("{'id' : 20}"),
                            {{"four", "4"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PUT", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(20, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("PUT", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(20, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("three"));
+            response.json().as_map()->get_map("headers")->get_type("three"));
   EXPECT_EQ("4",
-            response.body.as_map()->get_map("headers")->get_string("four"));
+            response.json().as_map()->get_map("headers")->get_string("four"));
 
   response = m_service.patch("/patch", shcore::Value::parse("{'id' : 30}"),
                              {{"five", "5"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PATCH", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(30, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("PATCH", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(30, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("four"));
+            response.json().as_map()->get_map("headers")->get_type("four"));
   EXPECT_EQ("5",
-            response.body.as_map()->get_map("headers")->get_string("five"));
+            response.json().as_map()->get_map("headers")->get_string("five"));
 
   response = m_service.delete_("/delete", shcore::Value::parse("{'id' : 40}"),
                                {{"six", "6"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("DELETE", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(40, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("DELETE", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(40, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("five"));
-  EXPECT_EQ("6", response.body.as_map()->get_map("headers")->get_string("six"));
+            response.json().as_map()->get_map("headers")->get_type("five"));
+  EXPECT_EQ("6",
+            response.json().as_map()->get_map("headers")->get_string("six"));
 
   response = m_service.get("/get", {{"seven", "7"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.body.as_map()->get_map("json"));
+  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("six"));
+            response.json().as_map()->get_map("headers")->get_type("six"));
   EXPECT_EQ("7",
-            response.body.as_map()->get_map("headers")->get_string("seven"));
+            response.json().as_map()->get_map("headers")->get_string("seven"));
 }
 
 TEST_F(Rest_service_test, cycle_async_methods) {
@@ -195,9 +197,10 @@ TEST_F(Rest_service_test, cycle_async_methods) {
 
   auto response = m_service.async_get("/get", {{"one", "1"}}).get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.body.as_map()->get_map("json"));
-  EXPECT_EQ("1", response.body.as_map()->get_map("headers")->get_string("one"));
+  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
+  EXPECT_EQ("1",
+            response.json().as_map()->get_map("headers")->get_string("one"));
 
   response = m_service.async_head("/head", {{"two", "2"}}).get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
@@ -208,58 +211,59 @@ TEST_F(Rest_service_test, cycle_async_methods) {
                              {{"three", "3"}})
                  .get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("POST", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(10, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("POST", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(10, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("one"));
+            response.json().as_map()->get_map("headers")->get_type("one"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("two"));
+            response.json().as_map()->get_map("headers")->get_type("two"));
   EXPECT_EQ("3",
-            response.body.as_map()->get_map("headers")->get_string("three"));
+            response.json().as_map()->get_map("headers")->get_string("three"));
 
   response = m_service
                  .async_put("/put", shcore::Value::parse("{'id' : 20}"),
                             {{"four", "4"}})
                  .get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PUT", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(20, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("PUT", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(20, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("three"));
+            response.json().as_map()->get_map("headers")->get_type("three"));
   EXPECT_EQ("4",
-            response.body.as_map()->get_map("headers")->get_string("four"));
+            response.json().as_map()->get_map("headers")->get_string("four"));
 
   response = m_service
                  .async_patch("/patch", shcore::Value::parse("{'id' : 30}"),
                               {{"five", "5"}})
                  .get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PATCH", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(30, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("PATCH", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(30, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("four"));
+            response.json().as_map()->get_map("headers")->get_type("four"));
   EXPECT_EQ("5",
-            response.body.as_map()->get_map("headers")->get_string("five"));
+            response.json().as_map()->get_map("headers")->get_string("five"));
 
   response = m_service
                  .async_delete("/delete", shcore::Value::parse("{'id' : 40}"),
                                {{"six", "6"}})
                  .get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("DELETE", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(40, response.body.as_map()->get_map("json")->get_int("id"));
+  EXPECT_EQ("DELETE", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(40, response.json().as_map()->get_map("json")->get_int("id"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("five"));
-  EXPECT_EQ("6", response.body.as_map()->get_map("headers")->get_string("six"));
+            response.json().as_map()->get_map("headers")->get_type("five"));
+  EXPECT_EQ("6",
+            response.json().as_map()->get_map("headers")->get_string("six"));
 
   response = m_service.async_get("/get", {{"seven", "7"}}).get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.body.as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.body.as_map()->get_map("json"));
+  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("six"));
+            response.json().as_map()->get_map("headers")->get_type("six"));
   EXPECT_EQ("7",
-            response.body.as_map()->get_map("headers")->get_string("seven"));
+            response.json().as_map()->get_map("headers")->get_string("seven"));
 }
 
 TEST_F(Rest_service_test, redirect) {
@@ -289,7 +293,7 @@ TEST_F(Rest_service_test, user_agent) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "mysqlsh/" MYSH_VERSION,
-      response.body.as_map()->get_map("headers")->get_string("user-agent"));
+      response.json().as_map()->get_map("headers")->get_string("user-agent"));
 }
 
 TEST_F(Rest_service_test, basic_authentication) {
@@ -298,7 +302,7 @@ TEST_F(Rest_service_test, basic_authentication) {
   m_service.set(Basic_authentication{"first", "one"});
   auto response = m_service.get("/basic/first/one");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
   m_service.set(Basic_authentication{"second", "two"});
   response = m_service.head("/basic/second/two");
@@ -307,27 +311,27 @@ TEST_F(Rest_service_test, basic_authentication) {
   m_service.set(Basic_authentication{"third", "three"});
   response = m_service.post("/basic/third/three");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
   m_service.set(Basic_authentication{"fourth", "four"});
   response = m_service.put("/basic/fourth/four");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
   m_service.set(Basic_authentication{"fifth", "five"});
   response = m_service.patch("/basic/fifth/five");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
   m_service.set(Basic_authentication{"sixth", "six"});
   response = m_service.delete_("/basic/sixth/six");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
   // same login:pass, different method
   response = m_service.get("/basic/sixth/six");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 }
 
 TEST_F(Rest_service_test, basic_authentication_failure) {
@@ -337,15 +341,15 @@ TEST_F(Rest_service_test, basic_authentication_failure) {
 
   auto response = m_service.get("/basic/first/two");
   EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
 
   response = m_service.get("/basic/second/one");
   EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
 
   response = m_service.get("/basic/second/two");
   EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.body.as_map()->get_string("authentication"));
+  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
 }
 
 TEST_F(Rest_service_test, request_headers) {
@@ -355,33 +359,38 @@ TEST_F(Rest_service_test, request_headers) {
   auto response = m_service.get("/get");
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(shcore::Value_type::Undefined,
-            response.body.as_map()->get_map("headers")->get_type("one"));
+            response.json().as_map()->get_map("headers")->get_type("one"));
 
   // request with extra header
   response = m_service.get("/get", {{"one", "1"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("1", response.body.as_map()->get_map("headers")->get_string("one"));
+  EXPECT_EQ("1",
+            response.json().as_map()->get_map("headers")->get_string("one"));
 
   // set the default headers, it should be used for all requests from now on
   m_service.set_default_headers({{"two", "2"}});
 
   response = m_service.get("/first");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2", response.body.as_map()->get_map("headers")->get_string("two"));
+  EXPECT_EQ("2",
+            response.json().as_map()->get_map("headers")->get_string("two"));
 
   response = m_service.get("/second");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2", response.body.as_map()->get_map("headers")->get_string("two"));
+  EXPECT_EQ("2",
+            response.json().as_map()->get_map("headers")->get_string("two"));
 
   // override the default header, new value should be used
   response = m_service.get("/third", {{"two", "3"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("3", response.body.as_map()->get_map("headers")->get_string("two"));
+  EXPECT_EQ("3",
+            response.json().as_map()->get_map("headers")->get_string("two"));
 
   // this one should use the default header
   response = m_service.get("/fourth");
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2", response.body.as_map()->get_map("headers")->get_string("two"));
+  EXPECT_EQ("2",
+            response.json().as_map()->get_map("headers")->get_string("two"));
 }
 
 TEST_F(Rest_service_test, content_type) {
@@ -392,14 +401,14 @@ TEST_F(Rest_service_test, content_type) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "application/x-www-form-urlencoded",
-      response.body.as_map()->get_map("headers")->get_string("content-type"));
+      response.json().as_map()->get_map("headers")->get_string("content-type"));
 
   // POST with some data will set the Content-Type to application/json
   response = m_service.post("/post", shcore::Value::parse("{'id' : 30}"));
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "application/json",
-      response.body.as_map()->get_map("headers")->get_string("content-type"));
+      response.json().as_map()->get_map("headers")->get_string("content-type"));
 
   // if Content-Type header is specified, it's going to be used instead
   response = m_service.post("/post", shcore::Value::parse("{'id' : 30}"),
@@ -407,7 +416,7 @@ TEST_F(Rest_service_test, content_type) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "text/plain",
-      response.body.as_map()->get_map("headers")->get_string("content-type"));
+      response.json().as_map()->get_map("headers")->get_string("content-type"));
 }
 
 TEST_F(Rest_service_test, response_headers) {
@@ -436,7 +445,8 @@ TEST_F(Rest_service_test, response_content_type) {
   auto response = m_service.get("/get");
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ("application/json", response.headers["Content-Type"]);
-  EXPECT_EQ(shcore::Value_type::Map, response.body.type);
+  EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  EXPECT_EQ(shcore::Value_type::String, response.body.type);
 
   // force server to return different Content-Type, body is going to be an
   // unparsed string
@@ -450,7 +460,8 @@ TEST_F(Rest_service_test, response_content_type) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ("application/json; charset=UTF-8",
             response.headers["Content-Type"]);
-  EXPECT_EQ(shcore::Value_type::Map, response.body.type);
+  EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  EXPECT_EQ(shcore::Value_type::String, response.body.type);
 }
 
 TEST_F(Rest_service_test, timeout) {
