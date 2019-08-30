@@ -240,6 +240,60 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB c
 //@ Cleanup (BUG#27702439)
 ||
 
+//@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
+||
+
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+
+NOTE: Some configuration options need to be fixed:
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+Restarting MySQL...
+NOTE: MySQL server at localhost:<<<__mysql_sandbox_port1>>> was restarted.
+
+//@<OUT> Confirm changes were applied and everything is fine BUG#29725222 {VER(>= 8.0.17)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+
+//@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
+||
+
+//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+
+//@<OUT> canonical IPv4 addresses are supported WL#12758
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
 
 //@ Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 ||
@@ -303,58 +357,3 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 //@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 ||
-
-//@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
-||
-
-//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-NOTE: Some configuration options need to be fixed:
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| Variable                 | Current Value | Required Value | Note                                             |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
-| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
-| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
-| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-
-Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
-Restarting MySQL...
-NOTE: MySQL server at localhost:<<<__mysql_sandbox_port1>>> was restarted.
-
-//@<OUT> Confirm changes were applied and everything is fine BUG#29725222 {VER(>= 8.0.17)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
-
-//@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
-||
-
-//@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
-
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
-
-//@<OUT> canonical IPv4 addresses are supported WL#12758
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
-
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
