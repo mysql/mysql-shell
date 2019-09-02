@@ -104,50 +104,75 @@ target_link_libraries(mysqlshrec
 )
 
 ### Bundling of OpenSSL libraries (if needed)
-if(OPENSSL_TO_BUNDLE_DIR)
+if(BUNDLED_OPENSSL)
+  message(STATUS "Copying OpenSSL shared libraries")
+
   IF(WIN32)
-    message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
+    GET_FILENAME_COMPONENT(CRYPTO_NAME "${HAVE_CRYPTO_DLL}" NAME)
+    GET_FILENAME_COMPONENT(OPENSSL_NAME "${HAVE_OPENSSL_DLL}" NAME)
+
+    # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_CRYPTO_DLL}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}/${CRYPTO_NAME}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_OPENSSL_DLL}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}/${OPENSSL_NAME}")
+
+    # Install/bundle the OpenSSL libraries
     install(FILES
-      "${OPENSSL_TO_BUNDLE_DIR}/ssleay32.dll"
-      "${OPENSSL_TO_BUNDLE_DIR}/libeay32.dll"
+      "${HAVE_CRYPTO_DLL}"
+      "${HAVE_OPENSSL_DLL}"
       DESTINATION ${INSTALL_BINDIR}
       COMPONENT main
     )
-  ELSEIF(APPLE)
-    message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
-
-    # Copy the OpenSSL libraries to the build dir
-    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
-
-    # Install/bundle the OpenSSL libraries including the soft links
-    INSTALL(FILES
-      "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
-      "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
-      "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-      "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-      DESTINATION ${INSTALL_LIBDIR}
-      COMPONENT main
-    )
-  ELSE() # Linux
+  ELSE()
     # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
     ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CRYPTO_FULL_NAME}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_FULL_NAME}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
 
+    # Install/bundle the OpenSSL libraries
     INSTALL(FILES
-      "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-      "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
       DESTINATION ${INSTALL_LIBDIR}
       COMPONENT main
     )
+
+    IF(APPLE)
+      # Replace dependency "/Volumes/.../lib/libcrypto... of libssl
+      EXECUTE_PROCESS(
+        COMMAND otool -L "${OPENSSL_LIBRARY}"
+        OUTPUT_VARIABLE OTOOL_OPENSSL_DEPS)
+      STRING(REPLACE "\n" ";" DEPS_LIST ${OTOOL_OPENSSL_DEPS})
+      FOREACH(LINE ${DEPS_LIST})
+        STRING(REGEX MATCH "(/.*/lib/${CRYPTO_VERSION})" XXXXX ${LINE})
+        IF(CMAKE_MATCH_1)
+          SET(OPENSSL_DEPS "${CMAKE_MATCH_1}")
+        ENDIF()
+      ENDFOREACH()
+
+      IF(OPENSSL_DEPS)
+        # install_name_tool -change old new file
+        ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+          COMMAND chmod +w "${CRYPTO_VERSION}" "${OPENSSL_VERSION}"
+          COMMAND install_name_tool -change "${OPENSSL_DEPS}" "@loader_path/${CRYPTO_VERSION}" "${OPENSSL_VERSION}"
+          WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
+        )
+      ENDIF()
+
+      # include the soft links
+      INSTALL(FILES
+        "${CRYPTO_LIBRARY}"
+        "${OPENSSL_LIBRARY}"
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT main
+      )
+    ENDIF()
   ENDIF()
 endif()
 

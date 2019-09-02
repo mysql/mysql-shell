@@ -121,7 +121,6 @@ if(WITH_TESTS)
             api_modules
             mysqlshdk-static)
 
-    message(STATUE, "---->  ${PROTOBUF_LIBRARY}")
     target_link_libraries(run_unit_tests
             shellfe
             api_modules

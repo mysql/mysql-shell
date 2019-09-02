@@ -28,9 +28,10 @@ function(add_shell_executable)
   set_target_properties("${ARGV0}" PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}")
   fix_target_output_directory("${ARGV0}" "${INSTALL_BINDIR}")
 
-  if(OPENSSL_TO_BUNDLE_DIR)
+  if(BUNDLED_OPENSSL AND NOT WIN32)
     target_link_libraries("${ARGV0}"
-      "-L${OPENSSL_TO_BUNDLE_DIR}"
+      "-L${CRYPTO_DIRECTORY}"
+      "-L${OPENSSL_DIRECTORY}"
     )
   endif()
 
@@ -40,7 +41,7 @@ function(add_shell_executable)
   endif()
 
   if(APPLE)
-    if(OPENSSL_TO_BUNDLE_DIR)
+    if(BUNDLED_OPENSSL)
       add_custom_command(TARGET "${ARGV0}" POST_BUILD
         COMMAND install_name_tool -change
                 "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
@@ -59,7 +60,7 @@ function(add_shell_executable)
       )
     endif()
   elseif(NOT WIN32)
-    if(OPENSSL_TO_BUNDLE_DIR OR BUNDLED_SHARED_PYTHON)
+    if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON)
       set_property(TARGET "${ARGV0}" PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
       set_property(TARGET "${ARGV0}" PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
     endif()
