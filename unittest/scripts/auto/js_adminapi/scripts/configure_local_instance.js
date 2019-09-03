@@ -171,6 +171,10 @@ testutil.expectPrompt("Please specify the path to the MySQL configuration file: 
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureLocalInstance(__sandbox_uri1, { interactive: true });
 
+//@<OUT> Confirm binlog_checksum is wrote to config file (BUG#30171090) {VER(< 8.0.0) && __dbug_off == 0}
+var match_list = testutil.grepFile(mycnf_path, "binlog_checksum");
+print(match_list);
+
 //@<OUT> Confirm that changes were applied to config file (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf_path });

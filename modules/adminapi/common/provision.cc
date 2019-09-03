@@ -248,17 +248,19 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
   bool cannot_persist = (srv_cfg_handler->get_default_var_qualifier() !=
                          mysqlshdk::mysql::Var_qualifier::PERSIST);
 
-  // For each of the configs, if the variable is a read-only variable (i.e,
-  // requires a restart of the server), the user didn't provide a configuration
+  // For each of the configs, if the user didn't provide a configuration
   // file and the instance doesn't support the set persist of the variable, then
-  // we need to write that change to the configuration file as well.
+  // we need to write that change to the configuration file.
+  // NOTE: All the required variables (not only the read-only ones) need to be
+  //       persisted in the option file in order to "survive" server restarts
+  //       (see BUG#30171090).
 
   if (cannot_persist &&
       !config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
     for (auto &invalid_cfg : invalid_cfgs_vec) {
       // log_bin variable is a special case and needs to be handled differently
       // since it cannot be persisted it always requires a configuration file.
-      if (invalid_cfg.var_name != "log_bin" && invalid_cfg.restart)
+      if (invalid_cfg.var_name != "log_bin")
         invalid_cfg.types.set(mysqlshdk::mysql::Config_type::CONFIG);
     }
   }

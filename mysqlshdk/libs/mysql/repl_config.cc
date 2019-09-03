@@ -228,7 +228,7 @@ void check_server_variables_compatibility(
           &change, Config_type::CONFIG, false, true);
     }
 
-    // If config object has has a server handler
+    // If config object has a server handler
     if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
       // Get the config server handler.
       auto srv_cfg_handler =

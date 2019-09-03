@@ -307,7 +307,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE           | Update the server variable                       |
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
 | enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
 | gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
 | log_bin                          | <not set>     | <no value>     | Update the config file                           |
@@ -327,6 +327,10 @@ Please specify the path to the MySQL configuration file: Do you want to perform 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
+//@<OUT> Confirm binlog_checksum is wrote to config file (BUG#30171090) {VER(< 8.0.0) && __dbug_off == 0}
+[
+    "binlog_checksum = NONE"
+]
 
 //@<OUT> Confirm that changes were applied to config file (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -337,7 +341,6 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum                  | <not set>     | NONE           | Update the config file                           |
 | binlog_format                    | <not set>     | ROW            | Update the config file                           |
 | enforce_gtid_consistency         | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                        | OFF           | ON             | Update read-only variable and restart the server |
