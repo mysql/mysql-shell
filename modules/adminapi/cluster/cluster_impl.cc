@@ -648,8 +648,87 @@ std::unique_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
     return shcore::make_unique<mysqlsh::dba::Instance>(session);
   } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
-    throw err;
+    throw;
   }
+}
+
+size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
+  // Get all cluster instances
+  std::vector<Instance_metadata> instance_defs =
+      get_default_replicaset()->get_instances();
+
+  // Counter for instances that failed to be updated
+  size_t count = 0;
+
+  for (const Instance_metadata &instance_def : instance_defs) {
+    std::string instance_address = instance_def.endpoint;
+
+    // Establish a session to the cluster instance
+    try {
+      auto instance = get_session_to_cluster_instance(instance_address);
+
+      // Handle the plugin setup only if the target instance supports it
+      if (instance->get_version() >=
+          mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+        if (!enable_clone) {
+          // Uninstall the clone plugin
+          log_info("Uninstalling the clone plugin on instance '%s'.",
+                   instance_address.c_str());
+          mysqlshdk::mysql::uninstall_clone_plugin(*instance, nullptr);
+        } else {
+          // Install the clone plugin
+          log_info("Installing the clone plugin on instance '%s'.",
+                   instance_address.c_str());
+          mysqlshdk::mysql::install_clone_plugin(*instance, nullptr);
+
+          // Get the recovery account in use by the instance so the grant
+          // BACKUP_ADMIN is granted to its recovery account
+          {
+            std::string recovery_user;
+            std::vector<std::string> recovery_user_hosts;
+            std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+                get_replication_user(*instance);
+
+            // Add the BACKUP_ADMIN grant to the instance's recovery account
+            // since it may not be there if the instance was added to a cluster
+            // non-supporting clone
+            for (const auto &host : recovery_user_hosts) {
+              shcore::sqlstring grant("GRANT BACKUP_ADMIN ON *.* TO ?@?", 0);
+              grant << recovery_user;
+              grant << host;
+              grant.done();
+              get_target_instance()->execute(grant);
+            }
+          }
+        }
+      }
+
+      // Close the instance's session
+      instance->get_session()->close();
+    } catch (const mysqlshdk::db::Error &err) {
+      auto console = mysqlsh::current_console();
+
+      std::string op = enable_clone ? "enable" : "disable";
+
+      std::string err_msg = "Unable to " + op + " clone on the instance '" +
+                            instance_address + "': " + std::string(err.what());
+
+      // If a cluster member is unreachable, just print a warning. Otherwise
+      // print error
+      if (err.code() == CR_CONNECTION_ERROR ||
+          err.code() == CR_CONN_HOST_ERROR) {
+        console->print_warning(err_msg);
+      } else {
+        console->print_error(err_msg);
+      }
+      console->println();
+
+      // It failed to update this instance, so increment the counter
+      count++;
+    }
+  }
+
+  return count;
 }
 
 }  // namespace dba

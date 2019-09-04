@@ -708,6 +708,70 @@ void Add_instance::update_change_master() const {
                                          m_rpl_user, "%");
 }
 
+void Add_instance::refresh_target_connections() {
+  {
+    try {
+      m_target_instance->query("SELECT 1");
+    } catch (const mysqlshdk::db::Error &err) {
+      auto e = shcore::Exception::mysql_error_with_code_and_state(
+          err.what(), err.code(), err.sqlstate());
+
+      if (CR_SERVER_LOST == e.code()) {
+        log_debug(
+            "Target instance connection lost: %s. Re-establishing a "
+            "connection.",
+            e.format().c_str());
+
+        m_target_instance->get_session()->connect(m_instance_cnx_opts);
+      } else {
+        throw;
+      }
+    }
+
+    try {
+      m_replicaset.get_cluster()
+          ->get_metadata_storage()
+          ->get_md_server()
+          ->query("SELECT 1");
+    } catch (const mysqlshdk::db::Error &err) {
+      auto e = shcore::Exception::mysql_error_with_code_and_state(
+          err.what(), err.code(), err.sqlstate());
+
+      if (CR_SERVER_LOST == e.code()) {
+        log_debug(
+            "Metadata connection lost: %s. Re-establishing a "
+            "connection.",
+            e.format().c_str());
+
+        auto md_session = m_replicaset.get_cluster()
+                              ->get_metadata_storage()
+                              ->get_md_server()
+                              ->get_session();
+
+        md_session->connect(md_session->get_connection_options());
+      } else {
+        throw;
+      }
+    }
+  }
+}
+
+void Add_instance::handle_clone_plugin_state(bool enable_clone) {
+  // First, handle the target instance
+  if (enable_clone) {
+    log_info("Installing the clone plugin on instance '%s'.",
+             m_target_instance->get_canonical_address().c_str());
+    mysqlshdk::mysql::install_clone_plugin(*m_target_instance, nullptr);
+  } else {
+    log_info("Uninstalling the clone plugin on instance '%s'.",
+             m_target_instance->get_canonical_address().c_str());
+    mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
+  }
+
+  // Then, handle the cluster members
+  m_replicaset.get_cluster()->setup_clone_plugin(enable_clone);
+}
+
 void Add_instance::prepare() {
   // Connect to the target instance (if needed).
   if (!m_reuse_session_for_target_instance) {
@@ -1054,11 +1118,16 @@ shcore::Value Add_instance::execute() {
 
     // Make sure the Clone plugin is installed or uninstalled depending on the
     // value of disableClone
-    if (enable_clone) {
-      mysqlshdk::mysql::install_clone_plugin(*m_target_instance, nullptr);
-    } else {
-      mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
-    }
+    //
+    // NOTE: If the clone usage is not disabled on the cluster (disableClone),
+    // we must ensure the clone plugin is installed on all members. Otherwise,
+    // if the cluster was creating an Older shell (<8.0.17) or if the cluster
+    // was set up using the Incremental recovery only and the primary is removed
+    // (or a failover happened) the instances won't have the clone plugin
+    // installed and GR's recovery using clone will fail.
+    //
+    // See BUG#29954085 and BUG#29960838
+    handle_clone_plugin_state(enable_clone);
   }
 
   DBUG_EXECUTE_IF("dba_abort_join_group", { throw std::logic_error("debug"); });
@@ -1287,54 +1356,6 @@ void Add_instance::finish() {
 
   if (!m_use_cluster_session_for_peer && m_peer_instance) {
     m_peer_instance->close_session();
-  }
-}
-
-void Add_instance::refresh_target_connections() {
-  {
-    try {
-      m_target_instance->query("SELECT 1");
-    } catch (const mysqlshdk::db::Error &err) {
-      auto e = shcore::Exception::mysql_error_with_code_and_state(
-          err.what(), err.code(), err.sqlstate());
-
-      if (CR_SERVER_LOST == e.code()) {
-        log_debug(
-            "Target instance connection lost: %s. Re-establishing a "
-            "connection.",
-            e.format().c_str());
-
-        m_target_instance->get_session()->connect(m_instance_cnx_opts);
-      } else {
-        throw;
-      }
-    }
-
-    try {
-      m_replicaset.get_cluster()
-          ->get_metadata_storage()
-          ->get_md_server()
-          ->query("SELECT 1");
-    } catch (const mysqlshdk::db::Error &err) {
-      auto e = shcore::Exception::mysql_error_with_code_and_state(
-          err.what(), err.code(), err.sqlstate());
-
-      if (CR_SERVER_LOST == e.code()) {
-        log_debug(
-            "Metadata connection lost: %s. Re-establishing a "
-            "connection.",
-            e.format().c_str());
-
-        auto md_session = m_replicaset.get_cluster()
-                              ->get_metadata_storage()
-                              ->get_md_server()
-                              ->get_session();
-
-        md_session->connect(md_session->get_connection_options());
-      } else {
-        throw;
-      }
-    }
   }
 }
 

@@ -31,6 +31,7 @@
 
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "modules/adminapi/common/common.h"

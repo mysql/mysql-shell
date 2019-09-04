@@ -170,6 +170,12 @@ class Add_instance : public Command_interface {
   void update_change_master() const;
 
   void refresh_target_connections();
+
+  /*
+   * Handle the loading/unloading of the clone plugin on the target cluster
+   * and the target instance
+   */
+  void handle_clone_plugin_state(bool enable_clone);
 };
 
 }  // namespace dba

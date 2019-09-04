@@ -26,6 +26,8 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -233,6 +235,23 @@ class Cluster_impl {
    */
   std::unique_ptr<Instance> get_session_to_cluster_instance(
       const std::string &instance_address) const;
+
+  /**
+   * Setup the clone plugin usage on the cluster (enable or disable it)
+   *
+   * This function will install or uninstall the clone plugin on all the cluster
+   * members If a member is unreachable or missing an error will be printed
+   * indicating the function failed to install/uninstall the clone plugin on
+   * that instance. The function will return the number of instances that failed
+   * to be updated.
+   *
+   * @param enable_clone Boolean to indicate if the clone plugin must be
+   * installed (true) or uninstalled (false.
+   *
+   * @return size_t with the number of instances on which the update process
+   * failed
+   */
+  size_t setup_clone_plugin(bool enable_clone);
 };
 
 }  // namespace dba

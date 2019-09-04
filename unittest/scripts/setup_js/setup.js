@@ -71,13 +71,21 @@ function ensure_plugin_enabled(plugin_name, session, plugin_soname) {
   if (plugin_soname === undefined)
     plugin_soname = plugin_name;
 
- 
   var os = session.runSql('select @@version_compile_os').fetchOne()[0];
   if (os == "Win32" || os == "Win64") {
     session.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_soname + ".dll';");
   }
   else {
     session.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_soname + ".so';");
+  }
+}
+
+function ensure_plugin_disabled(plugin_name, session) {
+  var rs = session.runSql("SELECT COUNT(1) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME like '" + plugin_name + "';");
+  var is_installed = rs.fetchOne()[0];
+
+  if (is_installed) {
+    session.runSql("UNINSTALL PLUGIN " + plugin_name + ";");
   }
 }
 

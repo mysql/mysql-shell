@@ -101,89 +101,18 @@ void Cluster_set_option::check_disable_clone_support() {
 }
 
 void Cluster_set_option::update_disable_clone_option(bool disable_clone) {
-  // Get all cluster instances
-  std::vector<Instance_metadata> instance_defs =
-      m_cluster->get_default_replicaset()->get_instances();
+  size_t count, cluster_size;
 
-  // Get cluster session to use the same authentication credentials for all
-  // replicaset instances.
-  Connection_options cluster_cnx_opt =
-      m_cluster->get_target_instance()->get_connection_options();
+  // Get the cluster size (instances)
+  cluster_size =
+      m_cluster->get_metadata_storage()->get_cluster_size(m_cluster->get_id());
 
-  size_t count = 0;
-
-  for (const Instance_metadata &instance_def : instance_defs) {
-    std::string instance_address = instance_def.endpoint;
-
-    Connection_options instance_cnx_opts =
-        shcore::get_connection_options(instance_address, false);
-    instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
-
-    log_debug("Connecting to instance '%s'.", instance_address.c_str());
-    std::shared_ptr<mysqlshdk::db::ISession> session;
-
-    // Establish a session to the instance
-    try {
-      session = mysqlshdk::db::mysql::Session::create();
-      session->connect(instance_cnx_opts);
-
-      auto instance = mysqlsh::dba::Instance(session);
-
-      if (disable_clone) {
-        // Uninstall the clone plugin
-        mysqlshdk::mysql::uninstall_clone_plugin(instance, nullptr);
-      } else {
-        // Install the clone plugin
-        mysqlshdk::mysql::install_clone_plugin(instance, nullptr);
-
-        // Get the recovery account in use by the instance so the grant
-        // BACKUP_ADMIN is granted to its recovery account
-        {
-          std::string recovery_user;
-          std::vector<std::string> recovery_user_hosts;
-          std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-              m_cluster->get_replication_user(instance);
-          m_cluster->get_metadata_storage()->get_instance_recovery_account(
-              instance.get_uuid());
-
-          // Add the BACKUP_ADMIN grant to the instance's recovery account since
-          // it may not be there if the instance was added to a cluster
-          // non-supporting clone
-          for (const auto &host : recovery_user_hosts) {
-            shcore::sqlstring grant("GRANT BACKUP_ADMIN ON *.* TO ?@?", 0);
-            grant << recovery_user;
-            grant << host;
-            grant.done();
-            m_cluster->get_target_instance()->execute(grant);
-          }
-        }
-      }
-
-      session->close();
-    } catch (const std::exception &err) {
-      auto console = mysqlsh::current_console();
-
-      std::string op = disable_clone ? "disable" : "enable";
-
-      std::string err_msg = "Unable to " + op + " clone on the instance '" +
-                            instance_address + "': " + std::string(err.what());
-
-      // If a cluster member is unreachable, just print a warning. Otherwise
-      // print error
-      if (shcore::str_beginswith(err.what(), "Can't connect to MySQL server")) {
-        console->print_warning(err_msg);
-      } else {
-        console->print_error(err_msg);
-      }
-      console->println();
-
-      count++;
-    }
-  }
+  // Enable/Disable the clone plugin on the target cluster
+  count = m_cluster->setup_clone_plugin(!disable_clone);
 
   // Update disableClone value in the metadata only if we succeeded to
   // update the plugin status in at least one of the members
-  if (count != instance_defs.size()) {
+  if (count != cluster_size) {
     m_cluster->get_metadata_storage()->update_cluster_attribute(
         m_cluster->get_id(), k_cluster_attribute_disable_clone,
         disable_clone ? shcore::Value::True() : shcore::Value::False());

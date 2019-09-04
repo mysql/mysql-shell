@@ -13,7 +13,10 @@
 //@# Ensure clone disabled on incremental recovery {VER(>=8.0.17)}
 ||Cluster.addInstance: debug (LogicError)
 
-//@ Ensure clone enabled on clone recovery {VER(>=8.0.17)}
+//@ Ensure clone enabled on all cluster members on clone recovery {VER(>=8.0.17)}
+||Cluster.addInstance: debug (LogicError)
+
+//@ Ensure clone enabled on all cluster members on clone recovery when cluster created with old shell {VER(>=8.0.17)}
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>=8.0.17)}
