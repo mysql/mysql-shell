@@ -72,6 +72,9 @@ int g_test_color_output = 0;
 
 // Default trace set (MySQL version) to be used for replay mode
 mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
+// Highest supported TLS version by MySQL Server
+mysqlshdk::utils::Version g_highest_server_tls_version = Version();
+// Highest common (server<->client) TLS supported version
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
@@ -170,17 +173,20 @@ static void detect_mysql_environment(int port, const char *pwd) {
       }
     }
 
+    // highest server tls version
     {
       char const *const query = "SELECT @@tls_version";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           auto tls_versions = shcore::str_split(row[0], ",");
+          // we assume that highest tls version string is last
           for (auto i = tls_versions.crbegin(); i != tls_versions.crend();
                i++) {
             if (shcore::str_beginswith(tls_versions.back(), "TLSv")) {
               std::string ver((*i).begin() + 4, (*i).end());
-              g_highest_tls_version = Version(ver);
+              g_highest_server_tls_version = g_highest_tls_version =
+                  Version(ver);
               break;
             }
           }
@@ -188,6 +194,27 @@ static void detect_mysql_environment(int port, const char *pwd) {
         mysql_free_result(res);
       }
     }
+
+    // highest client tls version. Might be empty if user do not use TLS
+    // connection.
+    // Update common (server<->user) highest supported TLS version.
+    {
+      char const *const query = "show status like 'Ssl_version'";
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          const std::string tls_version = row[1];
+          if (shcore::str_beginswith(tls_version, "TLSv")) {
+            std::string ver(tls_version.begin() + 4, tls_version.end());
+            auto client_tls_version = Version(ver);
+            g_highest_tls_version =
+                std::min(client_tls_version, g_highest_server_tls_version);
+          }
+        }
+        mysql_free_result(res);
+      }
+    }
+
   } else {
     std::cerr << "Cannot connect to MySQL server at " << port << ": "
               << mysql_error(mysql) << "\n";
@@ -219,9 +246,10 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
   std::cout << "report_host=" << report_host << "\n";
   std::cout << "server_id=" << server_id << ", ssl=" << have_ssl
-            << ", openssl=" << have_openssl
-            << ", highest_tls_version=" << g_highest_tls_version.get_full()
-            << "\n";
+            << ", openssl=" << have_openssl << ", highest_server_tls_version="
+            << g_highest_server_tls_version.get_full()
+            << ", highest_common_tls_version="
+            << g_highest_tls_version.get_full() << "\n";
 
   std::cout << "Classic protocol:\n";
   std::cout << "  port=" << port << '\n';

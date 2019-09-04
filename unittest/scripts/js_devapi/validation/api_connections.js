@@ -106,7 +106,7 @@
 //@ shell.connect, with classic Dict, ssl-mode=DISABLED {secure_transport=='on'}
 ||Connections using insecure transport are prohibited while --require_secure_transport=ON.
 
-//@ shell.connect, with classic Dict, ssl-mode=DISABLED {secure_transport!='o'}
+//@ shell.connect, with classic Dict, ssl-mode=DISABLED {secure_transport!='on'}
 |~<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED and other ssl option
@@ -301,7 +301,7 @@
 | att5            | NULL            |
 | program_name    | mysqlsh         |
 +-----------------+-----------------+
-                                    
+
 //@ WL12446-TS3_1 mysqlx.getSession {!connection_attributes_supported}
 ||<<<connection_attributes_error>>>
 
@@ -361,7 +361,7 @@ No attributes found!
 
 //@ WL12446-TS13_1 Duplicate Key
 ||Invalid URI: Duplicate key 'key1' used in 'connection-attributes'. (ArgumentError)
-                                    
+
 //@ WL12446-TS_E1 Attribute Longer Than Allowed X
 ||Key name beginning with 'att01234567890123456798012345678'... is too long, currently limited to 32 (MySQL Error 5005)
 
