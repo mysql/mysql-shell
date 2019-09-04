@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,6 +89,8 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   Row _row;
   size_t _fetched_row_count = 0;
   size_t _fetched_warning_count = 0;
+  /// Tracks the number of rows retrieved by fetch_one before pre_fetch happened
+  size_t m_fetched_before_prefetch = 0;
   std::string _info;
   bool _stop_pre_fetch = false;
   bool _pre_fetched = false;

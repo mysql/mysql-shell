@@ -349,6 +349,17 @@ n.select("doc->>'$.name' as names");
 //@ BUG29794340: Expected token type QUOTE
 n.select("doc->>>'$.name' as names");
 
+//@ Bug #29818714
+var throw_away = mySession.sql('create table t1(col1 int);').execute();
+var throw_away = mySession.sql('insert into t1 values(1),(2),(3);').execute();
+var t1 = schema.getTable('t1');
+var result = t1.select().execute();
+var record = result.fetchOne();
+println(record.col1);
+var throw_away = t1.select().execute();
+var record = result.fetchOne();
+println(record.col1);
+
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

@@ -231,7 +231,8 @@ const IRow *Result::fetch_one() {
   if (_pre_fetched) {
     if (!_persistent_pre_fetch) {
       if (!_pre_fetched_rows.empty()) {
-        if (_fetched_row_count > 0)  // free the previously fetched row
+        if (_fetched_row_count - m_fetched_before_prefetch >
+            0)  // free the previously fetched row
           _pre_fetched_rows.pop_front();
         if (!_pre_fetched_rows.empty()) {
           // return the next row, but don't pop it yet otherwise it'll be freed
@@ -241,8 +242,10 @@ const IRow *Result::fetch_one() {
         }
       }
     } else {
-      if (_fetched_row_count < _pre_fetched_rows.size()) {
-        return &_pre_fetched_rows[_fetched_row_count++];
+      if (_fetched_row_count - m_fetched_before_prefetch <
+          _pre_fetched_rows.size()) {
+        return &_pre_fetched_rows[(_fetched_row_count++) -
+                                  m_fetched_before_prefetch];
       }
     }
   } else {
@@ -261,7 +264,7 @@ const IRow *Result::fetch_one() {
   return nullptr;
 }
 
-void Result::rewind() { _fetched_row_count = 0; }
+void Result::rewind() { _fetched_row_count = m_fetched_before_prefetch; }
 
 void Result::buffer() {
   shcore::Interrupt_handler intr([this]() {
@@ -281,7 +284,7 @@ bool Result::pre_fetch_rows(bool persistent) {
     while (const ::xcl::XRow *row = _result->get_next_row(&error)) {
       if (_stop_pre_fetch) return true;
       wrapper.reset(row);
-      _pre_fetched_rows.push_back(Row_copy(wrapper));
+      _pre_fetched_rows.emplace_back(wrapper);
     }
     if (error) {
       std::stringstream msg;
@@ -290,6 +293,7 @@ bool Result::pre_fetch_rows(bool persistent) {
       throw mysqlshdk::db::Error(msg.str().c_str(), error.error());
     }
     _pre_fetched = true;
+    m_fetched_before_prefetch = _fetched_row_count;
   }
   return true;
 }

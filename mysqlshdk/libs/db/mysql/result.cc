@@ -311,7 +311,7 @@ bool Result::pre_fetch_rows(bool persistent) {
     if (!has_resultset()) return false;
     while (auto row = fetch_one()) {
       if (_stop_pre_fetch) return true;
-      _pre_fetched_rows.push_back(mysqlshdk::db::Row_copy(*row));
+      _pre_fetched_rows.emplace_back(*row);
     }
     _fetched_row_count = 0;
 

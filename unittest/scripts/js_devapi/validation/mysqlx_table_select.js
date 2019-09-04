@@ -294,3 +294,7 @@ Mark
 TableSelect.select: Expected ' but found >, at position 6,
 in: doc->>>'$.name' as names
           ^                  (RuntimeError)
+
+//@<OUT> Bug #29818714
+1
+2
