@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include <algorithm>
 #include <iterator>
 #include <tuple>
 #include <utility>
@@ -169,6 +170,8 @@ inline char *skip_not_blanks(char *p, const char *end) {
 
 constexpr char k_delimiter[] = "delimiter";
 constexpr int k_delimiter_len = 9;
+constexpr char k_use[] = "use";
+constexpr int k_use_len = 3;
 
 /** Get range of next statement in buffer.
  *
@@ -409,10 +412,43 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
             break;
 
+          case 'u':  // use
+          case 'U':
+            // Possible start of the keyword USE. Must be the 1st keyword
+            // of a statement.
+            if (m_context == NONE && (m_end - p >= k_use_len) &&
+                shcore::str_caseeq(p, k_use, k_use_len)) {
+              char *del =
+                  static_cast<char *>(memchr(p, m_delimiter[0], eol - p));
+              if (del) {
+                if (m_delimiter.length() > 1 &&
+                    strncmp(del, m_delimiter.c_str(), m_delimiter.size()) != 0)
+                  del = eol;
+              } else {
+                del = eol;
+              }
+              size_t skip;
+              bool delim;
+              std::tie(skip, delim) =
+                  m_cmd_callback(p, del - p, p == bos, m_current_line);
+              if (skip != 0) {
+                if (del != eol) skip += m_delimiter.size();
+                memmove(p, p + skip, (m_end - p) - skip);
+                m_shrinked_bytes += skip;
+                eol -= skip;
+                m_end -= skip;
+                break;
+              }
+              if (!has_complete_line) return unfinished_stmt(bos, out_range);
+            }
+            goto other;
+
           default:
           other:
-            if (m_context != NONE || !is_any_blank(*p)) m_context = STATEMENT;
-            if (p == bos && is_any_blank(*p)) bos++;
+            if (!is_any_blank(*p))
+              m_context = STATEMENT;
+            else if (p == bos)
+              bos++;
             ++p;
             break;
         }

@@ -328,10 +328,14 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
     }
   }
 
+  std::string cmd(p, len);
+  if (shcore::str_ibeginswith(cmd.c_str(), "use"))
+    if (_owner->handle_shell_command("\\" + cmd))
+      return std::make_pair(len, false);
+
   if (bol && memchr(p, '\n', len)) {
     // handle as full-line command
-    if (_owner->handle_shell_command(std::string(p, len)))
-      return std::make_pair(len, false);
+    if (_owner->handle_shell_command(cmd)) return std::make_pair(len, false);
   }
 
   mysqlsh::current_console()->print_error("Unknown command '" +

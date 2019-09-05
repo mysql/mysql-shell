@@ -817,6 +817,14 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   output_handler.wipe_all();
 
   execute("session.close()");
+
+  execute("\\sql");
+  execute("\\connect --mc " + _mysql_uri);
+  execute("use mysql; select 'sabracadabra';");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
+  MY_EXPECT_STDOUT_CONTAINS("sabracadabra");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_sql_use) {

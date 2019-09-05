@@ -1348,7 +1348,9 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
     } else if (args.size() == 2) {
       real_param = args[1];
     } else {
-      error = "\\use <schema_name>\n";
+      error =
+          "Incorrect number of arguments for use command, usage:\n"
+          "\\use <schema_name>\n";
     }
     if (error.empty()) {
       try {
@@ -1572,16 +1574,6 @@ bool Mysql_shell::cmd_watch(const std::vector<std::string> &args) {
 }
 
 bool Mysql_shell::do_shell_command(const std::string &line) {
-  // Special handling for use <db>, which in the classic client was overridden
-  // as a built-in command and thus didn't need ; at the end
-  if (options().interactive &&
-      _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
-    std::string tmp = shcore::str_rstrip(shcore::str_strip(line), ";");
-    if (shcore::str_ibeginswith(tmp, "use ")) {
-      return _shell->handle_shell_command("\\" + tmp);
-    }
-  }
-
   bool handled = _shell->handle_shell_command(line);
   if (line.length() > 1 && line[0] == '\\' && !handled) {
     print_diag("Unknown command: '" + line + "'");
