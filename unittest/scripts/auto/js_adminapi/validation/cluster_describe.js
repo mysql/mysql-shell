@@ -1,9 +1,6 @@
 //@<ERR> Error when executing describe on a cluster with the topology mode different than GR
 Cluster.describe: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
-//@<ERR> Error when executing describe on a cluster that its name is not registered in the metadata
-Cluster.describe: The cluster 'cluster' is no longer registered in the Metadata. (RuntimeError)
-
 //@<OUT> Describe cluster
 {
     "clusterName": "cluster",
@@ -13,17 +10,17 @@ Cluster.describe: The cluster 'cluster' is no longer registered in the Metadata.
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -39,12 +36,12 @@ Cluster.describe: The cluster 'cluster' is no longer registered in the Metadata.
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "zzLabel",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -60,17 +57,17 @@ Cluster.describe: The cluster 'cluster' is no longer registered in the Metadata.
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "zzLabel",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"

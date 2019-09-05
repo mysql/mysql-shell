@@ -41,23 +41,9 @@ void Replicaset_describe::prepare() {
   // Save the reference of the cluster object
   m_cluster = m_replicaset.get_cluster();
 
-  // Sanity checks
-  {
-    // TODO(alfredo) - this check seems unnecessary, there's no requirement
-    // that the cluster name can't change after getCluster() is called
-    // also this looks like a copy/paste of Replicaset_status::prepare()
-
-    // Verify if the cluster is still registered in the Metadata
-    Cluster_metadata cm;
-    if (!m_cluster->get_metadata_storage()->get_cluster_for_cluster_name(
-            m_cluster->get_name(), &cm))
-      throw shcore::Exception::runtime_error(
-          "The cluster '" + m_cluster->get_name() +
-          "' is no longer registered in the Metadata.");
-
-    // Verify if the topology type changed and issue an error if needed.
-    m_replicaset.sanity_check();
-  }
+  // Sanity check: Verify if the topology type changed and issue an error if
+  // needed.
+  m_replicaset.sanity_check();
 
   // Get the current members list
   m_instances = m_replicaset.get_instances();
@@ -70,30 +56,15 @@ void Replicaset_describe::feed_metadata_info(shcore::Dictionary_t dict,
   (*dict)["label"] = shcore::Value(info.label);
 }
 
-void Replicaset_describe::feed_member_info(
-    shcore::Dictionary_t dict, const mysqlshdk::gr::Member &member) {
-  if (!member.version.empty()) {
-    (*dict)["version"] = shcore::Value(member.version);
-  }
-}
+shcore::Array_t Replicaset_describe::get_topology() {
+  std::vector<Instance_metadata> instance_defs =
+      m_cluster->get_default_replicaset()->get_instances();
 
-shcore::Array_t Replicaset_describe::get_topology(
-    const std::vector<mysqlshdk::gr::Member> &member_info) {
   shcore::Array_t instances_list = shcore::make_array();
 
-  auto get_member = [&member_info](const std::string &uuid) {
-    for (const auto &m : member_info) {
-      if (m.uuid == uuid) return m;
-    }
-    return mysqlshdk::gr::Member();
-  };
-
-  for (const auto &inst : m_instances) {
+  for (const auto &instance_def : instance_defs) {
     shcore::Dictionary_t member = shcore::make_dict();
-    mysqlshdk::gr::Member minfo(get_member(inst.uuid));
-
-    feed_metadata_info(member, inst);
-    feed_member_info(member, minfo);
+    feed_metadata_info(member, instance_def);
 
     instances_list->push_back(shcore::Value(member));
   }
@@ -105,6 +76,10 @@ shcore::Dictionary_t Replicaset_describe::collect_replicaset_description() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
+  // Set ReplicaSet name and topologyMode
+  (*ret)["name"] = shcore::Value(m_replicaset.get_name());
+
+  // Get and set the topology mode from the Metadata
   auto group_instance = m_cluster->get_target_instance();
 
   // Get the primary UUID value to determine GR mode:
@@ -119,15 +94,10 @@ shcore::Dictionary_t Replicaset_describe::collect_replicaset_description() {
           : mysqlshdk::gr::to_string(
                 mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
-  // Set ReplicaSet name
-  (*ret)["name"] = shcore::Value(m_replicaset.get_name());
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
-  bool single_primary;
-  std::vector<mysqlshdk::gr::Member> member_info(
-      mysqlshdk::gr::get_members(*group_instance, &single_primary));
-
-  (*ret)["topology"] = shcore::Value(get_topology(member_info));
+  // Get and set the topology (all instances)
+  (*ret)["topology"] = shcore::Value(get_topology());
 
   return ret;
 }

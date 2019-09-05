@@ -59,12 +59,12 @@ Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"

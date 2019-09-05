@@ -137,17 +137,17 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Multi-Primary"
@@ -202,12 +202,12 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Multi-Primary"

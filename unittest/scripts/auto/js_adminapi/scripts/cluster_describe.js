@@ -7,31 +7,21 @@ var session = scene.session
 // Exceptions in <Cluster.>describe():
 //    - If the InnoDB Cluster topology mode does not match the current Group
 //      Replication configuration.
-//    - If the InnoDB Cluster name is not registered in the Metadata.
 
 //@<> Manually change the topology mode in the metadata
 session.runSql("SET sql_log_bin = 0");
 session.runSql("update mysql_innodb_cluster_metadata.replicasets set topology_type = \"mm\"");
 session.runSql("SET sql_log_bin = 0");
-var cluster = dba.getCluster();
+cluster = dba.getCluster();
 
 //@<ERR> Error when executing describe on a cluster with the topology mode different than GR
 cluster.describe()
 
-//@<> Manually change back the topology mode in the metadata and change the cluster name
+//@<> Manually change back the topology mode
 session.runSql("SET sql_log_bin = 0");
 session.runSql("update mysql_innodb_cluster_metadata.replicasets set topology_type = \"pm\"");
-session.runSql("update mysql_innodb_cluster_metadata.clusters set cluster_name = \"newName\"");
 session.runSql("SET sql_log_bin = 0");
-
-//@<ERR> Error when executing describe on a cluster that its name is not registered in the metadata
-cluster.describe()
-
-//@<> Manually change back the the cluster name
-session.runSql("SET sql_log_bin = 0");
-session.runSql("update mysql_innodb_cluster_metadata.clusters set cluster_name = \"cluster\"");
-session.runSql("SET sql_log_bin = 0");
-var cluster = dba.getCluster();
+cluster = dba.getCluster();
 
 //@<OUT> Describe cluster
 cluster.describe();

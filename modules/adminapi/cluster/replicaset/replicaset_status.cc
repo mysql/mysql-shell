@@ -107,22 +107,9 @@ void Replicaset_status::prepare() {
   // Save the reference of the cluster object
   m_cluster = m_replicaset.get_cluster();
 
-  // Sanity checks
-  {
-    // TODO(alfredo) - this check seems unnecessary, there's no requirement
-    // that the cluster name can't change after getCluster() is called
-
-    // Verify if the cluster is still registered in the Metadata
-    Cluster_metadata cm;
-    if (!m_cluster->get_metadata_storage()->get_cluster_for_cluster_name(
-            m_cluster->get_name(), &cm))
-      throw shcore::Exception::runtime_error(
-          "The cluster '" + m_cluster->get_name() +
-          "' is no longer registered in the Metadata.");
-
-    // Verify if the topology type changed and issue an error if needed.
-    m_replicaset.sanity_check();
-  }
+  // Sanity check: Verify if the topology type changed and issue an error if
+  // needed.
+  m_replicaset.sanity_check();
 
   m_instances = m_replicaset.get_instances();
 

@@ -34,17 +34,17 @@
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "2nd",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -109,12 +109,12 @@
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -163,17 +163,17 @@
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -244,12 +244,12 @@
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "3rd_sandbox",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
@@ -298,17 +298,17 @@
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "3rd_sandbox",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "1st_sandbox",
-                "role": "HA"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"

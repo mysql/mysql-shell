@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICASET_REPLICASET_DESCRIBE_H_
-#define MODULES_ADMINAPI_REPLICASET_REPLICASET_DESCRIBE_H_
+#ifndef MODULES_ADMINAPI_CLUSTER_REPLICASET_REPLICASET_DESCRIBE_H_
+#define MODULES_ADMINAPI_CLUSTER_REPLICASET_REPLICASET_DESCRIBE_H_
 
 #include <map>
 #include <string>
@@ -84,11 +84,7 @@ class Replicaset_describe : public Command_interface {
   void feed_metadata_info(shcore::Dictionary_t dict,
                           const Instance_metadata &info);
 
-  void feed_member_info(shcore::Dictionary_t dict,
-                        const mysqlshdk::gr::Member &member);
-
-  shcore::Array_t get_topology(
-      const std::vector<mysqlshdk::gr::Member> &member_info);
+  shcore::Array_t get_topology();
 
   shcore::Dictionary_t collect_replicaset_description();
 };
@@ -96,4 +92,4 @@ class Replicaset_describe : public Command_interface {
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_REPLICASET_REPLICASET_DESCRIBE_H_
+#endif  // MODULES_ADMINAPI_CLUSTER_REPLICASET_REPLICASET_DESCRIBE_H_

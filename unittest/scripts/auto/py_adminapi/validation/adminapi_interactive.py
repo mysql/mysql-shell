@@ -387,17 +387,17 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
+                "role": "HA"
             },
             {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "role": "HA"<<<",\n[[*]]\"version\": \"" + __version + "\"" if (__version_num>=80011) else "">>>
+                "role": "HA"
             }
         ],
         "topologyMode": "Single-Primary"
