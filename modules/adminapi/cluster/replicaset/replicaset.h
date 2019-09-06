@@ -209,6 +209,21 @@ class ReplicaSet {
 
   void verify_topology_type_change() const;
 
+  /**
+   * Validate the GTID consistency in regard to the cluster for an instance
+   * rejoining
+   *
+   * This function checks if the target instance has errant transactions, or if
+   * the binary logs have been purged from all cluster members to block the
+   * rejoin. It also checks if the GTID set is empty which, for an instance that
+   * is registered as a cluster member should not happen, to block its rejoin
+   * too.
+   *
+   * @param target_instance Target instance rejoining the cluster
+   */
+  void validate_rejoin_gtid_consistency(
+      const mysqlshdk::mysql::IInstance &target_instance);
+
  protected:
   std::string _name;
   std::string _topology_type;

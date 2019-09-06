@@ -196,3 +196,46 @@ EXPECT_EQ(2, s2_aio);
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#29953812 : ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED, REJOIN_INSTANCE() NOT: DATA NOT COPIED
+// Verify that rejoinInstance fails when:
+//   - Instance data has diverged
+//   - Instance is irrecoverable
+
+//@<> Initialization (BUG#29953812)
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+var cluster = scene.cluster;
+var session = scene.session;
+var session2 = mysql.getSession(__sandbox_uri2);
+
+var gtid_executed = session.runSql("SELECT @@global.gtid_executed").fetchOne()[0];
+
+// Force the instance to drop out of the group
+session2.runSql("stop group_replication;")
+
+// Simulate errant transactions
+session2.runSql("RESET MASTER");
+session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
+
+//@ Rejoin instance fails if the target instance contains errant transactions (BUG#29953812) {VER(>=8.0.17)}
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@ Rejoin instance fails if the target instance contains errant transactions 5.7 (BUG#29953812) {VER(<8.0.17)}
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@ Rejoin instance fails if the target instance has an empty gtid-set (BUG#29953812)
+session2.runSql("RESET MASTER");
+
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812)
+session.runSql("FLUSH BINARY LOGS");
+session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+session2.runSql("RESET MASTER");
+
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@<> Finalization (BUG#29953812)
+session.close();
+session2.close();
+scene.destroy();

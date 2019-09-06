@@ -61,6 +61,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
@@ -123,6 +124,88 @@ void ReplicaSet::verify_topology_type_change() const {
         "current Group Replication configuration (Multi-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
+}
+
+void ReplicaSet::validate_rejoin_gtid_consistency(
+    const mysqlshdk::mysql::IInstance &target_instance) {
+  auto console = mysqlsh::current_console();
+  std::string errant_gtid_set;
+
+  // Get the gtid state in regards to the cluster_session
+  mysqlshdk::mysql::Replica_gtid_state state =
+      mysqlshdk::mysql::check_replica_gtid_state(
+          *get_cluster()->get_target_instance(), target_instance, nullptr,
+          &errant_gtid_set);
+
+  if (state == mysqlshdk::mysql::Replica_gtid_state::NEW) {
+    console->println();
+    console->print_error(mysqlshdk::textui::format_markup_text(
+        {"The target instance '" + target_instance.descr() +
+         "' has an empty GTID set so it cannot be safely rejoined to the "
+         "cluster. Please remove it and add it back to the cluster."},
+        80));
+    console->println();
+
+    throw shcore::Exception::runtime_error("The instance '" +
+                                           target_instance.descr() +
+                                           "' has an empty GTID set.");
+  } else if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+    console->println();
+    console->print_error(mysqlshdk::textui::format_markup_text(
+        {"A GTID set check of the MySQL instance at '" +
+         target_instance.descr() +
+         "' determined that it is missing transactions that "
+         "were purged from all cluster members."},
+        80));
+    console->println();
+    throw shcore::Exception::runtime_error(
+        "The instance '" + target_instance.descr() +
+        "' is missing transactions that "
+        "were purged from all cluster members.");
+  } else if (state == mysqlshdk::mysql::Replica_gtid_state::DIVERGED) {
+    console->println();
+    console->print_error(mysqlshdk::textui::format_markup_text(
+        {"A GTID set check of the MySQL instance at '" +
+         target_instance.descr() +
+         "' determined that it contains transactions that "
+         "do not originate from the cluster, which must be "
+         "discarded before it can join the cluster."},
+        80));
+
+    console->print_info();
+    console->print_info(target_instance.descr() +
+                        " has the following errant GTIDs that do not exist "
+                        "in the cluster:\n" +
+                        errant_gtid_set);
+    console->print_info();
+
+    console->print_info(mysqlshdk::textui::format_markup_text(
+        {"Having extra GTID events is not expected, and it is "
+         "recommended to investigate this further and ensure that the data "
+         "can be removed prior to rejoining the instance to the cluster."},
+        80));
+
+    if (target_instance.get_version() >=
+        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+      console->print_info();
+      console->print_info(mysqlshdk::textui::format_markup_text(
+          {"Discarding these extra GTID events can either be done manually "
+           "or by completely overwriting the state of " +
+           target_instance.descr() +
+           " with a physical snapshot from an existing cluster member. To "
+           "achieve this remove the instance from the cluster and add it "
+           "back using <Cluster>.<<<addInstance>>>() and setting the "
+           "'recoveryMethod' option to 'clone'."},
+          80));
+    }
+
+    console->print_info();
+
+    throw shcore::Exception::runtime_error(
+        "The instance '" + target_instance.descr() +
+        "' contains errant transactions that did not originate from the "
+        "cluster.");
+  }
 }
 
 void ReplicaSet::set_instance_option(const Connection_options &instance_def,
@@ -590,6 +673,11 @@ shcore::Value ReplicaSet::rejoin_instance(
       throw shcore::Exception::runtime_error(nice_error);
     }
   }
+
+  // Check GTID consistency to determine if the instance can safely rejoin the
+  // cluster BUG#29953812: ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED,
+  // REJOIN_INSTANCE() NOT: DATA NOT COPIED
+  validate_rejoin_gtid_consistency(instance);
 
   // In order to be able to rejoin the instance to the cluster we need the seed
   // instance.
