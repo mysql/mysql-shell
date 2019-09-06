@@ -760,9 +760,14 @@ shcore::Value ReplicaSet::rejoin_instance(
         &instance, mysqlshdk::config::k_dft_cfg_server_handler);
 
     // (Re-)join the instance to the replicaset (setting up GR properly).
-    // NOTE: on the rejoin operation there is no need adjust the the number of
-    //       members on the replicaset
-    mysqlshdk::utils::nullable<uint64_t> replicaset_count;
+    // NOTE: the join_replicaset() function expects the number of members in
+    //       the cluster excluding the joining node, thus replicaset_count must
+    //       exclude the rejoining node (cluster size - 1) since it already
+    //       belongs to the metadata (BUG#30174191).
+    mysqlshdk::utils::nullable<uint64_t> replicaset_count =
+        get_cluster()->get_metadata_storage()->get_cluster_size(
+            get_cluster()->get_id()) -
+        1;
     mysqlsh::dba::join_replicaset(instance, seed_instance, replication_user,
                                   replication_user_pwd, gr_options,
                                   replicaset_count, cfg.get());
