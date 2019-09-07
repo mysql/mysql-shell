@@ -345,7 +345,7 @@ void Json_importer::flush() {
   if (m_packet_size_tracker.rows_in_insert > 0) {
     xcl::XError error;
     if (m_proto_interleaved) {
-      recv_response();
+      recv_response(true);
       error = m_session->get_driver_obj()->get_protocol().send(m_batch_insert);
       m_pending_response++;
     } else {
@@ -364,7 +364,7 @@ void Json_importer::flush() {
 void Json_importer::commit(bool final_commit) {
   if (m_proto_interleaved) {
     xcl::XError error;
-    recv_response();
+    recv_response(true);
 
     ::Mysqlx::Sql::StmtExecute stmt;
     stmt.set_stmt(!final_commit ? "COMMIT AND CHAIN" : "COMMIT");
