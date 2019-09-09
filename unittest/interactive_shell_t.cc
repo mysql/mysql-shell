@@ -825,6 +825,16 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   MY_EXPECT_STDOUT_CONTAINS("sabracadabra");
   EXPECT_TRUE(output_handler.std_err.empty());
   output_handler.wipe_all();
+
+  execute("USE information_schema;");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `information_schema`.");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("Use mysql;");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_sql_use) {

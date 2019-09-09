@@ -417,7 +417,8 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             // Possible start of the keyword USE. Must be the 1st keyword
             // of a statement.
             if (m_context == NONE && (m_end - p >= k_use_len) &&
-                shcore::str_caseeq(p, k_use, k_use_len)) {
+                shcore::str_caseeq(p, k_use, k_use_len) &&
+                is_any_blank(*(p + k_use_len))) {
               char *del =
                   static_cast<char *>(memchr(p, m_delimiter[0], eol - p));
               if (del) {

@@ -329,9 +329,18 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
   }
 
   std::string cmd(p, len);
-  if (shcore::str_ibeginswith(cmd.c_str(), "use"))
-    if (_owner->handle_shell_command("\\" + cmd))
+  if (shcore::str_ibeginswith(cmd.c_str(), "use")) {
+    if (_owner->handle_shell_command("\\use" + cmd.substr(3))) {
+      _last_handled.append(cmd);
+      if (strncmp(p + len, m_splitter->delimiter().c_str(),
+                  m_splitter->delimiter().length()) == 0)
+        _last_handled.append(m_splitter->delimiter());
+      _last_handled.append("\n");
       return std::make_pair(len, false);
+    } else {
+      return std::make_pair(0, false);
+    }
+  }
 
   if (bol && memchr(p, '\n', len)) {
     // handle as full-line command
