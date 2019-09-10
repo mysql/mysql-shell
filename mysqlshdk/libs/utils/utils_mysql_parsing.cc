@@ -95,7 +95,7 @@ bool Sql_splitter::set_delimiter(const std::string &delim) {
   return true;
 }
 
-template <const char skip_table[255], const char quote>
+template <const char skip_table[256], const char quote>
 inline char *span_string(char *p, const char *end) {
   // p must be inside the single quote string (after the ')
   int last_ch = 0;
