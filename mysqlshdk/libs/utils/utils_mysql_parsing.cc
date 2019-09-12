@@ -32,6 +32,18 @@
 namespace mysqlshdk {
 namespace utils {
 
+Sql_splitter::Sql_splitter(const Command_callback &cmd_callback,
+                           const Error_callback &err_callback,
+                           const std::initializer_list<const char *> &commands)
+    : m_cmd_callback(cmd_callback), m_err_callback(err_callback) {
+  for (const char *cmd : commands) {
+    size_t off = tolower(cmd[0]) - 'a';
+    assert(off < m_commands_table.size());
+    m_commands_table[off].emplace_front(cmd);
+  }
+  reset();
+}
+
 void Sql_splitter::reset() {
   m_begin = nullptr;
   m_end = nullptr;
@@ -170,8 +182,6 @@ inline char *skip_not_blanks(char *p, const char *end) {
 
 constexpr char k_delimiter[] = "delimiter";
 constexpr int k_delimiter_len = 9;
-constexpr char k_use[] = "use";
-constexpr int k_use_len = 3;
 
 /** Get range of next statement in buffer.
  *
@@ -224,6 +234,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
   while (next_bol < m_end) {
     char *bol = next_bol;
     bool has_complete_line;
+    bool command = false;
     bool last_line_was_delimiter = false;
     // process input per line so we can count line numbers
     char *real_eol;
@@ -239,6 +250,23 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
     // find the end of the statement
     char *p = bol;
+    const auto run_command = [&](bool delimited) {
+      command = false;
+      size_t skip;
+      bool d;
+      std::tie(skip, d) = m_cmd_callback(bos, p - bos, true, m_current_line);
+      if (skip == 0) return false;
+      if (delimited) skip += m_delimiter.size();
+      p = bos + skip;
+      memmove(bos, p, m_end - p);
+      m_shrinked_bytes += skip;
+      p = bos;
+      eol -= skip;
+      m_end -= skip;
+      m_context = NONE;
+      return true;
+    };
+
     while (p && p < eol) {
       if (m_context == NONE || m_context == STATEMENT) {
         // check for the current delimiter
@@ -246,6 +274,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             (p + m_delimiter.size() <= eol &&
              m_delimiter.compare(0, m_delimiter.size(), p, 0,
                                  m_delimiter.size()) == 0)) {
+          if (command && run_command(true)) continue;
           m_context = NONE;
           Range range{static_cast<size_t>(bos - m_begin),
                       static_cast<size_t>(p - bos), m_current_line};
@@ -259,6 +288,9 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
         switch (*p) {
           case '\\':  // \x
           {
+            // commands within commands are not supported
+            if (command) goto other;
+
             // let the caller handle \commands
             size_t skip;
             bool delim;
@@ -412,40 +444,25 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
             break;
 
-          case 'u':  // use
-          case 'U':
-            // Possible start of the keyword USE. Must be the 1st keyword
-            // of a statement.
-            if (m_context == NONE && (m_end - p >= k_use_len) &&
-                shcore::str_caseeq(p, k_use, k_use_len) &&
-                is_any_blank(*(p + k_use_len))) {
-              char *del =
-                  static_cast<char *>(memchr(p, m_delimiter[0], eol - p));
-              if (del) {
-                if (m_delimiter.length() > 1 &&
-                    strncmp(del, m_delimiter.c_str(), m_delimiter.size()) != 0)
-                  del = eol;
-              } else {
-                del = eol;
-              }
-              size_t skip;
-              bool delim;
-              std::tie(skip, delim) =
-                  m_cmd_callback(p, del - p, p == bos, m_current_line);
-              if (skip != 0) {
-                if (del != eol) skip += m_delimiter.size();
-                memmove(p, p + skip, (m_end - p) - skip);
-                m_shrinked_bytes += skip;
-                eol -= skip;
-                m_end -= skip;
-                break;
-              }
-              if (!has_complete_line) return unfinished_stmt(bos, out_range);
-            }
-            goto other;
-
           default:
           other:
+            if (m_context == NONE) {
+              size_t off = tolower(*p) - 'a';
+              if (off < m_commands_table.size() &&
+                  !m_commands_table[off].empty()) {
+                for (const auto &kwd : m_commands_table[off])
+                  if ((m_end - p >= static_cast<int>(kwd.length())) &&
+                      shcore::str_caseeq(p, kwd.c_str(), kwd.length()) &&
+                      is_any_blank(*(p + kwd.length()))) {
+                    command = true;
+                    p += kwd.length() + 1;
+                    m_context = STATEMENT;
+                    break;
+                  }
+                if (command) continue;
+              }
+            }
+
             if (!is_any_blank(*p))
               m_context = STATEMENT;
             else if (p == bos)
@@ -536,7 +553,12 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
       }
     }
 
-    if (p == eol && !last_line_was_delimiter) line_count++;
+    if (p == eol) {
+      if (command)
+        run_command(false);
+      else if (!last_line_was_delimiter)
+        line_count++;
+    }
   }
   if (m_last_chunk && bos < m_end) {
     Range range{static_cast<size_t>(bos - m_begin),
@@ -615,7 +637,7 @@ bool iterate_sql_stream(
         }
         return std::make_pair(2U, true);
       },
-      err_callback);
+      err_callback, {"source"});
   splitter.set_ansi_quotes(ansi_quotes);
   if (delimiter) splitter.set_delimiter(*delimiter);
   if (splitter_ptr) *splitter_ptr = &splitter;

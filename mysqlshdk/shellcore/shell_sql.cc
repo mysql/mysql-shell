@@ -59,6 +59,10 @@ using mysqlshdk::utils::Sql_splitter;
 
 namespace shcore {
 
+namespace {
+const std::initializer_list<const char *> keyword_commands = {"source", "use"};
+}
+
 // How many bytes at a time to process when executing large SQL scripts
 static constexpr auto k_sql_chunk_size = 64 * 1024;
 
@@ -69,7 +73,8 @@ Shell_sql::Context::Context(Shell_sql *parent)
           },
           [](const std::string &err) {
             mysqlsh::current_console()->print_error(err);
-          }) {
+          },
+          keyword_commands) {
   parent->m_buffer = &buffer;
   parent->m_splitter = &splitter;
 }
@@ -212,11 +217,20 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
           istream, k_sql_chunk_size,
           [&](const char *s, size_t len, const std::string &delim,
               size_t lnum) {
-            if (len > 0 &&
-                !process_sql(s, len, delim, lnum, session, splitter)) {
-              if (!mysqlsh::current_shell_options()->get().force) return false;
-            }
-            return true;
+            std::string cmd(s, len);
+            std::string file;
+
+            if (shcore::str_beginswith(cmd.c_str(), "source"))
+              file = cmd.substr(6);
+            else if (shcore::str_beginswith(cmd.c_str(), "\\."))
+              file = cmd.substr(2);
+
+            bool ret = false;
+            if (!file.empty())
+              ret = _owner->handle_shell_command("\\source " + file);
+            else if (len > 0)
+              ret = process_sql(s, len, delim, lnum, session, splitter);
+            return ret ? ret : mysqlsh::current_shell_options()->get().force;
           },
           [](const std::string &err) {
             mysqlsh::current_console()->print_error(err);
@@ -329,18 +343,23 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
   }
 
   std::string cmd(p, len);
-  if (shcore::str_ibeginswith(cmd.c_str(), "use")) {
-    if (_owner->handle_shell_command("\\use" + cmd.substr(3))) {
-      _last_handled.append(cmd);
-      if (strncmp(p + len, m_splitter->delimiter().c_str(),
-                  m_splitter->delimiter().length()) == 0)
-        _last_handled.append(m_splitter->delimiter());
-      _last_handled.append("\n");
-      return std::make_pair(len, false);
-    } else {
-      return std::make_pair(0, false);
-    }
-  }
+  const auto handle_sql_style_command =
+      [&](const std::string &kwd) -> std::pair<size_t, bool> {
+    std::string lh = std::move(_last_handled);
+    bool ret =
+        _owner->handle_shell_command("\\" + kwd + cmd.substr(kwd.length()));
+    _last_handled = std::move(lh);
+    if (!ret) return std::make_pair(0, false);
+    _last_handled.append(cmd);
+    if (strncmp(p + len, m_splitter->delimiter().c_str(),
+                m_splitter->delimiter().length()) == 0)
+      _last_handled.append(m_splitter->delimiter());
+    return std::make_pair(len, false);
+  };
+
+  for (const auto &c : keyword_commands)
+    if (shcore::str_ibeginswith(cmd.c_str(), c))
+      return handle_sql_style_command(c);
 
   if (bol && memchr(p, '\n', len)) {
     // handle as full-line command

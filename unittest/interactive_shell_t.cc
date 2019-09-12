@@ -845,6 +845,10 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   MY_EXPECT_STDOUT_CONTAINS("uSE information_schema");
   EXPECT_TRUE(output_handler.std_err.empty());
   output_handler.wipe_all();
+
+  execute("use \\w mysql");
+  MY_EXPECT_STDERR_CONTAINS("Incorrect number of arguments for use command");
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_sql_use) {
@@ -2636,7 +2640,7 @@ TEST_F(Interactive_shell_test, ansi_quotes) {
   }
 }
 
-TEST_F(Interactive_shell_test, sql_source_cmd_after_delimeter) {
+TEST_F(Interactive_shell_test, sql_source_cmd) {
   std::string file_name = "f.sql";
   if (!std::ifstream(file_name).good()) {
     std::ofstream f(file_name);
@@ -2647,18 +2651,80 @@ TEST_F(Interactive_shell_test, sql_source_cmd_after_delimeter) {
   execute("\\sql");
   execute("\\connect " + _uri);
   execute("select 1; \\source " + file_name);
-  int i = 0;
-  size_t pos = 0;
-  while ((pos = output_handler.std_out.find("1 row in set", pos)) !=
-         std::string::npos) {
-    i++;
-    pos++;
+
+  const auto times_in_output = [&](const char *str) {
+    int i = 0;
+    size_t pos = 0;
+    while ((pos = output_handler.std_out.find(str, pos)) != std::string::npos) {
+      i++;
+      pos++;
+    }
+    return i;
+  };
+
+  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_TRUE(output_handler.std_err.empty());
+
+  execute("\\history clear");
+  wipe_all();
+
+  execute("source " + file_name + "; select 1;");
+  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("SoUrce " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("1 row in set");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("select 'sabra'; SOURCE " + file_name + ";");
+  MY_EXPECT_STDOUT_CONTAINS("sabra");
+  MY_EXPECT_STDOUT_CONTAINS("2");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("delimiter sr");
+  execute("SOURCE " + file_name + " sr");
+  execute("delimiter ;");
+  MY_EXPECT_STDOUT_CONTAINS("2");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\history");
+  MY_EXPECT_STDOUT_CONTAINS("source " + file_name + ";");
+  MY_EXPECT_STDOUT_CONTAINS("SoUrce " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("SOURCE " + file_name + ";");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("select 2;");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("delimiter $$");
+  execute("SOURCE \"file$$.sql\" $$ select 777 $$");
+  execute("delimiter ;");
+  MY_EXPECT_STDERR_CONTAINS("Failed to open file 'file$$.sql'");
+  MY_EXPECT_STDOUT_CONTAINS("777");
+  wipe_all();
+
+  std::string file_source = "fs.sql";
+  if (!std::ifstream(file_source).good()) {
+    std::ofstream f(file_source);
+    f << "select 'sabra';\n" << std::endl;
+    f << "source " << file_name << ";" << std::endl;
+    f << "select 'cadabra';\n" << std::endl;
+    f << "\\. " << file_name << std::endl;
+    f.close();
   }
-  EXPECT_EQ(2, i);
+
+  testutil->call_mysqlsh_c({_uri, "--sql", "-f", file_source});
+  EXPECT_EQ(4, times_in_output("2"));
+  MY_EXPECT_STDOUT_CONTAINS("sabra");
+  MY_EXPECT_STDOUT_CONTAINS("cadabra");
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 
   shcore::delete_file(file_name);
+  shcore::delete_file(file_source);
 }
 
 TEST_F(Interactive_shell_test, tls_ciphersuites) {

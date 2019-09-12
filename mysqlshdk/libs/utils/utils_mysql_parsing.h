@@ -23,6 +23,8 @@
 #ifndef _UTILS_MYSQL_PARSING_H_
 #define _UTILS_MYSQL_PARSING_H_
 
+#include <array>
+#include <forward_list>
 #include <functional>
 #include <string>
 #include <tuple>
@@ -41,11 +43,15 @@ class Sql_splitter {
 
   using Error_callback = std::function<void(const std::string &)>;
 
+  /** Sql_splitter constructor
+   *
+   * @param cmd_callback Function to call when command is detected.
+   * @param err_callback Error callback.
+   * @param commands List of keywords defining SQL like commands (e.g. 'use').
+   */
   Sql_splitter(const Command_callback &cmd_callback,
-               const Error_callback &err_callback)
-      : m_cmd_callback(cmd_callback), m_err_callback(err_callback) {
-    reset();
-  }
+               const Error_callback &err_callback,
+               const std::initializer_list<const char *> &commands = {});
 
   void reset();
 
@@ -96,6 +102,8 @@ class Sql_splitter {
 
   Command_callback m_cmd_callback;
   Error_callback m_err_callback;
+
+  std::array<std::forward_list<std::string>, 'z' - 'a'> m_commands_table;
 
   size_t m_shrinked_bytes;
   size_t m_current_line;
