@@ -983,11 +983,11 @@ void Command_line_shell::print_cmd_line_helper() {
   println("owners.");
   println("");
   println("Usage: mysqlsh [OPTIONS] [URI]");
-  println("       mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
-  println("       mysqlsh [OPTIONS] [URI] --dba [command]");
+  println("       mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]");
+  println("       mysqlsh [OPTIONS] [URI] --dba enableXProtocol");
   println("       mysqlsh [OPTIONS] [URI] --cluster");
-  println("       mysqlsh [OPTIONS] [URI] -- <object> <method> [method args...]");
-  println("       mysqlsh [OPTIONS] [URI] --import file|- [collection] | [table [, column]");
+  println("       mysqlsh [OPTIONS] [URI] -- <object> <method> [<method-args>...]");
+  println("       mysqlsh [OPTIONS] [URI] --import {<file>|-} [<collection>|<table> <column>]");
   println("");
   // clang-format on
   std::vector<std::string> details = Shell_options(0, nullptr).get_details();

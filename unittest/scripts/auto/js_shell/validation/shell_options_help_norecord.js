@@ -70,7 +70,7 @@
  history.sql.ignorePattern  Shell's history ignore list.
 
 //@<OUT> verbose output
- verbose  Verbose output level. Enable diagnostic message output. If level is
-          given, it can go up to 4 for maximum verbosity, otherwise 1 is
-          assumed.
-
+ verbose  Enable diagnostic message output to the console: 0 - display no
+          messages; 1 - display error, warning and informational messages; 2,
+          3, 4 - include higher levels of debug messages. If level is not
+          given, 1 is assumed.

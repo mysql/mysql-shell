@@ -936,5 +936,6 @@ TEST(Uri_parser, parse_query) {
       "mysqlx", "user", NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
       HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);
 }
-};  // namespace proj_parser_tests
-};  // namespace testing
+
+}  // namespace proj_parser_tests
+}  // namespace testing

@@ -70,19 +70,21 @@ DESCRIPTION
       The following options are valid for use either in a URI or in a
       dictionary:
 
-      - ssl-mode: the SSL mode to be used in the connection.
-      - ssl-ca: the path to the X509 certificate authority in PEM format.
-      - ssl-capath: the path to the directory that contains the X509
-        certificates authorities in PEM format.
-      - ssl-cert: The path to the X509 certificate in PEM format.
-      - ssl-key: The path to the X509 key in PEM format.
+      - ssl-mode: The SSL mode to be used in the connection.
+      - ssl-ca: The path to the X509 certificate authority file in PEM format.
+      - ssl-capath: The path to the directory that contains the X509
+        certificate authority files in PEM format.
+      - ssl-cert: The path to the SSL public key certificate file in PEM
+        format.
+      - ssl-key: The path to the SSL private key file in PEM format.
       - ssl-crl: The path to file that contains certificate revocation lists.
       - ssl-crlpath: The path of directory that contains certificate revocation
         list files.
-      - ssl-cipher: SSL Cipher to use.
+      - ssl-cipher: The list of permissible encryption ciphers for connections
+        that use TLS protocols up through TLSv1.2.
       - tls-version: List of protocols permitted for secure connections.
       - tls-ciphers: List of TLS v1.3 ciphers to use.
-      - auth-method: Authentication method
+      - auth-method: Authentication method.
       - get-server-public-key: Request public key from the server required for
         RSA key pair-based password exchange. Use when connecting to MySQL 8.0
         servers with classic MySQL sessions with SSL mode DISABLED.
@@ -159,19 +161,21 @@ DESCRIPTION
       The following options are valid for use either in a URI or in a
       dictionary:
 
-      - ssl-mode: the SSL mode to be used in the connection.
-      - ssl-ca: the path to the X509 certificate authority in PEM format.
-      - ssl-capath: the path to the directory that contains the X509
-        certificates authorities in PEM format.
-      - ssl-cert: The path to the X509 certificate in PEM format.
-      - ssl-key: The path to the X509 key in PEM format.
+      - ssl-mode: The SSL mode to be used in the connection.
+      - ssl-ca: The path to the X509 certificate authority file in PEM format.
+      - ssl-capath: The path to the directory that contains the X509
+        certificate authority files in PEM format.
+      - ssl-cert: The path to the SSL public key certificate file in PEM
+        format.
+      - ssl-key: The path to the SSL private key file in PEM format.
       - ssl-crl: The path to file that contains certificate revocation lists.
       - ssl-crlpath: The path of directory that contains certificate revocation
         list files.
-      - ssl-cipher: SSL Cipher to use.
+      - ssl-cipher: The list of permissible encryption ciphers for connections
+        that use TLS protocols up through TLSv1.2.
       - tls-version: List of protocols permitted for secure connections.
       - tls-ciphers: List of TLS v1.3 ciphers to use.
-      - auth-method: Authentication method
+      - auth-method: Authentication method.
       - get-server-public-key: Request public key from the server required for
         RSA key pair-based password exchange. Use when connecting to MySQL 8.0
         servers with classic MySQL sessions with SSL mode DISABLED.

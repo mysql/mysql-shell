@@ -98,7 +98,7 @@ void Session_impl::connect(
   }
 
   if (connection_options.has(mysqlshdk::db::kAuthMethod)) {
-    std::string auth = connection_options.get(mysqlshdk::db::kAuthMethod);
+    const auto &auth = connection_options.get(mysqlshdk::db::kAuthMethod);
     mysql_options(_mysql, MYSQL_DEFAULT_AUTH, auth.c_str());
   }
 

@@ -717,4 +717,116 @@ TEST_F(Command_line_connection_test, compression) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
 }
 
+TEST_F(Command_line_connection_test, auth_method) {
+  const auto protocol_mismatch_error =
+      _target_server_version >= mysqlshdk::utils::Version("8.0.0")
+          ? "MySQL Error 2007 (HY000): Protocol mismatch; server version = 11, "
+            "client version = 10"
+          : "MySQL Error 2013 (HY000): Lost connection to MySQL server at "
+            "'waiting for initial communication packet', system error: ";
+
+  // auto: X port - invalid authentication method
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "ArgumentError: X protocol error: Failed to set the authentication "
+      "method: Invalid value for option\nClassic protocol error: ");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(protocol_mismatch_error);
+
+  // auto: X port - valid authentication method
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=PLAIN",
+           "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+
+  // auto: X port - valid authentication method - lowercase
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=plain",
+           "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+
+  // auto: classic port - invalid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "ArgumentError: X protocol error: Failed to set the authentication "
+      "method: Invalid value for option\nClassic protocol error: MySQL Error "
+      "2059 (HY000): Authentication plugin 'invalid' cannot be loaded:");
+
+  // auto: classic port - invalid (but valid X protocol) authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=PLAIN", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "MySQL Error 2059 (HY000): Authentication plugin 'PLAIN' cannot be "
+      "loaded:");
+
+  // auto: classic port - valid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=mysql_native_password", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+
+  // mysqlx: X port - invalid authentication method
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "--mysqlx", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "MySQL Error 2505: Failed to set the authentication method: Invalid "
+      "value for option");
+
+  // mysqlx: X port - valid authentication method
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=PLAIN",
+           "--mysqlx", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+
+  // mysqlx: X port - valid authentication method - lowercase
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=plain",
+           "--mysqlx", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+
+  // mysqlx: classic port - invalid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "--mysqlx", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "MySQL Error 2505: Failed to set the authentication method: Invalid "
+      "value for option");
+
+  // mysqlx: classic port - valid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=PLAIN", "--mysqlx", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "MySQL Error 2027: Requested session assumes MySQL X Protocol but");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "seems to speak the classic MySQL protocol (Unexpected response received "
+      "from server, msg-id:");
+
+  // mysql: classic port - invalid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "--mysql", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "MySQL Error 2059 (HY000): Authentication plugin 'invalid' cannot be "
+      "loaded:");
+
+  // mysql: classic port - valid authentication method
+  execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
+           "--auth-method=mysql_native_password", "--mysql", "-e", "\\status",
+           NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+
+  // mysql: X port - invalid authentication method
+  execute({_mysqlsh, _uri.c_str(), "--interactive=full",
+           "--auth-method=invalid", "--mysql", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(protocol_mismatch_error);
+}
+
 }  // namespace tests

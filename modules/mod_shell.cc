@@ -397,17 +397,19 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTIONS4, "${TOPIC_DICT_CONNECTION_OPTIONS}");
 
 // These lines group the connection options available for URI
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS,
-              "@li ssl-mode: the SSL mode to be used in the connection.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS1,
-    "@li ssl-ca: the path to the X509 certificate authority in PEM format.");
+              "@li ssl-mode: The SSL mode to be used in the connection.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS1,
+              "@li ssl-ca: The path to the X509 certificate authority file in "
+              "PEM format.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS2,
-              "@li ssl-capath: the path to the directory that contains the "
-              "X509 certificates authorities in PEM format.");
+              "@li ssl-capath: The path to the directory that contains the "
+              "X509 certificate authority files in PEM format.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3,
-              "@li ssl-cert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS4,
-              "@li ssl-key: The path to the X509 key in PEM format.");
+              "@li ssl-cert: The path to the SSL public key certificate file "
+              "in PEM format.");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS4,
+    "@li ssl-key: The path to the SSL private key file in PEM format.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5,
               "@li ssl-crl: The path to file that contains certificate "
               "revocation lists.");
@@ -415,14 +417,15 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6,
               "@li ssl-crlpath: The path of directory that contains "
               "certificate revocation list files.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
-              "@li ssl-cipher: SSL Cipher to use.");
+              "@li ssl-cipher: The list of permissible encryption ciphers for "
+              "connections that use TLS protocols up through TLSv1.2.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS8,
     "@li tls-version: List of protocols permitted for secure connections.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
               "@li tls-ciphers: List of TLS v1.3 ciphers to use.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10,
-              "@li auth-method: Authentication method");
+              "@li auth-method: Authentication method.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS11,
     "@li get-server-public-key: Request public key from the server required "
@@ -496,9 +499,11 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1,
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
               "${TOPIC_CONNECTION_OPTION_TLS_VERSION}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
+              "${TOPIC_CONNECTION_OPTION_AUTH_METHOD}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4,
               "${TOPIC_CONNECTION_ATTRIBUTES}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "${TOPIC_URI_ENCODED_VALUE}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "${TOPIC_URI_ENCODED_VALUE}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL6,
               "${TOPIC_URI_ENCODED_ATTRIBUTE}");
 
 REGISTER_HELP_TOPIC(Connection Types, TOPIC, TOPIC_CONNECTION_TYPES, Contents,
@@ -631,6 +636,20 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION2, "@li TLSv1");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION3, "@li TLSv1.1");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION4,
               "@li TLSv1.2 (Supported only on commercial packages)");
+
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD,
+              "<b>Authentication method</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD1,
+              "In case of classic session, this is the name of the "
+              "authentication plugin to use, i.e. caching_sha2_password.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD2,
+              "In case of X protocol session, it should be one of:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD3, "@li AUTO,");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD4, "@li FROM_CAPABILITIES,");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD5, "@li FALLBACK,");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD6, "@li MYSQL41,");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD7, "@li PLAIN,");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD8, "@li SHA256_MEMORY.");
 
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE, "<b>URL Encoding</b>");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE1,

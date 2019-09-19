@@ -541,5 +541,6 @@ void Connection_options::set_connection_attributes(
     }
   }
 }
+
 }  // namespace db
 }  // namespace mysqlshdk

@@ -54,10 +54,15 @@ inline bool is_mysql_server_error(int code) {
 
 class Error : public std::runtime_error {
  public:
-  Error(const char *what, int code) : std::runtime_error(what), code_(code) {}
+  Error(const char *what, int code) : Error(what, code, nullptr) {}
+
+  Error(const std::string &what, int code)
+      : std::runtime_error(what), code_(code) {}
 
   Error(const char *what, int code, const char *sqlstate)
-      : std::runtime_error(what), code_(code), sqlstate_(sqlstate) {}
+      : std::runtime_error(what),
+        code_(code),
+        sqlstate_(sqlstate ? sqlstate : "") {}
 
   int code() const { return code_; }
 

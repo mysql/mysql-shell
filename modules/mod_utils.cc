@@ -350,6 +350,23 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_x_session() {
   return xsession;
 }
 
+namespace {
+
+template <typename T>
+void handle_connection_exception(const T &ex, std::string *error) {
+  if (error->empty()) {
+    throw;
+  } else {
+    // If an error was cached for the X protocol connection
+    // it is included on a new exception
+    error->append("\nClassic protocol error: ");
+    error->append(ex.format());
+    throw shcore::Exception::argument_error(*error);
+  }
+}
+
+}  // namespace
+
 std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
     const Connection_options &connection_options) {
   std::shared_ptr<mysqlshdk::db::ISession> session;
@@ -377,16 +394,20 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
           code == CR_CONNECTION_ERROR ||  // No connection could be made because
                                           // the target machine actively refused
                                           // it connecting to host:port
-          code == CR_SERVER_GONE_ERROR) {  // MySQL server has gone away
+          code == CR_SERVER_GONE_ERROR ||  // MySQL server has gone away
                                            // (randomly sent by libmysqlx)
+          (CR_X_UNSUPPORTED_OPTION_VALUE == code &&       // auth-method was not
+           strstr(e.what(), "authentication method"))) {  // valid for X proto
         type = mysqlsh::SessionType::Classic;
         copy.clear_scheme();
         copy.set_scheme("mysql");
 
         // Since this is an unexpected error, we store the message to be
         // logged in case the classic session connection fails too
-        if (code == CR_SERVER_GONE_ERROR)
+        if (code == CR_SERVER_GONE_ERROR ||
+            CR_X_UNSUPPORTED_OPTION_VALUE == code) {
           connection_error.append("X protocol error: ").append(e.what());
+        }
       } else {
         throw;
       }
@@ -409,15 +430,9 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
   try {
     session->connect(copy);
   } catch (const shcore::Exception &e) {
-    if (connection_error.empty()) {
-      throw;
-    } else {
-      // If an error was cached for the X protocol connection
-      // it is included on a new exception
-      connection_error.append("\nClassic protocol error: ");
-      connection_error.append(e.format());
-      throw shcore::Exception::argument_error(connection_error);
-    }
+    handle_connection_exception(e, &connection_error);
+  } catch (const mysqlshdk::db::Error &e) {
+    handle_connection_exception(e, &connection_error);
   }
 
   return session;

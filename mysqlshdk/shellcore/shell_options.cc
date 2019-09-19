@@ -60,17 +60,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     target_server = shcore::get_connection_options(uri);
   }
 
-  shcore::update_connection_data(&target_server, user, password, host, port,
-                                 sock, schema, ssl_options, auth_method,
-                                 get_server_public_key, server_public_key_path,
-                                 m_connect_timeout, compress);
-
-  if (no_password && !target_server.has_password()) {
-    target_server.set_password("");
-  }
-
-  // If a scheme is given on the URI the session type must match the URI
-  // scheme
+  // If a scheme is given on the URI the session type must match the URI scheme
   if (target_server.has_scheme()) {
     mysqlsh::SessionType uri_session_type = target_server.get_session_type();
     std::string error;
@@ -97,6 +87,17 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
         target_server.set_scheme("mysql");
         break;
     }
+  }
+
+  // other options need to be set after scheme, as some of them require specific
+  // scheme type (i.e. pipe)
+  shcore::update_connection_data(&target_server, user, password, host, port,
+                                 sock, schema, ssl_options, auth_method,
+                                 get_server_public_key, server_public_key_path,
+                                 m_connect_timeout, compress);
+
+  if (no_password && !target_server.has_password()) {
+    target_server.set_password("");
   }
 
   return target_server;
@@ -162,76 +163,82 @@ Shell_options::Shell_options(int argc, char **argv,
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
-    (cmdline("-f", "--file=file"), "Process file.")
-    (cmdline("--uri=value"), "Connect to Uniform Resource Identifier. "
+    (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
+        "Any options specified after this are used as arguments of the "
+        "processed file.")
+    (cmdline("--uri=<value>"), "Connect to Uniform Resource Identifier. "
         "Format: [user[:pass]@]host[:port][/db]")
-    (&storage.host, "", cmdline("-h", "--host=name"),
+    (&storage.host, "", cmdline("-h", "--host=<name>"),
         "Connect to host.")
-    (&storage.port, 0, cmdline("-P", "--port=#"),
+    (&storage.port, 0, cmdline("-P", "--port=<#>"),
         "Port number to use for connection.")
-    (cmdline("--connect-timeout=#"), "Connection timeout in milliseconds.",
+    (cmdline("--connect-timeout=<ms>"), "Connection timeout in milliseconds.",
         std::bind(&Shell_options::set_connection_timeout, this, _1, _2))
 #ifndef _WIN32
-    (cmdline("-S", "--socket[=sock]"), "Socket name to use. "
+    (cmdline("-S", "--socket[=<sock>]"), "Socket name to use. "
         "If no value is provided will use default UNIX socket path.",
 #else
-    (cmdline("-S", "--socket=sock"),
+    (cmdline("-S", "--socket=<sock>"),
         "Pipe name to use (only classic sessions).",
 #endif
         [this](const std::string&, const char* value) {
           storage.sock = value == nullptr ? "" : value;
         }
       )
-    (&storage.user, "", cmdline("-u", "--user=name"),
+    (&storage.user, "", cmdline("-u", "--user=<name>"),
         "User for the connection to the server.")
-    (cmdline("--dbuser=name"),
+    (cmdline("--dbuser=<name>"),
       deprecated("--user", [this](const std::string &, const char *value) {
         storage.user = value;
       }))
-    (cmdline("--password=[pass]"), "Password to use when connecting to server. "
+    (cmdline("--password=[<pass>]"), "Password to use when connecting to server. "
       "If password is empty, connection will be made without using a password.")
-    (cmdline("--dbpassword[=pass]"), deprecated("--password"))
+    (cmdline("--dbpassword[=<pass>]"), deprecated("--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
     (&storage.compress, false, cmdline("-C", "--compress"),
         "Use compression in client/server protocol.")
-    (cmdline("--import file collection", "--import file table [column]"),
+    (cmdline("--import <file> <collection>", "--import <file> <table> <col>"),
         "Import JSON documents from file to collection or table in MySQL"
         " Server. Set file to - if you want to read the data from stdin."
         " Requires a default schema on the connection options.")
     (&storage.schema, "", "schema",
-        cmdline("-D", "--schema=name", "--database=name"), "Schema to use.")
+        cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.")
     (&storage.recreate_database, false, "recreateDatabase",
         cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
         "Schema will be deleted if it exists!")
     (cmdline("--mx", "--mysqlx"),
-        "Uses connection data to create Creating an X protocol session.",
+        "Uses connection data to create an X protocol session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
     (cmdline("--mc", "--mysql"),
-        "Uses connection data to create a Classic Session.",
+        "Uses connection data to create a classic session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
-    (cmdline("--redirect-primary"), "Connect to the primary of the group. "
-        "For use with InnoDB clusters.",
+    (cmdline("--redirect-primary"), "Ensure that the target server is part of "
+        "an InnoDB cluster and if it is not a primary, find the cluster's "
+        "primary and connect to it.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Primary))
-    (cmdline("--redirect-secondary"), "Connect to a secondary of the group. "
-        "For use with InnoDB clusters.",
+    (cmdline("--redirect-secondary"), "Ensure that the target server is part "
+        "of an InnoDB cluster and if it is not a secondary, find a secondary "
+        "and connect to it.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Secondary))
-    (cmdline("--cluster"), "Enable cluster management, setting the cluster "
-        "global variable.",
+    (cmdline("--cluster"), "Ensure that the target server is part of an InnoDB "
+        "cluster and if so, set the cluster global variable.",
         [this](const std::string&, const char* value) {
           storage.default_cluster = value ? value : "";
           storage.default_cluster_set = true;
         })
-    (cmdline("--sql"), "Start in SQL mode.", assign_value(
-        &storage.initial_mode, shcore::IShell_core::Mode::SQL))
+    (cmdline("--sql"), "Start in SQL mode, auto-detecting the protocol to use "
+        "if it is not specified as part of the connection information.",
+        assign_value(
+            &storage.initial_mode, shcore::IShell_core::Mode::SQL))
     (cmdline("--sqlc"), "Start in SQL mode using a classic session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
     (cmdline("--sqlx"),
-        "Start in SQL mode using Creating an X protocol session.",
+        "Start in SQL mode using an X protocol session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
     (cmdline("--js", "--javascript"), "Start in JavaScript mode.",
@@ -256,7 +263,7 @@ Shell_options::Shell_options(int argc, char **argv,
         }
 #endif
     )
-    (&storage.wrap_json, "off", cmdline("--json[=format]"),
+    (&storage.wrap_json, "off", cmdline("--json[=<format>]"),
         "Produce output in JSON format, allowed values: raw, pretty, and off. "
         "If no format is specified pretty format is produced.",
         [](const std::string &val, Source) {
@@ -293,7 +300,7 @@ Shell_options::Shell_options(int argc, char **argv,
           return storage.result_format;
         })
     (&storage.result_format, "table", SHCORE_RESULT_FORMAT,
-        cmdline("--result-format=value"),
+        cmdline("--result-format=<value>"),
         "Determines format of results. Valid values:"
         " [" RESULTSET_DUMPER_FORMATS "].",
         [](const std::string &val, Source) {
@@ -318,7 +325,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "mode DISABLED.",
         assign_value(&storage.get_server_public_key, true))
     (&storage.server_public_key_path, "",
-        cmdline("--server-public-key-path=path"), "The path name to a file "
+        cmdline("--server-public-key-path=<p>"), "The path name to a file "
         "containing a client-side copy of the public key required by the "
         "server for RSA key pair-based password exchange. Use when connecting "
         "to MySQL 8.0 servers with classic MySQL sessions with SSL mode "
@@ -350,7 +357,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "To use in SQL batch mode, forces processing to "
         "continue if an error is found.", shcore::opts::Read_only<bool>())
     (reinterpret_cast<int*>(&storage.log_level),
-        shcore::Logger::LOG_INFO, "logLevel", cmdline("--log-level=value"),
+        shcore::Logger::LOG_INFO, "logLevel", cmdline("--log-level=<value>"),
         shcore::Logger::get_level_range_info(),
         [this](const std::string &val, Source) {
           const char* value = val.c_str();
@@ -361,19 +368,21 @@ Shell_options::Shell_options(int argc, char **argv,
           return shcore::Logger::parse_log_level(value);
         })
     (&storage.dba_log_sql, 0, SHCORE_DBA_LOG_SQL,
-        cmdline("--dba-log-sql[=0|1|2]"),
+        cmdline("--dba-log-sql[={0|1|2}]"),
         "Log SQL statements executed by AdminAPI operations: "
         "0 - logging disabled; 1 - log statements other than SELECT and SHOW; "
         "2 - log all statements.", shcore::opts::Range<int>(0, 2))
-    (&storage.verbose_level, 0, SHCORE_VERBOSE, cmdline("--verbose[=level]"),
-        "Verbose output level. Enable diagnostic message output. "
-        "If level is given, it can go up to 4 for maximum verbosity, "
-        "otherwise 1 is assumed.", shcore::opts::Range<int>(0, 4))
+    (&storage.verbose_level, 0, SHCORE_VERBOSE,
+        cmdline("--verbose[={0|1|2|3|4}]"),
+        "Enable diagnostic message output to the console: 0 - display no "
+        "messages; 1 - display error, warning and informational messages; 2, 3, "
+        "4 - include higher levels of debug messages. If level is not given, 1 "
+        "is assumed.", shcore::opts::Range<int>(0, 4))
     (&storage.passwords_from_stdin, false, "passwordsFromStdin",
         cmdline("--passwords-from-stdin"),
         "Read passwords from stdin instead of the tty.")
     (&storage.show_warnings, true, SHCORE_SHOW_WARNINGS,
-        cmdline("--show-warnings=<true|false>"),
+        cmdline("--show-warnings={true|false}"),
         "Automatically display SQL warnings on SQL mode if available.")
     (&storage.show_column_type_info, false, "showColumnTypeInfo",
         cmdline("--column-type-info"),
@@ -384,7 +393,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "Shell's history maximum size",
         shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))
     (&storage.histignore, "*IDENTIFIED*:*PASSWORD*", SHCORE_HISTIGNORE,
-        cmdline("--histignore=filters"), "Shell's history ignore list.")
+        cmdline("--histignore=<filters>"), "Shell's history ignore list.")
     (&storage.history_autosave, false, SHCORE_HISTORY_AUTOSAVE,
         "Shell's history autosave.")
     (&storage.sandbox_directory, home, SHCORE_SANDBOX_DIR,
@@ -399,7 +408,7 @@ Shell_options::Shell_options(int argc, char **argv,
         [](shcore::IShell_core::Mode mode) {
           return shcore::to_string(mode);
         })
-    (&storage.pager, "", SHCORE_PAGER, "PAGER", cmdline("--pager=value"),
+    (&storage.pager, "", SHCORE_PAGER, "PAGER", cmdline("--pager=<value>"),
         "Pager used to display text output of statements executed in SQL mode "
         "as well as some other selected commands. Pager can be manually "
         "enabled in scripting modes. If you don't supply an "
@@ -444,37 +453,51 @@ Shell_options::Shell_options(int argc, char **argv,
 
         print_cmd_line_version = true;
     })
-    (cmdline("--ssl-key=name"), "X509 key in PEM format.",
+    (cmdline("--ssl-key=<file_name>"),
+        "The path to the SSL private key file in PEM format.",
         std::bind(&Ssl_options::set_key, &storage.ssl_options, _2))
-    (cmdline("--ssl-cert=name"), "X509 cert in PEM format.",
+    (cmdline("--ssl-cert=<file_name>"),
+        "The path to the SSL public key certificate file in PEM format.",
         std::bind(&Ssl_options::set_cert, &storage.ssl_options, _2))
-    (cmdline("--ssl-ca=name"), "CA file in PEM format.",
+    (cmdline("--ssl-ca=<file_name>"),
+        "The path to the certificate authority file in PEM format.",
         std::bind(&Ssl_options::set_ca, &storage.ssl_options, _2))
-    (cmdline("--ssl-capath=dir"), "CA directory.",
+    (cmdline("--ssl-capath=<dir_name>"),
+        "The path to the directory that contains the certificate authority "
+        "files in PEM format.",
         std::bind(&Ssl_options::set_capath, &storage.ssl_options, _2))
-    (cmdline("--ssl-cipher=name"), "SSL Cipher to use.",
+    (cmdline("--ssl-cipher=<cipher_list>"),
+        "The list of permissible encryption ciphers for connections that use "
+        "TLS protocols up through TLSv1.2.",
         std::bind(&Ssl_options::set_cipher, &storage.ssl_options, _2))
-    (cmdline("--ssl-crl=name"), "Certificate revocation list.",
+    (cmdline("--ssl-crl=<file_name>"),
+        "The path to the file containing certificate revocation lists in PEM "
+        "format.",
         std::bind(&Ssl_options::set_crl, &storage.ssl_options, _2))
-    (cmdline("--ssl-crlpath=dir"), "Certificate revocation list path.",
+    (cmdline("--ssl-crlpath=<dir_name>"),
+        "The path to the directory that contains certificate revocation-list "
+        "files in PEM format.",
         std::bind(&Ssl_options::set_crlpath, &storage.ssl_options, _2))
-    (cmdline("--ssl-mode=mode"), "SSL mode to use, allowed values: DISABLED,"
+    (cmdline("--ssl-mode=<mode>"), "SSL mode to use, allowed values: DISABLED,"
         "PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
         std::bind(&Shell_options::set_ssl_mode, this, _1, _2))
-    (cmdline("--tls-version=version"),
+    (cmdline("--tls-version=<version>"),
         "TLS version to use, permitted values are: "
         "TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.",
         std::bind(&Ssl_options::set_tls_version, &storage.ssl_options, _2))
-    (cmdline("--tls-ciphersuites=name"), "TLS v1.3 cipher to use.",
+    (cmdline("--tls-ciphersuites=<name>"), "TLS v1.3 cipher to use.",
         std::bind(&Ssl_options::set_tls_ciphersuites, &storage.ssl_options, _2))
-    (&storage.auth_method, "", cmdline("--auth-method=method"),
-        "Authentication method to use.")
+    (&storage.auth_method, "", cmdline("--auth-method=<method>"),
+        "Authentication method to use. In case of classic session, this is the "
+        "name of the authentication plugin to use, i.e. caching_sha2_password. "
+        "In case of X protocol session, it should be one of: AUTO, "
+        "FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN, SHA256_MEMORY.")
     (&storage.execute_dba_statement, "",
-        cmdline("--dba=enableXProtocol"), "Enable the X Protocol "
-        "in the server connected to. Must be used with --mysql.")
+        cmdline("--dba=enableXProtocol"), "Enable the X protocol in the target "
+        "server. Requires a connection using classic session.")
     (cmdline("--trace-proto"),
         assign_value(&storage.trace_protocol, true))
-    (cmdline("--ssl[=opt]"), deprecated("--ssl-mode",
+    (cmdline("--ssl[=<opt>]"), deprecated("--ssl-mode",
       std::bind(&Shell_options::set_ssl_mode, this, _1, _2), "REQUIRED",
      {
        {"1", "REQUIRED"},
@@ -489,7 +512,7 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("--sqln"), deprecated("--sqlx", std::bind(
             &Shell_options::override_session_type, this, _1, _2)))
     (
-      cmdline("--quiet-start[=1]"),
+      cmdline("--quiet-start[={1|2}]"),
       "Avoids printing information when the shell is started. A value of "
       "1 will prevent printing the shell version information. A value of "
       "2 will prevent printing any information unless it is an error. "
@@ -504,11 +527,11 @@ Shell_options::Shell_options(int argc, char **argv,
           throw std::invalid_argument("Value for --quiet-start if any, must be any of 1 or 2");
         }
       })
-      (cmdline("--debug=#"), "Debug options for DBUG package.",
+      (cmdline("--debug=<control>"),
       [this](const std::string &, const char* value) {
 #ifdef DBUG_OFF
         // If DBUG is disabled, we just print a warning saying the option won't
-        // do anything. This is to keep options compatible beetween build types
+        // do anything. This is to keep options compatible between build types
         std::cout << "WARNING: This build of mysqlsh has the DBUG feature "
           "disabled. --debug option ignored." << std::endl;
 #endif
@@ -516,7 +539,7 @@ Shell_options::Shell_options(int argc, char **argv,
       })
 #ifdef WITH_OCI
     (
-      cmdline("--oci[=profile]"),
+      cmdline("--oci[=<profile>]"),
       "Starts the shell ready to work with OCI. "
       "A wizard to configure the given profile will be launched if the profile is not configured. "
       "If no profile is specified the value of shell option oci.profile will be used.",
@@ -748,7 +771,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     storage.import_args.push_back(cmdline->get());  // omit --import
 
     // Gets the positional arguments for --import
-    // As they define the target dtabase object for the data
+    // As they define the target database object for the data
     while (cmdline->valid()) {
       // We append --import arguments until next shell option in program
       // argument list, i.e. -* or --*. Single char '-' is a --import argument.
@@ -791,7 +814,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
           break;
         default:
           throw std::runtime_error(
-              "Usage: --import filename [collection] | [table [column]] "
+              "Usage: --import <filename> [<collection>|<table> <column>] "
               "[options]");
       }
 

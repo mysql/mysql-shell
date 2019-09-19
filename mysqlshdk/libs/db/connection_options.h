@@ -161,7 +161,6 @@ class SHCORE_PUBLIC Connection_options {
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);
-  void _clear_fixed(const std::string &key);
   std::string get_iname(const std::string &name) const;
   bool is_extra_option(const std::string &option);
   bool is_bool_value(const std::string &value);

@@ -243,10 +243,17 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   // If a specific authentication type was given, it is used
   if (_connection_options.has(mysqlshdk::db::kAuthMethod)) {
-    _mysql->set_mysql_option(
+    const auto error = _mysql->set_mysql_option(
         xcl::XSession::Mysqlx_option::Authentication_method,
-        std::vector<std::string>{
-            _connection_options.get(mysqlshdk::db::kAuthMethod)});
+        _connection_options.get(mysqlshdk::db::kAuthMethod));
+
+    if (error) {
+      _mysql.reset();
+      store_error_and_throw(
+          Error(std::string{"Failed to set the authentication method: "} +
+                    error.what(),
+                error.error()));
+    }
   } else {
     // In 8.0.4, trying to connect without SSL to a caching_sha2_password
     // account will not work. The error message that's given is also confusing,
