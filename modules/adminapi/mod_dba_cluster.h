@@ -56,6 +56,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined dissolve(Dictionary options);
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
   String getName();
+  Dictionary listRouters(Dictionary options);
   Undefined rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
@@ -68,6 +69,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(InstanceDef instance, String option,
                               String value);
+  Boolean removeRouterMetadata(RouterDef router);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -77,6 +79,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None dissolve(dict options);
   None force_quorum_using_partition_of(InstanceDef instance, str password);
   str get_name();
+  dict list_routers(dict options);
   None rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);
@@ -88,6 +91,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   str options(dict options);
   None set_option(str option, str value);
   None set_instance_option(InstanceDef instance, str option, str value);
+  bool remove_router_metadata(RouterDef router);
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);
@@ -125,6 +129,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value get_replicaset(const shcore::Argument_list &args);
   shcore::Value describe(void);
   shcore::Value status(const shcore::Dictionary_t &options);
+  shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
   void dissolve(const shcore::Dictionary_t &options);
   shcore::Value check_instance_state(const std::string &instance_def);
   shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);
@@ -135,6 +140,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
   void disconnect();
+
+  void remove_router_metadata(const std::string &router_def);
 
   void switch_to_single_primary_mode(const std::string &instance_def) {
     switch_to_single_primary_mode(get_connection_options(instance_def));

@@ -538,6 +538,8 @@ Replication was disabled but user data was left intact.
 ||Cluster.removeInstance: Can't call function 'removeInstance' on a dissolved cluster
 ||Cluster.rescan: Can't call function 'rescan' on a dissolved cluster
 ||Cluster.status: Can't call function 'status' on a dissolved cluster
+||Cluster.listRouters: Can't call function 'listRouters' on a dissolved cluster
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
 //@ Cluster: disconnect() is ok on a dissolved cluster
 ||

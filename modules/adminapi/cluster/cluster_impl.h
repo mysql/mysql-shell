@@ -126,6 +126,7 @@ class Cluster_impl {
   shcore::Value describe();
   shcore::Value options(const shcore::Dictionary_t &options);
   shcore::Value status(uint64_t extended);
+  shcore::Value list_routers(bool only_upgrade_required);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   void add_instance(const Connection_options &instance_def,
                     const shcore::Dictionary_t &options);

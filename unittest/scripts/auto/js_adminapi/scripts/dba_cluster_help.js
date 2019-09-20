@@ -70,6 +70,18 @@ cluster.help("help")
 //@ Help. \? [USE:Help]
 \? cluster.help
 
+//@ listRouters
+cluster.help("listRouters")
+
+//@ listRouters. \? [USE:listRouters]
+\? cluster.listRouters
+
+//@ removeRouterMetadata
+cluster.help("removeRouterMetadata")
+
+//@ removeRouterMetadata. \? [USE:removeRouterMetadata]
+\? cluster.removeRouterMetadata
+
 //@ Options
 cluster.help("options")
 

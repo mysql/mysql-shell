@@ -784,6 +784,27 @@ Instance_metadata unserialize_instance(
 
   return instance;
 }
+
+Router_metadata unserialize_router(const mysqlshdk::db::Row_ref_by_name &row) {
+  Router_metadata router;
+
+  router.id = row.get_uint("router_id");
+  router.hostname = row.get_string("host_name");
+  router.name = row.get_string("router_name");
+  if (!row.is_null("ro_port"))
+    router.ro_port = std::stoi(row.get_string("ro_port"));
+  if (!row.is_null("rw_port"))
+    router.rw_port = std::stoi(row.get_string("rw_port"));
+  if (!row.is_null("ro_x_port"))
+    router.ro_x_port = std::stoi(row.get_string("ro_x_port"));
+  if (!row.is_null("rw_x_port"))
+    router.rw_x_port = std::stoi(row.get_string("rw_x_port"));
+  if (!row.is_null("last_check_in"))
+    router.last_checkin = row.get_string("last_check_in");
+  if (!row.is_null("version")) router.version = row.get_string("version");
+
+  return router;
+}
 }  // namespace
 
 constexpr const char *k_base_instance_query =
@@ -811,6 +832,61 @@ std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     ret_val.push_back(unserialize_instance(row));
   }
 
+  return ret_val;
+}
+
+constexpr const char *k_list_routers_1_0_1 =
+    "SELECT r.router_id, r.router_name, h.host_name,"
+    " r.attributes->>'$.ROEndpoint' AS ro_port,"
+    " r.attributes->>'$.RWEndpoint' AS rw_port,"
+    " r.attributes->>'$.ROXEndpoint' AS ro_x_port,"
+    " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
+    " NULL as last_check_in,"
+    " r.attributes->>'$.version' AS version"
+    " FROM mysql_innodb_cluster_metadata.routers r"
+    " JOIN mysql_innodb_cluster_metadata.hosts h "
+    " ON r.host_id = h.host_id";
+
+// constexpr const char *k_list_routers =
+//     "SELECT r.router_id, r.router_name, r.host_name,"
+//     " r.attributes->>'$.ROEndpoint' AS ro_port,"
+//     " r.attributes->>'$.RWEndpoint' AS rw_port,"
+//     " r.attributes->>'$.ROXEndpoint' AS ro_x_port,"
+//     " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
+//     " r.last_check_in, r.version"
+//     " FROM mysql_innodb_cluster_metadata.routers r";
+
+std::string MetadataStorage::get_router_query() {
+  // TODO(rennox): Uncomment the following code when merging into WL13235
+
+  // if (m_md_version < mysqlshdk::utils::Version(2, 0, 0))
+  return k_list_routers_1_0_1;
+  // else
+  // return k_list_routers;
+}
+
+std::vector<Router_metadata> MetadataStorage::get_routers(
+    Cluster_id cluster_id) {
+  std::vector<Router_metadata> ret_val;
+  std::string query(get_router_query());
+
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  // TODO(rennox): once merged to WL13176 replace these if lines
+  // if (m_md_version >= mysqlshdk::utils::Version(2, 0, 0) && cluster_id != 0)
+  // {
+  // TODO(alfredo) - also allow an empty cluster_id to mean "all clusters"
+  if (false) {
+    query.append(" WHERE r.cluster_id = ?");
+    result = execute_sqlf(query, cluster_id);
+  } else {
+    result = execute_sqlf(query);
+  }
+
+  while (auto row = result->fetch_one_named()) {
+    auto router = unserialize_router(row);
+    ret_val.push_back(router);
+  }
   return ret_val;
 }
 
@@ -879,7 +955,8 @@ void MetadataStorage::update_cluster_topology_mode(
 
   // Execute query to update topology mode on metadata.
   shcore::sqlstring query = shcore::sqlstring{
-      "UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = ?"
+      "UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type "
+      "= ?"
       " WHERE cluster_id = ?",
       0};
   query << topology_mode_str;
@@ -887,6 +964,45 @@ void MetadataStorage::update_cluster_topology_mode(
   query.done();
 
   execute_sql(query);
+}
+
+static void parse_router_definition(const std::string &router_def,
+                                    std::string *out_address,
+                                    std::string *out_name) {
+  auto pos = router_def.find("::");
+  if (pos == std::string::npos) {
+    *out_address = router_def;
+    *out_name = "";  // default is ""
+  } else {
+    *out_address = router_def.substr(0, pos);
+    *out_name = router_def.substr(pos + 2);
+  }
+}
+
+bool MetadataStorage::remove_router(const std::string &router_def) {
+  std::string address;
+  std::string name;
+
+  parse_router_definition(router_def, &address, &name);
+
+  auto result = execute_sqlf(
+      "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
+      " JOIN mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id"
+      " WHERE r.router_name = ? AND h.host_name = ?",
+      name, address);
+
+  if (auto row = result->fetch_one()) {
+    int router_id = row->get_int(0);
+
+    execute_sqlf(
+        "DELETE FROM mysql_innodb_cluster_metadata.routers"
+        " WHERE router_id = ?",
+        router_id);
+
+    return true;
+  } else {
+    return false;
+  }
 }
 
 }  // namespace dba

@@ -40,6 +40,7 @@
 #include "modules/adminapi/cluster/reset_recovery_accounts_password.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -164,6 +165,16 @@ shcore::Value Cluster_impl::status(uint64_t extended) {
   op_status.prepare();
   // Execute Cluster_status operations.
   return op_status.execute();
+}
+
+shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
+  shcore::Dictionary_t dict = shcore::make_dict();
+
+  (*dict)["clusterName"] = shcore::Value(get_name());
+  (*dict)["routers"] = router_list(get_metadata_storage().get(), get_id(),
+                                   only_upgrade_required);
+
+  return shcore::Value(dict);
 }
 
 void Cluster_impl::reset_recovery_password(

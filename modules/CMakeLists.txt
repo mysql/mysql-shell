@@ -74,6 +74,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/instance_monitoring.cc"
       "adminapi/common/instance_pool.cc"
       "adminapi/common/member_recovery_monitoring.cc"
+      "adminapi/common/router.cc"
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"

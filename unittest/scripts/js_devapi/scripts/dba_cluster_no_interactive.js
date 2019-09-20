@@ -30,6 +30,8 @@ validateMembers(Cluster, [
   'dissolve',
   'disconnect',
   'rescan',
+  'listRouters',
+  'removeRouterMetadata',
   'resetRecoveryAccountsPassword',
   'forceQuorumUsingPartitionOf',
   'switchToSinglePrimaryMode',

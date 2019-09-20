@@ -156,6 +156,18 @@ c.help('status')
 #@ global ? for status[USE:cluster.status]
 \? cluster.status
 
+#@ cluster.list_routers
+c.help('list_routers')
+
+#@ global ? for cluster.list_routers[USE:cluster.list_routers]
+\? cluster.list_routers
+
+#@ cluster.remove_router_metadata
+c.help('remove_router_metadata')
+
+#@ global ? for cluster.remove_router_metadata[USE:cluster.remove_router_metadata]
+\? cluster.remove_router_metadata
+
 #@ global help for status[USE:cluster.status]
 \help cluster.status
 

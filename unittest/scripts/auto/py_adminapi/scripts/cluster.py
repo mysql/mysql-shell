@@ -16,8 +16,10 @@ validate_members(cluster, [
     'force_quorum_using_partition_of',
     'get_name',
     'help',
+    'list_routers',
     'name',
     'rejoin_instance',
+    'remove_router_metadata',
     'remove_instance',
     'rescan',
     'reset_recovery_accounts_password',
@@ -33,4 +35,4 @@ validate_members(cluster, [
 cluster.disconnect()
 session.close()
 
-testutil.destroy_sandbox(__mysql_sandbox_port1);
+testutil.destroy_sandbox(__mysql_sandbox_port1)

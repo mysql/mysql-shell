@@ -42,6 +42,9 @@ FUNCTIONS
       help([member])
             Provides help about this class and it's members
 
+      list_routers([options])
+            Lists the Router instances.
+
       options([options])
             Lists the cluster configuration options.
 
@@ -50,6 +53,9 @@ FUNCTIONS
 
       remove_instance(instance[, options])
             Removes an Instance from the cluster.
+
+      remove_router_metadata(routerDef)
+            Removes metadata for a router instance.
 
       rescan([options])
             Rescans the cluster.
@@ -1029,6 +1035,75 @@ EXCEPTIONS
       - If the InnoDB Cluster topology mode does not match the current Group
         Replication configuration.
       - If the InnoDB Cluster name is not registered in the Metadata.
+
+#@<OUT> cluster.list_routers
+NAME
+      list_routers - Lists the Router instances.
+
+SYNTAX
+      <Cluster>.list_routers([options])
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+       A JSON object listing the Router instances associated to the cluster.
+
+DESCRIPTION
+      This function lists and provides information about all Router instances
+      registered for the cluster.
+
+      Whenever a Metadata Schema upgrade is necessary, the recommended process
+      is to upgrade MySQL Router instances to the latest version before
+      upgrading the Metadata itself, in order to minimize service disruption.
+      listRouters() will include a "upgradeRequired:true" field for Router
+      instances that must be upgraded before the Shell can upgrade the
+      Metadata.
+
+      The options dictionary may contain the following attributes:
+
+      - onlyUpgradeRequired: boolean, enables filtering so only router
+        instances that support older version of the Metadata Schema and require
+        upgrade are included.
+
+EXCEPTIONS
+      MetadataError in the following scenarios:
+
+      - If the Metadata is inaccessible.
+
+      RuntimeError in the following scenarios:
+
+      - If the InnoDB Cluster topology mode does not match the current Group
+        Replication configuration.
+      - If the InnoDB Cluster name is not registered in the Metadata.
+
+#@<OUT> cluster.remove_router_metadata
+NAME
+      remove_router_metadata - Removes metadata for a router instance.
+
+SYNTAX
+      <Cluster>.remove_router_metadata(routerDef)
+
+WHERE
+      routerDef: identifier of the router instance to be removed (e.g.
+                 192.168.45.70::system)
+
+RETURNS
+       Nothing
+
+DESCRIPTION
+      MySQL Router automatically registers itself within the InnoDB cluster
+      metadata when bootstrapped. However, that metadata may be left behind
+      when instances are uninstalled or moved over to a different host. This
+      function may be used to clean up such instances that no longer exist.
+
+      The Cluster.list_routers() function may be used to list registered router
+      instances, including their identifier.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - if router_def is not a registered router instance
 
 #@<OUT> cluster.set_primary_instance
 NAME

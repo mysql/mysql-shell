@@ -144,6 +144,9 @@ void Cluster::init() {
   expose<void, const std::string &, const std::string &, const shcore::Value &,
          Cluster>("setInstanceOption", &Cluster::set_instance_option,
                   "instanceDef", "option", "value");
+
+  expose("listRouters", &Cluster::list_routers, "?options");
+  expose("removeRouterMetadata", &Cluster::remove_router_metadata, "routerDef");
 }
 
 // Documentation of the getName function
@@ -1531,6 +1534,98 @@ void Cluster::set_instance_option(const shcore::Dictionary_t &instance_def,
   target_instance = get_connection_options(instance_def);
 
   set_instance_option(target_instance, option, value);
+}
+
+REGISTER_HELP_FUNCTION(listRouters, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_LISTROUTERS, R"*(
+Lists the Router instances.
+
+@param options Optional dictionary with options for the operation.
+
+@returns A JSON object listing the Router instances associated to the cluster.
+
+This function lists and provides information about all Router instances
+registered for the cluster.
+
+Whenever a Metadata Schema upgrade is necessary, the recommended process
+is to upgrade MySQL Router instances to the latest version before upgrading
+the Metadata itself, in order to minimize service disruption. listRouters() will
+include a "upgradeRequired:true" field for Router instances that must be
+upgraded before the Shell can upgrade the Metadata.
+
+The options dictionary may contain the following attributes:
+
+@li onlyUpgradeRequired: boolean, enables filtering so only router instances
+that support older version of the Metadata Schema and require upgrade are
+included.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+@throw RuntimeError in the following scenarios:
+@li If the InnoDB Cluster topology mode does not match the current Group
+    Replication configuration.
+@li If the InnoDB Cluster name is not registered in the Metadata.
+)*");
+
+/**
+ * $(CLUSTER_LISTROUTER_BRIEF)
+ *
+ * $(CLUSTER_LISTROUTER)
+ */
+#if DOXYGEN_JS
+String Cluster::listRouters(Dictionary options) {}
+#elif DOXYGEN_PY
+str Cluster::list_routers(dict options) {}
+#endif
+shcore::Dictionary_t Cluster::list_routers(
+    const shcore::Dictionary_t &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("listRouters");
+
+  bool only_upgrade_required = false;
+
+  // Throw an error if the cluster has already been dissolved
+  check_function_preconditions("Cluster.listRouters",
+                               m_impl->get_target_instance());
+
+  Unpack_options(options)
+      .optional("onlyUpgradeRequired", &only_upgrade_required)
+      .end();
+
+  auto ret_val = m_impl->list_routers(only_upgrade_required);
+
+  return ret_val.as_map();
+}
+
+REGISTER_HELP_FUNCTION(removeRouterMetadata, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REMOVEROUTERMETADATA, R"*(
+Removes metadata for a router instance.
+
+@param routerDef identifier of the router instance to be removed (e.g.
+192.168.45.70::system)
+@returns Nothing
+
+MySQL Router automatically registers itself within the InnoDB cluster
+metadata when bootstrapped. However, that metadata may be left behind when
+instances are uninstalled or moved over to a different host. This function may
+be used to clean up such instances that no longer exist.
+
+The Cluster.<<<listRouters>>>() function may be used to list registered router
+instances, including their identifier.
+
+@throw ArgumentError in the following scenarios:
+@li if router_def is not a registered router instance
+)*");
+/**
+ * $(CLUSTER_REMOVEROUTERMETADATA_BRIEF)
+ *
+ * $(CLUSTER_REMOVEROUTERMETADATA)
+ */
+void Cluster::remove_router_metadata(const std::string &router_def) {
+  if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
+    throw shcore::Exception::argument_error("Invalid router instance '" +
+                                            router_def + "'");
+  }
 }
 
 }  // namespace dba

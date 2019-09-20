@@ -44,6 +44,8 @@ validateMembers(Cluster, [
   'dissolve',
   'disconnect',
   'rescan',
+  'listRouters',
+  'removeRouterMetadata',
   'resetRecoveryAccountsPassword',
   'forceQuorumUsingPartitionOf',
   'switchToSinglePrimaryMode',
@@ -182,6 +184,8 @@ Cluster.rejoinInstance();
 Cluster.removeInstance();
 Cluster.rescan();
 Cluster.status();
+Cluster.listRouters();
+Cluster.removeRouterInstance();
 
 //@ Cluster: disconnect() is ok on a dissolved cluster
 Cluster.disconnect();

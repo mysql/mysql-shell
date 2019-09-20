@@ -31,6 +31,7 @@
 
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/instance_pool.h"
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
@@ -64,6 +65,18 @@ struct Cluster_metadata {
   std::string topology_type;
 
   std::string full_cluster_name() const { return cluster_name; }
+};
+
+struct Router_metadata {
+  std::string name;
+  uint64_t id;
+  std::string hostname;
+  mysqlshdk::utils::nullable<uint64_t> rw_port;
+  mysqlshdk::utils::nullable<uint64_t> ro_port;
+  mysqlshdk::utils::nullable<uint64_t> rw_x_port;
+  mysqlshdk::utils::nullable<uint64_t> ro_x_port;
+  mysqlshdk::utils::nullable<std::string> last_checkin;
+  mysqlshdk::utils::nullable<std::string> version;
 };
 
 class Cluster_impl;
@@ -182,6 +195,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   Instance_metadata get_instance_by_endpoint(
       const std::string &instance_address);
 
+  std::vector<Instance_metadata> get_replica_set_instances(
+      const Cluster_id &rs_id);
+
+  std::vector<Router_metadata> get_routers(Cluster_id cluster_id);
+
   /**
    * Get the topology mode of the cluster from the metadata.
    *
@@ -208,12 +226,23 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   Instance *get_md_server() const { return m_md_server.get(); }
 
+ public:
+  /**
+   * Deletes metadata for the named router instance.
+   *
+   * @param router_def router identifier, as address[::name]
+   * @return false if router_def doesn't match any router instances
+   */
+  bool remove_router(const std::string &router_def);
+
  private:
   class Transaction;
   friend class Transaction;
 
   std::shared_ptr<Instance> m_md_server;
   mutable mysqlshdk::utils::Version m_md_version;
+
+  std::string get_router_query();
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql) const;
