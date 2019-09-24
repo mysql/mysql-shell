@@ -863,8 +863,8 @@ void Util::import_json(const std::string &file,
 }
 
 #ifdef WITH_OCI
-REGISTER_HELP_TOPIC(OCI, TOPIC, OCI, Contents, ALL);
-REGISTER_HELP_TOPIC_TEXT(OCI, R"*(
+REGISTER_HELP_TOPIC(OCI, TOPIC, TOPIC_OCI, Contents, ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_OCI, R"*(
 The MySQL Shell offers support for the Oracle Cloud Infrastructure (OCI).
 
 After starting the MySQL Shell with the --oci option an interactive wizard will help to create the correct OCI configuration file, load the OCI Python SDK and switch the shell to Python mode.
@@ -882,24 +882,24 @@ For more information about the OCI Python SDK please read the documentation at
   https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/
 )*");
 
-REGISTER_HELP(OCI_EXAMPLE, "identity.get_user(config['user']).data");
-REGISTER_HELP(OCI_EXAMPLE_DESC,
+REGISTER_HELP(TOPIC_OCI_EXAMPLE, "identity.get_user(config['user']).data");
+REGISTER_HELP(TOPIC_OCI_EXAMPLE_DESC,
               "Fetches information about the OCI user account specified in the "
               "config object.");
-REGISTER_HELP(OCI_EXAMPLE1,
+REGISTER_HELP(TOPIC_OCI_EXAMPLE1,
               "identity.list_compartments(config['tenancy']).data");
-REGISTER_HELP(OCI_EXAMPLE1_DESC,
+REGISTER_HELP(TOPIC_OCI_EXAMPLE1_DESC,
               "Fetches the list of top level compartments available in the "
               "tenancy that was specified in the config object.");
 REGISTER_HELP(
-    OCI_EXAMPLE2,
+    TOPIC_OCI_EXAMPLE2,
     "@code"
     "compartment = identity.list_compartments(config['tenancy']).data[0]\n"
     "images = compute.list_images(compartment.id).data\n"
     "for image in images:\n"
     "  print(image.display_name)"
     "@endcode");
-REGISTER_HELP(OCI_EXAMPLE2_DESC,
+REGISTER_HELP(TOPIC_OCI_EXAMPLE2_DESC,
               "Assignes the first compartment of the tenancy to the "
               "compartment variable, featches the available OS images for the "
               "compartment and prints a list of their names.");

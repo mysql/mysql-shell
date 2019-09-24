@@ -195,8 +195,11 @@ std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
       // NOTE this validation is not done if the sandbox dir is the one
       // At the shell options, is that intentional?
       if (!shcore::is_folder(sandbox_dir))
-        throw shcore::Exception::argument_error("The sandboxDir path '" +
-                                                sandbox_dir + "' is not valid");
+        throw shcore::Exception::argument_error(
+            "The sandbox dir path '" + sandbox_dir + "' is not valid: it " +
+            (shcore::path_exists(sandbox_dir) ? "is not a directory"
+                                              : "does not exist") +
+            ".");
     }
   }
 

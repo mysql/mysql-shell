@@ -194,8 +194,8 @@ class Sql_upgrade_check : public Upgrade_check {
   const char *m_minimal_version;
 };
 
-/// This class enables checking server configuration file for defined/undefined
-/// system variables that have been removed, deprecated etc.
+// This class enables checking server configuration file for defined/undefined
+// system variables that have been removed, deprecated etc.
 class Config_check : public Upgrade_check {
  public:
   enum class Mode { FLAG_DEFINED, FLAG_UNDEFINED };

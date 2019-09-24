@@ -57,7 +57,7 @@ get_connection_options(const shcore::Dictionary_t &instance_def);
 Connection_options SHCORE_PUBLIC
 get_connection_options(const std::string &instance_def);
 
-/**
+/*
  * Unpack an options dictionary.
  *
  * @param  options Dictionary containing options to extract from (null OK)
