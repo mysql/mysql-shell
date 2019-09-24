@@ -181,6 +181,7 @@ dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf
 
 //@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.dbugSet("");
 
 // DO NOT add tests which do not require __dbug_off to be 0 above this line
 // DO NOT add any tests below this line
