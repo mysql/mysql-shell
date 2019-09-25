@@ -61,34 +61,109 @@
         <?endif?>
 
         <FeatureRef Id="ProductFeature">
-        <Component Id="UpdatePath" Directory="CM_DP_main.bin" Guid="0D572FF7-1AE6-493D-8991-D2DC99E1F5C1">
-        <CreateFolder/>
-        <Environment Id="UpdatePathEnv" Action="set" Part="first" Name="PATH" Value="[CM_DP_main.bin]"/>
-        </Component>
+            <Component Id="UpdatePath" Directory="CM_DP_main.bin" Guid="0D572FF7-1AE6-493D-8991-D2DC99E1F5C1">
+                <CreateFolder/>
+                <Environment Id="UpdatePathEnv" Action="set" Part="first" Name="PATH" Value="[CM_DP_main.bin]"/>
+            </Component>
         </FeatureRef>
 
         <UI>
-          <UIRef Id="WixUI_InstallDir" />
-          <Publish Dialog="ExitDialog"
-            Control="Finish"
-            Event="DoAction"
-            Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+            <UIRef Id="WixUI_InstallDir" />
+            <Publish Dialog="ExitDialog"
+                Control="Finish"
+                Event="DoAction"
+                Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
         </UI>
         <?if "1" = "@CPACK_WIX_VS_REDIST_CHECK@" ?>
-            <Property Id="VS14REDIST">
-              <RegistrySearch Id="FindRedistVS14"
-                  Root="HKLM"
-                  Key="SOFTWARE\Microsoft\DevDiv\vc\Servicing\14.0\RuntimeMinimum"
-                  Name="Version"
-                  Type="raw" />
+        <Property Id="VS14REDIST">
+            <RegistrySearch Id="FindRedistVS14"
+                Root="HKLM"
+                Key="SOFTWARE\Microsoft\DevDiv\vc\Servicing\14.0\RuntimeMinimum"
+                Name="Version"
+                Type="raw" />
         </Property>
-            <Condition Message="This application requires Visual Studio 2015 Redistributable. Please install the Redistributable then run this installer again.">
-              Installed OR VS14REDIST
-            </Condition>
+        <Condition Message="This application requires Visual Studio 2015 Redistributable. Please install the Redistributable then run this installer again.">
+            Installed OR VS14REDIST
+        </Condition>
         <?endif?>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
         <Property Id="WixShellExecTarget" Value="[#mysqlsh.exe]" />
         <CustomAction Id="LaunchApplication" Directory="CM_DP_main.bin" ExeCommand="[SystemFolder]cmd.exe /C mysqlsh.exe" Return="asyncNoWait"/>
+        <?if "1" = "@CPACK_WIX_WITH_PYTHON@" ?>
+        <SetProperty
+            Id="CleanupPycPython"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c del /s /q /f &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]*.pyc&quot; &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]*.pyo&quot;"
+            Before="CleanupPycPython"
+            Sequence="execute" />
+        <CustomAction
+            Id="CleanupPycPython"
+            BinaryKey="WixCA"
+            DllEntry="CAQuietExec"
+            Execute="deferred"
+            Return="ignore"
+            HideTarget="no"
+            Impersonate="no" />
+        <SetProperty
+            Id="CleanupCachePython"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c FOR /d /r &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]&quot; %d IN (&quot;__pycache__&quot;) DO @IF EXIST &quot;%d&quot; rd /s /q &quot;%d&quot;"
+            Before="CleanupCachePython"
+            Sequence="execute" />
+        <CustomAction
+            Id="CleanupCachePython"
+            BinaryKey="WixCA"
+            DllEntry="CAQuietExec"
+            Execute="deferred"
+            Return="ignore"
+            HideTarget="no"
+            Impersonate="no" />
+        <?endif?>
+        <?if "1" = "@CPACK_WIX_WITH_OCI@" ?>
+        <SetProperty
+            Id="CleanupPycOCI"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c del /s /q /f &quot;[CM_DP_main.share.mysqlsh.oci_sdk]*.pyc&quot; &quot;[CM_DP_main.share.mysqlsh.oci_sdk]*.pyo&quot;"
+            Before="CleanupPycOCI"
+            Sequence="execute" />
+        <CustomAction
+            Id="CleanupPycOCI"
+            BinaryKey="WixCA"
+            DllEntry="CAQuietExec"
+            Execute="deferred"
+            Return="ignore"
+            HideTarget="no"
+            Impersonate="no" />
+        <SetProperty
+            Id="CleanupCacheOCI"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c FOR /d /r &quot;[CM_DP_main.share.mysqlsh.oci_sdk]&quot; %d IN (&quot;__pycache__&quot;) DO @IF EXIST &quot;%d&quot; rd /s /q &quot;%d&quot;"
+            Before="CleanupPycOCI"
+            Sequence="execute" />
+        <CustomAction
+            Id="CleanupCacheOCI"
+            BinaryKey="WixCA"
+            DllEntry="CAQuietExec"
+            Execute="deferred"
+            Return="ignore"
+            HideTarget="no"
+            Impersonate="no" />
+        <?endif?>
+
+        <InstallExecuteSequence>
+            <?if "1" = "@CPACK_WIX_WITH_PYTHON@" ?>
+            <Custom Action="CleanupPycPython" Before="CleanupCachePython">
+                REMOVE="ALL"
+            </Custom>
+            <Custom Action="CleanupCachePython" Before="RemoveFiles">
+                REMOVE="ALL"
+            </Custom>
+            <?endif?>
+            <?if "1" = "@CPACK_WIX_WITH_OCI@" ?>
+            <Custom Action="CleanupPycOCI" Before="CleanupCacheOCI">
+                REMOVE="ALL"
+            </Custom>
+            <Custom Action="CleanupCacheOCI" Before="RemoveFiles">
+                REMOVE="ALL"
+            </Custom>
+            <?endif?>
+        </InstallExecuteSequence>
     </Product>
 </Wix>

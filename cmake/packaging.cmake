@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -71,6 +71,14 @@ if(WIN32)
     set(CPACK_WIX_VS_REDIST_CHECK     "1")
   endif()
   set(CPACK_PACKAGE_EXECUTABLES       "mysqlsh;MySQL Shell")
+  if(HAVE_PYTHON)
+    set(CPACK_WIX_WITH_PYTHON "1")
+    set(CPACK_WIX_PYTHON_DIR "Python${PYTHONLIBS_MAJOR_MINOR}")
+  endif()
+  if(WITH_OCI)
+    set(CPACK_WIX_WITH_OCI "1")
+  endif()
+  set(CPACK_WIX_EXTENSIONS "WixUtilExtension.dll")
 else()
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "MySQL RE")
   FIND_PROGRAM(RPMBUILD_EXECUTABLE rpmbuild)
