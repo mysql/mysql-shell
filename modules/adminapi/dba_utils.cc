@@ -33,7 +33,7 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
                                     mysqlshdk::gr::Member_role role,
                                     bool xproto, bool *out_single_primary) {
   mysqlsh::dba::MetadataStorage md(instance);
-  if (!md.check_exists()) {
+  if (!md.check_version()) {
     throw shcore::Exception("InnoDB cluster metadata schema not found",
                             SHERR_DBA_METADATA_MISSING);
   }

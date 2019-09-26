@@ -76,6 +76,7 @@
 #endif
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
@@ -148,7 +149,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("isTcpPortListening", &Testutils::is_tcp_port_listening, "host",
          "port");
 
-  expose("dumpData", &Testutils::dump_data, "uri", "filename", "schemas");
+  expose("dumpData", &Testutils::dump_data, "uri", "filename", "schemas",
+         "?options");
   expose("importData", &Testutils::import_data, "uri", "filename",
          "?default_schema");
 
@@ -197,6 +199,12 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("clearTraps", &Testutils::clear_traps, "?type");
   expose("getUserConfigPath", &Testutils::get_user_config_path);
   expose("setenv", &Testutils::setenv, "variable", "?value");
+  expose("getCurrentMetadataVersion",
+         &Testutils::get_current_metadata_version_string);
+  expose("getInstalledMetadataVersion",
+         &Testutils::get_installed_metadata_version_string);
+  expose("wipeAllOutput", &Testutils::wipe_all_output);
+
   // expose("slowify", &Testutils::slowify, "port", "start");
   expose("bp", &Testutils::bp, "flag");
 
@@ -210,6 +218,54 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
   _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Gets the metadata version supported by this version of the shell
+ */
+#if DOXYGEN_JS
+String Testutils::getCurrentMetadataVersion();
+#elif DOXYGEN_PY
+str Testutils::get_current_metadata_version();
+#endif
+///@}
+std::string Testutils::get_current_metadata_version_string() {
+  return mysqlsh::dba::metadata::current_version().get_base();
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Gets the metadata version available on the instance where the global session
+ * is connected.
+ */
+#if DOXYGEN_JS
+String Testutils::getInstalledMetadataVersion();
+#elif DOXYGEN_PY
+str Testutils::get_installed_metadata_version();
+#endif
+///@}
+std::string Testutils::get_installed_metadata_version_string() {
+  if (auto shell = _shell.lock()) {
+    auto dev_session = shell->shell_context()->get_dev_session();
+    if (!dev_session) throw std::runtime_error("No active shell session");
+    auto session = dev_session->get_core_session();
+    if (!session || !session->is_open()) {
+      throw std::logic_error(
+          "The testutil.getInstalledMetadataVersion method uses the active "
+          "shell session and requires it to be open.");
+    } else {
+      return mysqlsh::dba::metadata::installed_version(
+                 std::make_shared<mysqlsh::dba::Instance>(session))
+          .get_base();
+    }
+  } else {
+    throw std::logic_error("Lost reference to shell object");
+  }
+
+  return "";
 }
 
 std::string Testutils::get_mysqld_version(const std::string &mysqld_path) {
@@ -531,8 +587,15 @@ std::string Testutils::get_sandbox_path(int port, const std::string &file) {
  * @param uri URI of the instance. Must be classic protocol.
  * @param path filename of the dump file to write to
  * @param schemaList array of schema names to dump
+ * @param options Optional dictionary with options that affect the produced dump
  *
  * Calls mysqldump to dump the given schemas.
+ *
+ * The supported options include:
+ *
+ * @li noData: boolean, if true, excludes schema data
+ * @li skipComments: boolean, if true, excludes all the comments
+ * @li skipDumpDate: boolean, if true, excludes the dump date comment
  */
 #if DOXYGEN_JS
 Undefined Testutils::dumpData(String uri, String path, Array schemaList);
@@ -541,7 +604,19 @@ None Testutils::dump_data(str uri, str path, list schemaList);
 #endif
 ///@}
 void Testutils::dump_data(const std::string &uri, const std::string &path,
-                          const std::vector<std::string> &schemas) {
+                          const std::vector<std::string> &schemas,
+                          const shcore::Dictionary_t &opts) {
+  bool no_data = false;
+  bool skip_dump_date = false;
+  bool skip_comments = false;
+  if (opts) {
+    shcore::Option_unpacker(opts)
+        .optional("noData", &no_data)
+        .optional("skipComments", &skip_comments)
+        .optional("skipDumpDate", &skip_dump_date)
+        .end();
+  }
+
   // use mysqldump for now, until we support dumping internally
   std::string mysqldump = shcore::path::search_stdpath("mysqldump");
   if (mysqldump.empty()) {
@@ -578,6 +653,9 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
   if (g_test_trace_scripts > 0) {
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
+  if (no_data) argv.push_back("--no-data");
+  if (skip_comments) argv.push_back("--skip-comments");
+  if (skip_dump_date) argv.push_back("--skip-dump-date");
   argv.push_back(nullptr);
   shcore::Process dump(&argv[0]);
   dump.start();
@@ -2307,6 +2385,19 @@ None Testutils::assert_no_prompts();
 #endif
 ///@}
 void Testutils::assert_no_prompts() { _assert_no_prompts(); }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Cleans up the output accumulated so far from STDOUT, STDERR and LOG
+ */
+#if DOXYGEN_JS
+Undefined Testutils::wipeAllOutput();
+#elif DOXYGEN_PY
+None Testutils::wipe_all_output();
+#endif
+///@}
+void Testutils::wipe_all_output() { _wipe_all_output(); }
 
 //!<  @name Testing Utilities
 ///@{

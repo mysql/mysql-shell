@@ -14,7 +14,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR1-TS-01 reboot cluster {VER(>=8.0.12)}
-true
 Reconfiguring the cluster 'C' from complete outage...
 
 The safest and most convenient way to provision a new instance is through
@@ -77,7 +76,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR1-TS-03 {VER(>=8.0.12)}
-true
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -108,8 +106,6 @@ one server failure.
 |Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
 //@<OUT> FR1-TS-04/05 {VER(>=8.0.12)}
-true
-
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = 62d73bbd-b830-11e7-a7b7-34e6d72fbd80
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
@@ -129,7 +125,6 @@ Calling this function on a cluster member is only required for MySQL versions 8.
 ||
 
 //@<OUT> FR1-TS-06 {VER(<8.0.12)}
-true
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -159,8 +154,6 @@ one server failure.
 ||
 
 //@<OUT> FR1-TS-7 show persisted cluster variables {VER(>=8.0.12)}
-true
-
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -174,7 +167,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR1-TS-7 reboot cluster {VER(>=8.0.12)}
-true
 Reconfiguring the cluster 'ClusterName' from complete outage...
 
 The safest and most convenient way to provision a new instance is through
@@ -236,8 +228,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
-true
-
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -253,7 +243,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-1 cluster status showing instance 2 is missing {VER(>=8.0.12)}
-true
 {
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
@@ -289,7 +278,6 @@ true
 ||
 
 //@<OUT> FR2-TS-1 cluster status showing instance 2 is back online {VER(>=8.0.12)}
-true
 {
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
@@ -328,8 +316,6 @@ true
 ||
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
-true
-
 NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is
 empty), but the cluster was configured to assume that incremental distributed
 state recovery can correctly provision it in this case.
@@ -408,8 +394,6 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to t
 ||
 
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
-true
-
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
@@ -440,8 +424,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-5 {VER(>=8.0.12)}
-true
-
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
@@ -532,8 +514,6 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to t
 ||
 
 //@<OUT> FR2-TS-8 Check that correct values were persisted and that instance rejoins automatically {VER(>=8.0.12)}
-true
-
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -621,8 +601,6 @@ ONLINE
 ||
 
 //@<OUT> FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
-true
-
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -756,8 +734,6 @@ ONLINE
 ||
 
 //@<OUT> FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
-true
-
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
@@ -787,8 +763,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - before {VER(>=8.0.12)}
-true
-
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -808,8 +782,6 @@ Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the clus
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
-true
-
 group_replication_consistency = EVENTUAL
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc

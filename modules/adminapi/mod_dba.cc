@@ -464,6 +464,8 @@ void Dba::init() {
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
 
+  expose("upgradeMetadata", &Dba::upgrade_metadata, "?options");
+
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
 
@@ -3039,6 +3041,84 @@ void Dba::validate_instances_gtid_reboot_cluster(
         "in comparison with the ONLINE instances of the Cluster's "
         "metadata. Please use the most up to date instance: '" +
         primary_candidates.front().server + "'.");
+  }
+}
+
+REGISTER_HELP_FUNCTION(upgradeMetadata, dba);
+REGISTER_HELP_FUNCTION_TEXT(DBA_UPGRADEMETADATA, R"*(
+Upgrades (or restores) the metadata to the version supported by the Shell.
+
+@param options Optional dictionary with option for the operation.
+
+Compares the version of the installed metadata schema with the version of
+the metadata schema supported by this Shell.
+
+If the installed metadata version is lower it will execute the required
+operations to update it.
+
+If the installed metadata is not available because a previous call to this
+function ended unexpectedly, this function will restore the metadata to the
+state it was before the failed upgrade operation.
+
+The options dictionary accepts the following attributes:
+
+@li dryRun: boolean, causes the function to display information about the
+upgrade or restore operation without actually executing it.
+
+@throw RuntimeError in the following scenarios:
+@li A global session is not available.
+@li A global session is available but the target instance does not have the
+metadata installed.
+@li The installed metadata is a newer version than the one supported by the
+shell.
+)*");
+/**
+ * $(DBA_UPGRADEMETADATA_BRIEF)
+ *
+ * $(DBA_UPGRADEMETADATA)
+ */
+#if DOXYGEN_JS
+Undefined Dba::upgradeMetadata(Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::upgrade_metadata(dict options) {}
+#endif
+void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
+  bool dry_run = false;
+
+  if (options) {
+    // Retrieves optional options if exists
+    Unpack_options(options).optional("dryRun", &dry_run).end();
+  }
+
+  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<Instance> group_server(connect_to_target_member());
+  check_preconditions(group_server, "upgradeMetadata");
+
+  connect_to_target_group(group_server, &metadata, &group_server, false);
+
+  bool interactive = current_shell_options()->get().wizards;
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(group_server->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+
+  std::string current_user, current_host;
+  group_server->get_current_user(&current_user, &current_host);
+
+  std::string error_info;
+  if (!validate_cluster_admin_user_privileges(*group_server, current_user,
+                                              current_host, &error_info)) {
+    auto console = mysqlsh::current_console();
+    console->print_error(error_info);
+    throw shcore::Exception::runtime_error(
+        "The account " + shcore::make_account(current_user, current_host) +
+        " is missing privileges required for this operation.");
+  }
+
+  auto state = mysqlsh::dba::metadata::version_compatibility(group_server);
+  if (state == mysqlsh::dba::metadata::State::FAILED_UPGRADE) {
+    metadata::restore_schema(group_server, dry_run);
+  } else {
+    metadata::upgrade_schema(group_server, dry_run);
   }
 }
 

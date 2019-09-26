@@ -305,7 +305,7 @@ ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with prope
 
 Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
 privileges or leave empty and press Enter to cancel.
-Account Name: Password for new account: Confirm password: 
+Account Name: Password for new account: Confirm password:
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 Cluster admin user 'dba_test'@'%' created.

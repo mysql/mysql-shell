@@ -711,7 +711,8 @@ TEST_F(Completer_frontend, js_adminapi) {
             "deleteSandboxInstance()", "deploySandboxInstance()",
             "dropMetadataSchema()", "getCluster()", "help()",
             "killSandboxInstance()", "rebootClusterFromCompleteOutage()",
-            "startSandboxInstance()", "stopSandboxInstance()", "verbose"}));
+            "startSandboxInstance()", "stopSandboxInstance()",
+            "upgradeMetadata()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploySandboxInstance()");
 }
 
@@ -1220,7 +1221,8 @@ TEST_F(Completer_frontend, py_adminapi) {
             "delete_sandbox_instance()", "deploy_sandbox_instance()",
             "drop_metadata_schema()", "get_cluster()", "help()",
             "kill_sandbox_instance()", "reboot_cluster_from_complete_outage()",
-            "start_sandbox_instance()", "stop_sandbox_instance()", "verbose"}));
+            "start_sandbox_instance()", "stop_sandbox_instance()",
+            "upgrade_metadata()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
 

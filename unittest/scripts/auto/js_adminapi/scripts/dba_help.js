@@ -87,3 +87,9 @@ dba.help('stopSandboxInstance');
 
 //@ Stop Sandbox, \? [USE:Stop Sandbox]
 \? stopSandboxInstance
+
+//@ Upgrade Metadata
+dba.help('upgradeMetadata');
+
+//@ Upgrade Metadata, \? [USE:Upgrade Metadata]
+\? upgradeMetadata

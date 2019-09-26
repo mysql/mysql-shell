@@ -23,6 +23,7 @@ validateMembers(dba, [
     'rebootClusterFromCompleteOutage',
     'startSandboxInstance',
     'stopSandboxInstance',
+    'upgradeMetadata',
     'verbose'])
 
 //@# Dba: createCluster errors

@@ -104,6 +104,36 @@ std::string replace_grantee(const std::string &grant,
 }
 }  // namespace detail
 
+void drop_view_or_table(const IInstance &instance, const std::string &schema,
+                        const std::string &name, bool if_exists) {
+  try {
+    instance.executef("DROP VIEW !.!", schema.c_str(), name.c_str());
+  } catch (const mysqlshdk::db::Error &error) {
+    // If the object exists but it's a VIEW mysql returns wrong object error,
+    // so drop_table is called
+    if (error.code() == ER_WRONG_OBJECT) {
+      drop_table_or_view(instance, schema, name, if_exists);
+    } else if (error.code() == ER_BAD_TABLE_ERROR) {
+      if (!if_exists) throw;
+    } else {
+      throw;
+    }
+  }
+}
+
+void drop_table_or_view(const IInstance &instance, const std::string &schema,
+                        const std::string &name, bool if_exists) {
+  try {
+    instance.executef("DROP TABLE !.!", schema.c_str(), name.c_str());
+  } catch (const mysqlshdk::db::Error &error) {
+    if (error.code() == ER_BAD_TABLE_ERROR) {
+      drop_view_or_table(instance, schema, name, if_exists);
+    } else {
+      throw;
+    }
+  }
+}
+
 void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &orig_host, const std::string &new_user,
                 const std::string &new_host, const std::string &password,
@@ -342,6 +372,183 @@ void set_random_password(const IInstance &instance, const std::string &user,
   for (size_t i = 1; i < hosts.size(); i++) {
     instance.executef("SET PASSWORD FOR ?@? = /*((*/?/*))*/", user, hosts[i],
                       *out_password);
+  }
+}
+
+namespace schema {
+enum class Object_types { Table = 1 << 0, View = 1 << 1 };
+using Object_type =
+    mysqlshdk::utils::Enum_set<Object_types, Object_types::View>;
+
+std::set<std::string> get_objects(const mysql::IInstance &instance,
+                                  const std::string &schema,
+                                  schema::Object_type types) {
+  // Gets the list of tables to be backed up
+  // ---------------------------------------
+  std::string query;
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  if (types == schema::Object_type::all()) {
+    result = instance.queryf(
+        "SELECT TABLE_NAME FROM information_schema.tables WHERE "
+        "TABLE_SCHEMA = ?",
+        schema.c_str());
+  } else if (types.is_set(schema::Object_types::Table)) {
+    result = instance.queryf(
+        "SELECT TABLE_NAME FROM information_schema.tables WHERE "
+        "TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'",
+        schema.c_str());
+  } else if (types.is_set(schema::Object_types::View)) {
+    result = instance.queryf(
+        "SELECT TABLE_NAME FROM information_schema.tables WHERE "
+        "TABLE_SCHEMA = ? AND TABLE_TYPE = 'VIEW'",
+        schema.c_str());
+  }
+
+  std::set<std::string> objects;
+  auto row = result->fetch_one();
+  while (row) {
+    objects.insert(row->get_string(0));
+    row = result->fetch_one();
+  }
+
+  return objects;
+}
+
+}  // namespace schema
+
+void copy_schema(const mysql::IInstance &instance, const std::string &name,
+                 const std::string &target, bool use_existing_schema,
+                 bool move_tables) {
+  // First creates the target schema
+  bool created_schema = false;
+  try {
+    instance.executef("CREATE SCHEMA !", target.c_str());
+    created_schema = true;
+  } catch (const mysqlshdk::db::Error &err) {
+    if (err.code() == ER_DB_CREATE_EXISTS) {
+      if (!use_existing_schema) {
+        throw;
+      }
+    } else {
+      throw;
+    }
+  }
+
+  try {
+    // Gets the tables to be copied
+    std::map<std::string, std::set<std::string>> src_objects;
+    std::map<std::string, std::set<std::string>> tgt_objects;
+
+    instance.execute("SET FOREIGN_KEY_CHECKS=0");
+
+    src_objects["TABLE"] = schema::get_objects(
+        instance, name, schema::Object_type(schema::Object_types::Table));
+    src_objects["VIEW"] = schema::get_objects(
+        instance, name, schema::Object_type(schema::Object_types::View));
+
+    // If the target schema existed, we need to keep track of the objects there
+    // to delete the ones that did not exist in the src schema
+    if (!created_schema) {
+      tgt_objects["TABLE"] = schema::get_objects(
+          instance, target, schema::Object_type(schema::Object_types::Table));
+      tgt_objects["VIEW"] = schema::get_objects(
+          instance, target, schema::Object_type(schema::Object_types::View));
+    }
+
+    // Creates the tables on the backup schema
+    // ---------------------------------------
+    for (const auto &object : src_objects["TABLE"]) {
+      // Ensures the table does not exist on the target schema
+      if (!created_schema) drop_table_or_view(instance, target, object, true);
+
+      if (move_tables) {
+        instance.executef("RENAME TABLE !.! TO !.!", name.c_str(),
+                          object.c_str(), target.c_str(), object.c_str());
+      } else {
+        instance.executef("CREATE TABLE !.! LIKE !.!", target.c_str(),
+                          object.c_str(), name.c_str(), object.c_str());
+      }
+    }
+
+    // Creates the views on the backup schema
+    // ---------------------------------------
+    if (!src_objects["VIEW"].empty()) {
+      std::string current_schema;
+      auto result = instance.query("SELECT DATABASE()");
+      auto row = result->fetch_one();
+      if (!row->is_null(0)) current_schema = row->get_string(0);
+
+      instance.executef("USE !", target.c_str());
+
+      for (const auto &object : src_objects["VIEW"]) {
+        // Ensures the target view does not exist on the target schema
+        if (!created_schema) drop_view_or_table(instance, target, object, true);
+
+        auto view_result = instance.queryf("SHOW CREATE VIEW !.!", name.c_str(),
+                                           object.c_str());
+
+        auto view_row = view_result->fetch_one();
+
+        auto create_stmt = view_row->get_string(1);
+
+        create_stmt = shcore::str_replace(create_stmt, name, target);
+
+        instance.execute(create_stmt);
+      }
+
+      if (!current_schema.empty())
+        instance.executef("USE !", current_schema.c_str());
+    }
+
+    // If target schema existed, there might be additional objects that are
+    // not in the source schema, they need to be deleted
+    if (!created_schema) {
+      for (const auto &entry : src_objects) {
+        std::set<std::string> extra_objects;
+        std::set_difference(
+            tgt_objects[entry.first].begin(), tgt_objects[entry.first].end(),
+            entry.second.begin(), entry.second.end(),
+            std::inserter(extra_objects, extra_objects.begin()));
+
+        for (const auto &object : extra_objects) {
+          try {
+            auto query = shcore::sqlstring("DROP ! IF EXISTS !.!",
+                                           shcore::QuoteOnlyIfNeeded);
+            query << entry.first.c_str() << target.c_str() << object.c_str();
+            query.done();
+            instance.execute(query.str());
+          } catch (const mysqlshdk::db::Error &error) {
+            // Attempting to drop a previous VIEW that now is a TABLE will give
+            // WRONG OBJECT error, however we don't care because it means a VIEW
+            // on the target schema got replaced by a TABLE, so the error is
+            // bypassed
+            if (error.code() != ER_WRONG_OBJECT) throw;
+          }
+        }
+      }
+    }
+
+    // Backups the table data
+    // ----------------------
+    if (!move_tables) {
+      instance.execute("START TRANSACTION");
+      for (const auto &table : src_objects["TABLE"]) {
+        // Copies the data from source to target
+        instance.executef("INSERT INTO !.! SELECT * FROM !.!", target.c_str(),
+                          table.c_str(), name.c_str(), table.c_str());
+      }
+      instance.execute("COMMIT");
+    }
+    instance.execute("SET FOREIGN_KEY_CHECKS=1");
+  } catch (const std::exception &error) {
+    if (!move_tables) instance.execute("ROLLBACK");
+    instance.execute("SET FOREIGN_KEY_CHECKS=1");
+
+    if (created_schema) {
+      instance.executef("DROP SCHEMA !", target.c_str());
+    }
+    log_error("Error copying metadata tables: %s", error.what());
+    throw;
   }
 }
 

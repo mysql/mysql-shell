@@ -27,6 +27,7 @@
 #include <mysqld_error.h>
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -72,36 +73,18 @@ MetadataStorage::~MetadataStorage() {
   // TODO(alfredo)  if (m_md_server) m_md_server->release();
 }
 
-bool MetadataStorage::check_exists(
+bool MetadataStorage::check_version(
     mysqlshdk::utils::Version *out_version) const {
-  if (m_md_version != mysqlshdk::utils::Version()) {
+  if (m_md_version == mysqlshdk::utils::Version()) {
+    m_md_version = mysqlsh::dba::metadata::installed_version(m_md_server);
+  }
+
+  if (m_md_version != mysqlsh::dba::metadata::kNotInstalled) {
     if (out_version) *out_version = m_md_version;
     return true;
   }
 
-  try {
-    auto result = execute_sql(
-        "select major, minor, patch from "
-        "mysql_innodb_cluster_metadata.schema_version");
-    auto row = result->fetch_one_or_throw();
-    int major = row->get_int(0);
-    int minor = row->get_int(1);
-    int patch = row->get_int(2);
-
-    m_md_version = mysqlshdk::utils::Version(major, minor, patch);
-    if (out_version) *out_version = m_md_version;
-  } catch (const shcore::Exception &error) {
-    log_debug("Error querying metadata: %s: %s", m_md_server->descr().c_str(),
-              error.format().c_str());
-
-    // Ignore error table does not exist (error 1146) for 5.7 or database
-    // does not exist (error 1049) for 8.0, when metadata is not available.
-    if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
-      throw;
-
-    return false;
-  }
-  return true;
+  return false;
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
@@ -819,14 +802,19 @@ constexpr const char *k_base_instance_query =
     "   ON r.replicaset_id = i.replicaset_id";
 
 std::vector<Instance_metadata> MetadataStorage::get_all_instances(
-    Cluster_id cluster_id) {
+    Cluster_id cluster_id, const char *schema) {
   std::vector<Instance_metadata> ret_val;
 
-  auto result = cluster_id == 0
-                    ? execute_sql(k_base_instance_query)
-                    : execute_sqlf(std::string(k_base_instance_query) +
-                                       " WHERE r.cluster_id = ?",
-                                   cluster_id);
+  std::string query(k_base_instance_query);
+
+  // If a different schema is provided, uses it
+  if (schema)
+    query = shcore::str_replace(query, "mysql_innodb_cluster_metadata", schema);
+
+  auto result =
+      cluster_id == 0
+          ? execute_sql(query)
+          : execute_sqlf(query + " WHERE r.cluster_id = ?", cluster_id);
 
   while (auto row = result->fetch_one_named()) {
     ret_val.push_back(unserialize_instance(row));
@@ -888,6 +876,15 @@ std::vector<Router_metadata> MetadataStorage::get_routers(
     ret_val.push_back(router);
   }
   return ret_val;
+}
+
+std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
+  std::vector<Cluster_metadata> l;
+  auto result = execute_sqlf(k_select_cluster_metadata);
+  while (auto row = result->fetch_one_named()) {
+    l.push_back(unserialize_cluster_metadata(row));
+  }
+  return l;
 }
 
 Instance_metadata MetadataStorage::get_instance_by_uuid(

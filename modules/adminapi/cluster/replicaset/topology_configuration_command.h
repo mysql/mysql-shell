@@ -97,12 +97,6 @@ class Topology_configuration_command : public Command_interface {
       const std::string &instance_address, const std::string &metadata_address);
 
   /**
-   * Verify if all replicaset members are ONLINE and initialize the internal
-   * replicaset instances list
-   */
-  void ensure_all_members_replicaset_online();
-
-  /**
    * Verify if all replicaset members have a version >= version
    */
   void ensure_version_all_members_replicaset(mysqlshdk::utils::Version version);
@@ -121,6 +115,7 @@ class Topology_configuration_command : public Command_interface {
  private:
   std::vector<mysqlshdk::gr::Member> m_initial_members_info;
   std::vector<std::unique_ptr<mysqlsh::dba::Instance>> m_cluster_instances;
+  void connect_all_members();
 };
 
 }  // namespace dba

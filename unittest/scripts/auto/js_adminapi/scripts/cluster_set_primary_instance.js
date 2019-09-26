@@ -52,7 +52,7 @@ cluster.setPrimaryInstance({})
 cluster.setPrimaryInstance("localhost:3355")
 
 // F6 - To execute a group configuration function all cluster members must be ONLINE.
-//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE < 8.0.13 {VER(>=8.0.13)}
+//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 cluster.setPrimaryInstance(__sandbox_uri2)

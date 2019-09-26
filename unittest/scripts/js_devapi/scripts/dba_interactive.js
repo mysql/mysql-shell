@@ -25,6 +25,7 @@ validateMembers(dba, [
     'rebootClusterFromCompleteOutage',
     'startSandboxInstance',
     'stopSandboxInstance',
+    'upgradeMetadata',
     'verbose'])
 
 //@# Dba: createCluster errors
@@ -63,7 +64,8 @@ print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
 testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
-c1.dissolve({force:true});
+c1.dissolve({ force: true });
+
 
 // Set old_sql_mode
 session.runSql("SET @@GLOBAL.SQL_MODE = '"+ original_sql_mode+ "'");
@@ -71,11 +73,31 @@ var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
 var row = result.fetchOne();
 var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
-print("Original SQL_MODE has been restored: "+ was_restored + "\n");
-
-//@ Dba: create cluster using a non existing user that authenticates as another user (BUG#26979375)
-// Clear super read_only
+print("Original SQL_MODE has been restored: " + was_restored + "\n");
 session.runSql("set GLOBAL super_read_only = 0");
+
+var enable_bug_26979375 = true;
+try {
+  var result = session.runSql("SHOW CREATE VIEW mysql_innodb_cluster_metadata.schema_version");
+  var row = result.fetchOne();
+  if (row) {
+    var create = row.getField("Create View");
+    // Because of the addition of the metadata version precondition checks, Bug
+    // 26979375 requires the schema_version view to use SECURITY INVOKER for
+    // this test to succeed using SECURITY DEFINER it is not possible to read
+    // the view if the creator user no longer exists.
+    if (create.search("SECURITY DEFINER") != -1) {
+      enable_bug_26979375 = false;
+    }
+  } else {
+    testutil.fail("Error trying to get mysql_innodb_cluster_metadata.schema_version structure");
+  }
+} catch (error) {
+  testutil.fail("Error trying to get mysql_innodb_cluster_metadata.schema_version structure");
+}
+
+//@ Dba: create cluster using a non existing user that authenticates as another user (BUG#26979375) {enable_bug_26979375}
+// Clear super read_only
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'test_user'@'%'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION");
@@ -86,7 +108,7 @@ shell.connect({scheme:'mysql', host: "127.0.0.1", port: __mysql_sandbox_port1, u
 c1 = dba.createCluster("devCluster", {clearReadOnly: true});
 c1
 
-//@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
+//@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375) {enable_bug_26979375}
 testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 c1.dissolve({force:true});
 session.close()

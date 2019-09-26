@@ -402,7 +402,7 @@ std::string Shell_script_tester::resolve_string(const std::string &source) {
     } else {
       // If not, we use whatever is defined on the scripting language
       execute_internal(token);
-      value = output_handler.std_out;
+      value = output_handler.internal_std_out;
     }
     // strip the trailing newline added by execute, but not all whitespace
     if (str_endswith(value, "\n")) value = value.substr(0, value.size() - 1);
@@ -770,6 +770,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
 
   int linenum = 0;
   bool ret_val = true;
+  bool last_chunk_enabled = true;
 
   while (ret_val && !stream.eof()) {
     std::string line;
@@ -806,7 +807,9 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
           Chunk_t chunk;
           chunk.source = path;
           chunk.def = chunk_def;
-          add_source_chunk(path, chunk);
+
+          // Every chunk will now be added depending on the context condition
+          last_chunk_enabled = add_source_chunk(path, chunk);
         }
       }
 
@@ -843,7 +846,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
               << makered("Invalid INCLUDE directive") << "\n";
         }
       }
-    } else {
+    } else if (last_chunk_enabled) {
       // Only adds the lines that are NO snippet specifier
       if (line.find("//! [") != 0) {
         if (last_id.empty()) {
@@ -869,6 +872,8 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
                   << "\n";
             }
           }
+          // If the chunk was not added because of the context, it's lines
+          // are simply ignored
           last_chunk()->code.push_back({linenum, line});
         }
       }
@@ -878,20 +883,36 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
   return ret_val;
 }
 
-void Shell_script_tester::add_source_chunk(const std::string &path,
+bool Shell_script_tester::add_source_chunk(const std::string &path,
                                            const Chunk_t &chunk) {
-  if (_chunks.find(chunk.def->id) == _chunks.end()) {
-    _chunks[chunk.def->id] = chunk;
-    // normalize Windows paths
-    _chunks[chunk.def->id].source = str_replace(chunk.source, "\\", "/");
-    _chunk_order.push_back(chunk.def->id);
-  } else {
-    ADD_FAILURE_AT(path.c_str(), chunk.def->linenum - 1)
-        << makered("REDEFINITION OF CHUNK: \"") + chunk.source << ":"
-        << chunk.def->line << "\"\n"
-        << "\tInitially defined at " << _chunks[chunk.def->id].source << ":"
-        << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
+  bool enabled = true;
+  try {
+    enabled = context_enabled(chunk.def->context);
+  } catch (const std::exception &err) {
+    // NO OP: If evaluating the context fails, it might be a context that is
+    // set with the script execution so we continue considering it enabled.
+    // Errors on this validation are ignored
   }
+
+  if (enabled) {
+    if (_chunks.find(chunk.def->id) == _chunks.end()) {
+      _chunks[chunk.def->id] = chunk;
+      // normalize Windows paths
+      _chunks[chunk.def->id].source = str_replace(chunk.source, "\\", "/");
+      _chunk_order.push_back(chunk.def->id);
+    } else {
+      ADD_FAILURE_AT(path.c_str(), chunk.def->linenum - 1)
+          << makered("REDEFINITION OF CHUNK: \"") + chunk.source << ":"
+          << chunk.def->line << "\"\n"
+          << "\tInitially defined at " << _chunks[chunk.def->id].source << ":"
+          << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
+    }
+  } else {
+    _skipped_chunks.insert(chunk.def->id);
+    SKIP_CHUNK(chunk.def->line);
+  }
+
+  return enabled;
 }
 
 void Shell_script_tester::add_validation(
@@ -1052,10 +1073,14 @@ void Shell_script_tester::load_validations(const std::string &path) {
           // Ensures the found validation is for a valid chunk
           if (_chunks.find(current_val_def->id) == _chunks.end() &&
               !g_generate_validation_file) {
-            ADD_FAILURE_AT(path.c_str(), line_no)
-                << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
-                << current_val_def->line << "\n"
-                << "\tLINE: " << line_no << "\n";
+            // The error is ONLY if the script chunk was not skipped
+            if (std::find(_skipped_chunks.begin(), _skipped_chunks.end(),
+                          current_val_def->id) == _skipped_chunks.end()) {
+              ADD_FAILURE_AT(path.c_str(), line_no)
+                  << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
+                  << current_val_def->line << "\n"
+                  << "\tLINE: " << line_no << "\n";
+            }
             skip_chunk = true;
             continue;
           }
@@ -1212,9 +1237,13 @@ void Shell_script_tester::execute_script(const std::string &path,
     if (in_chunks) {
       _options->interactive = true;
       if (load_source_chunks(script, stream)) {
-        // Loads the validations
-        load_validations(_new_format ? VAL_SCRIPT(path)
-                                     : VALIDATION_SCRIPT(path));
+        if (!_chunks.empty()) {
+          // Loads the validations
+          load_validations(_new_format ? VAL_SCRIPT(path)
+                                       : VALIDATION_SCRIPT(path));
+        } else {
+          ADD_SKIPPED_TEST("All test chunks were skipped.");
+        }
       }
 
       // Abort the script processing if something went wrong on the validation
@@ -1256,7 +1285,7 @@ void Shell_script_tester::execute_script(const std::string &path,
         bool enabled;
         try {
           enabled = context_enabled(chunk.def->context);
-        } catch (const std::invalid_argument &e) {
+        } catch (const std::exception &e) {
           ADD_FAILURE_AT(chunk.source.c_str(), chunk.code[0].first)
               << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
@@ -1359,6 +1388,7 @@ void Shell_script_tester::execute_script(const std::string &path,
             }
           }
         } else {
+          _skipped_chunks.insert(chunk.def->id);
           SKIP_CHUNK(chunk.def->line);
         }
       }
@@ -1528,6 +1558,10 @@ void Shell_script_tester::set_defaults() {
   exec_and_out_equals(code);
 
   def_var("__os_type", "'" + shcore::to_string(shcore::get_os_type()) + "'");
+  def_var("__test_data_path",
+          shcore::quote_string(shcore::path::join_path(g_test_home, "data", ""),
+                               '\'') +
+              ";");
 
 #ifdef WITH_OCI
   def_var("__with_oci", "1");
@@ -1691,15 +1725,15 @@ bool Shell_script_tester::context_enabled(const std::string &context) {
 
     std::string value;
     execute_internal(code);
-    value = output_handler.std_out;
+    value = output_handler.internal_std_out;
     value = str_strip(value);
     if (value == "true" || value == "True") {
       ret_val = true;
     } else if (value == "false" || value == "False") {
       ret_val = false;
     } else {
-      if (!output_handler.std_err.empty()) {
-        throw std::invalid_argument(output_handler.std_err);
+      if (!output_handler.internal_std_err.empty()) {
+        throw std::invalid_argument(output_handler.internal_std_err);
       } else {
         throw std::invalid_argument(
             "Context does not evaluate to a boolean "

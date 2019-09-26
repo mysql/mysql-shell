@@ -88,8 +88,8 @@ class Set_option : public Command_interface {
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
+  void connect_all_members();
   void ensure_option_valid();
-  void ensure_all_members_replicaset_online();
   void ensure_option_supported_all_members_replicaset();
 };
 }  // namespace dba

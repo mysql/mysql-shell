@@ -193,7 +193,8 @@ void Shell_test_wrapper::enable_testutil() {
       [this]() -> void {
         EXPECT_EQ(0, output_handler.prompts.size());
         EXPECT_EQ(0, output_handler.passwords.size());
-      });
+      },
+      [this]() -> void { output_handler.wipe_all(); });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
     _testutil->set_sandbox_snapshot_dir(

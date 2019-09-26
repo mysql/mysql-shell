@@ -29,6 +29,7 @@
 
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -72,16 +73,20 @@ std::string describe(State state);
 }  // namespace ManagedInstance
 
 namespace ReplicationQuorum {
-enum State {
-  Normal = 1 << 0,
-  Quorumless = 1 << 1,
-  Dead = 1 << 2,
-  Any = Normal | Quorumless | Dead
+enum class States {
+  All_online = 1 << 0,
+  Normal = 1 << 1,
+  Quorumless = 1 << 2,
+  Dead = 1 << 3,
 };
-}
+
+using State = mysqlshdk::utils::Enum_set<States, States::Dead>;
+
+}  // namespace ReplicationQuorum
 
 struct Cluster_check_info {
   // The state of the cluster from the quorum point of view
+  // Supports multiple states i.e. Normal | All_online
   ReplicationQuorum::State quorum;
 
   // The configuration type of the instance from which the data was consulted
@@ -95,9 +100,6 @@ void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<Instance> &group_server);
-
-void check_preconditions(const std::string &function_name,
-                         const Cluster_check_info &info);
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,

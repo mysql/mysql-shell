@@ -10,8 +10,8 @@ Cluster.setPrimaryInstance: Operation not supported on target server version: '<
 ||Invalid connection options, no options provided. (ArgumentError)
 ||The instance 'localhost:3355' does not belong to the ReplicaSet: 'default'. (RuntimeError)
 
-//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE < 8.0.13 {VER(>=8.0.13)}
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
+//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
+||Cluster.setPrimaryInstance: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing setPrimaryInstance on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
 Cluster.setPrimaryInstance: There is no quorum to perform the operation (RuntimeError)

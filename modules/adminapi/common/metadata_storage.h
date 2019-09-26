@@ -57,6 +57,8 @@ struct Instance_metadata {
 };
 
 struct Cluster_metadata {
+  Cluster_type type = Cluster_type::GROUP_REPLICATION;
+
   Cluster_id cluster_id = 0;
   std::string cluster_name;
   std::string description;
@@ -107,7 +109,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * @param out_version - version of the metadata schema, if not NULL
    * @returns true if MD schema exists, false if not.
    */
-  bool check_exists(mysqlshdk::utils::Version *out_version = nullptr) const;
+  bool check_version(mysqlshdk::utils::Version *out_version = nullptr) const;
 
   virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted);
 
@@ -189,7 +191,10 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                           const std::string &new_label);
   size_t get_cluster_size(Cluster_id cluster_id) const;
 
-  std::vector<Instance_metadata> get_all_instances(Cluster_id cluster_id = 0);
+  std::vector<Instance_metadata> get_all_instances(
+      Cluster_id cluster_id = 0, const char *schema = nullptr);
+  std::vector<Cluster_metadata> get_all_clusters();
+
   Instance_metadata get_instance_by_uuid(const std::string &uuid);
 
   Instance_metadata get_instance_by_endpoint(

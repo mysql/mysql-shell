@@ -30,13 +30,7 @@
 // clang-format off
 
 const char *k_metadata_schema_version = "${METADATA_MODEL_VERSION}";
-const char *k_metadata_schema_internal_version = "${METADATA_MODEL_INTERNAL_VERSION}";
 
 const char *k_metadata_schema_script = ${METADATA_MODEL_DATA};
-
-const Metadata_upgrade_script k_metadata_upgrade_scripts[] = {
-${METADATA_MODEL_UPGRADE_DATA}
-  {Version(), Version(), nullptr}
-};
 
 // clang-format on

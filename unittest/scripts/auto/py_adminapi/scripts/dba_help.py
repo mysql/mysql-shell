@@ -132,3 +132,9 @@ dba.help('verbose')
 
 #@ global help for verbose[USE:dba.verbose]
 \help dba.verbose
+
+#@ Upgrade Metadata
+dba.help('upgrade_metadata');
+
+#@ Upgrade Metadata, \? [USE:Upgrade Metadata]
+\? upgrade_metadata

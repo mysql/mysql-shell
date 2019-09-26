@@ -1,6 +1,3 @@
-#@<OUT> __global__
-true
-
 #@<OUT> Test first configuration attempt
 This MySQL Shell Wizard will help you to configure a new OCI profile.
 Configuring OCI for the profile 'DEFAULT'. Press Ctrl+C to cancel the wizard at any time.

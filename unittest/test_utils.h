@@ -125,6 +125,8 @@ class Shell_test_output_handler {
   shcore::Interpreter_delegate deleg;
   std::string std_err;
   std::string std_out;
+  std::string internal_std_err;
+  std::string internal_std_out;
   std::stringstream full_output;
   std::mutex stdout_mutex;
   static std::vector<std::string> log;

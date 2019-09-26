@@ -7,7 +7,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Option 'foobar' not supported. (ArgumentError)
 
 //@ WL#11465: Error when executing setOption on a cluster with 1 or more members not ONLINE
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' has the status: '(MISSING)'. All members must be ONLINE.|One or more instances of the cluster are not ONLINE. (RuntimeError)
+||Cluster.setOption: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setOption: There is no quorum to perform the operation (RuntimeError)

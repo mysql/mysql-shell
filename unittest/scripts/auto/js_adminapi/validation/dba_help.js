@@ -52,6 +52,10 @@ FUNCTIONS
       stopSandboxInstance(port[, options])
             Stops a running MySQL Server instance on localhost.
 
+      upgradeMetadata([options])
+            Upgrades (or restores) the metadata to the version supported by the
+            Shell.
+
       For more help on a specific function use: dba.help('<functionName>')
 
       e.g. dba.help('deploySandboxInstance')
@@ -933,4 +937,40 @@ EXCEPTIONS
       - If the options contain an invalid attribute.
       - If the root password is missing on the options.
       - If the port value is < 1024 or > 65535.
+
+//@<OUT> Upgrade Metadata
+NAME
+      upgradeMetadata - Upgrades (or restores) the metadata to the version
+                        supported by the Shell.
+
+SYNTAX
+      dba.upgradeMetadata([options])
+
+WHERE
+      options: Dictionary with option for the operation.
+
+DESCRIPTION
+      Compares the version of the installed metadata schema with the version of
+      the metadata schema supported by this Shell.
+
+      If the installed metadata version is lower it will execute the required
+      operations to update it.
+
+      If the installed metadata is not available because a previous call to
+      this function ended unexpectedly, this function will restore the metadata
+      to the state it was before the failed upgrade operation.
+
+      The options dictionary accepts the following attributes:
+
+      - dryRun: boolean, causes the function to display information about the
+        upgrade or restore operation without actually executing it.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - A global session is not available.
+      - A global session is available but the target instance does not have the
+        metadata installed.
+      - The installed metadata is a newer version than the one supported by the
+        shell.
 

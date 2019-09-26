@@ -13,5 +13,6 @@ validate_members(dba, [
     'reboot_cluster_from_complete_outage',
     'start_sandbox_instance',
     'stop_sandbox_instance',
+    'upgrade_metadata',
     'verbose',
     ])

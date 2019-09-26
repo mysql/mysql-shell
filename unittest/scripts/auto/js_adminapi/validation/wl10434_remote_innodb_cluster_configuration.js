@@ -5,7 +5,6 @@
 ||An open session is required to perform this operation.
 
 //@<OUT> FR_1 Configure instance not valid for InnoDB cluster {VER(>=8.0.11)}
-true
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -117,7 +116,6 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster
 ||Dba.configureInstance: Unable to update configuration
 
 //@<OUT> FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' with cnf file path {VER(>=8.0.11)}
-true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -152,7 +150,6 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 ||
 
 //@<OUT>FR3.1_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' {VER(<8.0.11)}
-true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -315,7 +312,6 @@ Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 
 //@<OUT> ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
-true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>

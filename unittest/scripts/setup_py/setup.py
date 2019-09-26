@@ -1,4 +1,5 @@
 from __future__ import print_function
+import difflib
 
 def get_members(object):
   all_exports = dir(object)
@@ -141,3 +142,16 @@ def validate_members(object, expected_members):
 
   if len(errors):
     testutil.fail(', '.join(errors))
+
+def print_differences(source, target):
+    src_lines = []
+    tgt_lines = []
+
+    with open(source) as f:
+        src_lines = f.readlines()
+
+    with open(target) as f:
+        tgt_lines = f.readlines()
+
+    for line in difflib.context_diff(src_lines, tgt_lines, fromfile=source, tofile=target):
+        testutil.dprint(line)

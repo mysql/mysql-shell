@@ -53,7 +53,7 @@ cluster.switchToSinglePrimaryMode(1234)
 cluster.switchToSinglePrimaryMode({})
 
 // F6 - To execute a group configuration function all cluster members must be ONLINE.
-//@ WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with 1 or more members not ONLINE < 8.0.13 {VER(>=8.0.13)}
+//@ WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with 1 or more members not ONLINE
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 cluster.switchToSinglePrimaryMode()

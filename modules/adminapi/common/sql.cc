@@ -205,9 +205,9 @@ Cluster_check_info get_replication_group_state(
   }
 
   if (!has_quorum)
-    ret_val.quorum = ReplicationQuorum::State::Quorumless;
+    ret_val.quorum = ReplicationQuorum::States::Quorumless;
   else
-    ret_val.quorum = ReplicationQuorum::State::Normal;
+    ret_val.quorum = ReplicationQuorum::States::Normal;
 
   return ret_val;
 }

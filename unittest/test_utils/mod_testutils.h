@@ -96,6 +96,12 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined setTrap(String type, Array conditions, Dictionary options);
   None clearTraps(String type);
   None resetTraps(String type);
+  Undefined sslCreateCA(String name);
+  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
+                           String clientcn);
+  Undefined wipeAllOutput();
+  String getCurrentMetadataVersion();
+  String getInstalledMetadataVersion();
   // Undefined slowify(Integer port, Boolean start);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
@@ -143,6 +149,11 @@ class Testutils : public mysqlsh::Extensible_object {
   None set_trap(str type, list conditions, dict options);
   None clear_traps(str type);
   None reset_traps(str type);
+  None ssl_create_ca(str name);
+  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
+  None wipe_all_output();
+  str get_current_metadata_version();
+  str get_installed_metadata_version();
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -159,16 +170,18 @@ class Testutils : public mysqlsh::Extensible_object {
       std::function<void(const std::string &, const std::string &)>;
 
   using Output_fn = std::function<std::string(bool)>;
-  using Assert_no_prompts_fn = std::function<void()>;
+  using Simple_callback = std::function<void()>;
 
   void set_test_callbacks(Input_fn feed_prompt, Input_fn feed_password,
                           Output_fn fetch_stdout, Output_fn fetch_stderr,
-                          Assert_no_prompts_fn assert_no_prompts) {
+                          Simple_callback assert_no_prompts,
+                          Simple_callback wipe_all_output) {
     _feed_prompt = feed_prompt;
     _feed_password = feed_password;
     _fetch_stdout = fetch_stdout;
     _fetch_stderr = fetch_stderr;
     _assert_no_prompts = assert_no_prompts;
+    _wipe_all_output = wipe_all_output;
   }
 
   void set_test_execution_context(const std::string &file, int line,
@@ -215,11 +228,15 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string get_sandbox_path(int port = 0, const std::string &file = "");
 
   void dump_data(const std::string &uri, const std::string &path,
-                 const std::vector<std::string> &schemas);
+                 const std::vector<std::string> &schemas,
+                 const shcore::Dictionary_t &options);
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
 
   bool is_tcp_port_listening(const std::string &host, int port);
+
+  std::string get_current_metadata_version_string();
+  std::string get_installed_metadata_version_string();
 
  public:
   // InnoDB cluster routines
@@ -285,6 +302,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
   void assert_no_prompts();
+  void wipe_all_output();
 
   bool version_check(const std::string &v1, const std::string &op,
                      const std::string &v2);
@@ -336,7 +354,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Input_fn _feed_password;
   Output_fn _fetch_stdout;
   Output_fn _fetch_stderr;
-  Assert_no_prompts_fn _assert_no_prompts;
+  Simple_callback _assert_no_prompts;
+  Simple_callback _wipe_all_output;
   std::string _test_file;
   int _test_line = 0;
   Shell_test_env *_test_env = nullptr;

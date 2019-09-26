@@ -78,67 +78,48 @@ void Topology_configuration_command::
   }
 }
 
-void Topology_configuration_command::ensure_all_members_replicaset_online() {
-  auto console = mysqlsh::current_console();
-
-  log_debug("Checking if all members of the Replicaset are ONLINE.");
-
-  // Get all cluster instances
-  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-      instance_defs = m_replicaset->get_instances_with_state();
-
+void Topology_configuration_command::connect_all_members() {
   // Get cluster session to use the same authentication credentials for all
   // replicaset instances.
   Connection_options cluster_cnx_opt =
       m_cluster_session_instance->get_connection_options();
 
+  auto console = mysqlsh::current_console();
+
   // Check if all instances have the ONLINE state
-  for (const auto &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state = instance_def.second.state;
+  for (const auto &instance_def : m_replicaset->get_instances_with_state()) {
+    // Instance is ONLINE, initialize and populate the internal replicaset
+    // instances list
 
-    if (state != mysqlshdk::gr::Member_state::ONLINE) {
-      console->print_error("The instance '" + instance_def.first.endpoint +
-                           "' has the status: '" +
-                           mysqlshdk::gr::to_string(state) +
-                           "'. All members must be ONLINE.");
+    // Establish a session to the instance
+    // Set login credentials to connect to instance.
+    // NOTE: It is assumed that the same login credentials can be used to
+    // connect to all replicaset instances.
+    Connection_options instance_cnx_opts =
+        shcore::get_connection_options(instance_def.first.endpoint, false);
+    instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
 
-      throw shcore::Exception::runtime_error(
-          "One or more instances of the cluster are not ONLINE.");
-    } else {
-      // Instance is ONLINE, initialize and populate the internal replicaset
-      // instances list
+    log_debug("Connecting to instance '%s'.",
+              instance_def.first.endpoint.c_str());
 
-      // Establish a session to the instance
-      // Set login credentials to connect to instance.
-      // NOTE: It is assumed that the same login credentials can be used to
-      // connect to all replicaset instances.
-      std::string instance_address = instance_def.first.endpoint;
-
-      Connection_options instance_cnx_opts =
-          shcore::get_connection_options(instance_address, false);
-      instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
-
-      log_debug("Connecting to instance '%s'.", instance_address.c_str());
+    // Establish a session to the instance
+    try {
       std::shared_ptr<mysqlshdk::db::ISession> session;
+      session = mysqlshdk::db::mysql::Session::create();
+      session->connect(instance_cnx_opts);
 
-      // Establish a session to the instance
-      try {
-        session = mysqlshdk::db::mysql::Session::create();
-        session->connect(instance_cnx_opts);
+      // Add the instance to instances internal list
+      m_cluster_instances.emplace_back(
+          std::make_unique<mysqlsh::dba::Instance>(session));
+    } catch (const std::exception &err) {
+      log_debug("Failed to connect to instance: %s", err.what());
 
-        // Add the instance to instances internal list
-        m_cluster_instances.emplace_back(
-            std::make_unique<mysqlsh::dba::Instance>(session));
-      } catch (const std::exception &err) {
-        log_debug("Failed to connect to instance: %s", err.what());
+      console->print_error(
+          "Unable to connect to instance '" + instance_def.first.endpoint +
+          "'. Please, verify connection credentials and make sure the "
+          "instance is available.");
 
-        console->print_error(
-            "Unable to connect to instance '" + instance_address +
-            "'. Please, verify connection credentials and make sure the "
-            "instance is available.");
-
-        throw shcore::Exception::runtime_error(err.what());
-      }
+      throw shcore::Exception::runtime_error(err.what());
     }
   }
 }
@@ -260,8 +241,8 @@ void Topology_configuration_command::prepare() {
   // Verify user privileges to execute operation;
   ensure_user_privileges(*m_cluster_session_instance);
 
-  // Verify if all the cluster members are ONLINE
-  ensure_all_members_replicaset_online();
+  // Establishes a session to all the cluster members
+  connect_all_members();
 
   // Verify if all cluster members have a version >= 8.0.13
   ensure_version_all_members_replicaset(mysqlshdk::utils::Version(8, 0, 13));

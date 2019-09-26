@@ -78,6 +78,16 @@ void set_random_password(const IInstance &instance, const std::string &user,
 
 std::string generate_password(size_t password_length = kPASSWORD_LENGTH);
 
+void drop_view_or_table(const IInstance &instance, const std::string &schema,
+                        const std::string &name, bool if_exists);
+
+void drop_table_or_view(const IInstance &instance, const std::string &schema,
+                        const std::string &name, bool if_exists);
+
+void copy_schema(const mysql::IInstance &instance, const std::string &name,
+                 const std::string &target, bool use_existing_schema,
+                 bool move_tables);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

@@ -130,7 +130,7 @@ var dissolve_sql = [
 
 var drop_metadata_sql = [
     "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid",
-    "DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata"
+    "DROP SCHEMA IF EXISTS `mysql_innodb_cluster_metadata`"
 ];
 
 // ---------- WL#13294 (dba.logSql = 0) ----------

@@ -88,10 +88,12 @@ bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
     if (target->debug || g_test_trace_scripts ||
         shcore::str_beginswith(text, "**"))
       std::cout << text << std::flush;
-  }
 
-  std::lock_guard<std::mutex> lock(target->stdout_mutex);
-  target->std_out.append(text);
+    std::lock_guard<std::mutex> lock(target->stdout_mutex);
+    target->std_out.append(text);
+  } else {
+    target->internal_std_out.append(text);
+  }
 
   return true;
 }
@@ -114,10 +116,16 @@ bool Shell_test_output_handler::deleg_print_error(void *user_data,
     std::cout << (shcore::str_beginswith(text, "ERROR") ? makelred(text) : text)
               << std::endl;
 
-  if (target->m_errors_on_stderr)
-    target->std_err.append(text);
-  else
-    target->std_out.append(text);
+  if (!target->m_internal) {
+    if (target->m_errors_on_stderr)
+      target->std_err.append(text);
+    else {
+      std::lock_guard<std::mutex> lock(target->stdout_mutex);
+      target->std_out.append(text);
+    }
+  } else {
+    target->internal_std_err.append(text);
+  }
 
   return true;
 }
@@ -126,12 +134,16 @@ bool Shell_test_output_handler::deleg_print_diag(void *user_data,
                                                  const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
-  target->full_output << makered(text) << std::endl;
+  if (!target->m_internal) {
+    target->full_output << makered(text) << std::endl;
 
-  if (target->debug || g_test_trace_scripts)
-    std::cerr << makered(text) << std::endl;
+    if (target->debug || g_test_trace_scripts)
+      std::cerr << makered(text) << std::endl;
 
-  target->std_err.append(text);
+    target->std_err.append(text);
+  } else {
+    target->internal_std_err.append(text);
+  }
 
   return true;
 }
@@ -437,7 +449,8 @@ void Shell_core_test_wrapper::enable_testutil() {
       [this]() -> void {
         EXPECT_EQ(0, output_handler.prompts.size());
         EXPECT_EQ(0, output_handler.passwords.size());
-      });
+      },
+      [this]() -> void { output_handler.wipe_all(); });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
     testutil->set_sandbox_snapshot_dir(
@@ -506,6 +519,8 @@ void Shell_core_test_wrapper::execute(const std::string &code) {
 }
 
 void Shell_core_test_wrapper::execute_internal(const std::string &code) {
+  output_handler.internal_std_err.clear();
+  output_handler.internal_std_out.clear();
   output_handler.set_internal(true);
   _interactive_shell->process_line(code);
   output_handler.set_internal(false);

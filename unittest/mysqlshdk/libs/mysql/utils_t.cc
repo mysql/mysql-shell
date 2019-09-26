@@ -168,5 +168,165 @@ TEST_F(Mysql_utils, clone_user_replace_grantee) {
           "'foo'@'bar'"));
 }
 
+TEST_F(Mysql_utils, drop_table_or_view) {
+  auto session = create_mysql_session();
+  mysqlshdk::mysql::Instance instance(session);
+
+  instance.execute("DROP SCHEMA IF EXISTS drop_table_or_view");
+  instance.execute("CREATE SCHEMA drop_table_or_view");
+  instance.execute("USE drop_table_or_view");
+
+  instance.execute("CREATE TABLE tsample (id INT, name VARCHAR(30))");
+  instance.execute("CREATE VIEW vsample AS SELECT * FROM tsample");
+
+  EXPECT_THROW_LIKE(
+      drop_table_or_view(instance, "drop_table_or_view", "unexisting", false),
+      mysqlshdk::db::Error, "Unknown table 'drop_table_or_view.unexisting'");
+
+  EXPECT_NO_THROW(
+      drop_table_or_view(instance, "drop_table_or_view", "unexisting", true));
+
+  EXPECT_NO_THROW(
+      drop_table_or_view(instance, "drop_table_or_view", "vsample", true));
+
+  EXPECT_NO_THROW(
+      drop_table_or_view(instance, "drop_table_or_view", "tsample", true));
+
+  instance.execute("DROP SCHEMA drop_table_or_view");
+}
+
+TEST_F(Mysql_utils, drop_view_or_table) {
+  auto session = create_mysql_session();
+  mysqlshdk::mysql::Instance instance(session);
+
+  instance.execute("DROP SCHEMA IF EXISTS drop_view_or_table");
+  instance.execute("CREATE SCHEMA drop_view_or_table");
+  instance.execute("USE drop_view_or_table");
+
+  instance.execute("CREATE TABLE tsample (id INT, name VARCHAR(30))");
+  instance.execute("CREATE VIEW vsample AS SELECT * FROM tsample");
+
+  EXPECT_THROW_LIKE(
+      drop_view_or_table(instance, "drop_view_or_table", "unexisting", false),
+      mysqlshdk::db::Error, "Unknown table 'drop_view_or_table.unexisting'");
+
+  EXPECT_NO_THROW(
+      drop_view_or_table(instance, "drop_view_or_table", "unexisting", true));
+
+  EXPECT_NO_THROW(
+      drop_view_or_table(instance, "drop_view_or_table", "vsample", true));
+
+  EXPECT_NO_THROW(
+      drop_view_or_table(instance, "drop_view_or_table", "tsample", true));
+
+  instance.execute("DROP SCHEMA drop_view_or_table");
+}
+
+void verify_schema_structure(const mysqlshdk::mysql::Instance &instance,
+                             const std::string &schema,
+                             bool with_tables = true) {
+  std::set<std::string> objects;
+  auto result = instance.queryf("SHOW TABLES FROM !", schema.c_str());
+  auto row = result->fetch_one();
+  while (row) {
+    objects.insert(row->get_string(0));
+    row = result->fetch_one();
+  }
+
+  if (with_tables) {
+    EXPECT_NE(objects.end(), objects.find("table1"));
+    EXPECT_NE(objects.end(), objects.find("table2"));
+  } else {
+    EXPECT_EQ(objects.end(), objects.find("table1"));
+    EXPECT_EQ(objects.end(), objects.find("table2"));
+  }
+
+  EXPECT_EQ(objects.end(), objects.find("table3"));
+
+  EXPECT_NE(objects.end(), objects.find("view1"));
+  EXPECT_NE(objects.end(), objects.find("view2"));
+  EXPECT_EQ(objects.end(), objects.find("view3"));
+
+  // We can not query the views if the tables no longer exist
+  if (with_tables) {
+    result = instance.queryf("SELECT * FROM !.view1", schema.c_str());
+    row = result->fetch_one();
+    EXPECT_EQ(1, row->get_int(0));
+    EXPECT_EQ(0, row->get_int(1));
+    EXPECT_EQ(1, row->get_int(2));
+    EXPECT_EQ(nullptr, result->fetch_one());
+
+    result = instance.queryf("SELECT * FROM !.view2", schema.c_str());
+    row = result->fetch_one();
+    EXPECT_EQ(1, row->get_int(0));
+    EXPECT_EQ("John Doe", row->get_string(1));
+    EXPECT_EQ(nullptr, result->fetch_one());
+  }
+}
+
+TEST_F(Mysql_utils, copy_schema) {
+  auto session = create_mysql_session();
+  mysqlshdk::mysql::Instance instance(session);
+
+  // BASE DATA FOR TESTS
+  instance.execute("DROP SCHEMA IF EXISTS copy_schema_demo1");
+  instance.execute("DROP SCHEMA IF EXISTS copy_schema_demo2");
+  instance.execute("DROP SCHEMA IF EXISTS copy_schema_demo3");
+  instance.execute("DROP SCHEMA IF EXISTS copy_schema_demo4");
+
+  instance.execute("CREATE SCHEMA copy_schema_demo1");
+  instance.execute("USE copy_schema_demo1");
+  instance.execute("CREATE TABLE table1 (id INT, name VARCHAR(30))");
+  instance.execute("INSERT INTO table1 VALUES (1, 'John Doe')");
+  instance.execute("CREATE TABLE table2 (id INT, name VARCHAR(30))");
+  instance.execute(
+      "CREATE VIEW view1 (major, minor, patch) AS SELECT "
+      "1, 0, 1");
+  instance.execute("CREATE VIEW view2 AS SELECT * FROM table1");
+
+  instance.execute("CREATE SCHEMA copy_schema_demo2");
+  instance.execute("USE copy_schema_demo2");
+  instance.execute("CREATE TABLE table1 (id INT, name VARCHAR(30))");
+  instance.execute("INSERT INTO table1 VALUES (2, 'Jane Doe')");
+  instance.execute("CREATE TABLE table3 (id INT, name VARCHAR(30))");
+  instance.execute(
+      "CREATE VIEW view1 (major, minor, patch) AS SELECT "
+      "2, 0, 2");
+  instance.execute("CREATE VIEW view3 AS SELECT * FROM table1");
+
+  // ERROR BACKING UP TO EXISTING SCHEMA
+  EXPECT_THROW(copy_schema(instance, "copy_schema_demo1", "copy_schema_demo2",
+                           false, false),
+               std::runtime_error);
+
+  // OK BACKING UP TO EXISTING SCHEMA
+  EXPECT_NO_THROW(copy_schema(instance, "copy_schema_demo1",
+                              "copy_schema_demo2", true, false));
+
+  verify_schema_structure(instance, "copy_schema_demo2");
+
+  // OK BACKING UP TO NON EXISTING SCHEMA
+  EXPECT_NO_THROW(copy_schema(instance, "copy_schema_demo1",
+                              "copy_schema_demo3", true, false));
+
+  verify_schema_structure(instance, "copy_schema_demo3");
+
+  // So far all the tests have been real data copy (not moves) so the source
+  // schema should continue containing the data
+  verify_schema_structure(instance, "copy_schema_demo1");
+
+  // Now backups to another schema but MOVING the tables
+  EXPECT_NO_THROW(copy_schema(instance, "copy_schema_demo1",
+                              "copy_schema_demo4", true, true));
+
+  verify_schema_structure(instance, "copy_schema_demo1", false);
+  verify_schema_structure(instance, "copy_schema_demo4");
+
+  instance.execute("DROP SCHEMA copy_schema_demo1");
+  instance.execute("DROP SCHEMA copy_schema_demo2");
+  instance.execute("DROP SCHEMA copy_schema_demo3");
+  instance.execute("DROP SCHEMA copy_schema_demo4");
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

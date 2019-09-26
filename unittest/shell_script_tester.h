@@ -160,6 +160,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   // Chunks of code will be stored here
   std::string _filename;
   std::map<std::string, Chunk_t> _chunks;
+  std::set<std::string> _skipped_chunks;
   std::vector<std::string> _chunk_order;
   std::map<std::string, Chunk_validations> _chunk_validations;
 
@@ -185,7 +186,7 @@ class Shell_script_tester : public Crud_test_wrapper {
       const std::string &line);
   bool load_source_chunks(const std::string &path, std::istream &stream,
                           const std::string &prefix = "");
-  void add_source_chunk(const std::string &path, const Chunk_t &chunk);
+  bool add_source_chunk(const std::string &path, const Chunk_t &chunk);
   void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
                       const std::vector<std::string> &source);
   void load_validations(const std::string &path);

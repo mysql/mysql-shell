@@ -66,6 +66,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
                                             Dictionary options);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
+  Undefined upgradeMetadata(Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
   JSON check_instance_configuration(InstanceDef instance, dict options);
@@ -80,6 +81,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
+  None upgrade_metadata(dict options);
 #endif
 
   explicit Dba(shcore::IShell_core *owner);
@@ -136,6 +138,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   shcore::Value create_cluster(const std::string &cluster_name,
                                const shcore::Dictionary_t &options);
+  void upgrade_metadata(const shcore::Dictionary_t &options);
 
   shcore::Value get_cluster_(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
