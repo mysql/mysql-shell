@@ -42,6 +42,7 @@
 
 //@<OUT> Regular, extended:1
 {
+    "metadataVersion": "<<<testutil.getInstalledMetadataVersion()>>>",
     "replicaSet": {
         "name": "myrs", 
         "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
@@ -89,6 +90,7 @@
 
 //@<OUT> Regular, extended:2
 {
+    "metadataVersion": "<<<testutil.getInstalledMetadataVersion()>>>",
     "replicaSet": {
         "name": "myrs", 
         "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
@@ -178,6 +180,7 @@
 
 //@<OUT> Heartbeat interval, extended:2
 {
+    "metadataVersion": "<<<testutil.getInstalledMetadataVersion()>>>",
     "replicaSet": {
         "name": "myrs", 
         "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",

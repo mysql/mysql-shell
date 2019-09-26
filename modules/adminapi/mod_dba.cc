@@ -50,6 +50,7 @@
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/dba/create_cluster.h"
+#include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_replica_set.h"
@@ -646,10 +647,12 @@ std::shared_ptr<Instance> Dba::connect_to_target_member() const {
       coptions.set_port(row->get_int(0));
       coptions.set_scheme("mysql");
     }
+
     auto member_session = mysqlshdk::db::mysql::Session::create();
     member_session->connect(coptions);
     return std::make_shared<Instance>(member_session);
   }
+
   return {};
 }
 
@@ -731,7 +734,7 @@ void Dba::connect_to_target_group(
     }
   }
 
-  *out_group_server = target_member;
+  if (out_group_server) *out_group_server = target_member;
 
   // Metadata is always stored in the group, so for now the session can be
   // shared
@@ -1207,7 +1210,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
   // Check preconditions.
   Cluster_check_info state;
   try {
-    state = check_preconditions(group_server, "createCluster");
+    state = check_function_preconditions("Dba.createCluster", group_server);
   } catch (const shcore::Exception &e) {
     std::string error(e.what());
     if (error.find("already in an InnoDB cluster") != std::string::npos) {
@@ -1236,7 +1239,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
           "either dba.<<<dropMetadataSchema>>>() to drop the schema, or "
           "dba.<<<rebootClusterFromCompleteOutage>>>() to reboot the cluster "
           "from complete outage.";
-      throw shcore::Exception::runtime_error(nice_error);
+      throw shcore::Exception::runtime_error(shcore::str_subvars(nice_error));
     } else {
       throw;
     }
@@ -1308,33 +1311,34 @@ void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
         .end();
   }
 
-  std::shared_ptr<Instance> instance =
-      std::make_shared<Instance>(get_active_shell_session());
-
+  auto instance = std::make_shared<Instance>(get_active_shell_session());
   auto state = check_function_preconditions("Dba.dropMetadataSchema", instance);
+  auto metadata = std::make_shared<MetadataStorage>(instance);
 
   bool interactive = current_shell_options()->get().wizards;
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(instance->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
 
   // The drop operation is only allowed on members of an InnoDB Cluster or a
   // Replica Set, and only for online members that are either RW or RO, however
   // if it is RO we need to get to a primary instance to perform the operation
   if (state.source_state == ManagedInstance::OnlineRO) {
     if (state.source_type == GRInstanceType::InnoDBCluster) {
-      connect_to_target_group(instance, nullptr, &instance, true);
+      connect_to_target_group({}, &metadata, nullptr, true);
     } else {
-      auto metadata = std::make_shared<MetadataStorage>(instance);
+      Instance_pool::Auth_options auth_opts;
+      auth_opts.get(instance->get_connection_options());
+      Scoped_instance_pool ipool(interactive, auth_opts);
       ipool->set_metadata(metadata);
+
       auto rs = get_replica_set(metadata, instance);
 
       rs->acquire_primary();
       auto finally = shcore::on_leave_scope([&rs]() { rs->release_primary(); });
 
-      instance = rs->get_primary_master();
+      metadata = ipool->get_metadata();
     }
   }
+
+  instance = metadata->get_md_server();
 
   auto console = current_console();
 
@@ -1813,7 +1817,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   }
 
   return ret_val;
-}  // namespace dba
+}
 
 REGISTER_HELP_FUNCTION(deploySandboxInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_DEPLOYSANDBOXINSTANCE, R"*(
@@ -2024,7 +2028,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
   }
 
   return ret_val;
-}  // namespace dba
+}
 
 REGISTER_HELP_FUNCTION(deleteSandboxInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_DELETESANDBOXINSTANCE, R"*(
@@ -2570,9 +2574,6 @@ execution, i.e. prompts are not provided to the user and confirmation prompts
 are not shown.
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
-
-If the outputMycnfPath option is used, only that file is updated and mycnfPath
-is treated as read-only.
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
@@ -3460,27 +3461,50 @@ Upgrades (or restores) the metadata to the version supported by the Shell.
 
 @param options Optional dictionary with option for the operation.
 
-Compares the version of the installed metadata schema with the version of
-the metadata schema supported by this Shell.
+This function will compare the version of the installed metadata schema
+with the version of the metadata schema supported by this Shell. If the
+installed metadata version is lower, an upgrade process will be started.
 
-If the installed metadata version is lower it will execute the required
-operations to update it.
+The options dictionary accepts the following attributes:
+
+@li dryRun: boolean value used to enable a dry run of the upgrade process.
+@li interactive: boolean value used to disable/enable interactive mode.
+
+If dryRun is used, the function will determine whether a metadata upgrade
+or restore is required and inform the user without actually executing the
+operation.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through te upgrade process. The default
+value is equal to MySQL Shell wizard mode.
+
+<b>The Upgrade Process</b>
+
+When upgrading the metadata schema of clusters deployed by Shell versions before
+8.0.19, a rolling upgrade of existing MySQL Router instances is required.
+This process allows minimizing disruption to applications during the upgrade.
+
+The rolling upgrade process must be performed in the following order:
+
+-# Execute dba.<<<upgradeMetadata>>>() using the latest Shell version. The
+upgrade function will stop if outdated Router instances are detected, at
+which point you can stop the upgrade to resume later.
+-# Upgrade MySQL Router to the latest version (same version number as the Shell)
+-# Continue or re-execute dba.<<<upgradeMetadata>>>()
+
+
+<b>Failed Upgrades</b>
 
 If the installed metadata is not available because a previous call to this
 function ended unexpectedly, this function will restore the metadata to the
 state it was before the failed upgrade operation.
-
-The options dictionary accepts the following attributes:
-
-@li dryRun: boolean, causes the function to display information about the
-upgrade or restore operation without actually executing it.
 
 @throw RuntimeError in the following scenarios:
 @li A global session is not available.
 @li A global session is available but the target instance does not have the
 metadata installed.
 @li The installed metadata is a newer version than the one supported by the
-shell.
+Shell.
 )*");
 /**
  * $(DBA_UPGRADEMETADATA_BRIEF)
@@ -3494,42 +3518,49 @@ None Dba::upgrade_metadata(dict options) {}
 #endif
 void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
   bool dry_run = false;
+  bool interactive = current_shell_options()->get().wizards;
 
   if (options) {
     // Retrieves optional options if exists
-    Unpack_options(options).optional("dryRun", &dry_run).end();
+    Unpack_options(options)
+        .optional("dryRun", &dry_run)
+        .optional("interactive", &interactive)
+        .end();
   }
 
-  std::shared_ptr<MetadataStorage> metadata;
-  std::shared_ptr<Instance> group_server(connect_to_target_member());
-  check_preconditions(group_server, "upgradeMetadata");
+  auto instance = std::make_shared<Instance>(get_active_shell_session());
+  auto state = check_function_preconditions("Dba.upgradeMetadata", instance);
+  auto metadata = std::make_shared<MetadataStorage>(instance);
 
-  connect_to_target_group(group_server, &metadata, &group_server, false);
-
-  bool interactive = current_shell_options()->get().wizards;
+  // The pool is initialized with the metadata using the current session
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(group_server->get_connection_options());
+  auth_opts.get(instance->get_connection_options());
   Scoped_instance_pool ipool(interactive, auth_opts);
+  ipool->set_metadata(metadata);
 
-  std::string current_user, current_host;
-  group_server->get_current_user(&current_user, &current_host);
+  // If it happens we are on a RO instance, we update the metadata to make it
+  // use a session to the PRIMARY of the IDC/RSET
+  if (state.source_state == ManagedInstance::OnlineRO) {
+    if (state.source_type == GRInstanceType::InnoDBCluster) {
+      connect_to_target_group({}, &metadata, nullptr, true);
+    } else {
+      auto rs = get_replica_set(metadata, instance);
 
-  std::string error_info;
-  if (!validate_cluster_admin_user_privileges(*group_server, current_user,
-                                              current_host, &error_info)) {
-    auto console = mysqlsh::current_console();
-    console->print_error(error_info);
-    throw shcore::Exception::runtime_error(
-        "The account " + shcore::make_account(current_user, current_host) +
-        " is missing privileges required for this operation.");
+      rs->acquire_primary();
+      auto finally = shcore::on_leave_scope([&rs]() { rs->release_primary(); });
+
+      metadata = ipool->get_metadata();
+    }
   }
 
-  auto state = mysqlsh::dba::metadata::version_compatibility(group_server);
-  if (state == mysqlsh::dba::metadata::State::FAILED_UPGRADE) {
-    metadata::restore_schema(group_server, dry_run);
-  } else {
-    metadata::upgrade_schema(group_server, dry_run);
-  }
+  Upgrade_metadata op_upgrade(metadata, interactive, dry_run);
+
+  auto finally =
+      shcore::on_leave_scope([&op_upgrade]() { op_upgrade.finish(); });
+
+  op_upgrade.prepare();
+
+  op_upgrade.execute();
 }
 
 }  // namespace dba

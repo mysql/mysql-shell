@@ -1449,7 +1449,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
   EXPECT_EQ(out_protocol_version, mysqlshdk::utils::Version());
 }
 
-TEST_F(Group_replication_test, check_instance_version_compatibility) {
+TEST_F(Group_replication_test, check_instance_check_installed_schema_version) {
   using mysqlshdk::db::Type;
   using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
@@ -1503,8 +1503,9 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
     }
 
     if (is_compatible) {
-      EXPECT_NO_THROW(mysqlshdk::gr::check_instance_version_compatibility(
-          instance, lowest_cluster_version));
+      EXPECT_NO_THROW(
+          mysqlshdk::gr::check_instance_check_installed_schema_version(
+              instance, lowest_cluster_version));
     } else {
       std::string major, str_instance_version, str_cluster_version;
       if (instance_version <= mysqlshdk::utils::Version(8, 0, 16)) {
@@ -1518,14 +1519,14 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
         str_cluster_version = lowest_cluster_version.get_base();
       }
 
-      EXPECT_THROW_LIKE(mysqlshdk::gr::check_instance_version_compatibility(
-                            instance, lowest_cluster_version),
-                        std::runtime_error,
-                        "Instance " + major + "version '" +
-                            str_instance_version +
-                            "' cannot be lower than the "
-                            "cluster lowest " +
-                            major + "version '" + str_cluster_version + "'.");
+      EXPECT_THROW_LIKE(
+          mysqlshdk::gr::check_instance_check_installed_schema_version(
+              instance, lowest_cluster_version),
+          std::runtime_error,
+          "Instance " + major + "version '" + str_instance_version +
+              "' cannot be lower than the "
+              "cluster lowest " +
+              major + "version '" + str_cluster_version + "'.");
     }
   };
 

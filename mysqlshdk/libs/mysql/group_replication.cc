@@ -1079,7 +1079,7 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
   return result;
 }
 
-void check_instance_version_compatibility(
+void check_instance_check_installed_schema_version(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version) {
   mysqlshdk::utils::nullable<bool> gr_allow_lower_version_join =

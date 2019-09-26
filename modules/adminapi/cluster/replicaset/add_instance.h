@@ -151,7 +151,7 @@ class Add_instance : public Command_interface {
 
   Member_recovery_method validate_instance_recovery();
 
-  void ensure_instance_version_compatibility() const;
+  void ensure_instance_check_installed_schema_version() const;
 
   /**
    * Validate the use of IPv6 addresses on the localAddress of the

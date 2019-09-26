@@ -691,9 +691,10 @@ use the extended option instead.
 The extended option supports Integer or Boolean values:
 
 @li 0: disables the command verbosity (default);
-@li 1: includes information about the Group Protocol Version, Group name,
-       cluster member UUIDs, cluster member roles and states as reported by
-       Group Replication and the list of fenced system variables;
+@li 1: includes information about the Metadata Version, Group Protocol
+       Version, Group name, cluster member UUIDs, cluster member roles and
+       states as reported byGroup Replication and the list of fenced system
+       variables;
 @li 2: includes information about transactions processed by connection and
        applier;
 @li 3: includes more detailed stats about the replication machinery of each

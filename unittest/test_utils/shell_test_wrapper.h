@@ -91,7 +91,7 @@ class Shell_test_wrapper {
   std::shared_ptr<tests::Testutils> _testutil;
   std::string _sandbox_dir;
   bool _recording_enabled;
-  bool _dummy_sandboxes;
+  bool _skip_server_interaction;
 
   std::string
       _mysql_port;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT

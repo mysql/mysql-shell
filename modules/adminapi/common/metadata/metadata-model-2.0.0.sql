@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS clusters (
   `router_options` JSON,
 
   PRIMARY KEY(cluster_id)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 
 /*
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS instances (
     network address of the host of the instance.
     Taken from @@report_host or @@hostname
   */
-  `address` VARCHAR(256) CHARACTER SET ascii COLLATE ascii_general_ci,
+  `address` VARCHAR(265) CHARACTER SET ascii COLLATE ascii_general_ci,
   /*
     MySQL generated server_uuid for the instance
   */
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS instances (
 
   PRIMARY KEY(instance_id, cluster_id),
   FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 
 --  AR ReplicaSet Tables
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS async_cluster_views (
 
   FOREIGN KEY (cluster_id)
     REFERENCES clusters (cluster_id)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 
 /*
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS async_cluster_members (
 
   FOREIGN KEY (cluster_id, view_id)
       REFERENCES async_cluster_views (cluster_id, view_id)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 /*
   This table contain a list of all router instances that are tracked by the
@@ -310,7 +310,7 @@ CREATE TABLE IF NOT EXISTS routers (
   `options` JSON DEFAULT NULL,
 
   UNIQUE KEY (address, router_name)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 /*
   This table contains a list of all REST user accounts that are granted
@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS router_rest_accounts (
   `attributes` JSON DEFAULT NULL,
 
   PRIMARY KEY (cluster_id, user)
-) CHARSET = utf8mb4;
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 
 --  Public Interface Views

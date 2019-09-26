@@ -28,198 +28,18 @@
 
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/libs/db/mysqlx/expr_parser.h"
+#include "mysqlshdk/libs/utils/array_result.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 namespace reports {
 
 namespace {
-
-// minimal implementation of a cursor over an array in order to reuse
-// Resultset_dumper
-class Array_as_result : public mysqlshdk::db::IResult {
- public:
-  explicit Array_as_result(const shcore::Array_t &array) {
-    if (array->size() < 1) {
-      throw std::logic_error("Expecting at least one row.");
-    }
-
-    for (const auto &row : *array) {
-      if (row.type != shcore::Value_type::Array) {
-        throw std::logic_error("Expecting a list of lists.");
-      }
-
-      m_data.emplace_back();
-
-      for (const auto &value : *row.as_array()) {
-        bool is_null = value.type == shcore::Value_type::Undefined ||
-                       value.type == shcore::Value_type::Null;
-        m_data.back().emplace_back(is_null ? "NULL" : value.descr());
-      }
-    }
-
-    for (const auto &column : m_data[0]) {
-      m_metadata.emplace_back(
-          "unknown",  // catalog will not be used by dumper
-          "unknown",  // schema will not be used by dumper
-          "unknown",  // table name will not be used by dumper
-          "unknown",  // table label will not be used by dumper
-          column,     // column name
-          column,     // column label
-          1,  // length will not be used by dumper if zero-fill is set to false
-          1,  // fractional digits will not be used by dumper
-          mysqlshdk::db::Type::String,  // type
-          1,       // collation ID will not be used by dumper
-          false,   // unsigned
-          false,   // zero-fill
-          false);  // binary will not be used by dumper
-    }
-  }
-
-  const mysqlshdk::db::IRow *fetch_one() override {
-    if (!has_resultset()) {
-      return nullptr;
-    }
-
-    if (m_current_row < m_data.size()) {
-      m_row = std::make_unique<Vector_as_row>(m_data[m_current_row]);
-      ++m_current_row;
-      return m_row.get();
-    } else {
-      return nullptr;
-    }
-  }
-
-  bool next_resultset() override {
-    m_has_result = false;
-    return has_resultset();
-  }
-
-  bool has_resultset() override {
-    return static_cast<const Array_as_result *>(this)->has_resultset();
-  }
-
-  bool has_resultset() const { return m_has_result; }
-
-  const std::vector<mysqlshdk::db::Column> &get_metadata() const override {
-    if (!has_resultset()) {
-      throw std::logic_error("No result, unable to fetch metadata");
-    }
-
-    return m_metadata;
-  }
-
-  void buffer() override {
-    // data is always buffered
-  }
-
-  void rewind() override {
-    if (!has_resultset()) {
-      throw std::logic_error("No result, unable to rewind");
-    }
-
-    m_current_row = 1;
-  }
-
-  std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning() override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  int64_t get_auto_increment_value() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_affected_row_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_fetched_row_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  uint64_t get_warning_count() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  std::string get_info() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  const std::vector<std::string> &get_gtids() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
-  std::shared_ptr<mysqlshdk::db::Field_names> field_names() const override {
-    throw std::logic_error("Not implemented.");
-  }
-
- private:
-  class Vector_as_row : public mysqlshdk::db::IRow {
-   public:
-    explicit Vector_as_row(const std::vector<std::string> &row) : m_row(row) {}
-
-    mysqlshdk::db::Type get_type(uint32_t /* idx */) const override {
-      return mysqlshdk::db::Type::String;
-    }
-
-    bool is_null(uint32_t idx) const override { return idx >= m_row.size(); }
-
-    std::string get_as_string(uint32_t idx) const override {
-      return get_string(idx);
-    }
-
-    std::string get_string(uint32_t idx) const override {
-      if (idx < m_row.size()) {
-        return m_row[idx];
-      } else {
-        return "NULL";
-      }
-    }
-
-    int64_t get_int(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint64_t get_uint(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    float get_float(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    double get_double(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint32_t num_fields() const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    std::pair<const char *, size_t> get_string_data(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-    uint64_t get_bit(uint32_t) const override {
-      throw std::logic_error("Not implemented.");
-    }
-
-   private:
-    const std::vector<std::string> &m_row;
-  };
-
-  bool m_has_result = true;
-  size_t m_current_row = 1;
-  std::vector<mysqlshdk::db::Column> m_metadata;
-  std::vector<std::vector<std::string>> m_data;
-  std::unique_ptr<Vector_as_row> m_row;
-};
-
 using Resultset_writer_member = std::string (Resultset_writer::*)();
 
 std::string resultset_formatter(const shcore::Array_t &report,
                                 Resultset_writer_member member) {
-  Array_as_result result{report};
+  shcore::Array_as_result result{report};
   Resultset_writer writer{&result};
 
   return (writer.*member)();
@@ -272,7 +92,7 @@ std::string table_formatter(const shcore::Array_t &report) {
 }
 
 std::string brief_formatter(const shcore::Array_t &report) {
-  Array_as_result result{report};
+  shcore::Array_as_result result{report};
   std::string output;
 
   while (result.has_resultset()) {

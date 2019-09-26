@@ -128,7 +128,10 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * Works with any schema version.
    */
   bool check_instance_type(const std::string &uuid,
+                           const mysqlshdk::utils::Version &md_version,
                            Cluster_type *out_type) const;
+
+  bool check_all_members_online();
 
   virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted);
 
@@ -216,8 +219,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::vector<Instance_metadata> get_replica_set_members(
       const Cluster_id &cluster_id, uint64_t *out_view_id);
 
-  std::vector<Instance_metadata> get_all_instances(
-      Cluster_id cluster_id = "", const char *schema = nullptr);
+  std::vector<Instance_metadata> get_all_instances(Cluster_id cluster_id = "");
 
   Instance_metadata get_instance_by_uuid(const std::string &uuid);
 
@@ -253,7 +255,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   /**
    * Get the internal metadata session/instance object.
    */
-  Instance *get_md_server() const { return m_md_server.get(); }
+  std::shared_ptr<Instance> get_md_server() const { return m_md_server; }
 
  public:
   /**
@@ -273,6 +275,12 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void record_async_primary_forced_switch(
       Instance_id new_primary_id, const std::list<Instance_id> &invalidated);
 
+  mysqlsh::dba::metadata::State get_state() { return m_md_state; };
+
+  void invalidate_cached() {
+    m_md_state = mysqlsh::dba::metadata::State::NONEXISTING;
+  }
+
  private:
   uint32_t inc_view_failover_counter(uint32_t view_id) const;
   void begin_acl_change_record(const Cluster_id &cluster_id,
@@ -286,14 +294,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::shared_ptr<Instance> m_md_server;
   bool m_owns_md_server;
   mutable mysqlshdk::utils::Version m_md_version;
+  mutable mysqlsh::dba::metadata::State m_md_state =
+      mysqlsh::dba::metadata::State::NONEXISTING;
 
   mysqlshdk::utils::Version version() const {
     check_version();
     return m_md_version;
   }
-
-  std::string get_cluster_query();
-  std::string get_instance_query();
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql) const;
@@ -305,10 +312,15 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   }
 
   Cluster_metadata unserialize_cluster_metadata(
-      const mysqlshdk::db::Row_ref_by_name &record);
+      const mysqlshdk::db::Row_ref_by_name &record,
+      const mysqlshdk::utils::Version &version);
 
   Instance_metadata unserialize_instance(
-      const mysqlshdk::db::Row_ref_by_name &row);
+      const mysqlshdk::db::Row_ref_by_name &row,
+      mysqlshdk::utils::Version *mdver_in = nullptr);
+
+  bool find_reliable_metadata_info(mysqlshdk::utils::Version *version,
+                                   std::string *schema_name) const;
 };
 }  // namespace dba
 }  // namespace mysqlsh

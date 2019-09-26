@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,43 +39,36 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata-model_definitions.h"
+#include "modules/adminapi/common/metadata_backup_handler.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
-
-#if defined(__APPLE__)
-#define FALLTHROUGH
-#elif __has_cpp_attribute(fallthrough)
-#define FALLTHROUGH [[fallthrough]]
-#elif __has_cpp_attribute(clang::fallthrough)
-#define FALLTHROUGH [[clang::fallthrough]]
-#elif __has_cpp_attribute(gnu::fallthrough)
-#define FALLTHROUGH [[gnu::fallthrough]]
-#else
-#define FALLTHROUGH
-#endif
 
 using mysqlshdk::utils::Version;
 
 namespace mysqlsh {
 namespace dba {
 namespace metadata {
+
 namespace {
-constexpr char kMetadataSchemaBackupName[] =
-    "mysql_innodb_cluster_metadata_bkp";
+constexpr char kMetadataSchemaPreviousName[] =
+    "mysql_innodb_cluster_metadata_previous";
+
 constexpr char kMetadataUpgradeLock[] =
     "mysql_innodb_cluster_metadata.upgrade_in_progress";
 
+constexpr char kMetadataSchemaVersion[] = "schema_version";
+
 Version get_version(const std::shared_ptr<Instance> &group_server,
-                    const std::string &schema = kMetadataSchemaName) {
+                    const std::string &schema = kMetadataSchemaName,
+                    const std::string &view = kMetadataSchemaVersion) {
   try {
-    auto result = group_server->queryf(
-        "SELECT `major`, `minor`, `patch` FROM !.schema_version",
-        schema.c_str());
+    auto result =
+        group_server->queryf("SELECT `major`, `minor`, `patch` FROM !.!",
+                             schema.c_str(), view.c_str());
     auto row = result->fetch_one_or_throw();
 
     return Version(row->get_int(0), row->get_int(1), row->get_int(2));
@@ -94,22 +87,18 @@ Version get_version(const std::shared_ptr<Instance> &group_server,
 
 using Instance_list = std::list<Scoped_instance>;
 
-void set_schema_version(const std::shared_ptr<Instance> &group_server,
-                        Version version) {
-  try {
-    group_server->executef(
-        "ALTER VIEW !.schema_version (major, minor, patch) AS SELECT ?, ?, ?",
-        kMetadataSchemaName, version.get_major(), version.get_minor(),
-        version.get_patch());
-  } catch (const mysqlshdk::db::Error &error) {
-    if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
-      throw;
+Version set_schema_version(const std::shared_ptr<Instance> &group_server,
+                           const Version &version,
+                           const std::string &view = kMetadataSchemaVersion) {
+  log_debug("Updating metadata version to %s.", version.get_base().c_str());
 
-    group_server->executef(
-        "CREATE VIEW !.schema_version (major, minor, patch) AS SELECT ?, ?, ?",
-        kMetadataSchemaName, version.get_major(), version.get_minor(),
-        version.get_patch());
-  }
+  group_server->executef(
+      "CREATE OR REPLACE SQL SECURITY INVOKER VIEW !.! (major, "
+      "minor, patch) AS SELECT ?, ?, ?",
+      kMetadataSchemaName, view.c_str(), version.get_major(),
+      version.get_minor(), version.get_patch());
+
+  return version;
 }
 
 bool schema_exists(const std::shared_ptr<Instance> &group_server,
@@ -118,40 +107,172 @@ bool schema_exists(const std::shared_ptr<Instance> &group_server,
 
   auto row = result->fetch_one();
 
-  // If the schema exists but not the table we are on version 1.0.0
   return row ? true : false;
 }
-
 }  // namespace
 
 namespace upgrade {
-namespace steps {
+enum class Stage {
+  OK,                       // implicit
+  NONE,                     // implicit
+  SETTING_UPGRADE_VERSION,  // persisted
+  UPGRADING,                // persisted
+  DONE,                     // persisted
+  CLEANUP                   // derived from stage + schema_version
+};
+
+std::string to_string(Stage stage) {
+  switch (stage) {
+    case Stage::OK:
+      return "OK";
+    case Stage::NONE:
+      return "NONE";
+    case Stage::SETTING_UPGRADE_VERSION:
+      return "SETTING_UPGRADE_VERSION";
+    case Stage::UPGRADING:
+      return "UPGRADING";
+    case Stage::DONE:
+      return "DONE";
+    case Stage::CLEANUP:
+      return "CLEANUP";
+  }
+  throw std::logic_error("internal error");
+}
+
+Stage to_stage(const std::string &stage) {
+  if (stage == "OK")
+    return Stage::OK;
+  else if (stage == "NONE")
+    return Stage::NONE;
+  else if (stage == "SETTING_UPGRADE_VERSION")
+    return Stage::SETTING_UPGRADE_VERSION;
+  else if (stage == "UPGRADING")
+    return Stage::UPGRADING;
+  else if (stage == "DONE")
+    return Stage::DONE;
+  else if (stage == "CLEANUP")
+    return Stage::CLEANUP;
+  else
+    throw std::logic_error("internal error");
+}
+
+Stage save_stage(const std::shared_ptr<Instance> &group_server, Stage stage) {
+  log_debug("Updating metadata upgrade stage to: %s",
+            upgrade::to_string(stage).c_str());
+
+  group_server->executef(
+      "CREATE OR REPLACE SQL SECURITY INVOKER VIEW !.! (stage) AS SELECT ?",
+      kMetadataSchemaBackupName, "backup_stage", to_string(stage));
+
+  return stage;
+}
+
+Stage compute_failed_upgrade_stage(
+    const mysqlshdk::utils::nullable<Stage> &saved_stage,
+    const Version &schema_version, bool backup_exists) {
+  bool at_target_version = schema_version == current_version();
+  bool at_upgrading_version = schema_version == kUpgradingVersion;
+  bool at_original_version = !at_upgrading_version &&
+                             schema_version != kNotInstalled &&
+                             !at_target_version;
+
+  log_info(
+      "Detecting state of failed MD schema upgrade... schema_version=%s, "
+      "target_version=%s, backup_exists=%i, saved_stage=%s",
+      schema_version.get_base().c_str(), current_version().get_base().c_str(),
+      backup_exists,
+      saved_stage.is_null() ? "null" : to_string(*saved_stage).c_str());
+
+  Stage actual_stage;
+
+  if (!backup_exists && at_upgrading_version)
+    actual_stage = upgrade::Stage::CLEANUP;
+  else if (saved_stage == Stage::DONE && at_upgrading_version)
+    actual_stage = upgrade::Stage::DONE;
+  else if (saved_stage == Stage::UPGRADING)
+    // all possible version values handled the same way, including original,
+    // 0.0.0 and NULL/missing. latest version is impossible, but allowed
+    actual_stage = Stage::UPGRADING;
+  else if (saved_stage == Stage::SETTING_UPGRADE_VERSION &&
+           at_upgrading_version)
+    actual_stage = Stage::SETTING_UPGRADE_VERSION;
+  else if (saved_stage == Stage::SETTING_UPGRADE_VERSION && at_original_version)
+    actual_stage = Stage::NONE;
+  else if (backup_exists && saved_stage.is_null() && at_original_version)
+    actual_stage = Stage::NONE;
+  else if (!backup_exists && at_target_version)
+    actual_stage = upgrade::Stage::OK;
+  else if (!backup_exists && at_original_version)
+    actual_stage = upgrade::Stage::OK;
+  else  // not supposed to reach here
+    throw std::logic_error(
+        "Metadata schema upgrade was left in an inconsistent state");
+
+  log_info("Failed MD schema upgrade detected to be in stage %s",
+           to_string(actual_stage).c_str());
+
+  return actual_stage;
+}
+
 /**
- * This function is for testing purposes, it would upgrade a metadata from
- * version 1.0.0 (which does not exist) to version 1.0.1 (which is the very
- * first version available). The only thing it does is create the
- * schema_version view with 1.0.1
+ * This function is called knowing that there's a metadata backup schema
  */
-void upgrade_100_101(const std::shared_ptr<Instance> &group_server) {
+Stage detect_failed_stage(const std::shared_ptr<Instance> &group_server) {
+  mysqlshdk::utils::nullable<Stage> saved_stage;
+  bool backup_exists = schema_exists(group_server, kMetadataSchemaBackupName);
+  ;
+  auto schema_version = get_version(group_server);
+
+  if (backup_exists) {
+    try {
+      auto result = group_server->queryf(
+          "SELECT `stage` FROM !.!", kMetadataSchemaBackupName, "backup_stage");
+      auto row = result->fetch_one_or_throw();
+
+      saved_stage = to_stage(row->get_string(0));
+      backup_exists = true;
+    } catch (const mysqlshdk::db::Error &error) {
+      if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
+        throw std::runtime_error(
+            "Unable to detect Metadata upgrade state. Please check account "
+            "privileges.");
+      } else if (error.code() != ER_NO_SUCH_TABLE &&
+                 error.code() != ER_BAD_DB_ERROR) {
+        throw;
+      }
+    }
+  }
+
+  return compute_failed_upgrade_stage(saved_stage, schema_version,
+                                      backup_exists);
+}
+
+namespace steps {
+
+void upgrade_101_200(const std::shared_ptr<Instance> &group_server) {
   DBUG_EXECUTE_IF("dba_FAIL_metadata_upgrade_at_UPGRADING", {
     throw std::logic_error(
         "Debug emulation of failed metadata upgrade "
         "UPGRADING.");
   });
-  mysqlsh::dba::metadata::set_schema_version(group_server, Version(1, 0, 1));
+  auto result = group_server->queryf("SELECT COUNT(*) FROM !.!",
+                                     kMetadataSchemaName, "clusters");
+
+  auto row = result->fetch_one();
+
+  int count = row->get_int(0);
+  if (count > 1) {
+    throw std::runtime_error(
+        shcore::str_format("Inconsistent Metadata: unexpected number of "
+                           "registered clusters: %d",
+                           count)
+            .c_str());
+  }
+
+  execute_script(group_server, k_metadata_upgrade_scripts.at("2.0.0"),
+                 "While upgrading Metadata schema");
 }
-
 }  // namespace steps
-
-enum class State {
-  INITIAL,
-  BACKING_UP_METADATA,
-  GETTING_LOCKS,
-  SETTING_UPGRADE_VERSION,
-  UPGRADING,
-  DONE,
-  FAILED
-};
 
 struct Step {
   Version source_version;
@@ -160,7 +281,7 @@ struct Step {
 };
 
 const Step k_steps[] = {
-    {Version(1, 0, 0), Version(1, 0, 1), &steps::upgrade_100_101},
+    {Version(1, 0, 1), Version(2, 0, 0), &steps::upgrade_101_200},
     {kNotInstalled, kNotInstalled, nullptr}};
 
 bool get_lock(const std::shared_ptr<Instance> &instance) {
@@ -178,29 +299,21 @@ bool get_lock(const std::shared_ptr<Instance> &instance) {
  * Gets a lock on all the instances of the cluster.
  *
  * @param group_server a session to the master instance of the cluster.
- * @param relaxed boolean to enable/disable failing if the instances table does
- *                not exist.
- *
- * The relaxed parameter is required to force the instances to be retrieved
- * from the metadata or not, i.e. when doing an upgrade it is required that they
- * are pulled from there. Doing a restore might not be the case as we don't know
- * the state of the instances table.
  */
-Instance_list get_locks(const std::shared_ptr<Instance> &group_server,
-                        const std::string &schema) {
+Instance_list get_locks(const std::shared_ptr<Instance> &group_server) {
   auto ipool = current_ipool();
 
   Instance_list locked_instances;
 
   MetadataStorage metadata(group_server);
 
-  auto instances_md = metadata.get_all_instances("", schema.c_str());
+  auto instances_md = metadata.get_all_instances("");
   std::shared_ptr<mysqlsh::dba::Instance> instance;
   for (const auto &instance_md : instances_md) {
     try {
       instance = ipool->connect_unchecked_endpoint(instance_md.endpoint);
     } catch (const shcore::Exception &error) {
-      log_warning("Unable to reach instance '%s' for Metadata Upgrade: %s",
+      log_warning("Unable to reach instance '%s' for metadata upgrade: %s",
                   instance_md.endpoint.c_str(), error.what());
       continue;
     }
@@ -230,48 +343,144 @@ void release_locks(const Instance_list &instances) {
   }
 }
 
+void drop_metadata_backups(const std::shared_ptr<Instance> &group_server,
+                           bool both) {
+  auto console = current_console();
+  console->print_info("Removing metadata backup...");
+  if (both) {
+    log_debug("Dropping metadata backup: %s.", kMetadataSchemaPreviousName);
+    group_server->executef("DROP SCHEMA IF EXISTS !",
+                           kMetadataSchemaPreviousName);
+  }
+  log_debug("Dropping metadata backup: %s.", kMetadataSchemaBackupName);
+  group_server->executef("DROP SCHEMA IF EXISTS !", kMetadataSchemaBackupName);
+}
+/**
+ * Restore Process Steps
+ * =====================
+ * 1) Drop MD Schema
+ * 2) Deploy MD Schema in upgrading mode (schema_version is 0.0.0)
+ * 2.1) Set MD to Upgrading Version
+ * 3) Restore Data From Backup
+ * 4) Drop Step Backup
+ * 5) Drop Backup
+ * 5.1) Set MD to Original Version
+ * 5.2) Remove temporary view with original version
+ */
+
+/**
+ * The following table shows the combinations of persisted stage and
+ * schema_version and to which recovery action they lead to.
+ *
+ * The stage name in the step column shows the value of the Stage enum that
+ * is detected by detect_failed_stage(), while the stage column shows the stage
+ * that's persisted in the backup schema.
+ *
+ * Every combination of stage and schema_version that can happen during
+ * an upgrade or restore should be accounted for here, to ensure that we can
+ * recover from a crash at any arbitrary point.
+ *
+ * Because a stage+version combination is listed for every step executed
+ * for both upgrade and recovery and every stage+version combination has a
+ * matching recovery procedure, we can be sure that we can recover to a sane
+ * state (either rollback or roll-forward) for any crashes at any point.
+ *
+ * stage   | ver   | step
+ * --------|-------|----------------------------
+ * NULL    | 0.0.0 |  CLEANUP: (finish)
+ * NULL    | 0.0.0 |      set_schema_version(latest)
+ * NULL    | 2.0.0 |      break
+ *
+ * DONE    | 0.0.0 |  DONE: (finish)
+ * DONE    | 0.0.0 |      drop backup
+ * NULL    | 0.0.0 |      set_schema_version(latest)
+ * NULL    | 2.0.0 |      break
+ *
+ * UPGRAD  | 0.0.0 |  UPGRADING: (rollback)
+ * UPGRAD  | 0.0.0 |      drop metadata
+ * UPGRAD  | NULL  |      restore backup
+ * UPGRAD  | NULL  |      set_schema_version(original)
+ * UPGRAD  | 1.0.1 |      drop backup
+ * NULL    | 1.0.1 |      break
+ *
+ * S_U_VER | 0.0.0 |  SETTING_UPGRADE_VERSION: (rollback)
+ * S_U_VER | 0.0.0 |      set_schema_version(original)
+ * S_U_VER | 1.0.1 |      drop backup
+ * NULL    | 1.0.1 |      break
+ *
+ * NULL'   | 1.0.1 |  NONE:
+ * NULL'   | 1.0.1 |      drop backup
+ * NULL    | 1.0.1 |      break
+ *
+ * NULL    | 2.0.0 |  OK: upgrade succeeded
+ * NULL    | 1.0.1 |  OK: upgrade failed, but no changes were made
+ *
+ * Additional states for failures during recovery:
+ *
+ * UPGRAD  | NULL  | same as UPGRADING + 0.0.0
+ *
+ * UPGRAD  | 1.0.1 | same as UPGRADING + 0.0.0
+ *
+ * S_U_VER | 1.0.1 | same as NONE
+ */
 void cleanup(const std::shared_ptr<Instance> &group_server,
-             const Instance_list &locked_instances,
-             const Version &original_version, upgrade::State state) {
+             upgrade::Stage stage) {
   auto console = current_console();
 
-  // Fallthrough is used on this switch because the cleanup operations get
-  // incrementing as the upgrade process progresses, depending on the final
-  // state is the required cleanup actions
-  switch (state) {
-    // Restoring the metadata is required whenever a failure occurred. UPGRADING
-    // state indicates a fatal error ocurred during the upgrade
-    case State::FAILED:
-    case State::UPGRADING:
-      console->print_info("Restoring metadata to version " +
-                          original_version.get_base() + "...");
-
-      mysqlshdk::mysql::copy_schema(*group_server, kMetadataSchemaBackupName,
-                                    kMetadataSchemaName, true, false);
-      FALLTHROUGH;
-      // Removing the metadata backup is whenever the backup schema created
-    case State::SETTING_UPGRADE_VERSION:
-    case State::DONE:
-    case State::BACKING_UP_METADATA:
-      console->print_info("Removing metadata backup...");
-      group_server->executef("DROP SCHEMA IF EXISTS !",
-                             kMetadataSchemaBackupName);
-      FALLTHROUGH;
-      // Locks need to be released to tell other shell instances that the
-      // upgrade/restore process is done
-    case State::GETTING_LOCKS:
-      release_locks(locked_instances);
+  switch (stage) {
+    // Schema is either at the original or the latest version
+    case Stage::OK:
       break;
-    case State::INITIAL:
+
+    // Initial stages, where the upgrade didn't start yet.
+    case Stage::NONE:
+      drop_metadata_backups(group_server, true);
+      break;
+
+    case Stage::SETTING_UPGRADE_VERSION:
+      set_schema_version(group_server,
+                         get_version(group_server, kMetadataSchemaBackupName));
+      drop_metadata_backups(group_server, true);
+      break;
+
+    // During upgrade
+    case Stage::UPGRADING: {
+      Version orig_version =
+          get_version(group_server, kMetadataSchemaBackupName);
+
+      console->print_info("Restoring metadata to version " +
+                          orig_version.get_base() + "...");
+
+      log_debug("Restoring metadata from backup: %s",
+                kMetadataSchemaBackupName);
+
+      backup(orig_version, kMetadataSchemaBackupName, kMetadataSchemaName,
+             group_server, "restoring backup of the metadata", true);
+
+      set_schema_version(group_server, orig_version);
+      drop_metadata_backups(group_server, true);
+      break;
+    }
+
+    // Clean up stages, after the upgrade itself completed
+    case Stage::DONE:
+      drop_metadata_backups(group_server, true);
+      set_schema_version(group_server, Version(k_metadata_schema_version));
+      break;
+
+    case Stage::CLEANUP:
+      set_schema_version(group_server, Version(k_metadata_schema_version));
       break;
   }
-
-  // Finally enables foreign key checks
-  group_server->execute("SET FOREIGN_KEY_CHECKS=1");
 }
 }  // namespace upgrade
 
-Version current_version() { return Version(k_metadata_schema_version); }
+Version current_version() {
+  // To emulate upgrades to 1.0.1
+  DBUG_EXECUTE_IF("dba_EMULATE_CURRENT_MD_1_0_1", { return Version(1, 0, 1); });
+
+  return Version(k_metadata_schema_version);
+}
 
 Version installed_version(const std::shared_ptr<Instance> &group_server,
                           const std::string &schema_name) {
@@ -279,82 +488,115 @@ Version installed_version(const std::shared_ptr<Instance> &group_server,
 
   // If not available we need to determine if it is because the MD schema does
   // not exist at all or it's just the schema_version view that does not exist
-  if (ret_val == kNotInstalled && schema_exists(group_server, schema_name))
-    ret_val = Version(1, 0, 0);
+  if (ret_val == kNotInstalled && schema_exists(group_server, schema_name)) {
+    throw std::runtime_error(shcore::str_format(
+        "Error verifying metadata version, the metadata "
+        "schema %s is inconsistent: the schema_version view is missing.",
+        schema_name.c_str()));
+  }
 
   return ret_val;
 }
 
-State version_compatibility(const std::shared_ptr<Instance> &group_server,
-                            mysqlshdk::utils::Version *out_installed) {
+bool find_reliable_metadata_info(const std::shared_ptr<Instance> &group_server,
+                                 mysqlshdk::utils::Version *version,
+                                 std::string *schema_name) {
+  upgrade::Stage stage = upgrade::detect_failed_stage(group_server);
+
+  Version tmp_version = kNotInstalled;
+  std::string target_schema = kMetadataSchemaName;
+  switch (stage) {
+    case upgrade::Stage::OK:
+    case upgrade::Stage::NONE:
+      tmp_version = installed_version(group_server, kMetadataSchemaName);
+      break;
+    case upgrade::Stage::SETTING_UPGRADE_VERSION:
+    case upgrade::Stage::UPGRADING:
+      tmp_version = installed_version(group_server, kMetadataSchemaBackupName);
+      target_schema = kMetadataSchemaBackupName;
+      break;
+    case upgrade::Stage::DONE:
+    case upgrade::Stage::CLEANUP:
+      tmp_version = Version(k_metadata_schema_version);
+      break;
+  }
+
+  if (tmp_version != kNotInstalled) {
+    if (version) *version = tmp_version;
+    if (schema_name) *schema_name = target_schema;
+    return true;
+  }
+  return false;
+}
+
+State check_installed_schema_version(
+    const std::shared_ptr<Instance> &group_server,
+    mysqlshdk::utils::Version *out_installed) {
+  mysqlshdk::utils::Version installed = kNotInstalled;
   State state = State::NONEXISTING;
 
-  try {
-    auto installed = installed_version(group_server);
+  if (schema_exists(group_server, kMetadataSchemaName) ||
+      schema_exists(group_server, kMetadataSchemaBackupName)) {
+    upgrade::Stage stage = upgrade::detect_failed_stage(group_server);
 
-    // Returns the installed version if requested
-    if (out_installed) *out_installed = installed;
+    switch (stage) {
+      case upgrade::Stage::OK:
+      case upgrade::Stage::NONE: {
+        auto current = current_version();
+        installed = installed_version(group_server, kMetadataSchemaName);
 
-    if (installed != kNotInstalled) {
-      auto current = current_version();
-
-      if (installed == kUpgradingVersion) {
-        state = State::FAILED_UPGRADE;
-
-        // Verifies if the target server is locked to determine if an upgrade is
-        // in progress
+        if (installed == current) {
+          state = State::EQUAL;
+        } else {
+          if (current.get_major() == installed.get_major()) {
+            if (current.get_minor() == installed.get_minor()) {
+              if (current.get_patch() < installed.get_patch()) {
+                state = State::PATCH_HIGHER;
+              } else {
+                state = State::PATCH_LOWER;
+              }
+            } else {
+              if (current.get_minor() < installed.get_minor()) {
+                state = State::MINOR_HIGHER;
+              } else {
+                state = State::MINOR_LOWER;
+              }
+            }
+          } else {
+            if (current.get_major() < installed.get_major()) {
+              state = State::MAJOR_HIGHER;
+            } else {
+              state = State::MAJOR_LOWER;
+            }
+          }
+        }
+        break;
+      }
+      case upgrade::Stage::SETTING_UPGRADE_VERSION:
+      case upgrade::Stage::UPGRADING:
+      case upgrade::Stage::DONE:
+      case upgrade::Stage::CLEANUP:
+        installed = kUpgradingVersion;
         if (upgrade::get_lock(group_server)) {
           upgrade::release_lock(group_server);
+          state = State::FAILED_UPGRADE;
         } else {
           state = State::UPGRADING;
         }
-      } else if (installed == current) {
-        state = State::EQUAL;
-      } else {
-        if (current.get_major() == installed.get_major()) {
-          if (current.get_minor() == installed.get_minor()) {
-            if (current.get_patch() < installed.get_patch()) {
-              state = State::PATCH_HIGHER;
-            } else {
-              state = State::PATCH_LOWER;
-            }
-          } else {
-            if (current.get_minor() < installed.get_minor()) {
-              state = State::MINOR_HIGHER;
-            } else {
-              state = State::MINOR_LOWER;
-            }
-          }
-        } else {
-          if (current.get_major() < installed.get_major()) {
-            state = State::MAJOR_HIGHER;
-          } else {
-            state = State::MAJOR_LOWER;
-          }
-        }
-      }
+        break;
     }
-  } catch (const mysqlshdk::db::Error &error) {
-    throw std::runtime_error("Error verifying metadata version: " +
-                             error.format());
   }
+
+  // Returns the installed version if requested
+  if (out_installed) *out_installed = installed;
 
   return state;
 }
 
 void install(const std::shared_ptr<Instance> &group_server) {
-  auto console = mysqlsh::current_console();
-  bool first_error = true;
-
-  mysqlshdk::mysql::execute_sql_script(
-      *group_server, k_metadata_schema_script,
-      [console, &first_error](const std::string &err) {
-        if (first_error) {
-          console->print_error("While installing metadata schema:");
-          first_error = false;
-        }
-        console->print_error(err);
-      });
+  execute_script(group_server,
+                 k_metadata_schema_scripts.at(k_metadata_schema_version),
+                 "While installing metadata schema:");
 }
 
 void uninstall(const std::shared_ptr<Instance> &group_server) {
@@ -392,190 +634,242 @@ std::vector<const upgrade::Step *> get_upgrade_path(
   return get_upgrade_path(start_version, current_version(), upgrade::k_steps);
 }
 
+/*
+ * The following table shows the list of steps executed for the upgrade.
+ * The stage and ver(sion) columns show the value of current stage and
+ * schema_version. After a step is executed, the stage and version will change
+ * and the new values are shown in the next row. If a crash occurs in any of
+ * the steps, a recovery attempt can know the exact step that was being
+ * executed from the combination of the persisted stage and version.
+ *
+ * stage   | ver   | step
+ * --------|-------|----------------------------
+ * NULL    | 1.0.1 | get_lock
+ * NULL    | 1.0.1 | backup
+ * NULL'   | 1.0.1 | stage SETTING_UPGRADE_VERSION
+ * S_U_VER | 1.0.1 | set_schema_version(0.0.0)
+ *
+ * S_U_VER | 0.0.0 | stage UPGRADING
+ * UPGRAD  | 0.0.0 | backup_prev
+ * UPGRAD  | 0.0.0 | upgrade
+ * UPGRAD  | 0.0.0 | drop backup_prev
+ *
+ * UPGRAD  | 0.0.0 | stage DONE
+ * DONE    | 0.0.0 | drop backup
+ * NULL    | 0.0.0 | set_schema_version(latest)
+ *
+ * NULL    | 2.0.0 | release_lock
+ *
+ * stage=NULL means the backup schema doesn't exist
+ * stage=NULL' means the backup schema exists, but no stage is set
+ *
+ * The Stage enum value for NULL persisted stages is detected implicitly by
+ * combining with schema_version.
+ */
 void upgrade_schema(const std::shared_ptr<Instance> &group_server,
                     bool dry_run) {
-  Version installed = installed_version(group_server, kMetadataSchemaName);
+  Version installed_ver = installed_version(group_server, kMetadataSchemaName);
+  Version last_ver = current_version();
 
-  // Calling the function while upgrade is in progress is forbidden by the
-  // metadata preconditions, however, they bypass the case of a failed upgrade
-  // as the function could be called to do a restore.
-  // This scenario covers the case where the precondition was bypassed but not
-  // for a restore operation
-  if (installed == kUpgradingVersion) {
-    throw std::runtime_error(shcore::str_subvars(
-        kFailedUpgradeError,
-        [](const std::string &var) {
-          return shcore::get_member_name(var, shcore::current_naming_style());
-        },
-        "<<<", ">>>"));
-  }
+  assert(installed_ver < last_ver);
 
-  Version current = current_version();
   auto console = mysqlsh::current_console();
 
   std::string instance_data = group_server->descr();
-  if (installed == current) {
-    console->print_note("Installed metadata at '" + instance_data +
-                        "' is up to date (version " + installed.get_base() +
-                        ").");
-  } else if (installed > current) {
-    // This validation is just for safety, the metadata precondition checks
-    // already handle this.
-    throw std::runtime_error("Installed metadata at '" + instance_data +
-                             "' is newer than the version version supported by "
-                             "this Shell (installed: " +
-                             installed.get_base() +
-                             ", shell: " + current.get_base() + ").");
-  } else {
-    auto path = get_upgrade_path(installed);
-    if (dry_run) {
-      console->print_info("Metadata at '" + instance_data + "' is at version " +
-                          installed.get_base() +
-                          ", for this reason some AdminAPI functionality may "
-                          "be restricted. To fully enable the AdminAPI the "
-                          "metadata is required to be upgraded to version " +
-                          current.get_base() + ".");
-    } else {
-      console->print_info("Upgrading metadata at '" + instance_data +
-                          "' from version " + installed.get_base() +
-                          " to version " + current.get_base() + ".");
-    }
+  auto path = get_upgrade_path(installed_ver);
+  if (!dry_run) {
+    console->print_info("Upgrading metadata at '" + instance_data +
+                        "' from version " + installed_ver.get_base() +
+                        " to version " + last_ver.get_base() + ".");
+  }
 
-    size_t total = path.size();
-    if (path.size() > 1) {
-      console->print_info(shcore::str_format(
-          "Upgrade %s require %zu steps", (dry_run ? "would" : "will"), total));
-    }
+  // These checks for the existence of backup schemas are now
+  // pre-conditions, they are verified before anything starts, this
+  // guarantees that if a backup of the metadata exists, it is result of the
+  // upgrade process and can be deleted without problems in case of failures
+  // or during metadata restore
+  if (schema_exists(group_server, kMetadataSchemaBackupName)) {
+    throw std::runtime_error(
+        shcore::str_format("Unable to create the general backup because a "
+                           "schema named '%s' already exists.",
+                           kMetadataSchemaBackupName));
+  }
 
-    if (!dry_run) {
-      upgrade::State state = upgrade::State::INITIAL;
-      std::vector<std::string> tables;
-      Instance_list locked_instances;
-      try {
-        // Acquires the upgrade locks
-        state = upgrade::State::GETTING_LOCKS;
-        locked_instances =
-            upgrade::get_locks(group_server, kMetadataSchemaName);
+  if (schema_exists(group_server, kMetadataSchemaPreviousName)) {
+    throw std::runtime_error(
+        shcore::str_format("Unable to create the step backup because a "
+                           "schema named '%s' already exists.",
+                           kMetadataSchemaPreviousName));
+  }
 
-        console->print_info("Creating backup of the metadata schema...");
+  size_t total = path.size();
+  if (path.size() > 1) {
+    console->print_info(shcore::str_format(
+        "Upgrade %s require %zu steps", (dry_run ? "would" : "will"), total));
+  }
 
-        state = upgrade::State::BACKING_UP_METADATA;
-        if (!backup_schema(group_server, kMetadataSchemaBackupName)) {
-          // Handles this case so the cleanup does not remove the metadata
-          // schema backup if it already existed
-          state = upgrade::State::GETTING_LOCKS;
-          throw std::runtime_error(
-              "Can't create database 'mysql_innodb_cluster_metadata_bkp'; "
-              "database exists.");
-        }
+  if (!dry_run) {
+    mysqlshdk::utils::nullable<upgrade::Stage> stage;
+    Version actual_version = installed_ver;
 
-        DBUG_EXECUTE_IF("dba_FAIL_metadata_upgrade_at_BACKING_UP_METADATA", {
-          throw std::logic_error(
-              "Debug emulation of failed metadata upgrade "
-              "BACKING_UP_METADATA.");
-        });
+    std::vector<std::string> tables;
+    Instance_list locked_instances;
+    try {
+      // Acquires the upgrade locks
+      locked_instances = upgrade::get_locks(group_server);
 
-        // Sets the upgrading version
-        DBUG_EXECUTE_IF("dba_limit_lock_wait_timeout",
-                        { group_server->execute("SET lock_wait_timeout=1"); });
+      console->print_info("Creating backup of the metadata schema...");
 
-        state = upgrade::State::SETTING_UPGRADE_VERSION;
-        set_schema_version(group_server, kUpgradingVersion);
+      backup(installed_ver, kMetadataSchemaName, kMetadataSchemaBackupName,
+             group_server, "creating backup of the metadata");
 
-        state = upgrade::State::UPGRADING;
+      DBUG_EXECUTE_IF("dba_FAIL_metadata_upgrade_at_BACKING_UP_METADATA", {
+        throw std::logic_error(
+            "Debug emulation of failed metadata upgrade "
+            "BACKING_UP_METADATA.");
+      });
 
-        DBUG_EXECUTE_IF("dba_CRASH_metadata_upgrade_at_UPGRADING", {
-          // On a CRASH the cleanup logic would not be executed letting the
-          // metadata in UPGRADING state, however the locks would be released
-          upgrade::release_locks(locked_instances);
-          return;
-        });
+      // Sets the upgrading version
+      DBUG_EXECUTE_IF("dba_limit_lock_wait_timeout",
+                      { group_server->execute("SET lock_wait_timeout=1"); });
 
-        group_server->execute("SET FOREIGN_KEY_CHECKS=0");
+      stage = upgrade::save_stage(group_server,
+                                  upgrade::Stage::SETTING_UPGRADE_VERSION);
+      actual_version = set_schema_version(group_server, kUpgradingVersion);
 
-        size_t count = 1;
-        for (const auto &step : path) {
-          console->print_info(shcore::str_format(
-              "Step %zu of %zu: upgrading from %s to %s...", count++, total,
-              step->source_version.get_base().c_str(),
-              step->target_version.get_base().c_str()));
+      stage = upgrade::save_stage(group_server, upgrade::Stage::UPGRADING);
 
-          step->function(group_server);
-        }
+      DBUG_EXECUTE_IF("dba_CRASH_metadata_upgrade_at_UPGRADING", {
+        // On a CRASH the cleanup logic would not be executed letting the
+        // metadata in UPGRADING stage, however the locks would be released
+        upgrade::release_locks(locked_instances);
+        return;
+      });
 
-        state = upgrade::State::DONE;
+      group_server->execute("SET FOREIGN_KEY_CHECKS=0");
 
-        upgrade::cleanup(group_server, locked_instances, installed, state);
-
-        installed = installed_version(group_server);
+      size_t count = 1;
+      for (const auto &step : path) {
         console->print_info(shcore::str_format(
-            "Upgrade process successfully finished, metadata "
-            "schema is now on version %s",
-            installed.get_base().c_str()));
-      } catch (const std::exception &e) {
-        console->print_error(e.what());
+            "Step %zu of %zu: upgrading from %s to %s...", count++, total,
+            step->source_version.get_base().c_str(),
+            step->target_version.get_base().c_str()));
 
-        // Only if the error happened after the upgrade started the data is
-        // restored and the backup deleted
-        upgrade::cleanup(group_server, locked_instances, installed, state);
+        // Inter step backup so upgrade can perform the required upgrade
+        // operations
+        backup(step->source_version, kMetadataSchemaName,
+               kMetadataSchemaPreviousName, group_server,
+               "creating step backup of the metadata");
 
-        // Get the version after the restore to notify the final version
-        installed = installed_version(group_server);
+        step->function(group_server);
 
-        if (state == upgrade::State::UPGRADING) {
-          throw shcore::Exception::runtime_error(
-              "Upgrade process failed, metadata has been restored to version " +
-              installed.get_base() + ".");
-        } else {
-          throw shcore::Exception::runtime_error(
-              "Upgrade process failed, metadata was not modified.");
-        }
+        // Removing temporary step backup
+        group_server->execute(std::string("DROP SCHEMA ") +
+                              kMetadataSchemaPreviousName);
+      }
+
+      stage = upgrade::save_stage(group_server, upgrade::Stage::DONE);
+
+      upgrade::drop_metadata_backups(group_server, false);
+
+      actual_version = set_schema_version(group_server, last_ver);
+
+      group_server->execute("SET FOREIGN_KEY_CHECKS=1");
+
+      upgrade::release_locks(locked_instances);
+
+      installed_ver = installed_version(group_server);
+      console->print_info(
+          shcore::str_format("Upgrade process successfully finished, metadata "
+                             "schema is now on version %s",
+                             installed_ver.get_base().c_str()));
+    } catch (const std::exception &e) {
+      console->print_error(e.what());
+
+      // Only if the error happened after the upgrade started the data is
+      // restored and the backup deleted
+      upgrade::cleanup(
+          group_server,
+          upgrade::compute_failed_upgrade_stage(
+              stage, actual_version,
+              schema_exists(group_server, kMetadataSchemaBackupName)));
+
+      // Finally enables foreign key checks
+      group_server->execute("SET FOREIGN_KEY_CHECKS=1");
+
+      upgrade::release_locks(locked_instances);
+
+      // Get the version after the restore to notify the final version
+      installed_ver = installed_version(group_server);
+
+      if (stage == upgrade::Stage::UPGRADING) {
+        throw shcore::Exception::runtime_error(
+            "Upgrade process failed, metadata has been restored to version " +
+            installed_ver.get_base() + ".");
+      } else {
+        throw shcore::Exception::runtime_error(
+            "Upgrade process failed, metadata was not modified.");
       }
     }
   }
 }
 
-/**
- * Backups the metadata schema, returns FALSE if it failed creating
- * the backup schema
- */
-bool backup_schema(const std::shared_ptr<Instance> &group_server,
-                   const std::string &target_schema) {
-  try {
-    mysqlshdk::mysql::copy_schema(*group_server, kMetadataSchemaName,
-                                  target_schema, false, false);
-
-  } catch (const mysqlshdk::db::Error &err) {
-    if (err.code() == ER_DB_CREATE_EXISTS)
-      return false;
-    else
-      throw;
-  }
-
-  return true;
-}
-
-void restore_schema(const std::shared_ptr<Instance> &group_server,
-                    bool dry_run) {
+void upgrade_or_restore_schema(const std::shared_ptr<Instance> &group_server,
+                               bool dry_run) {
   auto console = mysqlsh::current_console();
 
-  Version version = installed_version(group_server, kMetadataSchemaBackupName);
+  upgrade::Stage stage = upgrade::detect_failed_stage(group_server);
 
-  if (version != kNotInstalled) {
-    if (dry_run) {
-      console->print_info("The metadata can be restored to version " +
-                          version.get_base());
+  if (stage == upgrade::Stage::OK) {
+    // If the MD is consistent, then we check if we need to upgrade it.
+    if (installed_version(group_server) < current_version()) {
+      upgrade_schema(group_server, dry_run);
     } else {
-      Instance_list locked_instances =
-          upgrade::get_locks(group_server, kMetadataSchemaBackupName);
-
-      upgrade::cleanup(group_server, locked_instances, version,
-                       upgrade::State::FAILED);
+      console->print_info(
+          "Metadata state is consistent and a restore is not necessary.");
     }
   } else {
-    throw std::runtime_error(
-        "The metadata can not be restored, no backup us available.");
+    console->print_warning(
+        "An unfinished metadata upgrade was detected, which may have left it "
+        "in an invalid state.");
+
+    {  // We need to what will be the final version in order print the right
+       // message
+      Version final_version;
+      find_reliable_metadata_info(group_server, &final_version, nullptr);
+
+      std::string action = dry_run ? "can" : "will";
+      if (stage == upgrade::Stage::CLEANUP || stage == upgrade::Stage::DONE) {
+        console->print_info("The metadata upgrade to version " +
+                            final_version.get_base() + " " + action +
+                            " be completed.");
+      } else {
+        console->print_info("The metadata " + action +
+                            " be restored to version " +
+                            final_version.get_base() + ".");
+      }
+    }
+
+    if (!dry_run) {
+      Instance_list locked_instances = upgrade::get_locks(group_server);
+
+      group_server->execute("SET FOREIGN_KEY_CHECKS=0");
+
+      upgrade::cleanup(group_server, stage);
+
+      group_server->execute("SET FOREIGN_KEY_CHECKS=1");
+
+      upgrade::release_locks(locked_instances);
+    }
   }
+}
+
+bool is_valid_version(const mysqlshdk::utils::Version &version) {
+  DBUG_EXECUTE_IF("dba_EMULATE_UNEXISTING_MD", { return true; });
+
+  return k_metadata_schema_scripts.find(version.get_base()) !=
+             k_metadata_schema_scripts.end() ||
+         version == kUpgradingVersion;
 }
 
 }  // namespace metadata

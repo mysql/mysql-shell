@@ -34,6 +34,12 @@
 
 namespace mysqlshdk {
 namespace mysql {
+namespace schema {
+std::set<std::string> get_tables(const mysql::IInstance &instance,
+                                 const std::string &schema);
+std::set<std::string> get_views(const mysql::IInstance &instance,
+                                const std::string &schema);
+}  // namespace schema
 
 enum class Account_attribute { Grants };
 
@@ -88,6 +94,8 @@ void copy_schema(const mysql::IInstance &instance, const std::string &name,
                  const std::string &target, bool use_existing_schema,
                  bool move_tables);
 
+void copy_data(const mysql::IInstance &instance, const std::string &name,
+               const std::string &target);
 }  // namespace mysql
 }  // namespace mysqlshdk
 

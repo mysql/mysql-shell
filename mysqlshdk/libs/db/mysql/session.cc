@@ -326,6 +326,24 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
     mysql_free_result(trailing_result);
   }
 
+  DBUG_EXECUTE_IF("sql_test_abort", {
+    static int count = std::stoi(getenv("TEST_SQL_UNTIL_CRASH"));
+    if (--count < 1) {
+      fprintf(stderr, "%s SQL statements executed, will abort() now\n",
+              getenv("TEST_SQL_UNTIL_CRASH"));
+      abort();
+    }
+  });
+
+  DBUG_EXECUTE_IF("sql_test_error", {
+    static int count = std::stoi(getenv("TEST_SQL_UNTIL_CRASH"));
+    if (--count < 1) {
+      fprintf(stderr, "%s SQL statements executed, will throw now\n",
+              getenv("TEST_SQL_UNTIL_CRASH"));
+      throw mysqlshdk::db::Error("Injected error", CR_UNKNOWN_ERROR);
+    }
+  });
+
   DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << std::string(sql, len));
 
   FI_TRIGGER_TRAP(mysql, mysqlshdk::utils::FI::Trigger_options(

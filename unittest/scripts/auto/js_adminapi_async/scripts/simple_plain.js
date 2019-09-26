@@ -76,7 +76,6 @@ rs.listRouters();
 
 //@ createReplicaSet(adopt)
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
-//BREAK
 rs = dba.createReplicaSet("adopted", {adoptFromAR:true});
 
 rs.status();

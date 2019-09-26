@@ -80,7 +80,7 @@ CREATE TABLE `hosts` (
 
 LOCK TABLES `hosts` WRITE;
 /*!40000 ALTER TABLE `hosts` DISABLE KEYS */;
-INSERT INTO `hosts` VALUES (1,'192.168.1.108','',NULL,'',NULL,NULL);
+INSERT INTO `hosts` VALUES (1,'192.168.1.108','',NULL,'',NULL,NULL),(2,'rennox-tc',NULL,NULL,'','{\"registeredFrom\": \"mysql-router\"}',NULL);
 /*!40000 ALTER TABLE `hosts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -179,6 +179,7 @@ CREATE TABLE `routers` (
 
 LOCK TABLES `routers` WRITE;
 /*!40000 ALTER TABLE `routers` DISABLE KEYS */;
+INSERT INTO `routers` VALUES (1,'',2,NULL);
 /*!40000 ALTER TABLE `routers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -192,7 +193,7 @@ SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 /*!50001 CREATE VIEW `schema_version` AS SELECT 
  1 AS `major`,
- 1 AS `minor`,
+ 0 AS `minor`,
  1 AS `patch`*/;
 SET character_set_client = @saved_cs_client;
 

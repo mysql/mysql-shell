@@ -363,8 +363,13 @@ void Cluster_impl::set_instance_option(const Connection_options &instance_def,
 
 Cluster_check_info Cluster_impl::check_preconditions(
     const std::string &function_name) const {
-  return check_function_preconditions("Cluster." + function_name,
-                                      get_target_instance());
+  auto ret_val = check_function_preconditions("Cluster." + function_name,
+                                              get_target_instance());
+
+  // Makes sure the metadata state is re-loaded on each API call
+  _metadata_storage->invalidate_cached();
+
+  return ret_val;
 }
 
 void Cluster_impl::sync_transactions(

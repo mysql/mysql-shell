@@ -69,9 +69,9 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
     _sandbox_dir = shcore::get_binary_folder();
   }
 
-  _dummy_sandboxes = disable_dummy_sandboxes
-                         ? false
-                         : g_test_recording_mode == TestingMode::Replay;
+  _skip_server_interaction = disable_dummy_sandboxes
+                                 ? false
+                                 : g_test_recording_mode == TestingMode::Replay;
 
   _recording_enabled = g_test_recording_mode == TestingMode::Record;
 
@@ -164,7 +164,7 @@ void Shell_test_wrapper::trace_protocol() {
 void Shell_test_wrapper::enable_testutil() {
   // Dummy sandboxes may be used i.e. while replying tests, unless it is
   // specified that they should never be used
-  _testutil.reset(new tests::Testutils(_sandbox_dir, _dummy_sandboxes,
+  _testutil.reset(new tests::Testutils(_sandbox_dir, _skip_server_interaction,
                                        _interactive_shell,
                                        Shell_test_env::get_path_to_mysqlsh()));
   _testutil->set_test_callbacks(

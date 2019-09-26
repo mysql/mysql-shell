@@ -38,7 +38,7 @@
 ||Dba.createReplicaSet: Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
 
 //@# create with insufficient privs (should fail)
-||Dba.createReplicaSet: Unable to detect Metadata version. Please check account privileges. (RuntimeError)
+||Dba.createReplicaSet: Unable to detect target instance state. Please check account privileges. (RuntimeError)
 
 //@# create with bad configs (should fail)
 |NOTE: Some configuration options need to be fixed:|

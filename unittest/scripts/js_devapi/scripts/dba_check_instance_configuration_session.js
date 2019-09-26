@@ -26,6 +26,11 @@ session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION
 session.runSql("REVOKE SELECT on *.* FROM 'test_user'@'%'");
 //NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'test_user'@'%'");
+
+// NOTE: This privilege is required othe the generated error will be:
+//Dba.checkInstanceConfiguration: Unable to detect target instance state. Please check account privileges.
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'test_user'@'%'");
+
 session.runSql("SET sql_log_bin = 1");
 
 //TODO: Improve error message (more details for missing metadata privileges) and add test here for this error message.
@@ -67,6 +72,8 @@ session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_privileges'@'%'");
 //NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'no_privileges'@'%'");
+
 session.runSql("SET sql_log_bin = 1");
 
 // Test
@@ -85,6 +92,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'admin_test'@'%' IDENTIFIED BY 'adminpass'");
 session.runSql("GRANT 'root'@'%' TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'admin_test'@'%'");
 session.runSql("SET DEFAULT ROLE 'root'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
 

@@ -394,7 +394,7 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance);
  * @param lowest_cluster_version Version object with the lowest server version
  *                               in the cluster to join.
  */
-void check_instance_version_compatibility(
+void check_instance_check_installed_schema_version(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version);
 

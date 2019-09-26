@@ -1002,9 +1002,10 @@ DESCRIPTION
       The extended option supports Integer or Boolean values:
 
       - 0: disables the command verbosity (default);
-      - 1: includes information about the Group Protocol Version, Group name,
-        cluster member UUIDs, cluster member roles and states as reported by
-        Group Replication and the list of fenced system variables;
+      - 1: includes information about the Metadata Version, Group Protocol
+        Version, Group name, cluster member UUIDs, cluster member roles and
+        states as reported byGroup Replication and the list of fenced system
+        variables;
       - 2: includes information about transactions processed by connection and
         applier;
       - 3: includes more detailed stats about the replication machinery of each

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,16 +39,21 @@ void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
                              bool dry_run);
 
 namespace metadata {
+namespace upgrade {
+enum class Stage;
+}
 const mysqlshdk::utils::Version kUpgradingVersion =
     mysqlshdk::utils::Version(0, 0, 0);
 const mysqlshdk::utils::Version kNotInstalled =
     mysqlshdk::utils::Version(-1, -1, -1);
 
 constexpr char kMetadataSchemaName[] = "mysql_innodb_cluster_metadata";
+constexpr char kMetadataSchemaBackupName[] =
+    "mysql_innodb_cluster_metadata_bkp";
+
 constexpr char kFailedUpgradeError[] =
-    "The installed metadata is unreliable because of a failed upgrade. It is "
-    "recommended to restore the metadata by executing "
-    "dba.<<<upgradeMetadata>>>.";
+    "An unfinished metadata upgrade was detected, which may have left it in an "
+    "invalid state. Execute dba.<<<upgradeMetadata>>> again to repair it.";
 
 enum State {
   EQUAL,
@@ -70,7 +75,8 @@ const States kCompatible = States(State::EQUAL)
                                .set(State::MINOR_LOWER)
                                .set(State::PATCH_HIGHER)
                                .set(State::PATCH_LOWER);
-
+const States kCompatibleLower =
+    States(State::MINOR_LOWER).set(State::PATCH_LOWER);
 const States kIncompatible =
     States(State::MAJOR_HIGHER).set(State::MAJOR_LOWER);
 const States kUpgradeStates =
@@ -81,7 +87,7 @@ const States kIncompatibleOrUpgrading = States(State::UPGRADING)
                                             .set(State::MAJOR_HIGHER)
                                             .set(State::MAJOR_LOWER);
 
-metadata::State version_compatibility(
+metadata::State check_installed_schema_version(
     const std::shared_ptr<Instance> &group_server,
     mysqlshdk::utils::Version *out_installed = nullptr);
 
@@ -93,15 +99,23 @@ mysqlshdk::utils::Version installed_version(
     const std::shared_ptr<Instance> &group_server,
     const std::string &schema_name = kMetadataSchemaName);
 
+// This function will retrieve the metadata version and name of the metadata
+// schema that can be queried no matter an upgrade is in progress
+bool find_reliable_metadata_info(const std::shared_ptr<Instance> &group_server,
+                                 mysqlshdk::utils::Version *version,
+                                 std::string *schema_name);
+
 void install(const std::shared_ptr<Instance> &group_server);
-void upgrade_schema(const std::shared_ptr<Instance> &group_server,
-                    bool dry_run);
-void restore_schema(const std::shared_ptr<Instance> &group_server,
-                    bool dry_run);
-bool backup_schema(const std::shared_ptr<Instance> &group_server,
-                   const std::string &target_schema);
+
+void upgrade_or_restore_schema(const std::shared_ptr<Instance> &group_server,
+                               bool dry_run);
+
+void backup_schema(const std::shared_ptr<Instance> &group_server,
+                   const mysqlshdk::utils::Version &version,
+                   const char *name = nullptr);
 void uninstall(const std::shared_ptr<Instance> &group_server);
 
+bool is_valid_version(const mysqlshdk::utils::Version &version);
 }  // namespace metadata
 }  // namespace dba
 }  // namespace mysqlsh

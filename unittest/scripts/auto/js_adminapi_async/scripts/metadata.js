@@ -81,7 +81,7 @@ dba.getCluster();
 
 //@ Check sb2.getReplicaSet() with mixed metadata
 r = dba.getReplicaSet();
-r.status();
+r.status({extended:1});
 
 //@<> Cleanup everything
 s1.runSql("STOP group_replication");

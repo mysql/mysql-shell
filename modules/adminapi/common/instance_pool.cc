@@ -104,15 +104,31 @@ void Instance::log_sql(const std::string &sql) const {
   }
 }
 
+void Instance::log_sql_error(const mysqlshdk::db::Error &e) const {
+  if (current_shell_options()->get().dba_log_sql > 0) {
+    log_info("%s: -> %s", descr().c_str(), e.format().c_str());
+  }
+}
+
 std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
                                                         bool buffered) const {
   log_sql(sql);
-  return mysqlshdk::mysql::Instance::query(sql, buffered);
+  try {
+    return mysqlshdk::mysql::Instance::query(sql, buffered);
+  } catch (const mysqlshdk::db::Error &e) {
+    log_sql_error(e);
+    throw;
+  }
 }
 
 void Instance::execute(const std::string &sql) const {
   log_sql(sql);
-  mysqlshdk::mysql::Instance::execute(sql);
+  try {
+    mysqlshdk::mysql::Instance::execute(sql);
+  } catch (const mysqlshdk::db::Error &e) {
+    log_sql_error(e);
+    throw;
+  }
 }
 
 struct Instance_pool::Metadata_cache {

@@ -489,15 +489,15 @@ Member_recovery_method Add_instance::validate_instance_recovery() {
   return recovery_method;
 }
 
-void Add_instance::ensure_instance_version_compatibility() const {
+void Add_instance::ensure_instance_check_installed_schema_version() const {
   // Get the lowest server version of the online members of the cluster.
   mysqlshdk::utils::Version lowest_cluster_version =
       m_replicaset.get_cluster()->get_lowest_instance_version();
 
   try {
     // Check instance version compatibility according to Group Replication.
-    mysqlshdk::gr::check_instance_version_compatibility(*m_target_instance,
-                                                        lowest_cluster_version);
+    mysqlshdk::gr::check_instance_check_installed_schema_version(
+        *m_target_instance, lowest_cluster_version);
   } catch (const std::runtime_error &err) {
     auto console = mysqlsh::current_console();
     console->print_error(
@@ -847,7 +847,7 @@ void Add_instance::prepare() {
 
   if (!m_seed_instance) {
     // Check instance version compatibility with cluster.
-    ensure_instance_version_compatibility();
+    ensure_instance_check_installed_schema_version();
   }
 
   // Resolve the SSL Mode to use to configure the instance.

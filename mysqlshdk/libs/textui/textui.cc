@@ -591,7 +591,10 @@ std::string format_markup_text(const std::vector<std::string> &lines,
 
   if (!lines.empty()) {
     // Determine if we start with a list of items or not
-    bool in_list = (0 == lines[0].find("@li"));
+    int in_list = 0;
+    if (0 == lines[0].find("@li")) in_list = 1;
+    if (0 == lines[0].find("-# ")) in_list = 2;
+    int next_list_item = 1;
 
     std::string new_line;
     for (auto line : lines) {
@@ -622,9 +625,29 @@ std::string format_markup_text(const std::vector<std::string> &lines,
             format_markup_text(line.substr(4), width, left_padding + 2);
         formatted[left_padding] = '-';
 
-        if (!in_list) {
+        if (in_list != 1) {
           ret_val += "\n";
-          in_list = true;
+          in_list = 1;
+        }
+
+        ret_val += formatted;
+      } else if (0 == line.find("-# ")) {
+        // handles numbered list items:
+        // - Padding increases in 2 to let the item bullet alone.
+        // - Blank line is inserted before the first item.
+        std::string str_number = std::to_string(next_list_item++);
+        std::string formatted = format_markup_text(
+            line.substr(3), width, left_padding + 2 + str_number.size());
+
+        size_t index = 0;
+        for (index = 0; index < str_number.size(); index++) {
+          formatted[left_padding + index] = str_number[index];
+        }
+        formatted[left_padding + index] = '.';
+
+        if (in_list != 2) {
+          ret_val += "\n";
+          in_list = 2;
         }
 
         ret_val += formatted;
@@ -656,9 +679,9 @@ std::string format_markup_text(const std::vector<std::string> &lines,
             std::string::npos == desc ? "" : line.substr(desc), width,
             left_padding + indent);
 
-        if (!in_list || append_newline) {
+        if (in_list != 1 || append_newline) {
           ret_val += "\n";
-          in_list = true;
+          in_list = 1;
         }
 
         if (entry_length > indent - 1) {
@@ -671,7 +694,7 @@ std::string format_markup_text(const std::vector<std::string> &lines,
       } else {
         if ((!ret_val.empty() && paragraph_per_line) || in_list) {
           ret_val += "\n";
-          in_list = false;
+          in_list = 0;
         }
 
         if (0 == line.find("@warning ")) {

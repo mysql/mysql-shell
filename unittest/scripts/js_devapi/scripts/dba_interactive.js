@@ -292,6 +292,9 @@ session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_privileges'@'%'");
 //NOTE: at least privileges to access the metadata are required, otherwise another error is issued.
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
+// NOTE: This privilege is required othe the generated error will be:
+//Dba.configureLocalInstance: Unable to detect target instance state. Please check account privileges.
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'no_privileges'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 

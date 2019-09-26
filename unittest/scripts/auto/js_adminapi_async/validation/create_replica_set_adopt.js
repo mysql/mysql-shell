@@ -28,16 +28,16 @@
 ||Dba.createReplicaSet: Unable to create replicaset. The instance '<<<__address2>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
 
 //@# adopt with insufficient privs (should fail)
-||Dba.createReplicaSet: Unable to detect Metadata version. Please check account privileges. (RuntimeError)
-||Dba.createReplicaSet: Unable to detect Metadata version. Please check account privileges. (RuntimeError)
+||Dba.createReplicaSet: Unable to detect target instance state. Please check account privileges. (RuntimeError)
+|ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
 |ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
 ||Dba.createReplicaSet: Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (RuntimeError)
 
 //@# adopt with existing old metadata, belongs to other (should fail)
-||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the supported by the Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@# indirect adopt with existing old metadata, belongs to other (should fail)
-||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.0 is lower than the supported by the Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@# replication filters (should fail)
 ||Dba.createReplicaSet: 127.0.0.1:<<<__mysql_sandbox_port1>>>: instance has global replication filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)
@@ -71,7 +71,7 @@
 ||Dba.createReplicaSet: 127.0.0.1:<<<__mysql_sandbox_port2>>>: Access denied for user 'rooty'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@# admin account passwords match, but they don't allow connection from the shell (should fail)
-||Dba.createReplicaSet: Unable to detect Metadata version. Please check account privileges. (RuntimeError)
+||Dba.createReplicaSet: Unable to detect target instance state. Please check account privileges. (RuntimeError)
 
 //@# invalid topology: master-master (should fail)
 |ERROR: Unable to determine the PRIMARY instance in the topology. Multi-master topologies are not supported.|

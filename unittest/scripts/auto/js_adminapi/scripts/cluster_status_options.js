@@ -164,7 +164,8 @@ const extended_1_status_templ_80 = {
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const extended_1_status_templ_57 = {
@@ -192,7 +193,8 @@ const extended_1_status_templ_57 = {
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const extended_2_status_templ_80 = {
@@ -232,7 +234,8 @@ const extended_2_status_templ_80 = {
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const extended_2_status_templ_57 = {
@@ -267,7 +270,8 @@ const extended_2_status_templ_57 = {
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const full_status_templ_80 = {
@@ -338,7 +342,8 @@ const full_status_templ_80 = {
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const full_status_templ_57 = {
@@ -386,7 +391,8 @@ const full_status_templ_57 = {
         },
         "topologyMode": "Single-Primary"
     }, 
-    "groupInformationSourceMember": ""
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
 };
 
 const transaction_status_templ = {
@@ -507,6 +513,9 @@ var member_state = json_find_key(stat, "memberState");
 EXPECT_NE(undefined, member_state);
 var fence_sys_vars = json_find_key(stat, "fenceSysVars");
 EXPECT_NE(undefined, fence_sys_vars);
+var metadata_version = json_find_key(stat, "metadataVersion");
+EXPECT_NE(undefined, metadata_version);
+EXPECT_EQ(testutil.getInstalledMetadataVersion(), metadata_version);
 
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0)}
 json_check(stat, extended_1_status_templ_80);

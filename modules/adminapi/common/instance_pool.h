@@ -81,6 +81,7 @@ class Instance : public mysqlshdk::mysql::Instance {
   Instance_pool *m_pool = nullptr;
 
   void log_sql(const std::string &sql) const;
+  void log_sql_error(const mysqlshdk::db::Error &e) const;
 };
 
 struct Scoped_instance {
@@ -133,6 +134,8 @@ class Instance_pool {
   const Auth_options &default_auth_opts() const { return m_default_auth_opts; }
 
   void set_metadata(const std::shared_ptr<MetadataStorage> &md);
+
+  std::shared_ptr<MetadataStorage> get_metadata() { return m_metadata; }
 
   ~Instance_pool();
 

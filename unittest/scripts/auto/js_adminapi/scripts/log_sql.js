@@ -6,7 +6,7 @@
 //       test extremely hard to maintain.
 
 var check_instance_sql = [
-    "SELECT `major`, `minor`, `patch` FROM `mysql_innodb_cluster_metadata`.schema_version",
+    "SELECT `major`, `minor`, `patch` FROM `mysql_innodb_cluster_metadata`.`schema_version`",
     "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE =",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "show GLOBAL variables where `variable_name` in ('gtid_mode')",
@@ -28,7 +28,7 @@ var create_cluster_sql = [
 ];
 
 var add_instance_sql = [
-    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
+    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "show GLOBAL variables where `variable_name` in ('group_replication_ssl_mode')",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "CREATE USER IF NOT EXISTS '*'@'%' IDENTIFIED BY **** PASSWORD EXPIRE NEVER",
@@ -64,7 +64,7 @@ var describe_sql = [
 ];
 
 var set_option_sql = [
-    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
+    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "UPDATE mysql_innodb_cluster_metadata.clusters"
 ];
 
@@ -102,7 +102,7 @@ var switch_single_primary_sql = [
 ];
 
 var force_quorum_sql = [
-    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
+    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "SET GLOBAL `group_replication_force_members` = '*'",
     "SET GLOBAL `group_replication_force_members` = ''"
 ];
@@ -608,7 +608,7 @@ session.runSql("SET sql_log_bin=1");
 //@<> WL#13294: check instance (dba.logSql = 2).
 WIPE_SHELL_LOG();
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: mycnf1});
-EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[3]);

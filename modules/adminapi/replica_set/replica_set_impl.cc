@@ -1558,6 +1558,13 @@ shcore::Value Replica_set_impl::status(int extended) {
 
   status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
 
+  // Gets the metadata version
+  if (opts.show_details >= 1) {
+    auto version = mysqlsh::dba::metadata::installed_version(
+        m_metadata_storage->get_md_server());
+    status->set("metadataVersion", shcore::Value(version.get_base()));
+  }
+
   return shcore::Value(status);
 }
 

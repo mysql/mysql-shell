@@ -395,9 +395,6 @@ DESCRIPTION
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
 
-      If the outputMycnfPath option is used, only that file is updated and
-      mycnfPath is treated as read-only.
-
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
 
@@ -1154,20 +1151,44 @@ WHERE
       options: Dictionary with option for the operation.
 
 DESCRIPTION
-      Compares the version of the installed metadata schema with the version of
-      the metadata schema supported by this Shell.
+      This function will compare the version of the installed metadata schema
+      with the version of the metadata schema supported by this Shell. If the
+      installed metadata version is lower, an upgrade process will be started.
 
-      If the installed metadata version is lower it will execute the required
-      operations to update it.
+      The options dictionary accepts the following attributes:
+
+      - dryRun: boolean value used to enable a dry run of the upgrade process.
+      - interactive: boolean value used to disable/enable interactive mode.
+
+      If dryRun is used, the function will determine whether a metadata upgrade
+      or restore is required and inform the user without actually executing the
+      operation.
+
+      The interactive option can be used to explicitly enable or disable the
+      interactive prompts that help the user through te upgrade process. The
+      default value is equal to MySQL Shell wizard mode.
+
+      The Upgrade Process
+
+      When upgrading the metadata schema of clusters deployed by Shell versions
+      before 8.0.19, a rolling upgrade of existing MySQL Router instances is
+      required. This process allows minimizing disruption to applications
+      during the upgrade.
+
+      The rolling upgrade process must be performed in the following order:
+
+      1. Execute dba.upgrade_metadata() using the latest Shell version. The
+         upgrade function will stop if outdated Router instances are detected,
+         at which point you can stop the upgrade to resume later.
+      2. Upgrade MySQL Router to the latest version (same version number as the
+         Shell)
+      3. Continue or re-execute dba.upgrade_metadata()
+
+      Failed Upgrades
 
       If the installed metadata is not available because a previous call to
       this function ended unexpectedly, this function will restore the metadata
       to the state it was before the failed upgrade operation.
-
-      The options dictionary accepts the following attributes:
-
-      - dryRun: boolean, causes the function to display information about the
-        upgrade or restore operation without actually executing it.
 
 EXCEPTIONS
       RuntimeError in the following scenarios:
@@ -1176,5 +1197,4 @@ EXCEPTIONS
       - A global session is available but the target instance does not have the
         metadata installed.
       - The installed metadata is a newer version than the one supported by the
-        shell.
-
+        Shell.

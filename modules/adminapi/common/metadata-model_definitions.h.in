@@ -28,9 +28,27 @@
  */
 
 // clang-format off
+#ifndef BLD_MODULES_ADMINAPI_COMMON_METADATA_MODEL_DEFINITIONS_H_
+#define BLD_MODULES_ADMINAPI_COMMON_METADATA_MODEL_DEFINITIONS_H_
+#include <map>
 
-const char *k_metadata_schema_version = "${METADATA_MODEL_VERSION}";
+namespace mysqlsh {
+namespace dba {
+namespace metadata {
+constexpr const char k_metadata_schema_version[] = "${METADATA_MODEL_VERSION}";
 
-const char *k_metadata_schema_script = ${METADATA_MODEL_DATA};
+const std::map<std::string, const char*> k_metadata_schema_scripts = {
+    ${METADATA_SCHEMA_SCRIPTS}
+};
 
+const std::map<std::string, const char*> k_metadata_upgrade_scripts = {
+    ${METADATA_UPGRADE_SCRIPTS}
+};
+
+}  // namespace metadata
+}  // namespace dba
+}  // namespace mysqlsh
+
+
+#endif  // BLD_MODULES_ADMINAPI_COMMON_METADATA_MODEL_DEFINITIONS_H_
 // clang-format on

@@ -75,6 +75,13 @@ shcore::Value Cluster_status::execute() {
         shcore::Value(get_replicaset_status(*default_replicaset));
   }
 
+  // Gets the metadata version
+  if (!m_extended.is_null() && *m_extended >= 1) {
+    auto version = mysqlsh::dba::metadata::installed_version(
+        m_cluster.get_target_instance());
+    (*dict)["metadataVersion"] = shcore::Value(version.get_base());
+  }
+
   // Iterate all replicasets and get the status for each one
 
   std::string addr = m_cluster.get_target_instance()->get_canonical_address();

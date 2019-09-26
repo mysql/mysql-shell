@@ -414,6 +414,18 @@ std::set<std::string> get_objects(const mysql::IInstance &instance,
   return objects;
 }
 
+std::set<std::string> get_tables(const mysql::IInstance &instance,
+                                 const std::string &schema) {
+  return get_objects(instance, schema,
+                     schema::Object_type(schema::Object_types::Table));
+}
+
+std::set<std::string> get_views(const mysql::IInstance &instance,
+                                const std::string &schema) {
+  return get_objects(instance, schema,
+                     schema::Object_type(schema::Object_types::View));
+}
+
 }  // namespace schema
 
 void copy_schema(const mysql::IInstance &instance, const std::string &name,
@@ -441,18 +453,42 @@ void copy_schema(const mysql::IInstance &instance, const std::string &name,
 
     instance.execute("SET FOREIGN_KEY_CHECKS=0");
 
-    src_objects["TABLE"] = schema::get_objects(
-        instance, name, schema::Object_type(schema::Object_types::Table));
-    src_objects["VIEW"] = schema::get_objects(
-        instance, name, schema::Object_type(schema::Object_types::View));
+    src_objects["TABLE"] = schema::get_tables(instance, name);
+    src_objects["VIEW"] = schema::get_views(instance, name);
 
     // If the target schema existed, we need to keep track of the objects there
     // to delete the ones that did not exist in the src schema
     if (!created_schema) {
-      tgt_objects["TABLE"] = schema::get_objects(
-          instance, target, schema::Object_type(schema::Object_types::Table));
-      tgt_objects["VIEW"] = schema::get_objects(
-          instance, target, schema::Object_type(schema::Object_types::View));
+      tgt_objects["TABLE"] = schema::get_tables(instance, target);
+      tgt_objects["VIEW"] = schema::get_views(instance, target);
+    }
+
+    // If target schema existed, there might be additional objects that are
+    // not in the source schema, they need to be deleted
+    if (!created_schema) {
+      for (const auto &entry : src_objects) {
+        std::set<std::string> extra_objects;
+        std::set_difference(
+            tgt_objects[entry.first].begin(), tgt_objects[entry.first].end(),
+            entry.second.begin(), entry.second.end(),
+            std::inserter(extra_objects, extra_objects.begin()));
+
+        for (const auto &object : extra_objects) {
+          try {
+            auto query = shcore::sqlstring("DROP ! IF EXISTS !.!",
+                                           shcore::QuoteOnlyIfNeeded);
+            query << entry.first.c_str() << target.c_str() << object.c_str();
+            query.done();
+            instance.execute(query.str());
+          } catch (const mysqlshdk::db::Error &error) {
+            // Attempting to drop a previous VIEW that now is a TABLE will give
+            // WRONG OBJECT error, however we don't care because it means a VIEW
+            // on the target schema got replaced by a TABLE, so the error is
+            // bypassed
+            if (error.code() != ER_WRONG_OBJECT) throw;
+          }
+        }
+      }
     }
 
     // Creates the tables on the backup schema
@@ -500,34 +536,6 @@ void copy_schema(const mysql::IInstance &instance, const std::string &name,
         instance.executef("USE !", current_schema.c_str());
     }
 
-    // If target schema existed, there might be additional objects that are
-    // not in the source schema, they need to be deleted
-    if (!created_schema) {
-      for (const auto &entry : src_objects) {
-        std::set<std::string> extra_objects;
-        std::set_difference(
-            tgt_objects[entry.first].begin(), tgt_objects[entry.first].end(),
-            entry.second.begin(), entry.second.end(),
-            std::inserter(extra_objects, extra_objects.begin()));
-
-        for (const auto &object : extra_objects) {
-          try {
-            auto query = shcore::sqlstring("DROP ! IF EXISTS !.!",
-                                           shcore::QuoteOnlyIfNeeded);
-            query << entry.first.c_str() << target.c_str() << object.c_str();
-            query.done();
-            instance.execute(query.str());
-          } catch (const mysqlshdk::db::Error &error) {
-            // Attempting to drop a previous VIEW that now is a TABLE will give
-            // WRONG OBJECT error, however we don't care because it means a VIEW
-            // on the target schema got replaced by a TABLE, so the error is
-            // bypassed
-            if (error.code() != ER_WRONG_OBJECT) throw;
-          }
-        }
-      }
-    }
-
     // Backups the table data
     // ----------------------
     if (!move_tables) {
@@ -548,6 +556,43 @@ void copy_schema(const mysql::IInstance &instance, const std::string &name,
       instance.executef("DROP SCHEMA !", target.c_str());
     }
     log_error("Error copying metadata tables: %s", error.what());
+    throw;
+  }
+}
+
+void copy_data(const mysql::IInstance &instance, const std::string &name,
+               const std::string &target) {
+  bool disable_fk_checks = false;
+  try {
+    // Gets the tables to be copied
+    std::set<std::string> src_objects;
+    std::set<std::string> tgt_objects;
+
+    auto result = instance.query("SHOW VARIABLES LIKE 'foreign_key_checks'");
+    auto value = result->fetch_one()->get_string(1);
+    if (value == "ON") disable_fk_checks = true;
+
+    if (disable_fk_checks) instance.execute("SET FOREIGN_KEY_CHECKS=0");
+
+    src_objects = schema::get_tables(instance, name);
+    tgt_objects = schema::get_tables(instance, target);
+
+    // Backups the table data
+    // ----------------------
+    instance.execute("START TRANSACTION");
+    for (const auto &table : src_objects) {
+      // Copies the data from source to target
+      instance.executef("INSERT INTO !.! SELECT * FROM !.!", target.c_str(),
+                        table.c_str(), name.c_str(), table.c_str());
+    }
+    instance.execute("COMMIT");
+
+    if (disable_fk_checks) instance.execute("SET FOREIGN_KEY_CHECKS=1");
+  } catch (const std::exception &error) {
+    instance.execute("ROLLBACK");
+    if (disable_fk_checks) instance.execute("SET FOREIGN_KEY_CHECKS=1");
+    log_error("Error copying data from '%s' to '%s': %s", name.c_str(),
+              target.c_str(), error.what());
     throw;
   }
 }

@@ -356,7 +356,7 @@ class Testutils : public mysqlsh::Extensible_object {
   std::map<int, std::unique_ptr<Slower_thread>> _slower_threads;
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
-  bool _dummy_sandboxes = false;
+  bool _skip_server_interaction = false;
   bool _use_boilerplate = false;
   std::string _test_skipped;
   int _snapshot_log_index = 0;

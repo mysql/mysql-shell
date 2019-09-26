@@ -1,5 +1,3 @@
-#@{False}
-# Disabled because of the refactoring of WL11033
 import os
 import filecmp
 
@@ -22,9 +20,9 @@ testutil.dump_data(__sandbox_uri1, "latest_md.sql", ["mysql_innodb_cluster_metad
 # Replaces the metadata with the snapshot at version 1.0.1, removes schema_version to make it even 1.0.0
 dba.drop_metadata_schema({"force": True});
 md_1_0_1 = os.path.join(__test_data_path, "sql", snapshot_file)
-testutil.call_mysqlsh([__sandbox_uri1, '--sql', '-f', md_1_0_1], "root", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-session.run_sql("DROP VIEW mysql_innodb_cluster_metadata.schema_version")
+testutil.import_data(__sandbox_uri1, __test_data_path + '/sql/' + snapshot_file)
 session.run_sql("UPDATE mysql_innodb_cluster_metadata.instances SET mysql_server_uuid = @@server_uuid")
+session.run_sql("DELETE FROM mysql_innodb_cluster_metadata.routers")
 
 # Upgrades the metadata to the latest version
 dba.upgrade_metadata()

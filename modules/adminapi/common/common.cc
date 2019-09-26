@@ -43,6 +43,7 @@
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -314,6 +315,8 @@ const std::set<std::string> k_mysql_schema_privileges{"INSERT", "UPDATE",
 // NOTE: SELECT *.* required (BUG#29743910), thus no longer needed for 'sys'.
 const std::map<std::string, std::set<std::string>> k_schema_grants{
     {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
+    {"mysql_innodb_cluster_metadata_bkp", k_metadata_schema_privileges},
+    {"mysql_innodb_cluster_metadata_previous", k_metadata_schema_privileges},
     {"mysql", k_mysql_schema_privileges}  // need for mysql.plugin,
                                           // mysql.user others
 };
@@ -353,13 +356,16 @@ bool validate_cluster_admin_user_privileges(
     const std::string &admin_host, std::string *validation_error) {
   bool is_valid = true;
 
-  auto append_error_message = [validation_error, &is_valid](
+  std::string account = shcore::make_account(admin_user, admin_host);
+
+  auto append_error_message = [account, validation_error, &is_valid](
                                   const std::string &info,
                                   const std::set<std::string> &privileges) {
     is_valid = false;
 
-    *validation_error +=
-        "\nMissing " + info + ": " + shcore::str_join(privileges, ", ") + ".";
+    *validation_error += "\nGRANT " + shcore::str_join(privileges, ", ") +
+                         " ON " + info + " TO " + account +
+                         " WITH GRANT OPTION;";
   };
 
   log_info("Validating account %s@%s...", admin_user.c_str(),
@@ -375,14 +381,10 @@ bool validate_cluster_admin_user_privileges(
           : k_global_privileges_57;
   auto global = user_privileges.validate(global_privileges);
 
-  if (global.has_missing_privileges() || !global.has_grant_option()) {
-    auto missing = global.get_missing_privileges();
-
-    if (!global.has_grant_option()) {
-      missing.insert("GRANT OPTION");
-    }
-
-    append_error_message("global privileges", missing);
+  if (global.has_missing_privileges()) {
+    append_error_message("*.*", global.get_missing_privileges());
+  } else if (!global.has_grant_option()) {
+    append_error_message("*.*", global_privileges);
   }
 
   for (const auto &schema_grants : k_schema_grants) {
@@ -390,8 +392,10 @@ bool validate_cluster_admin_user_privileges(
         user_privileges.validate(schema_grants.second, schema_grants.first);
 
     if (schema.has_missing_privileges()) {
-      append_error_message("privileges on schema '" + schema_grants.first + "'",
+      append_error_message(schema_grants.first + ".*",
                            schema.get_missing_privileges());
+    } else if (!schema.has_grant_option()) {
+      append_error_message(schema_grants.first + ".*", schema_grants.second);
     }
   }
 
@@ -401,15 +405,16 @@ bool validate_cluster_admin_user_privileges(
           table_grants.second, schema_grants.first, table_grants.first);
 
       if (table.has_missing_privileges()) {
-        append_error_message("privileges on table '" + schema_grants.first +
-                                 "." + table_grants.first + "'",
+        append_error_message(schema_grants.first + "." + table_grants.first,
                              table.get_missing_privileges());
+      } else if (!table.has_grant_option()) {
+        append_error_message(schema_grants.first + "." + table_grants.first,
+                             table_grants.second);
       }
     }
   }
 
-  *validation_error = "The account " +
-                      shcore::make_account(admin_user, admin_host) +
+  *validation_error = "The account " + account +
                       " is missing privileges required to manage an "
                       "InnoDB cluster:" +
                       *validation_error;
@@ -2181,6 +2186,22 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
   } while (timeout == 0 || time_elapsed < timeout);
 
   return sync_res;
+}
+
+void execute_script(const std::shared_ptr<Instance> &group_server,
+                    const std::string &script, const std::string &context) {
+  auto console = mysqlsh::current_console();
+  bool first_error = true;
+
+  mysqlshdk::mysql::execute_sql_script(
+      *group_server, script,
+      [&console, &first_error, &context](const std::string &err) {
+        if (first_error) {
+          console->print_error(context);
+          first_error = false;
+        }
+        console->print_error(err);
+      });
 }
 
 }  // namespace dba

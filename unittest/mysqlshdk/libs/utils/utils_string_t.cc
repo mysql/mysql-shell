@@ -591,8 +591,18 @@ TEST(utils_string, str_subvars) {
   EXPECT_EQ("boo",
             str_subvars(
                 "boo", [](const std::string &v) { return v; }, "{", "}"));
-  EXPECT_EQ("blable", str_subvars("${bla}${ble}",
-                                  [](const std::string &v) { return v; }));
+  EXPECT_EQ("blable", str_subvars(
+                          "${bla}${ble}",
+                          [](const std::string &v) { return v; }, "${", "}"));
+
+  {
+    shcore::Scoped_naming_style lower(shcore::LowerCamelCase);
+    EXPECT_EQ("mySampleIdentifier", str_subvars("<<<mySampleIdentifier>>>"));
+  }
+  {
+    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
+    EXPECT_EQ("my_sample_identifier", str_subvars("<<<mySampleIdentifier>>>"));
+  }
 }
 
 #ifdef _WIN32

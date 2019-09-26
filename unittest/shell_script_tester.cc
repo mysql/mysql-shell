@@ -821,7 +821,8 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
 
       // Handle include files... we make them look like chunks even if they
       // aren't to make it obvious the previous chunk is over
-      if (str_beginswith(line, "//@ INCLUDE ")) {
+      if (str_beginswith(chunk_def->id, "INCLUDE ") &&
+          str_endswith(chunk_def->id, ".inc")) {
         // Syntax:
         //@ INCLUDE file.inc
         //@ INCLUDE tag file.inc

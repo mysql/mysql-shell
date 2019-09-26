@@ -61,6 +61,8 @@ class Metadata_management_test : public Shell_core_test_wrapper {
 
   void TearDown() override {
     m_session->execute("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
+    m_session->execute(
+        "DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata_bkp");
     m_session->close();
     Shell_core_test_wrapper::TearDown();
   }
@@ -69,17 +71,31 @@ class Metadata_management_test : public Shell_core_test_wrapper {
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::shared_ptr<mysqlsh::dba::Instance> m_instance;
 
+  void drop_metadata_schema_backup() {
+    m_instance->execute(
+        "DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata_bkp");
+  }
+
   void create_metadata_schema() {
     m_instance->execute("CREATE SCHEMA mysql_innodb_cluster_metadata");
   }
 
-  void set_metadata_version(int major, int minor, int patch) {
+  void create_metadata_schema_backup() {
+    m_instance->execute("CREATE SCHEMA mysql_innodb_cluster_metadata_bkp");
+    m_instance->execute(
+        "CREATE SQL SECURITY INVOKER VIEW "
+        "mysql_innodb_cluster_metadata_bkp.backup_stage (stage) AS SELECT "
+        "'UPGRADING'");
+  }
+
+  void set_metadata_version(int major, int minor, int patch,
+                            const std::string &view = "schema_version") {
     m_instance->executef("DROP VIEW IF EXISTS !.!",
-                         "mysql_innodb_cluster_metadata", "schema_version");
+                         "mysql_innodb_cluster_metadata", view.c_str());
 
     m_instance->executef(
         "CREATE VIEW !.! (major, minor, patch) AS SELECT ?, ?, ?",
-        "mysql_innodb_cluster_metadata", "schema_version", major, minor, patch);
+        "mysql_innodb_cluster_metadata", view.c_str(), major, minor, patch);
   }
 };
 
@@ -88,11 +104,14 @@ TEST_F(Metadata_management_test, installed_version) {
   auto installed = mysqlsh::dba::metadata::installed_version(m_instance);
   EXPECT_TRUE(installed == mysqlsh::dba::metadata::kNotInstalled);
 
-  // The version will be 1.0.0 if the metadata schema exists
-  // but not the schema_version view
+  // The function will raise an exception if the metadata schema exists but the
+  // schema_version view is missing
   create_metadata_schema();
-  installed = mysqlsh::dba::metadata::installed_version(m_instance);
-  EXPECT_TRUE(installed == mysqlshdk::utils::Version(1, 0, 0));
+  EXPECT_THROW_LIKE(mysqlsh::dba::metadata::installed_version(m_instance),
+                    std::runtime_error,
+                    "Error verifying metadata version, the metadata schema "
+                    "mysql_innodb_cluster_metadata is inconsistent: the "
+                    "schema_version view is missing.");
 
   // The version will be the one in the schema_version view when it exists
   set_metadata_version(1, 0, 5);
@@ -100,34 +119,56 @@ TEST_F(Metadata_management_test, installed_version) {
   EXPECT_TRUE(installed == mysqlshdk::utils::Version(1, 0, 5));
 }
 
-TEST_F(Metadata_management_test, version_compatibility) {
-  SKIP_TEST("TODO: Enable this test once WL11033 is refactored");
+TEST_F(Metadata_management_test, check_installed_schema_version) {
   auto current_version = mysqlsh::dba::metadata::current_version();
+  mysqlshdk::utils::Version installed;
 
   // No metadata schema
-  auto compatibility =
-      mysqlsh::dba::metadata::version_compatibility(m_instance);
+  auto compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
   EXPECT_EQ(compatibility, MDS::NONEXISTING);
+  EXPECT_EQ(mysqlsh::dba::metadata::kNotInstalled, installed);
 
-  // Metadata schema but no version table, has the 1.0.0 version
+  // The same scenario with a backup indicates a Restore Process that failed
+  // after dropping the original metadata schema, is handled as a failed upgrade
+  create_metadata_schema_backup();
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
+  EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
+  EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
+
+  // There's a metadata schema and a backup, this is the default scenario for a
+  // failed upgrade
   create_metadata_schema();
-  mysqlshdk::utils::Version installed;
-  compatibility =
-      mysqlsh::dba::metadata::version_compatibility(m_instance, &installed);
+  set_metadata_version(1, 0, 1);
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
+  EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
+  EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
+  drop_metadata_schema_backup();
 
-  if (current_version.get_major() == installed.get_major() &&
-      current_version.get_minor() == installed.get_minor()) {
-    EXPECT_TRUE(mysqlsh::dba::metadata::kCompatible.is_set(compatibility));
-  } else {
-    EXPECT_TRUE(mysqlsh::dba::metadata::kIncompatible.is_set(compatibility));
-  }
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
+
+  EXPECT_TRUE(mysqlsh::dba::metadata::kIncompatible.is_set(compatibility));
+
+  // Metadata upgrading version 0.0.0, no metadata backup is a restore scenario
+  // when the data was already restored but setting the original version failed,
+  // it is handled as a failed upgrade
+  set_metadata_version(0, 0, 0);
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
+  EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
+  EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
 
   // Metadata upgrading version 0.0.0, but lock available indicates
   // a failed upgrade state
+  create_metadata_schema_backup();
   set_metadata_version(0, 0, 0);
-  compatibility =
-      mysqlsh::dba::metadata::version_compatibility(m_instance, &installed);
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
   EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
+  EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
 
   // Metadata upgrading version 0.0.0, but lock is held by other session must
   // indicate an active upgrading process
@@ -135,13 +176,16 @@ TEST_F(Metadata_management_test, version_compatibility) {
   other_session->execute(
       "SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', "
       "1)");
-  compatibility =
-      mysqlsh::dba::metadata::version_compatibility(m_instance, &installed);
+  compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
+      m_instance, &installed);
   EXPECT_EQ(compatibility, MDS::UPGRADING);
+  EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
   other_session->close();
+  drop_metadata_schema_backup();
 
   // The rest of the test are with the schema_version table existing, testing
-  // The different combinations of version
+  // The different combinations of version, no upgrade/restore in progress or
+  // failed
 
   struct Version_check {
     int major;
@@ -165,7 +209,8 @@ TEST_F(Metadata_management_test, version_compatibility) {
 
   for (const auto &check : compatibility_checks) {
     set_metadata_version(check.major, check.minor, check.patch);
-    auto state = mysqlsh::dba::metadata::version_compatibility(m_instance);
+    auto state =
+        mysqlsh::dba::metadata::check_installed_schema_version(m_instance);
     auto text = shcore::str_format("Major: %d, Minor: %d, Patch: %d",
                                    check.major, check.minor, check.patch);
     SCOPED_TRACE(text.c_str());

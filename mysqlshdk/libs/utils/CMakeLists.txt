@@ -26,6 +26,7 @@ IF(OPENSSL_INCLUDE_DIR)
 ENDIF()
 
 set(utils_SOURCE
+    array_result.cc
     utils_mysql_parsing.cc
     utils_net.cc
     utils_file.cc

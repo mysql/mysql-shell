@@ -120,7 +120,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   // files with placeholders. It cannot end with a path separator character,
   // because this may result in an unusable script.
   _sandbox_dir = shcore::str_rstrip(sandbox_dir, "\\/");
-  _dummy_sandboxes = dummy_mode;
+  _skip_server_interaction = dummy_mode;
   if (g_test_trace_scripts > 0 && dummy_mode)
     std::cerr << "testutils using dummy sandboxes\n";
 
@@ -623,6 +623,9 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
         .optional("skipDumpDate", &skip_dump_date)
         .end();
   }
+  // When replaying we don't need to do anything
+  mysqlshdk::db::replay::No_replay dont_record;
+  if (_skip_server_interaction) return;
 
   // use mysqldump for now, until we support dumping internally
   std::string mysqldump = shcore::path::search_stdpath("mysqldump");
@@ -699,6 +702,10 @@ None Testutils::import_data(str uri, str path, str defaultSchema);
 ///@}
 void Testutils::import_data(const std::string &uri, const std::string &path,
                             const std::string &default_schema) {
+  // When replaying we don't need to do anything
+  mysqlshdk::db::replay::No_replay dont_record;
+  if (_skip_server_interaction) return;
+
   // use mysql for now, until we support efficient import internally
   std::string mysql = shcore::path::search_stdpath("mysql");
   if (mysql.empty()) {
@@ -999,7 +1006,7 @@ void Testutils::snapshot_sandbox_conf(int port) {
     std::string sandbox_cnf_bkpath =
         _sandbox_snapshot_dir + "/sandbox_" + std::to_string(port) + "_" +
         std::to_string(_snapshot_conf_serial++) + "_my.cnf";
-    if (!_dummy_sandboxes) {
+    if (!_skip_server_interaction) {
       // copy the config file from the sandbox dir to the snapshot dir
       shcore::copy_file(sandbox_cnf_path, sandbox_cnf_bkpath);
     } else {
@@ -1081,7 +1088,7 @@ void Testutils::begin_snapshot_sandbox_error_log(int port) {
       _sandbox_snapshot_dir, "sandbox_" + std::to_string(port) + "_" +
                                  std::to_string(_snapshot_log_index) +
                                  "_error.log");
-  if (_dummy_sandboxes) {
+  if (_skip_server_interaction) {
     _snapshot_log_index++;
     // copy the log file from the snapshot dir to the sandbox dir, creating
     // it if needed
@@ -1105,7 +1112,7 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
       _sandbox_snapshot_dir, "sandbox_" + std::to_string(port) + "_" +
                                  std::to_string(_snapshot_log_index) +
                                  "_error.log");
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     _snapshot_log_index++;
     // copy the log file from the sandbox dir to the snapshot dir
     shcore::copy_file(sandbox_log_path, sandbox_log_bkpath);
@@ -1157,7 +1164,7 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
 
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     wait_sandbox_dead(port);
 
     // Sandbox from a boilerplate
@@ -1207,7 +1214,7 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
 
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     wait_sandbox_dead(port);
     // Sandbox from a boilerplate
     if (k_boilerplate_root_password == rootpass) {
@@ -1267,7 +1274,7 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
     }
   }
 #endif
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
     _mp->delete_sandbox(port, _sandbox_dir, &errors);
     if (errors && !errors->empty())
@@ -1309,7 +1316,7 @@ None Testutils::start_sandbox(int port);
 ///@}
 void Testutils::start_sandbox(int port) {
   int retries = k_max_start_sandbox_retries;
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     bool failed = true;
 
     wait_sandbox_dead(port);
@@ -1375,7 +1382,7 @@ void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
       .end();
 
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
     _mp->stop_sandbox(port, _sandbox_dir,
                       pass.empty() ? _passwords[port] : pass, &errors);
@@ -1435,7 +1442,7 @@ None Testutils::kill_sandbox(int port);
 #endif
 ///@}
 void Testutils::kill_sandbox(int port, bool quiet) {
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
     _mp->kill_sandbox(port, _sandbox_dir, &errors);
     // Only output errors to stderr if quiet mode is disabled (default).
@@ -1681,7 +1688,7 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
   std::string cfgfile_path = get_sandbox_conf_path(port);
 
   bool file_exists = shcore::is_file(cfgfile_path);
-  if (!file_exists && _dummy_sandboxes) return;
+  if (!file_exists && _skip_server_interaction) return;
 
   mysqlshdk::config::Config_file cfg;
   if (file_exists) {
@@ -1746,7 +1753,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
   bool file_exists = shcore::is_file(cfgfile_path);
-  if (!file_exists && _dummy_sandboxes) return;
+  if (!file_exists && _skip_server_interaction) return;
 
   mysqlshdk::config::Config_file cfg;
   if (file_exists) {
@@ -1790,7 +1797,7 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
   std::string autocnf_path =
       shcore::path::join_path(get_sandbox_datadir(port), "auto.cnf");
 
-  if (!shcore::is_file(autocnf_path) && _dummy_sandboxes) return;
+  if (!shcore::is_file(autocnf_path) && _skip_server_interaction) return;
 
   // Check if the auto.cnf file exists (only created on the first server start).
   if (shcore::is_file(autocnf_path)) {
@@ -2558,7 +2565,7 @@ None Testutils::ssl_create_ca(str s);
 #endif
 ///@}
 void Testutils::ssl_create_ca(const std::string &name) {
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
     if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
 
@@ -2635,7 +2642,7 @@ None Testutils::ssl_create_certs(int sbport, str caname, str servercn,
 void Testutils::ssl_create_certs(int sbport, const std::string &caname,
                                  const std::string &servercn,
                                  const std::string &clientcn) {
-  if (!_dummy_sandboxes) {
+  if (!_skip_server_interaction) {
     std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
     std::string sbdir = get_sandbox_datadir(sbport);
 

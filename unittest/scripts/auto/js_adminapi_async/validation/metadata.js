@@ -2,7 +2,7 @@
 ||
 
 //@# create replicaset (should fail)
-||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the supported by the Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@ Merge schema from different sources (cluster then rs)
 ||
@@ -62,6 +62,7 @@ mysql_server_uuid: <<<uuid2>>>
 
 //@# Check sb2.getReplicaSet() with mixed metadata
 |<ReplicaSet:myrs>|
+|"metadataVersion": "<<<testutil.getInstalledMetadataVersion()>>>",|
 |"name": "myrs",|
 |"primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 

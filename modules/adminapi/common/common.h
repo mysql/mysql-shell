@@ -445,6 +445,10 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
 bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout);
+
+void execute_script(const std::shared_ptr<Instance> &group_server,
+                    const std::string &script, const std::string &context);
+
 }  // namespace dba
 }  // namespace mysqlsh
 

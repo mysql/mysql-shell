@@ -352,9 +352,10 @@ DESCRIPTION
       - 0 - regular level of details. Only basic information about the status
         of the instance and replication is included, in addition to non-default
         or unexpected replication settings and status.
-      - 1 - includes server UUID and the raw information used to derive the
-        status of the instance, size of the applier queue, value of system
-        variables that protect against unexpected writes etc.
+      - 1 - includes Metadata Version, server UUID and the raw information used
+        to derive the status of the instance, size of the applier queue,
+        value of system variables that protect against unexpected writes
+        etc.
       - 2 - includes important replication related configuration settings, such
         as SSL, worker threads, replication delay and heartbeat delay.
 

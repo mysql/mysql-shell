@@ -140,6 +140,7 @@ dba.createReplicaSet("myrs");
 
 reset_instance(session);
 
+session.close();
 
 // Options
 //--------------------------------

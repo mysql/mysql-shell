@@ -690,9 +690,14 @@ function StandaloneScenario(ports) {
 }
 
 // ** Cluster based scenarios
-function ClusterScenario(ports, topology_mode = "pm") {
+function ClusterScenario(ports, topology_mode="pm", sandboxConfiguration) {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root", { report_host: hostname });
+    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
+
+    if (sandboxConfiguration) {
+      var uri = `root:root@localhost:${ports[i]}`;
+      dba.configureInstance(uri, sandboxConfiguration);
+    }
   }
 
   this.session = shell.connect("mysql://root:root@localhost:" + ports[0]);

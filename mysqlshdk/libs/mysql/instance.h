@@ -60,6 +60,8 @@ struct Auth_options {
   mysqlshdk::utils::nullable<std::string> password;
   db::Ssl_options ssl_options;
 
+  Auth_options() = default;
+  Auth_options(const mysqlshdk::db::Connection_options &copts) { get(copts); }
   void get(const mysqlshdk::db::Connection_options &copts);
   void set(mysqlshdk::db::Connection_options *copts) const;
 };

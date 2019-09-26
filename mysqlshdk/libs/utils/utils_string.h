@@ -33,6 +33,7 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/common.h"
 
 namespace shcore {
@@ -375,8 +376,11 @@ std::string SHCORE_PUBLIC str_replace(const std::string &s,
  */
 std::string SHCORE_PUBLIC str_subvars(
     const std::string &s,
-    const std::function<std::string(const std::string &)> &subvar,
-    const std::string &var_begin = "${", const std::string &var_end = "}");
+    const std::function<std::string(const std::string &)> &subvar =
+        [](const std::string &var) {
+          return shcore::get_member_name(var, shcore::current_naming_style());
+        },
+    const std::string &var_begin = "<<<", const std::string &var_end = ">>>");
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);

@@ -287,7 +287,10 @@ void Help_registry::add_split_help(const std::string &prefix,
       }
     } else {
       line = get_line(eos, rstrip);
-      while (!*eos && !line.empty() && line[0] != '@' && line[0] != '$') {
+      while (!*eos && !line.empty()) {
+        if (line[0] == '@' || line[0] == '$' ||
+            (line.size() > 1 && line[0] == '-' && line[1] == '#'))
+          break;
         para.append(" ").append(line);
         line = get_line(eos, rstrip);
       }

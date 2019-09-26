@@ -50,9 +50,11 @@ std::string lookup_message(const std::string &function_name, MDS state) {
                "by the Shell which is version %s. It is recommended to use a "
                "Shell version that supports this metadata.";
       case MDS::MAJOR_LOWER:
-        return "The installed metadata version %s is lower than the supported "
-               "by the Shell which is version %s. It is recommended to upgrade "
-               "the metadata. See \\? dba.<<<upgradeMetadata>>> for "
+      case MDS::MINOR_LOWER:
+      case MDS::PATCH_LOWER:
+        return "The installed metadata version %s is lower than the version "
+               "required by Shell which is version %s. It is recommended to "
+               "upgrade the metadata. See \\? dba.<<<upgradeMetadata>>> for "
                "additional details.";
       case MDS::FAILED_UPGRADE:
         return metadata::kFailedUpgradeError;
@@ -72,7 +74,7 @@ std::string lookup_message(const std::string &function_name, MDS state) {
                "execute this operation.";
       case MDS::MAJOR_LOWER:
         return "Operation not allowed. The installed metadata version %s is "
-               "lower than the supported by the Shell which is version %s. "
+               "lower than the version required by Shell which is version %s. "
                "Upgrade the metadata to execute this operation. See \\? "
                "dba.<<<upgradeMetadata>>> for additional details.";
       default:
@@ -94,8 +96,8 @@ std::string lookup_message(const std::string &function_name, MDS state) {
       case MDS::MAJOR_LOWER:
         return "No " + thing(type) +
                " change operations can be executed because the installed "
-               "metadata version %s is lower than the supported by the Shell "
-               "which is version %s. Upgrade the metadata to remove this "
+               "metadata version %s is lower than the version required by "
+               "Shell which is version %s. Upgrade the metadata to remove this "
                "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
                "details.";
       default:
@@ -116,7 +118,8 @@ std::string lookup_message(const std::string &function_name, MDS state) {
       case MDS::MAJOR_LOWER:
         return "Operation not allowed. No " + thing(type) +
                " change operations can be executed because the installed "
-               "metadata version %s is lower than the supported by the Shell "
+               "metadata version %s is lower than the version required by "
+               "Shell "
                "which is version %s. Upgrade the metadata to remove this "
                "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
                "details.";
@@ -139,7 +142,7 @@ std::string lookup_message(const std::string &function_name, MDS state) {
   return "";
 }
 
-enum class MDS_actions { NONE, WARN, ERROR };
+enum class MDS_actions { NONE, NOTE, WARN, ERROR };
 
 // The AdminAPI maximum supported MySQL Server version
 const mysqlshdk::utils::Version k_max_adminapi_server_version =
@@ -181,14 +184,16 @@ const std::map<std::string, FunctionAvailability>
               GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.getCluster",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN}}}},
+           {metadata::kIncompatible, MDS_actions::WARN},
+           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.dropMetadataSchema",
          {k_min_adminapi_server_version,
           GRInstanceType::StandaloneWithMetadata |
@@ -202,7 +207,8 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.configureLocalInstance",
          {k_min_gr_version,
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
@@ -228,9 +234,7 @@ const std::map<std::string, FunctionAvailability>
 
         {"Dba.upgradeMetadata",
          {k_min_gr_version,
-          GRInstanceType::InnoDBCluster | GRInstanceType::StandaloneInMetadata |
-              GRInstanceType::StandaloneWithMetadata |
-              GRInstanceType::GroupReplication,
+          GRInstanceType::InnoDBCluster | GRInstanceType::AsyncReplicaSet,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeInProgress, MDS_actions::ERROR}}}},
@@ -248,14 +252,16 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.getReplicaSet",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN}}}},
+           {metadata::kIncompatible, MDS_actions::WARN},
+           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
 
         // GR Cluster functions
         {"Cluster.addInstance",
@@ -293,7 +299,7 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.options",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
@@ -311,7 +317,7 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {}}},
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.rescan",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
@@ -503,7 +509,8 @@ bool check_metadata(const std::shared_ptr<Instance> &target_server,
     log_debug("Instance type check: %s: Metadata version %s found",
               target_server->descr().c_str(), out_version->get_full().c_str());
 
-    if (!metadata.check_instance_type(target_server->get_uuid(), out_type)) {
+    if (!metadata.check_instance_type(target_server->get_uuid(), *out_version,
+                                      out_type)) {
       *out_type = Cluster_type::NONE;
       log_debug("Instance %s is not managed",
                 target_server->get_uuid().c_str());
@@ -516,47 +523,6 @@ bool check_metadata(const std::shared_ptr<Instance> &target_server,
     return true;
   }
   return false;
-}
-
-bool check_all_members_online(const std::shared_ptr<Instance> &target_server) {
-  // If the number of members that belong to the same replicaset in the
-  // instances table is the same as the number of ONLINE members in
-  // replication_group_members then ALL the members in the cluster are
-  // ONLINE
-  std::shared_ptr<mysqlshdk::db::IResult> result;
-  try {
-    result = target_server->query(
-        "SELECT (SELECT COUNT(*) "
-        "FROM mysql_innodb_cluster_metadata.instances "
-        "WHERE cluster_id = (SELECT cluster_id "
-        "FROM mysql_innodb_cluster_metadata.instances "
-        "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
-        "FROM performance_schema.replication_group_members "
-        "WHERE member_state = 'ONLINE') as all_online");
-  } catch (const mysqlshdk::db::Error &e) {
-    // Metadata schema 1.0.1 does not have the cluster_id field on the instaces
-    // table, producing this error, in such case, we attempt again now with the
-    // replicaset_id field.
-    if (e.code() == ER_BAD_FIELD_ERROR) {
-      result = target_server->query(
-          "SELECT (SELECT COUNT(*) "
-          "FROM mysql_innodb_cluster_metadata.instances "
-          "WHERE replicaset_id = (SELECT replicaset_id "
-          "FROM mysql_innodb_cluster_metadata.instances "
-          "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
-          "FROM performance_schema.replication_group_members "
-          "WHERE member_state = 'ONLINE') as all_online");
-    } else {
-      throw;
-    }
-  }
-
-  const mysqlshdk::db::IRow *row = result->fetch_one();
-
-  if (row && row->get_int(0, 0))
-    return true;
-  else
-    return false;
 }
 
 bool check_group_replication_active(
@@ -603,12 +569,14 @@ GRInstanceType::Type get_instance_type(
 
     if (error.code() == ER_NO_SUCH_TABLE)
       gr_active = false;
-    else if (error.code() == ER_TABLEACCESS_DENIED_ERROR)
-      // TODO(alfredo) Maybe should print an error and throw instead?
-      return GRInstanceType::Unknown;
-    else
+    else if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
+      throw std::runtime_error(
+          "Unable to detect target instance state. Please check account "
+          "privileges.");
+    } else {
       throw shcore::Exception::mysql_error_with_code_and_state(
           error.what(), error.code(), error.sqlstate());
+    }
   }
 
   if (has_metadata) {
@@ -708,7 +676,9 @@ Cluster_check_info get_cluster_check_info(
     if (state.source_type == GRInstanceType::InnoDBCluster &&
         state.quorum == ReplicationQuorum::States::Normal) {
       try {
-        if (check_all_members_online(group_server)) {
+        MetadataStorage metadata(group_server);
+
+        if (metadata.check_all_members_online()) {
           state.quorum |= ReplicationQuorum::States::All_online;
         }
       } catch (const mysqlshdk::db::Error &e) {
@@ -816,9 +786,10 @@ void check_preconditions(const std::string &function_name,
     error = "This function is not available through a session";
     switch (state.source_type) {
       case GRInstanceType::Unknown:
+        // The original failure detecting the instance type gets logged.
         error =
-            "Unable to detect target instance state. Please check account "
-            "privileges.";
+            "Unable to detect target instance state. Please see the shell log "
+            "for more details.";
         break;
       case GRInstanceType::Standalone:
         error += " to a standalone instance";
@@ -905,7 +876,7 @@ void check_metadata_preconditions(
   // Metadata validation is done only on the functions that require it
   if (!availability.metadata_validations.empty()) {
     MDS compatibility =
-        metadata::version_compatibility(group_server, &installed);
+        metadata::check_installed_schema_version(group_server, &installed);
 
     if (compatibility != MDS::EQUAL) {
       for (const auto &validation : availability.metadata_validations) {
@@ -920,9 +891,11 @@ void check_metadata_preconditions(
                 msg.c_str(), installed.get_base().c_str(),
                 mysqlsh::dba::metadata::current_version().get_base().c_str());
 
+            auto console = mysqlsh::current_console();
             if (validation.action == MDS_actions::WARN) {
-              auto console = mysqlsh::current_console();
               console->print_warning(pre_formatted);
+            } else if (validation.action == MDS_actions::NOTE) {
+              console->print_note(pre_formatted);
             } else if (validation.action == MDS_actions::ERROR) {
               throw std::runtime_error(shcore::str_subvars(
                   pre_formatted,
