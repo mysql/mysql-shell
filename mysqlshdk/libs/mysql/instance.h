@@ -206,7 +206,7 @@ struct Suppress_binary_log {
 class Instance : public IInstance {
  public:
   Instance() {}
-  explicit Instance(std::shared_ptr<db::ISession> session);
+  explicit Instance(const std::shared_ptr<db::ISession> &session);
 
   std::string descr() const override;
   std::string get_canonical_hostname() const override;

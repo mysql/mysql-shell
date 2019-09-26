@@ -113,7 +113,7 @@ Checking instance configuration...
 Configuration file <<<__sandbox2_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -133,7 +133,7 @@ Checking instance configuration...
 Configuration file <<<__sandbox2_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -153,7 +153,7 @@ Checking instance configuration...
 Configuration file <<<__sandbox3_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -173,7 +173,7 @@ Checking instance configuration...
 Configuration file <<<__sandbox3_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -197,10 +197,10 @@ NOTE: Some configuration options need to be fixed:
 +-----------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]:
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: 
 Cluster admin user 'myAdmin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 #@<OUT> configure_instance() - instance not valid for cluster usage {VER(<8.0.11)}
@@ -224,7 +224,7 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 Do you want to perform the required configuration changes? [y/n]:
 Cluster admin user 'myAdmin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 #@<OUT> configure_instance() - create admin account 2
@@ -235,7 +235,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 Assuming full account name 'myAdmin'@'%' for myAdmin
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 Cluster admin user 'myAdmin'@'%' created.
 
@@ -247,7 +247,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 Assuming full account name 'myAdmin'@'%' for myAdmin
 
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
 Cluster admin user 'myAdmin'@'%' created.
 
@@ -264,7 +264,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -283,7 +283,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -297,8 +297,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is already ready for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
 
 #@ configure_instance() 2 - instance already valid for cluster usage
 ||
@@ -306,14 +306,13 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is already ready for InnoDB
 #@<OUT> create_cluster() {VER(>=8.0.11)}
 A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
@@ -326,14 +325,13 @@ one server failure.
 #@<OUT> create_cluster() {VER(<8.0.11)}
 A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configure_local_instance() command locally to persist the changes.
@@ -350,7 +348,7 @@ one server failure.
 |automatic clone provisioning, which will completely overwrite the state of|
 |The incremental distributed state recovery may be safely used if you are sure|
 |Incremental distributed state recovery was selected because it seems to be safely usable.|
-|Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...|
+|Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...|
 |Instance configuration is suitable.|
 ||
 |Adding instance to the cluster...|
@@ -362,16 +360,13 @@ one server failure.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
-
-Validating instance at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...
+Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
-
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configure_local_instance() command locally to persist the changes.
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
@@ -634,13 +629,13 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 }
 
 #@<OUT> Restore the cluster quorum
-Restoring replicaset 'default' from loss of quorum, by using the partition composed of [<<<hostname>>>:<<<__mysql_sandbox_port1>>>]
+Restoring cluster 'testCluster' from loss of quorum, by using the partition composed of [<<<hostname>>>:<<<__mysql_sandbox_port1>>>]
 
 Restoring the InnoDB cluster ...
 
 The InnoDB cluster was successfully restored using the partition from the instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-WARNING: To avoid a split-brain scenario, ensure that all other members of the replicaset are removed or joined back to the group that was restored.
+WARNING: To avoid a split-brain scenario, ensure that all other members of the cluster are removed or joined back to the group that was restored.
 
 #@<OUT> Check the cluster status after restoring the quorum
 {

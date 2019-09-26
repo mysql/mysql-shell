@@ -49,7 +49,8 @@ Configure_local_instance::Configure_local_instance(
     mysqlshdk::utils::nullable<bool> restart)
     : Configure_instance(instance_cnx_opts, mycnf_path, output_mycnf_path,
                          cluster_admin, cluster_admin_password, clear_read_only,
-                         interactive, restart) {}
+                         interactive, restart,
+                         Cluster_type::GROUP_REPLICATION) {}
 
 Configure_local_instance::~Configure_local_instance() {}
 
@@ -63,10 +64,12 @@ void Configure_local_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session;
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlsh::dba::Instance(session);
+    m_target_instance = std::make_shared<Instance>(session);
 
-    m_local_target = mysqlshdk::utils::Net::is_local_address(
-        m_target_instance->get_connection_options().get_host());
+    m_local_target =
+        !m_target_instance->get_connection_options().has_host() ||
+        mysqlshdk::utils::Net::is_local_address(
+            m_target_instance->get_connection_options().get_host());
 
     // Set the current user/host
     m_target_instance->get_current_user(&m_current_user, &m_current_host);
@@ -96,9 +99,7 @@ void Configure_local_instance::prepare() {
   if (m_instance_type == GRInstanceType::InnoDBCluster) {
     auto console = mysqlsh::current_console();
 
-    console->println("The instance '" +
-                     m_target_instance->get_connection_options().as_uri(
-                         mysqlshdk::db::uri::formats::only_transport()) +
+    console->println("The instance '" + m_target_instance->descr() +
                      "' belongs to an InnoDB cluster.");
     if (m_target_instance->get_version() >=
         mysqlshdk::utils::Version(8, 0, 5)) {
@@ -109,15 +110,9 @@ void Configure_local_instance::prepare() {
     }
 
     // Validate if the instance is local or not
-    if (!m_target_instance->get_connection_options().has_host()) {
+    if (!m_local_target) {
       throw shcore::Exception::runtime_error(
-          "This function requires a TCP connection, host is missing.");
-    } else {
-      if (!mysqlshdk::utils::Net::is_local_address(
-              m_target_instance->get_connection_options().get_host())) {
-        throw shcore::Exception::runtime_error(
-            "This function only works with local instances");
-      }
+          "This function only works with local instances");
     }
 
     if (!check_config_path_for_update()) {

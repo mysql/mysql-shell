@@ -13,29 +13,15 @@ group_replication_start_on_boot = ON
 //@ FR1-TS-01 reboot instance {VER(>=8.0.12)}
 ||
 
-//@<OUT> FR1-TS-01 reboot cluster {VER(>=8.0.12)}
-Reconfiguring the cluster 'C' from complete outage...
-
-The safest and most convenient way to provision a new instance is through
-automatic clone provisioning, which will completely overwrite the state of
-'localhost:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing cluster member. To
-use this method by default, set the 'recoveryMethod' option to 'clone'.
-
-The incremental distributed state recovery may be safely used if you are sure
-all updates ever executed in the cluster were done with GTIDs enabled, there
-are no purged transactions and the new instance contains the same GTID set as
-the cluster or a subset of it. To use this method by default, set the
-'recoveryMethod' option to 'incremental'.
-
-Incremental distributed state recovery was selected because it seems to be safely usable.
-
-The cluster was successfully rebooted.
-
-<Cluster:C>
+//@# FR1-TS-01 reboot cluster {VER(>=8.0.12)}
+|Reconfiguring the cluster 'C' from complete outage...|
+|The cluster was successfully rebooted.|
+|<Cluster:C>|
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_autorejoin_tries = 0
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_ip_whitelist = AUTOMATIC
@@ -78,18 +64,17 @@ group_replication_start_on_boot = ON
 //@<OUT> FR1-TS-03 {VER(>=8.0.12)}
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
-Creating InnoDB cluster 'C' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
+Creating InnoDB cluster 'C' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -102,7 +87,7 @@ one server failure.
 ||
 
 //@ FR1-TS-04/05 SETUP {VER(>=8.0.12)}
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
 |Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
 //@<OUT> FR1-TS-04/05 {VER(>=8.0.12)}
@@ -115,7 +100,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
 //@ FR1-TS-04/05 TEARDOWN {VER(>=8.0.12)}
@@ -127,18 +112,17 @@ Calling this function on a cluster member is only required for MySQL versions 8.
 //@<OUT> FR1-TS-06 {VER(<8.0.12)}
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-Creating InnoDB cluster 'ClusterName' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+Creating InnoDB cluster 'ClusterName' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -166,29 +150,15 @@ group_replication_start_on_boot = ON
 //@ FR1-TS-7 reboot instance 1 {VER(>=8.0.12)}
 ||
 
-//@<OUT> FR1-TS-7 reboot cluster {VER(>=8.0.12)}
-Reconfiguring the cluster 'ClusterName' from complete outage...
-
-The safest and most convenient way to provision a new instance is through
-automatic clone provisioning, which will completely overwrite the state of
-'localhost:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing cluster member. To
-use this method by default, set the 'recoveryMethod' option to 'clone'.
-
-The incremental distributed state recovery may be safely used if you are sure
-all updates ever executed in the cluster were done with GTIDs enabled, there
-are no purged transactions and the new instance contains the same GTID set as
-the cluster or a subset of it. To use this method by default, set the
-'recoveryMethod' option to 'incremental'.
-
-Incremental distributed state recovery was selected because it seems to be safely usable.
-
-The cluster was successfully rebooted.
-
-<Cluster:ClusterName>
+//@# FR1-TS-7 reboot cluster {VER(>=8.0.12)}
+|Reconfiguring the cluster 'ClusterName' from complete outage...|
+|The cluster was successfully rebooted.|
+|<Cluster:ClusterName>|
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_autorejoin_tries = 0
+group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_ip_whitelist = AUTOMATIC
@@ -229,6 +199,7 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -315,43 +286,26 @@ group_replication_start_on_boot = ON
 //@ FR2-TS-3 SETUP {VER(>=8.0.12)}
 ||
 
-//@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
-NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is
-empty), but the cluster was configured to assume that incremental distributed
-state recovery can correctly provision it in this case.
-The safest and most convenient way to provision a new instance is through
-automatic clone provisioning, which will completely overwrite the state of
-'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To
-use this method by default, set the 'recoveryMethod' option to 'clone'.
-
-The incremental distributed state recovery may be safely used if you are sure
-all updates ever executed in the cluster were done with GTIDs enabled, there
-are no purged transactions and the new instance contains the same GTID set as
-the cluster or a subset of it. To use this method by default, set the
-'recoveryMethod' option to 'incremental'.
-
-Incremental distributed state recovery was selected because it seems to be safely usable.
-
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
-
-Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-
-Instance configuration is suitable.
-
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster...
-
-Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+//@# FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
+|NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.|
+||
+|Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
+|NOTE: Instance detected as a sandbox.|
+|Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.|
+||
+|This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
+||
+|Instance configuration is suitable.|
+|WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.|
+|A new instance will be added to the InnoDB cluster. Depending on the amount of|
+|data on the cluster this might take from a few seconds to several hours.|
+||
+|Adding instance to the cluster...|
+||
+|Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.|
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
-{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
@@ -394,6 +348,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to t
 ||
 
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
@@ -405,6 +360,7 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -424,6 +380,7 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-5 {VER(>=8.0.12)}
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
@@ -434,6 +391,7 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -444,10 +402,11 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -466,39 +425,7 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
-NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is
-empty), but the cluster was configured to assume that incremental distributed
-state recovery can correctly provision it in this case.
-The safest and most convenient way to provision a new instance is through
-automatic clone provisioning, which will completely overwrite the state of
-'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To
-use this method by default, set the 'recoveryMethod' option to 'clone'.
-
-The incremental distributed state recovery may be safely used if you are sure
-all updates ever executed in the cluster were done with GTIDs enabled, there
-are no purged transactions and the new instance contains the same GTID set as
-the cluster or a subset of it. To use this method by default, set the
-'recoveryMethod' option to 'incremental'.
-
-Incremental distributed state recovery was selected because it seems to be safely usable.
-
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
-
-Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-
-Instance configuration is suitable.
-
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster...
-
-Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 
 //@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
 {{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
@@ -514,6 +441,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to t
 ||
 
 //@<OUT> FR2-TS-8 Check that correct values were persisted and that instance rejoins automatically {VER(>=8.0.12)}
+group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -524,6 +452,7 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -602,6 +531,7 @@ ONLINE
 
 //@<OUT> FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -617,6 +547,7 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR2-TS-9 Check that correct values are persisted and updated when instances are added and that instances rejoin automatically {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -628,6 +559,7 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -638,6 +570,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -736,6 +669,7 @@ ONLINE
 //@<OUT> FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -747,6 +681,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -764,6 +699,7 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - before {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -783,6 +719,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -795,6 +732,7 @@ group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -806,6 +744,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -872,6 +811,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 
 //@<OUT> Check if Cluster dissolve will reset persisted variables {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc

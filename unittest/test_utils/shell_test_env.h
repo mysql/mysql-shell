@@ -143,7 +143,6 @@ class Shell_test_env : public ::testing::Test {
   static std::string _port;  //!< The port for X protocol, env:MYSQLX_PORT
   static std::string _user;
   static std::string _pwd;
-  static int _port_number;        //!< The port for X protocol, env:MYSQLX_PORT
   static std::string s_hostname;  //!< TBD
   std::string m_hostname;
   static bool s_real_host_is_loopback;
@@ -156,8 +155,6 @@ class Shell_test_env : public ::testing::Test {
   static std::string _uri_nopasswd;  //!< A password-less URI for X protocol
   static std::string
       _mysql_port;  //!< The port for MySQL protocol, env:MYSQL_PORT
-  static int
-      _mysql_port_number;  //!< The port for MySQL protocol, env:MYSQL_PORT
   static std::string _mysql_uri;  //!< A full URI for MySQL protocol sessions
   static std::string
       _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
@@ -166,6 +163,11 @@ class Shell_test_env : public ::testing::Test {
   static std::string _mysql_socket;  //!< env:MYSQL_SOCKET
 
   static std::string _sandbox_dir;  //!< Path to the sandbox directory
+
+  // these are per-test values, which can be either the same as _port and
+  // _mysql_port or restored value from traces, when replaying
+  std::string m_port;
+  std::string m_mysql_port;
 
   // Overridden sandbox ports (used for replays)
   int _mysql_sandbox_ports[sandbox::k_num_ports];  //!< Ports

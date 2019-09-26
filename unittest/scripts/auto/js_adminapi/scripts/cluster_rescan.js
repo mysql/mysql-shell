@@ -16,8 +16,8 @@ function count_in_metadata_schema() {
     return row[0];
 }
 
-function get_metadata_topology_mode(replicaset_id) {
-    var result = session.runSql("SELECT topology_type FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id="+replicaset_id);
+function get_metadata_topology_mode() {
+    var result = session.runSql("SELECT primary_mode FROM mysql_innodb_cluster_metadata.clusters");
     var row = result.fetchOne();
     return row[0];
 }
@@ -408,16 +408,16 @@ cluster.addInstance(__hostname_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ WL10644 - TSF4_1: Change the topology mode in the MD to the wrong value.
-session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'mm'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'mm'");
 
 //@<> WL10644 - TSF4_1: Topology mode in MD before rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_1: Rescan with updateTopologyMode:false and change needed.
 cluster.rescan({updateTopologyMode: false});
 
 //@<> WL10644 - TSF4_1: Check topology mode in MD after rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@ WL10644 - TSF4_5: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
@@ -425,7 +425,7 @@ set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
 
 //@<> WL10644 - TSF4_2: Topology mode in MD before rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_2: status() error because topology mode changed.
 // NOTE: dba.getCluster() needed for new metadata info to be loaded by cluster object.
@@ -436,7 +436,7 @@ cluster.status();
 cluster.rescan({updateTopologyMode: true});
 
 //@<> WL10644 - TSF4_2: Check topology mode in MD after rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
 cluster.status();
@@ -457,10 +457,10 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 cluster.status();
 
 //@ WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
-session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'pm'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'pm'");
 
 //@<> WL10644 - TSF4_3: Topology mode in MD before rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@ WL10644 - TSF4_6: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
@@ -472,7 +472,7 @@ testutil.expectPrompt("Would you like to update it in the cluster metadata? [Y/n
 cluster.rescan({interactive: true});
 
 //@<> WL10644 - TSF4_3: Check topology mode in MD after rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_6: Check auto_increment settings after change to multi-primary.
 offset1 = 1 + instance1_id % 7;
@@ -483,16 +483,16 @@ check_auto_increment_settings(__sandbox_uri2);
 check_auto_increment_settings(__sandbox_uri3);
 
 //@ WL10644 - TSF4_4: Change the topology mode in the MD to the wrong value.
-session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'pm'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'pm'");
 
 //@<> WL10644 - TSF4_4: Topology mode in MD before rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_4: Rescan with interactive:false and change needed.
 cluster.rescan({interactive: false});
 
 //@<> WL10644 - TSF4_4: Check topology mode in MD after rescan().
-get_metadata_topology_mode(1);
+get_metadata_topology_mode();
 
 //@ Finalize.
 cluster.disconnect();

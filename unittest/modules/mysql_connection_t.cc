@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,7 @@ class Mysql_connection_test : public Shell_base_test {};
 TEST_F(Mysql_connection_test, connect_default_pipe) {
   mysqlshdk::db::Connection_options connection_options;
   connection_options.set_host(_host);
-  connection_options.set_port(_mysql_port_number);
+  connection_options.set_port(std::stoi(_mysql_port));
   connection_options.set_user(_user);
   connection_options.set_password(_pwd);
   auto connection = mysqlshdk::db::mysql::Session::create();
@@ -83,7 +83,7 @@ TEST_F(Mysql_connection_test, connect_default_pipe) {
 TEST_F(Mysql_connection_test, connect_named_pipe) {
   mysqlshdk::db::Connection_options connection_options;
   connection_options.set_host(_host);
-  connection_options.set_port(_mysql_port_number);
+  connection_options.set_port(std::stoi(_mysql_port));
   connection_options.set_user(_user);
   connection_options.set_password(_pwd);
 

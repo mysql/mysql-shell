@@ -805,14 +805,17 @@ int main(int argc, char **argv) {
         exit(1);
       }
       tracedir = p + 1;
-    } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
+    } else if (shcore::str_caseeq(argv[index], "--generate-validation-file") ||
+               strcmp(argv[index], "-g") == 0) {
       g_generate_validation_file = true;
     } else if (shcore::str_beginswith(argv[index], "--debug=")) {
       DBUG_SET_INITIAL(argv[index] + strlen("--debug="));
-    } else if (strcmp(argv[index], "--trace-no-stop") == 0) {
+    } else if (strcmp(argv[index], "--trace-no-stop") == 0 ||
+               strcmp(argv[index], "-T") == 0) {
       // continue executing script until the end on failure
       g_test_trace_scripts = 1;
-    } else if (strcmp(argv[index], "--trace") == 0) {
+    } else if (strcmp(argv[index], "--trace") == 0 ||
+               strcmp(argv[index], "-t") == 0) {
       // stop executing script on failure
       g_test_trace_scripts = 2;
       g_test_fail_early = true;

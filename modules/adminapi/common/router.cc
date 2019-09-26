@@ -35,14 +35,14 @@ inline bool is_router_upgrade_required(
   if (version <= mysqlshdk::utils::Version("1.0.9")) {
     return true;
   }
-  // TODO(alfredo) - uncomment this when MD 2.0 is added
-  //   if (version <= mysqlshdk::utils::Version("8.0.19")) {
-  //     return true;
-  //   }
+  // MD 2.0.0 was introduced in Shell + Router 8.0.19
+  if (version <= mysqlshdk::utils::Version("8.0.18")) {
+    return true;
+  }
   return false;
 }
 
-shcore::Value router_list(MetadataStorage *md, uint64_t cluster_id,
+shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
                           bool only_upgrade_required) {
   auto router_list = shcore::make_dict();
 
@@ -66,11 +66,7 @@ shcore::Value router_list(MetadataStorage *md, uint64_t cluster_id,
 
     if (only_upgrade_required && !upgrade_required) continue;
 
-    std::string label;
-    if (router_md.name.empty())
-      label = router_md.hostname;
-    else
-      label = router_md.hostname + "::" + router_md.name;
+    std::string label = router_md.hostname + "::" + router_md.name;
 
     (*router)["hostname"] = shcore::Value(router_md.hostname);
 

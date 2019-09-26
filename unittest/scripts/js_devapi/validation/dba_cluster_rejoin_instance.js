@@ -92,7 +92,7 @@ WARNING: Option 'memberSslMode' is deprecated for this operation and it will be 
 }
 
 //@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
-Cluster.rejoinInstance: Cannot rejoin instance 'localhost:<<<__mysql_sandbox_port2>>>' to the ReplicaSet 'default' since it is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet. (RuntimeError)
+Cluster.rejoinInstance: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster 'dev' since it is an active ({{ONLINE|RECOVERING}}) member of the cluster. (RuntimeError)
 
 //@ Dissolve cluster
 ||

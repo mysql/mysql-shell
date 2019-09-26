@@ -28,11 +28,23 @@ dba.help('configureLocalInstance');
 //@ Configure Local Instance, \? [USE:Configure Local Instance]
 \? configureLocalInstance
 
+//@ Configure ReplicaSet Instance
+dba.help('configureReplicaSetInstance');
+
+//@ Configure ReplicaSet Instance, \? [USE:Configure ReplicaSet Instance]
+\? configureReplicaSetInstance
+
 //@ Create Cluster
 dba.help('createCluster');
 
 //@ Create Cluster, \? [USE:Create Cluster]
 \? createCluster
+
+//@ Create ReplicaSet
+dba.help('createReplicaSet');
+
+//@ Create ReplicaSet, \? [USE:Create ReplicaSet]
+\? createReplicaSet
 
 //@ Delete Sandbox
 dba.help('deleteSandboxInstance');
@@ -57,6 +69,12 @@ dba.help('getCluster');
 
 //@ Get Cluster, \? [USE: Get Cluster]
 \? getCluster
+
+//@ Get ReplicaSet
+dba.help('getReplicaSet');
+
+//@ Get ReplicaSet, \? [USE: Get ReplicaSet]
+\? getReplicaSet
 
 //@ Help
 dba.help('help');

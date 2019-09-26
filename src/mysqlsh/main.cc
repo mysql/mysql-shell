@@ -812,7 +812,7 @@ int main(int argc, char **argv) {
           default_cluster = shell->set_default_cluster(options.default_cluster);
         } catch (const shcore::Exception &e) {
           mysqlsh::current_console()->print_warning(
-              "Option --cluster requires a session to a member of a InnoDB "
+              "Option --cluster requires a session to a member of an InnoDB "
               "cluster.");
           mysqlsh::current_console()->print_error(e.format());
           return 1;

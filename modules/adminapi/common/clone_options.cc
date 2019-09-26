@@ -34,7 +34,6 @@ namespace mysqlsh {
 namespace dba {
 
 constexpr const char kRecoveryMethod[] = "recoveryMethod";
-constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
 
 namespace {
 /**
@@ -115,7 +114,7 @@ void Clone_options::do_unpack(shcore::Option_unpacker *unpacker) {
 }
 
 void Clone_options::check_option_values(
-    const mysqlshdk::utils::Version &version, const ReplicaSet *replicaset) {
+    const mysqlshdk::utils::Version &version, const GRReplicaSet *replicaset) {
   if (!disable_clone.is_null()) {
     // Validate if the disableClone option is supported on the target
     validate_clone_supported(version, kDisableClone, target);

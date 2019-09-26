@@ -1,3 +1,21 @@
+if (__mysqluripwd) {
+  var s = mysql.getSession(__mysqluripwd);
+  var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
+  var __mysql_hostname = r[0];
+  var __mysql_report_host = r[1];
+  var __mysql_host = __mysql_report_host ? __mysql_report_host : __mysql_hostname;
+
+  // Address that appear in pre-configured sandboxes that set report_host to 127.0.0.1
+  var __address1 = "127.0.0.1:" + __mysql_sandbox_port1;
+  var __address2 = "127.0.0.1:" + __mysql_sandbox_port2;
+  var __address3 = "127.0.0.1:" + __mysql_sandbox_port3;
+
+  // Address that appear in raw sandboxes, that show the real hostname
+  var __address1r = __mysql_host + ":" + __mysql_sandbox_port1;
+  var __address2r = __mysql_host + ":" + __mysql_sandbox_port2;
+  var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
+}
+
 function validate_crud_functions(crud, expected)
 {
     var actual = dir(crud);

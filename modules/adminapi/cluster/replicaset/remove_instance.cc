@@ -44,7 +44,7 @@ namespace dba {
 
 Remove_instance::Remove_instance(
     mysqlshdk::db::Connection_options instance_cnx_opts, const bool interactive,
-    mysqlshdk::utils::nullable<bool> force, const ReplicaSet &replicaset)
+    mysqlshdk::utils::nullable<bool> force, const GRReplicaSet &replicaset)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_interactive(interactive),
       m_force(force),
@@ -69,7 +69,7 @@ Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
   try {
     instance_def = m_replicaset.get_cluster()
                        ->get_metadata_storage()
-                       ->get_instance_by_endpoint(address);
+                       ->get_instance_by_address(address);
     is_instance_on_md = true;
   } catch (const std::exception &e) {
     log_warning("Couldn't get metadata for %s: %s", address.c_str(), e.what());
@@ -93,11 +93,11 @@ Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
 }
 
 void Remove_instance::ensure_not_last_instance_in_replicaset() {
-  // Check if it is the last instance in the ReplicaSet and issue an error.
+  // Check if it is the last instance in the GRReplicaSet and issue an error.
   // NOTE: When multiple replicasets are supported this check needs to be moved
   //       to a higher level (to check if the instance is the last one of the
   //       last replicaset, which should be the default replicaset).
-  log_debug("Checking if the instance is the last in the replicaset");
+  log_debug("Checking if the instance is the last in the cluster");
   if (m_replicaset.get_cluster()->get_metadata_storage()->get_cluster_size(
           m_replicaset.get_cluster()->get_id()) == 1) {
     mysqlsh::current_console()->print_error(
@@ -107,7 +107,7 @@ void Remove_instance::ensure_not_last_instance_in_replicaset() {
         "() instead to remove the last instance and dissolve the Cluster.");
 
     std::string err_msg = "The instance '" + m_instance_address +
-                          "' is the last member of the ReplicaSet";
+                          "' is the last member of the cluster";
     throw shcore::Exception::logic_error(err_msg);
   }
 }
@@ -119,7 +119,7 @@ Instance_metadata Remove_instance::remove_instance_metadata() {
   Instance_metadata instance_def =
       m_replicaset.get_cluster()
           ->get_metadata_storage()
-          ->get_instance_by_endpoint(m_address_in_metadata);
+          ->get_instance_by_address(m_address_in_metadata);
 
   log_debug("Removing instance from metadata");
   m_replicaset.get_cluster()->get_metadata_storage()->remove_instance(
@@ -201,7 +201,7 @@ void Remove_instance::find_failure_cause(const std::exception &err,
   } else {
     console->print_error(
         "Unable to connect to instance '" + m_instance_address +
-        "'. Please, verify connection credentials and make sure the "
+        "'. Please verify connection credentials and make sure the "
         "instance is available.");
     throw shcore::Exception::runtime_error(err.what());
   }
@@ -491,7 +491,7 @@ shcore::Value Remove_instance::execute() {
       }
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
     } catch (const std::exception &err) {
-      log_error("Instance '%s' failed to leave the ReplicaSet: %s",
+      log_error("Instance '%s' failed to leave the cluster: %s",
                 m_instance_address.c_str(), err.what());
       // Only add the metadata back if the force option was not used.
       if (m_force.is_null() || *m_force == false) {

@@ -35,7 +35,7 @@ namespace dba {
 class Check_instance_state : public Command_interface {
  public:
   Check_instance_state(
-      const ReplicaSet &replicaset,
+      const GRReplicaSet &replicaset,
       const mysqlshdk::db::Connection_options &instance_cnx_opts);
 
   ~Check_instance_state() override;
@@ -44,7 +44,7 @@ class Check_instance_state : public Command_interface {
    * Prepare the ReplicaSet check_instance_state command for execution.
    * Validates parameters and others, more specifically:
    * - Validate the connection options
-   * - Ensure the target instance does not belong to the ReplicaSet
+   * - Ensure the target instance does not belong to the GRReplicaSet
    * - Ensure that the target instance is reachable
    * - Ensure the target instance has a valid GR state, being the only accepted
    *   state Standalone
@@ -74,7 +74,7 @@ class Check_instance_state : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_target_instance_address;
   std::string m_address_in_metadata;

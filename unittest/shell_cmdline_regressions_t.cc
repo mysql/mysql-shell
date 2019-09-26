@@ -331,6 +331,8 @@ TEST_F(Command_line_test, bug25653170) {
       "use near '/*' at line 1");
 }
 
+// This test used to be for ensuring socket connections are rejected for
+// InnoDB cluster, but they are now allowed.
 TEST_F(Command_line_test, bug26970629) {
   const std::string variable = "socket";
   const std::string host =
@@ -346,7 +348,7 @@ TEST_F(Command_line_test, bug26970629) {
 
   mysqlshdk::db::Connection_options options;
   options.set_host(_host);
-  options.set_port(_mysql_port_number);
+  options.set_port(std::stoi(_mysql_port));
   options.set_user(_user);
   options.set_password(_pwd);
 
@@ -402,7 +404,7 @@ TEST_F(Command_line_test, bug26970629) {
              socket.c_str(), "-e", "dba.create_cluster('sample')", NULL});
 #endif
     SCOPED_TRACE(socket.c_str());
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+    MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
         "a MySQL session through TCP/IP is required to perform this operation");
   }
 }

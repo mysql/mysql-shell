@@ -148,8 +148,9 @@ bool Check_instance::check_configuration() {
   bool config_file_change;
   bool dynamic_sysvar_change;
   if (!checks::validate_configuration(
-           m_target_instance, m_mycnf_path, m_cfg.get(), m_can_set_persist,
-           &restart, &config_file_change, &dynamic_sysvar_change, &m_ret_val)
+           m_target_instance, m_mycnf_path, m_cfg.get(),
+           Cluster_type::GROUP_REPLICATION, m_can_set_persist, &restart,
+           &config_file_change, &dynamic_sysvar_change, &m_ret_val)
            .empty()) {
     if (config_file_change || dynamic_sysvar_change) {
       console->print_note(
@@ -185,8 +186,10 @@ void Check_instance::prepare() {
   std::string target = m_target_instance->descr();
 
   if (!m_silent) {
-    bool local_target = mysqlshdk::utils::Net::is_local_address(
-        m_target_instance->get_connection_options().get_host());
+    bool local_target =
+        !m_target_instance->get_connection_options().has_port() ||
+        mysqlshdk::utils::Net::is_local_address(
+            m_target_instance->get_connection_options().get_host());
     if (!local_target) {
       console->print_info("Validating MySQL instance at " +
                           m_target_instance->descr() +
@@ -194,8 +197,7 @@ void Check_instance::prepare() {
     } else {
       console->print_info(
           "Validating local MySQL instance listening at port " +
-          std::to_string(
-              m_target_instance->get_connection_options().get_port()) +
+          std::to_string(m_target_instance->get_canonical_port()) +
           " for use in an InnoDB cluster...");
     }
   }
@@ -253,7 +255,7 @@ void Check_instance::prepare() {
   if (m_is_valid && !m_silent) {
     console->println();
     console->print_info("The instance '" + target +
-                        "' is valid for InnoDB cluster usage.");
+                        "' is valid to be used in an InnoDB cluster.");
     if (bad_schema) {
       console->print_warning(
           "Some non-fatal issues were detected in some of the existing "

@@ -35,6 +35,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata-model_definitions.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -78,7 +80,12 @@ Version get_version(const std::shared_ptr<Instance> &group_server,
 
     return Version(row->get_int(0), row->get_int(1), row->get_int(2));
   } catch (const mysqlshdk::db::Error &error) {
-    if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
+    if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
+      throw std::runtime_error(
+          "Unable to detect Metadata version. Please check account "
+          "privileges.");
+    } else if (error.code() != ER_NO_SUCH_TABLE &&
+               error.code() != ER_BAD_DB_ERROR)
       throw;
   }
 
@@ -187,7 +194,7 @@ Instance_list get_locks(const std::shared_ptr<Instance> &group_server,
 
   MetadataStorage metadata(group_server);
 
-  auto instances_md = metadata.get_all_instances(0, schema.c_str());
+  auto instances_md = metadata.get_all_instances("", schema.c_str());
   std::shared_ptr<mysqlsh::dba::Instance> instance;
   for (const auto &instance_md : instances_md) {
     try {
@@ -572,5 +579,33 @@ void restore_schema(const std::shared_ptr<Instance> &group_server,
 }
 
 }  // namespace metadata
+
+void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
+                             bool dry_run) {
+  // Ensure that the metadata schema is ready for creating a new cluster in it
+  // If the metadata schema does not exist, we create it
+  // If the metadata schema already exists:
+  // - clear it of old data
+  // - ensure it has the right version
+  // We ensure both by always dropping the old schema and re-creating it from
+  // scratch.
+
+  auto version = metadata::installed_version(target_instance);
+
+  if (version != metadata::kNotInstalled) {
+    current_console()->print_note("Metadata schema found in target instance");
+  } else {
+    if (!dry_run) {
+      metadata::uninstall(target_instance);
+    }
+
+    log_info("Deploying metadata schema in %s%s...",
+             target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
+    if (!dry_run) {
+      metadata::install(target_instance);
+    }
+  }
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

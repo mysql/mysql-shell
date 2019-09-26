@@ -1,3 +1,5 @@
+#@{False}
+# Disabled because of the refactoring of WL11033
 import os
 import filecmp
 

@@ -63,7 +63,8 @@ void Cluster_set_option::ensure_option_valid() {
           "Invalid value for 'clusterName': Argument #2 is expected to be a "
           "string.");
     } else {
-      mysqlsh::dba::validate_cluster_name(*m_value_str);
+      mysqlsh::dba::validate_cluster_name(*m_value_str,
+                                          Cluster_type::GROUP_REPLICATION);
     }
   } else if (m_option == kDisableClone) {
     // Ensure forceClone is a boolean or integer value
@@ -132,7 +133,7 @@ void Cluster_set_option::prepare() {
   // ReplicaSet option then verify if it is a Cluster option and thrown an
   // error in case is not
   if (k_global_replicaset_supported_options.count(m_option) != 0) {
-    std::shared_ptr<ReplicaSet> default_rs =
+    std::shared_ptr<GRReplicaSet> default_rs =
         m_cluster->get_default_replicaset();
 
     if (!m_value_str.is_null()) {
@@ -168,20 +169,34 @@ shcore::Value Cluster_set_option::execute() {
     // Execute Replicaset_set_option operations.
     m_replicaset_set_option->execute();
   } else {
-    std::string current_cluster_name = m_cluster->get_name();
+    std::string current_full_cluster_name = m_cluster->get_name();
+    std::string current_cluster_name = m_cluster->cluster_name();
 
     if (m_option == kClusterName) {
+      auto md = m_cluster->get_metadata_storage();
+
       console->print_info("Setting the value of '" + m_option + "' to '" +
                           *m_value_str + "' in the Cluster ...");
-      console->println();
+      console->print_info();
 
-      m_cluster->get_metadata_storage()->update_cluster_name(
-          m_cluster->get_id(), *m_value_str);
-      m_cluster->set_name(*m_value_str);
+      std::string domain_name;
+      std::string cluster_name;
+      parse_fully_qualified_cluster_name(*m_value_str, &domain_name, nullptr,
+                                         &cluster_name);
+
+      m_cluster->set_cluster_name(cluster_name);
+
+      try {
+        md->update_cluster_name(m_cluster->get_id(), m_cluster->cluster_name());
+      } catch (...) {
+        // revert changes
+        m_cluster->set_cluster_name(current_cluster_name);
+        throw;
+      }
 
       console->print_info("Successfully set the value of '" + m_option +
                           "' to '" + *m_value_str + "' in the Cluster: '" +
-                          current_cluster_name + "'.");
+                          current_full_cluster_name + "'.");
     } else if (m_option == kDisableClone) {
       // Ensure forceClone is a boolean or integer value
       std::string m_value_printable =
@@ -192,7 +207,7 @@ shcore::Value Cluster_set_option::execute() {
 
       console->print_info("Setting the value of '" + m_option + "' to '" +
                           m_value_printable + "' in the Cluster ...");
-      console->println();
+      console->print_info();
 
       check_disable_clone_support();
 

@@ -760,7 +760,8 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
 
   try {
     auto newly_discovered_instances_list(get_newly_discovered_instances(
-        mysqlshdk::mysql::Instance(md_session), metadata, 1));
+        mysqlshdk::mysql::Instance(md_session), metadata,
+        _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(newly_discovered_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -784,7 +785,8 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
 
   try {
     auto unavailable_instances_list(get_unavailable_instances(
-        mysqlshdk::mysql::Instance(md_session), metadata, 1));
+        mysqlshdk::mysql::Instance(md_session), metadata,
+        _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -804,18 +806,20 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
-  auto rs_id = _replicaset->get_cluster()->get_id();
+  auto cluster_id = _replicaset->get_cluster()->get_id();
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
-      "values (0, 1, " +
-      std::to_string(rs_id) + ", '" + uuid_3 +
+      "(instance_id, cluster_id, mysql_server_uuid, instance_name, "
+      "addresses, attributes, description)"
+      "values (0, '" +
+      cluster_id + "', '" + uuid_3 +
       "', 'localhost:<port>', "
-      "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
+      "'{\"mysqlX\": \"localhost:<port>0\", "
       "\"grLocal\": \"localhost:1<port>\", "
       "\"mysqlClassic\": \"localhost:<port>\"}', "
-      "NULL, NULL, NULL)";
+      "NULL, NULL)";
 
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));
@@ -827,7 +831,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata, 1));
+        mysqlshdk::mysql::Instance(instance_session), metadata,
+        _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -853,19 +858,20 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
   auto instance_session = create_session(_mysql_sandbox_ports[2]);
 
-  auto rs_id = _replicaset->get_cluster()->get_id();
+  auto cluster_id = _replicaset->get_cluster()->get_id();
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
-      "values (0, 1, " +
-      std::to_string(rs_id) +
-      ", '11111111-2222-3333-4444-555555555555', "
-      "'localhost:<port>', 'HA', NULL, "
+      "(instance_id, cluster_id, mysql_server_uuid, instance_name, "
+      "addresses, attributes, description)"
+      "values (0, '" +
+      cluster_id +
+      "', '11111111-2222-3333-4444-555555555555', 'localhost:<port>', "
       "'{\"mysqlX\": \"localhost:<port>0\", "
       "\"grLocal\": \"localhost:1<port>\", "
       "\"mysqlClassic\": \"localhost:<port>\"}', "
-      "NULL, NULL, NULL)";
+      "NULL, NULL)";
 
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));
@@ -877,7 +883,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata, 1));
+        mysqlshdk::mysql::Instance(instance_session), metadata,
+        _replicaset->get_cluster()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -907,7 +914,8 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata, 1));
+        mysqlshdk::mysql::Instance(instance_session), metadata,
+        _replicaset->get_cluster()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -1574,33 +1582,42 @@ TEST(mod_dba_common, is_valid_identifier) {
 
   EXPECT_NO_THROW(
       // Valid identifier, begins with valid synbols (alpha)
-      t = "Valid1"; mysqlsh::dba::validate_cluster_name(t));
+      t = "Valid1"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_NO_THROW(
       // Valid identifier, begins with valid synbols (_)
-      t = "_Valid_"; mysqlsh::dba::validate_cluster_name(t));
+      t = "_Valid_"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_NO_THROW(
       // Valid identifier, contains valid synbols
-      t = "Valid_3"; mysqlsh::dba::validate_cluster_name(t));
+      t = "Valid_3"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   EXPECT_ANY_THROW(t = "";
                    // Invalid empty identifier
-                   mysqlsh::dba::validate_cluster_name(t););
+                   mysqlsh::dba::validate_cluster_name(
+                       t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid too long identifier (over 40 characteres)
       t = "over40chars_12345678901234567890123456789";
-      mysqlsh::dba::validate_cluster_name(t););
+      mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, begins with invalid synbol
-      t = "#not_allowed"; mysqlsh::dba::validate_cluster_name(t););
+      t = "#not_allowed"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, contains invalid synbol
-      t = "not_allowed?"; mysqlsh::dba::validate_cluster_name(t););
+      t = "not_allowed?"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, begins with invalid synbols (numeric)
-      t = "2_not_Valid"; mysqlsh::dba::validate_cluster_name(t));
+      t = "2_not_Valid"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_ANY_THROW(
       // Invalid identifier, contains invalid synbol
-      t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
+      t = "(*)%?"; mysqlsh::dba::validate_cluster_name(
+          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
 }
 
 TEST_F(Dba_common_test, resolve_gr_local_address) {

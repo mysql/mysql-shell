@@ -33,6 +33,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/cluster/base_cluster_impl.h"
 #include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
@@ -43,10 +44,6 @@
 namespace mysqlsh {
 namespace dba {
 
-// User provided option for telling us to assume that the cluster was created
-// with a server where the full update history is reflected in its GTID set
-constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
-    "opt_gtidSetIsComplete";
 // User provided option to disabling clone
 constexpr const char k_cluster_attribute_disable_clone[] = "opt_disableClone";
 // Flag to indicate the default cluster in the metadata
@@ -66,22 +63,26 @@ class Cluster_impl {
                const std::shared_ptr<Instance> &group_server,
                const std::shared_ptr<MetadataStorage> &metadata_storage);
 
-  Cluster_impl(const std::string &name, const std::string &group_name,
+  Cluster_impl(const std::string &cluster_name, const std::string &group_name,
                const std::shared_ptr<Instance> &group_server,
                const std::shared_ptr<MetadataStorage> &metadata_storage);
   virtual ~Cluster_impl();
 
-  uint64_t get_id() const { return _id; }
-  void set_id(uint64_t id) { _id = id; }
+  Cluster_id get_id() const { return m_id; }
+  void set_id(const Cluster_id &id) { m_id = id; }
 
-  std::shared_ptr<ReplicaSet> get_default_replicaset() const {
+  std::shared_ptr<GRReplicaSet> get_default_replicaset() const {
     return _default_replica_set;
   }
 
-  std::shared_ptr<ReplicaSet> create_default_replicaset(const std::string &name,
-                                                        bool multi_primary);
+  std::shared_ptr<GRReplicaSet> create_default_replicaset(
+      const std::string &name, bool multi_primary);
 
-  std::string get_name() const { return _name; }
+  std::string get_name() const { return m_cluster_name; }
+
+  void set_cluster_name(const std::string &name) { m_cluster_name = name; }
+  const std::string &cluster_name() const { return m_cluster_name; }
+
   std::string get_description() const { return _description; }
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);
@@ -90,13 +91,11 @@ class Cluster_impl {
     _description = description;
   }
 
-  std::string get_group_name() const { return m_group_name; }
+  const std::string &get_group_name() const { return m_group_name; }
 
   std::string get_topology_type() const {
     return get_default_replicaset()->get_topology_type();
   }
-
-  void set_name(const std::string &name) { _name = name; }
 
   bool get_gtid_set_is_complete() const;
 
@@ -159,10 +158,12 @@ class Cluster_impl {
   mysqlshdk::mysql::IInstance *ensure_updatable(bool reset);
 
  protected:
-  Cluster_id _id;
-  std::string _name;
+  Cluster_id m_id;
+
+  std::string m_cluster_name;
+
   std::string m_group_name;
-  std::shared_ptr<ReplicaSet> _default_replica_set;
+  std::shared_ptr<GRReplicaSet> _default_replica_set;
   std::string _description;
   // Session to a member of the group so we can query its status and other
   // stuff from pfs

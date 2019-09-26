@@ -210,6 +210,9 @@ class Shell_console : public IConsole {
 
   void remove_print_handler(shcore::Interpreter_print_handler *) override;
 
+  void set_use_colors(bool flag) { m_use_colors = flag; }
+  bool use_colors() const { return m_use_colors; }
+
  private:
   void dump_json(const char *tag, const std::string &s) const;
 
@@ -226,6 +229,7 @@ class Shell_console : public IConsole {
   std::weak_ptr<IPager> m_current_pager;
   std::shared_ptr<IPager> m_global_pager;
   std::list<shcore::Interpreter_print_handler *> m_print_handlers;
+  bool m_use_colors = false;
 };
 
 }  // namespace mysqlsh

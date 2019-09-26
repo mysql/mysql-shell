@@ -38,7 +38,7 @@ namespace dba {
 
 class Topology_configuration_command : public Command_interface {
  public:
-  explicit Topology_configuration_command(ReplicaSet *replicaset);
+  explicit Topology_configuration_command(GRReplicaSet *replicaset);
 
   ~Topology_configuration_command() override;
 
@@ -77,7 +77,7 @@ class Topology_configuration_command : public Command_interface {
   void finish() override;
 
  protected:
-  ReplicaSet *m_replicaset = nullptr;
+  GRReplicaSet *m_replicaset = nullptr;
 
   std::shared_ptr<mysqlsh::dba::Instance> m_cluster_session_instance;
 

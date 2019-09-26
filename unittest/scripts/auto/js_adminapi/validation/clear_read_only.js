@@ -21,8 +21,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'admin'@'%' for admin
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has[[*]]
 
 //@<ERR> Dba_configure_local_instance.clear_read_only_unset
 Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
@@ -35,8 +35,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'admin'@'%' for admin
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has[[*]]
 
 //@<ERR> Dba_configure_local_instance.clear_read_only_false
 Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
@@ -46,13 +46,13 @@ Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 
 //@<OUT> Dba_drop_metadata.clear_read_only_unset
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications.
+ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has[[*]]
 
 //@<ERR> Dba_drop_metadata.clear_read_only_unset
 Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@<OUT> Dba_drop_metadata.clear_read_only_false
-ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications.
+ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has[[*]]
 
 //@<ERR> Dba_drop_metadata.clear_read_only_false
 Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode (RuntimeError)

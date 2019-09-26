@@ -24,7 +24,11 @@ session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'test_user'@'%'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION");
 session.runSql("REVOKE SELECT on *.* FROM 'test_user'@'%'");
+//NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
+
+//TODO: Improve error message (more details for missing metadata privileges) and add test here for this error message.
 
 //@ Error: user has no privileges to run the checkInstanceConfiguration command (BUG#26609909)
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user: 'test_user', password:''});
@@ -61,6 +65,8 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 // Create account with no privileges
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_privileges'@'%'");
+//NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 // Test
@@ -106,6 +112,7 @@ session.runSql("REVOKE 'root'@'%' FROM 'admin_test'@'%';");
 session.runSql("CREATE ROLE 'admin_role'@'%'");
 session.runSql("GRANT ALL ON mysql.* TO 'admin_role'@'%'");
 session.runSql("GRANT ALL ON sys.* TO 'admin_role'@'%'");
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'admin_role'@'%'");
 session.runSql("GRANT 'admin_role'@'%' TO 'admin_test'@'%'");
 session.runSql("SET DEFAULT ROLE 'admin_role'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
@@ -149,14 +156,13 @@ dba.createCluster('error');
 //@ Remove the sandboxes
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
 
 // Regression test for BUG#25867733: CHECKINSTANCECONFIGURATION SUCCESS BUT CREATE CLUSTER FAILING IF PFS DISABLED
 //@ Deploy instances (setting performance_schema value).
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"performance_schema": "off", "report_host": hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"performance_schema": "on", "report_host": hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+// ensure performance_schema=on, which is the default
+EXPECT_EQ(mysql.getSession("root:root@localhost:"+__mysql_sandbox_port2).runSql("select @@performance_schema").fetchOne()[0], 1);
 
 //@ checkInstanceConfiguration error with performance_schema=off
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user:'root', password:'root'});
@@ -166,7 +172,6 @@ dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port2, us
 
 //@ Remove the sandboxes (final)
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
 
 //Regression test for BUG#29018457: CHECKINSTANCECONFIGURATION() DOES NOT VALIDATE IF THE ACCOUNT EXISTS ON THE HOST
 //@ BUG29018457 - Deploy instance.
@@ -196,3 +201,4 @@ dba.checkInstanceConfiguration({host: hostname_ip, port: __mysql_sandbox_port1, 
 
 //@ BUG29018457 - clean-up (destroy sandbox).
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

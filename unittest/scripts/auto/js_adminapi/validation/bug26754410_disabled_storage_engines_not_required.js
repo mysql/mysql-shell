@@ -1,5 +1,5 @@
 //@<OUT> checkInstanceConfiguration with disabled_storage_engines no error.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 
 {
     "status": "ok"
@@ -12,7 +12,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 
 //@ Remove disabled_storage_engines option from configuration and restart.
 ||
@@ -27,4 +27,4 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.

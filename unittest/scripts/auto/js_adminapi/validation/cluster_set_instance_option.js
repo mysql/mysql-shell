@@ -15,7 +15,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption for a target instance that does not belong to the cluster
-Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' does not belong to the ReplicaSet: 'default'. (RuntimeError)
+Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' does not belong to the cluster. (RuntimeError)
 
 //@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
 ||
@@ -41,7 +41,7 @@ Cluster.setInstanceOption: An instance with label '<<<hostname>>>:<<<__mysql_san
 //@<OUT> WL#11465: setInstanceOption label
 Setting the value of 'label' to 'newLabel' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'label' to 'newLabel' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'label' to 'newLabel' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 //@<OUT> WL#11465: Verify label changed correctly
 newLabel
@@ -49,30 +49,30 @@ newLabel
 //@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}
 Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'memberWeight' to '25' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 //@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'memberWeight' to '25' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'memberWeight' to '25' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 //@<OUT> WL#11465: memberWeight label changed correctly
 25
 
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
-Cluster.setInstanceOption: localhost:<<<__mysql_sandbox_port2>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
+Cluster.setInstanceOption: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
 
 //@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 //@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 
 //@<OUT> WL#11465: exitStateAction label changed correctly
 ABORT_SERVER
@@ -82,15 +82,15 @@ WARNING: The member will only proceed according to its exitStateAction if auto-r
 
 Setting the value of 'autoRejoinTries' to '2016' in the instance: 'localhost:<<<__mysql_sandbox_port1>>>' ...
 
-Successfully set the value of 'autoRejoinTries' to '2016' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port1>>>'.
+Successfully set the value of 'autoRejoinTries' to '2016' in the cluster member: 'localhost:<<<__mysql_sandbox_port1>>>'.
 WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).
 
 Setting the value of 'autoRejoinTries' to '20' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
-Successfully set the value of 'autoRejoinTries' to '20' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port2>>>'.
+Successfully set the value of 'autoRejoinTries' to '20' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
 Setting the value of 'autoRejoinTries' to '0' in the instance: 'localhost:<<<__mysql_sandbox_port3>>>' ...
 
-Successfully set the value of 'autoRejoinTries' to '0' in the 'default' ReplicaSet member: 'localhost:<<<__mysql_sandbox_port3>>>'.
+Successfully set the value of 'autoRejoinTries' to '0' in the cluster member: 'localhost:<<<__mysql_sandbox_port3>>>'.
 
 //@ WL#12066: TSF3_4 setInstanceOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
 ||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)

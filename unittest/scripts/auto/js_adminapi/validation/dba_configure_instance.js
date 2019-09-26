@@ -36,7 +36,7 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 Do you want to perform the required configuration changes? [y/n]:
 Cluster admin user 'repl_admin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 ?{VER(>=8.0.11)}
@@ -59,7 +59,7 @@ Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: 
 Cluster admin user 'repl_admin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 
@@ -104,9 +104,10 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-
+Do you want to perform the required configuration changes? [y/n]: 
 Cluster admin user 'repl_admin2'@'%' created.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 ?{VER(>=8.0.11)}
@@ -122,7 +123,7 @@ Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: 
 Cluster admin user 'repl_admin2'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 
@@ -137,8 +138,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '[::1]:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '[::1]:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@<OUT> canonical IPv4 addresses are supported WL#12758
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -147,9 +148,9 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
-|ERROR: Cannot use host '::1' for instance 'localhost:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
+|ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
 ||Dba.configureInstance: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)

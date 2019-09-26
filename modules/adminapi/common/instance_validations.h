@@ -38,8 +38,6 @@
 namespace mysqlsh {
 namespace dba {
 
-class ProvisioningInterface;  // NOLINT
-
 namespace checks {
 
 void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
@@ -51,7 +49,7 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
-    mysqlshdk::config::Config *const config,
+    mysqlshdk::config::Config *const config, Cluster_type cluster_type,
     const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
     shcore::Value *ret_val = nullptr);
@@ -71,7 +69,7 @@ void ensure_instance_not_belong_to_cluster(
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
-    const mysqlsh::dba::ReplicaSet &replicaset);
+    const mysqlsh::dba::GRReplicaSet &replicaset);
 
 }  // namespace checks
 }  // namespace dba

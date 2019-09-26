@@ -351,6 +351,7 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 
 //@ Restart added instance (FR1-TS-4)
 testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitSandboxAlive(__mysql_sandbox_port2);
 
 //@<> Confirm localAddress, groupSeeds, and groupName values were persisted for added instance (FR1-TS-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
@@ -361,6 +362,7 @@ session.close();
 
 //@ Restart seed instance (FR1-TS-4)
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitSandboxAlive(__mysql_sandbox_port1);
 
 //@<> Confirm localAddress, groupSeeds, and groupName values were persisted for seed instance (FR1-TS-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

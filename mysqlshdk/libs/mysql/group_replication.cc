@@ -392,6 +392,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
     if (out_group_view_id && !row.is_null("view_id")) {
       *out_group_view_id = row.get_string("view_id");
     }
+
     members.push_back(member);
 
     if (member.state == Member_state::ONLINE ||
@@ -399,6 +400,12 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
       online_members++;
 
     row = result->fetch_one_named();
+  }
+
+  if (out_single_primary_mode) {
+    // Single primary mode if group_replication_primary_member is not empty.
+    *out_single_primary_mode =
+        !mysqlshdk::gr::get_group_primary_uuid(instance, nullptr).empty();
   }
 
   assert(!out_group_view_id || !out_group_view_id->empty());

@@ -1,4 +1,4 @@
-// Assumptions: smart deployment rountines available
+// Assumptions: smart deployment routines available
 //@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -26,7 +26,7 @@ cluster.help("name")
 cluster.help("addInstance")
 
 //@ Add Instance \? [USE:Add Instance]
-\? addinstance
+\? cluster.addinstance
 
 //@ Check Instance State
 cluster.help("checkInstanceState")
@@ -44,7 +44,7 @@ cluster.help("describe")
 cluster.help("disconnect")
 
 //@ Disconnect, \? [USE:Disconnect]
-\? disconnect
+\? cluster.disconnect
 
 //@ Dissolve
 cluster.help("dissolve")
@@ -92,14 +92,14 @@ cluster.help("options")
 cluster.help("rejoinInstance")
 
 //@ Rejoin Instance, \? [USE:Rejoin Instance]
-\? rejoinInstance
+\? cluster.rejoinInstance
 
 //@ Remove Instance
 // WL#11862 - FR3_5
 cluster.help("removeInstance");
 
 //@ Remove Instance, \? [USE:Remove Instance]
-\? removeInstance
+\? cluster.removeInstance
 
 //@ SetInstanceOption
 cluster.help("setInstanceOption")

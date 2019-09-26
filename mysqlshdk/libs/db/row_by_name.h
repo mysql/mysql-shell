@@ -102,65 +102,121 @@ class Row_ref_by_name {
   uint32_t num_fields() const { return ref()->num_fields(); }
 
   Type get_type(const std::string &field) const {
-    return ref()->get_type(field_index(field));
+    try {
+      return ref()->get_type(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   bool is_null(const std::string &field) const {
-    return ref()->is_null(field_index(field));
+    try {
+      return ref()->is_null(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   std::string get_as_string(const std::string &field) const {
-    return ref()->get_as_string(field_index(field));
+    try {
+      return ref()->get_as_string(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   std::string get_string(const std::string &field) const {
-    return ref()->get_string(field_index(field));
+    try {
+      return ref()->get_string(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   std::string get_string(const std::string &field,
                          const std::string &default_if_null) const {
     if (is_null(field)) return default_if_null;
-    return ref()->get_string(field_index(field));
+    try {
+      return ref()->get_string(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   int64_t get_int(const std::string &field) const {
-    return ref()->get_int(field_index(field));
+    try {
+      return ref()->get_int(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   int64_t get_int(const std::string &field, int64_t default_if_null) const {
     if (is_null(field)) return default_if_null;
-    return ref()->get_int(field_index(field));
+    try {
+      return ref()->get_int(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   uint64_t get_uint(const std::string &field) const {
-    return ref()->get_uint(field_index(field));
+    try {
+      return ref()->get_uint(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   uint64_t get_uint(const std::string &field, uint64_t default_if_null) const {
     if (is_null(field)) return default_if_null;
-    return ref()->get_uint(field_index(field));
+    try {
+      return ref()->get_uint(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   float get_float(const std::string &field) const {
-    return ref()->get_float(field_index(field));
+    try {
+      return ref()->get_float(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   double get_double(const std::string &field) const {
-    return ref()->get_double(field_index(field));
+    try {
+      return ref()->get_double(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   double get_double(const std::string &field, double default_if_null) const {
     if (is_null(field)) return default_if_null;
-    return ref()->get_double(field_index(field));
+    try {
+      return ref()->get_double(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   std::pair<const char *, size_t> get_string_data(
       const std::string &field) const {
-    return ref()->get_string_data(field_index(field));
+    try {
+      return ref()->get_string_data(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   uint64_t get_bit(const std::string &field) const {
-    return ref()->get_bit(field_index(field));
+    try {
+      return ref()->get_bit(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
   }
 
   bool has_field(const std::string &field) const {
@@ -185,6 +241,13 @@ class Row_ref_by_name {
  protected:
   std::shared_ptr<Field_names> _field_names;
   const IRow *_row_ref = nullptr;
+
+  static bad_field decorate_bad_field(const std::string &field,
+                                      const bad_field &e) {
+    std::string msg = e.what();
+    msg.append(" (").append(field).append(")");
+    return bad_field(msg.c_str(), e.field);
+  }
 };
 
 class Row_by_name : public Row_ref_by_name {

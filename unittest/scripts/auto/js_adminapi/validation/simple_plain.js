@@ -1,46 +1,25 @@
-//@# configureInstance {VER(>=8.0.0)}
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.|
-
 //@ configureLocalInstance {VER(<8.0.0)}
+|The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
+
+//@ configureInstance {VER(>=8.0.0)}
+|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.|
+
+//@ createCluster
 ||
 
-//@# createCluster
-||
-
-//@# addInstance
-||
-
-//@# rejoinInstance
-||
-
-//@# status
+//@ status
 |{|
-|    "clusterName": "clus",|
+|    "clusterName": "mycluster", |
 |    "defaultReplicaSet": {|
 |        "name": "default",|
-|        "primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
+|        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
 |        "ssl": "REQUIRED",|
-|        "status": "OK",|
-|        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",|
+|        "status": "OK_NO_TOLERANCE",|
+|        "statusText": "Cluster is NOT tolerant to any failures.",|
 |        "topology": {|
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {|
 |                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
-|                "mode": "R/O",|
-|                "readReplicas": {},|
-|                "role": "HA",|
-|                "status": "ONLINE"|
-|            },|
-|            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {|
-|                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 |                "mode": "R/W",|
-|                "readReplicas": {},|
-|                "role": "HA",|
-|                "status": "ONLINE"|
-|            },|
-|            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
-|                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>",|
-|                "mode": "R/O",|
 |                "readReplicas": {},|
 |                "role": "HA",|
 |                "status": "ONLINE"|
@@ -48,12 +27,16 @@
 |        },|
 |        "topologyMode": "Single-Primary"|
 |    },|
-|    "groupInformationSourceMember": "127.0.0.1:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "127.0.0.1:<<<__mysql_sandbox_port1>>>"|
 |}|
+
+
+//@ checkInstanceState
+||
 
 //@<OUT> describe
 {
-    "clusterName": "clus", 
+    "clusterName": "mycluster", 
     "defaultReplicaSet": {
         "name": "default", 
         "topology": [
@@ -61,45 +44,49 @@
                 "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
                 "label": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
                 "role": "HA"
-            }, 
-            {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "label": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "role": "HA"
-            }, 
-            {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-                "label": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-                "role": "HA"
             }
         ], 
         "topologyMode": "Single-Primary"
     }
 }
 
-//@<OUT> listRouters
-{
-    "clusterName": "clus", 
-    "routers": {}
-}
-
-//@# removeInstance
+//@ disconnect
 ||
 
-//@# setPrimaryInstance
+//@ getCluster
 ||
 
-//@# options
+//@ addInstance
 ||
+
+
+//@ removeInstance
+||
+
+//@ setPrimaryInstance
+||
+
+//@ rejoinInstance
+||
+
+//@ forceQuorumUsingPartitionOf
+||
+
+//@ rebootClusterFromCompleteOutage
+||
+
 
 //@ setOption {VER(>=8.0.0)}
 ||
 
-//@# setInstanceOption
+//@ setInstanceOption
+||
+
+//@# options
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": [|
 |                {|
 |                    "option": "memberWeight",|
-|                    "value": "42",|
+|                    "value": "<<<custom_weigth>>>",|
 |                    "variable": "group_replication_member_weight"|
 |                }|
 |            ],|
@@ -114,14 +101,63 @@
 |    }|
 |}|
 
-//@# forceQuorum
+
+//@ switchToMultiPrimaryMode {VER(>=8.0.0)}
 ||
 
-//@# rebootCluster
+//@ switchToSinglePrimaryMode {VER(>=8.0.0)}
 ||
 
-//@# rescan
-|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the ReplicaSet.|
+
+//@ rescan
+|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the cluster.|
+
+//@<OUT> listRouters
+{
+    "clusterName": "clooster", 
+    "routers": {
+        "routerhost1::system": {
+            "hostname": "routerhost1", 
+            "lastCheckIn": "2019-01-01 11:22:33", 
+            "roPort": null, 
+            "roXPort": null, 
+            "rwPort": null, 
+            "rwXPort": null, 
+            "upgradeRequired": true, 
+            "version": "8.0.18"
+        }, 
+        "routerhost2::system": {
+            "hostname": "routerhost2", 
+            "lastCheckIn": "2019-01-01 11:22:33", 
+            "roPort": null, 
+            "roXPort": null, 
+            "rwPort": null, 
+            "rwXPort": null, 
+            "upgradeRequired": true, 
+            "version": "8.0.18"
+        }
+    }
+}
+
+//@<OUT> removeRouterMetadata
+{
+    "clusterName": "clooster", 
+    "routers": {
+        "routerhost2::system": {
+            "hostname": "routerhost2", 
+            "lastCheckIn": "2019-01-01 11:22:33", 
+            "roPort": null, 
+            "roXPort": null, 
+            "rwPort": null, 
+            "rwXPort": null, 
+            "upgradeRequired": true, 
+            "version": "8.0.18"
+        }
+    }
+}
+
+//@ createCluster(adopt)
+||
 
 //@# dissolve
 ||

@@ -34,7 +34,7 @@ namespace mysqlsh {
 namespace dba {
 
 Set_instance_option::Set_instance_option(
-    const ReplicaSet &replicaset,
+    const GRReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
     const std::string &option, const std::string &value)
     : m_replicaset(replicaset),
@@ -47,7 +47,7 @@ Set_instance_option::Set_instance_option(
 }
 
 Set_instance_option::Set_instance_option(
-    const ReplicaSet &replicaset,
+    const GRReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
     const std::string &option, int64_t value)
     : m_replicaset(replicaset),
@@ -97,16 +97,15 @@ void Set_instance_option::ensure_option_valid() {
 void Set_instance_option::ensure_instance_belong_to_replicaset() {
   auto console = mysqlsh::current_console();
 
-  // Check if the instance exists on the ReplicaSet
-  log_debug("Checking if the instance belongs to the replicaset");
+  // Check if the instance exists on the cluster
+  log_debug("Checking if the instance belongs to the cluster");
   bool is_instance_on_md =
       m_replicaset.get_cluster()->contains_instance_with_address(
           m_address_in_metadata);
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + m_target_instance_address +
-                          "' does not belong to the ReplicaSet: '" +
-                          m_replicaset.get_name() + "'.";
+                          "' does not belong to the cluster.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -134,9 +133,8 @@ void Set_instance_option::ensure_target_member_online() {
 void Set_instance_option::ensure_option_supported_target_member() {
   auto console = mysqlsh::current_console();
 
-  log_debug(
-      "Checking if member '%s' of the Replicaset supports the option '%s'",
-      m_target_instance->descr().c_str(), m_option.c_str());
+  log_debug("Checking if member '%s' of the cluster supports the option '%s'",
+            m_target_instance->descr().c_str(), m_option.c_str());
 
   // Verify if the instance version is supported
   bool is_supported = is_option_supported(
@@ -164,12 +162,11 @@ void Set_instance_option::prepare() {
   validate_connection_options(m_instance_cnx_opts);
 
   // Use default port if not provided in the connection options.
-  if (!m_instance_cnx_opts.has_port()) {
+  if (!m_instance_cnx_opts.has_port() && !m_instance_cnx_opts.has_socket()) {
     m_instance_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);
     m_target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());
   }
-
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
     std::shared_ptr<Instance> cluster_instance =
@@ -220,7 +217,7 @@ shcore::Value Set_instance_option::execute() {
   std::string target_instance_label =
       m_replicaset.get_cluster()
           ->get_metadata_storage()
-          ->get_instance_by_endpoint(m_address_in_metadata)
+          ->get_instance_by_address(m_address_in_metadata)
           .label;
 
   console->print_info(
@@ -250,8 +247,7 @@ shcore::Value Set_instance_option::execute() {
   console->print_info(
       "Successfully set the value of '" + m_option + "' to '" +
       ((m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str)) +
-      "' in the '" + m_replicaset.get_name() + "' ReplicaSet member: '" +
-      m_target_instance_address + "'.");
+      "' in the cluster member: '" + m_target_instance_address + "'.");
 
   return shcore::Value();
 }

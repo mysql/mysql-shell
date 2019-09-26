@@ -44,7 +44,7 @@ shell.connect(__sandbox_uri1);
 //@ FR1-TS-03 {VER(>=8.0.12)}
 WIPE_SHELL_LOG();
 // there should be a warning message asking to use configureInstance locally since persisted_globals_load is OFF
-var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port1 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
+var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
 cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
@@ -99,7 +99,7 @@ shell.connect(__sandbox_uri1);
 
 //@ FR1-TS-06 {VER(<8.0.12)}
 WIPE_SHELL_LOG();
-var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
+var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
 cluster = dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
@@ -191,7 +191,7 @@ cluster = dba.getCluster("ClusterName");
 
 //@ FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 WIPE_SHELL_LOG();
-var msg = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port2 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
+var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port2 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
 cluster.addInstance(__sandbox_uri2);
 cluster.status();
 EXPECT_SHELL_LOG_CONTAINS(msg);
@@ -326,8 +326,8 @@ cluster = dba.getCluster("ClusterName");
 // A warning about server version not supporting set persist syntax and asking
 // to use ConfigureLocalInstance should be displaying in both the seed instance
 // and the added instance.
-var expected_msg1 = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
-var expected_msg2 = "Warning: Instance '" + localhost + ":" + __mysql_sandbox_port2 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
+var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
+var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port2 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
 cluster.addInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg2);
@@ -527,7 +527,7 @@ cluster.removeInstance(__sandbox_uri2);
 var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
 var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port3 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.";
 // and a warning for the member that was removed
-var expected_msg3 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
+var expected_msg3 = "Warning: On instance 'localhost:" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg2);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg3);

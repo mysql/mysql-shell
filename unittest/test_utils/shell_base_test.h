@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -65,8 +65,14 @@ class Shell_base_test : public Shell_test_env {
   void check_string_list_expectation(
       const char *file, int line, const std::vector<std::string> &expected_strs,
       const std::string &actual, bool expected);
+  bool check_wildcard_match(const std::string &expected,
+                            const std::string &actual, bool full_match,
+                            size_t start = 0, size_t *out_start = nullptr,
+                            size_t *out_end = nullptr);
   bool multi_value_compare(const std::string &expected,
-                           const std::string &actual);
+                           const std::string &actual, bool full_match = true,
+                           size_t start = 0, size_t *out_start = nullptr,
+                           size_t *out_end = nullptr);
   bool check_multiline_expect(const std::string &context,
                               const std::string &stream,
                               const std::string &expected,

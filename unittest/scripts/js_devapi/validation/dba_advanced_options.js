@@ -23,7 +23,7 @@
 
 //@ Create cluster errors using groupName option
 ||Invalid value for groupName, string value cannot be empty. (ArgumentError)
-||Unable to set value 'abc' for 'groupName': localhost:<<<__mysql_sandbox_port1>>>: The group name is not a valid UUID (RuntimeError)
+||Unable to set value 'abc' for 'groupName': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: The group name is not a valid UUID (RuntimeError)
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||
@@ -77,7 +77,7 @@
 ||
 
 //@ Add instance errors using localAddress option
-|ERROR: Unable to start Group Replication for instance 'localhost:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
+|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)

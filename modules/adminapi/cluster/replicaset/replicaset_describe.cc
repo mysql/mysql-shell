@@ -32,7 +32,7 @@
 namespace mysqlsh {
 namespace dba {
 
-Replicaset_describe::Replicaset_describe(const ReplicaSet &replicaset)
+Replicaset_describe::Replicaset_describe(const GRReplicaSet &replicaset)
     : m_replicaset(replicaset) {}
 
 Replicaset_describe::~Replicaset_describe() {}
@@ -52,7 +52,7 @@ void Replicaset_describe::prepare() {
 void Replicaset_describe::feed_metadata_info(shcore::Dictionary_t dict,
                                              const Instance_metadata &info) {
   (*dict)["address"] = shcore::Value(info.endpoint);
-  (*dict)["role"] = shcore::Value(info.role_type);
+  (*dict)["role"] = shcore::Value("HA");
   (*dict)["label"] = shcore::Value(info.label);
 }
 
@@ -110,8 +110,8 @@ shcore::Value Replicaset_describe::execute() {
 
   replicaset_dict = collect_replicaset_description();
 
-  // Check if the ReplicaSet group session is established to an instance with a
-  // state different than
+  // Check if the ReplicaSet group session is established to an instance with
+  // a state different than
   //   - Online R/W
   //   - Online R/O
   //

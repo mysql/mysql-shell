@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,10 +49,8 @@ TEST_F(Dba_preconditions, validate_session) {
     SCOPED_TRACE("Unexpected success calling validate_session");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    EXPECT_STREQ(
-        "The shell must be connected to a member of the InnoDB cluster being "
-        "managed",
-        e.what());
+    EXPECT_STREQ("An open session is required to perform this operation",
+                 e.what());
   }
 
   // Test closed session
@@ -69,8 +67,12 @@ TEST_F(Dba_preconditions, validate_session) {
         e.what());
   }
 
+  mysqlshdk::db::Connection_options coptions("localhost");
+
   // Test invalid server version
   EXPECT_CALL(*m_mock_session, is_open()).WillOnce(Return(true));
+  EXPECT_CALL(*m_mock_session, get_connection_options())
+      .WillOnce(ReturnRef(coptions));
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("9.0")));
 
@@ -87,7 +89,9 @@ TEST_F(Dba_preconditions, validate_session) {
 
   // Test different invalid server versions
   EXPECT_CALL(*m_mock_session, is_open()).Times(5).WillRepeatedly(Return(true));
-
+  EXPECT_CALL(*m_mock_session, get_connection_options())
+      .Times(5)
+      .WillRepeatedly(ReturnRef(coptions));
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.1")));
   EXPECT_THROW(mysqlsh::dba::validate_session(m_mock_session),
@@ -115,6 +119,8 @@ TEST_F(Dba_preconditions, validate_session) {
 
   // Test valid server version
   EXPECT_CALL(*m_mock_session, is_open()).WillOnce(Return(true));
+  EXPECT_CALL(*m_mock_session, get_connection_options())
+      .WillOnce(ReturnRef(coptions));
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0")));
 
@@ -129,7 +135,9 @@ TEST_F(Dba_preconditions, validate_session) {
 
   // Test different valid server versions
   EXPECT_CALL(*m_mock_session, is_open()).Times(5).WillRepeatedly(Return(true));
-
+  EXPECT_CALL(*m_mock_session, get_connection_options())
+      .Times(5)
+      .WillRepeatedly(ReturnRef(coptions));
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.1")));
   EXPECT_NO_THROW(mysqlsh::dba::validate_session(m_mock_session));

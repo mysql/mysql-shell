@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,8 +46,6 @@ class Shell_py_mysql_tests : public Shell_py_script_tester {
     if (_mysql_port.empty()) _mysql_port = "3306";
 
     std::string code = "__user = '" + user + "';";
-    exec_and_out_equals(code);
-    code = "__pwd = '" + password + "';";
     exec_and_out_equals(code);
     code = "__host = '" + host + "';";
     exec_and_out_equals(code);

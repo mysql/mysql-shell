@@ -36,18 +36,18 @@
 |<Cluster:devCluster>|
 
 //@# Dba: createCluster already exist
-||Dba.createCluster: Unable to create cluster. The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
+||Dba.createCluster: Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
 
 //@# Dba: checkInstanceConfiguration errors
 ||Access denied for user 'root'@'localhost' (using password: NO) (MySQL Error 1045)
 ||Access denied for user 'sample'@'localhost' (using password: NO) (MySQL Error 1045)
-||Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
+||Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (MYSQLSH 51305)
 
 //@ Dba: checkInstanceConfiguration ok1
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
 
 //@ Dba: checkInstanceConfiguration ok2
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -122,7 +122,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 ||Dba.configureLocalInstance: Unable to update MySQL configuration file.
 
 //@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.11)}
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
 |Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
@@ -149,7 +149,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -176,14 +176,14 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
 
 
 //@ Dba: configureLocalInstance report fixed 1
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
 
 //@ Dba: configureLocalInstance report fixed 2
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
@@ -217,7 +217,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 Assuming full account name 'dba_test'@'%' for dba_test
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 Cluster admin user 'dba_test'@'%' created.
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
@@ -229,7 +229,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 Assuming full account name 'dba_test'@'%' for dba_test
 User 'dba_test'@'%' already exists and will not be created.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
@@ -251,7 +251,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 ||Dba.configureLocalInstance: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ createCluster() should fail if user does not have global GRANT OPTION
-|Validating instance at localhost:<<<__mysql_sandbox_port2>>>...|
+|Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 |ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: GRANT OPTION.|
 |For more information, see the online documentation.|

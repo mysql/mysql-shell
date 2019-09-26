@@ -8,7 +8,6 @@ var mysql = require('mysql');
 // __port: <port>
 // __user: <user>
 // __uripwd: <uri>:<pwd>@<host>
-// __pwd: <pwd>
 
 //@<> mysql module: exports
 validateMembers(mysql, [

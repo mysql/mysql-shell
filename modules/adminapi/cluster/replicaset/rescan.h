@@ -44,7 +44,7 @@ class Rescan : public Command_interface {
       const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
       const std::vector<mysqlshdk::db::Connection_options>
           &remove_instances_list,
-      ReplicaSet *replicaset);
+      GRReplicaSet *replicaset);
 
   /**
    * Prepare the rescan command for execution.
@@ -93,7 +93,7 @@ class Rescan : public Command_interface {
   const bool m_auto_remove_instances = false;
   std::vector<mysqlshdk::db::Connection_options> m_add_instances_list;
   std::vector<mysqlshdk::db::Connection_options> m_remove_instances_list;
-  ReplicaSet *m_replicaset = nullptr;
+  GRReplicaSet *m_replicaset = nullptr;
 
   /**
    * Validate existence of duplicates for the addInstances and removeInstances

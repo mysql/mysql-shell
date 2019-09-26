@@ -234,7 +234,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
 
   if (report_host_set && report_host.empty()) {
     console->print_error("Invalid 'report_host' value for instance '" +
-                         instance.descr() +
+                         instance.get_connection_options().uri_endpoint() +
                          "'. The value cannot be empty if defined.");
     // NOTE: The value for report_host can be set to an empty string which is
     // invalid. If defined the report_host value should not be an empty
@@ -320,6 +320,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
  * @param  instance             target instance
  * @param  mycnf_path           optional config file path, for local instances
  * @param  config               pointer to config handler
+ * @param  cluster_type         target cluster/replicaset type
  * @param  can_persist          true if instance has support to persist
  *                              variables, false if has but it is disabled and
  *                              null if it is not supported.
@@ -331,7 +332,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
  */
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
-    mysqlshdk::config::Config *const config,
+    mysqlshdk::config::Config *const config, Cluster_type cluster_type,
     const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
     shcore::Value *ret_val) {
@@ -346,7 +347,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
   std::vector<mysqlshdk::mysql::Invalid_config> invalid_cfs_vec =
-      check_instance_config(*instance, *config);
+      check_instance_config(*instance, *config, cluster_type);
 
   // Sort invalid cfs_vec by the name of the variable
   std::sort(invalid_cfs_vec.begin(), invalid_cfs_vec.end());
@@ -387,12 +388,12 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
         *mycnf_change_needed = true;
         action = "config_update";
       } else if (cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER)) {
+        *sysvar_change_needed = true;
         if (cfg.restart) {
           *restart_needed = true;
           action = "server_update+restart";
         } else {
           action = "server_update";
-          *sysvar_change_needed = true;
         }
       } else if (cfg.types.is_set(
                      mysqlshdk::mysql::Config_type::RESTART_ONLY)) {
@@ -472,7 +473,7 @@ void validate_performance_schema_enabled(
 void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<Instance> &cluster_instance) {
-  GRInstanceType type = mysqlsh::dba::get_gr_instance_type(instance);
+  GRInstanceType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
 
   if (type != GRInstanceType::Standalone &&
       type != GRInstanceType::StandaloneWithMetadata &&
@@ -527,16 +528,16 @@ void ensure_instance_not_belong_to_cluster(
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
-    const mysqlsh::dba::ReplicaSet &replicaset) {
+    const mysqlsh::dba::GRReplicaSet &replicaset) {
   auto console = mysqlsh::current_console();
 
-  // Check if the instance exists on the ReplicaSet
-  log_debug("Checking if the instance belongs to the replicaset");
+  // Check if the instance exists on the cluster
+  log_debug("Checking if the instance belongs to the cluster");
   Instance_metadata instance_md;
   try {
     instance_md = replicaset.get_cluster()
                       ->get_metadata_storage()
-                      ->get_instance_by_endpoint(address_in_metadata);
+                      ->get_instance_by_address(address_in_metadata);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
       return;
@@ -549,7 +550,7 @@ void ensure_instance_not_belong_to_metadata(
     bool is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
 
     std::string err_msg = "The instance '" + instance.descr() +
-                          "' already belongs to the ReplicaSet: '" +
+                          "' already belongs to the cluster: '" +
                           replicaset.get_name() + "'";
     if (is_rejoining)
       err_msg += " and is currently trying to auto-rejoin.";

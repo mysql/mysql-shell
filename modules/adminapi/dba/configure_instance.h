@@ -49,7 +49,7 @@ class Configure_instance : public Command_interface {
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
       mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart);
+      mysqlshdk::utils::nullable<bool> restart, Cluster_type cluster_type);
   ~Configure_instance();
 
   void prepare() override;
@@ -117,6 +117,8 @@ class Configure_instance : public Command_interface {
                                        // but was automatically filled because
                                        // the instance is a sandbox.
 
+  Cluster_type m_cluster_type;
+
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
@@ -124,7 +126,7 @@ class Configure_instance : public Command_interface {
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
   // Target instance to configure.
-  mysqlsh::dba::Instance *m_target_instance = nullptr;
+  std::shared_ptr<Instance> m_target_instance;
 };
 
 }  // namespace dba

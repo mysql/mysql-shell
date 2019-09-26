@@ -30,7 +30,7 @@
 namespace mysqlsh {
 namespace dba {
 
-Replicaset_options::Replicaset_options(const ReplicaSet &replicaset,
+Replicaset_options::Replicaset_options(const GRReplicaSet &replicaset,
                                        mysqlshdk::utils::nullable<bool> all)
     : m_replicaset(replicaset), m_all(all) {}
 
@@ -47,9 +47,9 @@ void Replicaset_options::prepare() {
 }
 
 /**
- * Connects to all members of the ReplicaSet
+ * Connects to all members of the GRReplicaSet
  *
- * This function tries to connect to all registered members of the ReplicaSet
+ * This function tries to connect to all registered members of the GRReplicaSet
  * and:
  *  - If the connection is established successfully add the session object to
  * m_member_sessions
@@ -81,7 +81,7 @@ void Replicaset_options::connect_to_members() {
 
 /**
  * Get the global ReplicaSet configuration options configuration options of
- * the ReplicaSet
+ * the GRReplicaSet
  *
  * This function gets the global ReplicaSet configuration options and builds
  * an Array containing a Dictionary with the format:

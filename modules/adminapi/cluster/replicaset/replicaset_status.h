@@ -42,7 +42,7 @@ typedef std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
 
 class Replicaset_status : public Command_interface {
  public:
-  Replicaset_status(const ReplicaSet &replicaset,
+  Replicaset_status(const GRReplicaSet &replicaset,
                     const mysqlshdk::utils::nullable<uint64_t> &extended);
 
   ~Replicaset_status() override;
@@ -83,7 +83,7 @@ class Replicaset_status : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   Cluster_impl *m_cluster;
   mysqlshdk::utils::nullable<uint64_t> m_extended;
 

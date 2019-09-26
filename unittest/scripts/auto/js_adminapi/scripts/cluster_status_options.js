@@ -726,7 +726,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 // the recovery should fail because it can't connect to the primary
 cluster.rejoinInstance(__sandbox_uri2);
 
-testutil.waitForConnectionErrorInRecovery(__mysql_sandbox_port2, 1045);
+EXPECT_EQ(1045, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
 
 var stat = cluster.status({extended:3});
 println(stat);

@@ -3,6 +3,24 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
+//@<> AR Prepare {VER(>=8.0.4)}
+rs = dba.createReplicaSet("rs");
+
+//@# GR functions in an AR instance {VER(>=8.0.4)}
+dba.createCluster("x");
+
+dba.getCluster();
+
+dba.configureInstance(__sandbox_uri1);
+
+dba.configureLocalInstance(__sandbox_uri1);
+
+dba.rebootClusterFromCompleteOutage();
+
+//@<> AR Cleanup {VER(>=8.0.4)}
+session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
+session.runSql("RESET MASTER");
+
 //@# Dba_preconditions_standalone, get_cluster_fails
 dba.getCluster("");
 
@@ -100,3 +118,4 @@ dba.dropMetadataSchema({ 'force': true, 'clearReadOnly': true });
 //@ Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+

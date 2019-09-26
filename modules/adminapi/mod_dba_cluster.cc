@@ -225,9 +225,9 @@ Adds an Instance to the cluster.
 
 @returns nothing
 
-This function adds an Instance to the default replica set of the cluster.
+This function adds an Instance to a InnoDB cluster.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
@@ -409,7 +409,7 @@ This function rejoins an Instance to the cluster.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
@@ -454,7 +454,7 @@ automatically set for the whitelist.
 @li If the instance is not in bootstrapped state.
 @li If the SSL mode specified is not compatible with the one used in the
 cluster.
-@li If the instance is an active member of the ReplicaSet.
+@li If the instance is an active member of the cluster.
 )*");
 
 /**
@@ -542,11 +542,11 @@ Removes an Instance from the cluster.
 
 @returns Nothing.
 
-This function removes an Instance from the default replicaSet of the cluster.
+This function removes an Instance from the cluster.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
@@ -803,13 +803,12 @@ REGISTER_HELP_FUNCTION(dissolve, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_DISSOLVE, R"*(
 Dissolves the cluster.
 
-@param options Optional parameter to specify if it should deactivate
-replication and unregister the ReplicaSets from the cluster.
+@param options Optional parameters as described below.
 
 @returns Nothing.
 
-This function disables replication on the ReplicaSets, unregisters them and the
-the cluster from the metadata.
+This function stops group replication and unregisters all members from the
+cluster metadata.
 
 It keeps all the user's data intact.
 
@@ -852,7 +851,6 @@ void Cluster::dissolve(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  // Dissolve the default replicaset.
   m_impl->dissolve(options);
 
   // Set the flag, marking this cluster instance as invalid.
@@ -1018,13 +1016,13 @@ Restores the cluster from quorum loss.
 
 @returns Nothing.
 
-This function restores the cluster's default replicaset back into operational
-status from a loss of quorum scenario. Such a scenario can occur if a group is
-partitioned or more crashes than tolerable occur.
+This function restores the cluster back into operational status from a loss of
+quorum scenario. Such a scenario can occur if a group is partitioned or more
+crashes than tolerable occur.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 Note that this operation is DANGEROUS as it can create a split-brain if
 incorrectly used and should be considered a last resort. Make absolutely sure
@@ -1078,12 +1076,8 @@ shcore::Value Cluster::force_quorum_using_partition_of(
   try {
     auto default_rs = m_impl->get_default_replicaset();
 
-    std::string rs_name;
-
-    if (default_rs)
-      rs_name = default_rs->get_name();
-    else
-      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+    if (!default_rs)
+      throw shcore::Exception::logic_error("cluster not initialized.");
 
     std::vector<Instance_metadata> online_instances =
         default_rs->get_active_instances();
@@ -1104,9 +1098,8 @@ shcore::Value Cluster::force_quorum_using_partition_of(
     if (group_peers.back() == ',') group_peers.pop_back();
 
     if (interactive) {
-      std::string message = "Restoring replicaset '" + rs_name +
-                            "'"
-                            " from loss of quorum, by using the partition "
+      std::string message = "Restoring cluster '" + impl()->get_name() +
+                            "' from loss of quorum, by using the partition "
                             "composed of [" +
                             group_peers + "]\n\n";
       console->print(message);
@@ -1133,9 +1126,8 @@ shcore::Value Cluster::force_quorum_using_partition_of(
     console->println();
     console->println(
         "WARNING: To avoid a split-brain scenario, ensure that all other "
-        "members "
-        "of the replicaset "
-        "are removed or joined back to the group that was restored.");
+        "members of the cluster are removed or joined back to the group that "
+        "was restored.");
     console->println();
   }
 
@@ -1155,7 +1147,7 @@ cluster to determine if the instance is valid for the cluster.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The returned JSON object contains the following attributes:
 
@@ -1232,7 +1224,7 @@ mode.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The instance definition is optional and is the identifier of the cluster member
 that shall become the new primary.
@@ -1317,7 +1309,7 @@ election process.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The instance definition is mandatory and is the identifier of the cluster
 member that shall become the new primary.
@@ -1460,7 +1452,7 @@ cluster.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The option parameter is the name of the configuration option to be changed
 
@@ -1625,6 +1617,13 @@ String Cluster::removeRouterMetadata(RouterDef routerDef) {}
 str Cluster::remove_router_metadata(RouterDef routerDef) {}
 #endif
 void Cluster::remove_router_metadata(const std::string &router_def) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("removeRouterMetadata");
+
+  // Throw an error if the cluster has already been dissolved
+  check_function_preconditions("Cluster.removeRouterMetadata",
+                               m_impl->get_target_instance());
+
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router_def + "'");

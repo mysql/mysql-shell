@@ -29,4 +29,23 @@
 #define __has_warning(x) 0
 #endif
 
+#ifdef UNUSED
+#elif defined(__GNUC__)
+#define UNUSED(x) UNUSED_##x __attribute__((unused))
+#elif defined(__LCLINT__)
+#define UNUSED(x) /*@unused@*/ x
+#elif defined(__cplusplus)
+#define UNUSED(x)
+#else
+#define UNUSED(x) x
+#endif
+
+#ifdef UNUSED_VARIABLE
+#elif defined(__GNUC__)
+#define UNUSED_VARIABLE(x) UNUSED_##x __attribute__((unused))
+#elif defined(__LCLINT__)
+#define UNUSED_VARIABLE(x) /*@unused@*/ x
+#else
+#define UNUSED_VARIABLE(x) x
+#endif
 #endif  // MYSQLSHDK_LIBS_UTILS_COMPILER_H_

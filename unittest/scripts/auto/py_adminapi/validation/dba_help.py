@@ -1,10 +1,36 @@
 #@<OUT> dba
 NAME
-      dba - Global variable for InnoDB cluster management.
+      dba - InnoDB cluster and replicaset management functions.
 
 DESCRIPTION
-      The global variable dba is used to access the AdminAPI functionality and
-      perform DBA operations. It is used for managing MySQL InnoDB clusters.
+      Entry point for AdminAPI functions, including InnoDB clusters and replica
+      sets.
+
+      InnoDB clusters
+
+      The dba.configure_instance() function can be used to configure a MySQL
+      instance with the settings required to use it in an InnoDB cluster.
+
+      InnoDB clusters can be created with the dba.create_cluster() function.
+
+      Once created, InnoDB cluster management objects can be obtained with the
+      dba.get_cluster() function.
+
+      InnoDB ReplicaSets
+
+      The dba.configure_replica_set_instance() function can be used to
+      configure a MySQL instance with the settings required to use it in a
+      replicaset.
+
+      ReplicaSets can be created with the dba.create_replica_set() function.
+
+      Once created, replicaset management objects can be obtained with the
+      dba.get_replica_set() function.
+
+      Sandboxes
+
+      Utility functions are provided to create sandbox MySQL instances, which
+      can be used to create test clusters and replicasets.
 
 PROPERTIES
       verbose
@@ -22,8 +48,15 @@ FUNCTIONS
             Validates and configures a local instance for MySQL InnoDB Cluster
             usage.
 
+      configure_replica_set_instance([instance][, options])
+            Validates and configures an instance for use in an InnoDB
+            ReplicaSet.
+
       create_cluster(name[, options])
             Creates a MySQL InnoDB cluster.
+
+      create_replica_set(name[, options])
+            Creates a MySQL InnoDB ReplicaSet.
 
       delete_sandbox_instance(port[, options])
             Deletes an existing MySQL Server instance on localhost.
@@ -36,6 +69,9 @@ FUNCTIONS
 
       get_cluster([name][, options])
             Retrieves a cluster from the Metadata Store.
+
+      get_replica_set()
+            Returns an object representing a ReplicaSet.
 
       help([member])
             Provides help about this object and it's members
@@ -56,9 +92,12 @@ FUNCTIONS
             Upgrades (or restores) the metadata to the version supported by the
             Shell.
 
-      For more help on a specific function use: dba.help('<functionName>')
+      SEE ALSO
 
-      e.g. dba.help('deploy_sandbox_instance')
+      - For general information about the AdminAPI use: \? AdminAPI
+      - For help on a specific function use: \? dba.<functionName>
+
+      e.g. \? dba.deploy_sandbox_instance
 
 #@<OUT> dba.check_instance_configuration
 NAME
@@ -84,8 +123,6 @@ DESCRIPTION
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       The options dictionary may contain the following options:
 
@@ -159,16 +196,14 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
-      Only TCP/IP connections are allowed for this function.
-
       The options dictionary may contain the following options:
 
       - mycnfPath: The path to the MySQL configuration file of the instance.
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
       - password: The password to be used on the connection.
-      - clusterAdmin: The name of the InnoDB cluster administrator account.
-      - clusterAdminPassword: The password for the InnoDB cluster administrator
+      - clusterAdmin: The name of the "cluster administrator" account.
+      - clusterAdminPassword: The password for the "cluster administrator"
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
@@ -252,16 +287,14 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
-      Only TCP/IP connections are allowed for this function.
-
       The options dictionary may contain the following options:
 
       - mycnfPath: The path to the MySQL configuration file of the instance.
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
       - password: The password to be used on the connection.
-      - clusterAdmin: The name of the InnoDB cluster administrator account.
-      - clusterAdminPassword: The password for the InnoDB cluster administrator
+      - clusterAdmin: The name of the "cluster administrator" account.
+      - clusterAdminPassword: The password for the "cluster administrator"
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
@@ -317,6 +350,69 @@ EXCEPTIONS
       - If the instance is already part of a Replication Group.
       - If the given instance cannot be used for Group Replication.
 
+#@<OUT> dba.configure_replica_set_instance
+NAME
+      configure_replica_set_instance - Validates and configures an instance for
+                                       use in an InnoDB ReplicaSet.
+
+SYNTAX
+      dba.configure_replica_set_instance([instance][, options])
+
+WHERE
+      instance: An instance definition. By default, the active shell session is
+                used.
+      options: Additional options for the operation.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function will verify and automatically configure the target instance
+      for use in an InnoDB ReplicaSet.
+
+      The function can optionally create a "cluster administrator" account, if
+      the "clusterAdmin" and "clusterAdminPassword" options are given. The
+      account is created with the minimal set of privileges required to manage
+      InnoDB clusters or ReplicaSets. The "cluster administrator" account must
+      have matching username and password across all instances of the same
+      cluster or replicaset.
+
+      Options
+
+      The instance definition is the connection data for the instance.
+
+      For additional information on connection data use \? connection.
+
+      The options dictionary may contain the following options:
+
+      - clusterAdmin: The name of a "cluster administrator" user to be created.
+        The supported format is the standard MySQL account name format.
+      - clusterAdminPassword: The password for the "cluster administrator"
+        account.
+      - interactive: boolean value used to disable the wizards in the command
+        execution, i.e. prompts are not provided to the user and confirmation
+        prompts are not shown.
+      - restart: boolean value used to indicate that a remote restart of the
+        target instance should be performed to finalize the operation.
+
+      If the outputMycnfPath option is used, only that file is updated and
+      mycnfPath is treated as read-only.
+
+      The connection password may be contained on the instance definition,
+      however, it can be overwritten if it is specified on the options.
+
+      This function reviews the instance configuration to identify if it is
+      valid for usage in replicasets. An exception is thrown if not.
+
+      If the instance was not valid for InnoDB ReplicaSet and interaction is
+      enabled, before configuring the instance a prompt to confirm the changes
+      is presented and a table with the following information:
+
+      - Variable: the invalid configuration variable.
+      - Current Value: the current value for the invalid configuration
+        variable.
+      - Required Value: the required value for the configuration variable.
+
 #@<OUT> dba.create_cluster
 NAME
       create_cluster - Creates a MySQL InnoDB cluster.
@@ -325,22 +421,18 @@ SYNTAX
       dba.create_cluster(name[, options])
 
 WHERE
-      name: The name of the cluster object to be created.
-      options: Dictionary with options that modify the behavior of this
-               function.
+      name: An identifier for the cluster to be created.
+      options: Dictionary with additional parameters described below.
 
 RETURNS
       The created cluster object.
 
 DESCRIPTION
-      Creates a MySQL InnoDB cluster taking as seed instance the active global
-      session.
+      Creates a MySQL InnoDB cluster taking as seed instance the server the
+      shell is currently connected to.
 
       The options dictionary can contain the following values:
 
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
       - disableClone: boolean value used to disable the clone usage on the
         cluster.
       - gtidSetIsComplete: boolean value which indicates whether the GTID set
@@ -349,6 +441,9 @@ DESCRIPTION
       - multiPrimary: boolean value used to define an InnoDB cluster with
         multiple writable instances.
       - force: boolean, confirms that the multiPrimary option must be applied.
+      - interactive: boolean value used to disable the wizards in the command
+        execution, i.e. prompts are not provided to the user and confirmation
+        prompts are not shown.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
@@ -590,6 +685,95 @@ EXCEPTIONS
       - If the current connection cannot be used for Group Replication.
       - If disableClone is not supported on the target instance.
 
+#@<OUT> dba.create_replica_set
+NAME
+      create_replica_set - Creates a MySQL InnoDB ReplicaSet.
+
+SYNTAX
+      dba.create_replica_set(name[, options])
+
+WHERE
+      name: An identifier for the replicaset to be created.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      The created replicaset object.
+
+DESCRIPTION
+      This function will create a managed replicaset using MySQL master/slave
+      replication, as opposed to Group Replication. The MySQL instance the
+      shell is connected to will be the initial PRIMARY of the replica set.
+
+      The function will perform several checks to ensure the instance state and
+      configuration are compatible with a managed replicaset and if so, a
+      metadata schema will be initialized there.
+
+      New replica instances can be added through the add_instance() function of
+      the returned replicaset object. Status of the instances and their
+      replication channels can be inspected with status().
+
+      InnoDB ReplicaSets
+
+      A replicaset allows managing a GTID-based MySQL replication setup, in a
+      single PRIMARY/multiple SECONDARY topology.
+
+      A replicaset has several limitations compared to a InnoDB cluster and
+      thus, it is recommended that InnoDB clusters be preferred unless not
+      possible. Generally, a ReplicaSet on its own does not provide High
+      Availability. Among its limitations are:
+
+      - No automatic failover
+      - No protection against inconsistencies or partial data loss in a crash
+
+      Pre-Requisites
+
+      The following is a non-exhaustive list of requirements for managed
+      replicasets. The dba.configure_instance() command can be used to make
+      necessary configuration changes automatically.
+
+      - MySQL 8.0 or newer required
+      - Statement Based Replication (SBR) is unsupported, only Row Based
+        Replication
+      - GTIDs required
+      - Replication filters are not allowed
+      - All instances in the replicaset must be managed
+      - Unmanaged replication channels are not allowed in any instance
+
+      Adopting an Existing Topology
+
+      Existing asynchronous setups can be managed by calling this function with
+      the adoptFromAR option. The topology will be automatically scanned and
+      validated, starting from the instance the shell is connected to, and all
+      instances that are part of the topology will be automatically added to
+      the replicaset.
+
+      The only changes made by this function to an adopted replicaset are the
+      creation of the metadata schema. Existing replication channels will not
+      be changed during adoption, although they will be changed during PRIMARY
+      switch operations.
+
+      However, it is only possible to manage setups that use supported
+      configurations and topology. Configuration of all instances will be
+      checked during adoption, to ensure they are compatible. All replication
+      channels must be active and their transaction sets as verified through
+      GTID sets must be consistent. The data set of all instances are expected
+      to be identical, but is not verified.
+
+      Options
+
+      The options dictionary can contain the following values:
+
+      - adoptFromAR: boolean value used to create the replicaset based on an
+        existing asynchronous replication setup.
+      - instanceLabel: string a name to identify the target instance. Defaults
+        to hostname:port
+      - dryRun: boolean if true, all validations and steps for creating a
+        replica set are executed, but no changes are actually made. An
+        exception will be thrown when finished.
+      - gtidSetIsComplete: boolean value which indicates whether the GTID set
+        of the seed instance corresponds to all transactions executed. Default
+        is false.
+
 #@<OUT> dba.delete_sandbox_instance
 NAME
       delete_sandbox_instance - Deletes an existing MySQL Server instance on
@@ -751,6 +935,23 @@ EXCEPTIONS
       RuntimeError in the following scenarios:
 
       - If the current connection cannot be used for Group Replication.
+
+#@<OUT> dba.get_replica_set
+NAME
+      get_replica_set - Returns an object representing a ReplicaSet.
+
+SYNTAX
+      dba.get_replica_set()
+
+DESCRIPTION
+      The returned object is identical to the one returned by
+      create_replica_set() and can be used to manage the replicaset.
+
+      The function will work regardless of whether the target instance is a
+      PRIMARY or a SECONDARY, but its copy of the metadata is expected to be
+      up-to-date. This function will also work if the PRIMARY is unreachable or
+      unavailable, although replicaset change operations will not be possible,
+      except for force_primary_instance().
 
 #@<OUT> dba.help
 NAME

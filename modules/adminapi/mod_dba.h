@@ -31,11 +31,11 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "scripting/types_cpp.h"
@@ -54,13 +54,17 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 #if DOXYGEN_JS
   Integer verbose;
   JSON checkInstanceConfiguration(InstanceDef instance, Dictionary options);
+  Undefined configureReplicaSetInstance(InstanceDef instance,
+                                        Dictionary options);
   Undefined configureLocalInstance(InstanceDef instance, Dictionary options);
   Undefined configureInstance(InstanceDef instance, Dictionary options);
   Cluster createCluster(String name, Dictionary options);
+  ReplicaSet createReplicaSet(String name, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
   Cluster getCluster(String name, Dictionary options);
+  ReplicaSet getReplicaSet();
   Undefined killSandboxInstance(Integer port, Dictionary options);
   Undefined rebootClusterFromCompleteOutage(String clusterName,
                                             Dictionary options);
@@ -70,13 +74,16 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 #elif DOXYGEN_PY
   int verbose;
   JSON check_instance_configuration(InstanceDef instance, dict options);
+  None configure_replica_set_instance(InstanceDef instance, dict options);
   None configure_local_instance(InstanceDef instance, dict options);
   None configure_instance(InstanceDef instance, dict options);
   Cluster create_cluster(str name, dict options);
+  ReplicaSet create_replica_set(str name, dict options);
   None delete_sandbox_instance(int port, dict options);
   Instance deploy_sandbox_instance(int port, dict options);
   None drop_metadata_schema(dict options);
   Cluster get_cluster(str name, dict options);
+  ReplicaSet get_replica_set();
   None kill_sandbox_instance(int port, dict options);
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
   None start_sandbox_instance(int port, dict options);
@@ -121,8 +128,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const char *name, std::shared_ptr<MetadataStorage> metadata,
       std::shared_ptr<Instance> group_server) const;
 
-  shcore::Value do_configure_instance(const shcore::Argument_list &args,
-                                      bool local);
+  void do_configure_instance(
+      const mysqlshdk::db::Connection_options &instance_def_,
+      const shcore::Dictionary_t &options, bool local,
+      Cluster_type cluster_type);
 
  public:  // Exported public methods
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
@@ -133,15 +142,72 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value configure_local_instance(const shcore::Argument_list &args);
-  shcore::Value configure_instance(const shcore::Argument_list &args);
+
+  void configure_local_instance(const std::string &instance_def,
+                                const shcore::Dictionary_t &options) {
+    configure_local_instance(instance_def.empty()
+                                 ? mysqlshdk::db::Connection_options()
+                                 : get_connection_options(instance_def),
+                             options);
+  }
+
+  void configure_local_instance(const shcore::Dictionary_t &instance_def,
+                                const shcore::Dictionary_t &options) {
+    configure_local_instance(instance_def && !instance_def->empty()
+                                 ? get_connection_options(instance_def)
+                                 : mysqlshdk::db::Connection_options(),
+                             options);
+  }
+
+  void configure_local_instance(
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Dictionary_t &options);
+
+  void configure_instance(const std::string &instance_def,
+                          const shcore::Dictionary_t &options) {
+    configure_instance(instance_def.empty()
+                           ? mysqlshdk::db::Connection_options()
+                           : get_connection_options(instance_def),
+                       options);
+  }
+
+  void configure_instance(const shcore::Dictionary_t &instance_def,
+                          const shcore::Dictionary_t &options) {
+    configure_instance(instance_def && !instance_def->empty()
+                           ? get_connection_options(instance_def)
+                           : mysqlshdk::db::Connection_options(),
+                       options);
+  }
+
+  void configure_instance(const mysqlshdk::db::Connection_options &instance_def,
+                          const shcore::Dictionary_t &options);
+
+  void configure_replica_set_instance(const std::string &instance_def,
+                                      const shcore::Dictionary_t &options) {
+    configure_replica_set_instance(instance_def.empty()
+                                       ? mysqlshdk::db::Connection_options()
+                                       : get_connection_options(instance_def),
+                                   options);
+  }
+
+  void configure_replica_set_instance(const shcore::Dictionary_t &instance_def,
+                                      const shcore::Dictionary_t &options) {
+    configure_replica_set_instance(instance_def && !instance_def->empty()
+                                       ? get_connection_options(instance_def)
+                                       : mysqlshdk::db::Connection_options(),
+                                   options);
+  }
+
+  void configure_replica_set_instance(
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Dictionary_t &options);
 
   shcore::Value create_cluster(const std::string &cluster_name,
                                const shcore::Dictionary_t &options);
   void upgrade_metadata(const shcore::Dictionary_t &options);
 
-  shcore::Value get_cluster_(const shcore::Argument_list &args) const;
-  shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+  shcore::Value get_cluster_(const shcore::Argument_list &args);
+  void drop_metadata_schema(const shcore::Dictionary_t &args);
 
   shcore::Value reboot_cluster_from_complete_outage(
       const shcore::Argument_list &args);
@@ -158,9 +224,16 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,
       const mysqlshdk::mysql::IInstance &target_instance);
-  std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
-    return _provisioning_interface;
-  }
+
+  // ReplicaSets
+
+  shcore::Value create_replica_set(const std::string &full_rs_name,
+                                   const shcore::Dictionary_t &options);
+
+  shcore::Value get_replica_set();
+  std::shared_ptr<Replica_set_impl> get_replica_set(
+      const std::shared_ptr<MetadataStorage> &metadata,
+      const std::shared_ptr<Instance> &target_server);
 
   static std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);
@@ -169,13 +242,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::IShell_core *_shell_core;
 
   void init();
-
-  // Added for limited mock support
-  // Dba() {}
-  void set_owner(shcore::IShell_core *shell_core) {
-    _shell_core = shell_core;
-    init();
-  }
 
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;

@@ -75,7 +75,7 @@ class Cluster_options : public Command_interface {
   const Cluster_impl &m_cluster;
   bool m_all = false;
 
-  shcore::Value get_replicaset_options(const ReplicaSet &replicaset);
+  shcore::Value get_cluster_options();
 };
 
 }  // namespace dba

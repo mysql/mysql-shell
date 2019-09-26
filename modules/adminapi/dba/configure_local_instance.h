@@ -54,7 +54,7 @@ class Configure_local_instance : public Configure_instance {
   void finish() override;
 
  private:
-  GRInstanceType m_instance_type;
+  GRInstanceType::Type m_instance_type;
 };
 
 }  // namespace dba

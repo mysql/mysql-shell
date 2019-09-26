@@ -36,9 +36,9 @@ namespace dba {
 
 class Set_option : public Command_interface {
  public:
-  Set_option(const ReplicaSet &replicaset, const std::string &option,
+  Set_option(const GRReplicaSet &replicaset, const std::string &option,
              const std::string &value);
-  Set_option(const ReplicaSet &replicaset, const std::string &option,
+  Set_option(const GRReplicaSet &replicaset, const std::string &option,
              int64_t value);
 
   ~Set_option() override;
@@ -79,7 +79,7 @@ class Set_option : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   std::shared_ptr<mysqlsh::dba::Instance> m_cluster_session_instance;
   std::string m_option;
   mysqlshdk::utils::nullable<std::string> m_value_str;

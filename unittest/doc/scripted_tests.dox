@@ -394,8 +394,8 @@ rejoin operation, and depending on the speed of the server where the tests are
 being executed you may be one of two possible outputs and both are valid:
 
 \code
-The instance is an active (ONLINE) member of the ReplicaSet.
-The instance is an active (RECOVERING) member of the ReplicaSet.
+The instance is an active (ONLINE) member of the cluster.
+The instance is an active (RECOVERING) member of the cluster.
 \endcode
 
 The state of the instance does not depend on the test environment but depends
@@ -406,12 +406,12 @@ on external factors, to define a validation that succeeds in both cases use
 \if DOXYGEN_JS
 \code
 //@ Verifying cluster member state
-|The instance is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet.|
+|The instance is an active ({{ONLINE|RECOVERING}}) member of the cluster.|
 \endcode
 \elseif DOXYGEN_PY
 \code
 #@ Verifying cluster member state
-|The instance is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet.|
+|The instance is an active ({{ONLINE|RECOVERING}}) member of the cluster.|
 \endcode
 \endif
 

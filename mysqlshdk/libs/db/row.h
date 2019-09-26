@@ -39,6 +39,13 @@
 namespace mysqlshdk {
 namespace db {
 
+class bad_field : public std::invalid_argument {
+ public:
+  bad_field(const char *msg, uint32_t index)
+      : std::invalid_argument(msg), field(index) {}
+  uint32_t field;
+};
+
 class SHCORE_PUBLIC IRow {
  public:
   IRow() {}

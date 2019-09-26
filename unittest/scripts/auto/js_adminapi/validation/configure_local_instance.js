@@ -29,7 +29,7 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server.
 Cluster admin user 'root'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(<8.0.3)}
@@ -59,7 +59,7 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Cluster admin user 'root'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
@@ -80,8 +80,8 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
+variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
 For more information see:
 https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
@@ -90,11 +90,11 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'. 
 
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'root2'@'%' created.
-Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
@@ -118,10 +118,10 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-
+Do you want to perform the required configuration changes? [y/n]:
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications. You must
-first unset it to be able to perform any changes to this instance.
+variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
 For more information see:
 https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
@@ -130,9 +130,9 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'.
 
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'root2'@'%' created.
-Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@ test configureLocalInstance providing clusterAdminPassword without clusterAdmin
 ||Dba.configureLocalInstance: The clusterAdminPassword is allowed only if clusterAdmin is specified.
@@ -165,9 +165,9 @@ NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'root5'@'%' created.
-Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -190,9 +190,9 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Do you want to perform the required configuration changes? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'root5'@'%' created.
-Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
+Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.11)}
 ||
@@ -235,7 +235,7 @@ The required configuration changes may be written to a different file, which you
 Output path for updated configuration file: Do you want to perform the required configuration changes? [y/n]:
 Cluster admin user 'root'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage but you must copy <<<mycnf_path>>>2 to the MySQL option file path.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster but you must copy <<<mycnf_path>>>2 to the MySQL option file path.
 
 //@ Cleanup (BUG#27702439)
 ||
@@ -260,17 +260,17 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 Restarting MySQL...
-NOTE: MySQL server at localhost:<<<__mysql_sandbox_port1>>> was restarted.
+NOTE: MySQL server at <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restarted.
 
 //@<OUT> Confirm changes were applied and everything is fine BUG#29725222 {VER(>= 8.0.17)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
 ||
@@ -282,8 +282,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '[::1]:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '[::1]:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@<OUT> canonical IPv4 addresses are supported WL#12758
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -292,8 +292,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@ Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 ||
@@ -324,7 +324,7 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 Detecting the configuration file...
 Default file not found at the standard locations.
 Please specify the path to the MySQL configuration file: Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> Confirm binlog_checksum is wrote to config file (BUG#30171090) {VER(< 8.0.0) && __dbug_off == 0}
@@ -355,7 +355,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}

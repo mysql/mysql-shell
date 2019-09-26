@@ -56,7 +56,7 @@ cluster.rejoinInstance(__sandbox_uri3);
 session.close();
 shell.connect(__sandbox_uri1);
 // Change the group_name in the metadata
-session.runSql("update mysql_innodb_cluster_metadata.replicasets set attributes = JSON_SET(attributes, '$.group_replication_group_name', 'fd4b70e8-5cb1-11e7-a68b-b86b230042b0') where replicaset_id = 1");
+session.runSql("update mysql_innodb_cluster_metadata.clusters set attributes = JSON_SET(attributes, '$.group_replication_group_name', 'fd4b70e8-5cb1-11e7-a68b-b86b230042b0')");
 
 //@# check error
 dba.getCluster("clus");

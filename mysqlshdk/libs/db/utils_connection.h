@@ -117,6 +117,7 @@ const std::set<std::string> connection_attributes = {kHost,
                                                      kGetServerPublicKey,
                                                      kServerPublicKeyPath,
                                                      kConnectTimeout,
+                                                     kNetReadTimeout,
                                                      kCompression,
                                                      kConnectionAttributes};
 
@@ -138,8 +139,9 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kConnectionAttributes};
 
 const std::set<std::string> uri_extra_options = {
-    kAuthMethod,  kGetServerPublicKey, kServerPublicKeyPath, kConnectTimeout,
-    kCompression, kLocalInfile,        kNetBufferLength};
+    kAuthMethod,     kGetServerPublicKey, kServerPublicKeyPath,
+    kConnectTimeout, kNetReadTimeout,     kCompression,
+    kLocalInfile,    kNetBufferLength};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

@@ -336,8 +336,6 @@ std::vector<std::string> k_repl_channel_column_names = {
     "host",
     "port",
     "user",
-    "conf_heartbeat_interval",
-    "ssl_allowed",
     "source_uuid",
     "group_name",
     "last_heartbeat_timestamp",
@@ -368,8 +366,6 @@ std::vector<db::Type> k_repl_channel_column_types = {
     Type::String,    // host
     Type::Integer,   // port
     Type::String,    // user
-    Type::Double,    // conf_heartbeat_interval
-    Type::Integer,   // ssl_allowed
     Type::String,    // source_uuid
     Type::String,    // group_name
     Type::DateTime,  // last_heartbeat_timestamp
@@ -400,19 +396,17 @@ static std::string k_null = "___NULL___";
 
 TEST_F(Replication_test, get_channel_status) {
   const char *k_repl_channel_query =
-      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
-      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
-      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
-      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
-      "st.processlist_state io_thread_state,\n    s.last_error_number "
-      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
-      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
-      "co_thread_state,\n    co.last_error_number co_errno, "
-      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
-      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
-      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
-      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
-      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    s.source_uuid, "
+      "s.group_name, s.last_heartbeat_timestamp,\n    s.service_state "
+      "io_state, st.processlist_state io_thread_state,\n    "
+      "s.last_error_number io_errno, s.last_error_message io_errmsg,\n    "
+      "s.last_error_timestamp io_errtime,\n    co.service_state co_state, "
+      "cot.processlist_state co_thread_state,\n    co.last_error_number "
+      "co_errno, co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    w.service_state w_state, wt.processlist_state "
+      "w_thread_state,\n    w.last_error_number w_errno, w.last_error_message "
+      "w_errmsg,\n    w.last_error_timestamp w_errtime,\n    /*!80011 "
+      "TIMEDIFF(NOW(6),\n      "
       "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
       "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
       "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
@@ -438,8 +432,6 @@ TEST_F(Replication_test, get_channel_status) {
       "c.channel_name = s.channel_name\n  LEFT JOIN "
       "performance_schema.replication_applier_status_by_coordinator co\n    ON "
       "c.channel_name = co.channel_name\n  JOIN "
-      "performance_schema.replication_applier_configuration ac\n    ON "
-      "c.channel_name = ac.channel_name\n  JOIN "
       "performance_schema.replication_applier_status a\n    ON c.channel_name "
       "= a.channel_name\n  JOIN "
       "performance_schema.replication_applier_status_by_worker w\n    ON "
@@ -481,9 +473,7 @@ TEST_F(Replication_test, get_channel_status) {
                        {{"",
                          "192.168.42.6",
                          "3000",
-                         "mysql_innodb_asyncrs_3001",
-                         "0",
-                         "0",
+                         "mysql_innodb_rs_3001",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -518,9 +508,7 @@ TEST_F(Replication_test, get_channel_status) {
                        {{"mychannel",
                          "192.168.42.6",
                          "3000",
-                         "mysql_innodb_asyncrs_3001",
-                         "0",
-                         "0",
+                         "mysql_innodb_rs_3001",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -562,9 +550,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -593,7 +579,7 @@ TEST_F(Replication_test, get_channel_status) {
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("mychannel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_3001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_3001", ch.user);
     EXPECT_EQ("192.168.42.6", ch.host);
     EXPECT_EQ(3000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -625,9 +611,7 @@ TEST_F(Replication_test, get_channel_status) {
                        {{"mychannel",
                          "192.168.42.6",
                          "3000",
-                         "mysql_innodb_asyncrs_3001",
-                         "0",
-                         "0",
+                         "mysql_innodb_rs_3001",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -683,9 +667,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -742,9 +724,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -801,9 +781,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -866,9 +844,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -930,9 +906,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -961,9 +935,7 @@ TEST_F(Replication_test, get_channel_status) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -992,9 +964,7 @@ TEST_F(Replication_test, get_channel_status) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1063,9 +1033,7 @@ TEST_F(Replication_test, get_channel_status) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1100,9 +1068,7 @@ TEST_F(Replication_test, get_channel_status) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1137,9 +1103,7 @@ TEST_F(Replication_test, get_channel_status) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1220,19 +1184,17 @@ TEST_F(Replication_test, get_channel_status) {
 
 TEST_F(Replication_test, get_incoming_channels) {
   const char *k_repl_channels_query =
-      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
-      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
-      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
-      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
-      "st.processlist_state io_thread_state,\n    s.last_error_number "
-      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
-      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
-      "co_thread_state,\n    co.last_error_number co_errno, "
-      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
-      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
-      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
-      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
-      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    s.source_uuid, "
+      "s.group_name, s.last_heartbeat_timestamp,\n    s.service_state "
+      "io_state, st.processlist_state io_thread_state,\n    "
+      "s.last_error_number io_errno, s.last_error_message io_errmsg,\n    "
+      "s.last_error_timestamp io_errtime,\n    co.service_state co_state, "
+      "cot.processlist_state co_thread_state,\n    co.last_error_number "
+      "co_errno, co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    w.service_state w_state, wt.processlist_state "
+      "w_thread_state,\n    w.last_error_number w_errno, w.last_error_message "
+      "w_errmsg,\n    w.last_error_timestamp w_errtime,\n    /*!80011 "
+      "TIMEDIFF(NOW(6),\n      "
       "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
       "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
       "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
@@ -1258,8 +1220,6 @@ TEST_F(Replication_test, get_incoming_channels) {
       "c.channel_name = s.channel_name\n  LEFT JOIN "
       "performance_schema.replication_applier_status_by_coordinator co\n    ON "
       "c.channel_name = co.channel_name\n  JOIN "
-      "performance_schema.replication_applier_configuration ac\n    ON "
-      "c.channel_name = ac.channel_name\n  JOIN "
       "performance_schema.replication_applier_status a\n    ON c.channel_name "
       "= a.channel_name\n  JOIN "
       "performance_schema.replication_applier_status_by_worker w\n    ON "
@@ -1295,9 +1255,7 @@ TEST_F(Replication_test, get_incoming_channels) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1329,7 +1287,7 @@ TEST_F(Replication_test, get_incoming_channels) {
 
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("mychannel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_3001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_3001", ch.user);
     EXPECT_EQ("192.168.42.6", ch.host);
     EXPECT_EQ(3000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -1359,9 +1317,7 @@ TEST_F(Replication_test, get_incoming_channels) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1389,9 +1345,7 @@ TEST_F(Replication_test, get_incoming_channels) {
                {"nother_channel",
                 "192.168.42.16",
                 "4000",
-                "mysql_innodb_asyncrs_4001",
-                "0",
-                "0",
+                "mysql_innodb_rs_4001",
                 "209017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1424,7 +1378,7 @@ TEST_F(Replication_test, get_incoming_channels) {
 
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("mychannel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_3001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_3001", ch.user);
     EXPECT_EQ("192.168.42.6", ch.host);
     EXPECT_EQ(3000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -1446,7 +1400,7 @@ TEST_F(Replication_test, get_incoming_channels) {
     ch = chlist[1];
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("nother_channel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_4001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_4001", ch.user);
     EXPECT_EQ("192.168.42.16", ch.host);
     EXPECT_EQ(4000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -1476,9 +1430,7 @@ TEST_F(Replication_test, get_incoming_channels) {
               {{"another_channel",
                 "192.168.42.16",
                 "4000",
-                "mysql_innodb_asyncrs_4001",
-                "0",
-                "0",
+                "mysql_innodb_rs_4001",
                 "209017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1506,9 +1458,7 @@ TEST_F(Replication_test, get_incoming_channels) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1536,9 +1486,7 @@ TEST_F(Replication_test, get_incoming_channels) {
                {"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "109017c0-6aa0-11e9-8ab6-da28369859f2",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1571,7 +1519,7 @@ TEST_F(Replication_test, get_incoming_channels) {
 
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("another_channel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_4001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_4001", ch.user);
     EXPECT_EQ("192.168.42.16", ch.host);
     EXPECT_EQ(4000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -1593,7 +1541,7 @@ TEST_F(Replication_test, get_incoming_channels) {
     ch = chlist[1];
     EXPECT_EQ(ch.status(), Replication_channel::ON);
     EXPECT_EQ("mychannel", ch.channel_name);
-    EXPECT_EQ("mysql_innodb_asyncrs_3001", ch.user);
+    EXPECT_EQ("mysql_innodb_rs_3001", ch.user);
     EXPECT_EQ("192.168.42.6", ch.host);
     EXPECT_EQ(3000, ch.port);
     EXPECT_EQ("", ch.group_name);
@@ -1622,19 +1570,17 @@ TEST_F(Replication_test, get_incoming_channels) {
 
 TEST_F(Replication_test, wait_replication_done_connecting) {
   const char *k_repl_channel_query =
-      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    "
-      "c.heartbeat_interval conf_heartbeat_interval,\n    c.ssl_allowed = "
-      "'YES' as ssl_allowed,\n    s.source_uuid, s.group_name, "
-      "s.last_heartbeat_timestamp,\n    s.service_state io_state, "
-      "st.processlist_state io_thread_state,\n    s.last_error_number "
-      "io_errno, s.last_error_message io_errmsg,\n    s.last_error_timestamp "
-      "io_errtime,\n    co.service_state co_state, cot.processlist_state "
-      "co_thread_state,\n    co.last_error_number co_errno, "
-      "co.last_error_message co_errmsg,\n    co.last_error_timestamp "
-      "co_errtime,\n    ac.desired_delay conf_delay,\n    w.service_state "
-      "w_state, wt.processlist_state w_thread_state,\n    w.last_error_number "
-      "w_errno, w.last_error_message w_errmsg,\n    w.last_error_timestamp "
-      "w_errtime,\n    /*!80011 TIMEDIFF(NOW(6),\n      "
+      "SELECT\n    c.channel_name, c.host, c.port, c.user,\n    s.source_uuid, "
+      "s.group_name, s.last_heartbeat_timestamp,\n    s.service_state "
+      "io_state, st.processlist_state io_thread_state,\n    "
+      "s.last_error_number io_errno, s.last_error_message io_errmsg,\n    "
+      "s.last_error_timestamp io_errtime,\n    co.service_state co_state, "
+      "cot.processlist_state co_thread_state,\n    co.last_error_number "
+      "co_errno, co.last_error_message co_errmsg,\n    co.last_error_timestamp "
+      "co_errtime,\n    w.service_state w_state, wt.processlist_state "
+      "w_thread_state,\n    w.last_error_number w_errno, w.last_error_message "
+      "w_errmsg,\n    w.last_error_timestamp w_errtime,\n    /*!80011 "
+      "TIMEDIFF(NOW(6),\n      "
       "IF(TIMEDIFF(s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n          "
       "s.LAST_HEARTBEAT_TIMESTAMP) >= 0,\n        "
       "s.LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP,\n        "
@@ -1660,8 +1606,6 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
       "c.channel_name = s.channel_name\n  LEFT JOIN "
       "performance_schema.replication_applier_status_by_coordinator co\n    ON "
       "c.channel_name = co.channel_name\n  JOIN "
-      "performance_schema.replication_applier_configuration ac\n    ON "
-      "c.channel_name = ac.channel_name\n  JOIN "
       "performance_schema.replication_applier_status a\n    ON c.channel_name "
       "= a.channel_name\n  JOIN "
       "performance_schema.replication_applier_status_by_worker w\n    ON "
@@ -1673,8 +1617,8 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
       "latest_w.channel_name\n  LEFT JOIN performance_schema.threads st\n    "
       "ON s.thread_id = st.thread_id\n  LEFT JOIN performance_schema.threads "
       "cot\n    ON co.thread_id = cot.thread_id\n  LEFT JOIN "
-      "performance_schema.threads wt\n    ON w.thread_id = wt.thread_id\nWHERE "
-      "c.channel_name = '%s'";
+      "performance_schema.threads wt\n    ON w.thread_id = wt.thread_id\n"
+      "WHERE c.channel_name = '%s'";
 
   // no replication running
   auto mock_session = std::make_shared<Mock_session>();
@@ -1691,9 +1635,7 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1731,9 +1673,7 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
               {{"mychannel",
                 "192.168.42.6",
                 "3000",
-                "mysql_innodb_asyncrs_3001",
-                "0",
-                "0",
+                "mysql_innodb_rs_3001",
                 "",
                 "",
                 "2019-04-29 09:59:05.741307",
@@ -1770,9 +1710,7 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
                        {{"mychannel",
                          "192.168.42.6",
                          "3000",
-                         "mysql_innodb_asyncrs_3001",
-                         "0",
-                         "0",
+                         "mysql_innodb_rs_3001",
                          "",
                          "",
                          "2019-04-29 09:59:05.741307",
@@ -1804,11 +1742,11 @@ TEST_F(Replication_test, wait_replication_done_connecting) {
   add_connecting();
   add_running();
   Replication_channel ch =
-      wait_replication_done_connecting(instance, "mychannel", 10);
+      wait_replication_done_connecting(instance, "mychannel");
   EXPECT_EQ(Replication_channel::ON, ch.status());
 
   add_stopped();
-  ch = wait_replication_done_connecting(instance, "mychannel", 10);
+  ch = wait_replication_done_connecting(instance, "mychannel");
   EXPECT_EQ(Replication_channel::OFF, ch.status());
 }
 

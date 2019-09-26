@@ -56,8 +56,6 @@ class Shell_js_mysqlx_tests : public Shell_js_script_tester {
 
     std::string code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "var __pwd = '" + password + "';";
-    exec_and_out_equals(code);
     code = "var __host = '" + host + "';";
     exec_and_out_equals(code);
     code = "var __port = " + _port + ";";

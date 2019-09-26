@@ -454,11 +454,6 @@ REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
               "\\? connection.");
 #endif
 
-REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY,
-              "${TOPIC_CONNECTION_MORE_INFO}");
-REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1,
-              "Only TCP/IP connections are allowed for this function.");
-
 REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
 REGISTER_HELP(TOPIC_URI1,
               "[scheme://][user[:password]@]<host[:port]|socket>[/schema]"

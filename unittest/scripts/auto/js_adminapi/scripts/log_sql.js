@@ -6,7 +6,7 @@
 //       test extremely hard to maintain.
 
 var check_instance_sql = [
-    "show databases like 'mysql_innodb_cluster_metadata'",
+    "SELECT `major`, `minor`, `patch` FROM `mysql_innodb_cluster_metadata`.schema_version",
     "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE =",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "show GLOBAL variables where `variable_name` in ('gtid_mode')",
@@ -28,12 +28,12 @@ var create_cluster_sql = [
 ];
 
 var add_instance_sql = [
-    "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid",
+    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
     "show GLOBAL variables where `variable_name` in ('group_replication_ssl_mode')",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "CREATE USER IF NOT EXISTS '*'@'%' IDENTIFIED BY **** PASSWORD EXPIRE NEVER",
     "SET * `group_replication_single_primary_mode` = 'ON'",
-    "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses, attributes) VALUES (*)"
+    "INSERT INTO mysql_innodb_cluster_metadata.instances"
 ];
 
 var check_instance_state_sql = [
@@ -42,7 +42,7 @@ var check_instance_state_sql = [
 ];
 
 var rejoin_instance_sql = [
-    "SELECT i.instance_id, r.cluster_id, i.role, r.attributes->>'$.group_replication_group_name' group_name, i.instance_name label, i.mysql_server_uuid,  i.addresses->>'$.mysqlClassic' endpoint, i.addresses->>'$.mysqlX' xendpoint, i.addresses->>'$.grEndpoint' grendpoint FROM mysql_innodb_cluster_metadata.instances i",
+    "SELECT",
     "START GROUP_REPLICATION"
 ];
 
@@ -53,24 +53,24 @@ var get_cluster_sql = [
 
 var status_sql = [
     "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE'",
-    "SELECT i.instance_id, r.cluster_id, i.role, r.attributes->>'$.group_replication_group_name' group_name, i.instance_name label, i.mysql_server_uuid,  i.addresses->>'$.mysqlClassic' endpoint, i.addresses->>'$.mysqlX' xendpoint, i.addresses->>'$.grEndpoint' grendpoint FROM mysql_innodb_cluster_metadata.instances i LEFT JOIN mysql_innodb_cluster_metadata.replicasets r ",
+    "SELECT ",
     "show GLOBAL variables where `variable_name` in ('super_read_only')",
     "INSERT *"
 ];
 
 var describe_sql = [
     "SELECT @@group_replication_group_name group_name,  @@group_replication_single_primary_mode single_primary,  @@server_uuid,  member_state,  (SELECT    sum(IF(member_state in ('ONLINE', 'RECOVERING'), 1, 0)) > sum(1)/2   FROM performance_schema.replication_group_members) has_quorum,",
-    "SELECT i.instance_id, r.cluster_id, i.role, r.attributes->>'$.group_replication_group_name' group_name, i.instance_name label, i.mysql_server_uuid,  i.addresses->>'$.mysqlClassic' endpoint, i.addresses->>'$.mysqlX' xendpoint, i.addresses->>'$.grEndpoint' grendpoint FROM mysql_innodb_cluster_metadata.instances i"
+    "SELECT"
 ];
 
 var set_option_sql = [
-    "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid",
-    "UPDATE mysql_innodb_cluster_metadata.clusters SET cluster_name = 'test_cluster' WHERE cluster_id ="
+    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
+    "UPDATE mysql_innodb_cluster_metadata.clusters"
 ];
 
 var set_instance_option_sql = [
-    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances i JOIN mysql_innodb_cluster_metadata.replicasets r ON i.replicaset_id = r.replicaset_id WHERE r.cluster_id = 1 AND i.instance_name = 'instance_3_label'",
-    "UPDATE mysql_innodb_cluster_metadata.instances SET instance_name = 'instance_3_label' WHERE "
+    "SELECT COUNT(*) as count",
+    "UPDATE mysql_innodb_cluster_metadata.instances SET instance_name"
 ];
 
 var options_sql = [
@@ -79,9 +79,9 @@ var options_sql = [
 ];
 
 var rescan_sql = [
-    "SELECT i.instance_id, r.cluster_id, i.role, r.attributes->>'$.group_replication_group_name' group_name, i.instance_name label, i.mysql_server_uuid,  i.addresses->>'$.mysqlClassic' endpoint, i.addresses->>'$.mysqlX' xendpoint, i.addresses->>'$.grEndpoint' grendpoint FROM mysql_innodb_cluster_metadata.instances",
+    "SELECT i.instance_id, i.cluster_id, c.group_name",
     "SELECT COALESCE(@@report_host, @@hostname)",
-    "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses, attributes) VALUES"
+    "INSERT INTO mysql_innodb_cluster_metadata.instances"
 ];
 
 var set_primary_instance_sql = [
@@ -92,23 +92,23 @@ var set_primary_instance_sql = [
 var switch_multi_primary_sql = [
     "SELECT group_replication_switch_to_multi_primary_mode()",
     "SET PERSIST `auto_increment_increment` = 7",
-    "UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'mm' WHERE cluster_id = "
+    "UPDATE mysql_innodb_cluster_metadata.clusters"
 ];
 
 var switch_single_primary_sql = [
     "SELECT group_replication_switch_to_single_primary_mode(*)",
     "SET PERSIST `auto_increment_increment` = 1",
-    "UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'pm' WHERE cluster_id ="
+    "UPDATE mysql_innodb_cluster_metadata.clusters"
 ];
 
 var force_quorum_sql = [
-    "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid",
+    "select cluster_type from mysql_innodb_cluster_metadata.v2_this_instance",
     "SET GLOBAL `group_replication_force_members` = '*'",
     "SET GLOBAL `group_replication_force_members` = ''"
 ];
 
 var reboot_cluster_sql = [
-    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances i JOIN mysql_innodb_cluster_metadata.replicasets r ON i.replicaset_id = r.replicaset_id WHERE",
+    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata",
     "SET GLOBAL `group_replication_bootstrap_group` = 'ON'",
     "START GROUP_REPLICATION",
     "SELECT member_state FROM performance_schema.replication_group_members WHERE member_id = @@server_uuid"
@@ -124,7 +124,7 @@ var remove_instance_sql = [
 var dissolve_sql = [
     "SELECT WAIT_FOR_EXECUTED_GTID_SET(*)",
     "DROP USER IF EXISTS '*'@'%'",
-    "DELETE from mysql_innodb_cluster_metadata.clusters WHERE cluster_id =",
+    "DELETE from mysql_innodb_cluster_metadata.clusters",
     "STOP GROUP_REPLICATION",
 ];
 
@@ -216,6 +216,7 @@ WIPE_SHELL_LOG();
 c.rejoinInstance(__sandbox_uri3);
 EXPECT_SHELL_LOG_NOT_CONTAINS(rejoin_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(rejoin_instance_sql[1]);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> WL#13294: get cluster (dba.logSql = 0).
 WIPE_SHELL_LOG();
@@ -320,6 +321,9 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[3]);
+
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> WL#13294: remove instance (dba.logSql = 0).
 WIPE_SHELL_LOG();
@@ -437,6 +441,8 @@ c.rejoinInstance(__sandbox_uri3);
 EXPECT_SHELL_LOG_NOT_CONTAINS(rejoin_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(rejoin_instance_sql[1]);
 
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
 //@<> WL#13294: get cluster (dba.logSql = 1).
 WIPE_SHELL_LOG();
 var c = dba.getCluster();
@@ -540,6 +546,9 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[3]);
+
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> WL#13294: remove instance (dba.logSql = 1).
 WIPE_SHELL_LOG();
@@ -657,6 +666,8 @@ c.rejoinInstance(__sandbox_uri3);
 EXPECT_SHELL_LOG_CONTAINS(rejoin_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(rejoin_instance_sql[1]);
 
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
 //@<> WL#13294: get cluster (dba.logSql = 2).
 WIPE_SHELL_LOG();
 var c = dba.getCluster();
@@ -760,6 +771,9 @@ EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[3]);
+
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> WL#13294: remove instance (dba.logSql = 2).
 WIPE_SHELL_LOG();

@@ -47,7 +47,7 @@
 }
 
 //@<OUT> Remove instance failure due to wrong credentials
-ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please, verify connection credentials and make sure the instance is available.
+ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
 
 //@ Remove instance failure due to wrong credentials
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
@@ -493,7 +493,7 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
-NOTE: The recovery user name for instance 'localhost:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Skipping its removal.
+NOTE: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Skipping its removal.
 WARNING: An error occurred when trying to catch up with cluster transactions and the instance might have been left in an inconsistent state that will lead to errors if it is reused.
 
 Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
@@ -503,7 +503,7 @@ Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the clus
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@ Error removing last instance
-|ERROR: The instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.|Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the ReplicaSet (LogicError)
+|ERROR: The instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.|Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (LogicError)
 
 //@ Dissolve cluster with success
 ||

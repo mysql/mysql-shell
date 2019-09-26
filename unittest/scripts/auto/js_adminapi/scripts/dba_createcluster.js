@@ -31,9 +31,11 @@ function gtid_contains_server_uuid(session) {
 }
 
 function print_metadata_instance_addresses(session) {
-    var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll();
-    for (var i = 0; i < res.length; i++) {
-        print(res[i][4] + " = " + res[i][7] + "\n");
+    var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances");
+    var row = res.fetchOneObject()
+    while(row) {
+        print(row.instance_name + " = " + row.addresses + "\n");
+        row = res.fetchOneObject();
     }
     print("\n");
 }
@@ -619,7 +621,7 @@ session.close();
 // BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
 //
 // dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid for InnoDB cluster usage.
+// SQL and IO threads is valid to be used in an InnoDB cluster.
 //
 // As a consequence, the AdminAPI fails to detects that an instance has
 // asynchronous replication running and both addInstance() and rejoinInstance()

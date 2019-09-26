@@ -55,7 +55,7 @@ struct Clone_options {
   }
 
   void check_option_values(const mysqlshdk::utils::Version &version,
-                           const ReplicaSet *replicaset = nullptr);
+                           const GRReplicaSet *replicaset = nullptr);
 
   Unpack_target target;
 

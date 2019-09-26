@@ -34,6 +34,10 @@
 
 namespace mysqlsh {
 namespace dba {
+
+void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
+                             bool dry_run);
+
 namespace metadata {
 const mysqlshdk::utils::Version kUpgradingVersion =
     mysqlshdk::utils::Version(0, 0, 0);
@@ -44,7 +48,7 @@ constexpr char kMetadataSchemaName[] = "mysql_innodb_cluster_metadata";
 constexpr char kFailedUpgradeError[] =
     "The installed metadata is unreliable because of a failed upgrade. It is "
     "recommended to restore the metadata by executing "
-    "dba.<<<upgradeMetadata>>> with the restore option.";
+    "dba.<<<upgradeMetadata>>>.";
 
 enum State {
   EQUAL,
@@ -67,15 +71,15 @@ const States kCompatible = States(State::EQUAL)
                                .set(State::PATCH_HIGHER)
                                .set(State::PATCH_LOWER);
 
-const States kIncompatibleVersion =
+const States kIncompatible =
     States(State::MAJOR_HIGHER).set(State::MAJOR_LOWER);
 const States kUpgradeStates =
     States(State::UPGRADING).set(State::FAILED_UPGRADE);
 const States kUpgradeInProgress = States(State::UPGRADING);
-const States kLockWriteOperations = States(State::UPGRADING)
-                                        .set(State::FAILED_UPGRADE)
-                                        .set(State::MAJOR_HIGHER)
-                                        .set(State::MAJOR_LOWER);
+const States kIncompatibleOrUpgrading = States(State::UPGRADING)
+                                            .set(State::FAILED_UPGRADE)
+                                            .set(State::MAJOR_HIGHER)
+                                            .set(State::MAJOR_LOWER);
 
 metadata::State version_compatibility(
     const std::shared_ptr<Instance> &group_server,

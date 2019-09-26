@@ -180,6 +180,29 @@ void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
  */
 std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row);
 
+/**
+ * Returns formatted text for current active exception.
+ *
+ * Ex:
+ * try {
+ *    do_something();
+ * } catch (...) {
+ *    cerr << "ERROR: " << format_active_exception() << "\n";
+ * }
+ */
+inline std::string format_active_exception() {
+  try {
+    throw;
+  } catch (const shcore::Exception &e) {
+    return e.format();
+  } catch (const mysqlshdk::db::Error &e) {
+    return e.format();
+  } catch (const std::exception &e) {
+    return e.what();
+  }
+  return "";
+}
+
 }  // namespace mysqlsh
 
 #endif  // MODULES_MOD_UTILS_H_

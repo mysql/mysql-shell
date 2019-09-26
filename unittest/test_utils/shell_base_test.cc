@@ -116,10 +116,104 @@ void Shell_base_test::check_string_list_expectation(
     ADD_FAILURE_AT(file, line);
   }
 }
+/**
+ * Matches a line containing wildcard tokens, which will match any sequence of
+ * characters.
+ *
+ * @param expected: The string with the expected data.
+ * @param actual: The string where the expected string should be found.
+ * @param start: the position in actual where the search starts.
+ * @param out_start: Will hold the position where the match started.
+ * @param out_end: Will hold the position where the match ended.
+ *
+ * \code
+ * Line executed in [[*]] seconds.
+ * \endcode
+ *
+ * Supports presense of multiple tokens as long as they have fixed text in
+ * between.
+ *
+ * If the actual contains the expected string:
+ * - If start is provided, the position where the match started will be set.
+ * - If end is provided, the position of the last character of the match will be
+ * set.
+ */
+bool Shell_base_test::check_wildcard_match(const std::string &expected,
+                                           const std::string &actual,
+                                           bool full_match, size_t start,
+                                           size_t *out_start, size_t *out_end) {
+  size_t all_start = std::string::npos;
+  size_t all_end = std::string::npos;
+
+  if (expected.empty()) {
+    if (full_match && expected != actual) {
+      return false;
+    } else {
+      all_start = start;
+      all_end = start;
+    }
+  } else {
+    static constexpr auto k_wildcard = "[[*]]";
+
+    std::vector<std::string> strings;
+
+    // Split the string by the wildcard construct until no split is done (second
+    // is empty)
+    auto tokens = std::make_pair(std::string(), expected);
+    bool ends_in_wildcard = false;
+    do {
+      tokens =
+          shcore::str_partition(tokens.second, k_wildcard, &ends_in_wildcard);
+      if (tokens.first.find(k_wildcard) == 0) {
+        throw std::runtime_error(
+            "Consecutive wildcard match tokens are not allowed: [[*]][[*]]");
+      } else {
+        strings.push_back(tokens.first);
+      }
+    } while (!tokens.second.empty());
+
+    all_start = actual.find(strings[0], start);
+
+    if (all_start == std::string::npos) {
+      return false;
+    } else {
+      all_end = std::string::npos;
+      all_end = all_start + strings[0].length();
+
+      strings.erase(strings.begin());
+
+      for (const auto str : strings) {
+        size_t tmp = actual.find(str, all_end);
+        if (tmp != std::string::npos) {
+          all_end = tmp + str.length();
+        } else {
+          return false;
+        }
+      }
+
+      if (ends_in_wildcard) all_end = actual.length();
+    }
+  }
+
+  if (full_match && (all_start != start || all_end != actual.length()))
+    return false;
+
+  if (out_start) *out_start = all_start;
+  if (out_end) *out_end = all_end;
+
+  return true;
+}
 
 /**
  * Multiple value validation
  * To be used on a single line
+ *
+ * @param expected: The string with the expected data.
+ * @param actual: The string where the expected string should be found.
+ * @param start: the position in actual where the search starts.
+ * @param out_start: Will hold the position where the match started.
+ * @param out_end: Will hold the position where the match ended.
+ *
  * Line may have an entry that may have one of several values, i.e. on an
  * expected line like:
  *
@@ -134,62 +228,38 @@ void Shell_base_test::check_string_list_expectation(
  * My text line is full
  * \endcode
  *
- * Line can contain a wildcard token, which will match any sequence of
- * characters:
- *
- * \code
- * Line executed in [[*]] seconds.
- * \endcode
- *
- * The wildcard token may be used only once per line. Multiple value match may
- * also contain the wildcard token, however the resulting line must contain
- * only one such token, i.e. following is not allowed:
- *
- * \code
- * {{Line executed|Script [[*]]}} in [[*]] seconds.
- * \endcode
+ * If the actual contains the expected string:
+ * - If start is provided, the position where the match started will be set.
+ * - If end is provided, the position of the last character of the match will
+ * be set.
  */
 bool Shell_base_test::multi_value_compare(const std::string &expected,
-                                          const std::string &actual) {
+                                          const std::string &actual,
+                                          bool full_match, size_t start,
+                                          size_t *out_start, size_t *out_end) {
   bool ret_val = false;
 
-  const auto value_compare = [](const std::string &exp,
-                                const std::string &act) {
-    static constexpr auto k_wildcard = "[[*]]";
-
-    const auto pos = exp.find(k_wildcard);
-
-    if (pos == std::string::npos) {
-      // not found -> exact match
-      return exp == act;
-    } else {
-      const auto right_match_position = pos + strlen(k_wildcard);
-      const auto right_match_length = exp.length() - right_match_position;
-      // match values to the left and to the right of wildcard
-      return (exp.substr(0, pos) == act.substr(0, pos)) &&
-             act.length() >= right_match_length &&
-             (exp.substr(right_match_position) ==
-              act.substr(act.length() - right_match_length));
-    }
-  };
-
   // ignoring spaces
-  const auto start = expected.find("{{");
+  const auto local_start = expected.find("{{");
 
-  if (start != std::string::npos) {
-    const auto end = expected.find("}}");
+  if (local_start != std::string::npos) {
+    const auto local_end = expected.find("}}");
 
-    std::string pre = expected.substr(0, start);
-    std::string post = expected.substr(end + 2);
-    std::string opts = expected.substr(start + 2, end - (start + 2));
+    std::string pre = expected.substr(0, local_start);
+    std::string post = expected.substr(local_end + 2);
+    std::string opts =
+        expected.substr(local_start + 2, local_end - (local_start + 2));
     auto options = shcore::split_string(opts, "|");
 
     for (auto item : options) {
       std::string exp = pre + item + post;
-      if ((ret_val = value_compare(exp, actual))) break;
+      if ((ret_val = check_wildcard_match(exp, actual, full_match, start,
+                                          out_start, out_end)))
+        break;
     }
   } else {
-    ret_val = value_compare(expected, actual);
+    ret_val = check_wildcard_match(expected, actual, full_match, start,
+                                   out_start, out_end);
   }
 
   return ret_val;
@@ -197,20 +267,20 @@ bool Shell_base_test::multi_value_compare(const std::string &expected,
 
 /**
  * Validates a string expectation that spans over multiple lines.
- * @param context Context information that identifies where the verification is
- * done.
+ * @param context Context information that identifies where the verification
+ * is done.
  * @param stream The stream to which the failure will be reported.
  * @param expected A multiline string expectation.
  * @param actual The actual string to be used on the verification.
  *
  * This function will split the expected and actual strings in lines and then
- * for each line on the expected stringit will do the string resolution and then
- * will verify against the actual string.
+ * for each line on the expected stringit will do the string resolution and
+ * then will verify against the actual string.
  *
- * The process starts by first identifying the first line on the expected string
- * on the actual string, once found it will verify every single line on the
- * expected string comes on the actual string in the exact same order and with
- * the exact same content.
+ * The process starts by first identifying the first line on the expected
+ * string on the actual string, once found it will verify every single line on
+ * the expected string comes on the actual string in the exact same order and
+ * with the exact same content.
  *
  * If an inconsistency is found, a failure will be added including the failed
  * expected string and the line that failed the verification will include the
@@ -249,7 +319,8 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
        index < expected_lines.size(); index++)
     expected_lines[index] = resolve_string(expected_lines[index]);
 
-  // Identifies the index of the actual line containing the first expected line
+  // Identifies the index of the actual line containing the first expected
+  // line
   size_t actual_index = 0;
   r_trimmed_expected = shcore::str_rstrip(expected_lines.at(0));
   while (actual_index < actual_lines.size()) {

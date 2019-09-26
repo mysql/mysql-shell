@@ -1,9 +1,9 @@
 // Assumptions: smart deployment functions available
 
 function print_metadata_instance_addresses(session) {
-    var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll();
+    var res = session.runSql("select instance_name, addresses from mysql_innodb_cluster_metadata.instances").fetchAll();
     for (var i = 0; i < res.length; i++) {
-        print(res[i][4] + " = " + res[i][7] + "\n");
+        print(res[i][0] + " = " + res[i][1] + "\n");
     }
     print("\n");
 }
@@ -400,8 +400,8 @@ c = dba.createCluster('noxplugin', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 c.addInstance(__sandbox_uri3);
 
-var msg1 = "The X plugin is not enabled on instance '" + localhost + ":" + __mysql_sandbox_port1 + "'. No value will be assumed for the X protocol address.";
-var msg2 = "The X plugin is not enabled on instance '" + localhost + ":" + __mysql_sandbox_port2 + "'. No value will be assumed for the X protocol address.";
+var msg1 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port1 + "'. No value will be assumed for the X protocol address.";
+var msg2 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port2 + "'. No value will be assumed for the X protocol address.";
 EXPECT_SHELL_LOG_CONTAINS(msg1);
 EXPECT_SHELL_LOG_CONTAINS(msg2);
 
@@ -604,7 +604,7 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 // BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
 //
 // dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid for InnoDB cluster usage.
+// SQL and IO threads is valid to be used in an InnoDB cluster.
 //
 // As a consequence, the AdminAPI fails to detects that an instance has
 // asynchronous replication running and both addInstance() and rejoinInstance()

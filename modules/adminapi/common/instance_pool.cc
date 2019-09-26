@@ -27,12 +27,14 @@
 #include <stack>
 
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/scripting/types.h"  // exceptions
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -75,17 +77,6 @@ void Instance::steal() {
   m_pool = nullptr;
 }
 
-std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
-                                                        bool buffered) const {
-  log_sql(sql);
-  return mysqlshdk::mysql::Instance::query(sql, buffered);
-}
-
-void Instance::execute(const std::string &sql) const {
-  log_sql(sql);
-  mysqlshdk::mysql::Instance::execute(sql);
-}
-
 /**
  * Log the input SQL statement.
  *
@@ -106,22 +97,41 @@ void Instance::log_sql(const std::string &sql) const {
        !shcore::str_ibeginswith(sql, "select") &&
        !shcore::str_ibeginswith(sql, "show"))) {
     log_info(
-        "%s: %s", descr().c_str(),
+        "%s: %s", get_connection_options().uri_endpoint().c_str(),
         shcore::str_subvars(
             sql, [](const std::string &) { return "****"; }, "/*((*/", "/*))*/")
             .c_str());
   }
 }
 
+std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
+                                                        bool buffered) const {
+  log_sql(sql);
+  return mysqlshdk::mysql::Instance::query(sql, buffered);
+}
+
+void Instance::execute(const std::string &sql) const {
+  log_sql(sql);
+  mysqlshdk::mysql::Instance::execute(sql);
+}
+
 struct Instance_pool::Metadata_cache {
   std::vector<Instance_metadata> instances;
   std::vector<Cluster_metadata> clusters;
 
-  const Cluster_metadata *try_get_cluster(Cluster_id id) const {
+  const Cluster_metadata *try_get_cluster(const Cluster_id &id) const {
     for (const auto &c : clusters) {
       if (c.cluster_id == id) return &c;
     }
     return nullptr;
+  }
+
+  const Instance_metadata *get_cluster_primary(const Cluster_id &id) const {
+    for (const auto &i : instances) {
+      if (i.cluster_id == id && i.primary_master && !i.invalidated) return &i;
+    }
+    throw shcore::Exception("Async cluster has no PRIMARY",
+                            SHERR_DBA_ASYNC_PRIMARY_UNDEFINED);
   }
 
   const Instance_metadata *get_instance_with_uuid(
@@ -331,6 +341,55 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked_uuid(
                           SHERR_DBA_MEMBER_METADATA_MISSING);
 }
 
+std::shared_ptr<Instance> Instance_pool::connect_unchecked(
+    const topology::Node *node) {
+  DBUG_TRACE;
+
+  const Cluster_metadata *cluster =
+      m_mdcache->try_get_cluster(node->cluster_id);
+  DBUG_ASSERT(cluster);
+  if (!cluster) {
+    throw shcore::Exception::logic_error("Invalid node " + node->label);
+  }
+
+  if (cluster->type == Cluster_type::GROUP_REPLICATION) {
+    assert(0);
+    return {};
+  } else {
+    return connect_unchecked_uuid(node->get_primary_member()->uuid);
+  }
+}
+
+std::shared_ptr<Instance> Instance_pool::connect_primary_master_for_member(
+    const std::string &server_uuid) {
+  DBUG_TRACE;
+
+  std::string my_group_name;
+  std::vector<Cluster_metadata> replicasets;
+
+  if (!m_metadata) throw std::logic_error("Metadata object required");
+
+  const Instance_metadata *md = m_mdcache->get_instance_with_uuid(server_uuid);
+
+  const Cluster_metadata *cluster_md =
+      m_mdcache->try_get_cluster(md->cluster_id);
+
+  if (cluster_md && cluster_md->type == Cluster_type::ASYNC_REPLICATION) {
+    return connect_async_cluster_primary(cluster_md->cluster_id);
+  } else {
+    throw std::logic_error("internal error");
+  }
+
+  throw shcore::Exception("No PRIMARY node found",
+                          SHERR_DBA_ACTIVE_CLUSTER_NOT_FOUND);
+}
+
+std::shared_ptr<Instance> Instance_pool::connect_async_cluster_primary(
+    Cluster_id cluster_id) {
+  const Instance_metadata *md = m_mdcache->get_cluster_primary(cluster_id);
+  return connect_unchecked_endpoint(md->endpoint);
+}
+
 void Instance_pool::check_group_member(
     const mysqlshdk::mysql::IInstance &instance, bool allow_recovering,
     std::string *out_member_id, std::string *out_group_name,
@@ -362,6 +421,26 @@ void Instance_pool::check_group_member(
         "member " + label_for_server_uuid(instance.get_uuid()) +
             " is in state " + mysqlshdk::gr::to_string(member_state),
         SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
+  }
+}
+
+std::shared_ptr<Instance> Instance_pool::connect_primary(
+    const topology::Node *node) {
+  DBUG_TRACE;
+
+  const Cluster_metadata *cluster =
+      m_mdcache->try_get_cluster(node->cluster_id);
+  DBUG_ASSERT(cluster);
+  if (!cluster) {
+    throw shcore::Exception::logic_error("Invalid cluster " + node->label);
+  }
+
+  if (cluster->type == Cluster_type::GROUP_REPLICATION) {
+    return connect_group_primary(cluster->group_name);
+  } else {
+    auto server = static_cast<const topology::Server *>(node);
+
+    return connect_unchecked_uuid(server->get_primary_member()->uuid);
   }
 }
 
@@ -644,6 +723,7 @@ class Scoped_storage {
 
   void pop(const std::shared_ptr<T> &object) {
     assert(!m_objects.empty() && m_objects.top() == object);
+    (void)object;
     m_objects.pop();
   }
 

@@ -22,9 +22,13 @@
  */
 
 #include "modules/adminapi/common/preconditions.h"
+#include <mysqld_error.h>
 #include <map>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/global_topology_check.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -58,7 +62,8 @@ std::string lookup_message(const std::string &function_name, MDS state) {
       default:
         break;
     }
-  } else if (function_name == "Dba.createCluster") {
+  } else if (function_name == "Dba.createCluster" ||
+             function_name == "Dba.createReplicaSet") {
     switch (state) {
       case MDS::MAJOR_HIGHER:
         return "Operation not allowed. The installed metadata version %s is "
@@ -73,36 +78,48 @@ std::string lookup_message(const std::string &function_name, MDS state) {
       default:
         break;
     }
-  } else if (function_name == "Dba.getCluster") {
+  } else if (function_name == "Dba.getCluster" ||
+             function_name == "Dba.getReplicaSet") {
+    Cluster_type type = function_name == "Dba.getCluster"
+                            ? Cluster_type::GROUP_REPLICATION
+                            : Cluster_type::ASYNC_REPLICATION;
+
     switch (state) {
       case MDS::MAJOR_HIGHER:
-        return "The cluster is in READ ONLY mode because the installed "
+        return "No " + thing(type) +
+               " change operations can be executed because the installed "
                "metadata version %s is higher than the supported by the Shell "
                "which is version %s. Use a Shell version that supports this "
                "metadata version to remove this restriction.";
       case MDS::MAJOR_LOWER:
-        return "The cluster is in READ ONLY mode because the installed "
+        return "No " + thing(type) +
+               " change operations can be executed because the installed "
                "metadata version %s is lower than the supported by the Shell "
                "which is version %s. Upgrade the metadata to remove this "
-               "restriction. See \\? dba.<<<upgradeMetadata>>> for "
-               "additional details.";
+               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
+               "details.";
       default:
         break;
     }
-  } else if (function_name == "Cluster") {
+  } else if (function_name == "Cluster" || function_name == "ReplicaSet") {
+    Cluster_type type = function_name == "Cluster"
+                            ? Cluster_type::GROUP_REPLICATION
+                            : Cluster_type::ASYNC_REPLICATION;
+
     switch (state) {
       case MDS::MAJOR_HIGHER:
-        return "Operation not allowed. The cluster is in READ ONLY mode "
-               "because the installed metadata version %s is higher than the "
-               "supported by the Shell which is version %s. Use a Shell "
-               "version that supports this metadata version to remove this "
-               "restriction.";
+        return "Operation not allowed. No " + thing(type) +
+               " change operations can be executed because the installed "
+               "metadata version %s is higher than the supported by the Shell "
+               "which is version %s. Use a Shell version that supports this "
+               "metadata version to remove this restriction.";
       case MDS::MAJOR_LOWER:
-        return "Operation not allowed. The cluster is in READ ONLY mode "
-               "because the installed metadata version %s is lower than the "
-               "supported by the Shell which is version %s. Upgrade the "
-               "metadata to remove this restriction. See \\? "
-               "dba.<<<upgradeMetadata>>> for additional details.";
+        return "Operation not allowed. No " + thing(type) +
+               " change operations can be executed because the installed "
+               "metadata version %s is lower than the supported by the Shell "
+               "which is version %s. Upgrade the metadata to remove this "
+               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
+               "details.";
       default:
         break;
     }
@@ -132,6 +149,12 @@ const mysqlshdk::utils::Version k_max_adminapi_server_version =
 const mysqlshdk::utils::Version k_min_adminapi_server_version =
     mysqlshdk::utils::Version("5.7");
 
+// Specific minimum versions for GR and AR functions
+const mysqlshdk::utils::Version k_min_gr_version =
+    mysqlshdk::utils::Version("5.7");
+const mysqlshdk::utils::Version k_min_ar_version =
+    mysqlshdk::utils::Version("8.0");
+
 struct Metadata_validations {
   metadata::States state;
   MDS_actions action;
@@ -140,160 +163,315 @@ struct Metadata_validations {
 // Note that this structure may be initialized using initializer
 // lists, so the order of the fields is very important
 struct FunctionAvailability {
+  mysqlshdk::utils::Version min_version;
   int instance_config_state;
   ReplicationQuorum::State cluster_status;
   int instance_status;
   std::vector<Metadata_validations> metadata_validations;
 };
 
-// TODO(alfredo) - this map should be turned into a compile-time lookup
-// table
+// The replicaset functions do not use quorum
+ReplicationQuorum::State na_quorum;
 const std::map<std::string, FunctionAvailability>
     AdminAPI_function_availability = {
         // The Dba functions
         {"Dba.createCluster",
-         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+         {k_min_gr_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Dba.getCluster",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR},
-           {metadata::kIncompatibleVersion, MDS_actions::WARN}}}},
+           {metadata::kIncompatible, MDS_actions::WARN}}}},
         {"Dba.dropMetadataSchema",
-         {GRInstanceType::StandaloneWithMetadata |
+         {k_min_adminapi_server_version,
+          GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::StandaloneInMetadata |
-              GRInstanceType::InnoDBCluster,
+              GRInstanceType::InnoDBCluster | GRInstanceType::AsyncReplicaSet,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          ManagedInstance::State::OnlineRW,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
           {}}},
         {"Dba.rebootClusterFromCompleteOutage",
-         {GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Dba.configureLocalInstance",
-         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+         {k_min_gr_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::StandaloneInMetadata |
               GRInstanceType::InnoDBCluster | GRInstanceType::Unknown,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {}}},
         {"Dba.checkInstanceConfiguration",
-         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+         {k_min_gr_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::Unknown,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {}}},
         {"Dba.configureInstance",
-         {GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+         {k_min_gr_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::StandaloneInMetadata,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {}}},
 
         {"Dba.upgradeMetadata",
-         {GRInstanceType::InnoDBCluster | GRInstanceType::StandaloneInMetadata |
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster | GRInstanceType::StandaloneInMetadata |
               GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeInProgress, MDS_actions::ERROR}}}},
 
-        // The Replicaset/Cluster functions
+        {"Dba.configureReplicaSetInstance",
+         {k_min_ar_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+              GRInstanceType::StandaloneInMetadata |
+              GRInstanceType::AsyncReplicaSet | GRInstanceType::Unknown,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {}}},
+        {"Dba.createReplicaSet",
+         {k_min_ar_version,
+          GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"Dba.getReplicaSet",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+           {metadata::kIncompatible, MDS_actions::WARN}}}},
+
+        // GR Cluster functions
         {"Cluster.addInstance",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.removeInstance",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.rejoinInstance",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.describe",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.status",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.resetRecoveryAccountsPassword",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
           {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.options",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.dissolve",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.checkInstanceState",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
           {}}},
         {"Cluster.rescan",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.forceQuorumUsingPartitionOf",
-         {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.switchToSinglePrimaryMode",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.switchToMultiPrimaryMode",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.setPrimaryInstance",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.setOption",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.setInstanceOption",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kLockWriteOperations, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
         {"Cluster.listRouters",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {}}},
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
         {"Cluster.removeRouterMetadata",
-         {GRInstanceType::InnoDBCluster,
+         {k_min_gr_version,
+          GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {}}}};
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+
+        // ReplicaSet Functions
+        {"ReplicaSet.addInstance",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.rejoinInstance",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.removeInstance",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.describe",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+        {"ReplicaSet.status",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+        {"ReplicaSet.dissolve",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.checkInstanceState",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {}}},
+        {"ReplicaSet.setPrimaryInstance",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.forcePrimaryInstance",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+        {"ReplicaSet.listRouters",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+        {"ReplicaSet.removeRouterMetadata",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+};
+
+}  // namespace
+
+/**
+ * Validates the session for AdminAPI operations.
+ *
+ * Checks if the given session exists and is open and if the session version
+ * is valid for use with AdminAPI.
+ *
+ * @param group_session A session to validate.
+ *
+ * @throws shcore::Exception::runtime_error if session is not valid.
+ */
+void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  // A classic session is required to perform any of the AdminAPI operations
+  if (!session) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation");
+  } else if (!session->is_open()) {
+    throw shcore::Exception::runtime_error(
+        "The session was closed. An open session is required to perform "
+        "this operation");
+  }
+
+  validate_connection_options(
+      session->get_connection_options(),
+      [](const std::string &s) { return shcore::Exception::runtime_error(s); });
+
+  // Validate if the server version is supported by the AdminAPI
+  mysqlshdk::utils::Version server_version = session->get_server_version();
+
+  if (server_version >= k_max_adminapi_server_version ||
+      server_version < k_min_adminapi_server_version)
+    throw shcore::Exception::runtime_error(
+        "Unsupported server version: AdminAPI operations require MySQL "
+        "server versions 5.7 or 8.0");
+}
 
 /**
  * Validates the session used to manage the group.
@@ -304,15 +482,165 @@ const std::map<std::string, FunctionAvailability>
  *
  * @throws shcore::Exception::runtime_error if session is not valid.
  */
-void validate_group_session(const mysqlsh::dba::Instance &instance) {
-  // Validate if the server version is open and supported by the AdminAPI
-  validate_session(instance.get_session());
-
-  validate_connection_options(instance.get_connection_options(),
-                              shcore::Exception::runtime_error);
+void validate_gr_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+  // TODO(alfredo) - this check seems too extreme, this only matters in the
+  // target instance (and only for some operations) and this function can get
+  // called on other members
+  if (mysqlshdk::gr::is_group_replication_delayed_starting(
+          mysqlsh::dba::Instance(group_session)))
+    throw shcore::Exception::runtime_error(
+        "Cannot perform operation while group replication is "
+        "starting up");
 }
 
-}  // namespace
+bool check_metadata(const std::shared_ptr<Instance> &target_server,
+                    mysqlshdk::utils::Version *out_version,
+                    Cluster_type *out_type) {
+  MetadataStorage metadata(target_server);
+
+  if (metadata.check_version(out_version)) {
+    log_debug("Instance type check: %s: Metadata version %s found",
+              target_server->descr().c_str(), out_version->get_full().c_str());
+
+    if (!metadata.check_instance_type(target_server->get_uuid(), out_type)) {
+      *out_type = Cluster_type::NONE;
+      log_debug("Instance %s is not managed",
+                target_server->get_uuid().c_str());
+    } else {
+      log_debug("Instance %s is managed for %s",
+                target_server->get_uuid().c_str(),
+                to_string(*out_type).c_str());
+    }
+
+    return true;
+  }
+  return false;
+}
+
+bool check_all_members_online(const std::shared_ptr<Instance> &target_server) {
+  // If the number of members that belong to the same replicaset in the
+  // instances table is the same as the number of ONLINE members in
+  // replication_group_members then ALL the members in the cluster are
+  // ONLINE
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  try {
+    result = target_server->query(
+        "SELECT (SELECT COUNT(*) "
+        "FROM mysql_innodb_cluster_metadata.instances "
+        "WHERE cluster_id = (SELECT cluster_id "
+        "FROM mysql_innodb_cluster_metadata.instances "
+        "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
+        "FROM performance_schema.replication_group_members "
+        "WHERE member_state = 'ONLINE') as all_online");
+  } catch (const mysqlshdk::db::Error &e) {
+    // Metadata schema 1.0.1 does not have the cluster_id field on the instaces
+    // table, producing this error, in such case, we attempt again now with the
+    // replicaset_id field.
+    if (e.code() == ER_BAD_FIELD_ERROR) {
+      result = target_server->query(
+          "SELECT (SELECT COUNT(*) "
+          "FROM mysql_innodb_cluster_metadata.instances "
+          "WHERE replicaset_id = (SELECT replicaset_id "
+          "FROM mysql_innodb_cluster_metadata.instances "
+          "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
+          "FROM performance_schema.replication_group_members "
+          "WHERE member_state = 'ONLINE') as all_online");
+    } else {
+      throw;
+    }
+  }
+
+  const mysqlshdk::db::IRow *row = result->fetch_one();
+
+  if (row && row->get_int(0, 0))
+    return true;
+  else
+    return false;
+}
+
+bool check_group_replication_active(
+    const std::shared_ptr<Instance> &target_server) {
+  bool ret_val = false;
+
+  auto result = target_server->query(
+      "select count(*) "
+      "from performance_schema.replication_group_members "
+      "where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS "
+      "NOT NULL AND MEMBER_STATE <> 'OFFLINE'");
+  auto row = result->fetch_one();
+  if (row) {
+    if (row->get_int(0) != 0) {
+      log_debug("Instance type check: %s: GR is active",
+                target_server->descr().c_str());
+      ret_val = true;
+    } else {
+      log_debug("Instance type check: %s: GR is installed but not active",
+                target_server->descr().c_str());
+    }
+  }
+
+  return ret_val;
+}
+
+GRInstanceType::Type get_instance_type(
+    const std::shared_ptr<Instance> &target_server) {
+  mysqlshdk::utils::Version md_version;
+  Cluster_type cluster_type;
+  bool has_metadata = false;
+  bool gr_active;
+
+  try {
+    has_metadata = check_metadata(target_server, &md_version, &cluster_type);
+
+    gr_active = check_group_replication_active(target_server);
+  } catch (const mysqlshdk::db::Error &error) {
+    auto e = shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+
+    log_warning("Error querying GR member state: %s: %i %s",
+                target_server->descr().c_str(), error.code(), error.what());
+
+    if (error.code() == ER_NO_SUCH_TABLE)
+      gr_active = false;
+    else if (error.code() == ER_TABLEACCESS_DENIED_ERROR)
+      // TODO(alfredo) Maybe should print an error and throw instead?
+      return GRInstanceType::Unknown;
+    else
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          error.what(), error.code(), error.sqlstate());
+  }
+
+  if (has_metadata) {
+    if (cluster_type == Cluster_type::GROUP_REPLICATION && gr_active) {
+      return GRInstanceType::InnoDBCluster;
+    } else if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
+      // InnoDB cluster but with GR stopped
+      return GRInstanceType::StandaloneInMetadata;
+    } else if (gr_active) {
+      // GR running but instance is not in the metadata, could be:
+      // - member was added to the cluster by hand
+      // - UUID of member changed
+      // - MD in the group belongs to a different cluster
+      // - others
+      if (cluster_type != Cluster_type::NONE)
+        log_warning(
+            "Instance %s is running Group Replication, but does not belong "
+            "to a InnoDB cluster",
+            target_server->descr().c_str());
+      return GRInstanceType::GroupReplication;
+    } else {
+      if (cluster_type == Cluster_type::ASYNC_REPLICATION)
+        return GRInstanceType::AsyncReplicaSet;
+
+      return GRInstanceType::StandaloneWithMetadata;
+    }
+  } else {
+    if (gr_active) return GRInstanceType::GroupReplication;
+  }
+
+  return GRInstanceType::Standalone;
+}
 
 namespace ManagedInstance {
 std::string describe(State state) {
@@ -347,48 +675,16 @@ std::string describe(State state) {
 }
 }  // namespace ManagedInstance
 
-/**
- * Validates the session for AdminAPI operations.
- *
- * Checks if the given session exists and is open and if the session version
- * is valid for use with AdminAPI.
- *
- * @param group_session A session to validate.
- *
- * @throws shcore::Exception::runtime_error if session is not valid.
- */
-void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-  // A classic session is required to perform any of the AdminAPI operations
-  if (!session) {
-    throw shcore::Exception::runtime_error(
-        "The shell must be connected to a member of the InnoDB cluster being "
-        "managed");
-  } else if (!session->is_open()) {
-    throw shcore::Exception::runtime_error(
-        "The session was closed. An open session is required to perform "
-        "this operation");
-  }
-
-  // Validate if the server version is supported by the AdminAPI
-  mysqlshdk::utils::Version server_version = session->get_server_version();
-
-  if (server_version >= k_max_adminapi_server_version ||
-      server_version < k_min_adminapi_server_version)
-    throw shcore::Exception::runtime_error(
-        "Unsupported server version: AdminAPI operations require MySQL "
-        "server "
-        "versions 5.7 or 8.0");
-}
-
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<Instance> &group_server) {
-  validate_group_session(*group_server);
+  validate_session(group_server->get_session());
 
   Cluster_check_info state;
+
   // Retrieves the instance configuration type from the perspective of the
   // active session
   try {
-    state.source_type = get_gr_instance_type(*group_server);
+    state.source_type = get_instance_type(group_server);
   } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
       throw;
@@ -401,8 +697,10 @@ Cluster_check_info get_cluster_check_info(
   // If it is a GR instance, validates the instance state
   if (state.source_type == GRInstanceType::GroupReplication ||
       state.source_type == GRInstanceType::InnoDBCluster) {
+    validate_gr_session(group_server->get_session());
+
     // Retrieves the instance cluster statues from the perspective of the
-    // active session (The Metadata Session)
+    // active session
     state = get_replication_group_state(*group_server, state.source_type);
 
     // On IDC we want to also determine whether the quorum is just Normal or
@@ -410,21 +708,7 @@ Cluster_check_info get_cluster_check_info(
     if (state.source_type == GRInstanceType::InnoDBCluster &&
         state.quorum == ReplicationQuorum::States::Normal) {
       try {
-        // If the number of members that belong to the same replicaset in the
-        // instances table is the same as the number of ONLINE members in
-        // replication_group_members then ALL the members in the cluster are
-        // ONLINE
-        auto result(group_server->query(
-            "SELECT (SELECT COUNT(*) "
-            "FROM mysql_innodb_cluster_metadata.instances "
-            "WHERE replicaset_id = (SELECT replicaset_id "
-            "FROM mysql_innodb_cluster_metadata.instances "
-            "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
-            "FROM performance_schema.replication_group_members "
-            "WHERE member_state = 'ONLINE') as all_online"));
-
-        const mysqlshdk::db::IRow *row = result->fetch_one();
-        if (row->get_int(0, 0)) {
+        if (check_all_members_online(group_server)) {
           state.quorum |= ReplicationQuorum::States::All_online;
         }
       } catch (const mysqlshdk::db::Error &e) {
@@ -435,10 +719,20 @@ Cluster_check_info get_cluster_check_info(
         throw;
       }
     }
+  } else if (state.source_type == GRInstanceType::AsyncReplicaSet) {
+    MetadataStorage metadata(group_server);
+    auto instance = metadata.get_instance_by_uuid(group_server->get_uuid());
+    if (instance.primary_master)
+      state.source_state = ManagedInstance::OnlineRW;
+    else
+      state.source_state = ManagedInstance::OnlineRO;
+    state.quorum = ReplicationQuorum::States::Normal;
   } else {
     state.quorum = ReplicationQuorum::States::Normal;
     state.source_state = ManagedInstance::Offline;
   }
+
+  state.source_version = group_server->get_version();
 
   return state;
 }
@@ -452,17 +746,29 @@ void check_preconditions(const std::string &function_name,
       AdminAPI_function_availability.at(function_name);
   std::string error;
 
+  // Check minimum version for the specific function
+  if (availability.min_version > state.source_version) {
+    throw shcore::Exception::runtime_error(
+        "Unsupported server version: This AdminAPI operation requires MySQL "
+        "version " +
+        availability.min_version.get_full() + " or newer, but target is " +
+        state.source_version.get_full());
+  }
+
   // Retrieves the instance configuration type from the perspective of the
   // active session
   // Validates availability based on the configuration state
   if (state.source_type & availability.instance_config_state) {
     // If it is a GR instance, validates the instance state
     if (state.source_type == GRInstanceType::GroupReplication ||
-        state.source_type == GRInstanceType::InnoDBCluster) {
+        state.source_type == GRInstanceType::InnoDBCluster ||
+        state.source_type == GRInstanceType::AsyncReplicaSet) {
       // Validates availability based on the instance status
       if (state.source_state & availability.instance_status) {
-        // Finally validates availability based on the Cluster quorum
-        if (!state.quorum.matches_any(availability.cluster_status)) {
+        // Finally validates availability based on the Cluster quorum for IDC
+        // operations
+        if (state.source_type != GRInstanceType::AsyncReplicaSet &&
+            !state.quorum.matches_any(availability.cluster_status)) {
           if (state.quorum.is_set(ReplicationQuorum::States::Normal)) {
             if (availability.cluster_status.is_set(
                     ReplicationQuorum::States::All_online)) {
@@ -518,14 +824,28 @@ void check_preconditions(const std::string &function_name,
         error += " to a standalone instance";
         break;
       case GRInstanceType::StandaloneWithMetadata:
-        error +=
-            " to a standalone instance (metadata exists, instance does not "
-            "belong to that metadata, and GR is not active)";
+        if (availability.instance_config_state &
+            GRInstanceType::AsyncReplicaSet) {
+          error +=
+              " to a standalone instance (metadata exists, instance does not "
+              "belong to that metadata)";
+        } else {
+          error +=
+              " to a standalone instance (metadata exists, instance does not "
+              "belong to that metadata, and GR is not active)";
+        }
         break;
       case GRInstanceType::StandaloneInMetadata:
-        error +=
-            " to a standalone instance (metadata exists, instance belongs to "
-            "that metadata, but GR is not active)";
+        if (availability.instance_config_state &
+            GRInstanceType::AsyncReplicaSet) {
+          error +=
+              " to a standalone instance (metadata exists, instance belongs to "
+              "that metadata)";
+        } else {
+          error +=
+              " to a standalone instance (metadata exists, instance belongs to "
+              "that metadata, but GR is not active)";
+        }
         break;
       case GRInstanceType::GroupReplication:
         error +=
@@ -534,10 +854,15 @@ void check_preconditions(const std::string &function_name,
         break;
       case GRInstanceType::InnoDBCluster:
         error += " to an instance already in an InnoDB cluster";
-        break;
-      default:
-        // no-op
-        break;
+
+        throw shcore::Exception(error,
+                                SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+
+      case GRInstanceType::AsyncReplicaSet:
+        error += " to an instance that is member of an InnoDB ReplicaSet";
+
+        throw shcore::Exception(
+            error, SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET);
     }
   }
 

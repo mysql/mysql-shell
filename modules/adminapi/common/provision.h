@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/replicaset/replicaset.h"
+#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -69,12 +70,13 @@ void leave_replicaset(const mysqlsh::dba::Instance &instance);
  * @param config Config object that holds configuration handlers to check the
  *               required settings on the server and option file (e.g., my.cnf)
  *               if available.
+ * @param cluster_type Type of cluster the instance is meant for.
  * @return a vector with the invalid configurations resulting from the check.
  *
  */
 std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::config::Config &config);
+    const mysqlshdk::config::Config &config, Cluster_type cluster_type);
 
 /**
  * Configure instance.
@@ -92,11 +94,13 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
  *                        required information to update each configuration
  *                        (e.g., variable name, value required, type of
  *                        configuration, etc.).
+ * @param cluster_type Type of cluster the instance is meant for.
  * @return bool value indicating if a restart is required (true) or not (false).
  */
 bool configure_instance(
     mysqlshdk::config::Config *config,
-    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs);
+    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs,
+    Cluster_type cluster_type);
 
 /**
  * Persist Group Replication configuration.

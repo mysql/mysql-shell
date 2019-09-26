@@ -641,6 +641,9 @@ class Help_manager {
 #define REGISTER_HELP_PROPERTY(name, parent) \
   REGISTER_HELP_PROPERTY_MODE(name, parent, SCRIPTING)
 
+#define REGISTER_HELP_CLASS_TEXT(x, y) \
+  shcore::Help_register_topic_text x(#x, y, false)
+
 #define REGISTER_HELP_TOPIC_TEXT(x, y) \
   shcore::Help_register_topic_text x(#x, y, false)
 

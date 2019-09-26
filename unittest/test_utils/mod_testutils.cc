@@ -71,6 +71,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 #ifndef ENABLE_SESSION_RECORDING
+#include "unittest/test_utils.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/shell_test_env.h"
 #endif
@@ -102,6 +103,7 @@ extern bool g_bp;
 namespace tests {
 constexpr int k_wait_sandbox_dead_timeout = 120;
 constexpr int k_wait_sandbox_alive_timeout = 120;
+constexpr int k_wait_repl_connection_error = 300;
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_wait_delayed_gr_start_timeout = 300;
 constexpr int k_max_start_sandbox_retries = 5;
@@ -160,15 +162,20 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "?direct");
   expose("waitMemberTransactions", &Testutils::wait_member_transactions,
          "dest_port", "?source_port");
-  expose("waitForConnectionErrorInRecovery",
-         &Testutils::wait_for_connection_error_in_recovery, "port",
-         "errorNumber", "?timeout");
+  expose("waitForReplConnectionError",
+         &Testutils::wait_for_repl_connection_error, "port", "?channel",
+         "group_replication_recovery");
+  expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
+         "port", "?channel", "");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
   expose("assertNoPrompts", &Testutils::assert_no_prompts);
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
+#ifndef ENABLE_SESSION_RECORDING
+  expose("fetchDbaSqlLog", &Testutils::fetch_dba_sql_log, "?flush");
+#endif
 
   expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp",
          "?execPath");
@@ -820,6 +827,28 @@ str Testutils::get_shell_log_path();
 std::string Testutils::get_shell_log_path() {
   return shcore::Logger::singleton()->logfile_name();
 }
+
+#ifndef ENABLE_SESSION_RECORDING
+//!<  @name Misc Utilities
+///@{
+/**
+ * Gets (and optionally flushes) the contents of the dba SQL log.
+ */
+#if DOXYGEN_JS
+Array Testutils::fetchDbaSqlLog(Boolean);
+#elif DOXYGEN_PY
+list Testutils::fetch_dba_sql_log(bool);
+#endif
+///@}
+shcore::Array_t Testutils::fetch_dba_sql_log(bool flush) {
+  shcore::Array_t log = dynamic_cast<Shell_core_test_wrapper *>(_test_env)
+                            ->output_handler.dba_sql_log;
+  if (flush)
+    dynamic_cast<Shell_core_test_wrapper *>(_test_env)
+        ->output_handler.dba_sql_log.reset();
+  return log;
+}
+#endif
 
 //!<  @name Testing Utilities
 ///@{
@@ -1708,6 +1737,11 @@ None Testutils::change_sandbox_conf(int port, str option, str value,
 void Testutils::change_sandbox_conf(int port, const std::string &option,
                                     const std::string &value,
                                     const std::string &section_) {
+  if (option == "server-uuid" || option == "server_uuid") {
+    change_sandbox_uuid(port, value);
+    return;
+  }
+
   std::string section = section_.empty() ? "mysqld" : section_;
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
@@ -1940,38 +1974,16 @@ std::string Testutils::wait_member_state(int member_port,
 
 ///@{
 /**
- * Waits until a cluster member sees a connection error in the recovery phase
- * @param port The port of the instance to be polled listens for MySQL
- * connections.
- * @param states An array containing the states that would cause the poll cycle
- * to finish.
- * @param direct If true, opens a direct session to the member to be observed.
- * @returns The state of the member.
- *
- * This function is to be used with the members of a cluster.
- *
- * It will start a polling cycle verifying the member state, the cycle will end
- * when one of the expected states is reached or if the timeout of 60 seconds
- * occurs.
+ * Waits until the given repl connection channel errors out.
  */
 #if DOXYGEN_JS
-Undefined Testutils::waitForConnectionErrorInRecovery(Integer port,
-                                                      Integer errorNumber,
-                                                      Integer timeout = 60);
+Undefined Testutils::waitForReplConnectionError(Integer port, String channel);
 #elif DOXYGEN_PY
-None Testutils::wait_for_connection_error_in_recovery(int port, int errorNumber,
-                                                      int timeout = 60);
+None Testutils::wait_for_repl_connection_error(int port, str channel);
 #endif
 ///@}
-void Testutils::wait_for_connection_error_in_recovery(int port,
-                                                      int error_number,
-                                                      int timeout) {
-  if (error_number == 0) {
-    throw std::invalid_argument(
-        "error_number argument for wait_for_connection_error_in_recovery() "
-        "can't be zero.");
-  }
-
+int Testutils::wait_for_repl_connection_error(int port,
+                                              const std::string &channel) {
   int current_error_number = 0;
   int elapsed_time = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
@@ -1981,20 +1993,17 @@ void Testutils::wait_for_connection_error_in_recovery(int port,
                                   ? 1
                                   : 1000;
 
-  // Convert negative timeout values to 0
-  timeout = timeout >= 0 ? timeout : 0;
-  while (!timeout || elapsed_time < timeout) {
-    auto result = session->query(
+  int timeout = k_wait_repl_connection_error;
+  while (elapsed_time < timeout) {
+    auto result = session->queryf(
         "SELECT LAST_ERROR_NUMBER FROM "
-        "performance_schema.replication_connection_status WHERE channel_name = "
-        "\"group_replication_recovery\"");
+        "performance_schema.replication_connection_status "
+        "WHERE channel_name = ?",
+        channel);
 
     if (auto row = result->fetch_one()) {
       current_error_number = row->get_int(0);
-    }
-
-    if (current_error_number == error_number) {
-      break;
+      if (current_error_number != 0) break;
     }
 
     elapsed_time += 1;
@@ -2002,11 +2011,91 @@ void Testutils::wait_for_connection_error_in_recovery(int port,
   }
 
   session->close();
-  if (current_error_number != error_number) {
+  if (current_error_number == 0) {
     throw std::runtime_error(
-        "Timeout waiting for the connection Error number " +
-        std::to_string(error_number) + " in the recovery phase.");
+        "Timeout waiting for a connection error in replication channel");
   }
+  return current_error_number;
+}
+
+///@{
+/**
+ * Waits until the given rpl applier channel stops and errors out.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::waitForRplApplierError(Integer port, String channel);
+#elif DOXYGEN_PY
+None Testutils::wait_for_rpl_applier_error(int port, str channel);
+#endif
+///@}
+int Testutils::wait_for_rpl_applier_error(int port,
+                                          const std::string &channel) {
+  int elapsed_time = 0;
+  int last_error_num = 0;
+  std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
+  const mysqlshdk::db::IRow *row;
+
+  const uint32_t sleep_time = mysqlshdk::db::replay::g_replay_mode ==
+                                      mysqlshdk::db::replay::Mode::Replay
+                                  ? 1
+                                  : 1000;
+
+  int timeout = k_wait_repl_connection_error;
+  std::string service_state = "ON";
+  while (elapsed_time < timeout) {
+    // NOTE: It is assumed that MTS is not used (checking status of one worker).
+    auto result = session->queryf(
+        "SELECT service_state, last_error_number, last_error_message, "
+        "last_error_timestamp "
+        "FROM performance_schema.replication_applier_status_by_worker "
+        "WHERE channel_name = ?",
+        channel);
+
+    row = result->fetch_one();
+    if (row) {
+      service_state = row->get_string(0);
+      // Stop if applier is of (error found)
+      if (service_state == "OFF") {
+        last_error_num = row->get_int(1);
+        break;
+      }
+    }
+
+    elapsed_time += 1;
+    shcore::sleep_ms(sleep_time);
+  }
+
+  session->close();
+
+  if (last_error_num == 0) {
+    // Print some debug information if timeout is reached.
+    if (row) {
+      std::cout << "Applier error information for channel '" << channel.c_str()
+                << "' at sandbox " << std::to_string(port).c_str() << ":"
+                << std::endl;
+      std::cout << "\t service_state: " << row->get_string(0).c_str()
+                << std::endl;
+      if (!row->is_null(1)) {
+        std::cout << "\t last_error_number: "
+                  << std::to_string(row->get_int(1)).c_str() << std::endl;
+        std::cout << "\t last_error_message: " << row->get_string(2).c_str()
+                  << std::endl;
+        std::cout << "\t last_error_timestamp: "
+                  << row->get_as_string(3).c_str() << std::endl;
+      } else {
+        std::cout << "\t No last error information (last_error_number is NULL)"
+                  << std::endl;
+      }
+    } else {
+      std::cout << "No applier error information found for channel '"
+                << channel.c_str() << "' at sandbox "
+                << std::to_string(port).c_str() << "!" << std::endl;
+    }
+
+    throw std::runtime_error(
+        "Timeout waiting for applier error in replication channel");
+  }
+  return last_error_num;
 }
 
 ///@{
@@ -2877,8 +2966,14 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
   if (shcore::is_folder(basedir)) {
-    std::string bversion =
-        shcore::get_text_file(shcore::path::join_path(basedir, "version.txt"));
+    std::string bversion;
+    try {
+      bversion = shcore::get_text_file(
+          shcore::path::join_path(basedir, "version.txt"));
+    } catch (const std::runtime_error &e) {
+      std::cerr << "ERROR: " << e.what() << "\n";
+      expired = true;
+    }
     if (bversion != version) {
       std::cerr << "Sandbox boilerplate was created for " << bversion
                 << " but mysqld in PATH is " << version << "\n";

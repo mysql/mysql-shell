@@ -32,8 +32,8 @@
 
 namespace mysqlsh {
 namespace dba {
-Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
-                       const std::string &value)
+Set_option::Set_option(const GRReplicaSet &replicaset,
+                       const std::string &option, const std::string &value)
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_str(value) {
@@ -41,8 +41,8 @@ Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
       m_replicaset.get_cluster()->get_target_instance();
 }
 
-Set_option::Set_option(const ReplicaSet &replicaset, const std::string &option,
-                       int64_t value)
+Set_option::Set_option(const GRReplicaSet &replicaset,
+                       const std::string &option, int64_t value)
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_int(value) {
@@ -77,7 +77,7 @@ void Set_option::ensure_option_valid() {
 void Set_option::ensure_option_supported_all_members_replicaset() {
   auto console = mysqlsh::current_console();
 
-  log_debug("Checking if all members of the Replicaset support the option '%s'",
+  log_debug("Checking if all members of the cluster support the option '%s'",
             m_option.c_str());
 
   for (const auto &instance : m_cluster_instances) {
@@ -186,7 +186,7 @@ shcore::Value Set_option::execute() {
   console->print_info(
       "Setting the value of '" + m_option + "' to '" +
       (m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str) +
-      "' in all ReplicaSet members ...");
+      "' in all cluster members ...");
   console->println();
 
   if (!m_value_str.is_null()) {
@@ -200,7 +200,7 @@ shcore::Value Set_option::execute() {
   console->print_info(
       "Successfully set the value of '" + m_option + "' to '" +
       ((m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str)) +
-      "' in the '" + m_replicaset.get_name() + "' ReplicaSet.");
+      "' in the '" + m_replicaset.get_cluster()->get_name() + "' cluster.");
 
   return shcore::Value();
 }

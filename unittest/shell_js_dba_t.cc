@@ -50,9 +50,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
 
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
-    // Force reset_shell() to happen when reset_shell() is called explicitly
-    // in each test case
-    _delay_reset_shell = true;
     Shell_js_script_tester::SetUp();
     // All of the test cases share the same config folder
     // and setup script
@@ -77,14 +74,8 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     std::string have_ssl;
     _have_ssl = true;
 
-    if (_port.empty()) _port = "33060";
-
-    if (_port.empty()) {
-      _port = "33060";
-    }
-    if (_mysql_port.empty()) {
-      _mysql_port = "3306";
-    }
+    assert(!m_port.empty());
+    assert(!m_mysql_port.empty());
 
     std::string code = "var hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
@@ -101,47 +92,39 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "var __pwd = '" + password + "';";
-    exec_and_out_equals(code);
     code = "var __host = '" + host + "';";
     exec_and_out_equals(code);
-    code = "var __port = " + _port + ";";
+    code = "var __port = " + m_port + ";";
     exec_and_out_equals(code);
     code = "var __schema = 'mysql';";
     exec_and_out_equals(code);
-    code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
+    code = "var __uri = '" + user + "@" + host + ":" + m_port + "';";
     exec_and_out_equals(code);
-    code = "var __xhost_port = '" + host + ":" + _port + "';";
+    code = "var __xhost_port = '" + host + ":" + m_port + "';";
     exec_and_out_equals(code);
-    if (_mysql_port.empty()) {
-      code = "var __host_port = '" + host + ":3306';";
+
+    code = "var __host_port = '" + host + ":" + m_mysql_port + "';";
+    exec_and_out_equals(code);
+    code = "var __mysql_port = " + m_mysql_port + ";";
+    exec_and_out_equals(code);
+    for (int i = 0; i < tests::sandbox::k_num_ports; i++) {
+      code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
-      code = "var __mysql_port = 3306;";
+      code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i] * 10 + 1);
       exec_and_out_equals(code);
-    } else {
-      code = "var __host_port = '" + host + ":" + _mysql_port + "';";
+      code = shcore::str_format(
+          "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
+          _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
-      code = "var __mysql_port = " + _mysql_port + ";";
+      code = shcore::str_format(
+          "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
+          hostname().c_str(), _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
-      for (int i = 0; i < tests::sandbox::k_num_ports; i++) {
-        code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
-                                  _mysql_sandbox_ports[i]);
-        exec_and_out_equals(code);
-        code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
-                                  _mysql_sandbox_ports[i] * 10 + 1);
-        exec_and_out_equals(code);
-        code = shcore::str_format(
-            "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
-            _mysql_sandbox_ports[i]);
-        exec_and_out_equals(code);
-        code = shcore::str_format(
-            "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
-            hostname().c_str(), _mysql_sandbox_ports[i]);
-        exec_and_out_equals(code);
-        code = shcore::str_format("var uri%i = 'localhost:%i';", i + 1,
-                                  _mysql_sandbox_ports[i]);
-        exec_and_out_equals(code);
-      }
+      code = shcore::str_format("var uri%i = 'localhost:%i';", i + 1,
+                                _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
     }
     code = "var localhost = 'localhost'";
     exec_and_out_equals(code);
@@ -194,10 +177,10 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
 #endif
 
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" +
-           _port + "';";
+           m_port + "';";
     exec_and_out_equals(code);
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
-           _mysql_port + "';";
+           m_mysql_port + "';";
     exec_and_out_equals(code);
 
     if (_replaying)
@@ -589,13 +572,6 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
 
-TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_drop_metadata_no_interactive.js");
-}
-
 TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   _options->wizards = false;
   reset_replayable_shell();
@@ -616,25 +592,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_rejoin_instance) {
   reset_replayable_shell();
   // Regression for Bug #25786495
   validate_interactive("dba_cluster_rejoin_instance.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_drop_metadata_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  //@# drop metadata: no user response
-  output_handler.prompts.push_back({"*", ""});
-
-  //@# drop metadata: user response no
-  output_handler.prompts.push_back({"*", "n"});
-
-  //@# drop metadata: expect prompt, user response no
-  output_handler.prompts.push_back({"*", "n"});
-
-  //@# drop metadata: user response yes
-  output_handler.prompts.push_back({"*", "y"});
-
-  validate_interactive("dba_drop_metadata_interactive.js");
 }
 
 TEST_F(Shell_js_dba_tests, rpl_filter_check_no_interactive) {

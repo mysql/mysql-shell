@@ -34,6 +34,7 @@ session.close();
 c.disconnect();
 shell.connect(__sandbox_uri3);
 session.runSql("RESET PERSIST group_replication_start_on_boot");
+session.runSql("RESET PERSIST group_replication_enforce_update_everywhere_checks");
 session.close();
 shell.connect(__sandbox_uri1);
 var c = dba.getCluster('c');
@@ -64,6 +65,11 @@ c.dissolve();
 // variables take precedence, therefore reseting group_replication_start_on_boot
 // is also needed.
 testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_start_on_boot', 'OFF');
+// NOTE: group_replication_enforce_update_everywhere_checks must be disabled
+//       manually because the instance was previously part of a multi-primary
+//       cluster that was dissolved without it, otherwise an error is issued
+//       when trying to add it to a single-primary cluster.
+testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_enforce_update_everywhere_checks', 'OFF');
 
 //@ Restart instance on port3
 testutil.startSandbox(__mysql_sandbox_port3);

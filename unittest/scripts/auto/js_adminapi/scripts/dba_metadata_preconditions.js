@@ -27,15 +27,15 @@ function format_messages(installed, current) {
         MAJOR_LOWER_ERROR:
         `Operation not allowed. The installed metadata version ${installed} is lower than the supported by the Shell which is version ${current}. Upgrade the metadata to execute this operation. See \\? dba.upgradeMetadata for additional details.`,
         MAJOR_HIGHER_WARNING:
-        `The cluster is in READ ONLY mode because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
+        `No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
         MAJOR_LOWER_WARNING:
-        `The cluster is in READ ONLY mode because the installed metadata version ${installed} is lower than the supported by the Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
+        `No cluster change operations can be executed because the installed metadata version ${installed} is lower than the supported by the Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
         CLUSTER_MAJOR_HIGHER:
-        `Operation not allowed. The cluster is in READ ONLY mode because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
+        `Operation not allowed. No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
         CLUSTER_MAJOR_LOWER:
-        `Operation not allowed. The cluster is in READ ONLY mode because the installed metadata version ${installed} is lower than the supported by the Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
+        `Operation not allowed. No cluster change operations can be executed because the installed metadata version ${installed} is lower than the supported by the Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
         FAILED_UPGRADE:
-        "The installed metadata is unreliable because of a failed upgrade. It is recommended to restore the metadata by executing dba.upgradeMetadata with the restore option.",
+        "The installed metadata is unreliable because of a failed upgrade. It is recommended to restore the metadata by executing dba.upgradeMetadata.",
         UPGRADING:
         "The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation."
     }
@@ -222,7 +222,7 @@ for (index in tests) {
         }
     ]
 
-    // Once a cluster is retrieved, the read only functions should work 
+    // Once a cluster is retrieved, the read only functions should work
     // without throwing errors or printing any warning
     for (ro_index in ro_tests) {
         if (upgrading_version) {
@@ -312,6 +312,13 @@ for (index in tests) {
         EXPECT_NO_THROWS(function () {
             dba.createCluster('sample')
         }, "Recreating cluster for cluster tests.");
+    // be allowed
+    for (not_ro_index in not_ro_tests) {
+        EXPECT_THROWS(not_ro_tests[not_ro_index], messages[tests[index][3]]);
+    }
+
+    if (tests[index][3] == "UPGRADING") {
+        other_session.close();
     }
 }
 

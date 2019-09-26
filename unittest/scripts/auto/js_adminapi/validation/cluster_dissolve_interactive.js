@@ -27,7 +27,7 @@ Replication was disabled but user data was left intact.
 ||
 
 //@<OUT> Dissolve stopped because instance is unreachable and user answer 'no' to continue.
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -52,7 +52,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the cluster again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
@@ -64,7 +64,7 @@ Do you want to continue anyway (only the instance metadata will be removed)? [y/
 Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve stopped because one instance is unreachable (force: false).
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -89,7 +89,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the cluster again. If the instance is permanently not reachable, then please use <Cluster>.dissolve() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
@@ -99,7 +99,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be remov
 Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve continues because instance is unreachable and user answer 'yes' to continue.
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -124,7 +124,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the cluster again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
@@ -168,7 +168,7 @@ WARNING: The cluster was successfully dissolved, but the following instance was 
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster and user answer 'n' to continue.
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -193,7 +193,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
@@ -215,7 +215,7 @@ Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false).
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -240,7 +240,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
@@ -259,7 +259,7 @@ Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied
 ||
 
 //@<OUT> Dissolve continues because instance cannot catch up with cluster and user answer 'y' to continue.
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -284,7 +284,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.

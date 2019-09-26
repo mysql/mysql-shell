@@ -55,6 +55,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined stopSandbox(Integer port);
   Undefined killSandbox(Integer port);
   Undefined restartSandbox(Integer port);
+  Undefined waitSandboxAlive(Integer port);
   Undefined changeSandboxConf(Integer port, String option, String value,
                               String section);
   Undefined removeFromSandboxConf(Integer port, String option, String section);
@@ -62,14 +63,17 @@ class Testutils : public mysqlsh::Extensible_object {
   String getSandboxLogPath(Integer port);
   String getSandboxPath(Integer port, String name);
   String getShellLogPath();
+#ifndef ENABLE_SESSION_RECORDING
+  Array fetchDbaSqlLog(Boolean flush);
+#endif
   Undefined dumpData(String uri, String path, Array schemaList);
   Undefined importData(String uri, String path, String defaultSchema);
   String waitMemberState(Integer port, String[] states);
   Boolean waitMemberTransactions(Integer destPort, Integer sourcePort = 0);
   Undefined waitForDelayedGRStart(Integer port, String rootpass,
                                   Integer timeout = 60);
-  Undefined waitForConnectionErrorInRecovery(Integer port, Integer errorNumber,
-                                             Integer timeout = 60);
+  Integer waitForReplConnectionError(
+      Integer port, String channel = "group_replication_recovery");
   Undefined expectPrompt(String prompt, String answer);
   Undefined expectPassword(String prompt, String password);
   Undefined assertNoPrompts();
@@ -110,19 +114,23 @@ class Testutils : public mysqlsh::Extensible_object {
   None stop_sandbox(int port, Dictionary options);
   None kill_sandbox(int port);
   None restart_sandbox(int port);
+  None wait_sandbox_alive(int port);
   None change_sandbox_conf(int port, str option, str value, str section);
   None remove_from_sandbox_conf(int port, str option, str section);
   str get_sandbox_conf_path(int port);
   str get_sandbox_log_path(int port);
   str get_sandbox_path(int port, str name);
   str get_shell_log_path();
+#ifndef ENABLE_SESSION_RECORDING
+  list fetch_dba_sql_log(bool flush);
+#endif
   None dump_data(str uri, str path, list schemaList);
   None import_data(str uri, str path, str defaultSchema);
   str wait_member_state(int port, str[] states);
   bool wait_member_transactions(int destPort, int sourcePort = 0);
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
-  None wait_for_connection_error_in_recovery(int port, int errorNumber,
-                                             int timeout = 60);
+  int wait_for_repl_connection_error(
+      int port, str channel = "group_replication_recovery");
   None expect_prompt(str prompt, str answer);
   None expect_password(str prompt, str password);
   None assert_no_prompts();
@@ -243,8 +251,9 @@ class Testutils : public mysqlsh::Extensible_object {
   void wait_for_delayed_gr_start(int port, const std::string &root_pass,
                                  int timeout = 100);
 
-  void wait_for_connection_error_in_recovery(int port, int error_number,
-                                             int timeout = 60);
+  int wait_for_repl_connection_error(int port, const std::string &channel);
+
+  int wait_for_rpl_applier_error(int port, const std::string &channel);
 
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);
@@ -262,6 +271,9 @@ class Testutils : public mysqlsh::Extensible_object {
   void touch(const std::string &file);
 
   std::string get_shell_log_path();
+#ifndef ENABLE_SESSION_RECORDING
+  shcore::Array_t fetch_dba_sql_log(bool flush);
+#endif
 
   shcore::Array_t grep_file(const std::string &path,
                             const std::string &pattern);

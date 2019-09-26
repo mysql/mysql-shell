@@ -41,7 +41,7 @@ namespace dba {
 class Add_instance : public Command_interface {
  public:
   Add_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
-               const ReplicaSet &replicaset,
+               const GRReplicaSet &replicaset,
                const Group_replication_options &gr_options,
                const Clone_options &clone_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
@@ -51,7 +51,7 @@ class Add_instance : public Command_interface {
                bool rebooting = false);
 
   Add_instance(mysqlsh::dba::Instance *target_instance,
-               const ReplicaSet &replicaset,
+               const GRReplicaSet &replicaset,
                const Group_replication_options &gr_options,
                const Clone_options &clone_options,
                const mysqlshdk::utils::nullable<std::string> &instance_label,
@@ -113,7 +113,7 @@ class Add_instance : public Command_interface {
 
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   Group_replication_options m_gr_opts;
   Clone_options m_clone_opts;
   mysqlshdk::utils::nullable<std::string> m_instance_label;

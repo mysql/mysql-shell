@@ -50,15 +50,13 @@ namespace dba {
 struct Instance_metadata;
 class Cluster_impl;
 
-#if DOXYGEN_CPP
-/**
- * Represents a ReplicaSet
- */
-#endif
-class ReplicaSet {
+// TODO(rennox): there are some functions that are similar to Replicaset
+// and to AsyncReplicaSets but it requires that this Replicaset is refactored
+// to inherit from Base_cluster_impl. This refactoring should be considered.
+class GRReplicaSet {
  public:
-  ReplicaSet(const std::string &name, const std::string &topology_type);
-  virtual ~ReplicaSet();
+  GRReplicaSet(const std::string &name, const std::string &topology_type);
+  virtual ~GRReplicaSet();
 
   void set_name(const std::string &name) { _name = name; }
   const std::string &get_name() const { return _name; }

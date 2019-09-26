@@ -75,7 +75,7 @@ class Cluster_describe : public Command_interface {
  private:
   const Cluster_impl &m_cluster;
 
-  shcore::Value get_replicaset_description(const ReplicaSet &replicaset);
+  shcore::Value get_replicaset_description(const GRReplicaSet &replicaset);
 };
 
 }  // namespace dba

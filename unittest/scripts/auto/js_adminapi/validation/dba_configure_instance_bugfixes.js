@@ -18,7 +18,8 @@ NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> BUG#28727505: configure instance again 5.7. {VER(<8.0.11)}
@@ -36,7 +37,8 @@ NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> BUG#28727505: configure instance. {VER(>=8.0.11)}
@@ -55,7 +57,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> BUG#28727505: configure instance again. {VER(>=8.0.11)}
@@ -74,7 +76,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ BUG#28727505: clean-up.
@@ -145,7 +147,7 @@ NOTE: Some configuration options need to be fixed:
 +---------------+---------------+----------------+----------------------------+
 
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 
 //@<OUT> BUG#29765093: configure instance again. {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -154,8 +156,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
 //@ BUG#29765093: clean-up. {VER(>=8.0.11)}
 ||

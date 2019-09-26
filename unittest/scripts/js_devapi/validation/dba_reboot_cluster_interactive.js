@@ -31,19 +31,19 @@
 ||
 
 //@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Persisting the cluster settings...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
 The instance cluster settings were successfully persisted.
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Persisting the cluster settings...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for use in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured for use in an InnoDB cluster.
 
 The instance cluster settings were successfully persisted.
 
 //@ Dba.rebootClusterFromCompleteOutage errors
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance 'localhost:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
+||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
 ||Dba.rebootClusterFromCompleteOutage: Invalid values in the options: invalidOpt
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list

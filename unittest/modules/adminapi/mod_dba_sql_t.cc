@@ -90,13 +90,13 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // Insert a fake record for the third instance on the metadata
   std::string query =
       "insert into mysql_innodb_cluster_metadata.instances "
-      "values (0, 1, " +
-      std::to_string(rs_id) + ", '" + uuid_3 +
+      "values (0, '" +
+      rs_id + "', 'localhost', '" + uuid_3 +
       "', 'localhost:<port>', "
-      "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
+      "'{\"mysqlX\": \"localhost:<port>0\", "
       "\"grLocal\": \"localhost:<port>1\", "
       "\"mysqlClassic\": \"localhost:<port>\"}', "
-      "NULL, NULL, NULL)";
+      "NULL, NULL)";
 
   query = shcore::str_replace(query, "<port>",
                               std::to_string(_mysql_sandbox_ports[2]));

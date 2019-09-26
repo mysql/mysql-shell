@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_CLUSTER_COMMON_ROUTER_H_
-#define MODULES_ADMINAPI_CLUSTER_COMMON_ROUTER_H_
+#ifndef MODULES_ADMINAPI_COMMON_ROUTER_H_
+#define MODULES_ADMINAPI_COMMON_ROUTER_H_
 
 #include <map>
 #include <string>
@@ -33,10 +33,10 @@
 namespace mysqlsh {
 namespace dba {
 
-shcore::Value router_list(MetadataStorage *md, uint64_t cluster_id,
+shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
                           bool only_upgrade_required);
 
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_CLUSTER_COMMON_ROUTER_H_
+#endif  // MODULES_ADMINAPI_COMMON_ROUTER_H_

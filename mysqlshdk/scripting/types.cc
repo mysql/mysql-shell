@@ -248,7 +248,9 @@ bool Exception::is_type() const { return strcmp(type(), "TypeError") == 0; }
 
 bool Exception::is_mysql() const { return strcmp(type(), "MySQL Error") == 0; }
 
-bool Exception::is_mysqlsh() const { return strcmp(type(), "MYSQLSH") == 0; }
+bool Exception::is_mysqlsh() const {
+  return strcmp(type(), "MySQL Shell Error") == 0;
+}
 
 bool Exception::is_parser() const { return strcmp(type(), "ParserError") == 0; }
 
@@ -265,10 +267,7 @@ std::string Exception::format() const {
     if (!type.empty()) error_message += type;
 
     if (code != -1 && !is_mysqlsh()) {  // don't show shell error codes for now
-      if (is_mysql() || is_mysqlsh())
-        error_message += " ERROR " + std::to_string(code);
-      else
-        error_message += " " + std::to_string(code);
+      error_message += " " + std::to_string(code);
       if (!state.empty()) error_message += " (" + state + ")";
     }
 

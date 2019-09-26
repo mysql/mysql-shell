@@ -26,22 +26,15 @@
 
 #include <memory>
 #include <string>
-
-#include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlsh {
 namespace dba {
 
-enum GRInstanceType {
-  Standalone = 1 << 0,
-  GroupReplication = 1 << 1,
-  InnoDBCluster = 1 << 2,
-  StandaloneWithMetadata = 1 << 3,
-  StandaloneInMetadata = 1 << 4,
-  Unknown = 1 << 5
-};
+class Instance;
+class MetadataStorage;
 
 struct NewInstanceInfo {
   std::string member_id;
@@ -55,6 +48,20 @@ struct MissingInstanceInfo {
   std::string label;
   std::string endpoint;
 };
+
+// TODO(rennox): This should be renamed to simply InstanceType as it is
+// no longer exclusive to GR.
+namespace GRInstanceType {
+enum Type {
+  Standalone = 1 << 0,
+  GroupReplication = 1 << 1,
+  InnoDBCluster = 1 << 2,
+  StandaloneWithMetadata = 1 << 3,
+  StandaloneInMetadata = 1 << 4,
+  AsyncReplicaSet = 1 << 5,
+  Unknown = 1 << 6
+};
+}
 
 namespace ManagedInstance {
 enum State {
@@ -85,18 +92,24 @@ using State = mysqlshdk::utils::Enum_set<States, States::Dead>;
 }  // namespace ReplicationQuorum
 
 struct Cluster_check_info {
+  // Server version from the instance from which the data was consulted
+  mysqlshdk::utils::Version source_version;
+
   // The state of the cluster from the quorum point of view
   // Supports multiple states i.e. Normal | All_online
   ReplicationQuorum::State quorum;
 
   // The configuration type of the instance from which the data was consulted
-  GRInstanceType source_type;
+  GRInstanceType::Type source_type;
 
   // The state of the instance from which the data was consulted
   ManagedInstance::State source_state;
 };
 
 void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+void check_preconditions(const std::string &function_name,
+                         const Cluster_check_info &info);
 
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<Instance> &group_server);

@@ -188,7 +188,8 @@ class Shell_script_tester : public Crud_test_wrapper {
                           const std::string &prefix = "");
   bool add_source_chunk(const std::string &path, const Chunk_t &chunk);
   void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
-                      const std::vector<std::string> &source);
+                      const std::vector<std::string> &source,
+                      const std::string &sep = "|");
   void load_validations(const std::string &path);
   bool context_enabled(const std::string &context);
 };

@@ -28,19 +28,21 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "scripting/common.h"
 
 namespace mysqlsh {
 namespace dba {
-GRInstanceType get_gr_instance_type(
+GRInstanceType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance);
+
 void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
                           int *port, std::string *datadir);
 
 Cluster_check_info get_replication_group_state(
-    const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type);
+    const mysqlshdk::mysql::IInstance &connection,
+    GRInstanceType::Type source_type);
 
 std::vector<std::string> get_peer_seeds(
     const mysqlshdk::mysql::IInstance &instance,

@@ -24,32 +24,13 @@
 #ifndef _SHCORE_COMMON_H_
 #define _SHCORE_COMMON_H_
 
+#include "mysqlshdk/libs/utils/compiler.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "scripting/types_common.h"
 
 // TODO: This definition should be removed from here
 // The one on mysqlshdk_exports.h should be used instead for symbol exports
 #define SHCORE_PUBLIC
-
-#ifdef UNUSED
-#elif defined(__GNUC__)
-#define UNUSED(x) UNUSED_##x __attribute__((unused))
-#elif defined(__LCLINT__)
-#define UNUSED(x) /*@unused@*/ x
-#elif defined(__cplusplus)
-#define UNUSED(x)
-#else
-#define UNUSED(x) x
-#endif
-
-#ifdef UNUSED_VARIABLE
-#elif defined(__GNUC__)
-#define UNUSED_VARIABLE(x) UNUSED_##x __attribute__((unused))
-#elif defined(__LCLINT__)
-#define UNUSED_VARIABLE(x) /*@unused@*/ x
-#else
-#define UNUSED_VARIABLE(x) x
-#endif
 
 #define MYSH_FULL_VERSION MYSH_VERSION EXTRA_NAME_SUFFIX
 

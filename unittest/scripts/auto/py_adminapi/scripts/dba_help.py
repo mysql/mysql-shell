@@ -34,6 +34,15 @@ dba.help('configure_local_instance')
 #@ global help for configure_local_instance[USE:dba.configure_local_instance]
 \help dba.configure_local_instance
 
+#@ dba.configure_replica_set_instance
+dba.help('configure_replica_set_instance')
+
+#@ global ? for configure_replica_set_instance[USE:dba.configure_replica_set_instance]
+\? dba.configure_replica_set_instance
+
+#@ global help for configure_replica_set_instance[USE:dba.configure_replica_set_instance]
+\help dba.configure_replica_set_instance
+
 #@ dba.create_cluster
 dba.help('create_cluster')
 
@@ -42,6 +51,15 @@ dba.help('create_cluster')
 
 #@ global help for create_cluster[USE:dba.create_cluster]
 \help dba.create_cluster
+
+#@ dba.create_replica_set
+dba.help('create_replica_set')
+
+#@ global ? for create_replica_set[USE:dba.create_replica_set]
+\? dba.create_replica_set
+
+#@ global help for create_replica_set[USE:dba.create_replica_set]
+\help dba.create_replica_set
 
 #@ dba.delete_sandbox_instance
 dba.help('delete_sandbox_instance')
@@ -78,6 +96,15 @@ dba.help('get_cluster')
 
 #@ global help for get_cluster[USE:dba.get_cluster]
 \help dba.get_cluster
+
+#@ dba.get_replica_set
+dba.help('get_replica_set')
+
+#@ global ? for get_replica_set[USE:dba.get_replica_set]
+\? dba.get_replica_set
+
+#@ global help for get_replica_set[USE:dba.get_replica_set]
+\help dba.get_replica_set
 
 #@ dba.help
 dba.help('help')
@@ -134,7 +161,7 @@ dba.help('verbose')
 \help dba.verbose
 
 #@ Upgrade Metadata
-dba.help('upgrade_metadata');
+dba.help('upgrade_metadata')
 
 #@ Upgrade Metadata, \? [USE:Upgrade Metadata]
 \? upgrade_metadata

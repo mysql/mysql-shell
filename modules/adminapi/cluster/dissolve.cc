@@ -52,8 +52,7 @@ void Dissolve::prompt_to_confirm_dissolve() const {
   auto console = mysqlsh::current_console();
 
   // Show cluster description.
-  console->println(
-      "The cluster still has the following registered ReplicaSets:");
+  console->println("The cluster still has the following registered instances:");
   shcore::Value res = m_cluster->describe();
 
   // Pretty print description only if wrap_json is not json/raw.
@@ -64,7 +63,7 @@ void Dissolve::prompt_to_confirm_dissolve() const {
   console->print_warning(
       "You are about to dissolve the whole cluster and lose the high "
       "availability features provided by it. This operation cannot be "
-      "reverted. All members will be removed from their ReplicaSet and "
+      "reverted. All members will be removed from the cluster and "
       "replication will be stopped, internal recovery user accounts and "
       "the cluster metadata will be dropped. User data will be maintained "
       "intact in all instances.");
@@ -98,7 +97,7 @@ void Dissolve::ensure_instance_reachable(const std::string &instance_address) {
     if (m_force.is_null() || *m_force == false) {
       console->print_error(
           "Unable to connect to instance '" + instance_address +
-          "'. Please, verify connection credentials and make sure the "
+          "'. Please verify connection credentials and make sure the "
           "instance is available.");
 
       // In interactive mode and 'force' option not used, ask user to
@@ -317,7 +316,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
       throw shcore::Exception::runtime_error(err.what());
     } else {
       m_skipped_instances.push_back(instance_address);
-      log_error("Instance '%s' failed to leave the ReplicaSet: %s",
+      log_error("Instance '%s' failed to leave the cluster: %s",
                 instance_address.c_str(), err.what());
       console->print_warning(
           "An error occurred when trying to remove instance '" +

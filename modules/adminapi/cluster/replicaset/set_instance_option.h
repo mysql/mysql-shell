@@ -36,11 +36,11 @@ namespace dba {
 class Set_instance_option : public Command_interface {
  public:
   Set_instance_option(
-      const ReplicaSet &replicaset,
+      const GRReplicaSet &replicaset,
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       const std::string &option, const std::string &value);
   Set_instance_option(
-      const ReplicaSet &replicaset,
+      const GRReplicaSet &replicaset,
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       const std::string &option, int64_t value);
 
@@ -82,7 +82,7 @@ class Set_instance_option : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_target_instance_address;
   std::string m_address_in_metadata;

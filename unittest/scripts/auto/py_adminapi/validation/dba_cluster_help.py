@@ -100,11 +100,9 @@ RETURNS
       nothing
 
 DESCRIPTION
-      This function adds an Instance to the default replica set of the cluster.
+      This function adds an Instance to a InnoDB cluster.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       The options dictionary may contain the following attributes:
 
@@ -283,8 +281,6 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
-      Only TCP/IP connections are allowed for this function.
-
       The returned JSON object contains the following attributes:
 
       - state: the state of the instance
@@ -389,15 +385,14 @@ SYNTAX
       <Cluster>.dissolve([options])
 
 WHERE
-      options: Parameter to specify if it should deactivate replication and
-               unregister the ReplicaSets from the cluster.
+      options: Parameters as described below.
 
 RETURNS
       Nothing.
 
 DESCRIPTION
-      This function disables replication on the ReplicaSets, unregisters them
-      and the the cluster from the metadata.
+      This function stops group replication and unregisters all members from
+      the cluster metadata.
 
       It keeps all the user's data intact.
 
@@ -441,15 +436,13 @@ RETURNS
       Nothing.
 
 DESCRIPTION
-      This function restores the cluster's default replicaset back into
-      operational status from a loss of quorum scenario. Such a scenario can
-      occur if a group is partitioned or more crashes than tolerable occur.
+      This function restores the cluster back into operational status from a
+      loss of quorum scenario. Such a scenario can occur if a group is
+      partitioned or more crashes than tolerable occur.
 
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       Note that this operation is DANGEROUS as it can create a split-brain if
       incorrectly used and should be considered a last resort. Make absolutely
@@ -551,8 +544,6 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
-      Only TCP/IP connections are allowed for this function.
-
       The options dictionary may contain the following attributes:
 
       - label: an identifier for the instance being added
@@ -600,7 +591,7 @@ EXCEPTIONS
       - If the instance is not in bootstrapped state.
       - If the SSL mode specified is not compatible with the one used in the
         cluster.
-      - If the instance is an active member of the ReplicaSet.
+      - If the instance is an active member of the cluster.
 
 #@<OUT> cluster.remove_instance
 NAME
@@ -617,14 +608,11 @@ RETURNS
       Nothing.
 
 DESCRIPTION
-      This function removes an Instance from the default replicaSet of the
-      cluster.
+      This function removes an Instance from the cluster.
 
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       The options dictionary may contain the following attributes:
 
@@ -689,8 +677,6 @@ DESCRIPTION
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       The option parameter is the name of the configuration option to be
       changed
@@ -1124,8 +1110,6 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
-      Only TCP/IP connections are allowed for this function.
-
       The instance definition is mandatory and is the identifier of the cluster
       member that shall become the new primary.
 
@@ -1186,8 +1170,6 @@ DESCRIPTION
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
-
-      Only TCP/IP connections are allowed for this function.
 
       The instance definition is optional and is the identifier of the cluster
       member that shall become the new primary.

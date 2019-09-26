@@ -52,6 +52,7 @@
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -208,7 +209,6 @@ std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
 
 }  // namespace
 
-#define PASSWORD_LENGHT 16
 using mysqlshdk::db::uri::formats::only_transport;
 std::set<std::string> Dba::_deploy_instance_opts = {
     "portx",         "sandboxDir",     "password",
@@ -359,63 +359,142 @@ positive integer values in the range [0, 2016].
 The default value is 0.
 )*");
 
+// TODO create a dedicated topic for InnoDB clusters and replicasets,
+// with a quick tutorial for both, in addition to more deep technical info
+
 // Documentation of the DBA Class
 REGISTER_HELP_TOPIC(AdminAPI, CATEGORY, adminapi, Contents, SCRIPTING);
-REGISTER_HELP(ADMINAPI_BRIEF,
-              "Introduces to the <b>dba</b> global object and the InnoDB "
-              "cluster administration API.");
-REGISTER_HELP(ADMINAPI_DETAIL,
-              "MySQL InnoDB cluster provides a complete high "
-              "availability solution for MySQL.");
-REGISTER_HELP(ADMINAPI_OBJECTS_DESC, "IGNORE");
-REGISTER_HELP(ADMINAPI_CLASSES_DESC, "IGNORE");
-REGISTER_HELP(ADMINAPI_DETAIL1,
-              "The <b>AdminAPI</b> is an interactive API that "
-              "enables configuring and administering InnoDB clusters.");
-REGISTER_HELP(ADMINAPI_DETAIL2, "Use the <b>dba</b> global object to:");
-REGISTER_HELP(ADMINAPI_DETAIL3,
-              "@li Verify if a MySQL server is suitable for InnoDB cluster.");
-REGISTER_HELP(
-    ADMINAPI_DETAIL4,
-    "@li Configure a MySQL server to be used as an InnoDB cluster instance.");
-REGISTER_HELP(ADMINAPI_DETAIL5, "@li Create an InnoDB cluster.");
-REGISTER_HELP(
-    ADMINAPI_DETAIL6,
-    "@li Get a handle for performing operations on an InnoDB cluster.");
-REGISTER_HELP(ADMINAPI_DETAIL7, "@li Other InnoDB cluster maintenance tasks.");
-REGISTER_HELP(ADMINAPI_DETAIL8,
-              "In the AdminAPI, an InnoDB cluster is represented as an "
-              "instance of the <b>Cluster</b> class.");
-REGISTER_HELP(ADMINAPI_DETAIL9,
-              "For more information about the <b>dba</b> object use: \\? dba");
-REGISTER_HELP(
-    ADMINAPI_DETAIL10,
-    "For more information about the <b>Cluster</b> class use: \\? Cluster");
+REGISTER_HELP_TOPIC_WITH_BRIEF_TEXT(ADMINAPI, R"*(
+The <b>AdminAPI</b> is an API that enables configuring and managing InnoDB
+clusters and replicasets, among other things.
+
+The AdminAPI can be used interactively from the MySQL Shell prompt and
+non-interactively from JavaScript and Python scripts and directly from the
+command line.
+
+For more information about the <b>dba</b> object use: \\? dba
+
+In the AdminAPI, an InnoDB cluster is represented as an instance of the
+<b>Cluster</b> class, while replicasets are represented as an instance
+of the <b>ReplicaSet</b> class.
+
+For more information about the <b>Cluster</b> class use: \\? Cluster
+
+For more information about the <b>ReplicaSet</b> class use: \\? ReplicaSet
+
+<b>Scripting</b>
+
+Through the JavaScript and Python bindings of the MySQL Shell, the AdminAPI can
+be used from scripts, which can in turn be used interactively or
+non-interactively. To execute a script, use the -f command line option, followed
+by the script file path. Options that follow the path are passed directly
+to the script being executed, which can access them from sys.argv
+
+@code
+    mysqlsh root@localhost -f myscript.py arg1 arg2
+@endcode
+
+If the script finishes successfully, the Shell will exit with code 0, while
+uncaught exceptions/errors cause it to exist with a non-0 code.
+
+By default, the AdminAPI enables interactivity, which will cause functions to
+prompt for missing passwords, confirmations and bits of information that cannot
+be obtained automatically.
+
+Prompts can be completely disabled with the --no-wizard command line option
+or using the "interactive" boolean option available in some of functions.
+If interactivity is disabled and some information is missing (e.g. a password),
+an error will be raised instead of being prompted.
+
+<b>Secure Password Handling</b>
+
+Passwords can be safely stored locally, using the system's native secrets
+storage functionality (or login-paths in Linux). Whenever the Shell needs
+a password, it will first query for the password in the system, before
+prompting for it.
+
+Passwords can be stored during interactive use, by confirming in the Store
+Password prompt. They can also be stored programmatically, using the
+shell.<<<storeCredential>>>() function.
+
+You can also use environment variables to pass information to your scripts.
+In JavaScript, the os.getenv() function can be used to access them.
+
+<b>Command Line Interface</b>
+
+In addition to the scripting interface, the MySQL Shell supports generic
+command line integration, which allows calling AdminAPI functions directly
+from the system shell (e.g. bash). Examples:
+
+@code
+    $ mysqlsh -- dba configure-instance root@localhost
+
+    is equivalent to:
+
+    > dba.configureInstance("root@localhost")
+
+    $ mysqlsh root@localhost -- cluster status --extended
+
+    is equivalent to:
+
+    > dba.getCluster().status({extended:true})
+@endcode
+
+The mapping from AdminAPI function signatures works as follows:
+
+@li The first argument after a -- can be a shell global object, such as dba.
+As a special case, cluster and rs are also accepted.
+@li The second argument is the name of the function of the object to be called.
+The naming convention is automatically converted from camelCase/snake_case
+to lower case separated by dashes.
+@li The rest of the arguments are used in the same order as their JS/Python
+counterparts. Instances can be given as URIs. Option dictionaries can be passed
+as --options, where the option name is the same as in JS/Python.
+)*");
 
 REGISTER_HELP_GLOBAL_OBJECT(dba, adminapi);
-REGISTER_HELP(DBA_BRIEF, "Global variable for InnoDB cluster management.");
+REGISTER_HELP(DBA_BRIEF, "InnoDB cluster and replicaset management functions.");
 REGISTER_HELP(DBA_GLOBAL_BRIEF, "Used for InnoDB cluster administration.");
-REGISTER_HELP(
-    DBA_DETAIL,
-    "The global variable <b>dba</b> is used to access the AdminAPI "
-    "functionality and perform DBA operations. It is used for managing MySQL "
-    "InnoDB clusters.");
-REGISTER_HELP(
-    DBA_CLOSING,
-    "For more help on a specific function use: dba.help('<functionName>')");
-REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('<<<deploySandboxInstance>>>')");
 
-REGISTER_HELP(DBA_VERBOSE_BRIEF,
-              "Enables verbose mode on the <b>dba</b> operations.");
-REGISTER_HELP(DBA_VERBOSE_DETAIL,
-              "The assigned value can be either boolean or integer, the result "
-              "depends on the assigned value:");
-REGISTER_HELP(DBA_VERBOSE_DETAIL1, "@li 0: disables mysqlprovision verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL2, "@li 1: enables mysqlprovision verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL3,
-              "@li >1: enables mysqlprovision debug verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL4,
-              "@li Boolean: equivalent to assign either 0 or 1");
+REGISTER_HELP_TOPIC_TEXT(DBA, R"*(
+Entry point for AdminAPI functions, including InnoDB clusters and replica
+sets.
+
+<b>InnoDB clusters</b>
+
+The dba.<<<configureInstance>>>() function can be used to configure a MySQL
+instance with the settings required to use it in an InnoDB cluster.
+
+InnoDB clusters can be created with the dba.<<<createCluster>>>() function.
+
+Once created, InnoDB cluster management objects can be obtained with the
+dba.<<<getCluster>>>() function.
+
+<b>InnoDB ReplicaSets</b>
+
+The dba.<<<configureReplicaSetInstance>>>() function can be used to configure a
+MySQL instance with the settings required to use it in a replicaset.
+
+ReplicaSets can be created with the dba.<<<createReplicaSet>>>()
+function.
+
+Once created, replicaset management objects can be obtained with the
+dba.<<<getReplicaSet>>>() function.
+
+<b>Sandboxes</b>
+
+Utility functions are provided to create sandbox MySQL instances, which can
+be used to create test clusters and replicasets.
+)*");
+
+REGISTER_HELP(DBA_CLOSING, "<b>SEE ALSO</b>");
+REGISTER_HELP(
+    DBA_CLOSING1,
+    "@li For general information about the AdminAPI use: \\? AdminAPI");
+REGISTER_HELP(
+    DBA_CLOSING2,
+    "@li For help on a specific function use: \\? dba.<functionName>");
+REGISTER_HELP(DBA_CLOSING3, "e.g. \\? dba.<<<deploySandboxInstance>>>");
 
 Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) { init(); }
 
@@ -433,9 +512,7 @@ void Dba::init() {
 
   add_method("getCluster", std::bind(&Dba::get_cluster_, this, _1),
              "clusterName", shcore::String);
-  add_method("dropMetadataSchema",
-             std::bind(&Dba::drop_metadata_schema, this, _1), "data",
-             shcore::Map);
+  expose("dropMetadataSchema", &Dba::drop_metadata_schema, "?options");
   add_method("checkInstanceConfiguration",
              std::bind(&Dba::check_instance_configuration, this, _1), "data",
              shcore::Map);
@@ -455,16 +532,34 @@ void Dba::init() {
   add_method("killSandboxInstance",
              std::bind(&Dba::kill_sandbox_instance, this, _1), "data",
              shcore::Map);
-  add_method("configureLocalInstance",
-             std::bind(&Dba::configure_local_instance, this, _1), "data",
-             shcore::Map);
-  add_method("configureInstance", std::bind(&Dba::configure_instance, this, _1),
-             "data", shcore::Map);
   add_varargs_method(
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
 
   expose("upgradeMetadata", &Dba::upgrade_metadata, "?options");
+
+  expose<void, const std::string &, const shcore::Dictionary_t &>(
+      "configureLocalInstance", &Dba::configure_local_instance, "?instanceDef",
+      "?options");
+  expose<void, const shcore::Dictionary_t &, const shcore::Dictionary_t &>(
+      "configureLocalInstance", &Dba::configure_local_instance, "instanceDef",
+      "?options");
+
+  expose<void, const std::string &, const shcore::Dictionary_t &>(
+      "configureInstance", &Dba::configure_instance, "?instanceDef",
+      "?options");
+  expose<void, const shcore::Dictionary_t &, const shcore::Dictionary_t &>(
+      "configureInstance", &Dba::configure_instance, "instanceDef", "?options");
+
+  expose<void, const std::string &, const shcore::Dictionary_t &>(
+      "configureReplicaSetInstance", &Dba::configure_replica_set_instance,
+      "?instanceDef", "?options");
+  expose<void, const shcore::Dictionary_t &, const shcore::Dictionary_t &>(
+      "configureReplicaSetInstance", &Dba::configure_replica_set_instance,
+      "instanceDef", "?options");
+  expose("createReplicaSet", &Dba::create_replica_set, "replicaSetName",
+         "?options");
+  expose("getReplicaSet", &Dba::get_replica_set);
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -490,6 +585,18 @@ void Dba::set_member(const std::string &prop, shcore::Value value) {
 }
 
 REGISTER_HELP_PROPERTY(verbose, dba);
+REGISTER_HELP(DBA_VERBOSE_BRIEF,
+              "Enables verbose mode on the <b>dba</b> operations.");
+REGISTER_HELP(DBA_VERBOSE_DETAIL,
+              "The assigned value can be either boolean or integer, the result "
+              "depends on the assigned value:");
+REGISTER_HELP(DBA_VERBOSE_DETAIL1, "@li 0: disables mysqlprovision verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL2, "@li 1: enables mysqlprovision verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL3,
+              "@li >1: enables mysqlprovision debug verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL4,
+              "@li Boolean: equivalent to assign either 0 or 1");
+
 /**
  * $(DBA_VERBOSE_BRIEF)
  *
@@ -628,7 +735,7 @@ void Dba::connect_to_target_group(
 
   // Metadata is always stored in the group, so for now the session can be
   // shared
-  out_metadata->reset(new MetadataStorage(target_member));
+  if (out_metadata) out_metadata->reset(new MetadataStorage(target_member));
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
@@ -639,7 +746,6 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
 
 // Documentation of the getCluster function
 REGISTER_HELP_FUNCTION(getCluster, dba);
-
 REGISTER_HELP_FUNCTION_TEXT(DBA_GETCLUSTER, R"*(
 Retrieves a cluster from the Metadata Store.
 
@@ -679,7 +785,7 @@ Cluster Dba::getCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 Cluster Dba::get_cluster(str name, dict options) {}
 #endif
-shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
+shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) {
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
   // TODO(alfredo) - suggest running dba.diagnose() in case it's a dead
   // cluster that needs reboot
@@ -825,17 +931,14 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   if (!validate_replicaset_group_name(*group_server,
                                       cluster->get_group_name())) {
     std::string nice_error =
-        "Unable to get a InnoDB cluster handle. "
+        "Unable to get an InnoDB cluster handle. "
         "The instance '" +
         group_server->descr() +
-        ""
-        "' may belong to "
-        "a different ReplicaSet as the one registered in the Metadata "
-        "since the value of 'group_replication_group_name' does "
-        "not match the one registered in the ReplicaSet's "
-        "Metadata: possible split-brain scenario. "
-        "Please connect to another member of the ReplicaSet to get the "
-        "Cluster.";
+        "' may belong to a different cluster from the one registered in the "
+        "Metadata since the value of 'group_replication_group_name' does "
+        "not match the one registered in the Metadata: possible split-brain "
+        "scenario. Please retry while connected to another member of the "
+        "cluster.";
 
     throw shcore::Exception::runtime_error(nice_error);
   }
@@ -847,26 +950,25 @@ REGISTER_HELP_FUNCTION(createCluster, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CREATECLUSTER, R"*(
 Creates a MySQL InnoDB cluster.
 
-@param name The name of the cluster object to be created.
-@param options Optional dictionary with options that modify the behavior of
-this function.
+@param name An identifier for the cluster to be created.
+@param options Optional dictionary with additional parameters described below.
 
 @returns The created cluster object.
 
-Creates a MySQL InnoDB cluster taking as seed instance the active global
-session.
+Creates a MySQL InnoDB cluster taking as seed instance the server the shell
+is currently connected to.
 
 The options dictionary can contain the following values:
 
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
 @li disableClone: boolean value used to disable the clone usage on the cluster.
 @li gtidSetIsComplete: boolean value which indicates whether the GTID set
 of the seed instance corresponds to all transactions executed. Default is false.
 @li multiPrimary: boolean value used to define an InnoDB cluster with multiple
 writable instances.
 @li force: boolean, confirms that the multiPrimary option must be applied.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 @li memberSslMode: SSL mode used to configure the members of the cluster.
@@ -1032,6 +1134,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
   bool force = false;
   mysqlshdk::utils::nullable<bool> clear_read_only;
   bool interactive = current_shell_options()->get().wizards;
+  std::string instance_label;
 
   // Get optional options.
   if (options) {
@@ -1193,64 +1296,74 @@ Undefined Dba::dropMetadataSchema(Dictionary options) {}
 None Dba::drop_metadata_schema(dict options) {}
 #endif
 
-shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
-  args.ensure_count(0, 1, get_function_name("dropMetadataSchema").c_str());
+void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
+  mysqlshdk::utils::nullable<bool> force;
+  mysqlshdk::utils::nullable<bool> clear_read_only;
 
-  std::shared_ptr<MetadataStorage> metadata;
-  std::shared_ptr<Instance> group_server(connect_to_target_member());
-  check_preconditions(group_server, "dropMetadataSchema");
+  // Map with the options
+  if (options) {
+    Unpack_options(options)
+        .optional("force", &force)
+        .optional("clearReadOnly", &clear_read_only)
+        .end();
+  }
 
-  connect_to_target_group(group_server, &metadata, &group_server, false);
+  std::shared_ptr<Instance> instance =
+      std::make_shared<Instance>(get_active_shell_session());
 
-  check_preconditions(group_server, "dropMetadataSchema");
+  auto state = check_function_preconditions("Dba.dropMetadataSchema", instance);
 
   bool interactive = current_shell_options()->get().wizards;
-  auto console = current_console();
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(instance->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
 
-  try {
-    mysqlshdk::utils::nullable<bool> force;
-    mysqlshdk::utils::nullable<bool> clear_read_only;
-
-    // Map with the options
-    if (!args.empty()) {
-      Unpack_options(args.map_at(0))
-          .optional("force", &force)
-          .optional("clearReadOnly", &clear_read_only)
-          .end();
-    }
-
-    if (force.is_null() && interactive &&
-        console->confirm("Are you sure you want to remove the Metadata?",
-                         mysqlsh::Prompt_answer::NO) ==
-            mysqlsh::Prompt_answer::YES) {
-      force = true;
-    }
-
-    if (force.get_safe(false)) {
-      // Check if super_read_only is turned off and disable it if required
-      // NOTE: this is left for last to avoid setting super_read_only to true
-      // and right before some execution failure of the command leaving the
-      // instance in an incorrect state
-      validate_super_read_only(*group_server, clear_read_only, interactive);
-
-      metadata::uninstall(
-          std::make_shared<Instance>(*metadata->get_md_server()));
-      if (interactive) {
-        console->println("Metadata Schema successfully removed.");
-      }
+  // The drop operation is only allowed on members of an InnoDB Cluster or a
+  // Replica Set, and only for online members that are either RW or RO, however
+  // if it is RO we need to get to a primary instance to perform the operation
+  if (state.source_state == ManagedInstance::OnlineRO) {
+    if (state.source_type == GRInstanceType::InnoDBCluster) {
+      connect_to_target_group(instance, nullptr, &instance, true);
     } else {
-      if (interactive) {
-        console->println("No changes made to the Metadata Schema.");
-      } else {
-        throw shcore::Exception::runtime_error(
-            "No operation executed, use the 'force' option");
-      }
+      auto metadata = std::make_shared<MetadataStorage>(instance);
+      ipool->set_metadata(metadata);
+      auto rs = get_replica_set(metadata, instance);
+
+      rs->acquire_primary();
+      auto finally = shcore::on_leave_scope([&rs]() { rs->release_primary(); });
+
+      instance = rs->get_primary_master();
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("dropMetadataSchema"))
 
-  return shcore::Value();
+  auto console = current_console();
+
+  if (force.is_null() && interactive &&
+      console->confirm("Are you sure you want to remove the Metadata?",
+                       mysqlsh::Prompt_answer::NO) ==
+          mysqlsh::Prompt_answer::YES) {
+    force = true;
+  }
+
+  if (force.get_safe(false)) {
+    // Check if super_read_only is turned off and disable it if required
+    // NOTE: this is left for last to avoid setting super_read_only to true
+    // and right before some execution failure of the command leaving the
+    // instance in an incorrect state
+    validate_super_read_only(*instance, clear_read_only, interactive);
+
+    metadata::uninstall(instance);
+    if (interactive) {
+      console->println("Metadata Schema successfully removed.");
+    }
+  } else {
+    if (interactive) {
+      console->println("No changes made to the Metadata Schema.");
+    } else {
+      throw shcore::Exception::runtime_error(
+          "No operation executed, use the 'force' option");
+    }
+  }
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceConfiguration, dba);
@@ -1269,7 +1382,7 @@ an existing cluster.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following options:
 
@@ -1390,6 +1503,222 @@ shcore::Value Dba::check_instance_configuration(
       get_function_name("checkInstanceConfiguration"));
 
   return ret_val;
+}
+
+// -----------------------------------------------------------------------------
+
+REGISTER_HELP_FUNCTION(getReplicaSet, dba);
+REGISTER_HELP_FUNCTION_TEXT(DBA_GETREPLICASET, R"*(
+Returns an object representing a ReplicaSet.
+
+The returned object is identical to the one returned by
+<<<createReplicaSet>>>() and can be used to manage the replicaset.
+
+The function will work regardless of whether the target instance is a PRIMARY
+or a SECONDARY, but its copy of the metadata is expected to be up-to-date.
+This function will also work if the PRIMARY is unreachable or unavailable,
+although replicaset change operations will not be possible, except for
+<<<forcePrimaryInstance>>>().
+)*");
+/**
+ * $(DBA_GETREPLICASET_BRIEF)
+ *
+ * $(DBA_GETREPLICASET)
+ */
+#if DOXYGEN_JS
+ReplicaSet Dba::getReplicaSet() {}
+#elif DOXYGEN_PY
+ReplicaSet Dba::get_replica_set() {}
+#endif
+shcore::Value Dba::get_replica_set() {
+  auto console = mysqlsh::current_console();
+
+  std::shared_ptr<Instance> target_server = connect_to_target_member();
+  check_function_preconditions("Dba.getReplicaSet", target_server);
+
+  auto rs = get_replica_set(std::make_shared<MetadataStorage>(target_server),
+                            target_server);
+
+  console->print_info("You are connected to a member of replicaset '" +
+                      rs->get_name() + "'.");
+
+  return shcore::Value(std::make_shared<ReplicaSet>(
+      std::static_pointer_cast<Replica_set_impl>(rs)));
+}
+
+std::shared_ptr<Replica_set_impl> Dba::get_replica_set(
+    const std::shared_ptr<MetadataStorage> &metadata,
+    const std::shared_ptr<Instance> &target_server) {
+  auto console = mysqlsh::current_console();
+
+  Cluster_metadata target_server_cm;
+
+  if (!metadata->get_cluster_for_server_uuid(target_server->get_uuid(),
+                                             &target_server_cm)) {
+    throw shcore::Exception("No metadata found for " + target_server->descr() +
+                                " (" + target_server->get_uuid() + ")",
+                            SHERR_DBA_METADATA_MISSING);
+  }
+
+  return std::make_shared<Replica_set_impl>(target_server_cm, target_server,
+                                            metadata);
+}
+
+REGISTER_HELP_FUNCTION(createReplicaSet, dba);
+REGISTER_HELP_FUNCTION_TEXT(DBA_CREATEREPLICASET, R"*(
+Creates a MySQL InnoDB ReplicaSet.
+
+@param name An identifier for the replicaset to be created.
+@param options Optional dictionary with additional parameters described below.
+
+@returns The created replicaset object.
+
+This function will create a managed replicaset using MySQL master/slave
+replication, as opposed to Group Replication. The MySQL instance the shell is
+connected to will be the initial PRIMARY of the replica set.
+
+The function will perform several checks to ensure the instance state and
+configuration are compatible with a managed replicaset and if so, a metadata
+schema will be initialized there.
+
+New replica instances can be added through the <<<addInstance>>>() function of
+the returned replicaset object. Status of the instances and their replication
+channels can be inspected with <<<status>>>().
+
+<b>InnoDB ReplicaSets</b>
+
+A replicaset allows managing a GTID-based MySQL replication setup, in a single
+PRIMARY/multiple SECONDARY topology.
+
+A replicaset has several limitations compared to a InnoDB cluster
+and thus, it is recommended that InnoDB clusters be preferred unless not
+possible. Generally, a ReplicaSet on its own does not provide High Availability.
+Among its limitations are:
+
+@li No automatic failover
+@li No protection against inconsistencies or partial data loss in a crash
+
+<b>Pre-Requisites</b>
+
+The following is a non-exhaustive list of requirements for managed replicasets.
+The dba.<<<configureInstance>>>() command can be used to make necessary
+configuration changes automatically.
+
+@li MySQL 8.0 or newer required
+@li Statement Based Replication (SBR) is unsupported, only Row Based Replication
+@li GTIDs required
+@li Replication filters are not allowed
+@li All instances in the replicaset must be managed
+@li Unmanaged replication channels are not allowed in any instance
+
+<b>Adopting an Existing Topology</b>
+
+Existing asynchronous setups can be managed by calling this function with the
+adoptFromAR option. The topology will be automatically scanned and validated,
+starting from the instance the shell is connected to, and all instances that are
+part of the topology will be automatically added to the replicaset.
+
+The only changes made by this function to an adopted replicaset are the
+creation of the metadata schema. Existing replication channels will not be
+changed during adoption, although they will be changed during PRIMARY switch
+operations.
+
+However, it is only possible to manage setups that use supported configurations
+and topology. Configuration of all instances will be checked during adoption,
+to ensure they are compatible. All replication channels must be active and
+their transaction sets as verified through GTID sets must be consistent.
+The data set of all instances are expected to be identical, but is not verified.
+
+<b>Options</b>
+
+The options dictionary can contain the following values:
+
+@li adoptFromAR: boolean value used to create the replicaset based on an
+existing asynchronous replication setup.
+@li instanceLabel: string a name to identify the target instance.
+Defaults to hostname:port
+@li dryRun: boolean if true, all validations and steps for creating a replica
+set are executed, but no changes are actually made. An exception will be thrown
+when finished.
+@li gtidSetIsComplete: boolean value which indicates whether the GTID set
+of the seed instance corresponds to all transactions executed. Default is false.
+)*");
+/**
+ * $(DBA_CREATEREPLICASET_BRIEF)
+ *
+ * $(DBA_CREATEREPLICASET)
+ */
+#if DOXYGEN_JS
+ReplicaSet Dba::createReplicaSet(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+ReplicaSet Dba::create_replica_set(str name, dict options) {}
+#endif
+shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
+                                      const shcore::Dictionary_t &options) {
+  bool adopt = false;
+  bool dry_run = false;
+  auto console = mysqlsh::current_console();
+  bool interactive = current_shell_options()->get().wizards;
+  bool gtid_set_is_complete = false;
+  std::string instance_label;
+  Async_replication_options ar_options;
+  Global_topology_type topology_type =
+      Global_topology_type::SINGLE_PRIMARY_TREE;
+
+  Unpack_options(options)
+      .unpack(&ar_options)
+      // .optional("interactive", &interactive)
+      .optional("adoptFromAR", &adopt)
+      .optional("dryRun", &dry_run)
+      .optional("instanceLabel", &instance_label)
+      .optional(kGtidSetIsComplete, &gtid_set_is_complete)
+      .end();
+
+  if (adopt && !instance_label.empty()) {
+    throw shcore::Exception::argument_error(
+        "instanceLabel option not allowed when adoptFromAR:true");
+  }
+
+  std::shared_ptr<Instance> target_server = connect_to_target_member();
+  try {
+    check_function_preconditions("Dba.createReplicaSet", target_server);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
+      throw shcore::Exception("Unable to create replicaset. The instance '" +
+                                  target_server->descr() +
+                                  "' already belongs to an InnoDB cluster. Use "
+                                  "dba.<<<getCluster>>>() to access it.",
+                              e.code());
+    } else if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET) {
+      throw shcore::Exception("Unable to create replicaset. The instance '" +
+                                  target_server->descr() +
+                                  "' already belongs to a replicaset. Use "
+                                  "dba.<<<getReplicaSet>>>() to access it.",
+                              e.code());
+    } else {
+      throw;
+    }
+  } catch (const mysqlshdk::db::Error &dberr) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        dberr.what(), dberr.code(), dberr.sqlstate());
+  }
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(target_server->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+
+  auto cluster = Replica_set_impl::create(
+      full_rs_name, topology_type, target_server, instance_label, ar_options,
+      adopt, dry_run, gtid_set_is_complete);
+
+  console->print_info(
+      "ReplicaSet object successfully created for " + target_server->descr() +
+      ".\nUse rs.<<<addInstance>>>()"
+      " to add more asynchronously replicated instances to this replicaset and"
+      " rs.<<<status>>>() to check its status.");
+  console->print_info();
+
+  return shcore::Value(std::make_shared<ReplicaSet>(cluster));
 }
 
 shcore::Value Dba::exec_instance_op(const std::string &function,
@@ -1949,56 +2278,67 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
-                                         bool local) {
+void Dba::do_configure_instance(
+    const mysqlshdk::db::Connection_options &instance_def_,
+    const shcore::Dictionary_t &options, bool local,
+    Cluster_type cluster_type) {
   shcore::Value ret_val;
-  mysqlshdk::db::Connection_options instance_def;
+  mysqlshdk::db::Connection_options instance_def(instance_def_);
   std::shared_ptr<Instance> instance;
 
-  std::string mycnf_path, output_mycnf_path, cluster_admin, password;
+  std::string mycnf_path, output_mycnf_path, cluster_admin;
   mysqlshdk::utils::nullable<std::string> cluster_admin_password;
   mysqlshdk::utils::nullable<bool> clear_read_only;
   bool interactive = current_shell_options()->get().wizards;
   mysqlshdk::utils::nullable<bool> restart;
 
   {
-    if (args.size() == 2) {
-      // Retrieves optional options if exists or leaves empty so the default
-      // is set afterwards
-      Unpack_options(args.map_at(1))
-          .optional("mycnfPath", &mycnf_path)
+    mysqlshdk::utils::nullable<std::string> password;
+    // Retrieves optional options if exists or leaves empty so the default
+    // is set afterwards
+    Unpack_options unpacker(options);
+
+    unpacker.optional("clusterAdmin", &cluster_admin)
+        .optional("clusterAdminPassword", &cluster_admin_password)
+        .optional("restart", &restart)
+        .optional("interactive", &interactive);
+
+    if (cluster_type == Cluster_type::GROUP_REPLICATION) {
+      unpacker.optional("mycnfPath", &mycnf_path)
           .optional("outputMycnfPath", &output_mycnf_path)
-          .optional("clusterAdmin", &cluster_admin)
-          .optional("clusterAdminPassword", &cluster_admin_password)
           .optional("clearReadOnly", &clear_read_only)
-          .optional("interactive", &interactive)
-          .optional("restart", &restart)
-          .optional_ci("password", &password)
-          .end();
-    }
-
-    // If there are no args, the instanceDef is empty (no data)
-    if (args.size() != 0 && args[0].type != shcore::Null) {
-      instance_def = mysqlsh::get_connection_options(
-          args, mysqlsh::PasswordFormat::OPTIONS);
-    }
-
-    // Establish the session to the target instance
-    if (instance_def.has_data()) {
-      validate_connection_options(instance_def);
-
-      instance = std::make_shared<Instance>(
-          establish_mysql_session(instance_def, interactive));
+          .optional_ci("password", &password);
     } else {
-      instance = connect_to_target_member();
+      clear_read_only = true;
     }
+    unpacker.end();
+
+    if (!password.is_null()) {
+      instance_def.clear_password();
+      instance_def.set_password(*password);
+    }
+  }
+
+  // Establish the session to the target instance
+  if (instance_def.has_data()) {
+    validate_connection_options(instance_def);
+
+    instance = std::make_shared<Instance>(
+        establish_mysql_session(instance_def, interactive));
+  } else {
+    instance = connect_to_target_member();
   }
 
   // Check the function preconditions
   // (FR7) Validate if the instance is already part of a GR group
   // or InnoDB cluster
-  check_preconditions(instance,
-                      local ? "configureLocalInstance" : "configureInstance");
+  if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
+    check_function_preconditions("Dba.configureReplicaSetInstance", instance);
+  } else {
+    check_function_preconditions(
+        local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
+        instance);
+  }
 
   {
     // Get the Connection_options
@@ -2016,14 +2356,13 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
     else
       op_configure_instance.reset(new Configure_instance(
           coptions, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart));
+          cluster_admin_password, clear_read_only, interactive, restart,
+          cluster_type));
 
     op_configure_instance->prepare();
-    ret_val = shcore::Value(op_configure_instance->execute());
+    op_configure_instance->execute();
     op_configure_instance->finish();
   }
-
-  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(configureLocalInstance, dba);
@@ -2040,7 +2379,7 @@ usage in group replication and cluster. An exception is thrown if not.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 ${CONFIGURE_INSTANCE_COMMON_OPTIONS}
 
@@ -2083,55 +2422,12 @@ Undefined Dba::configureLocalInstance(InstanceDef instance,
 #elif DOXYGEN_PY
 None Dba::configure_local_instance(InstanceDef instance, dict options) {}
 #endif
-shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
-  args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
-
-  try {
-    return do_configure_instance(args, true);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("configureLocalInstance"));
+void Dba::configure_local_instance(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const shcore::Dictionary_t &options) {
+  return do_configure_instance(instance_def, options, true,
+                               Cluster_type::GROUP_REPLICATION);
 }
-REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
-The options dictionary may contain the following options:
-
-@li mycnfPath: The path to the MySQL configuration file of the instance.
-@li outputMycnfPath: Alternative output path to write the MySQL configuration
-file of the instance.
-@li password: The password to be used on the connection.
-@li clusterAdmin: The name of the InnoDB cluster administrator account.
-@li clusterAdminPassword: The password for the InnoDB cluster administrator
-account.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
-)*");
-
-REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_1, R"*(
-If the outputMycnfPath option is used, only that file is updated and mycnfPath
-is treated as read-only.
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
-
-The clusterAdmin must be a standard MySQL account name. It could be either an
-existing account or an account to be created.
-
-The clusterAdminPassword must be specified only if the clusterAdmin account will
-be created.
-)*");
-
-REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_2, R"*(
-If the instance was not valid for InnoDB Cluster and interaction is enabled,
-before configuring the instance a prompt to confirm the changes is presented
-and a table with the following information:
-
-@li Variable: the invalid configuration variable.
-@li Current Value: the current value for the invalid configuration variable.
-@li Required Value: the required value for the configuration variable.
-)*");
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGUREINSTANCE, R"*(
@@ -2147,7 +2443,7 @@ target instance already belongs to an InnoDB Cluster it errors out.
 
 The instance definition is the connection data for the instance.
 
-${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}
+${TOPIC_CONNECTION_MORE_INFO}
 
 ${CONFIGURE_INSTANCE_COMMON_OPTIONS}
 @li restart: boolean value used to indicate that a remote restart of the target
@@ -2182,6 +2478,46 @@ exists.
 @li If the given instance cannot be used for Group Replication.
 )*");
 
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
+The options dictionary may contain the following options:
+
+@li mycnfPath: The path to the MySQL configuration file of the instance.
+@li outputMycnfPath: Alternative output path to write the MySQL configuration
+file of the instance.
+@li password: The password to be used on the connection.
+@li clusterAdmin: The name of the "cluster administrator" account.
+@li clusterAdminPassword: The password for the "cluster administrator" account.
+@li clearReadOnly: boolean value used to confirm that super_read_only must be
+disabled.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
+)*");
+
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_1, R"*(
+If the outputMycnfPath option is used, only that file is updated and mycnfPath
+is treated as read-only.
+
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+The clusterAdmin must be a standard MySQL account name. It could be either an
+existing account or an account to be created.
+
+The clusterAdminPassword must be specified only if the clusterAdmin account will
+be created.
+)*");
+
+REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_2, R"*(
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+)*");
+
 /**
  * $(DBA_CONFIGUREINSTANCE_BRIEF)
  *
@@ -2192,14 +2528,83 @@ Undefined Dba::configureInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::configure_instance(InstanceDef instance, dict options) {}
 #endif
-shcore::Value Dba::configure_instance(const shcore::Argument_list &args) {
-  args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
+void Dba::configure_instance(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const shcore::Dictionary_t &options) {
+  do_configure_instance(instance_def, options, false,
+                        Cluster_type::GROUP_REPLICATION);
+}
 
-  try {
-    return do_configure_instance(args, false);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("configureInstance"));
+REGISTER_HELP_FUNCTION(configureReplicaSetInstance, dba);
+REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGUREREPLICASETINSTANCE, R"*(
+Validates and configures an instance for use in an InnoDB ReplicaSet.
+
+@param instance Optional An instance definition. By default, the active shell
+session is used.
+@param options Optional Additional options for the operation.
+
+@returns Nothing
+
+This function will verify and automatically configure the target instance for
+use in an InnoDB ReplicaSet.
+
+The function can optionally create a "cluster administrator" account, if the
+"clusterAdmin" and "clusterAdminPassword" options are given. The account is
+created with the minimal set of privileges required to manage InnoDB clusters
+or ReplicaSets. The "cluster administrator" account must have matching username
+and password across all instances of the same cluster or replicaset.
+
+<b>Options</b>
+
+The instance definition is the connection data for the instance.
+
+${TOPIC_CONNECTION_MORE_INFO}
+
+The options dictionary may contain the following options:
+
+@li clusterAdmin: The name of a "cluster administrator" user to be
+created. The supported format is the standard MySQL account name format.
+@li clusterAdminPassword: The password for the "cluster administrator" account.
+@li interactive: boolean value used to disable the wizards in the command
+execution, i.e. prompts are not provided to the user and confirmation prompts
+are not shown.
+@li restart: boolean value used to indicate that a remote restart of the target
+instance should be performed to finalize the operation.
+
+If the outputMycnfPath option is used, only that file is updated and mycnfPath
+is treated as read-only.
+
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+This function reviews the instance configuration to identify if it is valid for
+usage in replicasets. An exception is thrown if not.
+
+If the instance was not valid for InnoDB ReplicaSet and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+@li Variable: the invalid configuration variable.
+@li Current Value: the current value for the invalid configuration variable.
+@li Required Value: the required value for the configuration variable.
+)*");
+
+/**
+ * $(DBA_CONFIGUREREPLICASETINSTANCE_BRIEF)
+ *
+ * $(DBA_CONFIGUREREPLICASETINSTANCE)
+ */
+#if DOXYGEN_JS
+Undefined Dba::configureReplicaSetInstance(InstanceDef instance,
+                                           Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::configure_replica_set_instance(InstanceDef instance, dict options) {}
+#endif
+void Dba::configure_replica_set_instance(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const shcore::Dictionary_t &options) {
+  return do_configure_instance(instance_def, options, false,
+                               Cluster_type::ASYNC_REPLICATION);
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
@@ -2303,7 +2708,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   std::string instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
-  std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
+  std::shared_ptr<mysqlsh::dba::GRReplicaSet> default_replicaset;
   shcore::Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
@@ -2845,7 +3250,7 @@ static void validate_instance_belongs_to_cluster(
   // option like update_mismatched_group_name to be set to ignore the
   // validation error and adopt the new group name
 
-  GRInstanceType type = get_gr_instance_type(instance);
+  GRInstanceType::Type type = get_gr_instance_type(instance);
 
   std::string member_session_address = instance.descr();
 
@@ -2866,6 +3271,11 @@ static void validate_instance_belongs_to_cluster(
           "The MySQL instance '" + member_session_address +
           "' belongs to a GR group that is not managed as an "
           "InnoDB cluster. ");
+
+    case GRInstanceType::AsyncReplicaSet:
+      throw shcore::Exception::runtime_error(
+          "The MySQL instance '" + member_session_address +
+          "' belongs to an InnoDB ReplicaSet. ");
 
     case GRInstanceType::Standalone:
     case GRInstanceType::StandaloneWithMetadata:

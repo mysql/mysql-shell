@@ -1,138 +1,132 @@
-// Plain positive test case for everything related to a cluster
-// Use as a template for positive test case in other scenarios
+// Plain cluster test, use as a template for other tests that check
+// a specific feature/aspect across the whole API
 
 //@<> Setup
-
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
-testutil.deployRawSandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
-
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+shell.options.useWizards = false;
 
-//@ configureInstance {VER(>=8.0.0)}
-shell.connect(__sandbox_uri1);
-dba.configureInstance();
-
-dba.configureInstance(__sandbox_uri2);
-
+//@<> configureLocalInstance
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 testutil.restartSandbox(__mysql_sandbox_port1);
-testutil.restartSandbox(__mysql_sandbox_port2);
 
 session1 = mysql.getSession(__sandbox_uri1);
-session2 = mysql.getSession(__sandbox_uri2);
-session3 = mysql.getSession(__sandbox_uri3);
 
-//@ configureLocalInstance {VER(<8.0.0)}
+//@<> configureInstance
+dba.configureInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+
+session2 = mysql.getSession(__sandbox_uri2);
+
+//@<> createCluster
 shell.connect(__sandbox_uri1);
 
-mycnf_path1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-mycnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+cluster = dba.createCluster("mycluster");
 
-dba.configureLocalInstance(null, {mycnfPath: mycnf_path1});
+//@<> status
+status = cluster.status();
 
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf_path2});
+//@<> checkInstanceState
+cluster.checkInstanceState(__sandbox_uri2);
 
-testutil.restartSandbox(__mysql_sandbox_port1);
-testutil.restartSandbox(__mysql_sandbox_port2);
-
-session1 = mysql.getSession(__sandbox_uri1);
-session2 = mysql.getSession(__sandbox_uri2);
-session3 = mysql.getSession(__sandbox_uri3);
-
-//@ createCluster
-shell.connect(__sandbox_uri1);
-
-var cluster = dba.createCluster("clus", {gtidSetIsComplete:1});
-
-//@ addInstance
-cluster.addInstance(__sandbox_uri2);
-cluster.addInstance(__sandbox_uri3);
-
-//@ rejoinInstance
-session1.runSql("stop group_replication");
-
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster();
-
-cluster.rejoinInstance(__sandbox_uri1);
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-
-//@ status
-cluster.status();
-
-//@ describe
+//@<> describe
 cluster.describe();
 
-//@ listRouters
-cluster.listRouters();
+//@<> disconnect
+cluster.disconnect();
 
-//@ removeInstance
-cluster.removeInstance(__sandbox_uri3);
+//@<> getCluster
+cluster = dba.getCluster();
 
-//@ setPrimaryInstance {VER(>=8.0.0)}
-cluster.setPrimaryInstance(__sandbox_uri1);
+//@<> addInstance
+cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+
+//@<> removeInstance
+cluster.removeInstance(__sandbox_uri2);
+
+cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+
+//@<> setPrimaryInstance {VER(>=8.0.0)}
 cluster.setPrimaryInstance(__sandbox_uri2);
 
-//@ options
-cluster.options();
+cluster.setPrimaryInstance(__sandbox_uri1);
 
-//@ setOption {VER(>=8.0.0)}
-cluster.setOption("expelTimeout", 5);
-
-//@ setInstanceOption
-cluster.setInstanceOption(__sandbox_uri1, "memberWeight", 42);
-
-cluster.options();
-
-//@ forceQuorum
-// TODO these 2 lines shouldn't be needed, but without them the addInstance
-// fails with Cluster.addInstance: This function is not available through a session to a read only instance (RuntimeError)
-// everything should be fixed to always work through the PRIMARY
-shell.connect(__sandbox_uri1); 
-cluster = dba.getCluster();
-// <--
-
-cluster.addInstance(__sandbox_uri3);
-cluster.status();
-session1.runSql("stop group_replication");
-
-testutil.killSandbox(__mysql_sandbox_port3);
-wait_member_state_from(session2, __mysql_sandbox_port3, "UNREACHABLE");
-testutil.startSandbox(__mysql_sandbox_port3);
-session3 = mysql.getSession(__sandbox_uri3);
-
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster();
-cluster.forceQuorumUsingPartitionOf(__sandbox_uri2);
-cluster.rejoinInstance(__sandbox_uri1);
-
-//@<> forceQuorum (rejoin restarted sandbox without persisted start_on_boot) {VER(<8.0.0)}
-cluster.rejoinInstance(__sandbox_uri3);
-
-//@ rebootCluster
-session3.runSql("stop group_replication");
-session2.runSql("stop group_replication");
-session1.runSql("stop group_replication");
-
-shell.connect(__sandbox_uri1);
-cluster = dba.rebootClusterFromCompleteOutage();
+//@<> rejoinInstance
+session2.runSql("STOP group_replication");
 
 cluster.rejoinInstance(__sandbox_uri2);
-cluster.rejoinInstance(__sandbox_uri3);
 
-cluster.status();
+//@<> forceQuorumUsingPartitionOf
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
 
-//@ rescan
-// remove an instance from the MD
-session.runSql("delete from mysql_innodb_cluster_metadata.instances where instance_name=?", ["127.0.0.1:"+__mysql_sandbox_port2]);
+cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
+
+testutil.startSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+
+cluster.rejoinInstance(__sandbox_uri2);
+
+//@<> rebootClusterFromCompleteOutage
+session1.runSql("STOP group_replication");
+session2.runSql("STOP group_replication");
+
+cluster = dba.rebootClusterFromCompleteOutage();
+
+// TODO(alfredo) - the reboot should auto-rejoin all members
+cluster.rejoinInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@<> setOption
+cluster.setOption("clusterName", "clooster");
+custom_weigth=50;
+
+//@<> setInstanceOption {VER(>=8.0.0)}
+custom_weigth=20;
+cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth);
+
+//@<> options
+cluster.options();
+
+//@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
+cluster.switchToMultiPrimaryMode();
+
+//@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
+cluster.switchToSinglePrimaryMode();
+
+cluster.setPrimaryInstance(__sandbox_uri1);
+
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster(); // shouldn't be necessary
+
+//@<> rescan
+// delete sb2 from the metadata so that rescan picks it up
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port2]);
 
 cluster.rescan();
 
-//@ dissolve
+//@<> listRouters
+cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL)", [cluster_id]);
+
+cluster.listRouters();
+
+//@<> removeRouterMetadata
+cluster.removeRouterMetadata("routerhost1::system");
+
+cluster.listRouters();
+
+//@<> createCluster(adopt)
+session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
+cluster = dba.createCluster("adopted", {adoptFromGR:true});
+
+cluster.status();
+
+//@<> dissolve
 cluster.dissolve();
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.destroySandbox(__mysql_sandbox_port3);

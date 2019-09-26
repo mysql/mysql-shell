@@ -187,6 +187,14 @@ cluster.disconnect();
 set_sysvar(session, "super_read_only", 1);
 cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3], clearReadOnly: false});
 
+// TODO(alfredo) - reboot should internally wait for sro to be cleared, but it doesn't right now, so we keep checking for up to 3s
+i = 30;
+while(i>0) { 
+  get_sysvar(session, "super_read_only");
+  i--;
+  os.sleep(0.1);
+}
+
 EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 session.close();
 

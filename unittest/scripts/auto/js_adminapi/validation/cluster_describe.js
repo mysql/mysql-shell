@@ -1,6 +1,9 @@
 //@<ERR> Error when executing describe on a cluster with the topology mode different than GR
 Cluster.describe: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
+//@ Error when executing describe on a cluster that its name is not registered in the metadata
+||Cluster.describe: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
+
 //@<OUT> Describe cluster
 {
     "clusterName": "cluster",

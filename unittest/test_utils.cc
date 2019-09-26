@@ -60,7 +60,7 @@ Shell_test_output_handler::Shell_test_output_handler()
       shcore::Logger::singleton()->logfile_name().c_str(),
       getenv("TEST_DEBUG") != nullptr);
   _logger = shcore::Logger::singleton();
-  _logger->attach_log_hook(log_hook);
+  _logger->attach_log_hook(log_hook, this);
 }
 
 Shell_test_output_handler::~Shell_test_output_handler() {
@@ -68,28 +68,35 @@ Shell_test_output_handler::~Shell_test_output_handler() {
 }
 
 void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
-                                         void *) {
+                                         void *self_ptr) {
   shcore::Logger::LOG_LEVEL current_level = _logger->get_log_level();
+  Shell_test_output_handler *self =
+      reinterpret_cast<Shell_test_output_handler *>(self_ptr);
 
   // If the level of the log is different than
   // the one set, we don't want to store the message
   if (current_level == entry.level) {
     std::string message_s(entry.message);
-    log.push_back(message_s);
+    self->log.push_back(message_s);
+  }
+  if (entry.domain && strcmp(entry.domain, "dba.sql") == 0) {
+    if (!self->dba_sql_log) self->dba_sql_log = shcore::make_array();
+    self->dba_sql_log->push_back(
+        shcore::Value(std::to_string(entry.timestamp) + " " + entry.message));
   }
 }
 
 bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
+  std::lock_guard<std::mutex> lock(target->stdout_mutex);
   if (!target->m_internal) {
-    target->full_output << text << std::endl;
+    target->full_output << text << std::flush;
 
     if (target->debug || g_test_trace_scripts ||
         shcore::str_beginswith(text, "**"))
       std::cout << text << std::flush;
 
-    std::lock_guard<std::mutex> lock(target->stdout_mutex);
     target->std_out.append(text);
   } else {
     target->internal_std_out.append(text);
@@ -110,17 +117,17 @@ bool Shell_test_output_handler::deleg_print_error(void *user_data,
   //
   // Update: Now it is possible to make the print_error() send the text to
   // stderr as the shell by calling output_handler.set_errors_to_stderr(...)
-  target->full_output << text << std::endl;
+  std::lock_guard<std::mutex> lock(target->stdout_mutex);
+  target->full_output << text << std::flush;
 
   if (target->debug || g_test_trace_scripts)
     std::cout << (shcore::str_beginswith(text, "ERROR") ? makelred(text) : text)
-              << std::endl;
+              << std::flush;
 
   if (!target->m_internal) {
     if (target->m_errors_on_stderr)
       target->std_err.append(text);
     else {
-      std::lock_guard<std::mutex> lock(target->stdout_mutex);
       target->std_out.append(text);
     }
   } else {
@@ -154,11 +161,9 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
   std::string answer;
   std::string expected_prompt;
 
+  std::lock_guard<std::mutex> lock(target->stdout_mutex);
   target->full_output << prompt;
-  {
-    std::lock_guard<std::mutex> lock(target->stdout_mutex);
-    target->std_out.append(prompt);
-  }
+  target->std_out.append(prompt);
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->prompts.empty()) {
@@ -196,11 +201,9 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
   std::string answer;
   std::string expected_prompt;
 
+  std::lock_guard<std::mutex> lock(target->stdout_mutex);
   target->full_output << prompt;
-  {
-    std::lock_guard<std::mutex> lock(target->stdout_mutex);
-    target->std_out.append(prompt);
-  }
+  target->std_out.append(prompt);
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->passwords.empty()) {

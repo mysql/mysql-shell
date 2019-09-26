@@ -34,6 +34,7 @@
 #include <vector>
 #include "gtest_clean.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "shellcore/base_session.h"
@@ -129,6 +130,7 @@ class Shell_test_output_handler {
   std::string internal_std_out;
   std::stringstream full_output;
   std::mutex stdout_mutex;
+  shcore::Array_t dba_sql_log = nullptr;
   static std::vector<std::string> log;
 
   void set_log_level(shcore::Logger::LOG_LEVEL log_level) {
@@ -268,6 +270,10 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     _interactive_shell.reset();
     _interactive_shell.reset(
         new mysqlsh::Command_line_shell(options, std::move(delegate)));
+
+    std::dynamic_pointer_cast<mysqlsh::Shell_console>(
+        mysqlsh::current_console())
+        ->set_use_colors(false);
   }
 
   virtual void reset_shell() {
@@ -292,10 +298,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   std::shared_ptr<mysqlsh::Command_line_shell> _interactive_shell;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage *_options;
-
-  // set to true in a subclass if reset_shell() should not be called
-  // during SetUp()
-  bool _delay_reset_shell = false;
 
   virtual void debug_print(const std::string &s) {
     output_handler.debug_print(s);
@@ -324,6 +326,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
       std::chrono::steady_clock::now();
 
   friend class mysqlsh::Test_debugger;
+  friend class tests::Testutils;
 };
 
 /**

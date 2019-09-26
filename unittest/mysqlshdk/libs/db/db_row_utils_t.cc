@@ -37,7 +37,8 @@ TEST_F(Row_utils, row_by_name) {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
     ASSERT_NO_THROW(session->connect(Connection_options(uri())));
 
-    auto result = session->query("SELECT 1 as one, 'two' as two");
+    auto result =
+        session->query("SELECT 1 as one, 'two' as two, NULL as three");
     auto row = result->fetch_one();
     {
       Row_ref_by_name rowb(result->field_names(), row);
@@ -45,6 +46,13 @@ TEST_F(Row_utils, row_by_name) {
       EXPECT_EQ("two", rowb.get_string("two"));
       EXPECT_THROW(rowb.get_string("three"), std::invalid_argument);
       EXPECT_THROW(rowb.get_string("one"), std::invalid_argument);
+
+      EXPECT_TRUE(rowb.is_null("three"));
+      EXPECT_FALSE(rowb.is_null("two"));
+      EXPECT_TRUE(rowb.has_field("three"));
+      EXPECT_FALSE(rowb.has_field("bogus"));
+
+      EXPECT_THROW(rowb.is_null("bogus"), std::invalid_argument);
     }
 
     Row_by_name rowcopy(result->field_names(), *row);
@@ -63,6 +71,13 @@ TEST_F(Row_utils, row_by_name) {
     EXPECT_EQ(1, rowcopy.get_uint("one"));
     EXPECT_EQ("two", rowcopy.get_string("two"));
     EXPECT_THROW(rowcopy.get_string("three"), std::invalid_argument);
+
+    EXPECT_TRUE(rowcopy.is_null("three"));
+    EXPECT_FALSE(rowcopy.is_null("two"));
+    EXPECT_TRUE(rowcopy.has_field("three"));
+    EXPECT_FALSE(rowcopy.has_field("bogus"));
+
+    EXPECT_THROW(rowcopy.is_null("bogus"), std::invalid_argument);
   } while (switch_proto());
 }
 

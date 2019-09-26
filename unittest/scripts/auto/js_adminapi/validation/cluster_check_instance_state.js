@@ -11,7 +11,7 @@
 |ERROR: Failed to connect to instance: Can't connect to MySQL server on 'localhost' |Cluster.checkInstanceState: The instance 'localhost:11111' is not reachable. (RuntimeError)
 
 //@<ERR> checkInstanceState: cluster member
-Cluster.checkInstanceState: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'. (RuntimeError)
+Cluster.checkInstanceState: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to the cluster: 'default'. (RuntimeError)
 
 //@ Create a single-primary cluster on instance 2
 ||

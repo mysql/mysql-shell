@@ -35,7 +35,7 @@ namespace mysqlsh {
 namespace dba {
 
 Check_instance_state::Check_instance_state(
-    const ReplicaSet &replicaset,
+    const GRReplicaSet &replicaset,
     const mysqlshdk::db::Connection_options &instance_cnx_opts)
     : m_replicaset(replicaset), m_instance_cnx_opts(instance_cnx_opts) {
   m_target_instance_address =
@@ -83,7 +83,7 @@ void Check_instance_state::ensure_target_instance_reachable() {
  */
 void Check_instance_state::ensure_instance_valid_gr_state() {
   // Get the instance GR state
-  GRInstanceType instance_type = get_gr_instance_type(*m_target_instance);
+  GRInstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type != GRInstanceType::Standalone) {
     std::string error = "The instance '" + m_target_instance_address;
@@ -114,7 +114,7 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
 }
 
 /**
- * Get the target instance GTID state in relation to the ReplicaSet
+ * Get the target instance GTID state in relation to the GRReplicaSet
  *
  * This function gets the instance GTID state and builds a Dictionary with the
  * format:
@@ -212,8 +212,8 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
  * Print the instance GTID state information
  *
  * This function prints human-readable information of the instance GTID state in
- * relation to the ReplicaSet based a shcore::Dictionary_t with that information
- * (collected by collect_instance_state())
+ * relation to the ReplicaSet based a shcore::Dictionary_t with that
+ * information (collected by collect_instance_state())
  *
  * @param instance_state shcore::Dictionary_t containing a dictionary object
  * with instance GTID state in relation to the replicaset
@@ -286,7 +286,7 @@ void Check_instance_state::prepare() {
   validate_connection_options(m_instance_cnx_opts);
 
   // Use default port if not provided in the connection options.
-  if (!m_instance_cnx_opts.has_port()) {
+  if (!m_instance_cnx_opts.has_port() && !m_instance_cnx_opts.has_socket()) {
     m_instance_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);
     m_target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());

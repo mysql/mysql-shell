@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,13 +33,14 @@ namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
 
-#define FIELD_ERROR(index, msg) \
-  std::invalid_argument(        \
-      shcore::str_format("%s(%u): " msg, __FUNCTION__, index).c_str())
+#define FIELD_ERROR(index, msg)                                              \
+  bad_field(shcore::str_format("%s(%u): " msg, __FUNCTION__, index).c_str(), \
+            index)
 
-#define FIELD_ERROR1(index, msg, arg) \
-  std::invalid_argument(              \
-      shcore::str_format("%s(%u): " msg, __FUNCTION__, index, arg).c_str())
+#define FIELD_ERROR1(index, msg, arg)                                       \
+  bad_field(                                                                \
+      shcore::str_format("%s(%u): " msg, __FUNCTION__, index, arg).c_str(), \
+      index)
 
 #define VALIDATE_INDEX(index)                          \
   do {                                                 \

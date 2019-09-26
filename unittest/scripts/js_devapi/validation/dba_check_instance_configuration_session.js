@@ -103,7 +103,7 @@ Dba.configureInstance: The value for variable 'report_host' cannot be empty. (Ru
 //@<OUT> Create cluster must fail if report_host is defined but empty.
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port2>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
@@ -118,7 +118,7 @@ Dba.createCluster: The value for variable 'report_host' cannot be empty. (Runtim
 ||
 
 //@ checkInstanceConfiguration error with performance_schema=off
-|ERROR: Instance 'localhost:<<<__mysql_sandbox_port1>>>' has the performance_schema disabled (performance_schema=OFF). Instances must have the performance_schema enabled to for InnoDB Cluster usage.|performance_schema disabled on target instance. (RuntimeError)
+|ERROR: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has the performance_schema disabled (performance_schema=OFF). Instances must have the performance_schema enabled to for InnoDB Cluster usage.|performance_schema disabled on target instance. (RuntimeError)
 
 // checkInstanceConfiguration no error with performance_schema=on
 ||

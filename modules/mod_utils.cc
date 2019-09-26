@@ -351,23 +351,6 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_x_session() {
   return xsession;
 }
 
-namespace {
-
-template <typename T>
-void handle_connection_exception(const T &ex, std::string *error) {
-  if (error->empty()) {
-    throw;
-  } else {
-    // If an error was cached for the X protocol connection
-    // it is included on a new exception
-    error->append("\nClassic protocol error: ");
-    error->append(ex.format());
-    throw shcore::Exception::argument_error(*error);
-  }
-}
-
-}  // namespace
-
 std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
     const Connection_options &connection_options) {
   std::shared_ptr<mysqlshdk::db::ISession> session;
@@ -430,10 +413,17 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
 
   try {
     session->connect(copy);
-  } catch (const shcore::Exception &e) {
-    handle_connection_exception(e, &connection_error);
   } catch (const mysqlshdk::db::Error &e) {
-    handle_connection_exception(e, &connection_error);
+    if (connection_error.empty()) {
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.what(), e.code(), e.sqlstate());
+    } else {
+      // If an error was cached for the X protocol connection
+      // it is included on a new exception
+      connection_error.append("\nClassic protocol error: ");
+      connection_error.append(e.format());
+      throw shcore::Exception::argument_error(connection_error);
+    }
   }
 
   return session;
@@ -484,7 +474,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         return create_session(copy);
       } catch (const mysqlshdk::db::Error &e) {
         if (e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw;
+          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
         } else {
           copy.clear_password();
           shcore::Credential_manager::get().remove_password(copy);
@@ -522,7 +512,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         return session;
       } catch (const mysqlshdk::db::Error &e) {
         if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw;
+          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
         } else {
           copy.clear_password();
           current_console()->print_error(e.format());

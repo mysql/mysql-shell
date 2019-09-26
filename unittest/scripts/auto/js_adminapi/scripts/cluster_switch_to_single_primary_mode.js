@@ -1,5 +1,5 @@
 function print_metadata_replicasets_topology_type(session) {
-    var res = session.runSql("select topology_type from mysql_innodb_cluster_metadata.replicasets");
+    var res = session.runSql("select primary_mode from mysql_innodb_cluster_metadata.clusters");
     var row = res.fetchOne();
     print(row[0] + "\n");
 }

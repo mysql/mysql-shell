@@ -38,7 +38,7 @@ namespace dba {
 
 Set_primary_instance::Set_primary_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    ReplicaSet *replicaset)
+    GRReplicaSet *replicaset)
     : Topology_configuration_command(replicaset),
       m_instance_cnx_opts(instance_cnx_opts) {
   assert(m_instance_cnx_opts.has_data());

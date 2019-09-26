@@ -44,7 +44,12 @@ dba.check_instance_configuration(__sandbox_uri3, {'mycnfPath': __sandbox3_cnf_pa
 # 1. Test the configuration of an instance not ready for cluster usage
 # 2. Test the configuration of an instance ready for cluster usage
 
-#@<OUT> configure_instance() - instance not valid for cluster usage
+#@<OUT> configure_instance() - instance not valid for cluster usage {VER(>=8.0.11)}
+testutil.expect_prompt("Do you want to perform the required configuration changes?", "y")
+testutil.expect_prompt("Do you want to restart the instance after configuring it?", "n")
+dba.configure_instance(__sandbox_uri1, {'clusterAdmin': 'myAdmin', 'clusterAdminPassword': 'myPwd', 'mycnfPath': __sandbox1_cnf_path})
+
+#@<OUT> configure_instance() - instance not valid for cluster usage {VER(<8.0.11)}
 testutil.expect_prompt("Do you want to perform the required configuration changes?", "y")
 dba.configure_instance(__sandbox_uri1, {'clusterAdmin': 'myAdmin', 'clusterAdminPassword': 'myPwd', 'mycnfPath': __sandbox1_cnf_path})
 

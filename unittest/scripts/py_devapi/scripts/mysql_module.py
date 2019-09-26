@@ -8,7 +8,6 @@
 # __port: <port>
 # __user: <user>
 # __uripwd: <uri>:<pwd>@<host>
-# __pwd: <pwd>
 
 
 #@<> mysql module: exports

@@ -13,11 +13,14 @@ validateMembers(dba, [
     'checkInstanceConfiguration',
     'configureInstance',
     'configureLocalInstance',
+    'configureReplicaSetInstance',
+    'createReplicaSet',
     'createCluster',
     'deleteSandboxInstance',
     'deploySandboxInstance',
     'dropMetadataSchema',
     'getCluster',
+    'getReplicaSet',
     'help',
     'killSandboxInstance',
     'rebootClusterFromCompleteOutage',
@@ -142,6 +145,7 @@ session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
 session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
 session.runSql("SET SQL_LOG_BIN=1");
 var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
 var row = result.fetchOne();

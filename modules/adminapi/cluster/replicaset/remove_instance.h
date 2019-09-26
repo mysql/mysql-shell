@@ -42,7 +42,7 @@ class Remove_instance : public Command_interface {
   Remove_instance(mysqlshdk::db::Connection_options instance_cnx_opts,
                   const bool interactive,
                   mysqlshdk::utils::nullable<bool> force,
-                  const ReplicaSet &replicaset);
+                  const GRReplicaSet &replicaset);
 
   ~Remove_instance() override;
 
@@ -90,7 +90,7 @@ class Remove_instance : public Command_interface {
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   const bool m_interactive = false;
   mysqlshdk::utils::nullable<bool> m_force;
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
 
   std::string m_instance_address;
   mysqlsh::dba::Instance *m_target_instance = nullptr;

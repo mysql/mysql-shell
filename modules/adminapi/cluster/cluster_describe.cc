@@ -35,7 +35,7 @@ Cluster_describe::~Cluster_describe() {}
 void Cluster_describe::prepare() {}
 
 shcore::Value Cluster_describe::get_replicaset_description(
-    const ReplicaSet &replicaset) {
+    const GRReplicaSet &replicaset) {
   shcore::Value ret;
 
   // Create the Replicaset_describe command and execute it.
@@ -58,7 +58,7 @@ shcore::Value Cluster_describe::execute() {
 
   // Get the default replicaSet description
   {
-    std::shared_ptr<ReplicaSet> default_replicaset =
+    std::shared_ptr<GRReplicaSet> default_replicaset =
         m_cluster.get_default_replicaset();
 
     if (default_replicaset == nullptr) {

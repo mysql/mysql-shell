@@ -92,13 +92,14 @@ Row::Row(Result *result, MYSQL_ROW row, const unsigned long *lengths)
     _lengths.push_back(lengths[index]);
 }
 
-#define FIELD_ERROR(index, msg) \
-  std::invalid_argument(        \
-      shcore::str_format("%s(%u): " msg, __FUNCTION__, index).c_str())
+#define FIELD_ERROR(index, msg)                                              \
+  bad_field(shcore::str_format("%s(%u): " msg, __FUNCTION__, index).c_str(), \
+            index)
 
-#define FIELD_ERROR1(index, msg, arg) \
-  std::invalid_argument(              \
-      shcore::str_format("%s(%u): " msg, __FUNCTION__, index, arg).c_str())
+#define FIELD_ERROR1(index, msg, arg)                                       \
+  bad_field(                                                                \
+      shcore::str_format("%s(%u): " msg, __FUNCTION__, index, arg).c_str(), \
+      index)
 
 #define VALIDATE_INDEX(index)                          \
   do {                                                 \

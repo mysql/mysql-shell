@@ -36,7 +36,7 @@ class Set_primary_instance : public Topology_configuration_command {
  public:
   Set_primary_instance(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      ReplicaSet *replicaset);
+      GRReplicaSet *replicaset);
 
   ~Set_primary_instance() override;
 

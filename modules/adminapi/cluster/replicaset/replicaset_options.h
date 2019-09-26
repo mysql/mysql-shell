@@ -36,7 +36,7 @@ namespace dba {
 
 class Replicaset_options : public Command_interface {
  public:
-  Replicaset_options(const ReplicaSet &replicaset,
+  Replicaset_options(const GRReplicaSet &replicaset,
                      mysqlshdk::utils::nullable<bool> all);
 
   ~Replicaset_options() override;
@@ -75,7 +75,7 @@ class Replicaset_options : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   mysqlshdk::utils::nullable<bool> m_all;
 
   std::vector<Instance_metadata> m_instances;

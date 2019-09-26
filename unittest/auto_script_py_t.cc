@@ -39,11 +39,11 @@ namespace tests {
 class Auto_script_py : public Shell_py_script_tester,
                        public ::testing::WithParamInterface<std::string> {
  protected:
+  bool _skip_set_defaults = false;
+
   // You can define per-test set-up and tear-down logic as usual.
   void SetUp() override {
-    // Force reset_shell() to happen when reset_shell() is called explicitly
-    // in each test case
-    _delay_reset_shell = true;
+    _skip_set_defaults = true;
     Shell_py_script_tester::SetUp();
 
     // Common setup script
@@ -53,6 +53,10 @@ class Auto_script_py : public Shell_py_script_tester,
 
  protected:
   void set_defaults() override {
+    if (_skip_set_defaults) {
+      _skip_set_defaults = false;
+      return;
+    }
     Shell_py_script_tester::set_defaults();
 
     std::string user, host, password;
@@ -65,14 +69,8 @@ class Auto_script_py : public Shell_py_script_tester,
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    if (_port.empty()) _port = "33060";
-
-    if (_port.empty()) {
-      _port = "33060";
-    }
-    if (_mysql_port.empty()) {
-      _mysql_port = "3306";
-    }
+    assert(!m_port.empty());
+    assert(!m_mysql_port.empty());
 
     std::string code = "hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
@@ -90,23 +88,21 @@ class Auto_script_py : public Shell_py_script_tester,
     exec_and_out_equals(code);
     code = "__user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "__pwd = '" + password + "';";
-    exec_and_out_equals(code);
     code = "__host = '" + host + "';";
     exec_and_out_equals(code);
-    code = "__port = " + _port + ";";
+    code = "__port = " + m_port + ";";
     exec_and_out_equals(code);
     code = "__schema = 'mysql';";
     exec_and_out_equals(code);
-    code = "__uri = '" + user + "@" + host + ":" + _port + "';";
+    code = "__uri = '" + user + "@" + host + ":" + m_port + "';";
     exec_and_out_equals(code);
-    code = "__mysql_uri = '" + user + "@" + host + ":" + _mysql_port + "';";
+    code = "__mysql_uri = '" + user + "@" + host + ":" + m_mysql_port + "';";
     exec_and_out_equals(code);
-    code = "__xhost_port = '" + host + ":" + _port + "';";
+    code = "__xhost_port = '" + host + ":" + m_port + "';";
     exec_and_out_equals(code);
-    code = "__host_port = '" + host + ":" + _mysql_port + "';";
+    code = "__host_port = '" + host + ":" + m_mysql_port + "';";
     exec_and_out_equals(code);
-    code = "__mysql_port = " + _mysql_port + ";";
+    code = "__mysql_port = " + m_mysql_port + ";";
     exec_and_out_equals(code);
     for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("__mysql_sandbox_port%i = %i;", i + 1,
@@ -126,11 +122,11 @@ class Auto_script_py : public Shell_py_script_tester,
     code = "localhost = 'localhost'";
     exec_and_out_equals(code);
 
-    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port +
+    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + m_port +
            "';";
     exec_and_out_equals(code);
     code = "__mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
-           _mysql_port + "';";
+           m_mysql_port + "';";
     exec_and_out_equals(code);
 
     code = "__system_user = '" + shcore::get_system_user() + "';";
@@ -190,6 +186,7 @@ TEST_P(Auto_script_py, run_and_check) {
       GetParam().find("_norecord") == std::string::npos) {
     reset_replayable_shell(name.c_str());
   } else {
+    set_defaults();
     execute_setup();
   }
 
@@ -230,8 +227,13 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
 }
 
 // General test cases
-INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_py,
+INSTANTIATE_TEST_CASE_P(Admin_api, Auto_script_py,
                         testing::ValuesIn(find_py_tests("py_adminapi", ".py")),
+                        fmt_param);
+
+INSTANTIATE_TEST_CASE_P(Admin_api_async, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_adminapi_async",
+                                                        ".py")),
                         fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
@@ -246,5 +248,4 @@ INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_py,
                         testing::ValuesIn(find_py_tests("py_mixed_versions",
                                                         ".py")),
                         fmt_param);
-
 }  // namespace tests

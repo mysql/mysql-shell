@@ -40,7 +40,7 @@ Cluster_status::~Cluster_status() {}
 void Cluster_status::prepare() {}
 
 shcore::Value Cluster_status::get_replicaset_status(
-    const ReplicaSet &replicaset) {
+    const GRReplicaSet &replicaset) {
   shcore::Value ret;
 
   // Create the Replicaset_status command and execute it.
@@ -63,7 +63,7 @@ shcore::Value Cluster_status::execute() {
 
   // Get the default replicaSet options
   {
-    std::shared_ptr<ReplicaSet> default_replicaset =
+    std::shared_ptr<GRReplicaSet> default_replicaset =
         m_cluster.get_default_replicaset();
 
     if (default_replicaset == nullptr) {

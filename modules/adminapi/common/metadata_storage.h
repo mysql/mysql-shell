@@ -38,10 +38,8 @@
 namespace mysqlsh {
 namespace dba {
 
-using Instance = mysqlsh::dba::Instance;
-
 struct Instance_metadata {
-  Cluster_id cluster_id = 0;
+  Cluster_id cluster_id;
   Instance_id id = 0;
 
   std::string address;
@@ -50,21 +48,31 @@ struct Instance_metadata {
   std::string endpoint;
   std::string xendpoint;
   std::string grendpoint;
-  std::string role_type;
 
   // GR clusters only
   std::string group_name;
+
+  // Async clusters only
+  Instance_id master_id = 0;
+  std::string master_uuid;
+  bool primary_master = false;
+  bool invalidated = false;
 };
 
 struct Cluster_metadata {
   Cluster_type type = Cluster_type::GROUP_REPLICATION;
 
-  Cluster_id cluster_id = 0;
+  Cluster_id cluster_id;
   std::string cluster_name;
   std::string description;
   bool enabled = true;
+
+  // GR specific
   std::string group_name;
   std::string topology_type;
+
+  // AR specific
+  Global_topology_type async_topology_type = Global_topology_type::NONE;
 
   std::string full_cluster_name() const { return cluster_name; }
 };
@@ -82,6 +90,7 @@ struct Router_metadata {
 };
 
 class Cluster_impl;
+class Replica_set_impl;
 
 #if DOXYGEN_CPP
 /**
@@ -98,6 +107,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   MetadataStorage &operator=(MetadataStorage &&other) = delete;
 
   explicit MetadataStorage(const std::shared_ptr<Instance> &instance);
+  explicit MetadataStorage(const Instance &instance);
 
   virtual ~MetadataStorage();
 
@@ -106,25 +116,37 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    *
    * Works with any schema version.
    *
-   * @param out_version - version of the metadata schema, if not NULL
+   * @param out_version - internal_version of the metadata schema, if not NULL
    * @returns true if MD schema exists, false if not.
    */
   bool check_version(mysqlshdk::utils::Version *out_version = nullptr) const;
 
+  /**
+   * Checks the type of cluster that the given server uuid belongs to. Returns
+   * false if the uuid is not in the metadata.
+   *
+   * Works with any schema version.
+   */
+  bool check_instance_type(const std::string &uuid,
+                           Cluster_type *out_type) const;
+
   virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted);
+
+  virtual Cluster_id create_async_cluster_record(Replica_set_impl *cluster,
+                                                 bool adopted);
 
   Instance_id insert_instance(const Instance_metadata &instance);
   void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
 
-  void update_cluster_name(Cluster_id cluster_id,
+  void update_cluster_name(const Cluster_id &cluster_id,
                            const std::string &new_cluster_name);
 
-  bool query_cluster_attribute(Cluster_id cluster_id,
+  bool query_cluster_attribute(const Cluster_id &cluster_id,
                                const std::string &attribute,
                                shcore::Value *out_value);
 
-  void update_cluster_attribute(Cluster_id cluster_id,
+  void update_cluster_attribute(const Cluster_id &cluster_id,
                                 const std::string &attribute,
                                 const shcore::Value &value);
 
@@ -162,19 +184,18 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
       const std::string &recovery_account_user);
   bool is_recovery_account_unique(const std::string &recovery_account_user);
 
-  virtual bool is_instance_on_cluster(Cluster_id cluster_id,
+  virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,
                                       const std::string &address);
 
-  bool get_cluster(Cluster_id cluster_id, Cluster_metadata *out_cluster);
+  bool get_cluster(const Cluster_id &cluster_id, Cluster_metadata *out_cluster);
 
   bool get_cluster_for_server_uuid(const std::string &server_uuid,
                                    Cluster_metadata *out_cluster);
 
-  bool get_cluster_for_group_name(const std::string &group_name,
-                                  Cluster_metadata *out_cluster);
-
   bool get_cluster_for_cluster_name(const std::string &name,
                                     Cluster_metadata *out_cluster);
+
+  std::vector<Cluster_metadata> get_all_clusters();
 
   /**
    * Checks if the given instance label is unique in the specified replica
@@ -185,25 +206,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    *
    * @return True if the given instance label is unique.
    */
-  bool is_instance_label_unique(Cluster_id cluster_id,
+  bool is_instance_label_unique(const Cluster_id &cluster_id,
                                 const std::string &label) const;
-  void set_instance_label(Cluster_id cluster_id, const std::string &label,
+  void set_instance_label(const Cluster_id &cluster_id,
+                          const std::string &label,
                           const std::string &new_label);
-  size_t get_cluster_size(Cluster_id cluster_id) const;
+  size_t get_cluster_size(const Cluster_id &cluster_id) const;
+
+  std::vector<Instance_metadata> get_replica_set_members(
+      const Cluster_id &cluster_id, uint64_t *out_view_id);
 
   std::vector<Instance_metadata> get_all_instances(
-      Cluster_id cluster_id = 0, const char *schema = nullptr);
-  std::vector<Cluster_metadata> get_all_clusters();
+      Cluster_id cluster_id = "", const char *schema = nullptr);
 
   Instance_metadata get_instance_by_uuid(const std::string &uuid);
 
-  Instance_metadata get_instance_by_endpoint(
+  Instance_metadata get_instance_by_address(
       const std::string &instance_address);
 
   std::vector<Instance_metadata> get_replica_set_instances(
       const Cluster_id &rs_id);
 
-  std::vector<Router_metadata> get_routers(Cluster_id cluster_id);
+  std::vector<Router_metadata> get_routers(const Cluster_id &cluster_id);
 
   /**
    * Get the topology mode of the cluster from the metadata.
@@ -213,7 +237,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * @return mysqlshdk::gr::Topology_mode of the cluster registered in the
    *         metdata.
    */
-  mysqlshdk::gr::Topology_mode get_cluster_topology_mode(Cluster_id cluster_id);
+  mysqlshdk::gr::Topology_mode get_cluster_topology_mode(
+      const Cluster_id &cluster_id);
 
   /**
    * Update the topology mode of the cluster in the metadata.
@@ -222,12 +247,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * @param topology_mode mysqlshdk::gr::Topology_mode to set.
    */
   void update_cluster_topology_mode(
-      Cluster_id cluster_id, const mysqlshdk::gr::Topology_mode &topology_mode);
+      const Cluster_id &cluster_id,
+      const mysqlshdk::gr::Topology_mode &topology_mode);
 
   /**
-   * Get the internal metadata session.
-   *
-   * @return Instance object of the internal metadata session
+   * Get the internal metadata session/instance object.
    */
   Instance *get_md_server() const { return m_md_server.get(); }
 
@@ -240,14 +264,36 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   bool remove_router(const std::string &router_def);
 
+  // Async cluster view operations
+  Instance_id record_async_member_added(const Instance_metadata &member);
+  void record_async_member_rejoined(const Instance_metadata &member);
+  void record_async_member_removed(const Cluster_id &cluster_id,
+                                   Instance_id instance_id);
+  void record_async_primary_switch(Instance_id new_primary_id);
+  void record_async_primary_forced_switch(
+      Instance_id new_primary_id, const std::list<Instance_id> &invalidated);
+
+ private:
+  uint32_t inc_view_failover_counter(uint32_t view_id) const;
+  void begin_acl_change_record(const Cluster_id &cluster_id,
+                               const char *operation, uint32_t *out_aclvid,
+                               uint32_t *last_aclvid);
+
  private:
   class Transaction;
   friend class Transaction;
 
   std::shared_ptr<Instance> m_md_server;
+  bool m_owns_md_server;
   mutable mysqlshdk::utils::Version m_md_version;
 
-  std::string get_router_query();
+  mysqlshdk::utils::Version version() const {
+    check_version();
+    return m_md_version;
+  }
+
+  std::string get_cluster_query();
+  std::string get_instance_query();
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql) const;
@@ -260,6 +306,9 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Cluster_metadata unserialize_cluster_metadata(
       const mysqlshdk::db::Row_ref_by_name &record);
+
+  Instance_metadata unserialize_instance(
+      const mysqlshdk::db::Row_ref_by_name &row);
 };
 }  // namespace dba
 }  // namespace mysqlsh

@@ -175,11 +175,81 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
   }
 }
 
+namespace {
+
+class Argument_visitor : public xcl::Argument_visitor {
+ public:
+  shcore::sqlstring *sql;
+
+  void visit_null() { *sql << nullptr; }
+
+  void visit_integer(const int64_t value) { *sql << value; }
+
+  void visit_uinteger(const uint64_t value) { *sql << value; }
+
+  void visit_double(const double value) { *sql << value; }
+
+  void visit_float(const float value) { *sql << value; }
+
+  void visit_bool(const bool value) { *sql << value; }
+
+  void visit_object(const xcl::Argument_value::Object &) {
+    throw std::logic_error("type not implemented");
+  }
+
+  void visit_uobject(const xcl::Argument_value::Unordered_object &) {
+    throw std::logic_error("type not implemented");
+  }
+
+  void visit_array(const xcl::Argument_value::Arguments &) {
+    throw std::logic_error("type not implemented");
+  }
+
+  void visit_string(const std::string &value) { *sql << value; }
+
+  void visit_octets(const std::string &value) { *sql << value; }
+
+  void visit_decimal(const std::string &value) { *sql << value; }
+};
+
+std::string sub_query_placeholders(const std::string &query,
+                                   const ::xcl::Argument_array &args) {
+  shcore::sqlstring squery(query.c_str(), 0);
+  Argument_visitor v;
+  v.sql = &squery;
+
+  int i = 0;
+  for (const auto &value : args) {
+    try {
+      value.accept(&v);
+    } catch (const std::exception &e) {
+      throw std::invalid_argument(shcore::str_format(
+          "%s while substituting placeholder value at index #%i", e.what(), i));
+    }
+    ++i;
+  }
+  try {
+    return squery.str();
+  } catch (const std::exception &e) {
+    throw std::invalid_argument(
+        "Insufficient number of values for placeholders in query");
+  }
+  return query;
+}
+}  // namespace
+
 std::shared_ptr<IResult> Recorder_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
     const ::xcl::Argument_array &args) {
-  if (ns != "sql" || !args.empty()) throw std::logic_error("not implemented");
-  return querys(stmt.data(), stmt.length(), true);
+  if (ns != "sql")
+    throw std::logic_error("recording for namespace " + ns +
+                           " not implemented");
+  if (args.empty()) {
+    return querys(stmt.data(), stmt.length(), true);
+  } else {
+    std::string sql = sub_query_placeholders(stmt, args);
+    return querys(sql.data(), sql.length(), true);
+  }
 }
 
 void Recorder_mysqlx::executes(const char *sql, size_t length) {

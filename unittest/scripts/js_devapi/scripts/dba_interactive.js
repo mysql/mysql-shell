@@ -15,11 +15,14 @@ validateMembers(dba, [
     'checkInstanceConfiguration',
     'configureInstance',
     'configureLocalInstance',
+    'configureReplicaSetInstance',
     'createCluster',
+    'createReplicaSet',
     'deleteSandboxInstance',
     'deploySandboxInstance',
     'dropMetadataSchema',
     'getCluster',
+    'getReplicaSet',
     'help',
     'killSandboxInstance',
     'rebootClusterFromCompleteOutage',
@@ -47,6 +50,8 @@ dba.createCluster('devCluster', {multiPrimary:false, multiMaster: false});
 dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
 dba.createCluster('devCluster', {ipWhitelist: "  "});
 dba.createCluster('#');
+dba.createCluster("_1234567890::_1234567890123456789012345678901");
+dba.createCluster("::");
 
 //@ Dba: createCluster with ANSI_QUOTES success
 // save current sql mode
@@ -171,6 +176,7 @@ session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
 session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
 session.runSql("SET SQL_LOG_BIN=1");
 var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
 var row = result.fetchOne();
@@ -284,6 +290,8 @@ connect_to_sandbox([__mysql_sandbox_port2]);
 // Create account with no privileges
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_privileges'@'%'");
+//NOTE: at least privileges to access the metadata are required, otherwise another error is issued.
+session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 

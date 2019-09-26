@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -44,6 +45,8 @@ struct Replication_channel {
   struct Receiver {
     enum State { ON, OFF, CONNECTING };
     State state = OFF;
+    enum class Status { ON, CONNECTING, ERROR, OFF };
+    Status status = Status::OFF;
     std::string thread_state;
     Error last_error;
   };
@@ -69,12 +72,8 @@ struct Replication_channel {
   std::string host;
   int port = 0;
   std::string group_name;
-  bool ssl_enabled = false;
 
   std::string source_uuid;
-
-  uint64_t conf_delay = 0;
-  double conf_heartbeat_interval = 0.0;
 
   std::string time_since_last_message;
 
@@ -101,6 +100,67 @@ struct Replication_channel {
   };
 
   Status status() const;
+
+  /**
+   * Get the applier status, ignoring the receiver status (I/O thread).
+   *
+   * NOTE: Used to determine only the status of the applier when the primary is
+   *       down, for example during a failover operation where a
+   *       CONNECTION_ERROR is expected (having priority for status() over
+   *       other applier status).
+   *
+   * @return status of the applier, ignoring the receiver status. Possible
+   *         returned values: APPLIER_ERROR, APPLIER_OFF, ON.
+   */
+  Status applier_status() const;
+};
+
+struct Replication_channel_master_info {
+  std::string master_log_name;
+  uint64_t master_log_pos;
+  std::string host;
+  std::string user_name;
+  // std::string user_password; will be deprecated/removed
+  uint64_t port;
+  uint64_t connect_retry;
+  int enabled_ssl;
+  std::string ssl_ca;
+  std::string ssl_capath;
+  std::string ssl_cert;
+  std::string ssl_cipher;
+  std::string ssl_key;
+  int ssl_verify_server_cert;
+  float heartbeat;
+  std::string bind;
+  std::string ignored_server_ids;
+  std::string uuid;
+  uint64_t retry_count;
+  std::string ssl_crl;
+  std::string ssl_crlpath;
+  int enabled_auto_position;
+  std::string channel_name;
+  std::string tls_version;
+  // 8.0+
+  utils::nullable<std::string> public_key_path;
+  utils::nullable<int> get_public_key;
+  utils::nullable<std::string> network_namespace;
+  utils::nullable<std::string> master_compression_algorithm;
+  utils::nullable<uint64_t> master_zstd_compression_level;
+  utils::nullable<std::string> tls_ciphersuites;
+};
+
+struct Replication_channel_relay_log_info {
+  std::string relay_log_name;
+  uint64_t relay_log_pos;
+  std::string master_log_name;
+  uint64_t master_log_pos;
+  int sql_delay;
+  uint64_t number_of_workers;
+  uint64_t id;
+  std::string channel_name;
+  utils::nullable<std::string> privilege_checks_username;
+  utils::nullable<std::string> privilege_checks_hostname;
+  utils::nullable<int> require_row_format;
 };
 
 struct Slave_host {
@@ -111,6 +171,7 @@ struct Slave_host {
 
 std::string to_string(Replication_channel::Status status);
 std::string to_string(Replication_channel::Receiver::State state);
+std::string to_string(Replication_channel::Receiver::Status status);
 std::string to_string(Replication_channel::Coordinator::State state);
 std::string to_string(Replication_channel::Applier::State state);
 std::string to_string(Replication_channel::Applier::Status status);
@@ -129,6 +190,17 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
                         Replication_channel *out_channel);
 
 /**
+ * Gets configuration for a replication channel (as obtained from
+ * mysql.slave_master_info and slave_relay_log_info)
+ *
+ * @return false if the channel does not exist.
+ */
+bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
+                      const std::string &channel_name,
+                      Replication_channel_master_info *out_master_info,
+                      Replication_channel_relay_log_info *out_relay_log_info);
+
+/**
  * Return status list of all replication channels (masters) at the given
  * instance.
  */
@@ -136,21 +208,19 @@ std::vector<Replication_channel> get_incoming_channels(
     const mysqlshdk::mysql::IInstance &instance);
 
 /**
- * Returns list of all replication channels (slaves) from the given instance.
+ * Returns list of all replication slaves from the given instance.
  */
 std::vector<Slave_host> get_slaves(const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Wait for the named replication channel to either switch from the CONNECTING
- * state, an error appears or timeout.
+ * state, an error appears.
  *
  * @param slave - the instance to monitor
  * @param channel_name - the name of the replication channel to monitor
- * @param timeout - timeout in seconds
  */
 Replication_channel wait_replication_done_connecting(
-    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name,
-    int timeout);
+    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name);
 
 /**
  * Returns GTID_EXECUTED set from the server.

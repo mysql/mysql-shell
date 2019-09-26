@@ -85,7 +85,7 @@ session.close();
 // BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
 //
 // dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid for InnoDB cluster usage.
+// SQL and IO threads is valid to be used in an InnoDB cluster.
 //
 // As a consequence, the AdminAPI fails to detects that an instance has
 // asynchronous replication running and both addInstance() and rejoinInstance()
@@ -140,6 +140,8 @@ shell.connect(__sandbox_uri2);
 
 session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});

@@ -28,15 +28,17 @@
 #include <utility>
 #include <vector>
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysqld_error.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlsh {
 namespace dba {
-GRInstanceType get_gr_instance_type(
+
+GRInstanceType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance) {
-  GRInstanceType ret_val = GRInstanceType::Standalone;
+  GRInstanceType::Type ret_val = GRInstanceType::Standalone;
 
   std::string query(
       "select count(*) "
@@ -62,12 +64,12 @@ GRInstanceType get_gr_instance_type(
     auto e = shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
 
-    log_debug("Error querying GR member state: %s: %i %s",
-              instance.descr().c_str(), error.code(), error.what());
+    log_info("Error querying GR member state: %s: %i %s",
+             instance.descr().c_str(), error.code(), error.what());
 
     // SELECT command denied to user 'test_user'@'localhost' for table
     // 'replication_group_members' (MySQL Error 1142)
-    if (e.code() == 1142) {
+    if (e.code() == ER_TABLEACCESS_DENIED_ERROR) {
       ret_val = GRInstanceType::Unknown;
     } else if (error.code() != ER_NO_SUCH_TABLE) {  // Tables doesn't exists
       throw shcore::Exception::mysql_error_with_code_and_state(
@@ -162,7 +164,8 @@ void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
 // For that reason, this function should be called ONLY when the instance has
 // been validated to be NOT Standalone
 Cluster_check_info get_replication_group_state(
-    const mysqlshdk::mysql::IInstance &connection, GRInstanceType source_type) {
+    const mysqlshdk::mysql::IInstance &connection,
+    GRInstanceType::Type source_type) {
   Cluster_check_info ret_val;
 
   // Sets the source instance type
@@ -225,7 +228,7 @@ std::vector<std::string> get_peer_seeds(
       "SELECT JSON_UNQUOTE(addresses->'$.grLocal') "
       "FROM mysql_innodb_cluster_metadata.instances "
       "WHERE addresses->'$.mysqlClassic' <> ? "
-      "AND replicaset_id IN (SELECT replicaset_id "
+      "AND cluster_id IN (SELECT cluster_id "
       "FROM mysql_innodb_cluster_metadata.instances "
       "WHERE addresses->'$.mysqlClassic' = ?)",
       0);
@@ -316,8 +319,7 @@ Instance_metadata query_instance_info(
 
   Instance_metadata instance_def;
 
-  instance_def.address = instance.get_canonical_hostname();
-  instance_def.role_type = "HA";
+  instance_def.address = instance.get_canonical_address();
   instance_def.endpoint = instance.get_canonical_address();
   if (xport != -1)
     instance_def.xendpoint =

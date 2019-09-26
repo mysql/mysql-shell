@@ -61,22 +61,22 @@ Cluster_impl::Cluster_impl(
     const Cluster_metadata &metadata,
     const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
-    : _id(metadata.cluster_id),
-      _name(metadata.cluster_name),
+    : m_id(metadata.cluster_id),
+      m_cluster_name(metadata.cluster_name),
       m_group_name(metadata.group_name),
       m_target_server(group_server),
       _metadata_storage(metadata_storage) {
   _default_replica_set =
-      std::make_shared<ReplicaSet>("default", metadata.topology_type);
+      std::make_shared<GRReplicaSet>("default", metadata.topology_type);
 
   _default_replica_set->set_cluster(this);
 }
 
 Cluster_impl::Cluster_impl(
-    const std::string &name, const std::string &group_name,
+    const std::string &cluster_name, const std::string &group_name,
     const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
-    : _name(name),
+    : m_cluster_name(cluster_name),
       m_group_name(group_name),
       m_target_server(group_server),
       _metadata_storage(metadata_storage) {}
@@ -124,13 +124,13 @@ shcore::Value Cluster_impl::remove_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-std::shared_ptr<ReplicaSet> Cluster_impl::create_default_replicaset(
+std::shared_ptr<GRReplicaSet> Cluster_impl::create_default_replicaset(
     const std::string &name, bool multi_primary) {
-  std::string topology_type = ReplicaSet::kTopologySinglePrimary;
+  std::string topology_type = GRReplicaSet::kTopologySinglePrimary;
   if (multi_primary) {
-    topology_type = ReplicaSet::kTopologyMultiPrimary;
+    topology_type = GRReplicaSet::kTopologyMultiPrimary;
   }
-  _default_replica_set = std::make_shared<ReplicaSet>(name, topology_type);
+  _default_replica_set = std::make_shared<GRReplicaSet>(name, topology_type);
 
   _default_replica_set->set_cluster(this);
 

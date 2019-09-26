@@ -38,11 +38,11 @@ namespace tests {
 class Auto_script_js : public Shell_js_script_tester,
                        public ::testing::WithParamInterface<std::string> {
  protected:
+  bool _skip_set_defaults = false;
+
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
-    // Force reset_shell() to happen when reset_shell() is called explicitly
-    // in each test case
-    _delay_reset_shell = true;
+    _skip_set_defaults = true;
     Shell_js_script_tester::SetUp();
 
     // Common setup script
@@ -51,6 +51,11 @@ class Auto_script_js : public Shell_js_script_tester,
   }
 
   virtual void set_defaults() {
+    if (_skip_set_defaults) {
+      _skip_set_defaults = false;
+      return;
+    }
+
     Shell_js_script_tester::set_defaults();
 
     std::string user, host, password;
@@ -63,8 +68,8 @@ class Auto_script_js : public Shell_js_script_tester,
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    if (_port.empty()) _port = "33060";
-    if (_mysql_port.empty()) _mysql_port = "3306";
+    assert(!m_port.empty());
+    assert(!m_mysql_port.empty());
 
     std::string code = "var hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
@@ -78,27 +83,19 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
 
     code = "var hostname_ip = '" + hostname_ip() + "';";
-
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "var __pwd = '" + password + "';";
-    exec_and_out_equals(code);
     code = "var __host = '" + host + "';";
     exec_and_out_equals(code);
-    code = "var __port = " + _port + ";";
+    code = "var __port = " + m_port + ";";
     exec_and_out_equals(code);
-    code = "var __schema = 'mysql';";
+    code = "var __mysql_port = " + m_mysql_port + ";";
     exec_and_out_equals(code);
-    code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
+    code = "var __uri = '" + user + "@" + host + ":" + m_port + "';";
     exec_and_out_equals(code);
-    code = "var __mysql_uri = '" + user + "@" + host + ":" + _mysql_port + "';";
-    exec_and_out_equals(code);
-    code = "var __xhost_port = '" + host + ":" + _port + "';";
-    exec_and_out_equals(code);
-    code = "var __host_port = '" + host + ":" + _mysql_port + "';";
-    exec_and_out_equals(code);
-    code = "var __mysql_port = " + _mysql_port + ";";
+    code =
+        "var __mysql_uri = '" + user + "@" + host + ":" + m_mysql_port + "';";
     exec_and_out_equals(code);
     for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
@@ -117,6 +114,9 @@ class Auto_script_js : public Shell_js_script_tester,
       code = shcore::str_format("var __endpoint%i = '%s:%i';", i + 1,
                                 hostname().c_str(), _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
+      code = shcore::str_format("var __sandbox%i = 'localhost:%i';", i + 1,
+                                _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
       code = shcore::str_format(
           "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
           hostname().c_str(), _mysql_sandbox_ports[i]);
@@ -127,10 +127,10 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
 
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" +
-           _port + "';";
+           m_port + "';";
     exec_and_out_equals(code);
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
-           _mysql_port + "';";
+           m_mysql_port + "';";
     exec_and_out_equals(code);
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";
@@ -171,6 +171,12 @@ class Auto_script_js : public Shell_js_script_tester,
         "var __mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'') +
         ";";
     exec_and_out_equals(code);
+
+    code = "var __dba_data_path = " +
+           shcore::quote_string(
+               shcore::path::join_path(g_test_home, "data", "dba"), '\'') +
+           ";";
+    exec_and_out_equals(code);
   }
 
   void run_and_check() {
@@ -188,6 +194,7 @@ class Auto_script_js : public Shell_js_script_tester,
         GetParam().find("_norecord") == std::string::npos) {
       reset_replayable_shell(name.c_str());
     } else {
+      set_defaults();
       execute_setup();
     }
 
@@ -211,7 +218,6 @@ class Auto_script_js : public Shell_js_script_tester,
     const std::vector<std::string> argv;
     _interactive_shell->process_file(_setup_script, argv);
 
-    fprintf(stdout, "Test script: %s\n", GetParam().c_str());
     exec_and_out_equals("const __script_file = '" + GetParam() + "'");
 
     set_config_folder("auto/" + folder);
@@ -244,8 +250,13 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
 }
 
 // General test cases
-INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_js,
+INSTANTIATE_TEST_CASE_P(Admin_api, Auto_script_js,
                         testing::ValuesIn(find_js_tests("js_adminapi", ".js")),
+                        fmt_param);
+
+INSTANTIATE_TEST_CASE_P(Admin_api_async, Auto_script_js,
+                        testing::ValuesIn(find_js_tests("js_adminapi_async",
+                                                        ".js")),
                         fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,

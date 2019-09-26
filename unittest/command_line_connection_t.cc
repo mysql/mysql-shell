@@ -381,7 +381,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
     execute_in_session(ssl_uri, "--mysql");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "MySQL Error 2026 (HY000): SSL connection error: SSL is required "
+        "MySQL Error 2026: SSL connection error: SSL is required "
         "but the server doesn't support it");
     _output.clear();
   }

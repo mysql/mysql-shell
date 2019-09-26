@@ -50,7 +50,7 @@ class Metadata_management_test : public Shell_core_test_wrapper {
 
     mysqlshdk::db::Connection_options connection_options;
     connection_options.set_host(_host);
-    connection_options.set_port(_mysql_port_number);
+    connection_options.set_port(std::stoi(_mysql_port));
     connection_options.set_user(_user);
     connection_options.set_password(_pwd);
 
@@ -101,6 +101,7 @@ TEST_F(Metadata_management_test, installed_version) {
 }
 
 TEST_F(Metadata_management_test, version_compatibility) {
+  SKIP_TEST("TODO: Enable this test once WL11033 is refactored");
   auto current_version = mysqlsh::dba::metadata::current_version();
 
   // No metadata schema
@@ -118,8 +119,7 @@ TEST_F(Metadata_management_test, version_compatibility) {
       current_version.get_minor() == installed.get_minor()) {
     EXPECT_TRUE(mysqlsh::dba::metadata::kCompatible.is_set(compatibility));
   } else {
-    EXPECT_TRUE(
-        mysqlsh::dba::metadata::kIncompatibleVersion.is_set(compatibility));
+    EXPECT_TRUE(mysqlsh::dba::metadata::kIncompatible.is_set(compatibility));
   }
 
   // Metadata upgrading version 0.0.0, but lock available indicates

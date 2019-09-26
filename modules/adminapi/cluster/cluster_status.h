@@ -76,7 +76,7 @@ class Cluster_status : public Command_interface {
   const Cluster_impl &m_cluster;
   mysqlshdk::utils::nullable<uint64_t> m_extended;
 
-  shcore::Value get_replicaset_status(const ReplicaSet &replicaset);
+  shcore::Value get_replicaset_status(const GRReplicaSet &replicaset);
 };
 
 }  // namespace dba

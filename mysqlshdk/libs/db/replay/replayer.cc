@@ -287,8 +287,9 @@ std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
 
 std::shared_ptr<IResult> Replayer_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
-    const ::xcl::Argument_array &args) {
-  if (ns != "sql" || !args.empty()) throw std::logic_error("not implemented");
+    const ::xcl::Argument_array &) {
+  if (ns != "sql")
+    throw std::logic_error("replay for namespace " + ns + " not implemented");
   return querys(stmt.data(), stmt.length(), true);
 }
 

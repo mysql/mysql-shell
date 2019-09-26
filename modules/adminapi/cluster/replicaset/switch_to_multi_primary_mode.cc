@@ -36,7 +36,7 @@ namespace mysqlsh {
 namespace dba {
 
 Switch_to_multi_primary_mode::Switch_to_multi_primary_mode(
-    ReplicaSet *replicaset)
+    GRReplicaSet *replicaset)
     : Topology_configuration_command(replicaset) {}
 
 Switch_to_multi_primary_mode::~Switch_to_multi_primary_mode() {}
@@ -60,7 +60,7 @@ shcore::Value Switch_to_multi_primary_mode::execute() {
   //   - auto_increment_increment = 7
   //   - auto_increment_offset = 1 + server_id % 7
   {
-    log_debug("Updating auto_increment values of replicaset members");
+    log_debug("Updating auto_increment values of cluster members");
 
     // Call update_auto_increment to do the job in all instances
     mysqlshdk::gr::update_auto_increment(
@@ -73,13 +73,13 @@ shcore::Value Switch_to_multi_primary_mode::execute() {
   // "pm"
   {
     log_debug(
-        "Updating Replicaset value of topology_type to single-primary in the "
+        "Updating cluster value of topology_type to single-primary in the "
         "Metadata.");
 
     update_topology_mode_metadata(mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
     // Update the Replicaset object topology_type
-    m_replicaset->set_topology_type(ReplicaSet::kTopologyMultiPrimary);
+    m_replicaset->set_topology_type(GRReplicaSet::kTopologyMultiPrimary);
   }
 
   // Print information about the instances role changes

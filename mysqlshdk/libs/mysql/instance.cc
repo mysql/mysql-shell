@@ -55,17 +55,15 @@ void Auth_options::set(mysqlshdk::db::Connection_options *copts) const {
   copts->set_ssl_options(ssl_options);
 }
 
-Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {}
+Instance::Instance(const std::shared_ptr<db::ISession> &session)
+    : _session(session) {}
 
 void Instance::refresh() {
   m_uuid.clear();
   m_group_name.clear();
 }
 
-std::string Instance::descr() const {
-  return _session->get_connection_options().as_uri(
-      db::uri::formats::only_transport());
-}
+std::string Instance::descr() const { return get_canonical_address(); }
 
 std::string Instance::get_canonical_hostname() const {
   if (m_hostname.empty()) {

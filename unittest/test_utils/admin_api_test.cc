@@ -33,7 +33,7 @@
 namespace tests {
 
 std::shared_ptr<mysqlsh::dba::Cluster> Admin_api_test::_cluster = {};
-std::shared_ptr<mysqlsh::dba::ReplicaSet> Admin_api_test::_replicaset = {};
+std::shared_ptr<mysqlsh::dba::GRReplicaSet> Admin_api_test::_replicaset = {};
 std::string Admin_api_test::uuid_1 = "";
 std::string Admin_api_test::uuid_2 = "";
 std::string Admin_api_test::uuid_3 = "";

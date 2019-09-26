@@ -87,7 +87,7 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host, '-P' + instance1, '--mysql']
       x_cmds = [("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.removeInstance(\"{0}:3399\");\n".format(LOCALHOST.host),
-                 "does not belong to the ReplicaSet")
+                 "does not belong to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')

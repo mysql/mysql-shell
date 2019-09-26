@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/shellcore/shell_console.h"
 
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <utility>
@@ -171,19 +172,31 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
     }
 
     if (show_prefix && g_dont_log == 0) {
+      static char color_on[16] = {0};
+      static char color_off[16] = {0};
       std::string ts = mysqlshdk::utils::fmttime(
           "%Y-%m-%dT%H:%M:%SZ", mysqlshdk::utils::Time_type::LOCAL,
           &log.timestamp);
 
+      if (self->use_colors() && color_on[0] == '\0') {
+        strcpy(color_on,
+               mysqlshdk::vt100::attr(-1, -1, mysqlshdk::vt100::Dim).c_str());
+        strcpy(color_off, mysqlshdk::vt100::attr().c_str());
+      } else if (!self->use_colors() && color_on[0] != '\0') {
+        strcpy(color_on, "");
+        strcpy(color_off, "");
+      }
+
       if (log.domain && *log.domain)
-        self->raw_print(
-            shcore::str_format("verbose: %s: %s%s: %s\n", ts.c_str(),
-                               show_prefix, log.domain, log.message),
-            Output_stream::STDERR);
-      else
-        self->raw_print(shcore::str_format("verbose: %s: %s%s\n", ts.c_str(),
-                                           show_prefix, log.message),
+        self->raw_print(shcore::str_format("%sverbose: %s: %s%s: %s%s\n",
+                                           color_on, ts.c_str(), show_prefix,
+                                           log.domain, log.message, color_off),
                         Output_stream::STDERR);
+      else
+        self->raw_print(
+            shcore::str_format("%sverbose: %s: %s%s%s\n", color_on, ts.c_str(),
+                               show_prefix, log.message, color_off),
+            Output_stream::STDERR);
     }
   }
 }
@@ -194,6 +207,12 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
   m_print_handlers.emplace_back(deleg);
   // Capture logging output and if verbose is enabled, show them in the console
   shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
+
+#ifndef _WIN32
+  if (isatty(2)) {
+    m_use_colors = true;
+  }
+#endif
 }
 
 Shell_console::~Shell_console() {

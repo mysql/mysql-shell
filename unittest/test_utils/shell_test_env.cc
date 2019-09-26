@@ -64,7 +64,6 @@ std::string Shell_test_env::_host;
 std::string Shell_test_env::_port;
 std::string Shell_test_env::_user;
 std::string Shell_test_env::_pwd;
-int Shell_test_env::_port_number;
 std::string Shell_test_env::s_hostname;
 bool Shell_test_env::s_real_host_is_loopback;
 std::string Shell_test_env::s_real_hostname;
@@ -72,7 +71,6 @@ std::string Shell_test_env::s_hostname_ip;
 std::string Shell_test_env::_uri;
 std::string Shell_test_env::_uri_nopasswd;
 std::string Shell_test_env::_mysql_port;
-int Shell_test_env::_mysql_port_number;
 std::string Shell_test_env::_mysql_uri;
 std::string Shell_test_env::_mysql_uri_nopasswd;
 
@@ -96,7 +94,6 @@ void Shell_test_env::setup_env() {
 
   const char *xport = getenv("MYSQLX_PORT");
   if (xport) {
-    _port_number = atoi(xport);
     _port.assign(xport);
     _uri += ":" + _port;
   }
@@ -104,7 +101,6 @@ void Shell_test_env::setup_env() {
 
   const char *port = getenv("MYSQL_PORT");
   if (port) {
-    _mysql_port_number = atoi(port);
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
   }
@@ -195,6 +191,9 @@ void Shell_test_env::SetUp() {
     SetUpOnce();
     g_initialized_test = true;
   }
+
+  m_port = _port;
+  m_mysql_port = _mysql_port;
 }
 
 void Shell_test_env::TearDown() {
@@ -293,6 +292,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
         &Shell_test_env::query_replace_hook, this, std::placeholders::_1);
   }
 
+  m_port = _port;
+  m_mysql_port = _mysql_port;
+
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
     _replaying = true;
 
@@ -315,6 +317,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
       }
     }
 
+    m_port = info["port"];
+    m_mysql_port = info["mysql_port"];
+
     m_hostname = info["hostname"];
     m_hostname_ip = info["hostname_ip"];
     m_real_hostname = info["real_hostname"];
@@ -334,6 +339,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
       info["sandbox_port" + std::to_string(i)] =
           std::to_string(_mysql_sandbox_ports[i]);
     }
+
+    info["port"] = _port;
+    info["mysql_port"] = _mysql_port;
 
     info["hostname"] = s_hostname;
     info["hostname_ip"] = s_hostname_ip;
@@ -620,7 +628,7 @@ Shell_test_env::create_mysql_session(const std::string &uri) {
     cnx_opt.set_user("root");
     cnx_opt.set_password("");
     cnx_opt.set_host("127.0.0.1");
-    cnx_opt.set_port(_mysql_port_number);
+    cnx_opt.set_port(std::stoi(_mysql_port));
   } else {
     cnx_opt = mysqlshdk::db::Connection_options(uri);
   }
@@ -636,7 +644,7 @@ Shell_test_env::create_mysqlx_session(const std::string &uri) {
     cnx_opt.set_user("root");
     cnx_opt.set_password("");
     cnx_opt.set_host("127.0.0.1");
-    cnx_opt.set_port(_port_number);
+    cnx_opt.set_port(std::stoi(_port));
   } else {
     cnx_opt = mysqlshdk::db::Connection_options(uri);
   }

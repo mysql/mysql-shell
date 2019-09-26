@@ -28,13 +28,29 @@ function get_socket_path(session) {
   return p;
 }
 
+function run_nolog(session, query) {
+    session.runSql("set session sql_log_bin=0");
+    session.runSql(query);
+    session.runSql("set session sql_log_bin=1");
+}
+
+var kGrantsForPerformanceSchema = ["GRANT SELECT ON `performance_schema`.`replication_applier_configuration` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_applier_status` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_connection_status` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_group_member_stats` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`replication_group_members` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `performance_schema`.`threads` TO `admin`@`%` WITH GRANT OPTION"];
+
 /**
  * Verifies if a variable is defined, returning true or false accordingly
  * @param cb An anonymous function that simply executes the variable to be
  * verified, example:
- * 
+ *
  * defined(function(){myVar})
- * 
+ *
  * Will return true if myVar is defined or false if not.
  */
 function defined(cb) {
@@ -302,6 +318,24 @@ var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandb
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
 
+var s = mysql.getSession(__mysqluripwd);
+var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
+var __mysql_hostname = r[0];
+var __mysql_report_host = r[1];
+var __mysql_host = __mysql_report_host ? __mysql_report_host : __mysql_hostname;
+
+// Address that appear in pre-configured sandboxes that set report_host to 127.0.0.1
+var __address1 = "127.0.0.1:" + __mysql_sandbox_port1;
+var __address2 = "127.0.0.1:" + __mysql_sandbox_port2;
+var __address3 = "127.0.0.1:" + __mysql_sandbox_port3;
+var __address4 = "127.0.0.1:" + __mysql_sandbox_port4;
+
+// Address that appear in raw sandboxes, that show the real hostname
+var __address1r = __mysql_host + ":" + __mysql_sandbox_port1;
+var __address2r = __mysql_host + ":" + __mysql_sandbox_port2;
+var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
+var __address4r = __mysql_host + ":" + __mysql_sandbox_port4;
+
 // JSON utils
 
 // Find a key in a json object recursively
@@ -329,13 +363,83 @@ function json_find_key(json, key) {
   return undefined;
 }
 
+// --------
+
+function begin_dba_log_sql(level) {
+  shell.options["dba.logSql"] = level ? level : 1;
+  var dummy = testutil.fetchDbaSqlLog(true);
+}
+
+function end_dba_log_sql(level) {
+  var logs = testutil.fetchDbaSqlLog(false);
+  shell.options["dba.logSql"] = 0;
+  return logs;
+}
+
 // -------- Test Expectations
+
+
+function EXPECT_NO_SQL(instance, logs, allowed_stmts) {
+  var fail = false;
+  for(var i in logs) {
+    var line = logs[i];
+    if (line.startsWith(instance)) {
+      var bad = false;
+      for (var j in allowed_stmts) {
+        if (!line.split(": ")[1].startsWith(allowed_stmts[j])) {
+          bad = true;
+          break;
+        }
+      }
+      if (bad) {
+        println("UNEXPECTED SQL DETECTED:", line);
+        fail = true;
+      }
+    }
+  }
+  EXPECT_FALSE(fail);
+}
+
+function EXPECT_SQL(instance, logs, expected_stmt) {
+  var fail = true;
+  for(var i in logs) {
+    var line = logs[i];
+    if (line.startsWith(instance)) {
+      if (line.split(": ")[1].startsWith(expected_stmt)) {
+        fail = false;
+        break;
+      }
+    }
+  }
+  if (fail) {
+    println("MISSING EXPECTED SQL:");
+    for(var i in logs) {
+      var line = logs[i];
+      if (line.startsWith(instance)) {
+        println("\t", line);
+      }
+    }
+  }
+  EXPECT_FALSE(fail);
+}
 
 function EXPECT_EQ(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
     var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_JSON_EQ(expected, actual, note) {
+  if (note == undefined)
+    note = "";
+
+  expected = JSON.stringify(expected, undefined, 2);
+  actual = JSON.stringify(actual, undefined, 2);
+  if (expected != actual) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
     testutil.fail(context);
   }
 }

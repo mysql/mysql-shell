@@ -1,3 +1,5 @@
+//@{false}
+// Disabling tests as this code will be refactored
 function set_metadata_version(major, minor, patch) {
     session.runSql("DROP VIEW mysql_innodb_cluster_metadata.schema_version");
     session.runSql("CREATE VIEW mysql_innodb_cluster_metadata.schema_version (major, minor, patch) AS SELECT ?, ?, ?", [major, minor, patch]);
@@ -114,7 +116,6 @@ ensure_upgrade_locks_are_free(other_session);
 var installed_after = testutil.getInstalledMetadataVersion();
 EXPECT_EQ(installed_before, installed_after);
 testutil.dbugSet("");
-
 
 //@<> upgradeMetadata, prepare for upgrading errors {!__dbug_off}
 var installed_before = testutil.getInstalledMetadataVersion();

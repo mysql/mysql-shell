@@ -7,7 +7,6 @@ var mysqlx = require('mysqlx');
 // __port: <port>
 // __user: <user>
 // __uripwd: <uri>:<pwd>@<host>
-// __pwd: <pwd>
 
 
 //@ mysqlx module: exports

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ class Named_pipe_test : public Command_line_test {
   static void SetUpTestCase() {
     mysqlshdk::db::Connection_options options;
     options.set_host(_host);
-    options.set_port(_mysql_port_number);
+    options.set_port(std::stoi(_mysql_port));
     options.set_user(_user);
     options.set_password(_pwd);
 

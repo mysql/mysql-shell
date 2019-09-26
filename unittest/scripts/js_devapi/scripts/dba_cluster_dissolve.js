@@ -4,6 +4,10 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
+var session1 = mysql.getSession(__sandbox_uri1);
+var session2 = mysql.getSession(__sandbox_uri2);
+var session3 = mysql.getSession(__sandbox_uri3);
+
 function get_cluster_id(cluster_name) {
     var result = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_name = '" + cluster_name + "'");
     var row = result.fetchOne();
@@ -12,10 +16,10 @@ function get_cluster_id(cluster_name) {
 
 function get_replicaset_ids(cluster_id) {
     var ret_res = "";
-    var result = session.runSql("SELECT DISTINCT replicaset_id FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = " + cluster_id);
+    var result = session.runSql("SELECT DISTINCT cluster_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?", [cluster_id]);
     var row = result.fetchOne();
     while (row) {
-        ret_res += row[0];
+        ret_res += "'" + row[0] + "'";
         row = result.fetchOne();
         if (row) {
             ret_res += ", "
@@ -26,19 +30,19 @@ function get_replicaset_ids(cluster_id) {
 
 function exist_in_metadata_schema(cluster_id, replicaset_ids) {
 
-    var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = " + cluster_id);
+    var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?", [cluster_id]);
     var row = result.fetchOne();
     if (row[0] != 0) {
         print("Cluster data for cluster_id '" + cluster_id + "' still exists in metadata.");
         return true;
     }
-    result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = " + cluster_id);
+    result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?", [cluster_id]);
     row = result.fetchOne();
     if (row[0] != 0) {
         print("Replicasets data for cluster_id '" + cluster_id + "' still exists in metadata.");
         return true;
     }
-    result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id IN (" + replicaset_ids + ")");
+    result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE cluster_id IN (" + replicaset_ids + ")");
     row = result.fetchOne();
     if (row[0] != 0) {
         print("Instances data for replicaset_id in '" + cluster_id + "' still exists in metadata.");
@@ -180,6 +184,14 @@ shell.connect(__sandbox_uri3);
 exist_in_metadata_schema(cluster_id, replicaset_ids);
 session.close();
 
+//@<> Disable group_replication_enforce_update_everywhere_checks for 5.7 {VER(<8.0.0)}
+// NOTE: Disable of enforce_update_everywhere_checks must be done manually for
+//       5.7 servers in order to reuse them (in single-primary clusters).
+//       since they don't support SET PERSIST.
+session1.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
+session2.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
+session3.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
+
 //@ Create single-primary cluster 2
 shell.connect(__sandbox_uri1);
 
@@ -266,6 +278,7 @@ session.close();
 multi2.disconnect();
 shell.connect(__sandbox_uri3);
 session.runSql("RESET PERSIST group_replication_start_on_boot");
+session.runSql("RESET PERSIST group_replication_enforce_update_everywhere_checks");
 session.close();
 shell.connect(__sandbox_uri1);
 var multi2 = dba.getCluster('multi2');
@@ -281,11 +294,23 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 // WL11889 FR6_01: force: true to dissovle cluster with unreachable instances.
 multi2.dissolve({force: true});
 
+//@<> Disable enforce_update_everywhere_checks for 5.7 {VER(<8.0.0)}
+// NOTE: Disable of enforce_update_everywhere_checks must be done manually for
+//       5.7 servers in order to reuse them (in single-primary clusters).
+//       since they don't support SET PERSIST.
+session1.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
+session2.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
+
 //@ Dissolve post action on unreachable instance (ensure GR is not started)
 // NOTE: This is not enough for server version >= 8.0.11 because persisted
 // variables take precedence, therefore reseting group_replication_start_on_boot
 // is also needed.
 testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_start_on_boot', 'OFF');
+// NOTE: group_replication_enforce_update_everywhere_checks must be disabled
+//       manually because the instance was previously part of a multi-primary
+//       cluster that was dissolved without it, otherwise an error is issued
+//       when trying to add it to a single-primary cluster.
+testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_enforce_update_everywhere_checks', 'OFF');
 
 //@ Restart instance on port3
 testutil.startSandbox(__mysql_sandbox_port3);

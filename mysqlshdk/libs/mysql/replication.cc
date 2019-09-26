@@ -57,7 +57,7 @@ std::string to_string(Replication_channel::Status status) {
 std::string to_string(Replication_channel::Receiver::State state) {
   switch (state) {
     case Replication_channel::Receiver::ON:
-      return "OK";
+      return "ON";
     case Replication_channel::Receiver::OFF:
       return "OFF";
     case Replication_channel::Receiver::CONNECTING:
@@ -66,10 +66,24 @@ std::string to_string(Replication_channel::Receiver::State state) {
   throw std::logic_error("internal error");
 }
 
+std::string to_string(Replication_channel::Receiver::Status status) {
+  switch (status) {
+    case Replication_channel::Receiver::Status::ON:
+      return "ON";
+    case Replication_channel::Receiver::Status::OFF:
+      return "OFF";
+    case Replication_channel::Receiver::Status::CONNECTING:
+      return "CONNECTING";
+    case Replication_channel::Receiver::Status::ERROR:
+      return "ERROR";
+  }
+  throw std::logic_error("internal error");
+}
+
 std::string to_string(Replication_channel::Coordinator::State state) {
   switch (state) {
     case Replication_channel::Coordinator::ON:
-      return "OK";
+      return "ON";
     case Replication_channel::Coordinator::OFF:
       return "OFF";
     case Replication_channel::Coordinator::NONE:
@@ -81,7 +95,7 @@ std::string to_string(Replication_channel::Coordinator::State state) {
 std::string to_string(Replication_channel::Applier::State state) {
   switch (state) {
     case Replication_channel::Applier::ON:
-      return "OK";
+      return "ON";
     case Replication_channel::Applier::OFF:
       return "OFF";
   }
@@ -117,34 +131,34 @@ std::string format_status(const Replication_channel &channel, bool verbose) {
 
   std::string msg;
 
-  msg = shcore::make_kvp("channel", channel.channel_name);
+  msg += shcore::make_kvp(
+      "source", channel.host + ":" + std::to_string(channel.port), '"');
+  msg += " " + shcore::make_kvp("channel", channel.channel_name);
   msg += " " + shcore::make_kvp("status", to_string(channel.status()));
-
-  msg += " " + shcore::make_kvp(
-                   "source", channel.host + ":" + std::to_string(channel.port));
 
   if (verbose || channel.status() != Replication_channel::OFF) {
     msg +=
         " " + shcore::make_kvp("receiver", to_string(channel.receiver.state));
     if (channel.receiver.last_error.code != 0)
-      msg += " " + shcore::make_kvp("last_error",
-                                    to_string(channel.receiver.last_error));
+      msg +=
+          " " + shcore::make_kvp("last_error",
+                                 to_string(channel.receiver.last_error), '"');
 
     if (channel.coordinator.state != Replication_channel::Coordinator::NONE) {
       msg += " " + shcore::make_kvp("coordinator",
                                     to_string(channel.coordinator.state));
       if (channel.coordinator.last_error.code != 0)
-        msg +=
-            " " + shcore::make_kvp("last_error",
-                                   to_string(channel.coordinator.last_error));
+        msg += " " + shcore::make_kvp("last_error",
+                                      to_string(channel.coordinator.last_error),
+                                      '"');
     }
     if (channel.appliers.size() == 1) {
       msg += " " + shcore::make_kvp("applier",
                                     to_string(channel.appliers.front().state));
       if (channel.appliers.front().last_error.code != 0)
-        msg += " " +
-               shcore::make_kvp("last_error",
-                                to_string(channel.appliers.front().last_error));
+        msg += " " + shcore::make_kvp(
+                         "last_error",
+                         to_string(channel.appliers.front().last_error), '"');
     } else {
       int i = 0;
       for (const auto &a : channel.appliers) {
@@ -180,10 +194,6 @@ void unserialize_channel_info(const mysqlshdk::db::Row_ref_by_name &row,
   channel->source_uuid = row.get_string("source_uuid");
   channel->group_name =
       row.is_null("group_name") ? "" : row.get_string("group_name");
-  channel->ssl_enabled = row.get_int("ssl_allowed") != 0;
-
-  channel->conf_delay = row.get_uint("conf_delay", 0);
-  channel->conf_heartbeat_interval = row.get_double("conf_heartbeat_interval");
 
   channel->time_since_last_message =
       row.has_field("time_since_last_message")
@@ -202,18 +212,26 @@ void unserialize_channel_info(const mysqlshdk::db::Row_ref_by_name &row,
 
   if (!row.is_null("io_state")) {
     std::string state = row.get_string("io_state");
-    if (state == "ON")
+    if (state == "ON") {
       channel->receiver.state = Replication_channel::Receiver::ON;
-    else if (state == "OFF")
+      channel->receiver.status = Replication_channel::Receiver::Status::ON;
+    } else if (state == "OFF") {
       channel->receiver.state = Replication_channel::Receiver::OFF;
-    else if (state == "CONNECTING")
+      channel->receiver.status = Replication_channel::Receiver::Status::OFF;
+    } else if (state == "CONNECTING") {
       channel->receiver.state = Replication_channel::Receiver::CONNECTING;
-    else
+      channel->receiver.status =
+          Replication_channel::Receiver::Status::CONNECTING;
+    } else {
       assert(0);
+    }
 
     channel->receiver.thread_state = row.get_string("io_thread_state", "");
 
     extract_error(&channel->receiver.last_error, row, "io_");
+    if (channel->receiver.last_error.code != 0) {
+      channel->receiver.status = Replication_channel::Receiver::Status::ERROR;
+    }
   }
 
   if (!row.is_null("co_state")) {
@@ -268,8 +286,6 @@ void unserialize_channel_applier_info(const mysqlshdk::db::Row_ref_by_name &row,
 
 static const char *k_base_channel_query = R"*(SELECT
     c.channel_name, c.host, c.port, c.user,
-    c.heartbeat_interval conf_heartbeat_interval,
-    c.ssl_allowed = 'YES' as ssl_allowed,
     s.source_uuid, s.group_name, s.last_heartbeat_timestamp,
     s.service_state io_state, st.processlist_state io_thread_state,
     s.last_error_number io_errno, s.last_error_message io_errmsg,
@@ -277,7 +293,6 @@ static const char *k_base_channel_query = R"*(SELECT
     co.service_state co_state, cot.processlist_state co_thread_state,
     co.last_error_number co_errno, co.last_error_message co_errmsg,
     co.last_error_timestamp co_errtime,
-    ac.desired_delay conf_delay,
     w.service_state w_state, wt.processlist_state w_thread_state,
     w.last_error_number w_errno, w.last_error_message w_errmsg,
     w.last_error_timestamp w_errtime,
@@ -308,8 +323,6 @@ static const char *k_base_channel_query = R"*(SELECT
     ON c.channel_name = s.channel_name
   LEFT JOIN performance_schema.replication_applier_status_by_coordinator co
     ON c.channel_name = co.channel_name
-  JOIN performance_schema.replication_applier_configuration ac
-    ON c.channel_name = ac.channel_name
   JOIN performance_schema.replication_applier_status a
     ON c.channel_name = a.channel_name
   JOIN performance_schema.replication_applier_status_by_worker w
@@ -364,15 +377,122 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
       channel_name);
 
   if (auto row = result->fetch_one_named()) {
-    Replication_channel channel;
-    unserialize_channel_info(row, out_channel);
-    unserialize_channel_applier_info(row, out_channel);
-    while ((row = result->fetch_one_named())) {
-      if (out_channel) unserialize_channel_applier_info(row, out_channel);
+    if (out_channel) {
+      unserialize_channel_info(row, out_channel);
+      unserialize_channel_applier_info(row, out_channel);
+
+      while ((row = result->fetch_one_named())) {
+        unserialize_channel_applier_info(row, out_channel);
+      }
     }
     return true;
   }
   return false;
+}
+
+namespace {
+void unserialize_channel_master_info(
+    const mysqlshdk::db::Row_ref_by_name &row,
+    Replication_channel_master_info *out_master_info) {
+  out_master_info->master_log_name = row.get_string("Master_log_name");
+  out_master_info->master_log_pos = row.get_uint("Master_log_pos");
+  out_master_info->host = row.get_string("Host");
+  out_master_info->user_name = row.get_string("User_name");
+  out_master_info->port = row.get_int("Port");
+  out_master_info->connect_retry = row.get_uint("Connect_retry");
+  out_master_info->enabled_ssl = row.get_int("Enabled_ssl");
+  out_master_info->ssl_ca = row.get_string("Ssl_ca");
+  out_master_info->ssl_capath = row.get_string("Ssl_capath");
+  out_master_info->ssl_cert = row.get_string("Ssl_cert");
+  out_master_info->ssl_cipher = row.get_string("Ssl_cipher");
+  out_master_info->ssl_key = row.get_string("Ssl_key");
+  out_master_info->ssl_verify_server_cert =
+      row.get_int("Ssl_verify_server_cert");
+  out_master_info->heartbeat = row.get_double("Heartbeat");
+  out_master_info->bind = row.get_string("Bind");
+  out_master_info->ignored_server_ids = row.get_string("Ignored_server_ids");
+  out_master_info->uuid = row.get_string("Uuid");
+  out_master_info->retry_count = row.get_uint("Retry_count");
+  out_master_info->ssl_crl = row.get_string("Ssl_crl");
+  out_master_info->ssl_crlpath = row.get_string("Ssl_crlpath");
+  out_master_info->enabled_auto_position = row.get_int("Enabled_auto_position");
+  out_master_info->channel_name = row.get_string("Channel_name");
+  out_master_info->tls_version = row.get_string("Tls_version");
+
+  if (row.has_field("Public_key_path") && !row.is_null("Public_key_path"))
+    out_master_info->public_key_path = row.get_string("Public_key_path");
+  if (row.has_field("Get_public_key") && !row.is_null("Get_public_key"))
+    out_master_info->get_public_key = row.get_int("Get_public_key");
+  if (row.has_field("Network_namespace") && !row.is_null("Network_namespace"))
+    out_master_info->network_namespace = row.get_string("Network_namespace");
+  if (row.has_field("Master_compression_algorithm") &&
+      !row.is_null("Master_compression_algorithm"))
+    out_master_info->master_compression_algorithm =
+        row.get_string("Master_compression_algorithm");
+  if (row.has_field("Master_zstd_compression_level") &&
+      !row.is_null("Master_zstd_compression_level"))
+    out_master_info->master_zstd_compression_level =
+        row.get_uint("Master_zstd_compression_level");
+  if (row.has_field("Tls_ciphersuites") && !row.is_null("Tls_ciphersuites"))
+    out_master_info->tls_ciphersuites = row.get_string("Tls_ciphersuites");
+}
+
+void unserialize_channel_relay_log_info(
+    const mysqlshdk::db::Row_ref_by_name &row,
+    Replication_channel_relay_log_info *out_relay_log_info) {
+  out_relay_log_info->relay_log_name = row.get_string("Relay_log_name");
+  out_relay_log_info->relay_log_pos = row.get_uint("Relay_log_pos");
+  out_relay_log_info->master_log_name = row.get_string("Master_log_name");
+  out_relay_log_info->master_log_pos = row.get_uint("Master_log_pos");
+  out_relay_log_info->sql_delay = row.get_uint("Sql_delay");
+  out_relay_log_info->number_of_workers = row.get_uint("Number_of_workers");
+  out_relay_log_info->id = row.get_uint("Id");
+  out_relay_log_info->channel_name = row.get_string("Channel_name");
+  if (row.has_field("Privilege_checks_username") &&
+      !row.is_null("Privilege_checks_username"))
+    out_relay_log_info->privilege_checks_username =
+        row.get_string("Privilege_checks_username");
+  if (row.has_field("Privilege_checks_hostname") &&
+      !row.is_null("Privilege_checks_hostname"))
+    out_relay_log_info->privilege_checks_hostname =
+        row.get_string("Privilege_checks_hostname");
+  if (row.has_field("Require_row_format") && !row.is_null("Require_row_format"))
+    out_relay_log_info->require_row_format = row.get_int("Require_row_format");
+}
+
+}  // namespace
+
+bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
+                      const std::string &channel_name,
+                      Replication_channel_master_info *out_master_info,
+                      Replication_channel_relay_log_info *out_relay_log_info) {
+  assert(out_master_info && out_relay_log_info);
+
+  {
+    auto result = instance.queryf(
+        "SELECT * FROM mysql.slave_master_info"
+        " WHERE channel_name = ?",
+        channel_name);
+    if (auto row = result->fetch_one_named()) {
+      unserialize_channel_master_info(row, out_master_info);
+    } else {
+      return false;
+    }
+  }
+
+  {
+    auto result = instance.queryf(
+        "SELECT * FROM mysql.slave_relay_log_info"
+        " WHERE channel_name = ?",
+        channel_name);
+    if (auto row = result->fetch_one_named()) {
+      unserialize_channel_relay_log_info(row, out_relay_log_info);
+    } else {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 std::vector<Slave_host> get_slaves(
@@ -388,13 +508,19 @@ std::vector<Slave_host> get_slaves(
     slaves.push_back(host);
   }
 
+  // Sort by host/name to ensure deterministic output
+  std::sort(slaves.begin(), slaves.end(),
+            [](const Slave_host &a, const Slave_host &b) {
+              return a.host < b.host || (a.host == b.host && a.port < b.port);
+            });
+
   return slaves;
 }
 
 Replication_channel::Status Replication_channel::status() const {
   bool applier_off = false;
 
-  int num_applier_off = 0;
+  size_t num_applier_off = 0;
   for (const auto &applier : appliers) {
     if (applier.state == Applier::OFF) {
       if (applier.last_error.code != 0) {
@@ -405,7 +531,7 @@ Replication_channel::Status Replication_channel::status() const {
       }
     }
   }
-  if (num_applier_off == static_cast<int>(appliers.size()))
+  if (num_applier_off == appliers.size())
     applier_off = true;
   else if (num_applier_off > 0)
     return APPLIER_ERROR;  // some ON and some OFF is treated as ERROR
@@ -439,13 +565,48 @@ Replication_channel::Status Replication_channel::status() const {
   return ON;
 }
 
-Replication_channel wait_replication_done_connecting(
-    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name,
-    int timeout) {
-  time_t start_time = time(nullptr);
-  // check that the connection thread for the channel switches to ON
-  // and if not, throw an exception
+Replication_channel::Status Replication_channel::applier_status() const {
+  bool applier_off = false;
 
+  size_t num_applier_off = 0;
+  for (const auto &applier : appliers) {
+    if (applier.state == Applier::OFF) {
+      if (applier.last_error.code != 0) {
+        // error is the strongest status
+        return APPLIER_ERROR;
+      } else {
+        num_applier_off++;
+      }
+    }
+  }
+  if (num_applier_off == appliers.size())
+    applier_off = true;
+  else if (num_applier_off > 0)
+    return APPLIER_ERROR;  // some ON and some OFF is treated as ERROR
+
+  if (coordinator.state == Coordinator::OFF) {
+    if (coordinator.last_error.code != 0) {
+      return APPLIER_ERROR;
+    }
+    // If we have a coordinator and it's OFF but the appliers are not, then
+    // it's an error
+    if (!applier_off) {
+      return APPLIER_ERROR;
+    }
+  }
+
+  if (applier_off) {
+    return APPLIER_OFF;
+  }
+
+  return ON;
+}
+
+Replication_channel wait_replication_done_connecting(
+    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name) {
+  // Check that the IO thread for the channel switches to ON/OFF.
+  // NOTE: It is assumed that the IO thread will not stay forever with the
+  //       state CONNECTING and will eventually switch to ON or OFF (stopped).
   Replication_channel channel;
 
   do {
@@ -461,9 +622,7 @@ Replication_channel wait_replication_done_connecting(
         return channel;
       }
     }
-  } while (time(nullptr) - start_time < timeout);
-
-  return channel;
+  } while (true);
 }
 
 bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
@@ -583,9 +742,9 @@ Replica_gtid_state check_replica_gtid_state(
     const mysqlshdk::mysql::IInstance &master,
     const mysqlshdk::mysql::IInstance &slave, std::string *out_missing_gtids,
     std::string *out_errant_gtids) {
+  auto slave_gtid = get_executed_gtid_set(slave);
   auto master_gtid = get_executed_gtid_set(master);
   auto master_purged_gtid = get_purged_gtid_set(master);
-  auto slave_gtid = get_executed_gtid_set(slave);
 
   return check_replica_gtid_state(master, master_gtid, master_purged_gtid,
                                   slave_gtid, out_missing_gtids,

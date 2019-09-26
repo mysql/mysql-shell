@@ -47,7 +47,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 ||Dba.createCluster: Instance check failed (RuntimeError)
 
 //@ fix config including parallel type
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
 
 //@ Create cluster (succeed this time).
 ||
@@ -143,7 +143,7 @@ NOTE: Some configuration options need to be fixed:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@ configure instance and update type and commit order with valid values.
-|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was configured for InnoDB cluster usage.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was configured to be used in an InnoDB cluster.|
 
 //@<OUT> check instance, no invalid values after configure.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
@@ -158,7 +158,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
 //@ Adding instance to cluster (succeed: nothing to update).
 ||

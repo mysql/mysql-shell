@@ -57,7 +57,7 @@ constexpr const int k_server_recovery_restart_timeout = 60;
 
 Add_instance::Add_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const ReplicaSet &replicaset, const Group_replication_options &gr_options,
+    const GRReplicaSet &replicaset, const Group_replication_options &gr_options,
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     bool interactive, int wait_recovery, const std::string &replication_user,
@@ -89,7 +89,7 @@ Add_instance::Add_instance(
 }
 
 Add_instance::Add_instance(
-    mysqlsh::dba::Instance *target_instance, const ReplicaSet &replicaset,
+    mysqlsh::dba::Instance *target_instance, const GRReplicaSet &replicaset,
     const Group_replication_options &gr_options,
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
@@ -131,7 +131,7 @@ Add_instance::~Add_instance() {
 }
 
 namespace {
-bool check_recoverable_from_any(const ReplicaSet *replicaset,
+bool check_recoverable_from_any(const GRReplicaSet *replicaset,
                                 mysqlshdk::mysql::IInstance *target_instance) {
   // Check if the GTIDs were purged from the whole cluster
   bool recoverable = false;
@@ -160,9 +160,9 @@ bool check_recoverable_from_any(const ReplicaSet *replicaset,
 }
 
 void check_gtid_consistency_and_recoverability(
-    const ReplicaSet *replicaset, mysqlshdk::mysql::IInstance *target_instance,
-    bool *out_recovery_possible, bool *out_recovery_safe,
-    Member_recovery_method recovery_method) {
+    const GRReplicaSet *replicaset,
+    mysqlshdk::mysql::IInstance *target_instance, bool *out_recovery_possible,
+    bool *out_recovery_safe, Member_recovery_method recovery_method) {
   auto console = current_console();
 
   std::string errant_gtid_set;
@@ -177,22 +177,20 @@ void check_gtid_consistency_and_recoverability(
     case mysqlshdk::mysql::Replica_gtid_state::NEW:
       console->println();
       if (replicaset->get_cluster()->get_gtid_set_is_complete()) {
-        console->print_note(mysqlshdk::textui::format_markup_text(
-            {"The target instance '" + target_instance->descr() +
-             "' has not been pre-provisioned (GTID set is empty), but the "
-             "cluster was configured to assume that incremental distributed "
-             "state recovery can correctly provision it in this case."},
-            80));
+        console->print_note(
+            "The target instance '" + target_instance->descr() +
+            "' has not been pre-provisioned (GTID set is empty), but the "
+            "cluster was configured to assume that incremental distributed "
+            "state recovery can correctly provision it in this case.");
 
         *out_recovery_possible = true;
         *out_recovery_safe = true;
       } else {
-        console->print_note(mysqlshdk::textui::format_markup_text(
-            {"The target instance '" + target_instance->descr() +
-             "' has not been pre-provisioned (GTID set is empty). The Shell is"
-             " unable to decide whether incremental distributed state recovery "
-             "can correctly provision it."},
-            80));
+        console->print_note(
+            "The target instance '" + target_instance->descr() +
+            "' has not been pre-provisioned (GTID set is empty). The Shell is"
+            " unable to decide whether incremental distributed state recovery "
+            "can correctly provision it.");
 
         *out_recovery_possible = true;
         *out_recovery_safe = false;
@@ -221,13 +219,11 @@ void check_gtid_consistency_and_recoverability(
 
     case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
       console->println();
-      console->print_warning(mysqlshdk::textui::format_markup_text(
-          {"A GTID set check of the MySQL instance at '" +
-           target_instance->descr() +
-           "' determined that it contains transactions that "
-           "do not originate from the cluster, which must be "
-           "discarded before it can join the cluster."},
-          80));
+      console->print_warning("A GTID set check of the MySQL instance at '" +
+                             target_instance->descr() +
+                             "' determined that it contains transactions that "
+                             "do not originate from the cluster, which must be "
+                             "discarded before it can join the cluster.");
 
       console->print_info();
       console->print_info(target_instance->descr() +
@@ -236,18 +232,17 @@ void check_gtid_consistency_and_recoverability(
                           errant_gtid_set);
       console->print_info();
 
-      console->print_warning(mysqlshdk::textui::format_markup_text(
-          {"Discarding these extra GTID events can either be done manually or "
-           "by completely overwriting the state of " +
-               target_instance->descr() +
-               " with a physical snapshot from an existing cluster member. To "
-               "use this method by default, set the 'recoveryMethod' option to "
-               "'clone'.",
-
-           "Having extra GTID events is not expected, and it is "
-           "recommended to investigate this further and ensure that the data "
-           "can be removed prior to choosing the clone recovery method."},
-          80));
+      console->print_warning(
+          "Discarding these extra GTID events can either be done manually or "
+          "by completely overwriting the state of " +
+          target_instance->descr() +
+          " with a physical snapshot from an existing cluster member. To "
+          "use this method by default, set the 'recoveryMethod' option to "
+          "'clone'.");
+      console->print_info(
+          "Having extra GTID events is not expected, and it is "
+          "recommended to investigate this further and ensure that the data "
+          "can be removed prior to choosing the clone recovery method.");
 
       *out_recovery_possible = false;
       *out_recovery_safe = false;
@@ -255,12 +250,10 @@ void check_gtid_consistency_and_recoverability(
 
     case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
       if (!check_recoverable_from_any(replicaset, target_instance)) {
-        console->print_note(mysqlshdk::textui::format_markup_text(
-            {"A GTID set check of the MySQL instance at '" +
-             target_instance->descr() +
-             "' determined that it is missing transactions that "
-             "were purged from all cluster members."},
-            80));
+        console->print_note("A GTID set check of the MySQL instance at '" +
+                            target_instance->descr() +
+                            "' determined that it is missing transactions that "
+                            "were purged from all cluster members.");
 
         *out_recovery_possible = false;
         *out_recovery_safe = false;
@@ -277,6 +270,7 @@ void check_gtid_consistency_and_recoverability(
       *out_recovery_possible = true;
       *out_recovery_safe = true;
 
+      // TODO(alfredo) - this doesn't seem necessary?
       if (recovery_method == Member_recovery_method::AUTO)
         console->print_info(mysqlshdk::textui::format_markup_text(
             {shcore::str_format(
@@ -435,8 +429,8 @@ Member_recovery_method Add_instance::validate_instance_recovery() {
               "instances.");
         }
 
-        throw shcore::Exception::runtime_error(
-            "Instance provisioning required");
+        throw shcore::Exception("Instance provisioning required",
+                                SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
       }
     }
 
@@ -609,7 +603,8 @@ void Add_instance::resolve_ssl_mode() {
   // Show deprecation message for memberSslMode option if if applies.
   if (!m_gr_opts.ssl_mode.is_null()) {
     auto console = mysqlsh::current_console();
-    console->print_warning(mysqlsh::dba::ReplicaSet::kWarningDeprecateSslMode);
+    console->print_warning(
+        mysqlsh::dba::GRReplicaSet::kWarningDeprecateSslMode);
     console->println();
   }
 
@@ -917,7 +912,7 @@ void Add_instance::prepare() {
   try {
     m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
         m_gr_opts.local_address, m_host_in_metadata,
-        m_instance_cnx_opts.get_port());
+        *m_target_instance->get_sysvar_int("port"));
   } catch (const std::runtime_error &e) {
     // TODO: this is a hack.. rebootCluster shouldn't do the busy port check,
     // which can fail if the instance is trying to auto-rejoin. Once
@@ -944,7 +939,7 @@ void Add_instance::prepare() {
   //               reboot cluster (WL#11561), i.e. always execute check, not
   //               supposed to use Add_instance operation anymore.
   if (!m_skip_instance_check) {
-    ensure_instance_configuration_valid(*m_target_instance);
+    ensure_gr_instance_configuration_valid(m_target_instance);
   }
 
   // TODO(nelson) - skip_instance_check is only true when this is called from
@@ -1156,7 +1151,7 @@ shcore::Value Add_instance::execute() {
                m_gr_opts.group_name->c_str());
     }
 
-    log_info("Starting Replicaset with '%s' using account %s",
+    log_info("Starting cluster with '%s' using account %s",
              m_instance_address.c_str(),
              m_instance_cnx_opts.get_user().c_str());
 
@@ -1166,7 +1161,7 @@ shcore::Value Add_instance::execute() {
     //               just pass a null (bool). Now, the current behaviour is
     //               maintained.
     mysqlshdk::utils::nullable<bool> multi_primary =
-        m_replicaset.get_topology_type() == ReplicaSet::kTopologyMultiPrimary;
+        m_replicaset.get_topology_type() == GRReplicaSet::kTopologyMultiPrimary;
 
     // Start the replicaset to bootstrap Group Replication.
     mysqlsh::dba::start_replicaset(*m_target_instance, m_gr_opts, multi_primary,
@@ -1180,7 +1175,7 @@ shcore::Value Add_instance::execute() {
       m_gr_opts.group_seeds = m_replicaset.get_cluster_group_seeds();
     }
 
-    log_info("Joining '%s' to ReplicaSet using account %s to peer '%s'.",
+    log_info("Joining '%s' to cluster using account %s to peer '%s'.",
              m_instance_address.c_str(),
              m_peer_instance->get_connection_options().get_user().c_str(),
              m_peer_instance->descr().c_str());

@@ -9,7 +9,7 @@ Cluster.addInstance: This function is not available through a session to a read 
 Cluster.removeInstance: This function is not available through a session to a read only instance (RuntimeError)
 
 //@<ERR> rejoinInstance (OK - should fail, but not because of R/O)
-Cluster.rejoinInstance: Cannot rejoin instance 'localhost:<<<__mysql_sandbox_port1>>>' to the ReplicaSet 'default' since it is an active (ONLINE) member of the ReplicaSet. (RuntimeError)
+Cluster.rejoinInstance: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' to the cluster 'cluster' since it is an active (ONLINE) member of the cluster. (RuntimeError)
 
 //@<ERR> dissolve
 Cluster.dissolve: This function is not available through a session to a read only instance (RuntimeError)

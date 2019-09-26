@@ -48,12 +48,12 @@ Other names may be trademarks of their respective owners.
 Type '\help' or '\?' for help; '\quit' to exit.
 WARNING: Using a password on the command line interface can be insecure.
 Creating a session to '<<<__uri>>>/unexisting'
-ERROR: MySQL Error {{1049|1045}}: Unknown database 'unexisting'
+MySQL Error {{1049|1045}}: Unknown database 'unexisting'
 
 //@<OUT> Using --quiet-start with error
 WARNING: Using a password on the command line interface can be insecure.
 Creating a session to '<<<__uri>>>/unexisting'
-ERROR: MySQL Error {{1049|1045}}: Unknown database 'unexisting'
+MySQL Error {{1049|1045}}: Unknown database 'unexisting'
 
 //@ Using --quiet-start with error
 |~Oracle is a registered trademark of Oracle Corporation and/or its affiliates.|
@@ -61,14 +61,14 @@ ERROR: MySQL Error {{1049|1045}}: Unknown database 'unexisting'
 //@<OUT> Using --quiet-start=1 with error
 WARNING: Using a password on the command line interface can be insecure.
 Creating a session to '<<<__uri>>>/unexisting'
-ERROR: MySQL Error {{1049|1045}}: Unknown database 'unexisting'
+MySQL Error {{1049|1045}}: Unknown database 'unexisting'
 
 //@ Using --quiet-start=1 with error
 |~Oracle is a registered trademark of Oracle Corporation and/or its affiliates.|
 
 
 //@<OUT> Using --quiet-start=2 with error
-ERROR: MySQL Error {{1049|1045}}: Unknown database 'unexisting'
+MySQL Error {{1049|1045}}: Unknown database 'unexisting'
 
 //@ Using --quiet-start=2 with error
 |~Oracle is a registered trademark of Oracle Corporation and/or its affiliates.|

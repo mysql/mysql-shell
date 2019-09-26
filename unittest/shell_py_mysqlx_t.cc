@@ -56,8 +56,6 @@ class Shell_py_mysqlx_tests : public Shell_py_script_tester {
 
     std::string code = "__user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "__pwd = '" + password + "';";
-    exec_and_out_equals(code);
     code = "__host = '" + host + "';";
     exec_and_out_equals(code);
     code = "__port = " + _port + ";";

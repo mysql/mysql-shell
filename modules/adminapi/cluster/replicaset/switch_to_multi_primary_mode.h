@@ -32,7 +32,7 @@ namespace dba {
 
 class Switch_to_multi_primary_mode : public Topology_configuration_command {
  public:
-  explicit Switch_to_multi_primary_mode(ReplicaSet *replicaset);
+  explicit Switch_to_multi_primary_mode(GRReplicaSet *replicaset);
 
   ~Switch_to_multi_primary_mode() override;
 

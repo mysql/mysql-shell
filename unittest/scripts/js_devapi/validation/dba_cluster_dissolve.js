@@ -5,7 +5,7 @@
 ||
 
 //@<OUT> Dissolve cluster, enable interactive mode.
-The cluster still has the following registered ReplicaSets:
+The cluster still has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -20,7 +20,7 @@ The cluster still has the following registered ReplicaSets:
         "topologyMode": "Single-Primary"
     }
 }
-WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from the cluster and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
 
 Are you sure you want to dissolve the cluster? [y/N]:
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...

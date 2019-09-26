@@ -47,6 +47,7 @@
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -134,7 +135,8 @@ bool is_option_supported(
   }
 }
 
-void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
+void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
+                                  Cluster_type cluster_type) {
   // SHOW MASTER STATUS includes info about binlog filters, which filter
   // events from being written to the binlog, at the master
   auto result = instance.query("SHOW MASTER STATUS");
@@ -144,7 +146,8 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
       throw shcore::Exception(
           instance.descr() +
               ": instance has binlog filters configured, but they are "
-              "not supported in InnoDB clusters.",
+              "not supported in " +
+              to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
           SHERR_DBA_INVALID_SERVER_CONFIGURATION);
   }
 
@@ -166,8 +169,7 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
       if (instance.queryf_one_int(0, 0,
                                   "SELECT count(*) FROM "
                                   "performance_schema.replication_applier_"
-                                  "filters "
-                                  "WHERE filter_rule <> ''") > 0) {
+                                  "filters WHERE filter_rule <> ''") > 0) {
         has_filter = true;
       }
     } catch (std::exception &e) {
@@ -176,18 +178,20 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance) {
     }
 
     if (has_global_filter) {
-      throw shcore::Exception(instance.descr() +
-                                  ": instance has global replication filters "
-                                  "configured, but they are "
-                                  "not supported in InnoDB clusters.",
-                              SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+      throw shcore::Exception(
+          instance.descr() +
+              ": instance has global replication filters "
+              "configured, but they are not supported in " +
+              to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
+          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
     }
 
     if (has_filter) {
       throw shcore::Exception(
           instance.descr() +
               ": instance has replication filters configured, but they are "
-              "not supported in InnoDB clusters.",
+              "not supported in " +
+              to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
           SHERR_DBA_INVALID_SERVER_CONFIGURATION);
     }
   }
@@ -756,52 +760,110 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
   return ret;
 }
 
+void parse_fully_qualified_cluster_name(const std::string &name,
+                                        std::string *out_domain,
+                                        std::string *out_partition,
+                                        std::string *out_cluster_group) {
+  // TODO(pjesus): Replace current code by the commented one, when support
+  //               for names with a domain part is really supported.
+  *out_domain = "";
+  *out_cluster_group = name;
+  // size_t p = name.find("::");
+  // if (p != std::string::npos) {
+  //   *out_domain = name.substr(0, p);
+  //   *out_cluster_group = name.substr(p + 2);
+  // } else {
+  //   *out_domain = "";
+  //   *out_cluster_group = name;
+  // }
+  if (out_partition) *out_partition = "";
+
+  // not supported yet
+  // p = out_domain->find("/");
+  // if (p != std::string::npos) {
+  //   *out_partition = out_domain->substr(p + 1);
+  //   *out_domain = out_domain->substr(0, p);
+  // }
+}
+
 /**
  * Validate the given Cluster name.
- * Cluster name must be non-empty and no greater than 40 characters long and
- * start with an alphabetic or '_' character and just contain alphanumeric or
- * the '_' character.
+ *
+ * A fully qualified cluster name has the following form:
+ * [domain[/partition]::]clusterGroup
+ *
+ * Each component must be:
+ * non-empty and no greater than 40 characters long and start with an alphabetic
+ * or '_' character and just contain alphanumeric or the '_' character.
+ *
  * @param name of the cluster
+ * @param cluster_type indicates what the name is intended for
  * @throws shcore::Exception if the name is not valid.
  */
-void SHCORE_PUBLIC validate_cluster_name(const std::string &name) {
+void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
+                                         Cluster_type cluster_type) {
+  std::string what = cluster_type == Cluster_type::ASYNC_REPLICATION
+                         ? "ReplicaSet"
+                         : "Cluster";
+
   if (!name.empty()) {
-    bool valid = false;
+    std::string domain;
+    std::string partition;
+    std::string group;
 
-    if (name.length() > 40) {
+    parse_fully_qualified_cluster_name(name, &domain, &partition, &group);
+
+    if (domain.length() > 40) {
       throw shcore::Exception::argument_error(
-          "The Cluster name can not be greater than 40 characters.");
+          domain + ": The " + what +
+          " domain name can not be greater than 40 characters.");
+    }
+    if (partition.length() > 40) {
+      throw shcore::Exception::argument_error(
+          partition + ": The " + what +
+          " domain partition name can not be greater than 40 "
+          "characters.");
+    }
+    if (group.length() > 40) {
+      throw shcore::Exception::argument_error(
+          group + ": The " + what +
+          " name can not be greater than 40 characters.");
     }
 
-    std::locale locale;
-
-    valid = std::isalpha(name[0], locale) || name[0] == '_';
-    if (!valid) {
-      throw shcore::Exception::argument_error(
-          "The Cluster name can only start with an alphabetic or the '_' "
-          "character.");
-    }
-
-    size_t index = 1;
-    while (valid && index < name.size()) {
-      valid = std::isalnum(name[index], locale) || name[index] == '_';
-      if (!valid) {
-        std::string msg =
-            "The Cluster name can only contain alphanumerics or the '_' "
-            "character."
-            " Invalid character '";
-        msg.append(&(name.at(index)), 1);
-        msg.append("' found.");
-        throw shcore::Exception::argument_error(msg);
+    if (!domain.empty()) {
+      if (mysqlshdk::utils::span_keyword(domain, 0) != domain.length()) {
+        throw shcore::Exception::argument_error(
+            "" + what +
+            " name may only contain alphanumeric characters or "
+            "'_', and may not start with a number (" +
+            domain + ")");
       }
-      index++;
+    }
+    if (!partition.empty()) {
+      if (mysqlshdk::utils::span_keyword(partition, 0) != partition.length()) {
+        throw shcore::Exception::argument_error(
+            "" + what +
+            " name may only contain alphanumeric characters or "
+            "'_', and may not start with a number (" +
+            partition + ")");
+      }
+    }
+    if (!group.empty()) {
+      if (mysqlshdk::utils::span_keyword(group, 0) != group.length()) {
+        throw shcore::Exception::argument_error(
+            "" + what +
+            " name may only contain alphanumeric characters or "
+            "'_', and may not start with a number (" +
+            group + ")");
+      }
+    } else {
+      throw shcore::Exception::argument_error("The " + what +
+                                              " name cannot be empty.");
     }
   } else {
-    throw shcore::Exception::argument_error(
-        "The Cluster name cannot be empty.");
+    throw shcore::Exception::argument_error("The " + what +
+                                            " name cannot be empty.");
   }
-
-  return;
 }
 
 /**
@@ -924,7 +986,11 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
     const std::string error_message =
         "The MySQL instance at '" + instance.descr() +
         "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications.";
+        "protect it from inadvertent updates from applications.\nYou must "
+        "first unset it to be able to perform any changes to this "
+        "instance.\n"
+        "For more information see: https://dev.mysql.com/doc/refman/en/"
+        "server-system-variables.html#sysvar_super_read_only.";
 
     if (clear_read_only.is_null() && interactive) {
       console->print_error(error_message);
@@ -1425,7 +1491,7 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
     console->print_para(
         "The MySQL instance at '" + active_session_address +
         "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications. "
+        "protect it from inadvertent updates from applications.\n"
         "You must first unset it to be able to perform any changes "
         "to this instance.\n"
         "For more information see: https://dev.mysql.com/doc/refman/"
@@ -1675,14 +1741,6 @@ void validate_connection_options(
         options.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
         "' is not valid: " + error + ".");
   };
-
-  if (options.has_transport_type() &&
-      options.get_transport_type() != mysqlshdk::db::Tcp) {
-    // TODO(ak) this restriction should be lifted and sockets allowed
-    throw_exception(
-        "a MySQL session through TCP/IP is required to perform "
-        "this operation");
-  }
 
   if (options.has_host()) {
     // host has to be an IPv4 or IPv6 address or resolve to an IPv4 or IPv6
@@ -1989,6 +2047,140 @@ std::vector<Instance_gtid_info> filter_primary_candidates(
   }
 
   return candidates;
+}
+
+void validate_replication_channel_startup_status(
+    const mysqlshdk::mysql::Replication_channel &channel, bool *out_io_on,
+    bool *out_applier_on) {
+  using mysqlshdk::mysql::Replication_channel;
+
+  if (out_io_on) *out_io_on = false;
+  if (out_applier_on) *out_applier_on = false;
+
+  // 1st check connection thread
+  if (channel.receiver.state == Replication_channel::Receiver::ON) {
+    // channel is ok, now go check other stuff
+    if (out_io_on) *out_io_on = true;
+  } else {
+    // channel is stopped, not good
+    if (channel.receiver.last_error.code != 0) {
+      if (channel.receiver.last_error.code == ER_ACCESS_DENIED_ERROR)
+        throw shcore::Exception(
+            "Authentication error in replication channel: " +
+                mysqlshdk::mysql::to_string(channel.receiver.last_error),
+            SHERR_DBA_REPLICATION_AUTH_ERROR);
+      else
+        throw shcore::Exception(
+            "Replication receiver error: " +
+                mysqlshdk::mysql::to_string(channel.receiver.last_error),
+            SHERR_DBA_REPLICATION_CONNECT_ERROR);
+    }
+  }
+
+  // then check coordinator thread, if there's one
+  if (channel.coordinator.state != Replication_channel::Coordinator::NONE) {
+    if (channel.coordinator.state == Replication_channel::Coordinator::ON) {
+      // ok, check next
+    } else {
+      if (channel.coordinator.last_error.code != 0) {
+        throw shcore::Exception(
+            "Replication coordinator thread error: " +
+                mysqlshdk::mysql::to_string(channel.coordinator.last_error),
+            SHERR_DBA_REPLICATION_COORDINATOR_ERROR);
+      }
+    }
+  }
+
+  // finally, check applier threads
+  for (const auto &applier : channel.appliers) {
+    if (applier.state == Replication_channel::Applier::ON) {
+      // ok, check next
+      if (out_applier_on) *out_applier_on = true;
+    } else {
+      if (applier.last_error.code != 0) {
+        throw shcore::Exception(
+            "Replication applier thread error: " +
+                mysqlshdk::mysql::to_string(applier.last_error),
+            SHERR_DBA_REPLICATION_APPLIER_ERROR);
+      }
+    }
+  }
+}
+
+// TODO(alfredo): check GR recovery channel after instance join with this
+void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
+                               const std::string &channel_name) {
+  using mysqlshdk::mysql::Replication_channel;
+
+  Replication_channel channel;
+
+  log_debug("%s: waiting for replication i/o thread for channel %s",
+            instance.descr().c_str(), channel_name.c_str());
+
+  // This checks whether the slave starts correctly
+  try {
+    channel = mysqlshdk::mysql::wait_replication_done_connecting(instance,
+                                                                 channel_name);
+  } catch (mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
+                                                             e.sqlstate());
+  }
+  log_debug("%s", mysqlshdk::mysql::format_status(channel, true).c_str());
+
+  bool io_on = false;
+  bool sql_on = false;
+
+  switch (channel.status()) {
+    case Replication_channel::CONNECTING:
+      throw shcore::Exception("Timeout waiting for replication to start",
+                              SHERR_DBA_REPLICATION_START_TIMEOUT);
+
+    case Replication_channel::ON:
+      break;
+
+    default:
+      validate_replication_channel_startup_status(channel, &io_on, &sql_on);
+
+      if (!io_on || !sql_on) {
+        throw shcore::Exception("Replication thread not in expected state",
+                                SHERR_DBA_REPLICATION_START_ERROR);
+      }
+      break;
+  }
+}
+
+bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
+                            const std::string &gtid_set,
+                            const std::string &channel_name, int timeout) {
+  // The GTID wait will not abort if an error occurs, so calling it without a
+  // timeout will just freeze forever. To prevent that, we call the wait with
+  // smaller incremental timeouts and wait for errors during that.
+
+  // wait for at most 10s at a time
+  int incremental_timeout = std::min(timeout, 10);
+  if (incremental_timeout == 0) incremental_timeout = 10;
+
+  int time_elapsed = 0;
+
+  bool sync_res;
+  do {
+    sync_res = mysqlshdk::mysql::wait_for_gtid_set(target_instance, gtid_set,
+                                                   incremental_timeout);
+    if (!sync_res) {
+      time_elapsed += incremental_timeout;
+
+      // check for replication errors if the sync timed out
+      // the check function will throw an exception if so
+      check_replication_startup(target_instance, channel_name);
+
+      // continue waiting if there were no errors
+    } else {
+      // wait succeeded, get out of here
+      break;
+    }
+  } while (timeout == 0 || time_elapsed < timeout);
+
+  return sync_res;
 }
 
 }  // namespace dba

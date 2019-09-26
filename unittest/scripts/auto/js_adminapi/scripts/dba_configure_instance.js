@@ -36,8 +36,8 @@ testutil.expectPrompt("Please select an option [1]: ", "2");
 testutil.expectPrompt("Account Name: ", "repl_admin2");
 testutil.expectPassword("Password for new account: ", "");
 testutil.expectPassword("Confirm password: ", "");
+testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011) {
-    testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 

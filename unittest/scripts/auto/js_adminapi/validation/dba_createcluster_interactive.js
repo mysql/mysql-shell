@@ -21,18 +21,17 @@ Dba.createCluster: Cancelled (RuntimeError)
 //@<OUT> WL#12011: FR2-02 - interactive = false.
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -51,9 +50,9 @@ one server failure.
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Unable to set value ':' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of ':'
-||Unable to set value 'AB' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
-||Unable to set value '10' for 'exitStateAction': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -89,9 +88,9 @@ one server failure.
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Unable to set value ':' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of ':'
-||Unable to set value 'AB' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of 'AB'
-||Unable to set value '10' for 'consistency': localhost:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
@@ -131,18 +130,17 @@ WARNING: The failoverConsistency option is deprecated. Please use the consistenc
 //@<OUT> BUG#29361352: no warning or prompt for multi-primary (multiPrimary: false).
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-<<<(__version_num<80011)?"WARNING: Instance '"+localhost+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'test' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Creating InnoDB cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.

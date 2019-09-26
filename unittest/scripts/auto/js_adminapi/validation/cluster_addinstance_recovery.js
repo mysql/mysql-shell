@@ -20,12 +20,12 @@
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>=8.0.17)}
-|NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to decide whether incremental distributed state|
 |recovery can correctly provision it.|
 |The safest and most convenient way to provision a new instance is through|
 |automatic clone provisioning, which will completely overwrite the state of|
-|'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To|
+|'<<<__address2>>>' with a physical snapshot from an existing cluster member. To|
 |use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
 |The incremental distributed state recovery may be safely used if you are sure|
@@ -35,7 +35,9 @@
 |'recoveryMethod' option to 'incremental'.|
 ||
 ||
-|Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): |
+|Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone):|
+
+|Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 
 ||Cluster.addInstance: debug (LogicError)
 
@@ -52,15 +54,15 @@
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a {VER(>=8.0.17)}
-|WARNING: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|localhost:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
+|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of localhost:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of <<<__address2>>> with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -72,15 +74,15 @@
 ||Cluster.addInstance: Cancelled (RuntimeError)
 
 //@ recoveryMethod:auto, interactive, errant GTIDs -> error 5.7 {VER(<8.0.17)}
-|WARNING: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|localhost:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
+|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of localhost:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of <<<__address2>>> with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -91,11 +93,11 @@
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
 ||
 |Automatic clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, empty GTID -> error
 ||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
@@ -110,7 +112,7 @@
 //@# recoveryMethod:auto, non-interactive, subset GTIDs -> incr
 |The safest and most convenient way to provision a new instance is through|
 |automatic clone provisioning, which will completely overwrite the state of|
-|'localhost:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To|
+|'<<<__address2>>>' with a physical snapshot from an existing cluster member. To|
 |use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
 |The incremental distributed state recovery may be safely used if you are sure|
@@ -124,15 +126,15 @@
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.17)}
-|WARNING: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|localhost:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
+|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of localhost:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of <<<__address2>>> with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -143,17 +145,17 @@
 //@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.17)}
 ||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
 //@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, errant GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:incremental, interactive, make sure no prompts
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTID -> incr
-|NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to decide whether incremental distributed state|
 |recovery can correctly provision it.|
 |Incremental distributed state recovery selected through the recoveryMethod option|
@@ -164,7 +166,7 @@
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
-|NOTE: The target instance 'localhost:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty), but the cluster was configured to assume that incremental distributed|
 |state recovery can correctly provision it in this case.|
 ||
@@ -176,7 +178,7 @@
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, errant GTIDs -> error
-|WARNING: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
@@ -213,35 +215,35 @@
 ||
 
 //@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a
-|NOTE: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 //@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||Cluster.addInstance: Cancelled (RuntimeError)
 //@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, purged GTID -> error
-|NOTE: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a
-|WARNING: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(>=8.0.17)}
 ||Cluster.addInstance: Cancelled (RuntimeError)
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs + purged GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required (RuntimeError)
+||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:incremental, purged GTID -> error
-|NOTE: A GTID set check of the MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' determined that it|
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 ||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 

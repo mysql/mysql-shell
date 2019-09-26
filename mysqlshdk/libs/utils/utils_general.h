@@ -61,10 +61,46 @@ class Scoped_callback {
  public:
   explicit Scoped_callback(std::function<void()> c) : callback(c) {}
 
-  ~Scoped_callback() { callback(); }
+  ~Scoped_callback() { call(); }
+
+  void call() {
+    if (!cancelled && !called) {
+      callback();
+      called = true;
+    }
+  }
+
+  void cancel() { cancelled = true; }
 
  private:
   std::function<void()> callback;
+  bool cancelled = false;
+  bool called = false;
+};
+
+class Scoped_callback_list {
+ public:
+  ~Scoped_callback_list() { call(); }
+
+  void push_back(const std::function<void()> &c) { callbacks.push_back(c); }
+
+  void push_front(const std::function<void()> &c) { callbacks.push_front(c); }
+
+  void call() {
+    if (!cancelled && !called) {
+      for (const auto &cb : callbacks) {
+        cb();
+      }
+      called = true;
+    }
+  }
+
+  void cancel() { cancelled = true; }
+
+ private:
+  std::list<std::function<void()>> callbacks;
+  bool cancelled = false;
+  bool called = false;
 };
 
 using on_leave_scope = Scoped_callback;

@@ -8,7 +8,7 @@ Cluster.setPrimaryInstance: Operation not supported on target server version: '<
 ||Invalid URI: empty. (ArgumentError)
 ||Argument #1 is expected to be a string (ArgumentError)
 ||Invalid connection options, no options provided. (ArgumentError)
-||The instance 'localhost:3355' does not belong to the ReplicaSet: 'default'. (RuntimeError)
+||The instance 'localhost:3355' does not belong to the cluster: 'cluster'. (RuntimeError)
 
 //@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
 ||Cluster.setPrimaryInstance: This operation requires all the cluster members to be ONLINE (RuntimeError)

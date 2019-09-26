@@ -2,10 +2,10 @@
 ||
 
 //@# 1- Rejoin on a active member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet: 'default'.
+||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 1- Add on active member from a different group
-||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
+||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
 
 //@ Stop GR
 |Query OK|
@@ -14,7 +14,7 @@
 |Query OK|
 
 //@# 3- Rejoin on inactive member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet: 'default'.
+||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 3- Add on inactive member from a different group
 
@@ -22,7 +22,7 @@
 |Query OK|
 
 //@# 4- Rejoin on non-cluster inactive member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet: 'default'.
+||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 4- Add on non-cluster inactive member from a different group
 
@@ -30,10 +30,10 @@
 |Query OK|
 
 //@# 2- Rejoin on non-cluster active member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet: 'default'.
+||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 2- Add on non-cluster active member from a different group
-||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group
+||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group
 
 
 //----
@@ -55,7 +55,7 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from 'localhost:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -86,7 +86,7 @@
 ]
 
 //@# forceQuorum
-||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario.
+||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different cluster as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the cluster's Metadata: possible split-brain scenario. (RuntimeError)
 
 //@ Cleanup
 ||

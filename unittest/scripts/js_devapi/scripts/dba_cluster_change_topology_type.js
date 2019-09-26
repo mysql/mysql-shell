@@ -20,9 +20,9 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Check topology type
 var md_address1 = hostname + ":" + __mysql_sandbox_port1;
-var res = session.runSql("SELECT topology_type " +
-    "FROM mysql_innodb_cluster_metadata.replicasets r, mysql_innodb_cluster_metadata.instances i " +
-    "WHERE r.replicaset_id = i.replicaset_id AND i.instance_name = '"+ md_address1 +"'");
+var res = session.runSql("SELECT primary_mode " +
+    "FROM mysql_innodb_cluster_metadata.clusters r, mysql_innodb_cluster_metadata.instances i " +
+    "WHERE r.cluster_id = i.cluster_id AND i.instance_name = '"+ md_address1 +"'");
 var row = res.fetchOne();
 print (row[0]);
 
@@ -65,7 +65,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 cluster.status();
 
 //@ Update the topology type to 'mm'
-session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'mm'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'mm'");
 session.close();
 
 cluster.disconnect();

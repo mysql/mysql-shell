@@ -1755,7 +1755,7 @@ class XShell_TestCases(unittest.TestCase):
                                                                         LOCALHOST.host),
                  "was successfully added to the cluster"),
                 ("cluster.removeInstance(\"{0}:3315\");\n".format(LOCALHOST.host),
-                 "does not belong to the ReplicaSet")
+                 "does not belong to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       ##########################

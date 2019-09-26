@@ -19,7 +19,9 @@
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Invalid value for ipWhitelist: string value cannot be empty.
-||Dba.createCluster: The Cluster name can only start with an alphabetic or the '_' character.
+||Dba.createCluster: Cluster name may only contain alphanumeric characters or '_', and may not start with a number (#) (ArgumentError)
+||Dba.createCluster: _1234567890::_1234567890123456789012345678901: The Cluster name can not be greater than 40 characters. (ArgumentError)
+||Dba.createCluster: Cluster name may only contain alphanumeric characters or '_', and may not start with a number (::) (ArgumentError)
 
 //@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|
@@ -39,19 +41,19 @@
 //@<OUT> Dba: createCluster with interaction {VER(>=8.0.11)}
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
+NOTE: Metadata schema found in target instance
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -59,26 +61,26 @@ one server failure.
 //@<OUT> Dba: createCluster with interaction {VER(<8.0.11)}
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 
-Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
-
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-Creating InnoDB cluster 'devCluster' on 'localhost:<<<__mysql_sandbox_port1>>>'...
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
+NOTE: Metadata schema found in target instance
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@ Dba: checkInstanceConfiguration error
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (MYSQLSH 51305)
 //@<OUT> Dba: checkInstanceConfiguration ok 1
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
@@ -92,7 +94,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -107,7 +109,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
@@ -174,16 +176,16 @@ NOTE: Some configuration options need to be fixed:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Persisting the cluster settings...
 WARNING: The 'group_replication_group_seeds' is not defined on instance 'localhost:<<<__mysql_sandbox_port1>>>'. This option is mandatory to allow the server to automatically rejoin the cluster after reboot. Please manually update its value on the option file.
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
 The instance cluster settings were successfully persisted.
 
 //@ Dba: configureLocalInstance error 3 bad call {VER(>=8.0.11)}
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
 |Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 
 //@ Dba: Create user without all necessary privileges
@@ -255,7 +257,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
 
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
@@ -283,7 +285,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
 
 
 //@ Dba: create an admin user with all needed privileges
@@ -306,7 +308,7 @@ ERROR: User 'mydba' can only connect from 'localhost'. New account(s) with prope
 Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
 privileges or leave empty and press Enter to cancel.
 Account Name: Password for new account: Confirm password:
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 Cluster admin user 'dba_test'@'%' created.
 
@@ -328,7 +330,7 @@ Please select an option [1]: Please provide an account name (e.g: icroot@%) to h
 privileges or leave empty and press Enter to cancel.
 Account Name: User 'dba_test'@'%' already exists and will not be created.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
@@ -360,7 +362,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 
 //@ createCluster() should fail if user does not have global GRANT OPTION
 |A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port2>>>'.|
-|Validating instance at localhost:<<<__mysql_sandbox_port2>>>...|
+|Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 |ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: GRANT OPTION.|
 |For more information, see the online documentation.|

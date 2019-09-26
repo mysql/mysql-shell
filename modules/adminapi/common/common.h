@@ -35,11 +35,11 @@
 
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/preconditions.h"
-#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 
@@ -48,8 +48,20 @@ namespace dba {
 
 class MetadataStorage;
 
-void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
+void SHCORE_PUBLIC parse_fully_qualified_cluster_name(
+    const std::string &name, std::string *out_domain,
+    std::string *out_partition, std::string *out_cluster_group);
+
+void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
+                                         Cluster_type cluster_type);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
+
+// Default names
+constexpr const char k_default_domain_partition_name[] = "default";
+constexpr const char k_default_domain_name[] = "mydb";
+
+// TODO(alfredo) - all server configuration constants and general functions
+// should be moved to repl_config.h
 
 // common keys for group replication and clone configuration options
 constexpr const char kExitStateAction[] = "exitStateAction";
@@ -79,6 +91,7 @@ constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
 constexpr const char kGrAutoRejoinTries[] =
     "group_replication_autorejoin_tries";
 constexpr const char kDisableClone[] = "disableClone";
+constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
 
 // Group Replication configuration option availability regarding MySQL Server
 // version
@@ -106,8 +119,8 @@ const std::map<std::string, std::string> k_instance_options{
     {kConsistency, kGrConsistency}};
 
 /**
- * Map of the supported global ReplicaSet configuration options in the AdminAPI
- * <sysvar, name>
+ * Map of the supported global ReplicaSet configuration options in the
+ * AdminAPI <sysvar, name>
  */
 const std::map<std::string, Option_availability>
     k_global_replicaset_supported_options{
@@ -214,18 +227,19 @@ bool is_option_supported(
  *
  * GR does not support filters:
  * https://dev.mysql.com/doc/refman/8.0/en/replication-options-slave.html
- * Global replication filters cannot be used on a MySQL server instance that is
- * configured for Group Replication, because filtering transactions on some
- * servers would make the group unable to reach agreement on a consistent state.
- * Channel specific replication filters can be used on replication channels that
- * are not directly involved with Group Replication, such as where a group
- * member also acts as a replication slave to a master that is outside the
- * group. They cannot be used on the group_replication_applier or
+ * Global replication filters cannot be used on a MySQL server instance that
+ * is configured for Group Replication, because filtering transactions on some
+ * servers would make the group unable to reach agreement on a consistent
+ * state. Channel specific replication filters can be used on replication
+ * channels that are not directly involved with Group Replication, such as
+ * where a group member also acts as a replication slave to a master that is
+ * outside the group. They cannot be used on the group_replication_applier or
  * group_replication_recovery channels.
  *
  * In AR, we also forbid filters in channels we manage.
  */
-void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance);
+void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
+                                  Cluster_type cluster_type);
 
 std::pair<int, int> find_cluster_admin_accounts(
     const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
@@ -346,15 +360,15 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 /**
  * Resolves Group Replication local address.
  *
- * If the host part is not specified for the local_address then use the instance
- * report host (used by GR and the Metadata).
- * If the port part is not specified for the local_address then use the instance
- * connection port value * 10 + 1.
+ * If the host part is not specified for the local_address then use the
+ * instance report host (used by GR and the Metadata). If the port part is not
+ * specified for the local_address then use the instance connection port value
+ * * 10 + 1.
  *
- * The port cannot be greater than 65535. If it is when determined automatically
- * using the formula "<port> * 10 + 1" then a random port number will be
- * generated. If an invalid port value is specified (by the user) in the
- * local_address then an error is issued.
+ * The port cannot be greater than 65535. If it is when determined
+ * automatically using the formula "<port> * 10 + 1" then a random port number
+ * will be generated. If an invalid port value is specified (by the user) in
+ * the local_address then an error is issued.
  *
  * @param local_address Nullable string with the input local address value to
  *                      resolve.
@@ -362,8 +376,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  *                    used by GR and the Metadata).
  * @param port integer with port used to connect to the instance.
  *
- * @throw std::runtime_error if the port specified by the user is invalid or if
- *        it is already being used.
+ * @throw std::runtime_error if the port specified by the user is invalid or
+ * if it is already being used.
  */
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
@@ -386,14 +400,51 @@ struct Instance_gtid_info {
  *
  * @param server - a server in which GTID set operations will be evaluated.
  * The server doesn't need to be related to the candidates being checked.
- * @param gtid_info - a list of candidates instances with their @@GTID_EXECUTED
- * data.
+ * @param gtid_info - a list of candidates instances with their
+ * @@GTID_EXECUTED data.
  * @returns list of instances that could become a PRIMARY.
  */
 std::vector<Instance_gtid_info> filter_primary_candidates(
     const mysqlshdk::mysql::IInstance &server,
     const std::vector<Instance_gtid_info> &gtid_info);
 
+/**
+ * Ensures that the replication channel is either ON or OFF without errors.
+ *
+ * @throw shcore::Exception with errors detected.
+ */
+void validate_replication_channel_startup_status(
+    const mysqlshdk::mysql::Replication_channel &channel, bool *out_io_on,
+    bool *out_applier_on);
+
+/**
+ * Waits for the given replication channel to start, throw exception if
+ * an error is detected.
+ *
+ * @param instance the replica instance
+ * @param channel_name name of the replication channel to check
+ */
+void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
+                               const std::string &channel_name);
+
+/*
+ * Synchronize transactions on target instance.
+ *
+ * Wait for gtid_set to be applied on the specified target instance. Function
+ * will monitor for replication errors on the named channel and throw an
+ * exception if an error is detected.
+ *
+ * @param target_instance instance to wait for transaction to be applied.
+ * @param gtid_set the transaction set to wait for
+ * @param channel_name the name of the channel to monitor
+ * @param timeout number of seconds to wait
+ *
+ * @throw RuntimeError if the timeout is reached when waiting for
+ * transactions to be applied or replication errors are detected.
+ */
+bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
+                            const std::string &gtid_set,
+                            const std::string &channel_name, int timeout);
 }  // namespace dba
 }  // namespace mysqlsh
 

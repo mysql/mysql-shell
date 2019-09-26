@@ -32,8 +32,6 @@
 namespace mysqlsh {
 namespace dba {
 
-class ProvisioningInterface;
-
 /**
  * Ensure that the configuration of the target instance is valid for GR.
  *
@@ -45,8 +43,11 @@ class ProvisioningInterface;
  *
  * Throws an exception if checks fail.
  */
-void ensure_instance_configuration_valid(
-    const mysqlshdk::mysql::IInstance &target_instance, bool full = true);
+void ensure_gr_instance_configuration_valid(
+    mysqlshdk::mysql::IInstance *target_instance, bool full = true);
+
+void ensure_ar_instance_configuration_valid(
+    mysqlshdk::mysql::IInstance *target_instance);
 
 /**
  * Validates the permissions of the user running the operation.
@@ -58,6 +59,21 @@ void ensure_instance_configuration_valid(
  */
 void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance);
 
+/**
+ * Throw exception (or show warning if fatal is false) if instance needs any
+ * transactions that were purged.
+ */
+bool ensure_gtid_sync_possible(const mysqlshdk::mysql::IInstance &master,
+                               const mysqlshdk::mysql::IInstance &instance,
+                               bool fatal);
+
+/**
+ * Throw exception (or show warning if fatal is false) if instance has
+ * transactions that don't exist in master.
+ */
+bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
+                            const mysqlshdk::mysql::IInstance &instance,
+                            bool fatal);
 }  // namespace dba
 }  // namespace mysqlsh
 

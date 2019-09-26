@@ -39,7 +39,7 @@ namespace mysqlsh {
 namespace dba {
 
 Topology_configuration_command::Topology_configuration_command(
-    ReplicaSet *replicaset)
+    GRReplicaSet *replicaset)
     : m_replicaset(replicaset) {
   assert(replicaset);
   m_cluster_session_instance =
@@ -63,8 +63,8 @@ void Topology_configuration_command::
         const std::string &metadata_address) {
   auto console = mysqlsh::current_console();
 
-  // Check if the instance belongs to the ReplicaSet
-  log_debug("Checking if the instance belongs to the Replicaset.");
+  // Check if the instance belongs to the GRReplicaSet
+  log_debug("Checking if the instance belongs to the cluster.");
 
   bool is_instance_on_md =
       m_replicaset->get_cluster()->contains_instance_with_address(
@@ -72,8 +72,8 @@ void Topology_configuration_command::
 
   if (!is_instance_on_md) {
     std::string err_msg = "The instance '" + instance_address +
-                          "' does not belong to the ReplicaSet: '" +
-                          m_replicaset->get_name() + "'.";
+                          "' does not belong to the cluster: '" +
+                          m_replicaset->get_cluster()->get_name() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -128,7 +128,7 @@ void Topology_configuration_command::ensure_version_all_members_replicaset(
     mysqlshdk::utils::Version version) {
   auto console = mysqlsh::current_console();
 
-  log_debug("Checking if all members of the Replicaset have a version >= %s.",
+  log_debug("Checking if all members of the cluster have a version >= %s.",
             version.get_full().c_str());
 
   std::string cluster_session_uri =
@@ -164,7 +164,7 @@ void Topology_configuration_command::update_topology_mode_metadata(
     const mysqlshdk::gr::Topology_mode &topology_mode) {
   auto console = mysqlsh::current_console();
 
-  log_debug("Updating Replicaset value of topology_type to %s in the Metadata.",
+  log_debug("Updating cluster value of topology_type to %s in the Metadata.",
             mysqlshdk::gr::to_string(topology_mode).c_str());
 
   // Since we're switching to single-primary mode, the active session may not
@@ -251,7 +251,7 @@ void Topology_configuration_command::prepare() {
   m_initial_members_info =
       mysqlshdk::gr::get_members(*m_cluster_session_instance);
 
-  // Get the ReplicaSet Config Object
+  // Get the GRReplicaSet Config Object
   m_cfg = m_replicaset->create_config_object();
 }
 

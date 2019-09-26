@@ -43,6 +43,11 @@ class Config_server_handler_test : public tests::Shell_base_test {
     // Create instance and Open the session for the tests.
     m_connection_options = shcore::get_connection_options(_mysql_uri);
     m_session->connect(m_connection_options);
+
+    m_report_host =
+        m_session->query("SELECT coalesce(@@report_host, @@hostname)")
+            ->fetch_one()
+            ->get_string(0);
   }
 
   void TearDown() {
@@ -55,6 +60,8 @@ class Config_server_handler_test : public tests::Shell_base_test {
   std::shared_ptr<mysqlshdk::db::ISession> m_session =
       mysqlshdk::db::mysql::Session::create();
   mysqlshdk::db::Connection_options m_connection_options;
+
+  std::string m_report_host;
 };
 
 TEST_F(Config_server_handler_test, config_interface_global_vars) {
@@ -560,8 +567,8 @@ TEST_F(Config_server_handler_test, apply_errors) {
     cfg_h.set("not_exit_bool", nullable<bool>(true), "notExistBool");
     EXPECT_THROW_LIKE(
         cfg_h.apply(), std::runtime_error,
-        "Unable to set value 'true' for 'notExistBool': localhost:" +
-            _mysql_port + ": Unknown system variable 'not_exit_bool'");
+        "Unable to set value 'true' for 'notExistBool': " + m_report_host +
+            ":" + _mysql_port + ": Unknown system variable 'not_exit_bool'");
   }
 
   {
@@ -578,7 +585,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     cfg_h.set("not_exit_int", nullable<int64_t>(1234), "notExistInt");
     EXPECT_THROW_LIKE(
         cfg_h.apply(), std::runtime_error,
-        "Unable to set value '1234' for 'notExistInt': localhost:" +
+        "Unable to set value '1234' for 'notExistInt': " + m_report_host + ":" +
             _mysql_port + ": Unknown system variable 'not_exit_int'");
   }
 
@@ -597,8 +604,8 @@ TEST_F(Config_server_handler_test, apply_errors) {
               "notExistString");
     EXPECT_THROW_LIKE(
         cfg_h.apply(), std::runtime_error,
-        "Unable to set value 'mystr' for 'notExistString': localhost:" +
-            _mysql_port + ": Unknown system variable 'not_exit_string'");
+        "Unable to set value 'mystr' for 'notExistString': " + m_report_host +
+            ":" + _mysql_port + ": Unknown system variable 'not_exit_string'");
   }
 }
 

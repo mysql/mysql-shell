@@ -158,8 +158,13 @@ inline size_t str_span(const std::string &s1, const std::string &s2) {
 
 /** Partition a string in 2 at a separator, if present */
 inline std::pair<std::string, std::string> str_partition(
-    const std::string &s, const std::string &sep) {
+    const std::string &s, const std::string &sep, bool *found_sep = nullptr) {
   auto p = s.find(sep);
+
+  if (found_sep) {
+    *found_sep = p != std::string::npos;
+  }
+
   if (p == std::string::npos)
     return std::make_pair(s, "");
   else

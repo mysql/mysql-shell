@@ -114,7 +114,7 @@
 ||
 
 //@# rescan
-|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the ReplicaSet.|
+|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the cluster.|
 
 //@# dissolve
 ||

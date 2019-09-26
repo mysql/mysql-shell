@@ -128,10 +128,9 @@ class Test_debugger {
       return Action::Abort;
     }
 
-    if (g_test_trace_scripts)
-      println(
-          "\033[35m\033[1m#####################################################"
-          "################################\033[0m");
+    println(
+        "\033[35m\033[1m#######################################################"
+        "##############################\033[0m");
 
     return Action::Continue;
   }
@@ -527,6 +526,7 @@ bool Shell_script_tester::validate(const std::string &context,
           ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                          _chunks[chunk_id].code[0].first)
               << makered("\tUnexpected Error: " + original_std_err) << "\n";
+          output_handler.wipe_all();
           return false;
         }
 
@@ -561,6 +561,7 @@ bool Shell_script_tester::validate(const std::string &context,
                        _chunks[chunk_id].code[0].first)
             << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
             << makered("\tUnexpected Error: ") << original_std_err << "\n";
+        output_handler.wipe_all();
         return false;
       }
 
@@ -573,8 +574,10 @@ bool Shell_script_tester::validate(const std::string &context,
         if (out != "*") {
           if (validations[valindex]->def->validation ==
               ValidationType::Simple) {
-            auto pos = original_std_out.find(out, out_position);
-            if (pos == std::string::npos) {
+            auto matched =
+                multi_value_compare(out, original_std_out, false, out_position,
+                                    nullptr, &out_position);
+            if (!matched) {
               if (out_position == 0) {
                 ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
@@ -597,10 +600,8 @@ bool Shell_script_tester::validate(const std::string &context,
                     << makeyellow("\tSTDOUT original: ") + original_std_out
                     << "\n";
               }
+              output_handler.wipe_all();
               return false;
-            } else {
-              // Consumes the already found output
-              out_position = pos + out.length();
             }
           } else {
             SCOPED_TRACE(_chunks[chunk_id].source);
@@ -610,8 +611,10 @@ bool Shell_script_tester::validate(const std::string &context,
                         ? _cout.str()
                         : original_std_out,
                     _chunks[chunk_id].code[0].first,
-                    validations[valindex]->def->linenum))
+                    validations[valindex]->def->linenum)) {
+              output_handler.wipe_all();
               return false;
+            }
           }
         }
       }
@@ -621,13 +624,13 @@ bool Shell_script_tester::validate(const std::string &context,
         std::string out = validations[valindex]->unexpected_output;
 
         out = resolve_string(out);
-        size_t pos = std::string::npos;
+        bool matched = false;
         if (validations[valindex]->def->stream == "PROTOCOL")
-          pos = _cout.str().find(out);
+          matched = _cout.str().find(out) != std::string::npos;
         else
-          pos = original_std_out.find(out);
+          matched = multi_value_compare(out, original_std_out, false);
 
-        if (pos != std::string::npos) {
+        if (matched) {
           ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                          _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
@@ -635,6 +638,7 @@ bool Shell_script_tester::validate(const std::string &context,
               << "\n"
               << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
               << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
+          output_handler.wipe_all();
           return false;
         }
       }
@@ -648,8 +652,10 @@ bool Shell_script_tester::validate(const std::string &context,
         if (error != "*") {
           if (validations[valindex]->def->validation ==
               ValidationType::Simple) {
-            auto pos = original_std_err.find(error, err_position);
-            if (pos == std::string::npos) {
+            bool matched =
+                multi_value_compare(error, original_std_err, false,
+                                    err_position, nullptr, &err_position);
+            if (!matched) {
               if (err_position == 0) {
                 ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                                _chunks[chunk_id].code[0].first)
@@ -674,24 +680,24 @@ bool Shell_script_tester::validate(const std::string &context,
                     << makeyellow("\tSTDERR original: ") + original_std_err
                     << "\n";
               }
+              output_handler.wipe_all();
               return false;
-            } else {
-              // Consumes the already found error
-              err_position = pos + error.length();
             }
           } else {
             SCOPED_TRACE(_chunks[chunk_id].source);
             if (!validate_line_by_line(context, chunk_id, "STDERR", error,
                                        original_std_err,
                                        _chunks[chunk_id].code[0].first,
-                                       validations[valindex]->def->linenum))
+                                       validations[valindex]->def->linenum)) {
+              output_handler.wipe_all();
               return false;
+            }
           }
         }
       }
     }
 
-    if (validations.empty()) {
+    if (!optional && validations.empty()) {
       ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                      _chunks[chunk_id].code[0].first)
           << makered("MISSING VALIDATIONS FOR CHUNK ")
@@ -917,7 +923,7 @@ bool Shell_script_tester::add_source_chunk(const std::string &path,
 
 void Shell_script_tester::add_validation(
     const std::shared_ptr<Chunk_definition> &chunk_def,
-    const std::vector<std::string> &source) {
+    const std::vector<std::string> &source, const std::string &sep) {
   if (source.size() == 3) {
     if (_chunk_validations.find(chunk_def->id) == _chunk_validations.end())
       _chunk_validations[chunk_def->id] = Chunk_validations();
@@ -928,7 +934,7 @@ void Shell_script_tester::add_validation(
   } else {
     std::string text(makered("WRONG VALIDATION FORMAT FOR CHUNK ") +
                      chunk_def->line);
-    text += "\nLine: " + shcore::str_join(source, "|");
+    text += "\nLine: " + shcore::str_join(source, sep);
     SCOPED_TRACE(text.c_str());
     ADD_FAILURE();
   }
@@ -1156,8 +1162,12 @@ void Shell_script_tester::load_validations(const std::string &path) {
               line = str_strip(line);
               if (!line.empty()) {
                 std::vector<std::string> tokens;
-                tokens = split_string(line, "|", false);
-                add_validation(current_val_def, tokens);
+                // parse each line as:
+                // <sep>stdout<sep>stderr<sep>
+                // where <sep> can be any single char, such as |
+                std::string sep = line.substr(0, 1);
+                tokens = split_string(line, sep, false);
+                add_validation(current_val_def, tokens, sep);
               }
             }
           } else {
@@ -1396,7 +1406,7 @@ void Shell_script_tester::execute_script(const std::string &path,
       if (g_generate_validation_file) {
         ofile.close();
       }
-    } else {
+    } else {  // !in_chunks
       _options->interactive = false;
 
       // Loads the validations, the validation is to exclude
@@ -1557,6 +1567,8 @@ void Shell_script_tester::set_defaults() {
                         _target_server_version.get_patch());
   exec_and_out_equals(code);
 
+  def_var("__mysqluripwd", "''");
+
   def_var("__os_type", "'" + shcore::to_string(shcore::get_os_type()) + "'");
   def_var("__test_data_path",
           shcore::quote_string(shcore::path::join_path(g_test_home, "data", ""),
@@ -1570,9 +1582,14 @@ void Shell_script_tester::set_defaults() {
 #endif
 
 #ifdef DBUG_OFF
+  // TODO(.) - remove __dbug_off and replace all uses with __dbug
   def_var("__dbug_off", "1");
+  // dbug tests should only run in direct mode, so that traces aren't affected
+  // by different code branches being taken
+  def_var("__dbug", !_replaying && !_recording ? "1==1" : "0==1");
 #else
   def_var("__dbug_off", "0");
+  def_var("__dbug", "0==1");
 #endif
 }
 

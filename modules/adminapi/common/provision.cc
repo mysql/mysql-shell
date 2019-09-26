@@ -59,6 +59,11 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   if (!single_primary_mode.is_null()) {
     config->set("group_replication_single_primary_mode",
                 mysqlshdk::utils::nullable<bool>(single_primary_mode));
+
+    // Enable GR enforce update everywhere checks for multi-primary clusters
+    // and disable it for single-primary.
+    config->set("group_replication_enforce_update_everywhere_checks",
+                mysqlshdk::utils::nullable<bool>(!*single_primary_mode));
   }
 
   if (!gr_opts.ssl_mode.is_null()) {
@@ -190,6 +195,12 @@ void leave_replicaset(const mysqlsh::dba::Instance &instance) {
     instance.set_sysvar("group_replication_start_on_boot", false,
                         mysqlshdk::mysql::Var_qualifier::PERSIST);
 
+    // GR enforce update everywhere checks must be set to OFF to allow reusing
+    // the instance (e.g., in another (single-primary) cluster).
+    // NOTE: Cannot set this variable (fail) to the value DEFAULT.
+    instance.set_sysvar("group_replication_enforce_update_everywhere_checks",
+                        false, mysqlshdk::mysql::Var_qualifier::PERSIST);
+
     for (auto gr_var : k_gr_remove_instance_vars_default) {
       instance.set_sysvar_default(gr_var,
                                   mysqlshdk::mysql::Var_qualifier::PERSIST);
@@ -223,7 +234,7 @@ void leave_replicaset(const mysqlsh::dba::Instance &instance) {
 
 std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::config::Config &config) {
+    const mysqlshdk::config::Config &config, Cluster_type cluster_type) {
   auto invalid_cfgs_vec = std::vector<mysqlshdk::mysql::Invalid_config>();
 
   // validate server_id
@@ -233,8 +244,9 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
   mysqlshdk::mysql::check_log_bin_compatibility(instance, config,
                                                 &invalid_cfgs_vec);
   // validate rest of server variables required for gr
-  mysqlshdk::mysql::check_server_variables_compatibility(config, true,
-                                                         &invalid_cfgs_vec);
+  mysqlshdk::mysql::check_server_variables_compatibility(
+      config, cluster_type == Cluster_type::GROUP_REPLICATION,
+      &invalid_cfgs_vec);
 
   // NOTE: The order in the invalid_cfgs_vec is important since this vector
   // will be used for the configure_instance operation to set the correct
@@ -269,7 +281,8 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
 
 bool configure_instance(
     mysqlshdk::config::Config *config,
-    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs) {
+    const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs,
+    Cluster_type /*cluster_type*/) {
   // An non-null Config with an server configuration handler is expected.
   // NOTE: a option file handler might not be needed/available.
   assert(config);
@@ -554,7 +567,7 @@ void join_replicaset(
                                             &single_primary_mode)) {
     throw std::runtime_error{"Cannot join instance '" + instance.descr() +
                              "'. Peer instance '" + peer_instance.descr() +
-                             "' is no longer a member of the ReplicaSet."};
+                             "' is no longer a member of the cluster."};
   }
 
   // Confirm the peer_instance status, must be ONLINE.

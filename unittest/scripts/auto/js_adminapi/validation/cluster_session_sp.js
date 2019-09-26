@@ -239,15 +239,15 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster on a non-cluster member + cmd (error)
-|Option --cluster requires a session to a member of a InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB cluster.|
 |ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member interactive (error)
-|Option --cluster requires a session to a member of a InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB cluster.|
 |ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of a InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB cluster.|
 |ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster + --redirect-primary 1
@@ -276,7 +276,7 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of a InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB cluster.|
 |ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SPX - Connect with --cluster + --redirect-primary 1
@@ -305,7 +305,7 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of a InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB cluster.|
 |ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 1

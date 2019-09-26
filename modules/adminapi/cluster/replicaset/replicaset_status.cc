@@ -97,7 +97,7 @@ inline bool set_ts(shcore::Dictionary_t dict, const std::string &prop,
 }  // namespace
 
 Replicaset_status::Replicaset_status(
-    const ReplicaSet &replicaset,
+    const GRReplicaSet &replicaset,
     const mysqlshdk::utils::nullable<uint64_t> &extended)
     : m_replicaset(replicaset), m_extended(extended) {}
 
@@ -578,7 +578,7 @@ void Replicaset_status::collect_local_status(
 void Replicaset_status::feed_metadata_info(shcore::Dictionary_t dict,
                                            const Instance_metadata &info) {
   (*dict)["address"] = shcore::Value(info.endpoint);
-  (*dict)["role"] = shcore::Value(info.role_type);
+  (*dict)["role"] = shcore::Value("HA");
 }
 
 void Replicaset_status::feed_member_info(
@@ -892,7 +892,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   (*ret)["status"] = shcore::Value(tmp->get_string("status"));
 
   bool has_primary = false;
-  mysqlsh::dba::Instance primary_instance;
+  std::shared_ptr<mysqlshdk::db::ISession> primary_session;
   {
     if (single_primary) {
       // In single primary mode we need to add the "primary" field
@@ -904,7 +904,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
             auto s = m_member_sessions.find(primary->endpoint);
             if (s != m_member_sessions.end()) {
               has_primary = true;
-              primary_instance = mysqlsh::dba::Instance(s->second);
+              primary_session = s->second;
             }
             (*ret)["primary"] = shcore::Value(primary->endpoint);
           }
@@ -913,7 +913,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
       }
     }
   }
-
+  mysqlsh::dba::Instance primary_instance(primary_session);
   (*ret)["topology"] = shcore::Value(
       get_topology(member_info, has_primary ? &primary_instance : nullptr));
 
@@ -928,8 +928,8 @@ shcore::Value Replicaset_status::execute() {
 
   replicaset_dict = collect_replicaset_status();
 
-  // Check if the ReplicaSet group session is established to an instance with a
-  // state different than
+  // Check if the ReplicaSet group session is established to an instance with
+  // a state different than
   //   - Online R/W
   //   - Online R/O
   //

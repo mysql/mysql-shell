@@ -320,7 +320,7 @@ EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {dba.createCluster("c")}, "Instance check failed");
 
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 // createCluster and addInstance don't do schema check
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
@@ -337,7 +337,7 @@ EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {dba.createCluster("c")}, "Instance check failed");
 
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
 
@@ -349,7 +349,7 @@ shell.options["useWizards"] = true;
 EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {cluster.addInstance(__hostname_uri2)}, "Instance check failed");
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
 
@@ -363,7 +363,7 @@ EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {cluster.addInstance(__hostname_uri2)}, "Instance check failed");
 
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
 
@@ -404,7 +404,7 @@ EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {dba.createCluster("c")}, "Instance check failed");
 
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
 
@@ -417,7 +417,7 @@ EXPECT_BEGIN();
 
 EXPECT_THROWS(function() {cluster.addInstance(__hostname_uri2)}, "Instance check failed");
 
-EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
+EXPECT_NEXT_OUTPUT("Validating instance configuration at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 
 if (real_host_is_loopback)

@@ -43,7 +43,7 @@ Rescan::Rescan(
     bool auto_add_instances, bool auto_remove_instances,
     const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
     const std::vector<mysqlshdk::db::Connection_options> &remove_instances_list,
-    ReplicaSet *replicaset)
+    GRReplicaSet *replicaset)
     : m_interactive(interactive),
       m_update_topology_mode(update_topology_mode),
       m_auto_add_instances(auto_add_instances),
@@ -213,7 +213,8 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   auto replicaset_map = std::make_shared<shcore::Value::Map_type>();
 
   // Set the ReplicaSet name on the result map
-  (*replicaset_map)["name"] = shcore::Value(m_replicaset->get_name());
+  (*replicaset_map)["name"] =
+      shcore::Value(m_replicaset->get_cluster()->get_name());
 
   std::vector<NewInstanceInfo> newly_discovered_instances_list =
       get_newly_discovered_instances(
@@ -332,8 +333,8 @@ void Rescan::update_topology_mode(
   // Update the topology mode on the ReplicaSet object.
   std::string topo_mode =
       (topology_mode == mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
-          ? mysqlsh::dba::ReplicaSet::kTopologySinglePrimary
-          : mysqlsh::dba::ReplicaSet::kTopologyMultiPrimary;
+          ? mysqlsh::dba::GRReplicaSet::kTopologySinglePrimary
+          : mysqlsh::dba::GRReplicaSet::kTopologyMultiPrimary;
   m_replicaset->set_topology_type(topo_mode);
 
   console->println("Topology mode was successfully updated to '" +
@@ -398,11 +399,11 @@ void Rescan::update_instances_list(
     if (to_add) {
       // Report that a new instance was discovered (not in the metadata).
       console->println("A new instance '" + instance_address +
-                       "' was discovered in the ReplicaSet.");
+                       "' was discovered in the cluster.");
     } else {
       // Report that an obsolete instance was found (in the metadata).
       console->println("The instance '" + instance_address +
-                       "' is no longer part of the ReplicaSet.");
+                       "' is no longer part of the cluster.");
     }
 
     // Check if the new instance belongs to the addInstances list.
@@ -484,7 +485,7 @@ shcore::Value Rescan::execute() {
   shcore::Value::Map_type_ref result = get_rescan_report();
 
   console->print_info("Result of the rescanning operation for the '" +
-                      result->get_string("name") + "' ReplicaSet:");
+                      result->get_string("name") + "' cluster:");
   console->print_value(shcore::Value(result), "");
   console->println();
 
@@ -505,7 +506,7 @@ shcore::Value Rescan::execute() {
   if (!not_used_add_instances.empty()) {
     console->print_warning(
         "The following instances were not added to the metadata because they "
-        "are already part of the replicaset: '" +
+        "are already part of the cluster: '" +
         shcore::str_join(not_used_add_instances, ", ") +
         "'. Please verify if the specified value for 'addInstances' option is "
         "correct.");
@@ -530,7 +531,7 @@ shcore::Value Rescan::execute() {
   if (!not_used_remove_instances.empty()) {
     console->print_warning(
         "The following instances were not removed from the metadata because "
-        "they are already not part of the replicaset or are running auto-rejoin"
+        "they are already not part of the cluster or are running auto-rejoin"
         ": '" +
         shcore::str_join(not_used_remove_instances, ", ") +
         "'. Please verify if the specified value for 'removeInstances' option "
@@ -546,7 +547,7 @@ shcore::Value Rescan::execute() {
     std::string new_topology_mode = result->get_string("newTopologyMode");
 
     if (!new_topology_mode.empty()) {
-      console->println("The topology mode of the ReplicaSet changed to '" +
+      console->println("The topology mode of the cluster changed to '" +
                        new_topology_mode + "'.");
 
       // Determine if the topology mode will be updated in the metadata.

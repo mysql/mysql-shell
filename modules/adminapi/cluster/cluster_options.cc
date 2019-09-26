@@ -40,20 +40,18 @@ void Cluster_options::prepare() {
 }
 
 /**
- * Get the configuration options from a specific ReplicaSet
+ * Get the configuration options from a specific Cluster
  *
- * This function gets the options from a specific ReplicaSet by creating an
+ * This function gets the options from a specific Cluster by creating an
  * object of Options and executing it
- *
- * @param replicaset target ReplicaSet to get the options from
  *
  * @return a shcore::Value containing a dictionary object with the command
  * output
  */
-shcore::Value Cluster_options::get_replicaset_options(
-    const ReplicaSet &replicaset) {
+shcore::Value Cluster_options::get_cluster_options() {
   // Create the Replicaset_options command and execute it.
-  Replicaset_options op_replicaset_options(replicaset, m_all);
+  Replicaset_options op_replicaset_options(*m_cluster.get_default_replicaset(),
+                                           m_all);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope(
       [&op_replicaset_options]() { op_replicaset_options.finish(); });
@@ -70,21 +68,7 @@ shcore::Value Cluster_options::execute() {
   (*dict)["clusterName"] = shcore::Value(m_cluster.get_name());
 
   // Get the default replicaSet options
-  {
-    std::shared_ptr<ReplicaSet> default_replicaset =
-        m_cluster.get_default_replicaset();
-
-    if (default_replicaset == nullptr) {
-      throw shcore::Exception::logic_error(
-          "Default ReplicaSet not initialized.");
-    }
-
-    (*dict)["defaultReplicaSet"] =
-        shcore::Value(get_replicaset_options(*default_replicaset));
-  }
-
-  // TODO(.) As soon as Support for multiple ReplicaSets is added, we must
-  // iterate all replicasets and get the options for each one
+  (*dict)["defaultReplicaSet"] = shcore::Value(get_cluster_options());
 
   return shcore::Value(dict);
 }

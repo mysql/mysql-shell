@@ -24,19 +24,29 @@
 #ifndef MODULES_ADMINAPI_COMMON_INSTANCE_POOL_H_
 #define MODULES_ADMINAPI_COMMON_INSTANCE_POOL_H_
 
-#include <string>
+#include <list>
+#include <memory>
+#include <set>
+#include <vector>
 
 #include "modules/adminapi/common/cluster_types.h"
+#include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/threads.h"
 
 namespace mysqlsh {
 namespace dba {
+
+namespace topology {
+class Node;
+}
 
 class MetadataStorage;
 class Instance_pool;
 class Instance : public mysqlshdk::mysql::Instance {
  public:
-  Instance(){};
+  Instance() {}
+
   explicit Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   Instance(Instance_pool *owner,
@@ -143,6 +153,15 @@ class Instance_pool {
   std::shared_ptr<Instance> connect_unchecked_endpoint(
       const std::string &endpoint, bool allow_url = false);
 
+  // Connect to the node. If node is a group, picks any member from it.
+  std::shared_ptr<Instance> connect_unchecked(const topology::Node *node);
+
+  // Connect to the PRIMARY of the cluster
+  std::shared_ptr<Instance> connect_primary(const topology::Node *node);
+
+  std::shared_ptr<Instance> connect_async_cluster_primary(
+      Cluster_id cluster_id);
+
   // Connect to the PRIMARY of the replicaset
   std::shared_ptr<Instance> connect_group_primary(
       const std::string &group_name);
@@ -184,6 +203,9 @@ class Instance_pool {
 
   std::shared_ptr<Instance> try_connect_primary_through_member(
       const std::string &member_uuid);
+
+  std::shared_ptr<Instance> connect_primary_master_for_member(
+      const std::string &server_uuid);
 
   void set_auth_opts(const Auth_options &auth,
                      mysqlshdk::db::Connection_options *opts);
@@ -240,6 +262,47 @@ class Scoped_instance_pool {
 };
 
 std::shared_ptr<Instance_pool> current_ipool();
+
+template <class InputIter>
+std::list<shcore::Dictionary_t> execute_in_parallel(
+    InputIter begin, InputIter end,
+    std::function<void(const Scoped_instance &instance)> fn) {
+  std::list<shcore::Dictionary_t> errors;
+
+  mysqlshdk::utils::map_reduce<bool, shcore::Dictionary_t>(
+      begin, end,
+      [&fn](const Scoped_instance &inst) -> shcore::Dictionary_t {
+        mysqlsh::Mysql_thread thdinit;
+
+        try {
+          fn(inst);
+        } catch (const shcore::Exception &e) {
+          log_debug("%s: %s", inst->descr().c_str(), e.format().c_str());
+
+          shcore::Dictionary_t dict = e.error();
+          // NOTE: Ensure the UUID is cached on the instance before calling
+          //       execute_in_parallel() otherwise it might fail here trying
+          //       to query an unavailable instance.
+          dict->set("uuid", shcore::Value(inst->get_uuid()));
+          dict->set("from", shcore::Value(inst->descr()));
+          dict->set("errmsg", shcore::Value(e.format()));
+          return dict;
+        } catch (const std::exception &e) {
+          log_debug("%s: %s", inst->descr().c_str(), e.what());
+
+          return shcore::make_dict("errmsg", shcore::Value(e.what()), "from",
+                                   shcore::Value(inst->descr()));
+        }
+        return nullptr;
+      },
+      // Collects returned into a list (return value ignored)
+      [&errors](bool total, shcore::Dictionary_t partial) -> bool {
+        if (partial) errors.push_back(partial);
+        return total;
+      });
+
+  return errors;
+}
 
 }  // namespace dba
 }  // namespace mysqlsh

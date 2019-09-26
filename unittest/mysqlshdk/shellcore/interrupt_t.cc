@@ -297,22 +297,6 @@ class Interrupt_mysqlx : public Interrupt_mysql {
   }
 };
 
-namespace {
-
-class Mysql_thread final {
- public:
-  Mysql_thread() { mysql_thread_init(); }
-  Mysql_thread(const Mysql_thread &other) = delete;
-  Mysql_thread(Mysql_thread &&other) = delete;
-
-  Mysql_thread &operator=(const Mysql_thread &other) = delete;
-  Mysql_thread &operator=(Mysql_thread &&other) = delete;
-
-  ~Mysql_thread() { mysql_thread_end(); }
-};
-
-}  // namespace
-
 TEST_F(Interrupt_mysql, sql_classic) {
   // Test case for FR2
   std::shared_ptr<mysqlsh::ShellBaseSession> session;

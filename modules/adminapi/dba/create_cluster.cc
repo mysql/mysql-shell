@@ -78,7 +78,7 @@ void Create_cluster::validate_create_cluster_options() {
   }
 
   // Get the instance GR state
-  GRInstanceType instance_type = get_gr_instance_type(*m_target_instance);
+  GRInstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
       !m_adopt_from_gr) {
@@ -177,10 +177,12 @@ void Create_cluster::prepare() {
   console->println(
       std::string{"A new InnoDB cluster will be created"} +
       (m_adopt_from_gr ? " based on the existing replication group" : "") +
-      " on instance '" + m_target_instance->descr() + "'.\n");
+      " on instance '" +
+      m_target_instance->get_connection_options().uri_endpoint() + "'.\n");
 
   // Validate the cluster_name
-  mysqlsh::dba::validate_cluster_name(m_cluster_name);
+  mysqlsh::dba::validate_cluster_name(m_cluster_name,
+                                      Cluster_type::GROUP_REPLICATION);
 
   // Validate values given for GR options.
   m_gr_opts.check_option_values(m_target_instance->get_version());
@@ -208,7 +210,7 @@ void Create_cluster::prepare() {
       // Check instance configuration and state, like dba.checkInstance
       // but skip if we're adopting, since in that case the target is obviously
       // already configured
-      ensure_instance_configuration_valid(*m_target_instance);
+      ensure_gr_instance_configuration_valid(m_target_instance.get());
 
       // Print warning if auto-rejoin is set (not 0).
       if (!m_gr_opts.auto_rejoin_tries.is_null() &&
@@ -230,7 +232,8 @@ void Create_cluster::prepare() {
       }
 
       // Check replication filters before creating the Metadata.
-      validate_replication_filters(*m_target_instance);
+      validate_replication_filters(*m_target_instance,
+                                   Cluster_type::GROUP_REPLICATION);
 
       // Resolve the SSL Mode to use to configure the instance.
       resolve_ssl_mode();
@@ -358,9 +361,7 @@ void Create_cluster::prepare_metadata_schema() {
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlsh::dba::metadata::uninstall(m_target_instance);
-
-  mysqlsh::dba::metadata::install(m_target_instance);
+  mysqlsh::dba::prepare_metadata_schema(m_target_instance, false);
 }
 
 void Create_cluster::setup_recovery(Cluster_impl *cluster,
@@ -510,8 +511,14 @@ shcore::Value Create_cluster::execute() {
     std::shared_ptr<MetadataStorage> metadata =
         std::make_shared<MetadataStorage>(m_target_instance);
 
+    std::string domain_name;
+    std::string cluster_name;
+    parse_fully_qualified_cluster_name(m_cluster_name, &domain_name, nullptr,
+                                       &cluster_name);
+    if (domain_name.empty()) domain_name = k_default_domain_name;
+
     auto cluster_impl = std::make_shared<Cluster_impl>(
-        m_cluster_name, group_name, m_target_instance, metadata);
+        cluster_name, group_name, m_target_instance, metadata);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"

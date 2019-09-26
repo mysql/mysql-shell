@@ -12,8 +12,8 @@ use the following wildcards:
 
 The following are the main help categories:
 
- - AdminAPI       Introduces to the dba global object and the InnoDB cluster
-                  administration API.
+ - AdminAPI       The AdminAPI is an API that enables configuring and managing
+                  InnoDB clusters and replicasets, among other things.
  - Shell Commands Provides details about the available built-in shell commands.
  - ShellAPI       Contains information about the shell and util global objects
                   as well as the mysql module that enables executing SQL on
@@ -111,8 +111,8 @@ use the following wildcards:
 
 The following are the main help categories:
 
- - AdminAPI       Introduces to the dba global object and the InnoDB cluster
-                  administration API.
+ - AdminAPI       The AdminAPI is an API that enables configuring and managing
+                  InnoDB clusters and replicasets, among other things.
  - Shell Commands Provides details about the available built-in shell commands.
  - ShellAPI       Contains information about the shell and util global objects
                   as well as the mysql module that enables executing SQL on
@@ -213,25 +213,89 @@ Use \? \help for additional details.
 Switching to Python mode...
 
 #@<OUT> Help on Admin API Category
-MySQL InnoDB cluster provides a complete high availability solution for MySQL.
-
-The AdminAPI is an interactive API that enables configuring and administering
-InnoDB clusters.
-
-Use the dba global object to:
-
-- Verify if a MySQL server is suitable for InnoDB cluster.
-- Configure a MySQL server to be used as an InnoDB cluster instance.
-- Create an InnoDB cluster.
-- Get a handle for performing operations on an InnoDB cluster.
-- Other InnoDB cluster maintenance tasks.
-
-In the AdminAPI, an InnoDB cluster is represented as an instance of the Cluster
-class.
+The AdminAPI can be used interactively from the MySQL Shell prompt and
+non-interactively from JavaScript and Python scripts and directly from the
+command line.
 
 For more information about the dba object use: \? dba
 
+In the AdminAPI, an InnoDB cluster is represented as an instance of the Cluster
+class, while replicasets are represented as an instance of the ReplicaSet
+class.
+
 For more information about the Cluster class use: \? Cluster
+
+For more information about the ReplicaSet class use: \? ReplicaSet
+
+Scripting
+
+Through the JavaScript and Python bindings of the MySQL Shell, the AdminAPI can
+be used from scripts, which can in turn be used interactively or
+non-interactively. To execute a script, use the -f command line option,
+followed by the script file path. Options that follow the path are passed
+directly to the script being executed, which can access them from sys.argv
+    mysqlsh root@localhost -f myscript.py arg1 arg2
+
+If the script finishes successfully, the Shell will exit with code 0, while
+uncaught exceptions/errors cause it to exist with a non-0 code.
+
+By default, the AdminAPI enables interactivity, which will cause functions to
+prompt for missing passwords, confirmations and bits of information that cannot
+be obtained automatically.
+
+Prompts can be completely disabled with the --no-wizard command line option or
+using the "interactive" boolean option available in some of functions. If
+interactivity is disabled and some information is missing (e.g. a password), an
+error will be raised instead of being prompted.
+
+Secure Password Handling
+
+Passwords can be safely stored locally, using the system's native secrets
+storage functionality (or login-paths in Linux). Whenever the Shell needs a
+password, it will first query for the password in the system, before prompting
+for it.
+
+Passwords can be stored during interactive use, by confirming in the Store
+Password prompt. They can also be stored programmatically, using the
+shell.store_credential() function.
+
+You can also use environment variables to pass information to your scripts. In
+JavaScript, the os.getenv() function can be used to access them.
+
+Command Line Interface
+
+In addition to the scripting interface, the MySQL Shell supports generic
+command line integration, which allows calling AdminAPI functions directly from
+the system shell (e.g. bash). Examples:
+    $ mysqlsh -- dba configure-instance root@localhost
+
+    is equivalent to:
+
+    > dba.configureInstance("root@localhost")
+
+    $ mysqlsh root@localhost -- cluster status --extended
+
+    is equivalent to:
+
+    > dba.getCluster().status({extended:true})
+
+The mapping from AdminAPI function signatures works as follows:
+
+- The first argument after a -- can be a shell global object, such as dba. As a
+  special case, cluster and rs are also accepted.
+- The second argument is the name of the function of the object to be called.
+  The naming convention is automatically converted from camelCase/snake_case to
+  lower case separated by dashes.
+- The rest of the arguments are used in the same order as their JS/Python
+  counterparts. Instances can be given as URIs. Option dictionaries can be
+  passed as --options, where the option name is the same as in JS/Python.
+
+OBJECTS
+ - dba InnoDB cluster and replicaset management functions.
+
+CLASSES
+ - Cluster    Represents an InnoDB cluster.
+ - ReplicaSet Represents an InnoDB ReplicaSet.
 
 #@<OUT> Help on shell commands
 The shell commands allow executing specific operations including updating the

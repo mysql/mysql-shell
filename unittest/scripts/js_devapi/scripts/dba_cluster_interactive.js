@@ -120,10 +120,10 @@ Cluster.dissolve({force: 'sample'});
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
-Cluster.addInstance(__sandbox_uri2, {'label': '2nd_sandbox'});
+Cluster.addInstance(__sandbox_uri2, {'label': 'z2nd_sandbox'});
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
-Cluster.addInstance(__sandbox_uri3, {'label': '3rd_sandbox'});
+Cluster.addInstance(__sandbox_uri3, {'label': 'z3rd_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

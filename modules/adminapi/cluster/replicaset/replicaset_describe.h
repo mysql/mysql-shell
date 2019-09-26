@@ -38,7 +38,7 @@ namespace dba {
 
 class Replicaset_describe : public Command_interface {
  public:
-  explicit Replicaset_describe(const ReplicaSet &replicaset);
+  explicit Replicaset_describe(const GRReplicaSet &replicaset);
 
   ~Replicaset_describe() override;
 
@@ -76,7 +76,7 @@ class Replicaset_describe : public Command_interface {
   void finish() override;
 
  private:
-  const ReplicaSet &m_replicaset;
+  const GRReplicaSet &m_replicaset;
   Cluster_impl *m_cluster;
 
   std::vector<Instance_metadata> m_instances;

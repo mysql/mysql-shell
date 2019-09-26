@@ -54,7 +54,7 @@ Configure_instance::Configure_instance(
     const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-    mysqlshdk::utils::nullable<bool> restart)
+    mysqlshdk::utils::nullable<bool> restart, Cluster_type cluster_type)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_interactive(interactive),
       m_mycnf_path(mycnf_path),
@@ -62,9 +62,10 @@ Configure_instance::Configure_instance(
       m_cluster_admin(cluster_admin),
       m_cluster_admin_password(cluster_admin_password),
       m_clear_read_only(clear_read_only),
-      m_restart(restart) {}
+      m_restart(restart),
+      m_cluster_type(cluster_type) {}
 
-Configure_instance::~Configure_instance() { delete m_target_instance; }
+Configure_instance::~Configure_instance() {}
 
 /*
  * Validates the .cnf file path. If interactive is enabled and the file path
@@ -295,7 +296,7 @@ void Configure_instance::create_admin_user() {
         log_info("Cloning current user account %s@%s as %s",
                  m_current_user.c_str(), m_current_host.c_str(),
                  m_cluster_admin.c_str());
-        mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance);
+        mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance.get());
         mysqlshdk::mysql::clone_user(
             *m_target_instance, m_current_user, m_current_host, admin_user,
             admin_user_host, *m_cluster_admin_password);
@@ -338,8 +339,8 @@ bool Configure_instance::check_configuration_updates(
   }
 
   m_invalid_cfgs = checks::validate_configuration(
-      m_target_instance, cnf_path, m_cfg.get(), m_can_set_persist, restart,
-      config_file_change, dynamic_sysvar_change);
+      m_target_instance.get(), cnf_path, m_cfg.get(), m_cluster_type,
+      m_can_set_persist, restart, config_file_change, dynamic_sysvar_change);
   if (!m_invalid_cfgs.empty()) {
     // If no option file change or dynamic variable changes are required but
     // restart variable was set to true, then it means that only read-only
@@ -355,8 +356,10 @@ bool Configure_instance::check_configuration_updates(
              (m_can_set_persist.is_null() || !*m_can_set_persist));
   } else {
     console->println();
-    console->print_info("The instance '" + m_target_instance->descr() +
-                        "' is valid for InnoDB cluster usage.");
+    console->print_info(
+        "The instance '" + m_target_instance->descr() +
+        "' is valid to be used in " +
+        to_display_string(m_cluster_type, Display_form::A_THING_FULL) + ".");
     return false;
   }
 }
@@ -449,7 +452,8 @@ void Configure_instance::prepare_config_object() {
   // Add server configuration handler depending on SET PERSIST support.
   // NOTE: Add server handler first to set it as the default handler.
   m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler, true);
+      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler,
+      true);
 
   // Add configuration handle to update option file (if provided).
   if (!m_mycnf_path.empty() || !m_output_mycnf_path.empty()) {
@@ -477,24 +481,28 @@ void Configure_instance::prepare() {
     std::shared_ptr<mysqlshdk::db::ISession> session;
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlsh::dba::Instance(session);
+    m_target_instance = std::make_shared<Instance>(session);
 
-    m_local_target = mysqlshdk::utils::Net::is_local_address(
-        m_target_instance->get_connection_options().get_host());
+    m_local_target =
+        !m_target_instance->get_connection_options().has_host() ||
+        mysqlshdk::utils::Net::is_local_address(
+            m_target_instance->get_connection_options().get_host());
 
     // Set the current user/host
     m_target_instance->get_current_user(&m_current_user, &m_current_host);
   }
 
   if (!m_local_target) {
-    console->print_info("Configuring MySQL instance at " +
-                        m_target_instance->descr() +
-                        " for use in an InnoDB cluster...");
+    console->print_info(
+        "Configuring MySQL instance at " + m_target_instance->descr() +
+        " for use in " +
+        to_display_string(m_cluster_type, Display_form::A_THING_FULL) + "...");
   } else {
     console->print_info(
         "Configuring local MySQL instance listening at port " +
-        std::to_string(m_target_instance->get_connection_options().get_port()) +
-        " for use in an InnoDB cluster...");
+        std::to_string(m_target_instance->get_canonical_port()) +
+        " for use in " +
+        to_display_string(m_cluster_type, Display_form::A_THING_FULL) + "...");
   }
 
   // Check if we are dealing with a sandbox instance
@@ -512,7 +520,6 @@ void Configure_instance::prepare() {
   m_can_restart = false;
   if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
     m_can_restart = true;
-    if (m_is_sandbox) m_can_restart = false;
   }
 
   // Get the capabilities to use set persist by the server.
@@ -616,22 +623,27 @@ shcore::Value Configure_instance::execute() {
   if (m_needs_configuration_update) {
     // Execute the configure instance operation
     console->println("Configuring instance...");
-    m_needs_restart =
-        mysqlsh::dba::configure_instance(m_cfg.get(), m_invalid_cfgs);
+    m_needs_restart = mysqlsh::dba::configure_instance(
+        m_cfg.get(), m_invalid_cfgs, m_cluster_type);
     if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
         m_needs_configuration_update) {
-      console->print_info("The instance '" + m_target_instance->descr() +
-                          "' was configured for InnoDB cluster usage but you "
-                          "must copy " +
-                          m_output_mycnf_path +
-                          " to the MySQL option file path.");
+      console->print_info(
+          "The instance '" + m_target_instance->descr() +
+          "' was configured to be used in " +
+          to_display_string(m_cluster_type, Display_form::A_THING_FULL) +
+          " but you must copy " + m_output_mycnf_path +
+          " to the MySQL option file path.");
     } else {
-      console->print_info("The instance '" + m_target_instance->descr() +
-                          "' was configured for InnoDB cluster usage.");
+      console->print_info(
+          "The instance '" + m_target_instance->descr() +
+          "' was configured to be used in " +
+          to_display_string(m_cluster_type, Display_form::A_THING_FULL) + ".");
     }
   } else {
-    console->print_info("The instance '" + m_target_instance->descr() +
-                        "' is already ready for InnoDB cluster usage.");
+    console->print_info(
+        "The instance '" + m_target_instance->descr() +
+        "' is already ready to be used in " +
+        to_display_string(m_cluster_type, Display_form::A_THING_FULL) + ".");
   }
 
   if (m_needs_restart) {
