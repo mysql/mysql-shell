@@ -43,6 +43,7 @@ namespace {
 const std::set<std::string> k_all_privileges = {"ALTER",
                                                 "ALTER ROUTINE",
                                                 "CREATE",
+                                                "CREATE ROLE",
                                                 "CREATE ROUTINE",
                                                 "CREATE TABLESPACE",
                                                 "CREATE TEMPORARY TABLES",
@@ -50,6 +51,7 @@ const std::set<std::string> k_all_privileges = {"ALTER",
                                                 "CREATE VIEW",
                                                 "DELETE",
                                                 "DROP",
+                                                "DROP ROLE",
                                                 "EVENT",
                                                 "EXECUTE",
                                                 "FILE",
@@ -67,7 +69,62 @@ const std::set<std::string> k_all_privileges = {"ALTER",
                                                 "SHUTDOWN",
                                                 "SUPER",
                                                 "TRIGGER",
-                                                "UPDATE"};
+                                                "UPDATE",
+                                                "APPLICATION_PASSWORD_ADMIN",
+                                                "AUDIT_ADMIN",
+                                                "BACKUP_ADMIN",
+                                                "BINLOG_ADMIN",
+                                                "BINLOG_ENCRYPTION_ADMIN",
+                                                "CLONE_ADMIN",
+                                                "CONNECTION_ADMIN",
+                                                "ENCRYPTION_KEY_ADMIN",
+                                                "FIREWALL_ADMIN",
+                                                "FIREWALL_USER",
+                                                "GROUP_REPLICATION_ADMIN",
+                                                "INNODB_REDO_LOG_ARCHIVE",
+                                                "NDB_STORED_USER",
+                                                "PERSIST_RO_VARIABLES_ADMIN",
+                                                "REPLICATION_APPLIER",
+                                                "REPLICATION_SLAVE_ADMIN",
+                                                "RESOURCE_GROUP_ADMIN",
+                                                "RESOURCE_GROUP_USER",
+                                                "ROLE_ADMIN",
+                                                "SESSION_VARIABLES_ADMIN",
+                                                "SET_USER_ID",
+                                                "SYSTEM_USER",
+                                                "SYSTEM_VARIABLES_ADMIN",
+                                                "TABLE_ENCRYPTION_ADMIN",
+                                                "VERSION_TOKEN_ADMIN",
+                                                "XA_RECOVER_ADMIN"};
+
+const std::set<std::string> k_all_privileges_57 = {"ALTER",
+                                                   "ALTER ROUTINE",
+                                                   "CREATE",
+                                                   "CREATE ROUTINE",
+                                                   "CREATE TABLESPACE",
+                                                   "CREATE TEMPORARY TABLES",
+                                                   "CREATE USER",
+                                                   "CREATE VIEW",
+                                                   "DELETE",
+                                                   "DROP",
+                                                   "EVENT",
+                                                   "EXECUTE",
+                                                   "FILE",
+                                                   "INDEX",
+                                                   "INSERT",
+                                                   "LOCK TABLES",
+                                                   "PROCESS",
+                                                   "REFERENCES",
+                                                   "RELOAD",
+                                                   "REPLICATION CLIENT",
+                                                   "REPLICATION SLAVE",
+                                                   "SELECT",
+                                                   "SHOW DATABASES",
+                                                   "SHOW VIEW",
+                                                   "SHUTDOWN",
+                                                   "SUPER",
+                                                   "TRIGGER",
+                                                   "UPDATE"};
 
 /**
  * Checks if set contains only valid privileges.
@@ -76,6 +133,8 @@ const std::set<std::string> k_all_privileges = {"ALTER",
  * "ALL PRIVILEGES" with a list of all privileges.
  *
  * @param privileges A set of privileges to validate.
+ * @param all_privileges A set with all the individual privileges (included by
+ *                       ALL or ALL PRIVILEGES).
  *
  * @return A set of valid privileges.
  *
@@ -84,14 +143,15 @@ const std::set<std::string> k_all_privileges = {"ALTER",
  *                           is specified.
  */
 std::set<std::string> validate_privileges(
-    const std::set<std::string> &privileges) {
+    const std::set<std::string> &privileges,
+    const std::set<std::string> &all_privileges) {
   std::set<std::string> result;
   std::transform(privileges.begin(), privileges.end(),
                  std::inserter(result, result.begin()), shcore::str_upper);
 
   std::set<std::string> difference;
-  std::set_difference(result.begin(), result.end(), k_all_privileges.begin(),
-                      k_all_privileges.end(),
+  std::set_difference(result.begin(), result.end(), all_privileges.begin(),
+                      all_privileges.end(),
                       std::inserter(difference, difference.begin()));
 
   if (!difference.empty()) {
@@ -110,7 +170,7 @@ std::set<std::string> validate_privileges(
             "all the other privileges and it must be specified alone."};
       }
 
-      result = k_all_privileges;
+      result = all_privileges;
     }
   }
 
@@ -169,6 +229,9 @@ User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
   m_account = shcore::make_account(user, host);
 
   read_global_privileges(instance, m_account);
+
+  // Set list of individual privileges included by ALL.
+  set_all_privileges(instance);
 
   if (m_privileges[m_account][k_wildcard][k_wildcard].empty()) {
     // User does not exist (all users have at least one privilege: USAGE)
@@ -254,7 +317,7 @@ bool User_privileges::has_grant_option(const std::string &schema,
 std::set<std::string> User_privileges::get_missing_privileges(
     const std::set<std::string> &required_privileges, const std::string &schema,
     const std::string &table) const {
-  auto privileges = validate_privileges(required_privileges);
+  auto privileges = validate_privileges(required_privileges, m_all_privileges);
   std::set<std::string> missing_privileges;
 
   if (user_exists()) {
@@ -302,7 +365,7 @@ std::set<std::string> User_privileges::get_missing_privileges(
   }
 
   if (required_privileges.size() == 1 &&
-      missing_privileges.size() == k_all_privileges.size()) {
+      missing_privileges.size() == m_all_privileges.size()) {
     // Set missing to 'ALL [PRIVILEGES]'
     return {shcore::str_upper(*required_privileges.begin())};
   } else {
@@ -485,6 +548,48 @@ void User_privileges::read_user_roles(
 
   // Remove the user account to set assigned user/roles (excluding itself).
   m_roles.erase(m_account);
+}
+
+void User_privileges::set_all_privileges(
+    const mysqlshdk::mysql::IInstance &instance) {
+  // Set list of ALL privileges according to the server version.
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+    // Set all privileges for 8.0 servers.
+    m_all_privileges = k_all_privileges;
+
+    // Remove individual privileges dependent on plugins, which are only listed
+    // if the plugin is installed.
+    // NOTE: Plugin specific privileges are only granted when using ALL if the
+    // plugin is installed (even if disabled) at the time the ALL privilege is
+    // granted to the user, otherwise it will not be listed as an individual
+    // privilege, even if the plugin is installed later. This means that a new
+    // grant ALL will be needed for existing users with "ALL" privileges after
+    // installing a new plugin for its plugin specific privileges to be
+    // included in the list of individual grants.
+    if (instance.get_plugin_status("audit_log").is_null()) {
+      m_all_privileges.erase("AUDIT_ADMIN");
+    }
+    if (instance.get_plugin_status("mysql_firewall").is_null()) {
+      m_all_privileges.erase("FIREWALL_ADMIN");
+      m_all_privileges.erase("FIREWALL_USER");
+    }
+    if (instance.get_plugin_status("version_tokens").is_null()) {
+      m_all_privileges.erase("VERSION_TOKEN_ADMIN");
+    }
+
+    // Remove individual privileges dependent on engines, which are only listed
+    // if the engine is available.
+    auto res = instance.query(
+        "SELECT engine FROM information_schema.engines "
+        "WHERE engine = 'NDBCLUSTER'");
+    if (!res->fetch_one()) {
+      m_all_privileges.erase("NDB_STORED_USER");
+    }
+
+  } else {
+    // Set all privileges for 5.7 servers.
+    m_all_privileges = k_all_privileges_57;
+  }
 }
 
 void User_privileges::read_global_privileges(

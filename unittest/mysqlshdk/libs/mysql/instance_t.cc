@@ -1005,6 +1005,12 @@ TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
           {Type::String, Type::String},
           {}  // No Records
       }});
+
+  // Simulate 5.7 version is used (not relevant here, 5.7 used to avoid
+  // executing additional queries to update the ALL privileges list).
+  EXPECT_CALL(session, get_server_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 28)));
+
   auto up = instance.get_user_privileges("notexist_user", "notexist_host");
 
   ASSERT_TRUE(nullptr != up);
@@ -1030,6 +1036,27 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
                      {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                      {Type::String, Type::String},
                      {{"USAGE", "NO"}}}});
+
+  std::vector<std::string> plugins = {"audit_log", "mysql_firewall",
+                                      "version_tokens"};
+  for (const auto &plugin_name : plugins) {
+    std::string query =
+        "SELECT plugin_status FROM information_schema.plugins "
+        "WHERE plugin_name = '" +
+        plugin_name + "'";
+    session.expect_query(query).then_return({{
+        "", {"plugin_status"}, {Type::String}, {}  // No record
+    }});
+  }
+
+  session
+      .expect_query(
+          "SELECT engine FROM information_schema.engines "
+          "WHERE engine = 'NDBCLUSTER'")
+      .then_return({{
+          "", {"engine"}, {Type::String}, {}  // No record
+      }});
+
   session
       .expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "

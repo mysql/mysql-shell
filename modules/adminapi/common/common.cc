@@ -259,7 +259,21 @@ namespace {
 
 // Global privs needed for managing cluster instances
 // BUG#29743910: clusterAdmin needs SELECT on *.* for tables compliance check.
-const std::set<std::string> k_global_privileges{
+// BUG#30339460: SYSTEM_VARIABLES_ADMIN and PERSIST_RO_VARIABLES_ADMIN
+//               privileges needed to change Global system variables for 8.0
+//               servers (not for 5.7).
+const std::set<std::string> k_global_privileges{"RELOAD",
+                                                "SHUTDOWN",
+                                                "PROCESS",
+                                                "FILE",
+                                                "SELECT",
+                                                "SUPER",
+                                                "REPLICATION SLAVE",
+                                                "REPLICATION CLIENT",
+                                                "CREATE USER",
+                                                "SYSTEM_VARIABLES_ADMIN",
+                                                "PERSIST_RO_VARIABLES_ADMIN"};
+const std::set<std::string> k_global_privileges_57{
     "RELOAD",     "SHUTDOWN", "PROCESS",           "FILE",
     "SELECT",     "SUPER",    "REPLICATION SLAVE", "REPLICATION CLIENT",
     "CREATE USER"};
@@ -350,7 +364,11 @@ bool validate_cluster_admin_user_privileges(
                                                     admin_host};
 
   // Check global privileges.
-  auto global = user_privileges.validate(k_global_privileges);
+  const auto global_privileges =
+      (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11))
+          ? k_global_privileges
+          : k_global_privileges_57;
+  auto global = user_privileges.validate(global_privileges);
 
   if (global.has_missing_privileges() || !global.has_grant_option()) {
     auto missing = global.get_missing_privileges();
@@ -404,12 +422,17 @@ std::string create_grant(const std::string &username,
          object + " TO " + username + " WITH GRANT OPTION";
 }
 
-std::vector<std::string> create_grants(const std::string &username,
-                                       bool clone_available) {
+std::vector<std::string> create_grants(
+    const std::string &username, bool clone_available,
+    const mysqlshdk::utils::Version &instance_version) {
   std::vector<std::string> grants;
 
   // global privileges
-  grants.emplace_back(create_grant(username, k_global_privileges));
+  const auto global_privileges =
+      (instance_version >= mysqlshdk::utils::Version(8, 0, 11))
+          ? k_global_privileges
+          : k_global_privileges_57;
+  grants.emplace_back(create_grant(username, global_privileges));
 
   if (clone_available) {
     const std::set<std::string> clone_privs{"BACKUP_ADMIN"};
@@ -457,7 +480,8 @@ void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
     instance.executef("CREATE USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", user,
                       host, password);
     // Give the grants
-    for (const auto &grant : create_grants(username, add_backup_admin))
+    for (const auto &grant :
+         create_grants(username, add_backup_admin, instance.get_version()))
       instance.execute(grant);
 
     instance.execute("SET sql_log_bin = 1");

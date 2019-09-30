@@ -65,7 +65,7 @@
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER.|
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN.|
 |Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 ||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
@@ -74,7 +74,7 @@
 
 //@ Check instance using session user with admin role, missing privileges {VER(>=8.0.0)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
-|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER.|
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN.|
 |Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 ||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 

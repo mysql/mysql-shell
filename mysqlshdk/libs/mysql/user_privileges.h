@@ -130,6 +130,8 @@ class User_privileges {
   void parse_privileges(const std::shared_ptr<db::IResult> &result,
                         Row_mapper map_row, const std::string &user_role);
 
+  void set_all_privileges(const mysqlshdk::mysql::IInstance &instance);
+
   /**
    * Reads global privileges of a user or role.
    *
@@ -238,6 +240,9 @@ class User_privileges {
 
   // Set of roles/users granted.
   std::set<std::string> m_roles;
+
+  // Set of ALL privileges (NOTE: different depending on the server version).
+  std::set<std::string> m_all_privileges;
 };
 
 /**

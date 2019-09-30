@@ -63,6 +63,28 @@ class User_privileges_test : public tests::Shell_base_test {
   mysqlshdk::db::Connection_options m_connection_options;
 };
 
+void set_all_privileges_queries(std::shared_ptr<Mock_session> &mock_session) {
+  std::vector<std::string> plugins = {"audit_log", "mysql_firewall",
+                                      "version_tokens"};
+  for (const auto &plugin_name : plugins) {
+    std::string query =
+        "SELECT plugin_status FROM information_schema.plugins "
+        "WHERE plugin_name = '" +
+        plugin_name + "'";
+    mock_session->expect_query(query).then_return({{
+        "", {"plugin_status"}, {Type::String}, {}  // No record
+    }});
+  }
+
+  mock_session
+      ->expect_query(
+          "SELECT engine FROM information_schema.engines "
+          "WHERE engine = 'NDBCLUSTER'")
+      .then_return({{
+          "", {"engine"}, {Type::String}, {}  // No record
+      }});
+}
+
 TEST_F(User_privileges_test, validate_user_does_not_exist) {
   // Check non existing user.
   m_mock_session
@@ -76,6 +98,10 @@ TEST_F(User_privileges_test, validate_user_does_not_exist) {
           {Type::String, Type::String},
           {}  // No Records
       }});
+
+  // Simulate a 5.7 version is used (not relevant for this test).
+  EXPECT_CALL(*m_mock_session, get_server_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 28)));
 
   User_privileges up{mysqlshdk::mysql::Instance(m_session), "notexist_user",
                      "notexist_host"};
@@ -109,6 +135,9 @@ TEST_F(User_privileges_test, validate_invalid_privileges) {
                      {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                      {Type::String, Type::String},
                      {{"USAGE", "NO"}}}});
+
+  set_all_privileges_queries(m_mock_session);
+
   m_mock_session
       ->expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
@@ -190,6 +219,9 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
                      {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                      {Type::String, Type::String},
                      {{"USAGE", "NO"}}}});
+
+  set_all_privileges_queries(m_mock_session);
+
   m_mock_session
       ->expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
@@ -295,165 +327,95 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   // test_db.t2, test_db.t3, test_db2.t1 and mysql.user
   test_priv = {"ALL"};
 
+  const std::set<std::string> all_expected_priv{"ALTER",
+                                                "ALTER ROUTINE",
+                                                "CREATE",
+                                                "CREATE ROLE",
+                                                "CREATE ROUTINE",
+                                                "CREATE TABLESPACE",
+                                                "CREATE TEMPORARY TABLES",
+                                                "CREATE USER",
+                                                "CREATE VIEW",
+                                                "DELETE",
+                                                "DROP",
+                                                "DROP ROLE",
+                                                "EVENT",
+                                                "EXECUTE",
+                                                "FILE",
+                                                "INDEX",
+                                                "INSERT",
+                                                "LOCK TABLES",
+                                                "PROCESS",
+                                                "REFERENCES",
+                                                "RELOAD",
+                                                "REPLICATION CLIENT",
+                                                "REPLICATION SLAVE",
+                                                "SELECT",
+                                                "SHOW DATABASES",
+                                                "SHOW VIEW",
+                                                "SHUTDOWN",
+                                                "SUPER",
+                                                "TRIGGER",
+                                                "UPDATE",
+                                                "APPLICATION_PASSWORD_ADMIN",
+                                                "BACKUP_ADMIN",
+                                                "BINLOG_ADMIN",
+                                                "BINLOG_ENCRYPTION_ADMIN",
+                                                "CLONE_ADMIN",
+                                                "CONNECTION_ADMIN",
+                                                "ENCRYPTION_KEY_ADMIN",
+                                                "GROUP_REPLICATION_ADMIN",
+                                                "INNODB_REDO_LOG_ARCHIVE",
+                                                "PERSIST_RO_VARIABLES_ADMIN",
+                                                "REPLICATION_APPLIER",
+                                                "REPLICATION_SLAVE_ADMIN",
+                                                "RESOURCE_GROUP_ADMIN",
+                                                "RESOURCE_GROUP_USER",
+                                                "ROLE_ADMIN",
+                                                "SESSION_VARIABLES_ADMIN",
+                                                "SET_USER_ID",
+                                                "SYSTEM_USER",
+                                                "SYSTEM_VARIABLES_ADMIN",
+                                                "TABLE_ENCRYPTION_ADMIN",
+                                                "XA_RECOVER_ADMIN"};
+
   test({"ALL"}, false);
-  test({"ALTER",
-        "ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DELETE",
-        "DROP",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER"},
-       false, "test_db");
-  test({"ALTER",
-        "ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DELETE",
-        "DROP",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "INSERT",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER",
-        "UPDATE"},
-       true, "test_db2");
+  // User with SELECT,INSERT,UPDATE on test_db.*.
+  auto expected_priv = all_expected_priv;
+  expected_priv.erase("INSERT");
+  expected_priv.erase("SELECT");
+  expected_priv.erase("UPDATE");
+  test(expected_priv, false, "test_db");
+  // User with SELECT on test_db2.*.
+  expected_priv = all_expected_priv;
+  expected_priv.erase("SELECT");
+  test(expected_priv, true, "test_db2");
   test({"ALL"}, false, "mysql");
-  test({"ALTER",
-        "ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DROP",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER"},
-       false, "test_db", "t1");
-  test({"ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DELETE",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER"},
-       true, "test_db", "t2");
-  test({"ALTER",
-        "ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DELETE",
-        "DROP",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER"},
-       false, "test_db", "t3");
-  test({"ALTER",
-        "ALTER ROUTINE",
-        "CREATE",
-        "CREATE ROUTINE",
-        "CREATE TABLESPACE",
-        "CREATE TEMPORARY TABLES",
-        "CREATE USER",
-        "CREATE VIEW",
-        "DELETE",
-        "DROP",
-        "EVENT",
-        "EXECUTE",
-        "FILE",
-        "INDEX",
-        "INSERT",
-        "LOCK TABLES",
-        "PROCESS",
-        "REFERENCES",
-        "RELOAD",
-        "REPLICATION CLIENT",
-        "REPLICATION SLAVE",
-        "SHOW DATABASES",
-        "SHOW VIEW",
-        "SHUTDOWN",
-        "SUPER",
-        "TRIGGER",
-        "UPDATE"},
-       true, "test_db2", "t1");
+  // User with SELECT,INSERT,UPDATE on test_db.* and DELETE on test_db.t1.
+  expected_priv = all_expected_priv;
+  expected_priv.erase("INSERT");
+  expected_priv.erase("SELECT");
+  expected_priv.erase("UPDATE");
+  expected_priv.erase("DELETE");
+  test(expected_priv, false, "test_db", "t1");
+  // User with SELECT,INSERT,UPDATE on test_db.* and ALTER, DROP on test_db.t2.
+  expected_priv = all_expected_priv;
+  expected_priv.erase("INSERT");
+  expected_priv.erase("SELECT");
+  expected_priv.erase("UPDATE");
+  expected_priv.erase("ALTER");
+  expected_priv.erase("DROP");
+  test(expected_priv, true, "test_db", "t2");
+  // User with SELECT,INSERT,UPDATE on test_db.*.
+  expected_priv = all_expected_priv;
+  expected_priv.erase("INSERT");
+  expected_priv.erase("SELECT");
+  expected_priv.erase("UPDATE");
+  test(expected_priv, false, "test_db", "t3");
+  // User with SELECT on test_db2.*.
+  expected_priv = all_expected_priv;
+  expected_priv.erase("SELECT");
+  test(expected_priv, true, "test_db2", "t1");
   test({"ALL"}, false, "mysql", "user");
 }  // NOLINT(readability/fn_size)
 
@@ -494,7 +456,33 @@ TEST_F(User_privileges_test, validate_all_privileges) {
                       {"CREATE USER", "YES"},
                       {"EVENT", "YES"},
                       {"TRIGGER", "YES"},
-                      {"CREATE TABLESPACE", "YES"}}}});
+                      {"CREATE TABLESPACE", "YES"},
+                      {"CREATE ROLE", "YES"},
+                      {"DROP ROLE", "YES"},
+                      {"APPLICATION_PASSWORD_ADMIN", "YES"},
+                      {"BACKUP_ADMIN", "YES"},
+                      {"BINLOG_ADMIN", "YES"},
+                      {"BINLOG_ENCRYPTION_ADMIN", "YES"},
+                      {"CLONE_ADMIN", "YES"},
+                      {"CONNECTION_ADMIN", "YES"},
+                      {"ENCRYPTION_KEY_ADMIN", "YES"},
+                      {"GROUP_REPLICATION_ADMIN", "YES"},
+                      {"INNODB_REDO_LOG_ARCHIVE", "YES"},
+                      {"PERSIST_RO_VARIABLES_ADMIN", "YES"},
+                      {"REPLICATION_APPLIER", "YES"},
+                      {"REPLICATION_SLAVE_ADMIN", "YES"},
+                      {"RESOURCE_GROUP_ADMIN", "YES"},
+                      {"RESOURCE_GROUP_USER", "YES"},
+                      {"ROLE_ADMIN", "YES"},
+                      {"SESSION_VARIABLES_ADMIN", "YES"},
+                      {"SET_USER_ID", "YES"},
+                      {"SYSTEM_USER", "YES"},
+                      {"SYSTEM_VARIABLES_ADMIN", "YES"},
+                      {"TABLE_ENCRYPTION_ADMIN", "YES"},
+                      {"XA_RECOVER_ADMIN", "YES"}}}});
+
+  set_all_privileges_queries(m_mock_session);
+
   m_mock_session
       ->expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
@@ -597,7 +585,8 @@ TEST_F(User_privileges_test, validate_all_privileges) {
 TEST_F(User_privileges_test, get_user_roles) {
   // Test retrieval of user roles.
   auto expect_no_privileges = [](std::shared_ptr<Mock_session> &mock_session,
-                                 const std::string &user_account) {
+                                 const std::string &user_account,
+                                 bool is_role = false) {
     mock_session
         ->expect_query(
             "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
@@ -608,6 +597,11 @@ TEST_F(User_privileges_test, get_user_roles) {
                        {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                        {Type::String, Type::String},
                        {{"USAGE", "NO"}}}});
+
+    if (!is_role) {
+      set_all_privileges_queries(mock_session);
+    }
+
     mock_session
         ->expect_query(
             "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
@@ -713,8 +707,9 @@ TEST_F(User_privileges_test, get_user_roles) {
                        {Type::String},
                        {{"mandatory_roles", ""}}}});
 
-    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'");
-    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'");
+    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'",
+                         true);
+    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'", true);
 
     User_privileges up_roles{mysqlshdk::mysql::Instance(m_session), "dba_user",
                              "dba_host"};
@@ -769,9 +764,11 @@ TEST_F(User_privileges_test, get_user_roles) {
               {{"mandatory_roles",
                 "m_role@dba_host,read_role@dba_host,write_role@dba_host"}}}});
 
-    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'");
-    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'");
-    expect_no_privileges(m_mock_session, "\\'write_role\\'@\\'dba_host\\'");
+    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'",
+                         true);
+    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'", true);
+    expect_no_privileges(m_mock_session, "\\'write_role\\'@\\'dba_host\\'",
+                         true);
 
     User_privileges up_all_roles{mysqlshdk::mysql::Instance(m_session),
                                  "dba_user", "dba_host"};
@@ -814,10 +811,10 @@ TEST_F(User_privileges_test, get_user_roles) {
                        {{"mandatory_roles",
                          "`role1`@`%`,`role2`,role3,role4@localhost"}}}});
 
-    expect_no_privileges(m_mock_session, "\\'role1\\'@\\'%\\'");
-    expect_no_privileges(m_mock_session, "\\'role2\\'@\\'%\\'");
-    expect_no_privileges(m_mock_session, "\\'role3\\'@\\'%\\'");
-    expect_no_privileges(m_mock_session, "\\'role4\\'@\\'localhost\\'");
+    expect_no_privileges(m_mock_session, "\\'role1\\'@\\'%\\'", true);
+    expect_no_privileges(m_mock_session, "\\'role2\\'@\\'%\\'", true);
+    expect_no_privileges(m_mock_session, "\\'role3\\'@\\'%\\'", true);
+    expect_no_privileges(m_mock_session, "\\'role4\\'@\\'localhost\\'", true);
 
     User_privileges up_mr_roles{mysqlshdk::mysql::Instance(m_session),
                                 "dba_user", "dba_host"};
@@ -845,6 +842,9 @@ TEST_F(User_privileges_test, validate_role_privileges) {
                      {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                      {Type::String, Type::String},
                      {{"USAGE", "NO"}}}});
+
+  set_all_privileges_queries(m_mock_session);
+
   m_mock_session
       ->expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "

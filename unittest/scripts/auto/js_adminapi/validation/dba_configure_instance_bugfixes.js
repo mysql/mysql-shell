@@ -159,3 +159,9 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already ready for InnoDB
 
 //@ BUG#29765093: clean-up. {VER(>=8.0.11)}
 ||
+
+//@ BUG#30339460: Use configureInstance to create the Admin user.
+||
+
+//@ BUG#30339460: Use configureInstance with the Admin user (no error).
+||

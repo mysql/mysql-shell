@@ -1,7 +1,7 @@
 //@ create cluster admin
 |Cluster admin user 'ca'@'%' created.|
 
-//@<OUT> check global privileges of cluster admin {VER(<8.0.17)}
+//@<OUT> check global privileges of cluster admin {VER(<8.0.11)}
 +--------------------+--------------+
 | PRIVILEGE_TYPE     | IS_GRANTABLE |
 +--------------------+--------------+
@@ -16,21 +16,23 @@
 | SUPER              | YES          |
 +--------------------+--------------+
 
-//@<OUT> check global privileges of cluster admin {VER(>=8.0.17)}
-+--------------------+--------------+
-| PRIVILEGE_TYPE     | IS_GRANTABLE |
-+--------------------+--------------+
-| BACKUP_ADMIN       | YES          |
-| CREATE USER        | YES          |
-| FILE               | YES          |
-| PROCESS            | YES          |
-| RELOAD             | YES          |
-| REPLICATION CLIENT | YES          |
-| REPLICATION SLAVE  | YES          |
-| SELECT             | YES          |
-| SHUTDOWN           | YES          |
-| SUPER              | YES          |
-+--------------------+--------------+
+//@<OUT> check global privileges of cluster admin {VER(>=8.0.11)}
++----------------------------+--------------+
+| PRIVILEGE_TYPE             | IS_GRANTABLE |
++----------------------------+--------------+
+| BACKUP_ADMIN               | YES          |
+| CREATE USER                | YES          |
+| FILE                       | YES          |
+| PERSIST_RO_VARIABLES_ADMIN | YES          |
+| PROCESS                    | YES          |
+| RELOAD                     | YES          |
+| REPLICATION CLIENT         | YES          |
+| REPLICATION SLAVE          | YES          |
+| SELECT                     | YES          |
+| SHUTDOWN                   | YES          |
+| SUPER                      | YES          |
+| SYSTEM_VARIABLES_ADMIN     | YES          |
++----------------------------+--------------+
 
 //@<OUT> check schema privileges of cluster admin
 +-------------------------+--------------+-------------------------------+
