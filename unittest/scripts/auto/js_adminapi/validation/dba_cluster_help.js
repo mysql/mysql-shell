@@ -524,9 +524,6 @@ DESCRIPTION
       Whenever a Metadata Schema upgrade is necessary, the recommended process
       is to upgrade MySQL Router instances to the latest version before
       upgrading the Metadata itself, in order to minimize service disruption.
-      listRouters() will include a "upgradeRequired:true" field for Router
-      instances that must be upgraded before the Shell can upgrade the
-      Metadata.
 
       The options dictionary may contain the following attributes:
 

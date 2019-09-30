@@ -69,7 +69,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(InstanceDef instance, String option,
                               String value);
-  Boolean removeRouterMetadata(RouterDef router);
+  Boolean removeRouterMetadata(RouterDef routerDef);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -91,7 +91,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   str options(dict options);
   None set_option(str option, str value);
   None set_instance_option(InstanceDef instance, str option, str value);
-  bool remove_router_metadata(RouterDef router);
+  bool remove_router_metadata(RouterDef routerDef);
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);

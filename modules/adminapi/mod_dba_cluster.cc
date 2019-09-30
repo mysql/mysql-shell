@@ -1549,9 +1549,7 @@ registered for the cluster.
 
 Whenever a Metadata Schema upgrade is necessary, the recommended process
 is to upgrade MySQL Router instances to the latest version before upgrading
-the Metadata itself, in order to minimize service disruption. listRouters() will
-include a "upgradeRequired:true" field for Router instances that must be
-upgraded before the Shell can upgrade the Metadata.
+the Metadata itself, in order to minimize service disruption.
 
 The options dictionary may contain the following attributes:
 
@@ -1568,9 +1566,9 @@ included.
 )*");
 
 /**
- * $(CLUSTER_LISTROUTER_BRIEF)
+ * $(CLUSTER_LISTROUTERS_BRIEF)
  *
- * $(CLUSTER_LISTROUTER)
+ * $(CLUSTER_LISTROUTERS)
  */
 #if DOXYGEN_JS
 String Cluster::listRouters(Dictionary options) {}
@@ -1602,7 +1600,7 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REMOVEROUTERMETADATA, R"*(
 Removes metadata for a router instance.
 
 @param routerDef identifier of the router instance to be removed (e.g.
-192.168.45.70::system)
+192.168.45.70@::system)
 @returns Nothing
 
 MySQL Router automatically registers itself within the InnoDB cluster
@@ -1621,6 +1619,11 @@ instances, including their identifier.
  *
  * $(CLUSTER_REMOVEROUTERMETADATA)
  */
+#if DOXYGEN_JS
+String Cluster::removeRouterMetadata(RouterDef routerDef) {}
+#elif DOXYGEN_PY
+str Cluster::remove_router_metadata(RouterDef routerDef) {}
+#endif
 void Cluster::remove_router_metadata(const std::string &router_def) {
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
