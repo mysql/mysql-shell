@@ -53,9 +53,9 @@ DEBUG_OBJ_ENABLE(PythonObjectWrapper);
 /** Wraps a GRT method as a Python object
  */
 struct PyShMethodObject {
-  PyObject_HEAD
+  PyObject_HEAD;
 
-      std::shared_ptr<Cpp_object_bridge> *object;
+  std::shared_ptr<Cpp_object_bridge> *object;
   std::string *method;
 };
 
@@ -795,5 +795,23 @@ bool shcore::unwrap(PyObject *value,
     ret_object = *((PyShObjObject *)value)->object;
     return true;
   }
+  return false;
+}
+
+bool shcore::unwrap_method(PyObject *value,
+                           std::shared_ptr<Function_base> *method) {
+  if (PyObject_TypeCheck(value, &PyShMethodObjectType)) {
+    const auto o = reinterpret_cast<PyShMethodObject *>(value);
+    const auto m = o->object->get()->get_member_advanced(*o->method);
+
+    if (shcore::Value_type::Function != m.type) {
+      return false;
+    }
+
+    *method = m.as_function();
+
+    return true;
+  }
+
   return false;
 }

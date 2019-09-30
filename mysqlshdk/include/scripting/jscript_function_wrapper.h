@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,8 @@ class JScript_function_wrapper {
   ~JScript_function_wrapper();
 
   v8::Local<v8::Object> wrap(std::shared_ptr<Function_base> object);
+
+  static bool is_function(v8::Local<v8::Object> value);
 
   static bool unwrap(v8::Local<v8::Object> value,
                      std::shared_ptr<Function_base> *ret_function);

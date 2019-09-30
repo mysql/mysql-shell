@@ -13,4 +13,4 @@ shell.enablePager()
 shell.disablePager()
 
 //@ check if pager didn't get the output from the system command
-EXPECT_NOT_CONTAINS("zaq12WSX", os.load_text_file(__pager.file));
+EXPECT_NOT_CONTAINS("zaq12WSX", os.loadTextFile(__pager.file));

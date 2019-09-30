@@ -76,7 +76,7 @@ class JScript_object : public Object_bridge {
       v8::MaybeLocal<v8::Value> result =
           f->Call(lcontext, _js->context()->Global(),
                   static_cast<int>(args.size()), &argv[0]);
-      return _js->v8_value_to_shcore_value(result.ToLocalChecked());
+      return _js->convert(result.ToLocalChecked());
     } else {
       throw Exception::attrib_error("Called member " + name +
                                     " of JS object is not a function");
@@ -117,6 +117,7 @@ JScript_function::JScript_function(JScript_context *context,
   // lifetime of the function is bound to the lifetime of JS context, we store
   // the pointer there and here we just hold a weak reference
   m_function = _js->store(function);
+  m_name = _js->to_string(function->GetDebugName());
 }
 
 JScript_function::~JScript_function() {
@@ -124,12 +125,6 @@ JScript_function::~JScript_function() {
     // if function still exists, JS context exists as well
     _js->erase(ref);
   }
-}
-
-const std::string &JScript_function::name() const {
-  // TODO:
-  static std::string tmp;
-  return tmp;
 }
 
 const std::vector<std::pair<std::string, Value_type>>
@@ -165,7 +160,7 @@ Value JScript_function::invoke(const Argument_list &args) {
     argv.reserve(argc);
 
     for (const auto &arg : args) {
-      argv.emplace_back(_js->shcore_value_to_v8_value(arg));
+      argv.emplace_back(_js->convert(arg));
     }
 
     v8::Local<v8::Function> callback = function->get(isolate);
@@ -188,7 +183,7 @@ Value JScript_function::invoke(const Argument_list &args) {
 
       throw Exception::scripting_error(error);
     } else {
-      return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
+      return _js->convert(ret_val.ToLocalChecked());
     }
   } else {
     throw Exception::scripting_error(

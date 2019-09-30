@@ -306,7 +306,7 @@ void Help_registry::add_split_help(const std::string &prefix,
   while (!eos && !para.empty()) {
     if (shcore::str_beginswith(para, "@param")) {
       add_help(token("PARAM"), para);
-    } else if (shcore::str_beginswith(para, "@returns")) {
+    } else if (shcore::str_beginswith(para, "@return")) {
       add_help(token("RETURNS"), para);
     } else {
       break;
@@ -329,7 +329,7 @@ void Help_registry::add_split_help(const std::string &prefix,
   // everything after the 1st @throw assumed to be more throws
   while (!eos && !para.empty()) {
     if (shcore::str_beginswith(para, "@throw"))
-      add_help(token("THROWS"), para.substr(strlen("@throw ")));
+      add_help(token("THROWS"), para.substr(para.find_first_of(" \t") + 1));
     else
       add_help(token("THROWS"), para);
     para = get_para(&eos);
@@ -1017,7 +1017,7 @@ void Help_manager::add_simple_function_help(
   if (!returns.empty()) {
     std::string ret = textui::bold("RETURNS") + HEADER_CONTENT_SEPARATOR;
     // Removes the @returns tag
-    returns[0] = returns[0].substr(8);
+    returns[0] = returns[0].substr(returns[0].find_first_of(" \t") + 1);
     ret += format_help_text(&returns, MAX_HELP_WIDTH, SECTION_PADDING, true);
     sections->push_back(ret);
   }

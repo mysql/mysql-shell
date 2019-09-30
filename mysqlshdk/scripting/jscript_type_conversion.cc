@@ -51,6 +51,11 @@ JScript_type_bridger::JScript_type_bridger(JScript_context *context)
       array_wrapper(NULL) {}
 
 void JScript_type_bridger::init() {
+  v8::Isolate::Scope isolate_scope(owner->isolate());
+  v8::HandleScope handle_scope(owner->isolate());
+  v8::TryCatch try_catch{owner->isolate()};
+  v8::Context::Scope context_scope(owner->context());
+
   object_wrapper = new JScript_object_wrapper(owner);
   indexed_object_wrapper = new JScript_object_wrapper(owner, true);
   map_wrapper = new JScript_map_wrapper(owner);
@@ -88,7 +93,7 @@ void JScript_type_bridger::dispose() {
 JScript_type_bridger::~JScript_type_bridger() { dispose(); }
 
 double JScript_type_bridger::call_num_method(v8::Local<v8::Object> object,
-                                             const char *method) {
+                                             const char *method) const {
   const auto lcontext = owner->context();
   v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(
       object->Get(lcontext, owner->v8_string(method)).ToLocalChecked());
@@ -98,7 +103,7 @@ double JScript_type_bridger::call_num_method(v8::Local<v8::Object> object,
 }
 
 v8::Local<v8::Value> JScript_type_bridger::native_object_to_js(
-    Object_bridge_ref object) {
+    Object_bridge_ref object) const {
   if (object && object->class_name() == "Date") {
     std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
     // The only Date constructor exposed to C++ takes milliseconds, the
@@ -120,7 +125,7 @@ v8::Local<v8::Value> JScript_type_bridger::native_object_to_js(
 }
 
 Object_bridge_ref JScript_type_bridger::js_object_to_native(
-    v8::Local<v8::Object> object) {
+    v8::Local<v8::Object> object) const {
   const auto ctorname =
       to_string(object->GetIsolate(), object->GetConstructorName());
 
@@ -142,7 +147,7 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(
 }
 
 Value JScript_type_bridger::v8_value_to_shcore_value(
-    const v8::Local<v8::Value> &value) {
+    const v8::Local<v8::Value> &value) const {
   if (value.IsEmpty() || value->IsUndefined()) {
     return Value();
   } else if (value->IsNull()) {
@@ -169,12 +174,23 @@ Value JScript_type_bridger::v8_value_to_shcore_value(
     }
     return Value(array);
   } else if (value->IsFunction()) {
-    v8::Local<v8::Function> v8_function = v8::Local<v8::Function>::Cast(value);
+    if (value->IsObject()) {
+      const auto jsobject = value->ToObject(owner->context()).ToLocalChecked();
 
-    std::shared_ptr<shcore::JScript_function> function(
-        new shcore::JScript_function(owner, v8_function));
-    // throw Exception::logic_error("JS function wrapping not implemented");
-    return Value(std::dynamic_pointer_cast<Function_base>(function));
+      if (JScript_function_wrapper::is_function(jsobject)) {
+        std::shared_ptr<Function_base> function;
+        JScript_function_wrapper::unwrap(jsobject, &function);
+        return Value(function);
+      } else if (JScript_method_wrapper::is_method(jsobject)) {
+        std::shared_ptr<Function_base> method;
+        JScript_method_wrapper::unwrap(jsobject, &method);
+        return Value(method);
+      }
+    }
+
+    const auto v8_function = v8::Local<v8::Function>::Cast(value);
+    return Value(
+        std::make_shared<shcore::JScript_function>(owner, v8_function));
   } else if (value->IsObject()) {
     v8::Local<v8::Object> jsobject =
         value->ToObject(owner->context()).ToLocalChecked();
@@ -216,7 +232,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(
 }
 
 v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
-    const Value &value) {
+    const Value &value) const {
   v8::Local<v8::Value> r;
   switch (value.type) {
     case Undefined:
@@ -267,7 +283,7 @@ v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
 }
 
 v8::Local<v8::String> JScript_type_bridger::type_info(
-    v8::Local<v8::Value> value) {
+    v8::Local<v8::Value> value) const {
   if (value->IsUndefined())
     return owner->v8_string("Undefined");
   else if (value->IsNull())
@@ -303,7 +319,7 @@ v8::Local<v8::String> JScript_type_bridger::type_info(
       return owner->v8_string("m." + object->class_name());
     } else if (JScript_function_wrapper::unwrap(jsobject, &function)) {
       return owner->v8_string("m.Function");
-    } else if (JScript_object_wrapper::is_method(jsobject)) {
+    } else if (JScript_method_wrapper::is_method(jsobject)) {
       return owner->v8_string("m.Function");
     } else {
       if (!jsobject->GetConstructorName().IsEmpty())

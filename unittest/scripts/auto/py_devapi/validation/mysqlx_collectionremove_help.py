@@ -45,7 +45,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This CollectionRemove object.
+      This CollectionRemove object.
 
 DESCRIPTION
       An error will be raised if the placeholder indicated by name does not
@@ -63,7 +63,7 @@ SYNTAX
       <CollectionRemove>.execute()
 
 RETURNS
-       Result A Result object that can be used to retrieve the results of the
+      Result A Result object that can be used to retrieve the results of the
       deletion operation.
 
 #@<OUT> collremove.help
@@ -87,7 +87,7 @@ WHERE
       numberOfDocs: the number of documents to affect in the remove execution.
 
 RETURNS
-       This CollectionRemove object.
+      This CollectionRemove object.
 
 DESCRIPTION
       This method is usually used in combination with sort to fix the amount of
@@ -105,7 +105,7 @@ WHERE
       searchCondition: An expression to filter the documents to be deleted.
 
 RETURNS
-       This CollectionRemove object.
+      This CollectionRemove object.
 
 DESCRIPTION
       Creates a handler for the deletion of documents on the collection.
@@ -133,7 +133,7 @@ SYNTAX
       <CollectionRemove>.sort(sortExpr[, sortExpr, ...])
 
 RETURNS
-       This CollectionRemove object.
+      This CollectionRemove object.
 
 DESCRIPTION
       The elements of sortExprStr list are strings defining the column name on

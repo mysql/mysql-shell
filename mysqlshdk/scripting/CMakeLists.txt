@@ -33,17 +33,20 @@ set(SCRIPTING_SOURCES
 # core.js file in a variable.
 if(HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
+  # Copy the core.js file to another directory.
+  # This ensures that it's treated as a dependency, allowing to reconfigure
+  # the jscript_core_definitions.h header file whenever core.js is changed.
+  configure_file("${CMAKE_SOURCE_DIR}/mysqlshdk/scripts/core.js"
+                 "${CMAKE_BINARY_DIR}/scripting/core.js"
+                 COPYONLY)
+
   # Loads the core.js file
-  FILE(READ "${CMAKE_SOURCE_DIR}/mysqlshdk/scripts/core.js" JS_CORE_MODULE)
+  FILE(READ "${CMAKE_BINARY_DIR}/scripting/core.js" JS_CORE_MODULE)
 
   # Strips the copyright notice from it
   string(FIND "${JS_CORE_MODULE}" "function" COPYRIGHT_END)
   string(SUBSTRING "${JS_CORE_MODULE}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
   string(REPLACE "${COPYRIGHT_TEXT}" "" JS_CORE_MODULE_STRIPPED "${JS_CORE_MODULE}")
-
-  # Updates format to be a C++ multiline definition
-  string(REPLACE "\\" "\\\\" JS_CORE_MODULE_PREPARED "${JS_CORE_MODULE_STRIPPED}")
-  string(REPLACE "\n" "\\n\"\n\"" JS_CORE_MODULE_UPDATED "${JS_CORE_MODULE_PREPARED}")
 
   # Creates the target file containing the code ready for processing
   configure_file("${CMAKE_SOURCE_DIR}/mysqlshdk/scripting/jscript_core_definitions.h.in"

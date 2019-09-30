@@ -31,6 +31,7 @@ The functionality of the APIs is exposed through modules and global objects whic
   - The <a class ="el" href="classmysqlsh_1_1mysqlx_1_1_schema.html">db</a> global object is available when the global session is established through the X protocol using a default database.
   - The \ref util global object that groups miscellaneous tools like upgrade checker and JSON import.
 \if DOXYGEN_JS
+  - The <a class ="el" href="classmysqlsh_1_1_os.html">os</a> global object gives access to functions which allow to interact with the operating system.
   - The <a class ="el" href="classmysqlsh_1_1_sys.html">sys</a> global object gives access to system specific parameters.
 \endif
 
@@ -39,8 +40,8 @@ For additional details look at the connect function in the <a class ="el" href="
 
 For more information on the functionality these APIs provide see the following documentation:
 
-  - The <a class ="el" href="http://dev.mysql.com/doc/refman/5.7/en/document-store.html">Using MySQL as a Document Store</a> documentation explains how to use X DevAPI to achieve a NoSQL-like MySQL database.  
+  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/document-store.html">Using MySQL as a Document Store</a> documentation explains how to use X DevAPI to achieve a NoSQL-like MySQL database.
   - The <a class ="el" href="http://dev.mysql.com/doc/x-devapi-userguide/en/">X DevAPI user guide</a> provides details about and usage examples of the X DevAPI.
-  - The <a class ="el" href="http://dev.mysql.com/doc/refman/5.7/en/mysql-innodb-cluster-userguide.html">InnoDB Cluster user guide</a> explains how to use MySQL Shell and AdminAPI to set up and administer a highly available InnoDB cluster. 
-  - The <a class ="el" href="http://dev.mysql.com/doc/refman/5.7/en/group-replication.html">Group Replication</a> documentation provides detailed documentation on the replication group which InnoDB cluster utilizes.
+  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/mysql-innodb-cluster-userguide.html">InnoDB Cluster user guide</a> explains how to use MySQL Shell and AdminAPI to set up and administer a highly available InnoDB cluster.
+  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/group-replication.html">Group Replication</a> documentation provides detailed documentation on the replication group which InnoDB cluster utilizes.
 */

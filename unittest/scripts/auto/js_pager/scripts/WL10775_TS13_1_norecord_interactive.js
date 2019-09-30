@@ -7,7 +7,7 @@ shell.options.pager = __pager.cmd;
 \help shell
 
 //@ load output from pager
-var output = os.load_text_file(__pager.file);
+var output = os.loadTextFile(__pager.file);
 
 //@ help should contain information about enablePager() method
 EXPECT_CONTAINS('enablePager()', output);

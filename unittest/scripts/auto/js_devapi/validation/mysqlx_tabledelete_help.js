@@ -44,7 +44,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       Binds a value to a specific placeholder used on this operation.
@@ -63,7 +63,7 @@ SYNTAX
       <TableDelete>.delete()
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 //@<OUT> Help on execute
 NAME
@@ -73,7 +73,7 @@ SYNTAX
       <TableDelete>.execute()
 
 RETURNS
-       A Result object.
+      A Result object.
 
 //@<OUT> Help on help
 NAME
@@ -96,7 +96,7 @@ WHERE
       numberOfRows: The maximum number of rows to be deleted.
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used, the operation will delete only numberOfRows rows.
@@ -110,7 +110,7 @@ SYNTAX
       <TableDelete>.orderBy(sortCriterion[, sortCriterion, ...])
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used the records will be deleted in the order established by the sort
@@ -135,7 +135,7 @@ WHERE
       expression: Condition to filter the records to be deleted.
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used, only those rows satisfying the expression will be deleted

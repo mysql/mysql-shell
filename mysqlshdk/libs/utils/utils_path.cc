@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -143,6 +143,10 @@ std::string search_path_list(const std::string &name,
     if (exists(tmp)) return tmp;
   }
   return "";
+}
+
+bool SHCORE_PUBLIC is_path_separator(char c) {
+  return strchr(k_valid_path_separators, c) != nullptr;
 }
 
 }  // namespace path

@@ -133,7 +133,7 @@ SYNTAX
       <Result>.get_affected_item_count()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       This is the value of the C API mysql_affected_rows(), see
@@ -151,7 +151,7 @@ SYNTAX
       <Result>.get_affected_items_count()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       Returns the number of records affected by the executed operation
@@ -165,7 +165,7 @@ SYNTAX
       <Result>.get_auto_increment_value()
 
 RETURNS
-       the integer representing the last insert id
+      the integer representing the last insert id
 
 DESCRIPTION
       For more details, see
@@ -191,7 +191,7 @@ SYNTAX
       <Result>.get_generated_ids()
 
 RETURNS
-       a list of strings containing the generated ids.
+      a list of strings containing the generated ids.
 
 DESCRIPTION
       When adding documents into a collection, it is required that an ID is
@@ -214,7 +214,7 @@ SYNTAX
       <Result>.get_warning_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -234,7 +234,7 @@ SYNTAX
       <Result>.get_warnings()
 
 RETURNS
-       A list containing a warning object for each generated warning.
+      A list containing a warning object for each generated warning.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -254,7 +254,7 @@ SYNTAX
       <Result>.get_warnings_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see

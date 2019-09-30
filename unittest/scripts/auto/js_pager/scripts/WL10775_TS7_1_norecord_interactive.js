@@ -7,4 +7,4 @@ shell.options.pager = __pager.cmd;
 \help Shell Commands
 
 //@ help should contain information about pager commands
-EXPECT_CONTAINS('- \\pager      (\\P)    Sets the current pager.', os.load_text_file(__pager.file));
+EXPECT_CONTAINS('- \\pager      (\\P)    Sets the current pager.', os.loadTextFile(__pager.file));

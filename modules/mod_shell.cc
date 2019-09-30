@@ -42,7 +42,7 @@
 using namespace std::placeholders;
 
 namespace mysqlsh {
-REGISTER_HELP_FUNCTION_MODE(dir, shellapi, shcore::Help_mode::JAVASCRIPT);
+REGISTER_HELP_FUNCTION_MODE(dir, shellapi, JAVASCRIPT);
 REGISTER_HELP_FUNCTION_TEXT(SHELLAPI_DIR, R"*(
 Returns a list of enumerable properties on the target object.
 
@@ -66,6 +66,86 @@ unsupported.
  * $(SHELLAPI_DIR)
  */
 Array dir(Object object){};
+#endif
+
+REGISTER_HELP_FUNCTION_MODE(require, shellapi, JAVASCRIPT);
+REGISTER_HELP_FUNCTION_TEXT(SHELLAPI_REQUIRE, R"*(
+Loads the specified JavaScript module.
+
+@param module_name_or_path The name or a path to the module to be loaded.
+@returns The exported content of the loaded module.
+
+The module_name_or_path parameter can be either a name of the built-in module
+(i.e. mysql or mysqlx) or a path to the JavaScript module on the local file
+system. The local module is searched for in the following folders:
+@li if module_name_or_path begins with either './' or '../' characters, use
+the folder which contains the JavaScipt file or module which is currently
+being executed or the current working directory if there is no such file or
+module (i.e. shell is running in interactive mode),
+@li folders listed in the sys.path variable.
+
+The file containing the module to be loaded is located by iterating through
+these folders, for each folder path:
+@li append module_name_or_path, if such file exists, use it,
+@li append module_name_or_path, append '.js' extension, if such file exists,
+use it,
+@li append module_name_or_path, if such folder exists, append 'init.js' file
+name, if such file exists, use it.
+
+The loaded module has access to the following variables:
+@li exports - an empty object, module should use it to export its functionalities;
+this is the value returned from the require() function,
+@li module - a module object, contains the exports object described above; can be
+used to i.e. change the type of exports or store module-specific data,
+@li __filename - absolute path to the module file,
+@li __dirname - absolute path to the directory containing the module file.
+
+Each module is loaded only once, any subsequent call to require() which would use
+the same module will return a cached value instead.
+
+If two modules form a cycle (try to load each other using the require() function),
+one of them is going to receive an unfinished copy of the other ones exports object.
+
+Here is a sample module called <b>test.js</b> which stores some data in the module
+object and exports a function <b>callme()</b>:
+@code
+  module.counter = 0;
+
+  exports.callme = function() {
+    const plural = ++module.counter > 1 ? 's' : '';
+    println(`I was called ${module.counter} time${plural}.`);
+  };
+@endcode
+
+If placed in the current working directory, it can be used in shell as follows:
+@code
+  mysql-js> var test = require('./test');
+  mysql-js> test.callme();
+  I was called 1 time.
+  mysql-js> test.callme();
+  I was called 2 times.
+  mysql-js> test.callme();
+  I was called 3 times.
+@endcode
+
+@throw TypeError in the following scenarios:
+@li if module_name_or_path is not a string.
+
+@throw Error in the following scenarios:
+@li if module_name_or_path is empty,
+@li if module_name_or_path contains a backslash character,
+@li if module_name_or_path is an absolute path,
+@li if local module could not be found,
+@li if local module could not be loaded.
+)*");
+#if DOXYGEN_JS
+/**
+ * \ingroup ShellAPI
+ * $(SHELLAPI_REQUIRE_BRIEF)
+ *
+ * $(SHELLAPI_REQUIRE)
+ */
+Any require(String module_name_or_path) {}
 #endif
 
 REGISTER_HELP_GLOBAL_OBJECT(shell, shellapi);
@@ -697,14 +777,12 @@ REGISTER_HELP(SHELL_CONNECT_DETAIL2, "${TOPIC_CONNECTION_DATA}");
  *
  * $(SHELL_CONNECT_DETAIL)
  *
+ * $(SHELL_CONNECT_DETAIL1)
+ *
  * \copydoc connection_options
  *
  * Detailed description of the connection data format is available at \ref
  * connection_data
- *
- * $(SHELL_CONNECT_DETAIL1)
- *
- * $(TOPIC_CONNECTION_DATA)
  */
 #if DOXYGEN_JS
 Session Shell::connect(ConnectionData connectionData, String password) {}

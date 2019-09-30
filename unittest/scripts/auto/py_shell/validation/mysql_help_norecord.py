@@ -50,7 +50,7 @@ WHERE
       password: Password for the session
 
 RETURNS
-       A ClassicSession
+      A ClassicSession
 
 DESCRIPTION
       A ClassicSession object uses the traditional MySQL Protocol to allow
@@ -141,7 +141,7 @@ WHERE
       password: Password for the session
 
 RETURNS
-       A ClassicSession
+      A ClassicSession
 
 DESCRIPTION
       A ClassicSession object uses the traditional MySQL Protocol to allow

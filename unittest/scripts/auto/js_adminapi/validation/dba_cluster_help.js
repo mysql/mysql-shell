@@ -104,7 +104,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       nothing
+      nothing
 
 DESCRIPTION
       This function adds an Instance to the default replica set of the cluster.
@@ -280,7 +280,7 @@ WHERE
       instance: An instance definition.
 
 RETURNS
-       resultset A JSON object with the status.
+      resultset A JSON object with the status.
 
 DESCRIPTION
       Analyzes the instance executed GTIDs with the executed/purged GTIDs on
@@ -337,7 +337,7 @@ SYNTAX
       <Cluster>.describe()
 
 RETURNS
-       A JSON object describing the structure of the cluster.
+      A JSON object describing the structure of the cluster.
 
 DESCRIPTION
       This function describes the structure of the cluster including all its
@@ -382,7 +382,7 @@ SYNTAX
       <Cluster>.disconnect()
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       Disconnects the internal MySQL sessions used by the cluster to query for
@@ -400,7 +400,7 @@ WHERE
                unregister the ReplicaSets from the cluster.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function disables replication on the ReplicaSets, unregisters them
@@ -445,7 +445,7 @@ WHERE
       password: String with the password for the connection.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function restores the cluster's default replicaset back into
@@ -492,7 +492,7 @@ SYNTAX
       <Cluster>.getName()
 
 RETURNS
-       The name of the cluster.
+      The name of the cluster.
 
 //@<OUT> Help
 NAME
@@ -515,7 +515,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       A JSON object listing the Router instances associated to the cluster.
+      A JSON object listing the Router instances associated to the cluster.
 
 DESCRIPTION
       This function lists and provides information about all Router instances
@@ -554,7 +554,7 @@ WHERE
                  192.168.45.70::system)
 
 RETURNS
-       Nothing
+      Nothing
 
 DESCRIPTION
       MySQL Router automatically registers itself within the InnoDB cluster
@@ -581,7 +581,7 @@ WHERE
       options: Dictionary with options.
 
 RETURNS
-       A JSON object describing the configuration options of the cluster.
+      A JSON object describing the configuration options of the cluster.
 
 DESCRIPTION
       This function lists the cluster configuration options for its ReplicaSets
@@ -608,7 +608,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function rejoins an Instance to the cluster.
@@ -680,7 +680,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function removes an Instance from the default replicaSet of the
@@ -746,7 +746,7 @@ WHERE
       value: The value that the configuration option shall get.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function changes an InnoDB Cluster configuration option in a member
@@ -841,7 +841,7 @@ WHERE
       value: The value that the configuration option shall get.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function changes an InnoDB Cluster configuration option in all
@@ -1001,7 +1001,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function rescans the cluster for new and obsolete Group Replication
@@ -1065,7 +1065,7 @@ WHERE
       options: Dictionary with options.
 
 RETURNS
-       A JSON object describing the status of the cluster.
+      A JSON object describing the status of the cluster.
 
 DESCRIPTION
       This function describes the status of the cluster including its
@@ -1113,7 +1113,7 @@ WHERE
       instance: An instance definition.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function forces the election of a new primary, overriding any
@@ -1150,7 +1150,7 @@ SYNTAX
       <Cluster>.switchToMultiPrimaryMode()
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function changes a cluster running in single-primary mode to
@@ -1174,7 +1174,7 @@ WHERE
       instance: An instance definition.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function changes a cluster running in multi-primary mode to
@@ -1218,7 +1218,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function resets the passwords for all internal recovery user

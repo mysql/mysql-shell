@@ -30,6 +30,12 @@ using namespace shcore;
 Python_function::Python_function(Python_context *context, PyObject *function)
     : _py(context) {
   m_function = _py->store(function);
+
+  {
+    const auto name = PyObject_GetAttrString(function, "__name__");
+    Python_context::pystring_to_string(name, &m_name);
+    Py_XDECREF(name);
+  }
 }
 
 Python_function::~Python_function() {
@@ -37,12 +43,6 @@ Python_function::~Python_function() {
   if (auto ref = m_function.lock()) {
     _py->erase(ref);
   }
-}
-
-const std::string &Python_function::name() const {
-  // TODO:
-  static std::string tmp;
-  return tmp;
 }
 
 const std::vector<std::pair<std::string, Value_type>>

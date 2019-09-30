@@ -218,7 +218,7 @@ SYNTAX
       <ClassicResult>.fetchAll()
 
 RETURNS
-       A List of Row objects.
+      A List of Row objects.
 
 DESCRIPTION
       If this function is called right after executing a query, it will return
@@ -235,7 +235,7 @@ SYNTAX
       <ClassicResult>.fetchOne()
 
 RETURNS
-       A Row object representing the next record in the result.
+      A Row object representing the next record in the result.
 
 //@<OUT> Help on fetchOneObject
 NAME
@@ -246,7 +246,7 @@ SYNTAX
       <ClassicResult>.fetchOneObject()
 
 RETURNS
-       A dictionary containing the row information.
+      A dictionary containing the row information.
 
 DESCRIPTION
       The column names will be used as keys in the returned dictionary and the
@@ -267,7 +267,7 @@ SYNTAX
       <ClassicResult>.getAffectedItemsCount()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       Returns the number of records affected by the executed operation
@@ -280,7 +280,7 @@ SYNTAX
       <ClassicResult>.getAffectedRowCount()
 
 RETURNS
-       the number of affected rows.
+      the number of affected rows.
 
 DESCRIPTION
       This is the value of the C API mysql_affected_rows(), see
@@ -298,7 +298,7 @@ SYNTAX
       <ClassicResult>.getAutoIncrementValue()
 
 RETURNS
-       the integer representing the last insert id
+      the integer representing the last insert id
 
 //@<OUT> Help on getColumnCount
 NAME
@@ -308,7 +308,7 @@ SYNTAX
       <ClassicResult>.getColumnCount()
 
 RETURNS
-       the number of columns on the current result.
+      the number of columns on the current result.
 
 //@<OUT> Help on getColumnNames
 NAME
@@ -318,7 +318,7 @@ SYNTAX
       <ClassicResult>.getColumnNames()
 
 RETURNS
-       A list with the names of the columns returned on the active result.
+      A list with the names of the columns returned on the active result.
 
 //@<OUT> Help on getColumns
 NAME
@@ -329,7 +329,7 @@ SYNTAX
       <ClassicResult>.getColumns()
 
 RETURNS
-       a list of column metadata objects containing information about the
+      a list of column metadata objects containing information about the
       columns included on the active result.
 
 //@<OUT> Help on getExecutionTime
@@ -349,7 +349,7 @@ SYNTAX
       <ClassicResult>.getInfo()
 
 RETURNS
-       a string with the execution information
+      a string with the execution information
 
 //@<OUT> Help on getWarningCount
 NAME
@@ -360,7 +360,7 @@ SYNTAX
       <ClassicResult>.getWarningCount()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -380,7 +380,7 @@ SYNTAX
       <ClassicResult>.getWarningsCount()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -396,7 +396,7 @@ SYNTAX
       <ClassicResult>.getWarnings()
 
 RETURNS
-       a list containing a warning object for each generated warning.
+      a list containing a warning object for each generated warning.
 
 DESCRIPTION
       Each warning object contains a key/value pair describing the information
@@ -430,7 +430,7 @@ SYNTAX
       <ClassicResult>.nextDataSet()
 
 RETURNS
-       A boolean value indicating whether there is another result or not.
+      A boolean value indicating whether there is another result or not.
 
 DESCRIPTION
       ATTENTION: This function will be removed in a future release, use the
@@ -445,4 +445,4 @@ SYNTAX
       <ClassicResult>.nextResult()
 
 RETURNS
-       A boolean value indicating whether there is another result or not.
+      A boolean value indicating whether there is another result or not.

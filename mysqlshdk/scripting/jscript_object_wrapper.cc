@@ -73,10 +73,10 @@ v8::Local<v8::Value> translate_exception(JScript_context *context) {
   try {
     throw;
   } catch (const mysqlshdk::db::Error &e) {
-    return context->shcore_value_to_v8_value(shcore::Value(
+    return context->convert(shcore::Value(
         shcore::Exception::mysql_error_with_code(e.what(), e.code()).error()));
   } catch (Exception &e) {
-    return context->shcore_value_to_v8_value(shcore::Value(e.error()));
+    return context->convert(shcore::Value(e.error()));
   }
 }
 
@@ -151,13 +151,11 @@ void JScript_object_wrapper::handler_getter(
 
   if (strcmp(prop.c_str(), "length") == 0 && object->has_member("length")) {
     try {
-      info.GetReturnValue().Set(
-          context->shcore_value_to_v8_value(object->get_member("length")));
+      info.GetReturnValue().Set(context->convert(object->get_member("length")));
       return;
     } catch (Exception &exc) {
       if (!exc.is_attribute())
-        info.GetIsolate()->ThrowException(
-            context->shcore_value_to_v8_value(Value(exc.error())));
+        info.GetIsolate()->ThrowException(context->convert(Value(exc.error())));
       // fallthrough
     } catch (const std::exception &exc) {
       info.GetIsolate()->ThrowException(
@@ -170,7 +168,7 @@ void JScript_object_wrapper::handler_getter(
         info.GetReturnValue().Set(self->_method_wrapper.wrap(object, prop));
       } else {
         Value member = object->get_member(prop);
-        info.GetReturnValue().Set(context->shcore_value_to_v8_value(member));
+        info.GetReturnValue().Set(context->convert(member));
       }
     } catch (...) {
       info.GetIsolate()->ThrowException(translate_exception(context));
@@ -195,11 +193,10 @@ void JScript_object_wrapper::handler_setter(
 
   const auto prop = to_string(info.GetIsolate(), property);
   try {
-    object->set_member(prop, context->v8_value_to_shcore_value(value));
+    object->set_member(prop, context->convert(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
-    info.GetIsolate()->ThrowException(
-        context->shcore_value_to_v8_value(Value(exc.error())));
+    info.GetIsolate()->ThrowException(context->convert(Value(exc.error())));
   } catch (const std::exception &exc) {
     info.GetIsolate()->ThrowException(v8_string(info.GetIsolate(), exc.what()));
   }
@@ -269,10 +266,9 @@ void JScript_object_wrapper::handler_igetter(
   {
     try {
       Value member = object->get_member(i);
-      info.GetReturnValue().Set(context->shcore_value_to_v8_value(member));
+      info.GetReturnValue().Set(context->convert(member));
     } catch (Exception &exc) {
-      info.GetIsolate()->ThrowException(
-          context->shcore_value_to_v8_value(Value(exc.error())));
+      info.GetIsolate()->ThrowException(context->convert(Value(exc.error())));
     } catch (const std::exception &exc) {
       info.GetIsolate()->ThrowException(
           v8_string(info.GetIsolate(), exc.what()));
@@ -296,11 +292,10 @@ void JScript_object_wrapper::handler_isetter(
   }
 
   try {
-    object->set_member(i, context->v8_value_to_shcore_value(value));
+    object->set_member(i, context->convert(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
-    info.GetIsolate()->ThrowException(
-        context->shcore_value_to_v8_value(Value(exc.error())));
+    info.GetIsolate()->ThrowException(context->convert(Value(exc.error())));
   } catch (const std::exception &exc) {
     info.GetIsolate()->ThrowException(v8_string(info.GetIsolate(), exc.what()));
   }
@@ -355,7 +350,7 @@ bool JScript_object_wrapper::is_object(v8::Local<v8::Object> value) {
               static_cast<void *>(&magic_pointer));
 }
 
-bool JScript_object_wrapper::is_method(v8::Local<v8::Object> value) {
+bool JScript_method_wrapper::is_method(v8::Local<v8::Object> value) {
   return (value->InternalFieldCount() == 2 &&
           value->GetAlignedPointerFromInternalField(0) ==
               static_cast<void *>(&magic_method_pointer));
@@ -395,6 +390,31 @@ v8::Local<v8::Object> JScript_method_wrapper::wrap(
   return {};
 }
 
+bool JScript_method_wrapper::unwrap(v8::Local<v8::Object> value,
+                                    std::shared_ptr<Function_base> *method) {
+  if (is_method(value)) {
+    const auto collectable = static_cast<Method_collectable *>(
+        value->GetAlignedPointerFromInternalField(1));
+    const auto &object = collectable->data();
+
+    if (!object) {
+      return false;
+    }
+
+    const auto m = object->get_member(collectable->method());
+
+    if (shcore::Value_type::Function != m.type) {
+      return false;
+    }
+
+    *method = m.as_function();
+
+    return true;
+  }
+
+  return false;
+}
+
 void JScript_method_wrapper::call(
     const v8::FunctionCallbackInfo<v8::Value> &args) {
   const auto collectable = static_cast<Method_collectable *>(
@@ -406,11 +426,10 @@ void JScript_method_wrapper::call(
 
   try {
     Value r = method->call(collectable->method(), context->convert_args(args));
-    args.GetReturnValue().Set(context->shcore_value_to_v8_value(r));
+    args.GetReturnValue().Set(context->convert(r));
   } catch (Exception &exc) {
-    auto jsexc = context->shcore_value_to_v8_value(Value(exc.error()));
-    if (jsexc.IsEmpty())
-      jsexc = context->shcore_value_to_v8_value(Value(exc.format()));
+    auto jsexc = context->convert(Value(exc.error()));
+    if (jsexc.IsEmpty()) jsexc = context->convert(Value(exc.format()));
     args.GetIsolate()->ThrowException(jsexc);
   } catch (const std::exception &exc) {
     args.GetIsolate()->ThrowException(v8_string(args.GetIsolate(), exc.what()));

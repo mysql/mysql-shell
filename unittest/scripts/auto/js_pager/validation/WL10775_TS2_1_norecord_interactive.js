@@ -114,7 +114,7 @@ SYNTAX
       <ClassicSession>.rollback()
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 DESCRIPTION
       All the operations executed after calling startTransaction() will be

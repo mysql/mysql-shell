@@ -155,7 +155,7 @@ SYNTAX
       <Table>.existsInDatabase()
 
 RETURNS
-       A boolean indicating if the object still exists on the database.
+      A boolean indicating if the object still exists on the database.
 
 //@<OUT> Help on getName
 NAME
@@ -172,7 +172,7 @@ SYNTAX
       <Table>.getSchema()
 
 RETURNS
-       The Schema object used to get to this object.
+      The Schema object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -190,7 +190,7 @@ SYNTAX
       <Table>.getSession()
 
 RETURNS
-       The Session object used to get to this object.
+      The Session object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -288,7 +288,7 @@ SYNTAX
       <Table>.isView()
 
 RETURNS
-       True if the Table represents a View on the database, False if represents
+      True if the Table represents a View on the database, False if represents
       a Table.
 
 //@<OUT> Help on select

@@ -56,7 +56,7 @@ class JScript_function : public Function_base {
   JScript_function(JScript_context *context, v8::Local<v8::Function> function);
   ~JScript_function() override;
 
-  const std::string &name() const override;
+  const std::string &name() const override { return m_name; }
 
   const std::vector<std::pair<std::string, Value_type>> &signature()
       const override;
@@ -74,6 +74,7 @@ class JScript_function : public Function_base {
  private:
   JScript_context *_js;
   std::weak_ptr<JScript_function_storage> m_function;
+  std::string m_name;
 };
 
 }  // namespace shcore

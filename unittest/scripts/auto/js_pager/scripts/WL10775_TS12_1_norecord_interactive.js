@@ -13,4 +13,4 @@ shell.options.pager = __pager.cmd;
 \help mysql
 
 //@ check if pager got all the output from \help mysql
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);

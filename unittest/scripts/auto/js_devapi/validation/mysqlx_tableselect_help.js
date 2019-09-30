@@ -64,7 +64,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       Binds a value to a specific placeholder used on this operation.
@@ -83,8 +83,8 @@ SYNTAX
       <TableSelect>.execute()
 
 RETURNS
-       A RowResult object that can be used to traverse the rows returned by
-      this operation.
+      A RowResult object that can be used to traverse the rows returned by this
+      operation.
 
 //@<OUT> Help on groupBy
 NAME
@@ -95,7 +95,7 @@ SYNTAX
       <TableSelect>.groupBy(searchExprStr, searchExprStr, ...)
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 //@<OUT> Help on having
 NAME
@@ -109,7 +109,7 @@ WHERE
       condition: A condition to be used with aggregate functions.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used the TableSelect operation will only consider the records matching
@@ -137,7 +137,7 @@ WHERE
       numberOfRows: The maximum number of rows to be retrieved.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used, the operation will return at most numberOfRows rows.
@@ -157,7 +157,7 @@ WHERE
                       locked.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       When this function is called, the selected rows will be locked for read
@@ -209,7 +209,7 @@ WHERE
                       locked.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       When this function is called, the selected rows will be locked for write
@@ -262,7 +262,7 @@ WHERE
                     the RowResult.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       If used, the first numberOfRows records will not be included on the
@@ -277,7 +277,7 @@ SYNTAX
       <TableSelect>.orderBy(sortCriteria)
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used the records will be sorted with the defined criteria.
@@ -299,7 +299,7 @@ SYNTAX
       <TableSelect>.select(colDef, colDef, ...)
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       Defines the columns that will be retrieved from the Table.
@@ -322,7 +322,7 @@ WHERE
       expression: Condition to filter the records to be retrieved.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used, only those rows satisfying the expression will be retrieved

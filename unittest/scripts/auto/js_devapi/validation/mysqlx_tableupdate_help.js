@@ -46,7 +46,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This TableUpdate object.
+      This TableUpdate object.
 
 DESCRIPTION
       Binds a value to a specific placeholder used on this operation.
@@ -65,7 +65,7 @@ SYNTAX
       <TableUpdate>.execute()
 
 RETURNS
-       A Result object.
+      A Result object.
 
 //@<OUT> Help on help
 NAME
@@ -88,7 +88,7 @@ WHERE
       numberOfRows: The maximum number of rows to be updated.
 
 RETURNS
-       This TableUpdate object.
+      This TableUpdate object.
 
 DESCRIPTION
       If used, the operation will update only numberOfRows rows.
@@ -102,7 +102,7 @@ SYNTAX
       <TableUpdate>.orderBy(sortCriterion[, sortCriterion, ...])
 
 RETURNS
-       This TableUpdate object.
+      This TableUpdate object.
 
 DESCRIPTION
       If used the records will be updated in the order established by the sort
@@ -127,7 +127,7 @@ WHERE
       value: Defines the value to be set on the indicated column.
 
 RETURNS
-       This TableUpdate object.
+      This TableUpdate object.
 
 DESCRIPTION
       Adds an operation into the update handler to update a column value in on
@@ -144,7 +144,7 @@ WHERE
       expression: Condition to filter the records to be updated.
 
 RETURNS
-       This TableUpdate object.
+      This TableUpdate object.
 
 DESCRIPTION
       If used, only those rows satisfying the expression will be updated

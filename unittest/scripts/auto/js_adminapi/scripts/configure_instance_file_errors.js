@@ -43,8 +43,8 @@ function diff_text(expected, actual) {
 }
 
 function EXPECT_MYCNF_UNCHANGED(path) {
-  var expected = os.load_text_file(bad_mycnf_path);
-  var actual = os.load_text_file(path);
+  var expected = os.loadTextFile(bad_mycnf_path);
+  var actual = os.loadTextFile(path);
   var diff = diff_text(expected, actual);
   if (diff.length > 0) {
     println("Differences:");
@@ -54,8 +54,8 @@ function EXPECT_MYCNF_UNCHANGED(path) {
 }
 
 function EXPECT_MYCNF_FIXED(path) {
-  var expected = os.load_text_file(good_mycnf_path);
-  var actual = os.load_text_file(path);
+  var expected = os.loadTextFile(good_mycnf_path);
+  var actual = os.loadTextFile(path);
   var diff = diff_text(expected, actual);
   if (diff.length > 0) {
     println("Differences:");

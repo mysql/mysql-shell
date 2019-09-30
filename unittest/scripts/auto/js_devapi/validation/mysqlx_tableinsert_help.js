@@ -30,7 +30,7 @@ SYNTAX
       <TableInsert>.execute()
 
 RETURNS
-       A Result object that can be used to retrieve the results of the
+      A Result object that can be used to retrieve the results of the
       operation.
 
 //@<OUT> Help on help
@@ -54,7 +54,7 @@ SYNTAX
       <TableInsert>.insert({column:value[, column:value, ...]})
 
 RETURNS
-       This TableInsert object.
+      This TableInsert object.
 
 DESCRIPTION
       An insert operation requires the values to be inserted, optionally the
@@ -87,7 +87,7 @@ SYNTAX
       <TableInsert>.values(value[, value, ...])
 
 RETURNS
-       This TableInsert object.
+      This TableInsert object.
 
 DESCRIPTION
       Each parameter represents the value for a column in the target table.

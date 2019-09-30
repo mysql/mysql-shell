@@ -43,7 +43,7 @@ WHERE
       values: the value list to be bound.
 
 RETURNS
-       This SqlExecute object.
+      This SqlExecute object.
 
 DESCRIPTION
       This method can be invoked any number of times, each time the received
@@ -69,7 +69,7 @@ SYNTAX
       <SqlExecute>.execute()
 
 RETURNS
-       A SqlResult object.
+      A SqlResult object.
 
 DESCRIPTION
       This function can be invoked after:
@@ -99,7 +99,7 @@ WHERE
       statement: A string containing the SQL statement to be executed.
 
 RETURNS
-       This SqlExecute object.
+      This SqlExecute object.
 
 DESCRIPTION
       This function is called automatically when Session.sql(sql) is called.

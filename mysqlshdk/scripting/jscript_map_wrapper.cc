@@ -108,8 +108,7 @@ void JScript_map_wrapper::handler_getter(
   {
     Value::Map_type::const_iterator iter = map->find(prop);
     if (iter != map->end())
-      info.GetReturnValue().Set(
-          context->shcore_value_to_v8_value(iter->second));
+      info.GetReturnValue().Set(context->convert(iter->second));
   }
 }
 
@@ -150,7 +149,7 @@ void JScript_map_wrapper::handler_setter(
   }
 
   const auto prop = to_string(info.GetIsolate(), property);
-  (*map)[prop] = context->v8_value_to_shcore_value(value);
+  (*map)[prop] = context->convert(value);
 
   info.GetReturnValue().Set(value);
 }

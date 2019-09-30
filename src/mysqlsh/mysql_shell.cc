@@ -39,6 +39,7 @@
 #include "modules/mod_mysql.h"
 #include "modules/mod_mysql_resultset.h"  // temporary
 #include "modules/mod_mysql_session.h"
+#include "modules/mod_os.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "modules/util/mod_util.h"
@@ -486,6 +487,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
+  m_global_js_os = std::make_shared<mysqlsh::Os>();
 
   set_global_object(
       "shell",
@@ -496,6 +498,9 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
       shcore::IShell_core::all_scripting_modes());
 
+  set_global_object(
+      "os", m_global_js_os,
+      shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
   set_global_object(
       "sys",
       std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_js_sys),
@@ -1607,7 +1612,7 @@ void Mysql_shell::process_line(const std::string &line) {
 }
 
 void Mysql_shell::process_sql_result(
-    std::shared_ptr<mysqlshdk::db::IResult> result,
+    const std::shared_ptr<mysqlshdk::db::IResult> &result,
     const shcore::Sql_result_info &info) {
   Base_shell::process_sql_result(result, info);
 

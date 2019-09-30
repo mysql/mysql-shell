@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,6 +100,11 @@ TEST(utils_path, join_path) {
   res = join_path(vec);
   EXPECT_EQ("C:\\Users\\user1", join_path("C:\\Users", "user1"));
   EXPECT_EQ("C:\\Users\\user1", res);
+
+  vec = {"C:\\Users\\user1", "folder\\subfolder"};
+  EXPECT_EQ("C:\\Users\\user1\\folder\\subfolder",
+            join_path("C:\\Users\\user1", "folder\\subfolder"));
+  EXPECT_EQ("C:\\Users\\user1\\folder\\subfolder", join_path(vec));
 
   vec = {};
   res = join_path(vec);
@@ -207,6 +212,11 @@ TEST(utils_path, join_path) {
   EXPECT_EQ("/another/absolute/path",
             join_path("/root", "dir", "/another/absolute", "path"));
   EXPECT_EQ("/another/absolute/path", res);
+
+  vec = {"/home/user", "folder/subfolder"};
+  EXPECT_EQ("/home/user/folder/subfolder",
+            join_path("/home/user", "folder/subfolder"));
+  EXPECT_EQ("/home/user/folder/subfolder", join_path(vec));
 }
 
 TEST(utils_path, splitdrive) {
@@ -404,6 +414,29 @@ TEST(utils_path, search_stdpath) {
   EXPECT_EQ("/bin/bash", search_stdpath("bash"));
   EXPECT_EQ("", search_stdpath("bogus path"));
 #endif
+}
+
+TEST(utils_path, is_absolute) {
+#if defined(_WIN32)
+  EXPECT_TRUE(is_absolute("//path/to/share"));
+  EXPECT_TRUE(is_absolute("\\Program Files\\"));
+  EXPECT_TRUE(is_absolute("C:\\Documents\\"));
+  EXPECT_TRUE(is_absolute("F:/files/"));
+
+  EXPECT_FALSE(is_absolute("folders\\files"));
+  EXPECT_FALSE(is_absolute("./folders\\files"));
+  EXPECT_FALSE(is_absolute(".\\folders\\files"));
+  EXPECT_FALSE(is_absolute("../folders\\files"));
+  EXPECT_FALSE(is_absolute("..\\folders\\files"));
+  EXPECT_FALSE(is_absolute("X:Documents\\"));
+#else   // !_WIN32
+  EXPECT_TRUE(is_absolute("//path/to/file"));
+  EXPECT_TRUE(is_absolute("/path/to/file"));
+  EXPECT_TRUE(is_absolute("~/data"));
+
+  EXPECT_FALSE(is_absolute("./folders/files"));
+  EXPECT_FALSE(is_absolute("../folders/files"));
+#endif  // !_WIN32
 }
 
 }  // namespace path

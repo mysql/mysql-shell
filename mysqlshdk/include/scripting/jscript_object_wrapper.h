@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,11 @@ class JScript_method_wrapper {
   v8::Local<v8::Object> wrap(std::shared_ptr<Object_bridge> object,
                              const std::string &method);
 
+  static bool unwrap(v8::Local<v8::Object> value,
+                     std::shared_ptr<Function_base> *method);
+
+  static bool is_method(v8::Local<v8::Object> value);
+
  private:
   static void call(const v8::FunctionCallbackInfo<v8::Value> &args);
 
@@ -64,7 +69,6 @@ class JScript_object_wrapper {
                      std::shared_ptr<Object_bridge> *ret_object);
 
   static bool is_object(v8::Local<v8::Object> value);
-  static bool is_method(v8::Local<v8::Object> value);
 
  private:
   static void handler_getter(v8::Local<v8::Name> property,

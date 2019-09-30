@@ -20,5 +20,5 @@ shell.options.pager = __pager.cmd + ' --append --new-pager';
 shell.disablePager();
 
 //@ verify if external command received output when pager was enabled
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);
 println('done');

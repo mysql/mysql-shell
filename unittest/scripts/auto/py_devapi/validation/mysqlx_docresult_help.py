@@ -82,7 +82,7 @@ SYNTAX
       <DocResult>.fetch_all()
 
 RETURNS
-       A List of DbDoc objects.
+      A List of DbDoc objects.
 
 DESCRIPTION
       If this function is called right after executing a query, it will return
@@ -100,7 +100,7 @@ SYNTAX
       <DocResult>.fetch_one()
 
 RETURNS
-       A DbDoc object representing the next Document in the result.
+      A DbDoc object representing the next Document in the result.
 
 #@<OUT> docresult.get_affected_items_count
 NAME
@@ -111,7 +111,7 @@ SYNTAX
       <DocResult>.get_affected_items_count()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       Returns the number of records affected by the executed operation
@@ -133,7 +133,7 @@ SYNTAX
       <DocResult>.get_warning_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -153,7 +153,7 @@ SYNTAX
       <DocResult>.get_warnings()
 
 RETURNS
-       A list containing a warning object for each generated warning.
+      A list containing a warning object for each generated warning.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -173,7 +173,7 @@ SYNTAX
       <DocResult>.get_warnings_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see

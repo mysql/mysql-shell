@@ -7,16 +7,16 @@ shell.options.pager = __pager.cmd;
 \help mysql
 
 //@ check if pager got all the output from \help mysql
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);
 
 //@ invoke \help ClassicSession, there should be no output here
 \help ClassicSession
 
 //@ check if pager got all the output from \help ClassicSession
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);
 
 //@ invoke \help ClassicSession.rollback, there should be no output here
 \help ClassicSession.rollback
 
 //@ check if pager got all the output from \help ClassicSession.rollback
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);

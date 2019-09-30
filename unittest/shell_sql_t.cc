@@ -76,7 +76,7 @@ class Shell_sql_test : public Shell_core_test_wrapper {
     }
   }
 
-  void process_sql_result(std::shared_ptr<mysqlshdk::db::IResult>,
+  void process_sql_result(const std::shared_ptr<mysqlshdk::db::IResult> &,
                           const shcore::Sql_result_info &) {}
 
   void handle_input(std::string &query, Input_state &state) {

@@ -7,4 +7,4 @@ shell.options.pager = __pager.cmd;
 \help shell.options
 
 //@ help should contain information about pager
-EXPECT_CONTAINS('- pager: string which specifies the external command which is going to be', os.load_text_file(__pager.file));
+EXPECT_CONTAINS('- pager: string which specifies the external command which is going to be', os.loadTextFile(__pager.file));

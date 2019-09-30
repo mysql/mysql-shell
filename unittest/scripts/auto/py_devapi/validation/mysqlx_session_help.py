@@ -118,7 +118,7 @@ SYNTAX
       <Session>.commit()
 
 RETURNS
-       A SqlResult object.
+      A SqlResult object.
 
 DESCRIPTION
       All the operations executed after calling startTransaction() will take
@@ -139,7 +139,7 @@ WHERE
       name: A string value indicating the schema name.
 
 RETURNS
-       The created schema object.
+      The created schema object.
 
 #@<OUT> session.current_schema
 NAME
@@ -167,7 +167,7 @@ WHERE
       name: The name of the schema to be dropped.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 #@<OUT> session.get_current_schema
 NAME
@@ -188,7 +188,7 @@ SYNTAX
       <Session>.get_default_schema()
 
 RETURNS
-       A Schema object or Null
+      A Schema object or Null
 
 #@<OUT> session.get_schema
 NAME
@@ -202,7 +202,7 @@ WHERE
       name: The name of the Schema object to be retrieved.
 
 RETURNS
-       The Schema object with the given name.
+      The Schema object with the given name.
 
 #@<OUT> session.get_schemas
 NAME
@@ -212,7 +212,7 @@ SYNTAX
       <Session>.get_schemas()
 
 RETURNS
-       A List containing the Schema objects available on the session.
+      A List containing the Schema objects available on the session.
 
 #@<OUT> session.get_uri
 NAME
@@ -242,7 +242,7 @@ SYNTAX
       <Session>.is_open()
 
 RETURNS
-       A boolean value indicating if the session is still open.
+      A boolean value indicating if the session is still open.
 
 DESCRIPTION
       Returns true if the session is still open and false otherwise. Note: may
@@ -287,7 +287,7 @@ SYNTAX
       <Session>.rollback()
 
 RETURNS
-       A SqlResult object.
+      A SqlResult object.
 
 DESCRIPTION
       All the operations executed after calling startTransaction() will be
@@ -330,7 +330,7 @@ WHERE
             string.
 
 RETURNS
-       An SqlResult object.
+      An SqlResult object.
 
 EXCEPTIONS
       LogicError if there's no open session.
@@ -390,7 +390,7 @@ WHERE
       name: String with the name to be assigned to the transaction save point.
 
 RETURNS
-       The name of the transaction savepoint.
+      The name of the transaction savepoint.
 
 DESCRIPTION
       When working with transactions, using savepoints allows rolling back
@@ -478,7 +478,7 @@ SYNTAX
       <Session>.start_transaction()
 
 RETURNS
-       A SqlResult object.
+      A SqlResult object.
 
 DESCRIPTION
       Calling this function will turn off the autocommit mode on the server.

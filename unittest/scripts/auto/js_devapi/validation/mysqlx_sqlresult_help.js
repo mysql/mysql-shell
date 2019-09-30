@@ -200,7 +200,7 @@ SYNTAX
       <SqlResult>.fetchAll()
 
 RETURNS
-       A List of DbDoc objects.
+      A List of DbDoc objects.
 
 //@<OUT> Help on fetchOne
 NAME
@@ -210,7 +210,7 @@ SYNTAX
       <SqlResult>.fetchOne()
 
 RETURNS
-       A Row object representing the next record on the result.
+      A Row object representing the next record on the result.
 
 //@<OUT> Help on fetchOneObject
 NAME
@@ -221,7 +221,7 @@ SYNTAX
       <SqlResult>.fetchOneObject()
 
 RETURNS
-       A dictionary containing the row information.
+      A dictionary containing the row information.
 
 DESCRIPTION
       The column names will be used as keys in the returned dictionary and the
@@ -242,7 +242,7 @@ SYNTAX
       <SqlResult>.getAffectedItemsCount()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       Returns the number of records affected by the executed operation
@@ -279,7 +279,7 @@ SYNTAX
       <SqlResult>.getColumnCount()
 
 RETURNS
-       the number of columns on the current result.
+      the number of columns on the current result.
 
 //@<OUT> Help on getColumnNames
 NAME
@@ -289,7 +289,7 @@ SYNTAX
       <SqlResult>.getColumnNames()
 
 RETURNS
-       A list with the names of the columns returned on the active result.
+      A list with the names of the columns returned on the active result.
 
 //@<OUT> Help on getColumns
 NAME
@@ -300,7 +300,7 @@ SYNTAX
       <SqlResult>.getColumns()
 
 RETURNS
-       a list of Column objects containing information about the columns
+      a list of Column objects containing information about the columns
       included on the active result.
 
 //@<OUT> Help on getExecutionTime
@@ -320,7 +320,7 @@ SYNTAX
       <SqlResult>.getWarningCount()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -339,7 +339,7 @@ SYNTAX
       <SqlResult>.getWarnings()
 
 RETURNS
-       A list containing a warning object for each generated warning.
+      A list containing a warning object for each generated warning.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -359,7 +359,7 @@ SYNTAX
       <SqlResult>.getWarningsCount()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -393,7 +393,7 @@ SYNTAX
       <SqlResult>.nextDataSet()
 
 RETURNS
-       A boolean value indicating whether there is another result or not.
+      A boolean value indicating whether there is another result or not.
 
 DESCRIPTION
       ATTENTION: This function will be removed in a future release, use the

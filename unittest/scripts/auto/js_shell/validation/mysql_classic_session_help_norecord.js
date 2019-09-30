@@ -70,7 +70,7 @@ SYNTAX
       <ClassicSession>.commit()
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 DESCRIPTION
       All the operations executed after calling startTransaction() will take
@@ -107,7 +107,7 @@ SYNTAX
       <ClassicSession>.isOpen()
 
 RETURNS
-       A boolean value indicating if the session is still open.
+      A boolean value indicating if the session is still open.
 
 DESCRIPTION
       Returns true if the session is still open and false otherwise. Note: may
@@ -127,7 +127,7 @@ WHERE
             string.
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 DESCRIPTION
       ATTENTION: This function will be removed in a future release, use the
@@ -142,7 +142,7 @@ SYNTAX
       <ClassicSession>.rollback()
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 DESCRIPTION
       All the operations executed after calling startTransaction() will be
@@ -165,7 +165,7 @@ WHERE
             string.
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 EXCEPTIONS
       LogicError if there's no open session.
@@ -180,7 +180,7 @@ SYNTAX
       <ClassicSession>.startTransaction()
 
 RETURNS
-       A ClassicResult object.
+      A ClassicResult object.
 
 DESCRIPTION
       Calling this function will turn off the autocommit mode on the server.

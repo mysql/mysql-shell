@@ -39,6 +39,7 @@
 namespace mysqlsh {
 #if DOXYGEN_JS
 Array dir(Object object);
+Any require(String module_name_or_path);
 #endif
 
 /**

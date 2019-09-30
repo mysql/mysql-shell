@@ -79,7 +79,7 @@ WHERE
       value: The value to be appended.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       Adds an operation into the modify handler to append a value into an array
@@ -99,7 +99,7 @@ WHERE
                of the value to be deleted.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       Adds an operation into the modify handler to delete a value from an array
@@ -126,7 +126,7 @@ WHERE
       value: The value to be inserted.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       Adds an operation into the modify handler to insert a value into an array
@@ -158,7 +158,7 @@ WHERE
       document: The document from which the attributes will be merged.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       This function adds an operation to add into the documents of a
@@ -183,7 +183,7 @@ WHERE
       searchCondition: An expression to identify the documents to be updated.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       Creates a handler to update documents in the collection.
@@ -206,7 +206,7 @@ WHERE
       document: The JSON object to be used on the patch process.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       This function adds an operation to update the documents of a collection,
@@ -247,7 +247,7 @@ WHERE
       value: The value to be set on the specified attribute.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       Adds an operation into the modify handler to set an attribute on the
@@ -281,7 +281,7 @@ WHERE
                   removed.
 
 RETURNS
-       This CollectionModify object.
+      This CollectionModify object.
 
 DESCRIPTION
       The attribute removal will be done on the collection's documents once the

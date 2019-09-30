@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #ifndef _PYTHON_OBJECT_WRAPPER_H_
 #define _PYTHON_OBJECT_WRAPPER_H_
+
+#include <memory>
 
 #include "scripting/python_context.h"
 #include "scripting/types.h"
@@ -49,6 +51,9 @@ struct PyShObjIndexedObject {
 
 PyObject *wrap(std::shared_ptr<Object_bridge> object);
 bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
-};  // namespace shcore
+
+bool unwrap_method(PyObject *value, std::shared_ptr<Function_base> *method);
+
+}  // namespace shcore
 
 #endif  // _PYTHON_OBJECT_WRAPPER_H_

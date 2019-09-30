@@ -1239,8 +1239,7 @@ std::string &Value::append_descr(std::string &s_out, int indent,
       s_out.append("mapref");
       break;
     case Function:
-      // TODO:
-      // value.func->get()->append_descr(s_out, pprint);
+      value.func->get()->append_descr(&s_out, indent, quote_strings);
       break;
   }
   return s_out;
@@ -1353,8 +1352,7 @@ std::string &Value::append_repr(std::string &s_out) const {
     case MapRef:
       break;
     case Function:
-      // TODO:
-      // value.func->get()->append_repr(s_out);
+      value.func->get()->append_repr(&s_out);
       break;
   }
   return s_out;
@@ -2126,6 +2124,22 @@ void Object_bridge::append_json(JSON_dumper &dumper) const {
   dumper.start_object();
   dumper.append_string("class", class_name());
   dumper.end_object();
+}
+
+std::string &Function_base::append_descr(std::string *s_out, int indent,
+                                         int quote_strings) const {
+  const auto &n = name();
+  s_out->append("<Function").append(n.empty() ? "" : ":" + n).append(">");
+  return *s_out;
+}
+
+std::string &Function_base::append_repr(std::string *s_out) const {
+  return append_descr(s_out);
+}
+
+void Function_base::append_json(JSON_dumper *dumper) const {
+  std::string repr;
+  dumper->append_string(append_repr(&repr));
 }
 
 }  // namespace shcore

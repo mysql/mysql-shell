@@ -131,7 +131,7 @@ WHERE
       name: the name of the collection.
 
 RETURNS
-       the new created collection.
+      the new created collection.
 
 DESCRIPTION
       To specify a name for a collection, follow the naming conventions in
@@ -145,7 +145,7 @@ SYNTAX
       <Schema>.dropCollection()
 
 RETURNS
-       Nothing.
+      Nothing.
 
 //@<OUT> Help on existsInDatabase
 NAME
@@ -155,7 +155,7 @@ SYNTAX
       <Schema>.existsInDatabase()
 
 RETURNS
-       A boolean indicating if the object still exists on the database.
+      A boolean indicating if the object still exists on the database.
 
 //@<OUT> Help on getCollection
 NAME
@@ -168,7 +168,7 @@ WHERE
       name: the name of the Collection to look for.
 
 RETURNS
-       the Collection object matching the name.
+      the Collection object matching the name.
 
 DESCRIPTION
       Verifies if the requested Collection exist on the database, if exists,
@@ -188,7 +188,7 @@ WHERE
       name: the name of the collection to be retrieved as a table.
 
 RETURNS
-       the Table object representing the collection or undefined.
+      the Table object representing the collection or undefined.
 
 //@<OUT> Help on getCollections
 NAME
@@ -198,7 +198,7 @@ SYNTAX
       <Schema>.getCollections()
 
 RETURNS
-       A List containing the Collection objects available for the Schema.
+      A List containing the Collection objects available for the Schema.
 
 DESCRIPTION
       Pulls from the database the available Tables, Views and Collections.
@@ -222,7 +222,7 @@ SYNTAX
       <Schema>.getSchema()
 
 RETURNS
-       The Schema object used to get to this object.
+      The Schema object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -240,7 +240,7 @@ SYNTAX
       <Schema>.getSession()
 
 RETURNS
-       The Session object used to get to this object.
+      The Session object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -260,7 +260,7 @@ WHERE
       name: the name of the Table to look for.
 
 RETURNS
-       the Table object matching the name.
+      the Table object matching the name.
 
 DESCRIPTION
       Verifies if the requested Table exist on the database, if exists, returns
@@ -276,7 +276,7 @@ SYNTAX
       <Schema>.getTables()
 
 RETURNS
-       A List containing the Table objects available for the Schema.
+      A List containing the Table objects available for the Schema.
 
 DESCRIPTION
       Pulls from the database the available Tables, Views and Collections.

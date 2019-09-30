@@ -26,7 +26,7 @@
 
 
 #@member definition must be a dictionary
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument definition at pos 3 for addExtensionObjectMember() has wrong type: expected Map but got Integer
+||SystemError: ArgumentError: Shell.add_extension_object_member: Argument definition at pos 3 for add_extension_object_member() has wrong type: expected Map but got Integer
 
 
 #@member definition 'brief' must be a string
@@ -414,7 +414,7 @@ ArgumentError: Shell.register_global: A global named 'db' already exists.
 
 ArgumentError: Shell.register_global: A global named 'sys' already exists.
 
-ArgumentError: Shell.register_global: The name 'os' is reserved.
+ArgumentError: Shell.register_global: A global named 'os' already exists.
 
 ArgumentError: Shell.register_global: A global named 'goodName' already exists.
 

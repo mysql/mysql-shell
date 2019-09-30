@@ -11,7 +11,7 @@ PROPERTIES
             processing.
 
       path
-            Lists the search paths to load JavaScript modules.
+            Lists the search paths to load the JavaScript modules.
 
 FUNCTIONS
       help([member])
@@ -31,7 +31,7 @@ DESCRIPTION
       be available during the script execution at sys.argv which will contain:
 
       - The first element is the path to the script being executed.
-      - Each script argument will be addded as an element of the array.
+      - Each script argument will be added as an element of the array.
 
       For example, given the following call:
       $ mysqlsh root@localhost/sakila -f test.js first second 3
@@ -43,10 +43,21 @@ DESCRIPTION
       - sys.argv[2]: "second"
       - sys.argv[3]: "3"
 
-//@<OUT> Help on path
+//@<OUT> Help on sys.path
 NAME
-      path - Lists the search paths to load JavaScript modules.
+      path - Lists the search paths to load the JavaScript modules.
 
 SYNTAX
       sys.path
 
+DESCRIPTION
+      When the shell is launched, this variable is initialized to
+
+      - the home folder of shell + "share/mysqlsh/modules/js",
+      - the folder specified in the MYSQLSH_JS_MODULE_PATH environment variable
+        (multiple folders are allowed, separated with semicolon).
+
+      Users may change the sys.path variable at run-time.
+
+      If sys.path contains a relative path, its absolute path is resolved as a
+      relative to the current working directory.

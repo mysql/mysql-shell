@@ -77,6 +77,8 @@ The following modules and objects are ready for use when the shell starts:
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
+ - os       Gives access to functions which allow to interact with the
+            operating system.
  - shell    Gives access to general purpose functions and properties.
  - sys      Gives access to system specific parameters.
  - testutil
@@ -279,6 +281,8 @@ Contains information about the shell and util global objects as well as the
 mysql module that enables executing SQL on MySQL Servers.
 
 OBJECTS
+ - os    Gives access to functions which allow to interact with the operating
+         system.
  - shell Gives access to general purpose functions and properties.
  - sys   Gives access to system specific parameters.
  - util  Global object that groups miscellaneous tools like upgrade checker and
@@ -287,6 +291,9 @@ OBJECTS
 FUNCTIONS
       dir(object)
             Returns a list of enumerable properties on the target object.
+
+      require(module_name_or_path)
+            Loads the specified JavaScript module.
 
 CLASSES
  - Column Represents the metadata for a column in a result.
@@ -307,7 +314,7 @@ WHERE
       object: The object whose properties will be listed.
 
 RETURNS
-       The list of enumerable properties on the object.
+      The list of enumerable properties on the object.
 
 DESCRIPTION
       Traverses the object retrieving its enumerable properties. The content of
@@ -318,6 +325,90 @@ DESCRIPTION
 
       Behavior of the function passing other types of objects is undefined and
       also unsupported.
+
+//@<OUT> WL13119-TSFR10_1: Validate that the help system contains an entry for the require() function.
+NAME
+      require - Loads the specified JavaScript module.
+
+SYNTAX
+      require(module_name_or_path)
+
+WHERE
+      module_name_or_path: The name or a path to the module to be loaded.
+
+RETURNS
+      The exported content of the loaded module.
+
+DESCRIPTION
+      The module_name_or_path parameter can be either a name of the built-in
+      module (i.e. mysql or mysqlx) or a path to the JavaScript module on the
+      local file system. The local module is searched for in the following
+      folders:
+
+      - if module_name_or_path begins with either './' or '../' characters, use
+        the folder which contains the JavaScipt file or module which is
+        currently being executed or the current working directory if there is
+        no such file or module (i.e. shell is running in interactive mode),
+      - folders listed in the sys.path variable.
+
+      The file containing the module to be loaded is located by iterating
+      through these folders, for each folder path:
+
+      - append module_name_or_path, if such file exists, use it,
+      - append module_name_or_path, append '.js' extension, if such file
+        exists, use it,
+      - append module_name_or_path, if such folder exists, append 'init.js'
+        file name, if such file exists, use it.
+
+      The loaded module has access to the following variables:
+
+      - exports - an empty object, module should use it to export its
+        functionalities; this is the value returned from the require()
+        function,
+      - module - a module object, contains the exports object described above;
+        can be used to i.e. change the type of exports or store module-specific
+        data,
+      - __filename - absolute path to the module file,
+      - __dirname - absolute path to the directory containing the module file.
+
+      Each module is loaded only once, any subsequent call to require() which
+      would use the same module will return a cached value instead.
+
+      If two modules form a cycle (try to load each other using the require()
+      function), one of them is going to receive an unfinished copy of the
+      other ones exports object.
+
+      Here is a sample module called test.js which stores some data in the
+      module object and exports a function callme():
+        module.counter = 0;
+
+        exports.callme = function() {
+          const plural = ++module.counter > 1 ? 's' : '';
+          println(`I was called ${module.counter} time${plural}.`);
+        };
+
+      If placed in the current working directory, it can be used in shell as
+      follows:
+        mysql-js> var test = require('./test');
+        mysql-js> test.callme();
+        I was called 1 time.
+        mysql-js> test.callme();
+        I was called 2 times.
+        mysql-js> test.callme();
+        I was called 3 times.
+
+EXCEPTIONS
+      TypeError in the following scenarios:
+
+      - if module_name_or_path is not a string.
+
+      Error in the following scenarios:
+
+      - if module_name_or_path is empty,
+      - if module_name_or_path contains a backslash character,
+      - if module_name_or_path is an absolute path,
+      - if local module could not be found,
+      - if local module could not be loaded.
 
 //@<OUT> Help on X DevAPI Category
 The X DevAPI allows working with MySQL databases through a modern and fluent

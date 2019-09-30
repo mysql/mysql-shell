@@ -449,6 +449,48 @@ shell.register_report('undefined_py_report', 'print', undefined_py_report);
   validate_log();
 }
 
+TEST_F(Mysqlsh_reports_test, relative_require) {
+  // write a simple report
+  write_plugin("report.js", R"(
+println('Hello from report!');
+const mod = require('./dir/one.js');
+mod.fun();
+)");
+
+  // create modules in a path relative to plugin
+  const auto folder = join_path(get_plugin_folder(), "dir");
+  shcore::create_directory(folder);
+  shcore::create_file(join_path(folder, "one.js"), R"(
+println('Hello from module one.js!');
+const two = require('./two');
+exports.fun = function() {
+  println('Hello from fun(), module one.js!');
+  two.fun();
+}
+)");
+  shcore::create_file(join_path(folder, "two.js"), R"(
+println('Hello from module two.js!');
+exports.fun = function() {
+  println('Hello from fun(), module two.js!');
+}
+)");
+
+  // run the test
+  run();
+
+  // validate output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(
+No default schema selected; type \use <schema> to set one.
+Hello from report!
+Hello from module one.js!
+Hello from module two.js!
+Hello from fun(), module one.js!
+Hello from fun(), module two.js!
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+Bye!
+)");
+}
+
 class Mysqlsh_plugin_test : public Mysqlsh_extension_test {
  public:
   std::string get_plugin_folder() const {
@@ -937,4 +979,51 @@ print("Paramiko Version: {0}".format(paramiko.__version__))
   delete_user_plugin("oci-paramiko");
 }
 #endif
+
+TEST_F(Mysqlsh_plugin_test, relative_require) {
+  // write a simple plugin
+  write_user_plugin("plugin", R"(
+println('Hello from plugin!');
+const mod = require('./dir/one.js');
+mod.fun();
+)",
+                    ".js");
+
+  // create modules in a path relative to plugin
+  const auto folder = join_path(get_user_plugin_folder(), "plugin", "dir");
+  shcore::create_directory(folder);
+  shcore::create_file(join_path(folder, "one.js"), R"(
+println('Hello from module one.js!');
+const two = require('./two');
+exports.fun = function() {
+  println('Hello from fun(), module one.js!');
+  two.fun();
+}
+)");
+  shcore::create_file(join_path(folder, "two.js"), R"(
+println('Hello from module two.js!');
+exports.fun = function() {
+  println('Hello from fun(), module two.js!');
+}
+)");
+
+  // run the test
+  run();
+
+  // validate output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(
+No default schema selected; type \use <schema> to set one.
+Hello from plugin!
+Hello from module one.js!
+Hello from module two.js!
+Hello from fun(), module one.js!
+Hello from fun(), module two.js!
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+Bye!
+)");
+
+  // cleanup
+  delete_user_plugin("plugin");
+}
+
 }  // namespace tests

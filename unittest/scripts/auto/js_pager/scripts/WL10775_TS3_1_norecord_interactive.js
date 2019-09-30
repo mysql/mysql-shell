@@ -16,7 +16,7 @@ SELECT 1;
 \js
 
 //@ check if pager got all the output from SQL query
-os.load_text_file(__pager.file);
+os.loadTextFile(__pager.file);
 
 //@ close the connection
 session.close();

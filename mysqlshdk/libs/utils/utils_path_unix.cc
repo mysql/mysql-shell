@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include <limits.h>
 #include <pwd.h>
 #include <unistd.h>
 #include <cstdlib>
@@ -193,6 +194,16 @@ std::string SHCORE_PUBLIC tmpdir() {
   }
 
   return dir;
+}
+
+bool SHCORE_PUBLIC is_absolute(const std::string &path) {
+  return path.length() > 0 && is_path_separator(expand_user(path)[0]);
+}
+
+std::string SHCORE_PUBLIC getcwd() {
+  char path[PATH_MAX] = {0};
+  ::getcwd(path, PATH_MAX);
+  return path;
 }
 
 }  // namespace path

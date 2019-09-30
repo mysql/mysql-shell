@@ -133,7 +133,7 @@ SYNTAX
       <Table>.exists_in_database()
 
 RETURNS
-       A boolean indicating if the object still exists on the database.
+      A boolean indicating if the object still exists on the database.
 
 #@<OUT> table.get_name
 NAME
@@ -150,7 +150,7 @@ SYNTAX
       <Table>.get_schema()
 
 RETURNS
-       The Schema object used to get to this object.
+      The Schema object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -168,7 +168,7 @@ SYNTAX
       <Table>.get_session()
 
 RETURNS
-       The Session object used to get to this object.
+      The Session object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -266,7 +266,7 @@ SYNTAX
       <Table>.is_view()
 
 RETURNS
-       True if the Table represents a View on the database, False if represents
+      True if the Table represents a View on the database, False if represents
       a Table.
 
 #@<OUT> table.name

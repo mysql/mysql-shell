@@ -835,6 +835,13 @@ class SHCORE_PUBLIC Function_base {
   virtual Value invoke(const Argument_list &args) = 0;
 
   virtual bool has_var_args() = 0;
+
+  virtual std::string &append_descr(std::string *s_out, int indent = -1,
+                                    int quote_strings = 0) const;
+
+  virtual std::string &append_repr(std::string *s_out) const;
+
+  virtual void append_json(JSON_dumper *dumper) const;
 };
 
 /** Pointer to a function that may be implemented in any language.

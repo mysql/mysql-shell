@@ -168,6 +168,8 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       return Value(map);
     } else if (unwrap(py, object)) {
       return Value(object);
+    } else if (unwrap_method(py, &function)) {
+      return Value(function);
     } else if (unwrap(py, function)) {
       return Value(function);
     } else {

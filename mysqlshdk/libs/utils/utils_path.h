@@ -171,6 +171,29 @@ std::string SHCORE_PUBLIC search_path_list(const std::string &name,
  */
 std::string SHCORE_PUBLIC tmpdir();
 
+/**
+ * Checks if character is a path separator.
+ *
+ * @param c - character to be checked.
+ *
+ * @returns true if the given character is a path separator.
+ */
+bool SHCORE_PUBLIC is_path_separator(char c);
+
+/**
+ * Checks if path is absolute.
+ *
+ * @param path - path to be checked.
+ *
+ * @returns true if the given path is absolute.
+ */
+bool SHCORE_PUBLIC is_absolute(const std::string &path);
+
+/**
+ * Provides path to the current working directory.
+ */
+std::string SHCORE_PUBLIC getcwd();
+
 }  // namespace path
 }  // namespace shcore
 

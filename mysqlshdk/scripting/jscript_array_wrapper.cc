@@ -121,8 +121,7 @@ void JScript_array_wrapper::handler_igetter(
   if (!array) throw std::logic_error("bug!");
 
   if (index < array->size()) {
-    info.GetReturnValue().Set(
-        context->shcore_value_to_v8_value(array->at(index)));
+    info.GetReturnValue().Set(context->convert(array->at(index)));
   }
 }
 

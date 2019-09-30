@@ -71,7 +71,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       Binds a value to a specific placeholder used on this CollectionFind
@@ -91,8 +91,8 @@ SYNTAX
       <CollectionFind>.execute()
 
 RETURNS
-       A DocResult object that can be used to traverse the documents returned
-      by this operation.
+      A DocResult object that can be used to traverse the documents returned by
+      this operation.
 
 //@<OUT> Help on fields
 NAME
@@ -108,7 +108,7 @@ WHERE
       fieldDefinition: Definition of the fields to be retrieved.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       This function sets the fields to be retrieved from each document matching
@@ -137,7 +137,7 @@ WHERE
                        the selection.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       Sets the search condition to identify the Documents to be retrieved from
@@ -155,7 +155,7 @@ SYNTAX
       <CollectionFind>.groupBy(field[, field, ...])
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       Sets a grouping criteria for the resultset.
@@ -173,7 +173,7 @@ WHERE
                  criteria.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       Sets a condition for records to be considered in aggregate function
@@ -201,7 +201,7 @@ WHERE
       numberOfDocs: The maximum number of documents to be retrieved.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       If used, the operation will return at most numberOfDocs documents.
@@ -221,7 +221,7 @@ WHERE
                       already locked.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       When this function is called, the selected documents will be locked for
@@ -272,7 +272,7 @@ WHERE
                       already locked.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       When this function is called, the selected documents will be locked for
@@ -325,7 +325,7 @@ WHERE
                     on the DocResult.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       If used, the first numberOfDocs' records will not be included on the
@@ -346,7 +346,7 @@ WHERE
       sortCriteria: The sort criteria for the returned documents.
 
 RETURNS
-       This CollectionFind object.
+      This CollectionFind object.
 
 DESCRIPTION
       If used the CollectionFind operation will return the records sorted with

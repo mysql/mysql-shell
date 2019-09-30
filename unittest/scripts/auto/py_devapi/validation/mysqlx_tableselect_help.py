@@ -64,7 +64,7 @@ WHERE
       value: The value to be bound on the placeholder.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       Binds a value to a specific placeholder used on this operation.
@@ -83,8 +83,8 @@ SYNTAX
       <TableSelect>.execute()
 
 RETURNS
-       A RowResult object that can be used to traverse the rows returned by
-      this operation.
+      A RowResult object that can be used to traverse the rows returned by this
+      operation.
 
 #@<OUT> tableselect.group_by
 NAME
@@ -95,7 +95,7 @@ SYNTAX
       <TableSelect>.group_by(searchExprStr, searchExprStr, ...)
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 #@<OUT> tableselect.help
 NAME
@@ -119,7 +119,7 @@ WHERE
       numberOfRows: The maximum number of rows to be retrieved.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used, the operation will return at most numberOfRows rows.
@@ -139,7 +139,7 @@ WHERE
                       locked.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       When this function is called, the selected rows will be locked for read
@@ -191,7 +191,7 @@ WHERE
                       locked.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       When this function is called, the selected rows will be locked for write
@@ -240,7 +240,7 @@ SYNTAX
       <TableSelect>.order_by(sortCriteria)
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used the records will be sorted with the defined criteria.
@@ -264,7 +264,7 @@ WHERE
       expression: Condition to filter the records to be retrieved.
 
 RETURNS
-       This TableSelect object.
+      This TableSelect object.
 
 DESCRIPTION
       If used, only those rows satisfying the expression will be retrieved

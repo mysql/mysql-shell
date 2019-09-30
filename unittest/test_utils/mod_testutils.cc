@@ -189,6 +189,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("enableExtensible", &Testutils::enable_extensible);
   expose("dbugSet", &Testutils::dbug_set, "dbug");
   expose("dprint", &Testutils::dprint, "s");
+  expose("getUserConfigPath", &Testutils::get_user_config_path);
   // expose("slowify", &Testutils::slowify, "port", "start");
 
   std::string local_mp_path =
@@ -2869,6 +2870,10 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(cnx_opt);
   return session;
+}
+
+std::string Testutils::get_user_config_path() {
+  return shcore::get_user_config_path();
 }
 
 }  // namespace tests

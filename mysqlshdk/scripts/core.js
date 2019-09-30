@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,97 +20,121 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-function ModuleHandler()
-{
-  this._module_cache = {}
 
-  this._find_module = function(name)
-  {
-    var index = 0;
-    var module_path = '';
-    while(index < sys.path.length && module_path == '')
-    {
-      var tmp_path = sys.path[index];
-      var last_char = tmp_path.slice(-1);
-      if (last_char != '/' && last_char != '\\')
-        tmp_path += '/';
+'use strict';
 
-      tmp_path += name + '.js';
-
-      if (os.file_exists(tmp_path))
-        module_path = tmp_path;
-      else
-        index++;
-    }
-
-    return module_path;
-  }
-
-  this._load_module = function(name)
-  {
-    var module = __require(name);
-    if (module)
-      this._module_cache[name] = module;
-    else
-    {
-      var path = this._find_module(name);
-
-      if (path)
-      {
-        var source = os.load_text_file(path);
-        if (source)
-        {
-          var wrapped_source = '(function (exports){' + source + '});';
-          var module_definition = __build_module(path, wrapped_source);
-
-          var module = {}
-          module_definition(module)
-
-          this._module_cache[name] = module;
-        }
-        else
-          throw ('Module ' + name + ' is empty.');
-      }
-    }
-  }
-
-  this.get_module = function(name, reload)
-  {
-    if (typeof reload !== 'undefined' && reload)
-      delete this._module_cache[name];
-
-    // Loads the module if not done already.
-    if (typeof this._module_cache[name] === 'undefined')
-    {
-      // Retrieves the module path and content
-      this._load_module(name);
-    }
-
-    // If the module is on the cache then returns it
-    if (typeof this._module_cache[name] !== 'undefined')
-      return this._module_cache[name]
-    else
-      throw ('Module ' + name + ' was not found.');
+function check_string(name, value) {
+  if (typeof value !== 'string') {
+    throw new TypeError(`The '${name}' parameter is expected to be a string.`);
   }
 }
 
-this._module_handler = new ModuleHandler();
+function Module(full_path) {
+  check_string('full_path', full_path);
 
-
-this.require = function(module_name, reload)
-{
-  return this._module_handler.get_module(module_name, reload);
+  this.__filename = full_path;
+  this.__dirname = os.path.dirname(full_path);
+  this.exports = {};
 }
+
+function ModuleHandler() { }
+
+ModuleHandler.__native_modules = __list_native_modules();
+
+ModuleHandler.__find_module = function (module, paths) {
+  for (let path of paths) {
+    if (!os.path.isabs(path)) {
+      path = os.path.join(os.getcwd(), path);
+    }
+
+    const full_path = os.path.normpath(os.path.join(path, module));
+
+    if (os.path.isfile(full_path)) {
+      return full_path;
+    }
+
+    const full_path_js = full_path + '.js';
+
+    if (os.path.isfile(full_path_js)) {
+      return full_path_js;
+    }
+
+    const full_path_init = os.path.join(full_path, 'init.js');
+
+    if (os.path.isdir(full_path) && os.path.isfile(full_path_init)) {
+      return full_path_init;
+    }
+  }
+
+  throw new Error(`Could not find module '${module}'.`);
+};
+
+ModuleHandler.prototype.__cache = {};
+
+ModuleHandler.prototype.__require = function (module) {
+  check_string('module_name_or_path', module);
+
+  if (0 === module.length) {
+    throw new Error('The path must contain at least one character.');
+  }
+
+  if (module.indexOf('\\') > -1) {
+    throw new Error(`The '\\' character is disallowed.`);
+  }
+
+  if (os.path.isabs(module)) {
+    throw new Error('The absolute path is disallowed.');
+  }
+
+  if (ModuleHandler.__native_modules.includes(module)) {
+    if (!(module in this.__cache)) {
+      this.__cache[module] = __load_native_module(module);
+    }
+
+    return this.__cache[module];
+  }
+
+  const paths = [];
+
+  if (module.startsWith('./') || module.startsWith('../')) {
+    paths.push(__current_module_folder());
+  }
+
+  paths.push(...sys.path);
+
+  const full_path = ModuleHandler.__find_module(module, paths);
+
+  if (!(full_path in this.__cache)) {
+    this.__load_module(full_path);
+  }
+
+  return this.__cache[full_path].exports;
+};
+
+ModuleHandler.prototype.__load_module = function (full_path) {
+  const module = new Module(full_path);
+
+  this.__cache[full_path] = module;
+
+  __load_module(full_path, module);
+};
+
+const mh = new ModuleHandler();
+
+this.require = function (module) {
+  return mh.__require(module);
+};
+
+this.require.__mh = mh;
 
 // Object.keys(object) returns the enumerable properties found directly
 // on the object while iterating them also includes the ones defined on
 // the prototype chain.
-this.dir = function(object)
-{
-  var keys = []
-  for(k in object)
+this.dir = function (object) {
+  var keys = [];
+  for (k in object) {
     keys[keys.length] = k;
+  }
 
   return keys;
 }
-

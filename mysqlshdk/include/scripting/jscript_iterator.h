@@ -109,7 +109,7 @@ void add_iterator(v8::Local<v8::ObjectTemplate> templ, v8::Isolate *isolate) {
         const auto &data = collectable->data();
         const auto context = collectable->context();
 
-        info.GetReturnValue().Set(context->shcore_value_to_v8_value(
+        info.GetReturnValue().Set(context->convert(
             Value(std::make_shared<JScript_iterator<typename T::Type>>(data))));
       });
   f->RemovePrototype();

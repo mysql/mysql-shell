@@ -39,7 +39,7 @@ class SHCORE_PUBLIC Python_function : public Function_base {
   Python_function(Python_context *context, PyObject *function);
   ~Python_function() override;
 
-  const std::string &name() const override;
+  const std::string &name() const override { return m_name; }
 
   const std::vector<std::pair<std::string, Value_type>> &signature()
       const override;
@@ -57,6 +57,7 @@ class SHCORE_PUBLIC Python_function : public Function_base {
  private:
   Python_context *_py;
   std::weak_ptr<AutoPyObject> m_function;
+  std::string m_name;
 };
 
 }  // namespace shcore

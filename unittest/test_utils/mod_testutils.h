@@ -333,6 +333,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void create_file(const std::string &path, const std::string &content);
 
   std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);
+  std::string get_user_config_path();
 };
 
 }  // namespace tests

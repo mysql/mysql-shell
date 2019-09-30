@@ -40,7 +40,7 @@ SYNTAX
       <TableDelete>.execute()
 
 RETURNS
-       A Result object.
+      A Result object.
 
 #@<OUT> tabledelete.help
 NAME
@@ -63,7 +63,7 @@ WHERE
       numberOfRows: The maximum number of rows to be deleted.
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used, the operation will delete only numberOfRows rows.
@@ -77,7 +77,7 @@ SYNTAX
       <TableDelete>.order_by(sortCriterion[, sortCriterion, ...])
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used the records will be deleted in the order established by the sort
@@ -102,7 +102,7 @@ WHERE
       expression: Condition to filter the records to be deleted.
 
 RETURNS
-       This TableDelete object.
+      This TableDelete object.
 
 DESCRIPTION
       If used, only those rows satisfying the expression will be deleted

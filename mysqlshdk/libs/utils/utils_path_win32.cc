@@ -229,18 +229,17 @@ split_extension(const std::string &path) {
 }
 
 std::string normalize(const std::string &path) {
-  std::string norm = shcore::str_replace(path, "/", "\\");
-  // Pass null for the output buffer so we can get its length before using it
-  auto len = GetFullPathName(norm.c_str(), norm.size(), nullptr, nullptr);
-  if (len > norm.size()) {
-    norm.resize(len);
-  }
-  len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
-  if (len == 0) {
-    return path;
-  }
-  norm.resize(len);
-  return norm;
+  const auto norm = shcore::str_replace(path, "/", "\\");
+  // get length (including the terminating null character)
+  const auto length = GetFullPathName(norm.c_str(), 0, nullptr, nullptr);
+  // include space for a terminating null character
+  std::string result(length, 'x');
+  // get the data
+  GetFullPathName(norm.c_str(), result.length(), &result[0], nullptr);
+  // remove the terminating null character
+  result.pop_back();
+
+  return result;
 }
 
 std::string SHCORE_PUBLIC dirname(const std::string &path) {
@@ -282,6 +281,34 @@ std::string SHCORE_PUBLIC tmpdir() {
   }
 
   return buffer;
+}
+
+bool SHCORE_PUBLIC is_absolute(const std::string &path) {
+  if (path.length() > 0) {
+    const auto expanded = expand_user(path);
+    const auto first = expanded[0];
+
+    return is_path_separator(first) ||
+           (expanded.length() > 2 &&
+            ((first >= 'A' && first <= 'Z') ||
+             (first >= 'a' && first <= 'z')) &&
+            ':' == expanded[1] && is_path_separator(expanded[2]));
+  }
+
+  return false;
+}
+
+std::string SHCORE_PUBLIC getcwd() {
+  // get length (including the terminating null character)
+  const auto length = GetCurrentDirectory(0, nullptr);
+  // include space for a terminating null character
+  std::string result(length, 'x');
+  // get the data
+  GetCurrentDirectory(result.length(), &result[0]);
+  // remove the terminating null character
+  result.pop_back();
+
+  return result;
 }
 
 }  // namespace path

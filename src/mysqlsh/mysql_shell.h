@@ -38,6 +38,7 @@
 namespace mysqlsh {
 class Shell;  // from modules
 class Util;
+class Os;
 
 class Mysql_shell : public mysqlsh::Base_shell {
  public:
@@ -117,13 +118,14 @@ class Mysql_shell : public mysqlsh::Base_shell {
                                 const std::string &uri,
                                 const std::string &sessionid);
 
-  void process_sql_result(std::shared_ptr<mysqlshdk::db::IResult> result,
+  void process_sql_result(const std::shared_ptr<mysqlshdk::db::IResult> &result,
                           const shcore::Sql_result_info &info) override;
 
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
   std::shared_ptr<mysqlsh::Util> _global_util;
+  std::shared_ptr<mysqlsh::Os> m_global_js_os;
 
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;

@@ -726,7 +726,7 @@ Cpp_function::Cpp_function(
 }
 
 const std::string &Cpp_function::name() const {
-  return _meta->name[LowerCamelCase];
+  return _meta->name[current_naming_style()];
 }
 
 const std::string &Cpp_function::name(const NamingStyle &style) const {

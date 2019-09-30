@@ -120,7 +120,7 @@ WHERE
       password: Password for the session
 
 RETURNS
-       A Session
+      A Session
 
 DESCRIPTION
       A Session object uses the X Protocol to allow executing operations on the

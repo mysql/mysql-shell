@@ -27,38 +27,46 @@
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_path.h"
 
 namespace mysqlsh {
 
-REGISTER_HELP_GLOBAL_OBJECT_MODE(sys, shellapi, shcore::Help_mode::JAVASCRIPT);
+REGISTER_HELP_GLOBAL_OBJECT_MODE(sys, shellapi, JAVASCRIPT);
 REGISTER_HELP(SYS_BRIEF, "Gives access to system specific parameters.");
 REGISTER_HELP(SYS_GLOBAL_BRIEF, "Gives access to system specific parameters.");
 
 Sys::Sys(shcore::IShell_core *owner) { init(); }
 
 void Sys::init() {
-  _argv.reset(new shcore::Value::Array_type());
-  _path.reset(new shcore::Value::Array_type());
+  _argv = shcore::make_array();
+  _path = shcore::make_array();
 
-  // Searches for MYSQLX_HOME
-  std::string path = shcore::get_mysqlx_home_path();
-  if (!path.empty()) path.append("/share/mysqlsh/modules/js");
-  // If MYSQLX_HOME not found, sets the current directory as a valid module path
-  else {
-    path = shcore::get_binary_folder();
-    if (!path.empty())
-      path.append("/modules/js");
-    else
-      path = "./modules/js";
+  {
+    // Searches for MYSQLX_HOME
+    auto path = shcore::get_mysqlx_home_path();
+
+    if (!path.empty()) {
+      path = shcore::path::join_path(path, "share", "mysqlsh", "modules", "js");
+    } else {
+      // If MYSQLX_HOME not found, sets the current directory as a module path
+      path = shcore::get_binary_folder();
+
+      if (!path.empty())
+        path = shcore::path::join_path(path, "modules", "js");
+      else
+        path = shcore::path::join_path(".", "modules", "js");
+    }
+
+    _path->emplace_back(path);
   }
 
-  _path->push_back(shcore::Value(path));
-
   // Finally sees if there are additional configured paths
-  char *custom_paths = getenv("MYSQLSH_JS_MODULE_PATH");
-  if (custom_paths) {
-    auto paths = shcore::split_string(custom_paths, ";");
-    for (auto custom_path : paths) _path->push_back(shcore::Value(custom_path));
+  if (const auto custom_paths = getenv("MYSQLSH_JS_MODULE_PATH")) {
+    for (const auto &path : shcore::split_string(custom_paths, ";")) {
+      if (!path.empty()) {
+        _path->emplace_back(path);
+      }
+    }
   }
 
   add_property("argv");
@@ -100,7 +108,7 @@ void Sys::set_member(const std::string &prop, shcore::Value value) {
   if (!error.empty()) throw shcore::Exception::argument_error(error);
 }
 
-REGISTER_HELP_PROPERTY_MODE(argv, sys, shcore::Help_mode::JAVASCRIPT);
+REGISTER_HELP_PROPERTY_MODE(argv, sys, JAVASCRIPT);
 REGISTER_HELP_FUNCTION_TEXT(SYS_ARGV, R"*(
 Contains the arguments for the script execution.
 
@@ -109,7 +117,7 @@ after the script name will be considered script arguments and will be available
 during the script execution at sys.argv which will contain:
 
 @li The first element is the path to the script being executed.
-@li Each script argument will be addded as an element of the array.
+@li Each script argument will be added as an element of the array.
 
 For example, given the following call:
 @code
@@ -128,9 +136,20 @@ REGISTER_HELP(
     SYS_ARGV_BRIEF,
     "Contains the list of arguments available during a script processing.");
 
-REGISTER_HELP_PROPERTY_MODE(path, sys, shcore::Help_mode::JAVASCRIPT);
-REGISTER_HELP(SYS_PATH_BRIEF,
-              "Lists the search paths to load JavaScript modules.");
+REGISTER_HELP_PROPERTY_MODE(path, sys, JAVASCRIPT);
+REGISTER_HELP_FUNCTION_TEXT(SYS_PATH, R"*(
+Lists the search paths to load the JavaScript modules.
+
+When the shell is launched, this variable is initialized to
+@li the home folder of shell + "share/mysqlsh/modules/js",
+@li the folder specified in the <b>MYSQLSH_JS_MODULE_PATH</b> environment
+variable (multiple folders are allowed, separated with semicolon).
+
+Users may change the sys.path variable at run-time.
+
+If sys.path contains a relative path, its absolute path is resolved as a
+relative to the current working directory.
+)*");
 
 /**
  * $(SYS_ARGV_BRIEF)
@@ -143,6 +162,8 @@ Array Sys::argv;
 
 /**
  * $(SYS_PATH_BRIEF)
+ *
+ * $(SYS_PATH)
  */
 #if DOXYGEN_JS
 Array Sys::path;

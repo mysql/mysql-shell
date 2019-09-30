@@ -24,6 +24,9 @@
 //@ Help on dir
 \? dir
 
+//@ WL13119-TSFR10_1: Validate that the help system contains an entry for the require() function.
+\? require
+
 //@ Help on X DevAPI Category
 \? x devapi
 

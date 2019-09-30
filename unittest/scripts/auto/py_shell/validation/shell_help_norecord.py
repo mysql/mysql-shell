@@ -419,7 +419,7 @@ SYNTAX
       shell.list_credential_helpers()
 
 RETURNS
-       A list of string with names of available credential helpers.
+      A list of string with names of available credential helpers.
 
 DESCRIPTION
       The special values "default" and "<disabled>" are not on the list.
@@ -436,7 +436,7 @@ SYNTAX
       shell.list_credentials()
 
 RETURNS
-       A list of URLs stored by the configured credential helper.
+      A list of URLs stored by the configured credential helper.
 
 EXCEPTIONS
       Throws RuntimeError in the following scenarios:
@@ -564,7 +564,7 @@ WHERE
       uri: a URI string.
 
 RETURNS
-       A dictionary containing all the elements contained on the given URI
+      A dictionary containing all the elements contained on the given URI
       string.
 
 DESCRIPTION
@@ -590,7 +590,7 @@ WHERE
       options: Dictionary with options that change the function behavior.
 
 RETURNS
-       A string value containing the input from the user.
+      A string value containing the input from the user.
 
 DESCRIPTION
       This function allows creating scripts that require interaction with the
@@ -1550,7 +1550,7 @@ WHERE
       options: a dictionary with the connection options.
 
 RETURNS
-       A URI string
+      A URI string
 
 DESCRIPTION
       This function assembles a MySQL connection string which can be used in
@@ -1569,7 +1569,7 @@ WHERE
               json/array, json/pretty. Default is table.
 
 RETURNS
-       The number of printed rows
+      The number of printed rows
 
 DESCRIPTION
       This function shows a resultset object returned by a DB Session query in

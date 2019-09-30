@@ -164,7 +164,7 @@ WHERE
       doc: the new document.
 
 RETURNS
-       A Result object containing the number of affected rows.
+      A Result object containing the number of affected rows.
 
 DESCRIPTION
       Replaces the document identified with the given id. If no document is
@@ -204,7 +204,7 @@ WHERE
       indexDefinition: a JSON document with the index information.
 
 RETURNS
-       a Result object.
+      a Result object.
 
 DESCRIPTION
       This function will create an index on the collection using the
@@ -266,7 +266,7 @@ SYNTAX
       <Collection>.existsInDatabase()
 
 RETURNS
-       A boolean indicating if the object still exists on the database.
+      A boolean indicating if the object still exists on the database.
 
 //@<OUT> Help on find
 NAME
@@ -460,7 +460,7 @@ WHERE
       id: The identifier of the document to be retrieved.
 
 RETURNS
-       The Document object matching the given id or NULL if no match is found.
+      The Document object matching the given id or NULL if no match is found.
 
 //@<OUT> Help on getSchema
 NAME
@@ -470,7 +470,7 @@ SYNTAX
       <Collection>.getSchema()
 
 RETURNS
-       The Schema object used to get to this object.
+      The Schema object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -488,7 +488,7 @@ SYNTAX
       <Collection>.getSession()
 
 RETURNS
-       The Session object used to get to this object.
+      The Session object used to get to this object.
 
 DESCRIPTION
       Note that the returned object can be any of:
@@ -732,7 +732,7 @@ WHERE
       id: The id of the document to be removed.
 
 RETURNS
-       A Result object containing the number of affected rows.
+      A Result object containing the number of affected rows.
 
 DESCRIPTION
       If no document is found matching the given id, the Result object will

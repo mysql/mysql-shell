@@ -31,7 +31,7 @@ SYNTAX
       <CollectionAdd>.add(mysqlx.expr(...))
 
 RETURNS
-       This CollectionAdd object.
+      This CollectionAdd object.
 
 DESCRIPTION
       This function receives one or more document definitions to be added into
@@ -78,7 +78,7 @@ SYNTAX
       <CollectionAdd>.execute()
 
 RETURNS
-       A Result object.
+      A Result object.
 
 //@<OUT> Help on help
 NAME

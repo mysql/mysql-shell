@@ -597,9 +597,6 @@ class Help_manager {
 };  // namespace shcore
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
-#define REGISTER_HELP_TOPIC(name, type, tag, parent, mode) \
-  shcore::Help_topic_register topic_##tag(                 \
-      #name, shcore::Topic_type::type, #tag, #parent, shcore::Help_mode::mode)
 
 #define REGISTER_HELP_CLASS(name, parent) \
   shcore::Help_class_register class_##parent##name(#name, #parent, "");
@@ -607,47 +604,42 @@ class Help_manager {
 #define REGISTER_HELP_SUB_CLASS(name, parent, upper) \
   shcore::Help_class_register class_##parent##name(#name, #parent, #upper);
 
-#define REGISTER_HELP_OBJECT(name, parent)               \
-  shcore::Help_topic_register object_##parent##name(     \
-      #name, shcore::Topic_type::OBJECT, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_TOPIC(name, type, tag, parent, mode) \
+  shcore::Help_topic_register topic_##type##parent##tag(   \
+      #name, shcore::Topic_type::type, #tag, #parent, shcore::Help_mode::mode)
 
-#define REGISTER_HELP_CONSTANTS(name, parent)               \
-  shcore::Help_topic_register object_##parent##name(        \
-      #name, shcore::Topic_type::CONSTANTS, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_TOPIC_NOTAG(name, type, parent, mode) \
+  REGISTER_HELP_TOPIC(name, type, name, parent, mode)
 
-#define REGISTER_HELP_GLOBAL_OBJECT(name, parent)               \
-  shcore::Help_topic_register object_##parent##name(            \
-      #name, shcore::Topic_type::GLOBAL_OBJECT, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_OBJECT_MODE(name, parent, mode) \
+  REGISTER_HELP_TOPIC_NOTAG(name, OBJECT, parent, mode)
+
+#define REGISTER_HELP_OBJECT(name, parent) \
+  REGISTER_HELP_OBJECT_MODE(name, parent, SCRIPTING)
+
+#define REGISTER_HELP_CONSTANTS(name, parent) \
+  REGISTER_HELP_TOPIC_NOTAG(name, CONSTANTS, parent, SCRIPTING)
 
 #define REGISTER_HELP_GLOBAL_OBJECT_MODE(name, parent, mode) \
-  shcore::Help_topic_register object_##parent##name(         \
-      #name, shcore::Topic_type::GLOBAL_OBJECT, #name, #parent, mode)
+  REGISTER_HELP_TOPIC_NOTAG(name, GLOBAL_OBJECT, parent, mode)
 
-#define REGISTER_HELP_MODULE(name, parent)               \
-  shcore::Help_topic_register module_##parent##name(     \
-      #name, shcore::Topic_type::MODULE, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_GLOBAL_OBJECT(name, parent) \
+  REGISTER_HELP_GLOBAL_OBJECT_MODE(name, parent, SCRIPTING)
 
-#define REGISTER_HELP_FUNCTION(name, parent)               \
-  shcore::Help_topic_register function_##parent##name(     \
-      #name, shcore::Topic_type::FUNCTION, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_MODULE(name, parent) \
+  REGISTER_HELP_TOPIC_NOTAG(name, MODULE, parent, SCRIPTING)
 
 #define REGISTER_HELP_FUNCTION_MODE(name, parent, mode) \
-  shcore::Help_topic_register function_##parent##name(  \
-      #name, shcore::Topic_type::FUNCTION, #name, #parent, mode)
+  REGISTER_HELP_TOPIC_NOTAG(name, FUNCTION, parent, mode)
 
-#define REGISTER_HELP_PROPERTY(name, parent)               \
-  shcore::Help_topic_register property_##parent##name(     \
-      #name, shcore::Topic_type::PROPERTY, #name, #parent, \
-      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_FUNCTION(name, parent) \
+  REGISTER_HELP_FUNCTION_MODE(name, parent, SCRIPTING)
 
 #define REGISTER_HELP_PROPERTY_MODE(name, parent, mode) \
-  shcore::Help_topic_register property_##parent##name(  \
-      #name, shcore::Topic_type::PROPERTY, #name, #parent, mode)
+  REGISTER_HELP_TOPIC_NOTAG(name, PROPERTY, parent, mode)
+
+#define REGISTER_HELP_PROPERTY(name, parent) \
+  REGISTER_HELP_PROPERTY_MODE(name, parent, SCRIPTING)
 
 #define REGISTER_HELP_TOPIC_TEXT(x, y) \
   shcore::Help_register_topic_text x(#x, y, false)

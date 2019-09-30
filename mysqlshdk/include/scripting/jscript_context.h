@@ -41,6 +41,7 @@ using JSObject =
     v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>>;
 
 class JScript_function_storage;
+struct JScript_type_bridger;
 
 class SHCORE_PUBLIC JScript_context {
  public:
@@ -56,8 +57,8 @@ class SHCORE_PUBLIC JScript_context {
   v8::Isolate *isolate() const;
   v8::Local<v8::Context> context() const;
 
-  Value v8_value_to_shcore_value(const v8::Local<v8::Value> &value);
-  v8::Local<v8::Value> shcore_value_to_v8_value(const Value &value);
+  Value convert(const v8::Local<v8::Value> &value) const;
+  v8::Local<v8::Value> convert(const Value &value) const;
   Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value> &args);
 
   void set_global(const std::string &name, const Value &value);
@@ -91,11 +92,14 @@ class SHCORE_PUBLIC JScript_context {
   void erase(const std::shared_ptr<JScript_function_storage> &function);
 
  private:
-  struct JScript_context_impl;
-  JScript_context_impl *_impl;
+  class Impl;
 
   Value get_v8_exception_data(const v8::TryCatch &exc, bool interactive);
   std::string format_exception(const shcore::Value &exc);
+  v8::Local<v8::String> type_info(v8::Local<v8::Value> value) const;
+
+  std::unique_ptr<Impl> m_impl;
+  std::unique_ptr<JScript_type_bridger> m_types;
 };
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data);

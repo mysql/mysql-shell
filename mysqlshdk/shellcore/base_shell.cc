@@ -445,7 +445,7 @@ void Base_shell::notify_executed_statement(const std::string &line) {
 }
 
 void Base_shell::process_sql_result(
-    std::shared_ptr<mysqlshdk::db::IResult> result,
+    const std::shared_ptr<mysqlshdk::db::IResult> &result,
     const shcore::Sql_result_info &info) {
   if (!result) {
     // Return value of undefined implies an error processing
@@ -454,7 +454,7 @@ void Base_shell::process_sql_result(
   }
 }
 
-void Base_shell::print_result(shcore::Value result) {
+void Base_shell::print_result(const shcore::Value &result) {
   if (result) {
     shcore::Value shell_hook;
     std::shared_ptr<shcore::Object_bridge> object;
@@ -486,7 +486,7 @@ void Base_shell::print_result(shcore::Value result) {
   }
 }
 
-void Base_shell::process_result(shcore::Value result, bool got_error) {
+void Base_shell::process_result(const shcore::Value &result, bool got_error) {
   assert(_shell->interactive_mode() != shcore::Shell_core::Mode::SQL);
 
   if (options().interactive) print_result(result);

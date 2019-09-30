@@ -214,61 +214,42 @@ TEST_F(JavaScript, simple_to_js_and_back) {
 
   {
     shcore::Value v(Value::True());
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
   {
     shcore::Value v(Value::False());
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
   {
     shcore::Value v(Value(1234));
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
   {
     shcore::Value v(Value(1234));
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v))
-            .repr(),
-        "1234");
+    ASSERT_EQ(env.js->convert(env.js->convert(v)).repr(), "1234");
   }
   {
     shcore::Value v(Value("hello"));
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
   {
     shcore::Value v(Value(123.45));
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
   {
     shcore::Value v(Value::Null());
-    ASSERT_EQ(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
-        v);
+    ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
   }
 
   {
     shcore::Value v1(Value(123));
     shcore::Value v2(Value(1234));
-    ASSERT_NE(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v1)),
-        v2);
+    ASSERT_NE(env.js->convert(env.js->convert(v1)), v2);
   }
   {
     shcore::Value v1(Value(123));
     shcore::Value v2(Value("123"));
-    ASSERT_NE(
-        env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v1)),
-        v2);
+    ASSERT_NE(env.js->convert(env.js->convert(v1)), v2);
   }
 }
 
@@ -290,13 +271,10 @@ TEST_F(JavaScript, array_to_js) {
   shcore::Value v(arr);
 
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(
-      env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v))
-          .repr(),
-      "[123, \"text\", [444]]");
+  ASSERT_EQ(env.js->convert(env.js->convert(v)).repr(),
+            "[123, \"text\", [444]]");
 
-  ASSERT_EQ(
-      env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)), v);
+  ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
 
   // addressing a wrapped shcore::Value array from JS
   env.js->set_global("arr", v);
@@ -350,13 +328,10 @@ TEST_F(JavaScript, map_to_js) {
   shcore::Value v(map);
 
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(
-      env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v))
-          .repr(),
-      "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
+  ASSERT_EQ(env.js->convert(env.js->convert(v)).repr(),
+            "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
-  ASSERT_EQ(
-      env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)), v);
+  ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
 
   env.js->set_global("mapval", v);
 
@@ -432,7 +407,7 @@ TEST_F(JavaScript, object_to_js) {
   ASSERT_NE(*obj, *obj3);
 
   ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)),
-            env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(
+            env.js->convert(env.js->convert(
                 Value(std::static_pointer_cast<Object_bridge>(obj)))));
 
   // expose the object to JS

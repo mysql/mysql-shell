@@ -13,11 +13,8 @@ sys.help()
 //@ help() on sys.argv [USE:Help on argv]
 sys.help('argv')
 
-//@ Help on path
-\? path
-
-//@ Help on sys.path [USE:Help on path]
+//@ Help on sys.path
 \? sys.path
 
-//@ help() on sys.path [USE:Help on path]
+//@ help() on sys.path [USE:Help on sys.path]
 sys.help('path')

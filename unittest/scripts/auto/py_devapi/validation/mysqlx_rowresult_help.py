@@ -123,7 +123,7 @@ SYNTAX
       <RowResult>.fetch_all()
 
 RETURNS
-       A List of DbDoc objects.
+      A List of DbDoc objects.
 
 #@<OUT> rowresult.fetch_one
 NAME
@@ -133,7 +133,7 @@ SYNTAX
       <RowResult>.fetch_one()
 
 RETURNS
-       A Row object representing the next record on the result.
+      A Row object representing the next record on the result.
 
 #@<OUT> rowresult.fetch_one_object
 NAME
@@ -144,7 +144,7 @@ SYNTAX
       <RowResult>.fetch_one_object()
 
 RETURNS
-       A dictionary containing the row information.
+      A dictionary containing the row information.
 
 DESCRIPTION
       The column names will be used as keys in the returned dictionary and the
@@ -165,7 +165,7 @@ SYNTAX
       <RowResult>.get_affected_items_count()
 
 RETURNS
-       the number of affected items.
+      the number of affected items.
 
 DESCRIPTION
       Returns the number of records affected by the executed operation
@@ -178,7 +178,7 @@ SYNTAX
       <RowResult>.get_column_count()
 
 RETURNS
-       the number of columns on the current result.
+      the number of columns on the current result.
 
 #@<OUT> rowresult.get_column_names
 NAME
@@ -188,7 +188,7 @@ SYNTAX
       <RowResult>.get_column_names()
 
 RETURNS
-       A list with the names of the columns returned on the active result.
+      A list with the names of the columns returned on the active result.
 
 #@<OUT> rowresult.get_columns
 NAME
@@ -199,7 +199,7 @@ SYNTAX
       <RowResult>.get_columns()
 
 RETURNS
-       a list of Column objects containing information about the columns
+      a list of Column objects containing information about the columns
       included on the active result.
 
 #@<OUT> rowresult.get_execution_time
@@ -219,7 +219,7 @@ SYNTAX
       <RowResult>.get_warning_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -239,7 +239,7 @@ SYNTAX
       <RowResult>.get_warnings()
 
 RETURNS
-       A list containing a warning object for each generated warning.
+      A list containing a warning object for each generated warning.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
@@ -259,7 +259,7 @@ SYNTAX
       <RowResult>.get_warnings_count()
 
 RETURNS
-       the number of warnings.
+      the number of warnings.
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see

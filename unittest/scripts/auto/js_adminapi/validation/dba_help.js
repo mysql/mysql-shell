@@ -85,7 +85,7 @@ WHERE
       options: Data for the operation.
 
 RETURNS
-       A descriptive text of the operation result.
+      A descriptive text of the operation result.
 
 DESCRIPTION
       This function reviews the instance configuration to identify if it is
@@ -161,7 +161,7 @@ WHERE
       options: Additional options for the operation.
 
 RETURNS
-       A descriptive text of the operation result.
+      A descriptive text of the operation result.
 
 DESCRIPTION
       This function auto-configures the instance for InnoDB Cluster usage.If
@@ -253,7 +253,7 @@ WHERE
       options: Additional options for the operation.
 
 RETURNS
-       Nothing
+      Nothing
 
 DESCRIPTION
       This function reviews the instance configuration to identify if it is
@@ -342,7 +342,7 @@ WHERE
                function.
 
 RETURNS
-       The created cluster object.
+      The created cluster object.
 
 DESCRIPTION
       Creates a MySQL InnoDB cluster taking as seed instance the active global
@@ -616,7 +616,7 @@ WHERE
                executed.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function will delete an existing MySQL Server instance on the local
@@ -650,7 +650,7 @@ WHERE
       options: Dictionary with options affecting the new deployed instance.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function will deploy a new MySQL Server instance, the result may be
@@ -704,7 +704,7 @@ WHERE
       options: Dictionary containing an option to confirm the drop operation.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       The options dictionary may contain the following options:
@@ -734,7 +734,7 @@ WHERE
       options: Dictionary with additional options.
 
 RETURNS
-       The cluster object identified by the given name or the default cluster.
+      The cluster object identified by the given name or the default cluster.
 
 DESCRIPTION
       If name is not specified or is null, the default cluster will be
@@ -785,7 +785,7 @@ WHERE
       options: Dictionary with options affecting the result.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function will kill the process of a running MySQL Server instance on
@@ -821,7 +821,7 @@ WHERE
                function.
 
 RETURNS
-       The rebooted cluster object.
+      The rebooted cluster object.
 
 DESCRIPTION
       The options dictionary can contain the next values:
@@ -876,7 +876,7 @@ WHERE
       options: Dictionary with options affecting the result.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function will start an existing MySQL Server instance on the local
@@ -910,7 +910,7 @@ WHERE
       options: Dictionary with options affecting the result.
 
 RETURNS
-       Nothing.
+      Nothing.
 
 DESCRIPTION
       This function will gracefully stop a running MySQL Server instance on the
