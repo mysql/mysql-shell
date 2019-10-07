@@ -172,12 +172,6 @@ bool decode_base64(const std::string &source, std::string *target) {
   return final_size == expected_size;
 }
 
-bool encode_base64(const std::string &source, std::string *encoded) {
-  assert(source.size() <= std::numeric_limits<int>::max());
-  return encode_base64(reinterpret_cast<const unsigned char *>(&source[0]),
-                       source.size(), encoded);
-}
-
 bool encode_base64(const unsigned char *source, int source_length,
                    std::string *encoded) {
   assert(encoded);

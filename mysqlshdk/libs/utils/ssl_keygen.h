@@ -97,7 +97,6 @@ std::string load_private_key(const std::string &path,
  * @returns true on success decode
  */
 bool decode_base64(const std::string &source, std::string *target);
-bool encode_base64(const std::string &source, std::string *target);
 bool encode_base64(const unsigned char *source, int source_length,
                    std::string *encoded);
 }  // namespace ssl
