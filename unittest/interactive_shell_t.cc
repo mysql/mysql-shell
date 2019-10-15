@@ -2789,4 +2789,18 @@ TEST_F(Interactive_shell_test, js_interactive_multiline_comments) {
   wipe_all();
 }
 #endif
+
+#ifdef HAVE_V8
+TEST_F(Interactive_shell_test, js_interactive_template_literal) {
+  execute("\\js");
+  execute("var a = `multi");
+  execute("line`;");
+  execute("");
+  execute("print(a);");
+  EXPECT_EQ("multi\nline", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+#endif  // HAVE_V8
+
 }  // namespace mysqlsh

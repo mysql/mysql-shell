@@ -1153,14 +1153,17 @@ std::pair<Value, bool> JScript_context::execute_interactive(
 
   if (script.IsEmpty()) {
     // check if this was an error of type
-    // SyntaxError: Unexpected end of input
+    // - SyntaxError: Unexpected end of input
+    // - SyntaxError: Unterminated template literal
     // which we treat as a multiline mode trigger or
-    // SyntaxError: Invalid or unexpected token
+    // - SyntaxError: Invalid or unexpected token
     // which may be a sign of unfinished C style comment
     const char *unexpected_end_exc = "SyntaxError: Unexpected end of input";
+    const char *unterminated_template_exc =
+        "SyntaxError: Unterminated template literal";
     const char *unexpected_tok_exc = "SyntaxError: Invalid or unexpected token";
     auto message = _impl->to_string(try_catch.Exception());
-    if (message == unexpected_end_exc) {
+    if (message == unexpected_end_exc || message == unterminated_template_exc) {
       *r_state = Input_state::ContinuedBlock;
     } else if (message == unexpected_tok_exc) {
       auto comment_pos = code_str.rfind("/*");
