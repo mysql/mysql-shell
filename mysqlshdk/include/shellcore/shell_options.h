@@ -83,7 +83,9 @@ class Shell_options : public shcore::Options {
     std::string oci_config_file;
     std::string auth_method;
     std::string m_connect_timeout;
-    bool compress = false;
+    std::string compress;
+    std::string compress_algorithm;
+    mysqlshdk::utils::nullable<int> compress_level;
 
     std::string protocol;
 
@@ -185,7 +187,7 @@ class Shell_options : public shcore::Options {
     storage.result_format = format;
   }
 
-  std::vector<std::string> get_details() { return get_cmdline_help(30, 48); }
+  std::vector<std::string> get_details() { return get_cmdline_help(32, 46); }
 
   bool action_print_help() const { return print_cmd_line_helper; }
 

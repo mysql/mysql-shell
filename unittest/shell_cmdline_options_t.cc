@@ -153,7 +153,7 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "showColumnTypeInfo")
       return AS__STRING(options->show_column_type_info);
     else if (option == "compress")
-      return AS__STRING(options->compress);
+      return options->compress;
 
     return "";
   }
@@ -698,8 +698,10 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.m_connect_timeout.empty());
   EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
   EXPECT_FALSE(options.show_column_type_info);
-  EXPECT_FALSE(options.compress);
+  EXPECT_TRUE(options.compress.empty());
   EXPECT_FALSE(options.default_compress);
+  EXPECT_TRUE(options.compress_algorithm.empty());
+  EXPECT_TRUE(options.compress_level.is_null());
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -724,8 +726,8 @@ TEST_F(Shell_cmdline_options, app) {
 #endif
   test_option_with_value("connect-timeout", "", "1000", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE);
-  test_option_with_no_value("-C", "compress", "1");
-  test_option_with_no_value("--compress", "compress", "1");
+  test_option_with_no_value("-C", "compress", "REQUIRED");
+  test_option_with_no_value("--compress", "compress", "REQUIRED");
   test_option_with_no_value("-p", "prompt_password", "1");
 
   test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
@@ -1257,6 +1259,18 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
                    const_cast<char *>("--socket=/some/socket/path"), NULL};
 
   test_conflicting_options("--uri --socket", 3, argv2, error2);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_compression) {
+  char uri[] = {"--uri=mysqlx://root:password@localhost"};
+  char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--compress"),
+                   const_cast<char *>("--compression-algorithms=uncompressed"),
+                   uri, NULL};
+  Shell_options so(4, argv0);
+  EXPECT_EQ(0, so.get().exit_code);
+  EXPECT_THROW_LIKE(so.get().connection_options(), std::invalid_argument,
+                    "Conflicting connection options: compression=REQUIRED, "
+                    "compression-algorithms=uncompressed");
 }
 
 TEST_F(Shell_cmdline_options, test_uri_with_password) {

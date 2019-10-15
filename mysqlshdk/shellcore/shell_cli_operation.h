@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,8 @@ class Shell_cli_operation {
   Value execute();
 
  protected:
+  Value::Map_type_ref fix_connection_options(Value::Map_type_ref dict);
+
   std::unordered_map<std::string, Provider> m_providers;
 
   std::string m_object_name;

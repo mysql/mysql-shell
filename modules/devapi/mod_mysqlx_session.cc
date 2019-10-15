@@ -1011,6 +1011,15 @@ shcore::Value::Map_type_ref Session::get_status() {
       }
     }
 
+    result = execute_sql(
+        "show session status like 'Mysqlx_bytes_sent_compressed_payload';");
+    row = result->fetch_one();
+    if (row && !row->is_null(1) &&
+        shcore::lexical_cast<int>(row->get_string(1), 0) > 0)
+      (*status)["COMPRESSION"] = shcore::Value(std::string("Enabled"));
+    else
+      (*status)["COMPRESSION"] = shcore::Value(std::string("Disabled"));
+
     result = execute_sql("SHOW GLOBAL STATUS LIKE 'Uptime';");
     row = result->fetch_one();
     std::stringstream su;

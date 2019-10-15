@@ -147,9 +147,31 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &read_timeout);
   }
 
-  if (_connection_options.has_compression() &&
-      _connection_options.get_compression())
-    mysql_options(_mysql, MYSQL_OPT_COMPRESS, nullptr);
+  if (_connection_options.has_compression()) {
+    auto compress = _connection_options.get_compression();
+    if (!compress.empty() && compress != kCompressionDisabled)
+      mysql_options(_mysql, MYSQL_OPT_COMPRESS, nullptr);
+  }
+
+  if (_connection_options.has_compression_algorithms())
+    mysql_options(_mysql, MYSQL_OPT_COMPRESSION_ALGORITHMS,
+                  _connection_options.get_compression_algorithms().c_str());
+
+  if (_connection_options.has_compression_level()) {
+    uint zcl = _connection_options.get_compression_level();
+    if (zcl < 1 || zcl > 22)
+      throw std::invalid_argument(
+          "Valid range for zstd compression level in classic protocol is "
+          "1-22.");
+    if (!_connection_options.has_compression_algorithms())
+      mysql_options(_mysql, MYSQL_OPT_COMPRESSION_ALGORITHMS, "zstd");
+    else if (shcore::str_lower(_connection_options.get_compression_algorithms())
+                 .find("zstd") == std::string::npos)
+      throw std::invalid_argument(
+          "Compression level in classic protocol is only supported by zstd "
+          "algorithm.");
+    mysql_options(_mysql, MYSQL_OPT_ZSTD_COMPRESSION_LEVEL, &zcl);
+  }
 
   if (connection_options.has(mysqlshdk::db::kLocalInfile)) {
     const int local_infile = 1;

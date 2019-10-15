@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,9 @@ namespace mysqlsh {
 #endif
 class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
  public:
+  static std::shared_ptr<ShellBaseSession> wrap_session(
+      std::shared_ptr<mysqlshdk::db::ISession> session);
+
   ShellBaseSession();
   ShellBaseSession(const ShellBaseSession &s);
   virtual ~ShellBaseSession();

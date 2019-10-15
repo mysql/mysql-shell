@@ -28,6 +28,7 @@
 #include <tuple>
 
 #include "unittest/gtest_clean.h"
+#include "utils/utils_general.h"
 #include "utils/utils_string.h"
 
 namespace shcore {

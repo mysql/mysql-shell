@@ -825,19 +825,23 @@ void Mysql_shell::print_connection_message(
   println(message);
 }
 
-void Mysql_shell::connect(
+std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
-    bool recreate_schema) {
+    bool recreate_schema, bool shell_global_session) {
   mysqlshdk::db::Connection_options connection_options(connection_options_);
+  for (const auto &warning : connection_options.get_warnings())
+    mysqlsh::current_console()->print_warning(warning);
+  connection_options.clear_warnings();
+
   std::string pass;
   std::string schema_name;
-  bool interactive =
-      options().interactive && !get_options()->get_shell_cli_operation();
+  bool interactive = options().interactive && shell_global_session &&
+                     !get_options()->get_shell_cli_operation();
 
   connection_options.set_default_connection_data();
   if (!connection_options.has_compression() &&
       get_options()->get().default_compress)
-    connection_options.set_compression(true);
+    connection_options.set_compression(mysqlshdk::db::kCompressionPreferred);
 
   if (interactive)
     print_connection_message(
@@ -855,14 +859,17 @@ void Mysql_shell::connect(
     throw shcore::Exception::runtime_error(
         "Recreate schema requested, but no schema specified");
 
-  auto old_session(_shell->get_dev_session());
-  auto new_session = set_active_session(
+  auto new_session = ShellBaseSession::wrap_session(
       establish_session(connection_options, options().wizards));
+  if (shell_global_session) {
+    auto old_session(_shell->get_dev_session());
+    set_active_session(new_session);
 
-  if (old_session && old_session->is_open()) {
-    if (interactive) println("Closing old connection...");
+    if (old_session && old_session->is_open()) {
+      if (interactive) println("Closing old connection...");
 
-    old_session->close();
+      old_session->close();
+    }
   }
 
   if (recreate_schema) {
@@ -930,30 +937,18 @@ void Mysql_shell::connect(
     }
     println(message);
   }
+  return new_session;
 }
 
-std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
-
-  if (auto classic =
-          std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session)) {
-    new_session = std::make_shared<mysql::ClassicSession>(classic);
-  } else if (auto x = std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Session>(
-                 session)) {
-    new_session = std::make_shared<mysqlsh::mysqlx::Session>(x);
-  } else {
-    throw shcore::Exception::argument_error(
-        "Invalid session type given for shell connection.");
-  }
+void Mysql_shell::set_active_session(
+    std::shared_ptr<mysqlsh::ShellBaseSession> session) {
   if (session->get_connection_options().has_schema() &&
-      options().devapi_schema_object_handles &&
-      new_session->update_schema_cache)
-    new_session->update_schema_cache(
-        session->get_connection_options().get_schema(), true);
+      options().devapi_schema_object_handles && session->update_schema_cache)
+    session->update_schema_cache(session->get_connection_options().get_schema(),
+                                 true);
 
-  _shell->set_dev_session(new_session);
-  _global_shell->set_session_global(new_session);
+  _shell->set_dev_session(session);
+  _global_shell->set_session_global(session);
 
   request_prompt_variables_update(true);
   _last_active_schema.clear();
@@ -966,8 +961,6 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
       refresh_completion();
     }
   }
-
-  return new_session;
 }
 
 bool Mysql_shell::redirect_session_if_needed(bool secondary,

@@ -59,6 +59,9 @@ FUNCTIONS
       log(level, message)
             Logs an entry to the shell's log file.
 
+      openSession(connectionData[, password])
+            Establishes and returns session.
+
       parseUri(uri)
             Utility function to parse a URI string.
 
@@ -395,8 +398,11 @@ DESCRIPTION
       - connect-timeout: The connection timeout in milliseconds. If not
         provided a default timeout of 10 seconds will be used. Specifying a
         value of 0 disables the connection timeout.
-      - compression: Enable/disable compression in client/server protocol,
-        valid values: "true", "false", "1", and "0".
+      - compression: Enable compression in client/server protocol.
+      - compression-algorithms: Use compression algorithm in server/client
+        protocol.
+      - compression-level: Use this compression level in the client/server
+        protocol.
       - connection-attributes: List of connection attributes to be registered
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
@@ -497,8 +503,11 @@ DESCRIPTION
       - connect-timeout: The connection timeout in milliseconds. If not
         provided a default timeout of 10 seconds will be used. Specifying a
         value of 0 disables the connection timeout.
-      - compression: Enable/disable compression in client/server protocol,
-        valid values: "true", "false", "1", and "0".
+      - compression: Enable compression in client/server protocol.
+      - compression-algorithms: Use compression algorithm in server/client
+        protocol.
+      - compression-level: Use this compression level in the client/server
+        protocol.
       - connection-attributes: List of connection attributes to be registered
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
@@ -1050,8 +1059,9 @@ The following options are valid for use either in a URI or in a dictionary:
 - connect-timeout: The connection timeout in milliseconds. If not provided a
   default timeout of 10 seconds will be used. Specifying a value of 0 disables
   the connection timeout.
-- compression: Enable/disable compression in client/server protocol, valid
-  values: "true", "false", "1", and "0".
+- compression: Enable compression in client/server protocol.
+- compression-algorithms: Use compression algorithm in server/client protocol.
+- compression-level: Use this compression level in the client/server protocol.
 - connection-attributes: List of connection attributes to be registered at the
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
@@ -1185,6 +1195,39 @@ In case of X protocol session, it should be one of:
 - MYSQL41,
 - PLAIN,
 - SHA256_MEMORY.
+
+Connection Compression
+
+Connection compression is governed by following connection options:
+"compression", "compression-algorithms", and "compression-level".
+
+"compression" accepts following values:
+
+- REQUIRED: connection will only be made when compression negotiation is
+  succesful.
+- PREFFERED: (default for X protocol connections) shell will attempt to
+  establish connection with compression enabled, but if compression negotiation
+  fails, connection will be established without compression.
+- DISABLED: (defalut for classic protocol connections) connection will be
+  established without compression.
+
+For convenience "compression" also accepts Boolean: 'True', 'False', '1', and
+'0' values which map to REQUIRED and DISABLED respectively.
+
+"compression-algorithms" expects comma separated list of algorithms. Supported
+algorithms include:
+
+- zstd
+- zlib
+- lz4 (X protocol only)
+- uncompressed - special value, which if it appears in the list, causes
+  connection to succeed even if compression negotiation fails.
+
+If "compression" connection option is not defined, its value will be deduced
+from "compression-algorithms" value when it is provided.
+
+"compression-level" is only supported by zstd algorithm in classic protocol.
+Valid range for this parameter is 1-22 (default is 3).
 
 Connection Attributes
 
@@ -1274,8 +1317,9 @@ The following options are valid for use either in a URI or in a dictionary:
 - connect-timeout: The connection timeout in milliseconds. If not provided a
   default timeout of 10 seconds will be used. Specifying a value of 0 disables
   the connection timeout.
-- compression: Enable/disable compression in client/server protocol, valid
-  values: "true", "false", "1", and "0".
+- compression: Enable compression in client/server protocol.
+- compression-algorithms: Use compression algorithm in server/client protocol.
+- compression-level: Use this compression level in the client/server protocol.
 - connection-attributes: List of connection attributes to be registered at the
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
@@ -1409,6 +1453,39 @@ In case of X protocol session, it should be one of:
 - MYSQL41,
 - PLAIN,
 - SHA256_MEMORY.
+
+Connection Compression
+
+Connection compression is governed by following connection options:
+"compression", "compression-algorithms", and "compression-level".
+
+"compression" accepts following values:
+
+- REQUIRED: connection will only be made when compression negotiation is
+  succesful.
+- PREFFERED: (default for X protocol connections) shell will attempt to
+  establish connection with compression enabled, but if compression negotiation
+  fails, connection will be established without compression.
+- DISABLED: (defalut for classic protocol connections) connection will be
+  established without compression.
+
+For convenience "compression" also accepts Boolean: 'True', 'False', '1', and
+'0' values which map to REQUIRED and DISABLED respectively.
+
+"compression-algorithms" expects comma separated list of algorithms. Supported
+algorithms include:
+
+- zstd
+- zlib
+- lz4 (X protocol only)
+- uncompressed - special value, which if it appears in the list, causes
+  connection to succeed even if compression negotiation fails.
+
+If "compression" connection option is not defined, its value will be deduced
+from "compression-algorithms" value when it is provided.
+
+"compression-level" is only supported by zstd algorithm in classic protocol.
+Valid range for this parameter is 1-22 (default is 3).
 
 Connection Attributes
 

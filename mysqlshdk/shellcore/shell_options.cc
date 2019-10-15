@@ -47,7 +47,9 @@ using mysqlshdk::db::Transport_type;
 bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
          !sock.is_null() || port != 0 || password != NULL || prompt_password ||
-         !m_connect_timeout.empty() || ssl_options.has_data() || compress;
+         !m_connect_timeout.empty() || ssl_options.has_data() ||
+         !compress.empty() || !compress_algorithm.empty() ||
+         !compress_level.is_null();
 }
 
 /**
@@ -91,10 +93,10 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 
   // other options need to be set after scheme, as some of them require specific
   // scheme type (i.e. pipe)
-  shcore::update_connection_data(&target_server, user, password, host, port,
-                                 sock, schema, ssl_options, auth_method,
-                                 get_server_public_key, server_public_key_path,
-                                 m_connect_timeout, compress);
+  shcore::update_connection_data(
+      &target_server, user, password, host, port, sock, schema, ssl_options,
+      auth_method, get_server_public_key, server_public_key_path,
+      m_connect_timeout, compress, compress_algorithm, compress_level);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -195,8 +197,33 @@ Shell_options::Shell_options(int argc, char **argv,
       "If password is empty, connection will be made without using a password.")
     (cmdline("--dbpassword[=<pass>]"), deprecated("--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
-    (&storage.compress, false, cmdline("-C", "--compress"),
-        "Use compression in client/server protocol.")
+    (cmdline("-C", "--compress[=<value>]"),
+        "Use compression in client/server protocol. Valid values: 'REQUIRED', "
+        "'PREFFERED', 'DISABLED', 'True', 'False', '1', and '0'. Boolean values"
+        " map to REQUIRED and DISABLED respectively. By default compression is "
+        "set to DISABLED in classic protocol and PREFERRED in X protocol "
+        "connections.",
+        [this](const std::string&, const char* value) {
+          storage.compress = value == nullptr ? "REQUIRED" : value;
+        })
+    (&storage.compress_algorithm, "",
+        cmdline("--compression-algorithms=<list>"),
+        "Use compression algorithm in server/client protocol. Expects comma "
+        "separated list of algorithms. Supported algorithms include "
+        "'zstd', 'zlib', 'lz4' (X protocol only), and 'uncompressed', "
+        "which if appears in a list, causes connection to "
+        "succeed even if compression negotiation fails.")
+    (cmdline("--compression-level=<int>", "--zstd-compression-level=<int>"),
+        "Use this compression level in the client/server protocol. "
+        "Supported by zstd algorithm in classic protocol.",
+        [this](const std::string&, const char* value) {
+          try {
+            storage.compress_level = shcore::lexical_cast<int>(value);
+          } catch(...) {
+            throw std::invalid_argument(
+                "The value of 'compression-level' must be an integer.");
+          }
+        })
     (cmdline("--import <file> <collection>", "--import <file> <table> <col>"),
         "Import JSON documents from file to collection or table in MySQL"
         " Server. Set file to - if you want to read the data from stdin."

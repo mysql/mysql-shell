@@ -236,7 +236,7 @@ void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
 
     if (arg == "}") {
       if (!local_map) throw Mapping_error("Unmatched character '}' found");
-      m_argument_list.push_back(Value(local_map));
+      m_argument_list.push_back(Value(fix_connection_options(local_map)));
       local_map.reset();
     } else if (str_beginswith(arg, "--")) {
       if (!local_map && !m_argument_map)
@@ -253,7 +253,8 @@ void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
     }
   }
   if (local_map) throw Mapping_error("Unmatched '{' character found");
-  if (m_argument_map) m_argument_list.push_back(Value(m_argument_map));
+  if (m_argument_map)
+    m_argument_list.push_back(Value(fix_connection_options(m_argument_map)));
 }
 
 Value Shell_cli_operation::execute() {
@@ -272,6 +273,27 @@ Value Shell_cli_operation::execute() {
                         " object: " + m_method_name);
 
   return object->call(m_method_name, m_argument_list);
+}
+
+Value::Map_type_ref Shell_cli_operation::fix_connection_options(
+    Value::Map_type_ref dict) {
+  shcore::Value::Map_type_ref ret = std::make_shared<shcore::Value::Map_type>();
+
+  for (const auto &i : *dict) {
+    std::string new_name = shcore::str_beginswith(i.first, "db")
+                               ? shcore::to_camel_case(i.first)
+                               : shcore::from_camel_case_to_dashes(i.first);
+    if (mysqlshdk::db::connection_attributes.find(new_name) ==
+        mysqlshdk::db::connection_attributes.end())
+      return dict;
+    auto r = ret->emplace(new_name, i.second);
+    if (!r.second)
+      throw std::invalid_argument("Connection option '" + i.first +
+                                  "' is already defined as '" +
+                                  r.first->second.as_string() + "'.");
+  }
+
+  return ret;
 }
 
 } /* namespace shcore */

@@ -72,12 +72,20 @@ class SHCORE_PUBLIC Connection_options {
   const std::string &get_pipe() const { return get_value(kSocket); }
   int get_port() const;
   Transport_type get_transport_type() const;
-  bool get_compression() const;
+  const std::string &get_compression() const {
+    return m_extra_options.get_value(kCompression);
+  }
+  const std::string &get_compression_algorithms() const {
+    return m_extra_options.get_value(kCompressionAlgorithms);
+  }
+  int get_compression_level() const { return *m_compress_level; }
 
   const std::string &get(const std::string &name) const;
 
   const Ssl_options &get_ssl_options() const { return m_ssl_options; }
   Ssl_options &get_ssl_options() { return m_ssl_options; }
+
+  const std::vector<std::string> &get_warnings() const { return m_warnings; }
 
   bool has_data() const;
   bool has_scheme() const { return has_value(kScheme); }
@@ -90,6 +98,10 @@ class SHCORE_PUBLIC Connection_options {
   bool has_pipe() const { return has_value(kSocket); }
   bool has_transport_type() const { return !m_transport_type.is_null(); }
   bool has_compression() const { return m_extra_options.has(kCompression); }
+  bool has_compression_algorithms() const {
+    return m_extra_options.has(kCompressionAlgorithms);
+  }
+  bool has_compression_level() const { return !m_compress_level.is_null(); }
 
   bool has(const std::string &name) const;
   bool has_value(const std::string &name) const;
@@ -102,7 +114,11 @@ class SHCORE_PUBLIC Connection_options {
   void set_schema(const std::string &schema) { _set_fixed(kSchema, schema); }
   void set_socket(const std::string &socket);
   void set_pipe(const std::string &pipe);
-  void set_compression(bool compression);
+  void set_compression(const std::string &compress);
+  void set_compression_algorithms(const std::string &compression_algorithms);
+  void set_compression_level(int compression_level) {
+    m_compress_level = compression_level;
+  }
 
   void set(const std::string &attribute,
            const std::vector<std::string> &values);
@@ -117,6 +133,9 @@ class SHCORE_PUBLIC Connection_options {
   void clear_schema() { clear_value(kSchema); }
   void clear_socket();
   void clear_pipe();
+  void clear_compression_level() { m_compress_level.reset(); }
+
+  void clear_warnings() { m_warnings.clear(); }
 
   void remove(const std::string &name);
 
@@ -172,9 +191,11 @@ class SHCORE_PUBLIC Connection_options {
   }
 
   void raise_connection_type_error(const std::string &source);
+  void check_compression_conflicts();
 
   nullable<int> m_port;
   nullable<Transport_type> m_transport_type;
+  nullable<int> m_compress_level;
 
   Comparison_mode m_mode;
   Nullable_options m_options;
@@ -182,6 +203,8 @@ class SHCORE_PUBLIC Connection_options {
   Nullable_options m_extra_options;
   bool m_enable_connection_attributes;
   Nullable_options m_connection_attributes;
+
+  std::vector<std::string> m_warnings;
 };
 
 }  // namespace db

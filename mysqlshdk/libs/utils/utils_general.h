@@ -126,7 +126,9 @@ void SHCORE_PUBLIC update_connection_data(
     const std::string &database, const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
     const std::string &server_public_key_path,
-    const std::string &connect_timeout, bool compression);
+    const std::string &connect_timeout, const std::string &compression,
+    const std::string &compress_algorithm,
+    mysqlshdk::utils::nullable<int> compress_level);
 
 std::string SHCORE_PUBLIC get_system_user();
 
@@ -160,6 +162,28 @@ std::string SHCORE_PUBLIC make_account(const std::string &user,
 
 std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);
+
+/** Substitute variables in string.
+ *
+ * str_subvar("hello ${foo}",
+ *        [](const std::string&) { return "world"; },
+ *        "${", "}");
+ *    --> "hello world";
+ *
+ * str_subvar("hello $foo!",
+ *        [](const std::string&) { return "world"; },
+ *        "$", "");
+ *    --> "hello world!";
+ *
+ * If var_end is "", then the variable name will span until the
+ */
+std::string SHCORE_PUBLIC str_subvars(
+    const std::string &s,
+    const std::function<std::string(const std::string &)> &subvar =
+        [](const std::string &var) {
+          return shcore::get_member_name(var, shcore::current_naming_style());
+        },
+    const std::string &var_begin = "<<<", const std::string &var_end = ">>>");
 
 void clear_buffer(char *buffer, size_t size);
 void clear_buffer(std::string *buffer);
@@ -236,6 +260,15 @@ lexical_cast(const S &data) {
     throw std::invalid_argument("Conversion did not consume whole input.");
   }
   return t;
+}
+
+template <class T, class S>
+T lexical_cast(const S &data, T default_value) noexcept {
+  try {
+    return lexical_cast<T>(data);
+  } catch (...) {
+  }
+  return default_value;
 }
 
 /**

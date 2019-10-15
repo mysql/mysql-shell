@@ -238,7 +238,7 @@ TEST_F(Options_test, cmd_line_handling) {
 
   char *argv5[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--history-size=-777"), NULL};
-  ASSERT_THROW(handle_cmdline_options(2, argv5), std::out_of_range);
+  ASSERT_THROW(handle_cmdline_options(2, argv5), std::invalid_argument);
   EXPECT_EQ(777, history_max_size);
 
   char *argv6[] = {const_cast<char *>("ut"),

@@ -53,7 +53,12 @@ namespace {
 Connection_options get_connection_options(const std::string &instance_def) {
   if (instance_def.empty()) throw std::invalid_argument("Invalid URI: empty.");
 
-  return shcore::get_connection_options(instance_def, false);
+  auto ret_val = shcore::get_connection_options(instance_def, false);
+  for (const auto &warning : ret_val.get_warnings())
+    mysqlsh::current_console()->print_warning(warning);
+  ret_val.clear_warnings();
+
+  return ret_val;
 }
 
 /**
@@ -102,6 +107,9 @@ Connection_options get_connection_options(
 #else   // !_WIN32
       ret_val.set_socket(sock);
 #endif  // !_WIN32
+    } else if (ret_val.compare(option.first,
+                               mysqlshdk::db::kCompressionLevel) == 0) {
+      ret_val.set_compression_level(connection_map.int_at(option.first));
     } else if (ret_val.compare(option.first, mysqlshdk::db::kConnectTimeout) ==
                0) {
       // Additional connection options are internally stored as strings.
@@ -138,6 +146,11 @@ Connection_options get_connection_options(
       ret_val.set(option.first, connection_map.string_at(option.first));
     }
   }
+
+  for (const auto &warning : ret_val.get_warnings())
+    mysqlsh::current_console()->print_warning(warning);
+  ret_val.clear_warnings();
+
   return ret_val;
 }
 

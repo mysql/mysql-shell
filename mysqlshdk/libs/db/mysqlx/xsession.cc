@@ -229,6 +229,46 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
 
+  auto algs =
+      _connection_options.has_compression_algorithms()
+          ? shcore::str_lower(_connection_options.get_compression_algorithms())
+          : "";
+  if (_connection_options.has_compression()) {
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Compression_negotiation_mode,
+        _connection_options.get_compression());
+  } else {
+    if (algs == "uncompressed")
+      _mysql->set_mysql_option(
+          xcl::XSession::Mysqlx_option::Compression_negotiation_mode,
+          kCompressionDisabled);
+    else if (algs.empty() || algs.find("uncompressed") != std::string::npos)
+      _mysql->set_mysql_option(
+          xcl::XSession::Mysqlx_option::Compression_negotiation_mode,
+          kCompressionPreferred);
+    else
+      _mysql->set_mysql_option(
+          xcl::XSession::Mysqlx_option::Compression_negotiation_mode,
+          kCompressionRequired);
+  }
+
+  // default ["deflate_stream","lz4_message","zstd_stream"]
+  if (!algs.empty()) {
+    std::vector<std::string> av;
+    for (const auto &a : shcore::split_string(algs, ",")) {
+      if (a == "zlib")
+        av.emplace_back("deflate_stream");
+      else if (a == "zstd")
+        av.emplace_back("zstd_stream");
+      else if (a == "lz4")
+        av.emplace_back("lz4_message");
+      else if (a != "uncompressed")
+        av.emplace_back(a);
+    }
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Compression_algorithms, av);
+  }
+
   bool user_defined_connection_attributes = false;
   if (_connection_options.is_connection_attributes_enabled()) {
     auto attrs = _mysql->get_connect_attrs();
@@ -399,12 +439,6 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       store_error_and_throw(Error(err.what(), err.error()));
     }
   }
-
-  if (_connection_options.has_compression() &&
-      _connection_options.get_compression())  // TODO(alfredo): no references to
-                                              // shellcore from here!
-    mysqlsh::current_console()->print_warning(
-        "X Protocol: Compression is not supported and will be ignored.");
 
   if (ssl_options.has_tls_ciphersuites())
     mysqlsh::current_console()->print_warning(

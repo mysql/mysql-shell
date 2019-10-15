@@ -150,11 +150,42 @@ void Connection_options::set_pipe(const std::string &pipe) {
   m_transport_type = Pipe;
 }
 
-void Connection_options::set_compression(bool compression) {
-  if (compression)
-    m_extra_options.set(mysqlshdk::db::kCompression, "true");
+void Connection_options::check_compression_conflicts() {
+  if (has_compression_algorithms() &&
+      get_compression_algorithms() == "uncompressed" && has_compression() &&
+      get_compression() == kCompressionRequired)
+    throw std::invalid_argument(
+        "Conflicting connection options: compression=REQUIRED, "
+        "compression-algorithms=uncompressed.");
+}
+
+void Connection_options::set_compression(const std::string &compression) {
+  if (has_compression())
+    throw std::invalid_argument(std::string("Redefinition of '") +
+                                kCompression + "' option");
+
+  auto c = shcore::str_upper(shcore::str_strip(compression));
+  if (c == "1" || c == "TRUE" || c == kCompressionRequired)
+    m_extra_options.set(mysqlshdk::db::kCompression, kCompressionRequired);
+  else if (c == "0" || c == "FALSE" || c == kCompressionDisabled)
+    m_extra_options.set(mysqlshdk::db::kCompression, kCompressionDisabled);
+  else if (c == kCompressionPreferred)
+    m_extra_options.set(mysqlshdk::db::kCompression, kCompressionPreferred);
   else
-    m_extra_options.set(mysqlshdk::db::kCompression, "false");
+    throw std::invalid_argument(
+        "Invalid value '" + compression + "' for '" + kCompression +
+        "'. Allowed values: '" + kCompressionRequired + "', '" +
+        kCompressionPreferred + "', '" + kCompressionDisabled +
+        "', 'True', 'False', '1', and '0'.");
+
+  check_compression_conflicts();
+}
+
+void Connection_options::set_compression_algorithms(
+    const std::string &compression_algorithms) {
+  auto ca = shcore::str_lower(compression_algorithms);
+  m_extra_options.set(kCompressionAlgorithms, ca);
+  check_compression_conflicts();
 }
 
 void Connection_options::set_socket(const std::string &socket) {
@@ -234,14 +265,11 @@ void Connection_options::set_port(int port) {
 }
 
 std::string Connection_options::get_iname(const std::string &name) const {
-  // DbUser and DbPassword are only supported as input
-  // Internally, they are handled as User and Password
-  std::string iname(name);
-  if (m_options.compare(name, kDbUser) == 0)
-    return kUser;
-  else if (m_options.compare(name, kDbPassword) == 0)
-    return kPassword;
-
+  // Deprecated options are only supported as input
+  // Internally, they are handled with replacements
+  const auto it = deprecated_connection_attributes.find(name);
+  if (it != deprecated_connection_attributes.end() && !it->second.empty())
+    return it->second;
   return name;
 }
 
@@ -261,21 +289,30 @@ bool Connection_options::is_bool_value(const std::string &value) {
 
 void Connection_options::set(const std::string &name,
                              const std::string &value) {
-  std::string iname = get_iname(name);
+  const std::string iname = get_iname(name);
+
+  if (name != iname)
+    m_warnings.emplace_back("'" + name +
+                            "' connection option is deprecated, use '" + iname +
+                            "' option instead.");
 
   if (m_options.has(iname)) {
     m_options.set(iname, value, Set_mode::UPDATE_NULL);
   } else if (m_ssl_options.has(iname)) {
     m_ssl_options.set(iname, value);
+  } else if (iname == kCompression) {
+    set_compression(value);
+  } else if (iname == kCompressionAlgorithms) {
+    set_compression_algorithms(value);
   } else if (is_extra_option(iname)) {
-    if (name == kGetServerPublicKey || name == kCompression) {
+    if (iname == kGetServerPublicKey) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "
                                "values: true, false, 1, 0.",
-                               value.c_str(), name.c_str()));
+                               value.c_str(), iname.c_str()));
       }
-    } else if (name == kConnectTimeout) {
+    } else if (iname == kConnectTimeout) {
       for (auto digit : value) {
         if (!std::isdigit(digit)) {
           throw_invalid_connect_timeout(value);
@@ -284,7 +321,7 @@ void Connection_options::set(const std::string &name,
     }
 
     m_extra_options.set(iname, value, Set_mode::CREATE);
-  } else if (name == kConnectionAttributes) {
+  } else if (iname == kConnectionAttributes) {
     // When connection-attributes has assigned a single value, it must
     // be a boolean. We do NOT do anything with it: in DevAPI standard
     // it should avoid ANY connection attribute to be sent, however
@@ -299,6 +336,13 @@ void Connection_options::set(const std::string &name,
       if (lower_case_value == "0" || lower_case_value == "false") {
         m_enable_connection_attributes = false;
       }
+    }
+  } else if (iname == kCompressionLevel) {
+    try {
+      set_compression_level(shcore::lexical_cast<int>(value));
+    } catch (...) {
+      throw std::invalid_argument(std::string("The value of '") +
+                                  kCompressionLevel + "' must be an integer.");
     }
   } else {
     throw std::invalid_argument("Invalid connection option '" + name + "'.");
@@ -368,14 +412,6 @@ Transport_type Connection_options::get_transport_type() const {
     throw std::invalid_argument("Transport Type is undefined.");
 
   return *m_transport_type;
-}
-
-bool Connection_options::get_compression() const {
-  if (!has_compression())
-    throw std::invalid_argument("Compression is undefined.");
-
-  return shcore::lexical_cast<bool>(
-      shcore::str_lower(m_extra_options.get_value(kCompression)));
 }
 
 const std::string &Connection_options::get(const std::string &name) const {

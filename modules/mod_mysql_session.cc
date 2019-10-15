@@ -622,14 +622,21 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       (*status)["SERVER_INFO"] = shcore::Value(_session->get_server_info());
 
-      (*status)["PROTOCOL_VERSION"] =
-          shcore::Value(std::string("classic ") +
-                        std::to_string(_session->get_protocol_info()));
+      (*status)["PROTOCOL_VERSION"] = shcore::Value(
+          (_session->is_compression_enabled() ? "Compressed " : "Classic ") +
+          std::to_string(_session->get_protocol_info()));
 
-      if (_session->is_compression_enabled())
-        (*status)["COMPRESSION"] = shcore::Value(std::string("Enabled"));
-      else
+      if (_session->is_compression_enabled()) {
+        std::string compr("Enabled");
+        auto res = _session->query("show status like 'Compression_algorithm';");
+        auto status_row = res->fetch_one();
+        if (status_row && !status_row->is_null(1))
+          compr += " (" + status_row->get_as_string(1) + ")";
+
+        (*status)["COMPRESSION"] = shcore::Value(compr);
+      } else {
         (*status)["COMPRESSION"] = shcore::Value(std::string("Disabled"));
+      }
 
       (*status)["CONNECTION"] = shcore::Value(_session->get_connection_info());
       //(*status)["INSERT_ID"] = shcore::Value(???);

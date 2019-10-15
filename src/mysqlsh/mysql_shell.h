@@ -46,8 +46,9 @@ class Mysql_shell : public mysqlsh::Base_shell {
               shcore::Interpreter_delegate *custom_delegate);
   ~Mysql_shell();
 
-  virtual void connect(const mysqlshdk::db::Connection_options &args,
-                       bool recreate_schema = false);
+  virtual std::shared_ptr<mysqlsh::ShellBaseSession> connect(
+      const mysqlshdk::db::Connection_options &args,
+      bool recreate_schema = false, bool shell_global_session = true);
 
   bool redirect_session_if_needed(
       bool secondary, const Connection_options &opts = Connection_options());
@@ -105,8 +106,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
  protected:
   static void set_sql_safe_for_logging(const std::string &patterns);
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> set_active_session(
-      std::shared_ptr<mysqlshdk::db::ISession> session);
+  void set_active_session(std::shared_ptr<mysqlsh::ShellBaseSession> session);
 
   virtual bool do_shell_command(const std::string &command);
 

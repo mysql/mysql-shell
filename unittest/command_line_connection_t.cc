@@ -689,23 +689,48 @@ TEST_F(Command_line_connection_test, socket_connection_with_default_path) {
 #endif  // !_WIN32
 
 TEST_F(Command_line_connection_test, compression) {
-  std::string cmd = "show session status like 'compression';";
+  // X protocol
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 19)) {
+    std::string cmd_x =
+        "select case when variable_value > 0 then 'COMPRESSION_ON' else 'OFF' "
+        "end from performance_schema.session_status where variable_name = "
+        "'Mysqlx_bytes_sent_compressed_payload';";
+    execute({_mysqlsh, _uri.c_str(), "--compress", "--sql", "-e", cmd_x.c_str(),
+             nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("COMPRESSION_ON");
+
+    execute({_mysqlsh, _uri.c_str(), "--compression-algorithms=lz4", "--sql",
+             "-e", cmd_x.c_str(), nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("COMPRESSION_ON");
+  }
+  wipe_out();
+
+  // classic protocol
+  std::string cmd = "show session status like 'compression%';";
   std::string com_uri = _mysql_uri + "?compression=true";
-
-  // X protocol does not support compression
-  execute({_mysqlsh, _uri.c_str(), "--compress", "--sql", "-e", cmd.c_str(),
-           nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "X Protocol: Compression is not supported and will be ignored.");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tOFF");
-
-  // classic protocol supports compression
   execute({_mysqlsh, _mysql_uri.c_str(), "--compress", "--sql", "-e",
            cmd.c_str(), nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
 
   execute({_mysqlsh, com_uri.c_str(), "--sql", "-e", cmd.c_str(), nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
+  wipe_out();
+
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 18)) {
+    execute({_mysqlsh, _mysql_uri.c_str(), "--compression-algorithms=zstd",
+             "--compression-level=12", "--sql", "-e", cmd.c_str(), nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression_algorithm\tzstd");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression_level\t12");
+    wipe_out();
+
+    execute({_mysqlsh, _mysql_uri.c_str(), "--zstd-compression-level=12",
+             "--sql", "-e", cmd.c_str(), nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression_algorithm\tzstd");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression_level\t12");
+    wipe_out();
+  }
 }
 
 TEST_F(Command_line_connection_test, auth_method) {

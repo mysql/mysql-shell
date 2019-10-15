@@ -58,6 +58,8 @@ TEST(Connection_options, default_initialization) {
   ASSERT_FALSE(options.has_transport_type());
   ASSERT_FALSE(options.get_ssl_options().has_data());
   ASSERT_FALSE(options.has_compression());
+  ASSERT_FALSE(options.has_compression_algorithms());
+  ASSERT_FALSE(options.has_compression_level());
 
   // has verifies the existence of the option
   EXPECT_TRUE(options.has(mysqlshdk::db::kScheme));
@@ -366,6 +368,7 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
   attributes.erase(mysqlshdk::db::kConnectTimeout);
   attributes.erase(mysqlshdk::db::kCompression);
+  attributes.erase(mysqlshdk::db::kCompressionLevel);
   attributes.erase(mysqlshdk::db::kConnectionAttributes);
 
   for (auto property : attributes) {
@@ -424,7 +427,7 @@ TEST(Connection_options, compression) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters for connect-timeout
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
-                            std::placeholders::_2, "true");
+                            std::placeholders::_2, "REQUIRED");
 
   combine(mysqlshdk::db::kCompression, "", 0, callback);
 
@@ -437,7 +440,9 @@ TEST(Connection_options, compression) {
 
     std::string msg("Invalid value '");
     msg.append(value);
-    msg.append("' for 'compression'. Allowed values: true, false, 1, 0.");
+    msg.append(
+        "' for 'compression'. Allowed values: 'REQUIRED', 'PREFERRED', "
+        "'DISABLED', 'True', 'False', '1', and '0'.");
 
     std::string uri_msg("Invalid URI: ");
     uri_msg.append(msg);
@@ -450,7 +455,8 @@ TEST(Connection_options, compression) {
   }
 
   // Tests acceptance of valid values
-  std::vector<std::string> valid_values = {"1", "true", "0", "false"};
+  std::vector<std::string> valid_values = {
+      "1", "true", "0", "false", "required", "Disabled", "PREFERRED"};
 
   for (const auto &value : valid_values) {
     std::string uri("root@host?compression=");
@@ -458,14 +464,53 @@ TEST(Connection_options, compression) {
 
     EXPECT_NO_THROW({
       mysqlshdk::db::Connection_options data(uri);
-      if (shcore::lexical_cast<bool>(value))
-        EXPECT_TRUE(data.get_compression());
-      else
-        EXPECT_FALSE(data.get_compression());
+      try {
+        if (shcore::lexical_cast<bool>(value))
+          EXPECT_EQ("REQUIRED", data.get_compression());
+        else
+          EXPECT_EQ("DISABLED", data.get_compression());
+      } catch (...) {
+        EXPECT_EQ(shcore::str_upper(value), data.get_compression());
+      }
     });
 
     mysqlshdk::db::Connection_options sample;
     EXPECT_NO_THROW(sample.set(mysqlshdk::db::kCompression, {value}));
+  }
+}
+
+TEST(Connection_options, compression_level) {
+  auto invalid_values = {"-1e", "-0.5", "10.0", "whatever"};
+
+  for (const auto &value : invalid_values) {
+    std::string uri("root@host?compression-level=");
+    uri.append(value);
+
+    std::string msg = "The value of 'compression-level' must be an integer.";
+    std::string uri_msg("Invalid URI: ");
+    uri_msg.append(msg);
+    MY_EXPECT_THROW(std::invalid_argument, uri_msg.c_str(),
+                    { mysqlshdk::db::Connection_options data(uri); });
+
+    mysqlshdk::db::Connection_options sample;
+    MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
+                    sample.set(mysqlshdk::db::kCompressionLevel, value));
+  }
+
+  // Tests acceptance of valid values
+  std::vector<std::string> valid_values = {"-10", "1", "7", "22", "200"};
+
+  for (const auto &value : valid_values) {
+    std::string uri("root@host?compression-level=");
+    uri.append(value);
+
+    EXPECT_NO_THROW({
+      mysqlshdk::db::Connection_options data(uri);
+      EXPECT_EQ(shcore::lexical_cast<int>(value), data.get_compression_level());
+    });
+
+    mysqlshdk::db::Connection_options sample;
+    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kCompressionLevel, {value}));
   }
 }
 

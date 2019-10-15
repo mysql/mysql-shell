@@ -157,8 +157,7 @@ TEST_F(Mysqlsh_credential_store, cmdline_prompt_save_passwords) {
 TEST_F(Mysqlsh_credential_store, cmdline_invalid_save_passwords) {
   execute({_mysqlsh, "--save-passwords=unknown", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The option credentialStore.savePasswords must be one of: always, "
-      "prompt, never.");
+      "The option --save-passwords must be one of: always, prompt, never.");
   wipe_out();
 }
 

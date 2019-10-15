@@ -167,6 +167,59 @@ TEST_F(Shell_cli_operation_test, local_dict) {
   EXPECT_EQ(3306, m_argument_list.map_at(1)->get_int("port"));
 }
 
+TEST_F(Shell_cli_operation_test, connection_options) {
+  const char *arg1[] = {"util",
+                        "check-for-server-upgrade",
+                        "{",
+                        "--sslMode=required",
+                        "--compression-algorithms=zstd",
+                        "--db-user=root",
+                        "--host=localhost",
+                        "}",
+                        "123"};
+  std::unique_ptr<Options::Cmdline_iterator> it(
+      new Options::Cmdline_iterator(9, arg1, 0));
+  EXPECT_NO_THROW(parse(it.get()));
+  EXPECT_EQ("util", m_object_name);
+  EXPECT_EQ("checkForServerUpgrade", m_method_name);
+  EXPECT_EQ(2, m_argument_list.size());
+  ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+  EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
+  EXPECT_EQ("required", m_argument_list.map_at(0)->get_string("ssl-mode"));
+  EXPECT_EQ("zstd",
+            m_argument_list.map_at(0)->get_string("compression-algorithms"));
+  EXPECT_EQ("root", m_argument_list.map_at(0)->get_string("dbUser"));
+  EXPECT_EQ("123", m_argument_list.string_at(1));
+
+  const char *arg2[] = {"util",
+                        "check-for-server-upgrade",
+                        "--port=3306",
+                        "{",
+                        "--sslMode=required",
+                        "--lines=123",
+                        "}",
+                        "--sslMode=required",
+                        "--compression-algorithms=zstd",
+                        "--db-user=root"};
+  it.reset(new Options::Cmdline_iterator(10, arg2, 0));
+  EXPECT_NO_THROW(parse(it.get()));
+  EXPECT_EQ("util", m_object_name);
+  EXPECT_EQ("checkForServerUpgrade", m_method_name);
+  EXPECT_EQ(2, m_argument_list.size());
+  ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+  // not a connection options dictionary
+  EXPECT_EQ("required", m_argument_list.map_at(0)->get_string("sslMode"));
+  EXPECT_EQ("123", m_argument_list.map_at(0)->get_string("lines"));
+
+  // a connection options dictionary
+  ASSERT_TRUE(m_argument_list[1].type == Value_type::Map);
+  auto co = m_argument_list.map_at(1);
+  EXPECT_EQ(3306, co->get_int("port"));
+  EXPECT_EQ("required", co->get_string("ssl-mode"));
+  EXPECT_EQ("zstd", co->get_string("compression-algorithms"));
+  EXPECT_EQ("root", co->get_string("dbUser"));
+}
+
 TEST_F(Shell_cli_operation_test, dba_object) {
   char *arg[] = {const_cast<char *>("ut"), const_cast<char *>("--"),
                  const_cast<char *>("dba"),

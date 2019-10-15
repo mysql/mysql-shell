@@ -657,6 +657,30 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   }
 }
 
+TEST_F(Interactive_shell_test, shell_open_session) {
+  execute("shell.connect('" + _mysql_uri + "');");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+#ifdef HAVE_V8
+  execute("var s = shell.openSession('" + _uri + "');");
+#else
+  execute("s = shell.open_session('" + _uri + "');");
+#endif
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("s.uri == session.uri");
+  MY_EXPECT_STDOUT_CONTAINS("false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("s.close()");
+  execute("session.close()");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+
 TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
   execute("\\connect --mx --mc " + _uri);
   MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
@@ -1679,6 +1703,13 @@ TEST_F(Interactive_shell_test, status_x) {
   EXPECT_NE(std::string::npos, line.find("Conn. characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(std::string::npos, line.find("Compression"));
+  if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 19))
+    EXPECT_NE(std::string::npos, line.find("Enabled"));
+  else
+    EXPECT_NE(std::string::npos, line.find("Disabled"));
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
   EXPECT_NE(std::string::npos, line.find("sec"));
 }
@@ -1720,8 +1751,8 @@ TEST_F(Interactive_shell_test, status_classic) {
   EXPECT_NE(std::string::npos, line.find("Server version"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(1, sscanf(line.c_str(), "Protocol version:             classic %d",
-                      &dec));
+  EXPECT_EQ(1, sscanf(line.c_str(),
+                      "Protocol version:             Compressed %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_EQ(3, sscanf(line.c_str(), "Client library:               %d.%d.%d",
@@ -2560,11 +2591,38 @@ TEST_F(Interactive_shell_test, not_empty_collections_py) {
 
 TEST_F(Interactive_shell_test, compression) {
   ASSERT_FALSE(_options->default_compress);
-  const auto check_compression = [this](const char *status) {
-    execute("show session status like 'compression';");
+  const auto check_compression = [this](const char *status,
+                                        const char *algorithm = nullptr,
+                                        const char *level = nullptr) {
+    wipe_all();
+    execute("show session status like 'compression%';");
     SCOPED_TRACE(output_handler.std_err.c_str());
     EXPECT_TRUE(output_handler.std_err.empty());
     MY_EXPECT_STDOUT_CONTAINS(status);
+    if (algorithm) MY_EXPECT_STDOUT_CONTAINS(algorithm);
+    if (level) MY_EXPECT_STDOUT_CONTAINS(level);
+    execute("\\s");
+    if (strcmp(status, "ON") == 0) {
+      MY_EXPECT_STDOUT_CONTAINS("Compression:                  Enabled");
+      if (algorithm)
+        MY_EXPECT_STDOUT_CONTAINS(std::string("(") + algorithm + ")");
+    } else if (output_handler.std_out.find("Compression:") !=
+               std::string::npos) {
+      MY_EXPECT_STDOUT_CONTAINS("Compression:                  Disabled");
+    }
+    wipe_all();
+  };
+
+  const auto check_x_compression = [this](const char *status) {
+    if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 19)) {
+      execute(
+          "select case when variable_value > 0 then 'ON' else 'OFF' end from "
+          "performance_schema.session_status where variable_name = "
+          "'Mysqlx_bytes_sent_compressed_payload';");
+      SCOPED_TRACE(output_handler.std_err.c_str());
+      EXPECT_TRUE(output_handler.std_err.empty());
+      MY_EXPECT_STDOUT_CONTAINS(status);
+    }
     execute("\\s");
     if (strcmp(status, "ON") == 0)
       MY_EXPECT_STDOUT_CONTAINS("Compression:                  Enabled");
@@ -2586,11 +2644,8 @@ TEST_F(Interactive_shell_test, compression) {
   execute("\\option defaultCompress=true");
   execute("\\connect " + _mysql_uri);
   check_compression("ON");
-#ifdef HAVE_V8
-  execute("\\js");
-#else
-  execute("\\py");
-#endif
+
+  execute(to_scripting);
   execute("shell.connect(\"" + _mysql_uri + "\");");
   execute("\\sql");
   check_compression("ON");
@@ -2599,12 +2654,71 @@ TEST_F(Interactive_shell_test, compression) {
   execute("\\connect " + _mysql_uri);
   check_compression("OFF");
 
-  execute("\\connect " + _uri + "?compression=true");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "X Protocol: Compression is not supported and will be ignored.");
-  check_compression("OFF");
-  execute("\\js");
-  wipe_all();
+  if (_target_server_version <= mysqlshdk::utils::Version(8, 0, 18)) {
+    execute("\\connect " + _uri + "?compression=true");
+    check_x_compression("OFF");
+  } else {
+    execute("\\connect " + _uri);
+    check_x_compression("ON");
+
+    execute("\\connect " + _uri + "?compression=REQUIRED");
+    check_x_compression("ON");
+
+    execute("\\connect " + _uri + "?compression=DISABLED");
+    check_x_compression("OFF");
+
+    execute("\\connect " + _uri + "?compression-algorithms=zstd");
+    check_x_compression("ON");
+
+    execute("\\connect " + _uri + "?compression-algorithms=lz4");
+    check_x_compression("ON");
+
+    execute("\\connect " + _uri + "?compression-algorithms=zlib,uncompressed");
+    check_x_compression("ON");
+
+    execute("\\connect " + _uri + "?compression-algorithms=uncompressed");
+    check_x_compression("OFF");
+  }
+
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 18)) {
+    execute("\\connect " + _mysql_uri +
+            "?compression-algorithms=zstd&compression-level=7");
+    check_compression("ON", "zstd", "7");
+
+    execute("\\connect " + _mysql_uri + "?compression-algorithms=zlib,zstd");
+    check_compression("ON", "zlib");
+
+    execute("\\connect " + _mysql_uri +
+            "?compression-algorithms=zstd,uncompressed&compression-level=19");
+    check_compression("ON", "zstd", "19");
+
+    execute("\\connect " + _mysql_uri + "?compression-level=21");
+    check_compression("ON", "zstd", "21");
+
+    // conflict
+    execute("\\connect " + _mysql_uri +
+            "?compression-algorithms=uncompressed&compression=required");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Conflicting connection options: compression=REQUIRED, "
+        "compression-algorithms=uncompressed");
+    wipe_all();
+
+    execute(to_scripting);
+    execute("shell.connect({\"user\": \"" + _user + "\", \"host\": \"" + _host +
+            "\", \"port\": " + _mysql_port + ", \"password\": \"" + _pwd +
+            "\", \"compression-algorithms\": \"zstd\", "
+            "\"compression-level\": 14});");
+    execute("\\sql");
+    check_compression("ON", "zstd", "14");
+    wipe_all();
+
+    execute(to_scripting);
+    execute("shell.connect({\"user\": \"" + _user + "\", \"host\": \"" + _host +
+            "\", \"port\": " + _mysql_port + ", \"password\": \"" + _pwd +
+            "\", \"compression\": \" 1 \");");
+    execute("\\sql");
+    check_compression("ON");
+  }
 }
 
 TEST_F(Interactive_shell_test, sql_command) {

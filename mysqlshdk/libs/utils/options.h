@@ -137,8 +137,15 @@ class Concrete_option : public Generic_option {
   }
 
   void set(const std::string &new_value, Source source_) override {
-    *landing_spot = validator(new_value, source_);
-    this->source = source_;
+    try {
+      *landing_spot = validator(new_value, source_);
+      this->source = source_;
+    } catch (const std::exception &e) {
+      if (name.empty() || source == Source::Command_line ||
+          strstr(e.what(), name.c_str()))
+        throw std::invalid_argument(e.what());
+      throw std::invalid_argument(name + ": " + e.what());
+    }
   }
 
   std::string get_value_as_string() const override {
@@ -170,8 +177,11 @@ class Concrete_option : public Generic_option {
       set(value, Source::Command_line);
     } catch (const std::invalid_argument &e) {
       std::string err_msg(e.what());
-      auto it = err_msg.find(name);
-      if (it != std::string::npos) err_msg.replace(it, name.length(), option);
+      std::string::size_type it = std::string::npos;
+      if (!name.empty() && (it = err_msg.find(name)) != std::string::npos)
+        err_msg.replace(it, name.length(), option);
+      else
+        err_msg = option + ": " + err_msg;
       throw std::invalid_argument(err_msg);
     }
   }

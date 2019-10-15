@@ -184,7 +184,9 @@ void update_connection_data(
     const std::string &database, const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
     const std::string &server_public_key_path,
-    const std::string &connect_timeout, bool compression) {
+    const std::string &connect_timeout, const std::string &compression,
+    const std::string &compress_algorithm,
+    mysqlshdk::utils::nullable<int> compress_level) {
   if (!user.empty()) {
     connection_options->clear_user();
     connection_options->set_user(user);
@@ -301,7 +303,13 @@ void update_connection_data(
     connection_options->set(mysqlshdk::db::kConnectTimeout, connect_timeout);
   }
 
-  if (compression) connection_options->set_compression(true);
+  if (!compression.empty()) connection_options->set_compression(compression);
+
+  if (!compress_algorithm.empty())
+    connection_options->set_compression_algorithms(compress_algorithm);
+
+  if (!compress_level.is_null())
+    connection_options->set_compression_level(*compress_level);
 }
 
 std::string get_system_user() {
@@ -522,7 +530,7 @@ std::string from_camel_case(const std::string &name) {
   // Uppercase letters will be converted to underscore+lowercase letter
   // except in two situations:
   // - When it is the first letter
-  // - When an underscore is already before the uppercase letter
+  // - When an underscore or a dash is already before the uppercase letter
   bool skip_underscore = true;
   for (auto character : name) {
     if (isupper(character)) {
@@ -534,7 +542,7 @@ std::string from_camel_case(const std::string &name) {
       new_name.append(1, tolower(character));
     } else {
       // if character is '_'
-      skip_underscore = character == '_';
+      skip_underscore = character == '_' || character == '-';
       if (skip_underscore) upper_count++;
       new_name.append(1, character);
     }

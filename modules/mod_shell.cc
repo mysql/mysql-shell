@@ -203,6 +203,7 @@ void Shell::init() {
   expose("connect", &Shell::connect, "connectionData", "?password");
   expose("connectToPrimary", &Shell::connect_to_primary, "?connectionData",
          "?password");
+  expose("openSession", &Shell::open_session, "connectionData", "?password");
 }
 
 Shell::~Shell() {}
@@ -560,18 +561,24 @@ REGISTER_HELP(
     "provided a default timeout of 10 seconds will be used. Specifying a value "
     "of 0 disables the connection timeout.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS14,
-              "@li compression: Enable/disable compression in client/server "
-              "protocol, valid values: \"true\", \"false\", \"1\", and \"0\".");
+              "@li compression: Enable compression in client/server protocol.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS15,
+    "@li compression-algorithms: Use compression algorithm in server/client "
+    "protocol.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS16,
+              "@li compression-level: Use this compression level in the "
+              "client/server protocol.");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS17,
     "@li connection-attributes: List of connection attributes to be "
     "registered at the PERFORMANCE_SCHEMA connection attributes tables.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS16,
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS18,
               "@li local-infile: Enable/disable LOAD DATA LOCAL INFILE.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS17,
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS19,
               "@li net-buffer-length: The buffer size for TCP/IP and socket "
               "communication.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS18,
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS20,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 
@@ -618,9 +625,11 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
               "${TOPIC_CONNECTION_OPTION_AUTH_METHOD}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4,
+              "${TOPIC_CONNECTION_COMPRESSION}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5,
               "${TOPIC_CONNECTION_ATTRIBUTES}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "${TOPIC_URI_ENCODED_VALUE}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL6,
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL6, "${TOPIC_URI_ENCODED_VALUE}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL7,
               "${TOPIC_URI_ENCODED_ATTRIBUTE}");
 
 REGISTER_HELP_TOPIC(Connection Types, TOPIC, TOPIC_CONNECTION_TYPES, Contents,
@@ -737,6 +746,43 @@ data type is used in the dictionary, the string representation of the used
 data will be stored on the database.
 )*");
 
+REGISTER_HELP_TOPIC(Connection Compression, TOPIC, TOPIC_CONNECTION_COMPRESSION,
+                    Contents, ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_COMPRESSION, R"*(
+<b>Connection Compression</b>
+
+Connection compression is governed by following connection options:
+"compression", "compression-algorithms", and "compression-level".
+
+"compression" accepts following values:  
+
+@li REQUIRED: connection will only be made when compression negotiation is 
+succesful.
+@li PREFFERED: (default for X protocol connections) shell will attempt to 
+establish connection with compression enabled, but if compression negotiation 
+fails, connection will be established without compression.
+@li DISABLED: (defalut for classic protocol connections) connection will be
+established without compression.
+
+For convenience "compression" also accepts Boolean: 'True', 'False', '1',
+and '0' values which map to REQUIRED and DISABLED respectively.
+
+"compression-algorithms" expects comma separated list of algorithms.
+Supported algorithms include:
+
+@li zstd
+@li zlib
+@li lz4 (X protocol only)
+@li uncompressed - special value, which if it appears in the list, causes 
+connection to succeed even if compression negotiation fails.
+
+If "compression" connection option is not defined, its value will be deduced
+from "compression-algorithms" value when it is provided.
+
+"compression-level" is only supported by zstd algorithm in classic protocol.
+Valid range for this parameter is 1-22 (default is 3).
+)*");
+
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1,
               "The ssl-mode option accepts the following values:");
@@ -831,8 +877,7 @@ std::shared_ptr<ShellBaseSession> Shell::connect(
     const char *password) {
   auto connection_options = connection_options_;
   mysqlsh::set_password_from_string(&connection_options, password);
-  _shell->connect(connection_options);
-  return get_dev_session();
+  return _shell->connect(connection_options);
 }
 
 REGISTER_HELP_FUNCTION(connectToPrimary, shell);
@@ -888,6 +933,46 @@ std::shared_ptr<ShellBaseSession> Shell::connect_to_primary(
   }
 
   return get_dev_session();
+}
+
+REGISTER_HELP_FUNCTION(openSession, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_OPENSESSION, R"*(
+Establishes and returns session.
+
+@param connectionData the connection data to be used to establish the session.
+@param password Optional the password to be used when establishing the session.
+
+@returns The session object.
+
+This function will establish the session with the received connection data.
+
+The password may be included on the connectionData, the optional parameter
+should be used only if the connectionData does not contain it already. 
+If both are specified the password parameter will override the password 
+defined on the connectionData.
+
+${TOPIC_CONNECTION_DATA}
+)*");
+
+/**
+ * $(SHELL_OPENSESSION_BRIEF)
+ *
+ * $(SHELL_OPENSESSION_DETAIL)
+ *
+ * Detailed description of the connection data format is available at
+ * \ref connection_data
+ */
+#if DOXYGEN_JS
+Session Shell::openSession(ConnectionData connectionData, String password) {}
+#elif DOXYGEN_PY
+Session Shell::open_session(ConnectionData connectionData, str password) {}
+#endif
+std::shared_ptr<ShellBaseSession> Shell::open_session(
+    const mysqlshdk::db::Connection_options &connection_options_,
+    const char *password) {
+  auto connection_options = connection_options_;
+  mysqlsh::set_password_from_string(&connection_options, password);
+  return _shell->connect(connection_options, false, false);
 }
 
 void Shell::set_current_schema(const std::string &name) {

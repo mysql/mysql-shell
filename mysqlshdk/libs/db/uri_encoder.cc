@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,6 +98,11 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
                              encode_value(*option.second));
       }
     }
+
+    if (info.has_compression_level())
+      attributes.push_back(
+          encode_attribute(kCompressionLevel) + "=" +
+          encode_value(std::to_string(info.get_compression_level())));
 
     if (!attributes.empty())
       ret_val.append("?").append(shcore::str_join(attributes, "&"));

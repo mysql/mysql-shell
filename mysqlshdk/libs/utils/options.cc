@@ -102,9 +102,10 @@ std::vector<std::string> Generic_option::get_cmdline_help(
 
   for (const auto &n : command_line_names)
     if (n.length() >= options_width)
-      throw std::runtime_error(str_format(
-          "Command line option %s too wide for help options_width=%zu",
-          n.c_str(), options_width));
+      throw std::runtime_error(
+          str_format("Command line option %s too wide for help "
+                     "options_width=%zu, %zu width required",
+                     n.c_str(), options_width, n.length() + 1));
 
   std::string line = command_line_names[0];
   for (std::size_t i = 1; i < command_line_names.size(); i++)

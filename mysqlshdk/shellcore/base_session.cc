@@ -22,6 +22,8 @@
  */
 
 #include "shellcore/base_session.h"
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
@@ -42,6 +44,20 @@ DEBUG_OBJ_ENABLE(ShellBaseSession);
 
 ShellBaseSession::ShellBaseSession() : _tx_deep(0) {
   DEBUG_OBJ_ALLOC(ShellBaseSession);
+}
+
+std::shared_ptr<ShellBaseSession> ShellBaseSession::wrap_session(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  if (auto classic =
+          std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session)) {
+    return std::make_shared<mysql::ClassicSession>(classic);
+  } else if (auto x = std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Session>(
+                 session)) {
+    return std::make_shared<mysqlsh::mysqlx::Session>(x);
+  }
+
+  throw shcore::Exception::argument_error(
+      "Invalid session type given for shell connection.");
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession &s)

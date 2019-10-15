@@ -24,11 +24,13 @@
 #ifndef MYSQLSHDK_LIBS_DB_UTILS_CONNECTION_H_
 #define MYSQLSHDK_LIBS_DB_UTILS_CONNECTION_H_
 
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #ifdef _WIN32
 #include <string.h>
@@ -84,6 +86,8 @@ constexpr const char kServerPublicKeyPath[] = "server-public-key-path";
 constexpr const char kConnectTimeout[] = "connect-timeout";
 constexpr const char kNetReadTimeout[] = "net-read-timeout";
 constexpr const char kCompression[] = "compression";
+constexpr const char kCompressionAlgorithms[] = "compression-algorithms";
+constexpr const char kCompressionLevel[] = "compression-level";
 constexpr const char kLocalInfile[] = "local-infile";
 constexpr const char kNetBufferLength[] = "net-buffer-length";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
@@ -93,6 +97,10 @@ constexpr const char kSslModePreferred[] = "preferred";
 constexpr const char kSslModeRequired[] = "required";
 constexpr const char kSslModeVerifyCA[] = "verify_ca";
 constexpr const char kSslModeVerifyIdentity[] = "verify_identity";
+
+constexpr const char kCompressionRequired[] = "REQUIRED";
+constexpr const char kCompressionPreferred[] = "PREFERRED";
+constexpr const char kCompressionDisabled[] = "DISABLED";
 
 const std::set<std::string> connection_attributes = {kHost,
                                                      kPort,
@@ -119,6 +127,8 @@ const std::set<std::string> connection_attributes = {kHost,
                                                      kConnectTimeout,
                                                      kNetReadTimeout,
                                                      kCompression,
+                                                     kCompressionAlgorithms,
+                                                     kCompressionLevel,
                                                      kConnectionAttributes};
 
 const std::set<std::string> uri_connection_attributes = {kSslCa,
@@ -136,12 +146,19 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kServerPublicKeyPath,
                                                          kConnectTimeout,
                                                          kCompression,
+                                                         kCompressionAlgorithms,
+                                                         kCompressionLevel,
                                                          kConnectionAttributes};
 
-const std::set<std::string> uri_extra_options = {
-    kAuthMethod,     kGetServerPublicKey, kServerPublicKeyPath,
-    kConnectTimeout, kNetReadTimeout,     kCompression,
-    kLocalInfile,    kNetBufferLength};
+const std::set<std::string> uri_extra_options = {kAuthMethod,
+                                                 kGetServerPublicKey,
+                                                 kServerPublicKeyPath,
+                                                 kConnectTimeout,
+                                                 kNetReadTimeout,
+                                                 kCompression,
+                                                 kCompressionAlgorithms,
+                                                 kLocalInfile,
+                                                 kNetBufferLength};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,
@@ -149,6 +166,10 @@ const std::vector<std::string> ssl_modes = {"",
                                             kSslModeRequired,
                                             kSslModeVerifyCA,
                                             kSslModeVerifyIdentity};
+
+const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
+    deprecated_connection_attributes = {{kDbUser, kUser},
+                                        {kDbPassword, kPassword}};
 
 }  // namespace db
 }  // namespace mysqlshdk
