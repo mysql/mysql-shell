@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
@@ -161,6 +162,9 @@ class Concrete_option : public Generic_option {
         value = "";
       else
         throw std::invalid_argument("Option " + option + " needs value");
+    } else if (strcmp(value, "") == 0 && !std::is_same<T, std::string>::value) {
+      throw std::invalid_argument("Option " + option +
+                                  " does not accept empty string as a value");
     }
     try {
       set(value, Source::Command_line);
@@ -222,9 +226,9 @@ Proxy_option::Handler assign_value(T *landing_spot, S value) {
 }
 
 template <class T>
-T convert(const std::string &data) {
+T convert(const std::string &data, Source s) {
   // assuming that option specification turns it on
-  if (data.empty()) return static_cast<T>(1);
+  if (data.empty() && s == Source::Command_line) return static_cast<T>(1);
   T t;
   std::istringstream iss(data);
   iss >> t;
@@ -241,7 +245,7 @@ T convert(const std::string &data) {
 }
 
 template <>
-std::string convert(const std::string &data);
+std::string convert(const std::string &data, Source);
 
 /// Standard serialization mechanism for options
 template <class T>
@@ -258,7 +262,9 @@ std::string serialize(const std::string &val);
 /// Validator that does some standard type conversion
 template <class T>
 struct Basic_type {
-  T operator()(const std::string &data, Source) { return convert<T>(data); }
+  T operator()(const std::string &data, Source s) {
+    return convert<T>(data, s);
+  }
 };
 
 /// Wrapper for validator that prohibits user from setting option value

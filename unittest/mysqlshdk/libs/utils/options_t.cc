@@ -100,54 +100,31 @@ TEST_F(Options_test, basic_type_validation) {
   EXPECT_THROW(Basic_type<bool>()("foo", Source::User), std::invalid_argument);
   EXPECT_THROW(Basic_type<bool>()("2", Source::User), std::invalid_argument);
 
-  EXPECT_NO_THROW({
-    bool resb = Basic_type<bool>()("1", Source::User);
-    EXPECT_TRUE(resb);
-  });
-
-  EXPECT_NO_THROW({
-    bool resb = Basic_type<bool>()("0", Source::User);
-    EXPECT_FALSE(resb);
-  });
-
-  EXPECT_NO_THROW({
-    bool resb = Basic_type<bool>()("true", Source::User);
-    EXPECT_TRUE(resb);
-  });
-
-  EXPECT_NO_THROW({
-    bool resb = Basic_type<bool>()("false", Source::User);
-    EXPECT_FALSE(resb);
-  });
+  EXPECT_TRUE(Basic_type<bool>()("1", Source::User));
+  EXPECT_FALSE(Basic_type<bool>()("0", Source::User));
+  EXPECT_TRUE(Basic_type<bool>()("true", Source::User));
+  EXPECT_FALSE(Basic_type<bool>()("false", Source::User));
 
   // Integer
   EXPECT_THROW(Basic_type<int>()("foo", Source::User), std::invalid_argument);
   EXPECT_THROW(Basic_type<int>()("2r", Source::User), std::invalid_argument);
 
-  int resi;
-  EXPECT_NO_THROW(resi = Basic_type<int>()("1", Source::User));
-  EXPECT_EQ(1, resi);
-
-  EXPECT_NO_THROW(resi = Basic_type<int>()("9999999", Source::User));
-  EXPECT_EQ(9999999, resi);
-
-  EXPECT_NO_THROW(resi = Basic_type<int>()("-10", Source::User));
-  EXPECT_EQ(-10, resi);
+  EXPECT_EQ(1, Basic_type<int>()("1", Source::User));
+  EXPECT_EQ(9999999, Basic_type<int>()("9999999", Source::User));
+  EXPECT_EQ(-10, Basic_type<int>()("-10", Source::User));
 
   // Double
   EXPECT_THROW(Basic_type<double>()("foo", Source::User),
                std::invalid_argument);
   EXPECT_THROW(Basic_type<double>()("2r", Source::User), std::invalid_argument);
 
-  double resd;
-  EXPECT_NO_THROW(resd = Basic_type<double>()("1", Source::User));
-  EXPECT_EQ(1.0, resd);
+  EXPECT_EQ(1.0, Basic_type<double>()("1", Source::User));
+  EXPECT_EQ(999.9999, Basic_type<double>()("999.9999", Source::User));
+  EXPECT_EQ(-10.5, Basic_type<double>()("-10.5", Source::User));
 
-  EXPECT_NO_THROW(resd = Basic_type<double>()("999.9999", Source::User));
-  EXPECT_EQ(999.9999, resd);
-
-  EXPECT_NO_THROW(resd = Basic_type<double>()("-10.5", Source::User));
-  EXPECT_EQ(-10.5, resd);
+  EXPECT_EQ(1, Basic_type<int>()("", Source::Command_line));
+  EXPECT_TRUE(Basic_type<bool>()("", Source::Command_line));
+  EXPECT_THROW(Basic_type<bool>()("", Source::User), std::invalid_argument);
 }
 
 TEST_F(Options_test, range_validation) {
@@ -334,6 +311,12 @@ TEST_F(Options_test, cmd_line_handling) {
   char *argv16[] = {const_cast<char *>("ut"), const_cast<char *>("-mx"), NULL};
   EXPECT_THROW_LIKE(handle_cmdline_options(2, argv16, false),
                     std::invalid_argument, "unknown option -x");
+
+  char *argv17[] = {const_cast<char *>("ut"),
+                    const_cast<char *>("--dummy-interactive="), NULL};
+  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv17, false),
+                    std::invalid_argument,
+                    "does not accept empty string as a value");
 }
 
 TEST_F(Options_test, persisting) {

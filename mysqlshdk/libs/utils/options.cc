@@ -243,7 +243,7 @@ Proxy_option::Handler deprecated(
 }
 
 template <>
-std::string convert(const std::string &data) {
+std::string convert(const std::string &data, Source) {
   return data;
 }
 

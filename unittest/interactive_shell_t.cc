@@ -2025,6 +2025,19 @@ TEST_F(Interactive_shell_test, option_command) {
   execute("\\option -u " SHCORE_USE_WIZARDS);
   EXPECT_FALSE(output_handler.std_err.empty());
   wipe_all();
+
+  // Try to assign empty value
+  auto old_wiz = _options->wizards;
+  execute("\\option " SHCORE_USE_WIZARDS "=");
+  MY_EXPECT_STDERR_CONTAINS("Incorrect option value");
+  EXPECT_EQ(old_wiz, _options->wizards);
+  wipe_all();
+
+  execute("\\option " SHCORE_PAGER "=");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->pager.empty());
+  wipe_all();
+
   reset_options();
   reset_shell();
 }
