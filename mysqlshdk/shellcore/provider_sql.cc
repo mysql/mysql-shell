@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,7 @@
 #include <iterator>
 #include <set>
 
-#include "modules/devapi/base_resultset.h"  // TODO(alfredo) remove when ISession
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -134,13 +134,12 @@ void Provider_sql::refresh_schema_cache(
   schema_names_.clear();
   schema_names_.reserve(100);
 
-  auto res = session->raw_execute_sql("show schemas");
-  auto row = res->call("fetchOne", shcore::Argument_list());
+  auto res = session->get_core_session()->query("show schemas");
+  auto row = res->fetch_one();
   while (row && !cancelled_) {
-    std::string column =
-        row.as_object<mysqlsh::Row>()->get_member(0).get_string();
+    std::string column = row->get_string(0);
     schema_names_.push_back(column);
-    row = res->call("fetchOne", shcore::Argument_list());
+    row = res->fetch_one();
   }
   std::sort(schema_names_.begin(), schema_names_.end(),
             [](const std::string &a, const std::string &b) -> bool {
@@ -169,15 +168,14 @@ void Provider_sql::refresh_name_cache(
     if (table_names == nullptr) {
       table_names = &schema_tables;
 
-      auto res = session->raw_execute_sql(
-          shcore::sqlstring("show tables from !", 0) << current_schema);
-      auto row = res->call("fetchOne", shcore::Argument_list());
+      auto res = session->get_core_session()->queryf("show tables from !",
+                                                     current_schema);
+      auto row = res->fetch_one();
       while (row && !cancelled_) {
-        std::string table =
-            row.as_object<mysqlsh::Row>()->get_member(0).get_string();
+        std::string table = row->get_string(0);
         object_names_.push_back(table);
         schema_tables.push_back(table);
-        row = res->call("fetchOne", shcore::Argument_list());
+        row = res->fetch_one();
       }
     }
 
@@ -185,16 +183,15 @@ void Provider_sql::refresh_name_cache(
     for (const std::string &t : *table_names) {
       if (cancelled_) break;
       std::vector<std::string> column_names;
-      auto res = session->raw_execute_sql(
-          shcore::sqlstring("show columns from !.!", 0) << current_schema << t);
-      auto row = res->call("fetchOne", shcore::Argument_list());
+      auto res = session->get_core_session()->queryf("show columns from !.!",
+                                                     current_schema, t);
+      auto row = res->fetch_one();
       while (row && !cancelled_) {
-        std::string column =
-            row.as_object<mysqlsh::Row>()->get_member(0).get_string();
+        std::string column = row->get_string(0);
         // FIXME add quoting
         object_names_.push_back(column);
         object_dot_names_.push_back(t + "." + column);
-        row = res->call("fetchOne", shcore::Argument_list());
+        row = res->fetch_one();
       }
     }
     std::sort(object_names_.begin(), object_names_.end(),

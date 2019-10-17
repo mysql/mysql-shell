@@ -43,18 +43,22 @@ class Row;
 // This is the Shell Common Base Class for all the resultset classes
 class ShellBaseResult : public shcore::Cpp_object_bridge {
  public:
+  ShellBaseResult();
+
+  // Needed because expose() in the c-tor will end up in a call to class_name()
+  virtual std::string class_name() const { return "ShellBaseResult"; }
+
   virtual bool operator==(const Object_bridge &other) const;
   virtual mysqlshdk::db::IResult *get_result() const = 0;
   virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
     return {};
   }
-  bool is_result() const { return class_name() == "Result"; }
-  bool is_doc_result() const { return class_name() == "DocResult"; }
-  bool is_row_result() const { return class_name() == "RowResult"; }
 
   std::unique_ptr<mysqlsh::Row> fetch_one_row() const;
 
   shcore::Dictionary_t fetch_one_object() const;
+
+  void dump(const shcore::Dictionary_t &options);
 };
 
 /**

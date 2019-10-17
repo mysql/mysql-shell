@@ -19,18 +19,18 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-include_directories(
-        "${CMAKE_BINARY_DIR}"
-        "${CMAKE_SOURCE_DIR}/common/uuid/include"
-        "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
-include_directories(${CMAKE_SOURCE_DIR}) # <--- TODO: REMOVE (something's including modules/*)
-
 IF(OPENSSL_INCLUDE_DIR)
 	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
 ENDIF()
 
-set(SHELLCORE_SOURCES
+SET(SHELLCORE_MINIMAL_SOURCES
   base_shell.cc
+  scoped_contexts.cc
+  shell_console.cc
+  )
+
+set(SHELLCORE_SOURCES
+  ${SHELLCORE_MINIMAL_SOURCES}
   base_session.cc
   completer.cc
   credential_manager.cc
@@ -38,7 +38,6 @@ set(SHELLCORE_SOURCES
   provider_script.cc
   interrupt_handler.cc
   ishell_core.cc
-  scoped_contexts.cc
   shell_cli_operation.cc
   shell_core.cc
   shell_init.cc
@@ -48,7 +47,6 @@ set(SHELLCORE_SOURCES
   shell_sql.cc
   provider_sql.cc
   utils_help.cc
-  shell_console.cc
   wizard.cc)
 
 if(HAVE_V8)
@@ -83,5 +81,7 @@ if(WIN32)
 endif()
 
 add_convenience_library(shellcore ${SHELLCORE_SOURCES} ${SHELLCORE_DLL_SOURCES})
+
+add_convenience_library(shellcore-minimal ${SHELLCORE_MINIMAL_SOURCES})
 
 ADD_STAN_TARGET(shellcore ${SHELLCORE_SOURCES})

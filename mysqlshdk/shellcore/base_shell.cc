@@ -24,7 +24,6 @@
 
 #include <tuple>
 
-#include "modules/devapi/base_resultset.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
@@ -475,37 +474,14 @@ void Base_shell::print_result(shcore::Value result) {
 
     // If the function is not found the values still needs to be printed
     if (!shell_hook) {
-      // Resultset objects get printed
-      if (object && object->class_name().find("Result") != std::string::npos) {
-        std::shared_ptr<mysqlsh::ShellBaseResult> resultset =
-            std::static_pointer_cast<mysqlsh::ShellBaseResult>(object);
+      // In JSON mode: the json representation is used for Object, Array and
+      // Map For anything else a map is printed with the "value" key
+      std::string tag;
+      if (result.type != shcore::Object && result.type != shcore::Array &&
+          result.type != shcore::Map)
+        tag = "value";
 
-        // TODO(alfredo) - dumping of SqlResults should be redirected to
-        // process_sql_result()
-
-        // Result buffering will be done ONLY if on any of the scripting
-        // interfaces
-        Resultset_dumper dumper(
-            resultset->get_result(),
-            _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
-
-        bool is_doc_result = resultset->is_doc_result();
-        bool is_query = is_doc_result || resultset->is_row_result();
-        std::string item_label = is_doc_result
-                                     ? "document"
-                                     : resultset->is_result() ? "item" : "row";
-
-        dumper.dump(item_label, is_query, is_doc_result);
-      } else {
-        // In JSON mode: the json representation is used for Object, Array and
-        // Map For anything else a map is printed with the "value" key
-        std::string tag;
-        if (result.type != shcore::Object && result.type != shcore::Array &&
-            result.type != shcore::Map)
-          tag = "value";
-
-        m_console_handler.get()->print_value(result, tag);
-      }
+      m_console_handler.get()->print_value(result, tag);
     }
   }
 }

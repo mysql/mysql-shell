@@ -28,6 +28,7 @@
 #include <string>
 
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"  // TODO(alfredo) - move this to modules/
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
@@ -42,8 +43,27 @@ using namespace shcore;
 REGISTER_HELP_CLASS(Column, shellapi);
 REGISTER_HELP(COLUMN_BRIEF,
               "Represents the metadata for a column in a result.");
+
+ShellBaseResult::ShellBaseResult() {
+  expose("__shell_hook__", &ShellBaseResult::dump, "?options");
+}
+
 bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
+}
+
+void ShellBaseResult::dump(const shcore::Dictionary_t &options) {
+  Resultset_dumper dumper(get_result(), true);
+
+  bool is_result = class_name() == "Result";
+  bool is_doc_result = class_name() == "DocResult";
+  bool is_row_result = class_name() == "RowResult";
+
+  bool is_query = is_doc_result || is_row_result;
+  std::string item_label =
+      is_doc_result ? "document" : is_result ? "item" : "row";
+
+  dumper.dump(item_label, is_query, is_doc_result);
 }
 
 std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {

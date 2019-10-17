@@ -26,10 +26,10 @@
 #include <array>
 #include <fstream>
 #include <functional>
-#include "modules/devapi/mod_mysqlx_session.h"
-#include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"

@@ -20,6 +20,7 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 include_directories(SYSTEM
+    ${CMAKE_SOURCE_DIR}/common/uuid/include
     ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 
 include_directories(BEFORE
@@ -28,7 +29,6 @@ include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
     ${CMAKE_BINARY_DIR}/mysqlshdk/include)
-
 
 # Enable full warnings for new libraries only for now
 # Once warnings everywhere are low, we enable same flags for all

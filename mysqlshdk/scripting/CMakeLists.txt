@@ -19,11 +19,6 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-include_directories(
-    ${CMAKE_BINARY_DIR}
-    ${CMAKE_SOURCE_DIR}/common/uuid/include
-    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
-
 set(SCRIPTING_SOURCES
     common.cc
     obj_date.cc

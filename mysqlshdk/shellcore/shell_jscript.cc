@@ -23,7 +23,6 @@
 
 #include "shellcore/shell_jscript.h"
 
-#include "modules/devapi/mod_mysqlx_session.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "scripting/jscript_context.h"
 #include "shellcore/base_session.h"

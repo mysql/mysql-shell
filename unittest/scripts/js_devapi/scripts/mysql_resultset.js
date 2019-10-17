@@ -12,6 +12,7 @@ mySession.runSql('use js_shell_test');
 var result = mySession.runSql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))');
 
 validateMembers(result, [
+'__shell_hook__',
 'affectedItemsCount',
 'executionTime',
 'warningCount',
