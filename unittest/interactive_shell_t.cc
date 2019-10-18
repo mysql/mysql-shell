@@ -2816,4 +2816,32 @@ TEST_F(Interactive_shell_test, js_interactive_template_literal) {
 }
 #endif  // HAVE_V8
 
+TEST_F(Interactive_shell_test, py_multiple_statements) {
+  // BUG#30029568
+  execute("\\py");
+  wipe_all();
+
+  execute(R"(one = 1
+two = 'two'
+def three():
+  print(3)
+def four():
+  print('four')
+)");
+  execute("print(one)");
+  execute("print(two)");
+  execute("three()");
+  execute("four()");
+
+  EXPECT_EQ(R"(1
+two
+3
+four
+)",
+            output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+
+  wipe_all();
+}
+
 }  // namespace mysqlsh

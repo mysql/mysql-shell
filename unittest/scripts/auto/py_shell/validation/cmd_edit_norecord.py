@@ -80,6 +80,10 @@ mysql-sql []> SELECT 'first SQL';
 |Switching to Python mode...|
 
 #@<OUT> \edit with multiple statements - Python
+mysql-py []> py_one = 'first Python'
+           > py_two = 'second Python'
+first Python
+second Python
 end
 
 #@<OUT> \edit - get path to the temporary file

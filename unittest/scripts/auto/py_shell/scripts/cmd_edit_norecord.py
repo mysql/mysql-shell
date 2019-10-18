@@ -69,12 +69,11 @@ println('end')
 #@ switch back to Python
 \py
 
-# this will not work due to BUG#30029568
 #@ \edit with multiple statements - Python
-# \edit py_statements
-#
-# print(py_one)
-# print(py_two)
+\edit py_statements
+
+print(py_one)
+print(py_two)
 print('end')
 
 # WL12763-TSFR2_5 - When calling the `\edit` command, validate that:

@@ -24,6 +24,9 @@
 
 #include <signal.h>
 #include <exception>
+#include <type_traits>
+
+#include <Python-ast.h>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/common.h"
@@ -159,7 +162,71 @@ PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
 #endif  // !IS_PY3K
 }
 
-};  // namespace
+PyObject *py_run_string_interactive(const char *str, PyObject *globals,
+                                    PyObject *locals, PyCompilerFlags *flags) {
+  // This is a copy of PyRun_StringFlags adapted to our needs.
+  //
+  // Previously, we were using Py_single_input flag to run the code string and
+  // capture its output using a custom sys.displayhook, however Python's grammar
+  // allows only for a single statement (simple_stmt or compound_stmt) to be
+  // used in such case. Since we want to be able to run multiple statements at
+  // once, Py_file_input flag is the alternative which allows the code string to
+  // be a sequence of statements, but unfortunately it does not allow to obtain
+  // the result of the execution.
+  // We're using the fact that both file_input and single_input have the same
+  // AST representation: a sequence of statements (which is possible, because
+  // single_input can be a simple_stmt, simple_stmt is a semicolon-separated
+  // sequence of small_stmt and all statements have the same super-type - stmt).
+  // Their internal binary representation is also the same. Their compilation is
+  // controlled by their kind, with the difference being that the former
+  // (Module_kind) can have a top-level doc-string, and the latter
+  // (Interactive_kind) generates an additional opcode which prints out the
+  // result of an expression statement using sys.displayhook.
+  // Below, the code string is parsed as a series of statements using the
+  // Py_file_input flag, then the kind is changed to Interactive_kind, so that
+  // PRINT_EXPR opcodes are generated, finally code is executed and results can
+  // be captured using the custom sys.displayhook.
+  PyObject *ret = nullptr;
+  const auto arena = PyArena_New();
+
+  if (nullptr != arena) {
+    AutoPyObject filename = PyString_FromString("<string>");
+    const auto mod = PyParser_ASTFromStringObject(str, filename, Py_file_input,
+                                                  flags, arena);
+
+    if (nullptr != mod) {
+      // modification -> begin
+      // make sure changing the kind is safe
+      // both types have the same size
+      static_assert(sizeof(mod->v.Module) == sizeof(mod->v.Interactive),
+                    "Different sizes");
+      // Interactive type contains only body (it is a pointer, padding should
+      // not be a problem)
+      static_assert(
+          sizeof(mod->v.Interactive) == sizeof(mod->v.Interactive.body),
+          "Different sizes");
+      // Module and Interactive types both have the same body type
+      static_assert(std::is_same<decltype(mod->v.Module.body),
+                                 decltype(mod->v.Interactive.body)>::value,
+                    "Different types");
+      mod->kind = Interactive_kind;
+      // modification -> end
+
+      auto *co = PyAST_CompileObject(mod, filename, flags, -1, arena);
+
+      if (nullptr != co) {
+        ret = PyEval_EvalCode((PyObject *)co, globals, locals);
+        Py_DECREF(co);
+      }
+    }
+
+    PyArena_Free(arena);
+  }
+
+  return ret;
+}
+
+}  // namespace
 
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
@@ -568,8 +635,8 @@ Value Python_context::execute_interactive(const std::string &code,
 
   PyObject *py_result = nullptr;
   try {
-    py_result = PyRun_StringFlags(code.c_str(), Py_single_input, _globals,
-                                  _locals, &m_compiler_flags);
+    py_result = py_run_string_interactive(code.c_str(), _globals, _locals,
+                                          &m_compiler_flags);
   } catch (const std::exception &e) {
     set_python_error(PyExc_RuntimeError, e.what());
 
