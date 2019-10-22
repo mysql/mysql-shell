@@ -25,6 +25,15 @@ shell.help('connect')
 #@ global help for connect[USE:shell.connect]
 \help Shell.connect
 
+#@ Help on connect_to_primary
+shell.help("connect_to_primary")
+
+#@ Help on connect_to_primary, \? [USE: Help on connect_to_primary]
+\? connect_to_primary
+
+#@ Help on shell.connect_to_primary [USE: Help on connect_to_primary]
+\? shell.connect_to_primary
+
 #@ shell.create_extension_object
 shell.help('create_extension_object')
 

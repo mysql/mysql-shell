@@ -189,6 +189,7 @@ function (generate_docs type)
         MATH(EXPR length "${end}-${start}")
         string(SUBSTRING "${ready_line}" ${start} ${length} value)
 
+        string(REGEX REPLACE "\\$\\{TOPIC_CONNECTION_DATA\\}" "$(TOPIC_CONNECTION_OPTIONS_DOXYGEN)\n\n$(TOPIC_CONNECTION_MORE_INFO)" value "${value}")
         string(REGEX REPLACE "\\$\\{([^}]*)\\}" "$(\\1)" value "${value}")
         SET(value_brief "")
         IF("${process}" STREQUAL "2")

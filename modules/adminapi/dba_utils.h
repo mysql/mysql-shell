@@ -36,11 +36,13 @@ namespace dba {
 
 std::string find_primary_member_uri(const std::shared_ptr<Instance> &instance,
                                     bool xproto,
-                                    bool *out_single_primary = nullptr);
+                                    bool *out_single_primary = nullptr,
+                                    Cluster_type *out_type = nullptr);
 
 std::string find_secondary_member_uri(const std::shared_ptr<Instance> &instance,
                                       bool xproto,
-                                      bool *out_single_primary = nullptr);
+                                      bool *out_single_primary = nullptr,
+                                      Cluster_type *out_type = nullptr);
 
 }  // namespace dba
 }  // namespace mysqlsh

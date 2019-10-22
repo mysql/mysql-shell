@@ -23,69 +23,163 @@
 
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
 
 namespace mysqlsh {
 namespace dba {
 
 namespace {
-std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
-                                    mysqlshdk::gr::Member_role role,
-                                    bool xproto, bool *out_single_primary) {
-  mysqlsh::dba::MetadataStorage md(instance);
-  if (!md.check_version()) {
-    throw shcore::Exception("InnoDB cluster metadata schema not found",
-                            SHERR_DBA_METADATA_MISSING);
-  }
 
-  // check if we have the desired role
-  bool session_has_the_right_role = false;
-  std::string uuid = instance->get_uuid();
-  std::string other_uuid;
+std::string find_cluster_member_uri_of_role(
+    const std::shared_ptr<Instance> &instance, mysqlshdk::gr::Member_role role,
+    bool *out_single_primary) {
   bool has_quorum = false;
-  auto members =
+  const auto members =
       mysqlshdk::gr::get_members(*instance, out_single_primary, &has_quorum);
+
   if (!has_quorum) {
     throw shcore::Exception("Group has no quorum",
                             SHERR_DBA_GROUP_HAS_NO_QUORUM);
   }
 
+  const auto &instance_uuid = instance->get_uuid();
+  std::string member_uuid;
+
   for (const auto &member : members) {
-    if (member.role == role) {
-      if (uuid == member.uuid) {
-        session_has_the_right_role = true;
+    if (role == member.role &&
+        (mysqlshdk::gr::Member_state::ONLINE == member.state ||
+         mysqlshdk::gr::Member_state::RECOVERING == member.state)) {
+      member_uuid = member.uuid;
+
+      if (instance_uuid == member_uuid) {
         break;
       }
-      other_uuid = member.uuid;
     }
   }
 
-  if (!session_has_the_right_role) {
-    // nobody has the right role
-    if (other_uuid.empty()) {
+  return member_uuid;
+}
+
+std::string find_replicaset_member_uri_of_role(
+    const std::shared_ptr<Instance> &instance, topology::Node_role role,
+    bool *out_single_primary) {
+  const auto md = std::make_shared<mysqlsh::dba::MetadataStorage>(instance);
+  const auto &instance_uuid = instance->get_uuid();
+
+  Cluster_metadata cmd;
+
+  if (!md->get_cluster_for_server_uuid(instance_uuid, &cmd)) {
+    throw shcore::Exception::runtime_error(
+        "Could not get the InnoDB ReplicaSet metadata.");
+  }
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(instance->get_connection_options());
+  Scoped_instance_pool ipool(md, false, auth_opts);
+
+  topology::Server_global_topology topology("");
+  topology.load_cluster(md.get(), cmd);
+  topology.check_servers(true);
+
+  switch (topology.type()) {
+    case Global_topology_type::SINGLE_PRIMARY_TREE:
+      if (out_single_primary) {
+        *out_single_primary = true;
+      }
+      break;
+
+    case Global_topology_type::NONE:
+      throw shcore::Exception::logic_error(
+          "The InnoDB ReplicaSet has wrong topology.");
+  }
+
+  std::string member_uuid;
+
+  for (const auto &server : topology.servers()) {
+    if (server.role() == role &&
+        topology::Node_status::ONLINE == server.status()) {
+      member_uuid = server.get_primary_member()->uuid;
+
+      if (instance_uuid == member_uuid) {
+        break;
+      }
+    }
+  }
+
+  return member_uuid;
+}
+
+std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
+                                    bool secondary, bool xproto,
+                                    bool *out_single_primary,
+                                    Cluster_type *out_type) {
+  MetadataStorage md{instance};
+  mysqlshdk::utils::Version version;
+
+  if (!md.check_version(&version)) {
+    throw shcore::Exception(
+        "Metadata schema of an InnoDB cluster or ReplicaSet not found",
+        SHERR_DBA_METADATA_MISSING);
+  }
+
+  const auto &instance_uuid = instance->get_uuid();
+  Cluster_type type = Cluster_type::NONE;
+
+  if (!md.check_instance_type(instance_uuid, version, &type) ||
+      Cluster_type::NONE == type) {
+    throw shcore::Exception::runtime_error(
+        "Could not determine whether the instance is an InnoDB cluster or "
+        "ReplicaSet.");
+  }
+
+  if (out_type) {
+    *out_type = type;
+  }
+
+  const auto member_uuid =
+      Cluster_type::GROUP_REPLICATION == type
+          ? find_cluster_member_uri_of_role(
+                instance,
+                secondary ? mysqlshdk::gr::Member_role::SECONDARY
+                          : mysqlshdk::gr::Member_role::PRIMARY,
+                out_single_primary)
+          : find_replicaset_member_uri_of_role(
+                instance,
+                secondary ? topology::Node_role::SECONDARY
+                          : topology::Node_role::PRIMARY,
+                out_single_primary);
+
+  if (instance_uuid == member_uuid) {
+    return instance->get_connection_options().uri_endpoint();
+  } else {
+    if (member_uuid.empty()) {
+      // nobody has the right role
       return "";
     }
 
-    log_info("Looking up metadata for member %s", other_uuid.c_str());
-    mysqlsh::dba::Instance_metadata imd = md.get_instance_by_uuid(other_uuid);
+    log_info("Looking up metadata for member %s", member_uuid.c_str());
+
+    const auto imd = md.get_instance_by_uuid(member_uuid);
 
     return xproto ? imd.xendpoint : imd.endpoint;
   }
-  return instance->get_connection_options().uri_endpoint();
 }
+
 }  // namespace
 
 std::string find_primary_member_uri(const std::shared_ptr<Instance> &instance,
-                                    bool xproto, bool *out_single_primary) {
-  return find_member_uri_of_role(instance, mysqlshdk::gr::Member_role::PRIMARY,
-                                 xproto, out_single_primary);
+                                    bool xproto, bool *out_single_primary,
+                                    Cluster_type *out_type) {
+  return find_member_uri_of_role(instance, false, xproto, out_single_primary,
+                                 out_type);
 }
 
 std::string find_secondary_member_uri(const std::shared_ptr<Instance> &instance,
-                                      bool xproto, bool *out_single_primary) {
-  return find_member_uri_of_role(instance,
-                                 mysqlshdk::gr::Member_role::SECONDARY, xproto,
-                                 out_single_primary);
+                                      bool xproto, bool *out_single_primary,
+                                      Cluster_type *out_type) {
+  return find_member_uri_of_role(instance, true, xproto, out_single_primary,
+                                 out_type);
 }
 
 }  // namespace dba

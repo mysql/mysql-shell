@@ -31,6 +31,18 @@ shell.help("connect")
 //@ Help on Connect, \? [USE:Help on Connect]
 \? connect
 
+// WL13236-TSFR4_1: Validate that the function named shell.connectToPrimary([connectionData, password]) exists under the shell global object and receives two optional parameters: connectionData and password.
+// WL13236-TSFR4_2: Validate that the help system has an entry for the function shell.connectToPrimary([connectionData, password]). Test with: \h shell.connectToPrimary, \h connectToPrimary, \h shell.help('connectToPrimary'), \h shell.
+
+//@ Help on connectToPrimary
+shell.help("connectToPrimary")
+
+//@ Help on connectToPrimary, \? [USE: Help on connectToPrimary]
+\? connectToPrimary
+
+//@ Help on shell.connectToPrimary [USE: Help on connectToPrimary]
+\? shell.connectToPrimary
+
 //@ Help on createExtensionObject
 shell.help("createExtensionObject")
 

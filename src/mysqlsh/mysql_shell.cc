@@ -31,6 +31,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/devapi/mod_mysqlx.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"  // temporary
@@ -480,48 +481,37 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
-  _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
-  _global_js_sys =
-      std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
-  _global_dba =
-      std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
-  _global_util =
-      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
+  _global_shell = std::make_shared<mysqlsh::Shell>(this);
+  _global_js_sys = std::make_shared<mysqlsh::Sys>(_shell.get());
+  _global_dba = std::make_shared<mysqlsh::dba::Dba>(_shell.get());
+  _global_util = std::make_shared<mysqlsh::Util>(_shell.get());
   m_global_js_os = std::make_shared<mysqlsh::Os>();
 
-  set_global_object(
-      "shell",
-      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell),
-      shcore::IShell_core::all_scripting_modes());
+  set_global_object("shell", _global_shell,
+                    shcore::IShell_core::all_scripting_modes());
 
-  set_global_object(
-      "dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
-      shcore::IShell_core::all_scripting_modes());
+  set_global_object("dba", _global_dba,
+                    shcore::IShell_core::all_scripting_modes());
 
   set_global_object(
       "os", m_global_js_os,
       shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
   set_global_object(
-      "sys",
-      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_js_sys),
+      "sys", _global_js_sys,
       shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
-  set_global_object(
-      "util",
-      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_util),
-      shcore::IShell_core::all_scripting_modes());
+  set_global_object("util", _global_util,
+                    shcore::IShell_core::all_scripting_modes());
 
   auto shell_cli_operation = cmdline_options->get_shell_cli_operation();
   if (shell_cli_operation) {
-    shell_cli_operation->register_provider("dba", [this]() {
-      return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
-          _shell->get_global("dba").as_object());
-    });
-    shell_cli_operation->register_provider("shell", [this]() {
-      return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
-          _shell->get_global("shell").as_object());
-    });
+    shell_cli_operation->register_provider("dba",
+                                           [this]() { return _global_dba; });
+    shell_cli_operation->register_provider("shell",
+                                           [this]() { return _global_shell; });
     shell_cli_operation->register_provider(
-        "cluster", [this]() { return this->set_default_cluster(""); });
+        "cluster", [this]() { return create_default_cluster_object(); });
+    shell_cli_operation->register_provider(
+        "rs", [this]() { return create_default_replicaset_object(); });
     shell_cli_operation->register_provider("util",
                                            [this]() { return _global_util; });
     shell_cli_operation->register_provider("shell.options", [this]() {
@@ -980,89 +970,180 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
   return new_session;
 }
 
-bool Mysql_shell::redirect_session_if_needed(bool secondary) {
-  // Check that the connection is to a primary of a InnoDB cluster
-  std::shared_ptr<mysqlshdk::db::ISession> session(
-      shell_context()->get_dev_session()->get_core_session());
+bool Mysql_shell::redirect_session_if_needed(bool secondary,
+                                             const Connection_options &opts) {
+  const auto dev_session = shell_context()->get_dev_session();
+  const std::string target = secondary ? "SECONDARY" : "PRIMARY";
+  const auto session =
+      opts.has_data()
+          ? establish_session(opts, options().wizards)
+          : dev_session && dev_session->is_open()
+                ? dev_session->get_core_session()
+                : throw std::runtime_error("Redirecting to a " + target +
+                                           " requires an active session.");
+  auto connection = session->get_connection_options();
+  const auto uri = connection.as_uri();
 
-  std::string uri = shell_context()->get_dev_session()->uri();
+  log_info(
+      "Redirecting session from '%s' to a %s of an InnoDB cluster or "
+      "ReplicaSet...",
+      uri.c_str(), target.c_str());
 
-  log_info("Redirecting session from '%s' to a %s of its InnoDB cluster...",
-           uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
+  const auto find = secondary ? &dba::find_secondary_member_uri
+                              : &dba::find_primary_member_uri;
 
+  bool single_primary = true;
   std::string redirect_uri;
+  dba::Cluster_type cluster_type = dba::Cluster_type::NONE;
 
-  mysqlshdk::db::Connection_options connection =
-      session->get_connection_options();
-
-  auto instance = std::make_shared<mysqlsh::dba::Instance>(session);
-
-  if (secondary) {
-    bool single_primary;
-    redirect_uri = dba::find_secondary_member_uri(
-        instance, connection.get_session_type() == mysqlsh::SessionType::X,
-        &single_primary);
-
-    if (!single_primary) {
-      log_error(
-          "Redirection to secondary but cluster for %s is not single_primary "
-          "mode",
-          uri.c_str());
-      throw std::runtime_error(
-          "Secondary member requested, but cluster is multi-primary");
-    }
-    if (redirect_uri.empty()) {
-      throw std::runtime_error("No secondaries found in InnoDB cluster group");
-    }
-  } else {
-    bool single_primary;
-    redirect_uri = dba::find_primary_member_uri(
-        instance, connection.get_session_type() == mysqlsh::SessionType::X,
-        &single_primary);
-
-    if (!single_primary) {
-      return false;
-    }
-    if (redirect_uri.empty()) {
-      throw std::runtime_error("No primaries found in InnoDB cluster group");
+  try {
+    redirect_uri =
+        find(std::make_shared<mysqlsh::dba::Instance>(session),
+             connection.get_session_type() == mysqlsh::SessionType::X,
+             &single_primary, &cluster_type);
+  } catch (const shcore::Exception &ex) {
+    if (ex.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      throw shcore::Exception(
+          "The InnoDB cluster appears to be under a partial or total outage "
+          "and an ONLINE " +
+              target + " cannot be selected. (" + ex.what() + ")",
+          SHERR_DBA_GROUP_HAS_NO_QUORUM);
+    } else {
+      throw;
     }
   }
-  if (redirect_uri == connection.uri_endpoint()) return false;
 
-  log_info("Reconnecting to %s instance of the InnoDB cluster (%s)...",
-           redirect_uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
-  println("Reconnecting to " +
-          std::string(secondary ? "SECONDARY" : "PRIMARY") +
-          " instance of the InnoDB cluster (" + redirect_uri + ")...");
+  const auto display_string =
+      to_display_string(cluster_type, dba::Display_form::A_THING_FULL);
+  bool new_connection = true;
 
-  mysqlshdk::db::Connection_options redirected_connection(redirect_uri);
+  if (!single_primary) {
+    if (secondary) {
+      log_error(
+          "Redirection to a %s but %s for %s is not single-primary "
+          "mode",
+          target.c_str(), display_string.c_str(), uri.c_str());
+      throw std::runtime_error("Redirect to a " + target +
+                               " member requested, but " + display_string +
+                               " is multi-primary");
+    } else {
+      new_connection = false;
+    }
+  }
 
-  connection.clear_host();
-  connection.clear_port();
-  connection.clear_socket();
-  connection.set_host(redirected_connection.get_host());
-  if (redirected_connection.has_port())
-    connection.set_port(redirected_connection.get_port());
-  if (redirected_connection.has_socket())
-    connection.set_socket(redirected_connection.get_socket());
+  if (new_connection && redirect_uri.empty()) {
+    throw std::runtime_error(std::string{"No "} +
+                             (secondary ? "secondaries" : "primaries") +
+                             " found in " + display_string);
+  }
 
-  connect(connection);
-  return true;
+  if (new_connection && redirect_uri == connection.uri_endpoint()) {
+    new_connection = false;
+  }
+
+  if (new_connection) {
+    if (opts.has_data() && dev_session && dev_session->is_open() &&
+        dev_session->get_connection_options().uri_endpoint() == redirect_uri) {
+      // if a new connection is supposed to be established, but we were given
+      // some connection options that ended up pointing to the same server we're
+      // connected to, we don't want to connect
+      new_connection = false;
+    }
+  } else {
+    if (opts.has_data() &&
+        (!dev_session || !dev_session->is_open() ||
+         dev_session->get_connection_options().uri_endpoint() !=
+             connection.uri_endpoint())) {
+      // if a new connection is not supposed to be established (connection var
+      // is already pointing to a primary/secondary), but we were given some
+      // connection options that do not match the current global session, we
+      // need to connect
+      new_connection = true;
+      redirect_uri = connection.uri_endpoint();
+    }
+  }
+
+  if (new_connection) {
+    log_info("Reconnecting to %s instance of %s (%s)...", redirect_uri.c_str(),
+             display_string.c_str(), target.c_str());
+    println("Reconnecting to the " + target + " instance of " + display_string +
+            " (" + redirect_uri + ")...");
+
+    mysqlshdk::db::Connection_options redirected_connection(redirect_uri);
+
+    connection.clear_host();
+    connection.clear_port();
+    connection.clear_socket();
+
+    connection.set_host(redirected_connection.get_host());
+
+    if (redirected_connection.has_port()) {
+      connection.set_port(redirected_connection.get_port());
+    }
+
+    if (redirected_connection.has_socket()) {
+      connection.set_socket(redirected_connection.get_socket());
+    }
+  }
+
+  if (new_connection) {
+    connect(connection);
+  }
+
+  return new_connection;
 }
 
-std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
-    const std::string &name) {
-  std::shared_ptr<shcore::Cpp_object_bridge> dba(
-      _shell->get_global("dba").as_object<shcore::Cpp_object_bridge>());
+void Mysql_shell::init_extra_globals() {
+  if (options().default_cluster_set) {
+    try {
+      create_default_cluster_object();
+    } catch (const shcore::Exception &e) {
+      print_warning(
+          "Option --cluster requires a session to a member of an InnoDB "
+          "cluster.");
+      throw;
+    }
+  }
 
-  shcore::Argument_list args;
-  if (!name.empty()) args.push_back(shcore::Value(name));
+  if (options().default_replicaset_set) {
+    try {
+      create_default_replicaset_object();
+    } catch (const shcore::Exception &e) {
+      print_warning(
+          "Option --replicaset requires a session to a member of an InnoDB "
+          "ReplicaSet.");
+      throw;
+    }
+  }
+}
 
-  shcore::Value vcluster(dba->call("getCluster", args));
-  _shell->set_global("cluster", vcluster,
-                     shcore::IShell_core::all_scripting_modes());
+std::shared_ptr<mysqlsh::dba::Cluster>
+Mysql_shell::create_default_cluster_object() {
+  if (!m_default_cluster) {
+    const auto &default_cluster = options().default_cluster;
+    mysqlshdk::utils::nullable<std::string> name;
 
-  return vcluster.as_object<mysqlsh::dba::Cluster>();
+    if (!default_cluster.empty()) {
+      name = default_cluster;
+    }
+
+    m_default_cluster = _global_dba->get_cluster(name);
+    set_global_object("cluster", m_default_cluster,
+                      shcore::IShell_core::all_scripting_modes());
+  }
+
+  return m_default_cluster;
+}
+
+std::shared_ptr<mysqlsh::dba::ReplicaSet>
+Mysql_shell::create_default_replicaset_object() {
+  if (!m_default_replicaset) {
+    m_default_replicaset = _global_dba->get_replica_set();
+    set_global_object("rs", m_default_replicaset,
+                      shcore::IShell_core::all_scripting_modes());
+  }
+
+  return m_default_replicaset;
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {

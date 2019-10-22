@@ -201,6 +201,8 @@ void Shell::init() {
          "?definition");
   expose("dumpRows", &Shell::dump_rows, "resultset", "?format", "table");
   expose("connect", &Shell::connect, "connectionData", "?password");
+  expose("connectToPrimary", &Shell::connect_to_primary, "?connectionData",
+         "?password");
 }
 
 Shell::~Shell() {}
@@ -430,9 +432,64 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA, "${TOPIC_CONNECTION_DATA_BASIC}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA1, "${TOPIC_CONNECTION_MORE_INFO}");
 
 #ifdef DOXYGEN
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_CONNECTION_OPTIONS_DOXYGEN, R"*(
+$(TOPIC_CONNECTION_DATA_BASIC)
+$(TOPIC_CONNECTION_DATA_BASIC1)
+$(TOPIC_CONNECTION_DATA_BASIC2)
+
+$(TOPIC_URI)
+
+$(TOPIC_URI1)
+
+$(TOPIC_CONNECTION_OPTIONS)
+
+$(TOPIC_CONNECTION_OPTIONS1)
+
+$(TOPIC_URI_CONNECTION_OPTIONS)
+$(TOPIC_URI_CONNECTION_OPTIONS1)
+$(TOPIC_URI_CONNECTION_OPTIONS2)
+$(TOPIC_URI_CONNECTION_OPTIONS3)
+$(TOPIC_URI_CONNECTION_OPTIONS4)
+$(TOPIC_URI_CONNECTION_OPTIONS5)
+$(TOPIC_URI_CONNECTION_OPTIONS6)
+$(TOPIC_URI_CONNECTION_OPTIONS7)
+$(TOPIC_URI_CONNECTION_OPTIONS8)
+$(TOPIC_URI_CONNECTION_OPTIONS9)
+$(TOPIC_URI_CONNECTION_OPTIONS10)
+$(TOPIC_URI_CONNECTION_OPTIONS11)
+$(TOPIC_URI_CONNECTION_OPTIONS12)
+$(TOPIC_URI_CONNECTION_OPTIONS13)
+$(TOPIC_URI_CONNECTION_OPTIONS14)
+$(TOPIC_URI_CONNECTION_OPTIONS15)
+$(TOPIC_URI_CONNECTION_OPTIONS16)
+$(TOPIC_URI_CONNECTION_OPTIONS17)
+
+$(TOPIC_URI_CONNECTION_OPTIONS18)
+
+
+$(TOPIC_DICT_CONNECTION_OPTIONS)
+
+$(TOPIC_DICT_CONNECTION_OPTIONS1)
+$(TOPIC_DICT_CONNECTION_OPTIONS2)
+$(TOPIC_DICT_CONNECTION_OPTIONS3)
+$(TOPIC_DICT_CONNECTION_OPTIONS4)
+$(TOPIC_DICT_CONNECTION_OPTIONS5)
+$(TOPIC_DICT_CONNECTION_OPTIONS6)
+$(TOPIC_DICT_CONNECTION_OPTIONS7)
+$(TOPIC_DICT_CONNECTION_OPTIONS8)
+$(TOPIC_DICT_CONNECTION_OPTIONS9)
+
+$(TOPIC_DICT_CONNECTION_OPTIONS10)
+
+$(TOPIC_CONNECTION_DATA_DETAILS)
+
+$(TOPIC_CONNECTION_DATA_DETAILS1)
+)*");
+
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
-              "For additional information about MySQL connection options, "
-              "see @ref connection_options.");
+              "For additional information about MySQL connection data, see "
+              "@ref connection_data.");
 #else
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
               "For additional information on connection data use "
@@ -775,6 +832,61 @@ std::shared_ptr<ShellBaseSession> Shell::connect(
   auto connection_options = connection_options_;
   mysqlsh::set_password_from_string(&connection_options, password);
   _shell->connect(connection_options);
+  return get_dev_session();
+}
+
+REGISTER_HELP_FUNCTION(connectToPrimary, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_CONNECTTOPRIMARY, R"*(
+Establishes the shell global session, connecting to a primary of an InnoDB
+cluster or ReplicaSet.
+
+@param connectionData Optional The connection data to be used to establish the
+session.
+@param password Optional The password to be used when establishing the session.
+
+@returns The established session.
+
+Ensures that the target server is a member of an InnoDB cluster or ReplicaSet
+and if it is not a PRIMARY, finds the PRIMARY and connects to it. Sets the
+global session object to the established session and returns that object.
+
+If connectionData is not given, this function uses the global shell session, if
+there is none, an exception is raised.
+
+${SHELL_CONNECT_DETAIL1}
+
+${TOPIC_CONNECTION_DATA}
+
+@throws RuntimeError in the following scenarios:
+@li If connectionData was not given and there is no global shell session.
+@li If there is no primary member of an InnoDB cluster or ReplicaSet.
+@li If the target server is not a member of an InnoDB cluster or ReplicaSet.
+)*");
+
+/**
+ * $(SHELL_CONNECTTOPRIMARY_BRIEF)
+ *
+ * $(SHELL_CONNECTTOPRIMARY)
+ */
+#if DOXYGEN_JS
+Session Shell::connectToPrimary(ConnectionData connectionData,
+                                String password) {}
+#elif DOXYGEN_PY
+Session Shell::connect_to_primary(ConnectionData connectionData, str password) {
+}
+#endif
+std::shared_ptr<ShellBaseSession> Shell::connect_to_primary(
+    const mysqlshdk::db::Connection_options &co_, const char *password) {
+  auto co = co_;
+
+  if (co.has_data()) {
+    mysqlsh::set_password_from_string(&co, password);
+  }
+
+  if (!_shell->redirect_session_if_needed(false, co)) {
+    current_console()->print_note("Already connected to a PRIMARY.");
+  }
+
   return get_dev_session();
 }
 

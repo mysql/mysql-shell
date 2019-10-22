@@ -52,6 +52,7 @@ class Command_line_shell : public Mysql_shell,
   ~Command_line_shell() override;
 
   void print_banner();
+  void pre_command_loop();
   void command_loop();
 
   void print_cmd_line_helper();

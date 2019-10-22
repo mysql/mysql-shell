@@ -654,9 +654,10 @@ TEST_F(Completer_frontend, js_shell) {
   CHECK_OBJECT_COMPLETIONS("shell");
 
   EXPECT_AFTER_TAB("sh", "shell");
-  EXPECT_AFTER_TAB("shell.con", "shell.connect()");
+  EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
   EXPECT_AFTER_TAB_TAB("shell.", strv({"addExtensionObjectMember()",
                                        "connect()",
+                                       "connectToPrimary()",
                                        "createExtensionObject()",
                                        "deleteAllCredentials()",
                                        "deleteCredential()",
@@ -1150,9 +1151,10 @@ TEST_F(Completer_frontend, py_shell) {
   CHECK_OBJECT_COMPLETIONS("shell");
 
   EXPECT_AFTER_TAB("sh", "shell");
-  EXPECT_AFTER_TAB("shell.con", "shell.connect()");
+  EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
   EXPECT_AFTER_TAB_TAB("shell.", strv({"add_extension_object_member()",
                                        "connect()",
+                                       "connect_to_primary()",
                                        "create_extension_object()",
                                        "delete_all_credentials()",
                                        "delete_credential()",

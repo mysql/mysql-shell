@@ -19,6 +19,10 @@ FUNCTIONS
       connect(connectionData[, password])
             Establishes the shell global session.
 
+      connect_to_primary([connectionData][, password])
+            Establishes the shell global session, connecting to a primary of an
+            InnoDB cluster or ReplicaSet.
+
       create_extension_object()
             Creates an extension object, it can be used to extend shell
             functionality.
@@ -292,6 +296,116 @@ DESCRIPTION
       If an option is defined more than once, an error will be generated.
 
       For additional information on connection data use \? connection.
+
+#@<OUT> Help on connect_to_primary
+NAME
+      connect_to_primary - Establishes the shell global session, connecting to
+                           a primary of an InnoDB cluster or ReplicaSet.
+
+SYNTAX
+      shell.connect_to_primary([connectionData][, password])
+
+WHERE
+      connectionData: The connection data to be used to establish the session.
+      password: The password to be used when establishing the session.
+
+RETURNS
+      The established session.
+
+DESCRIPTION
+      Ensures that the target server is a member of an InnoDB cluster or
+      ReplicaSet and if it is not a PRIMARY, finds the PRIMARY and connects to
+      it. Sets the global session object to the established session and returns
+      that object.
+
+      If connectionData is not given, this function uses the global shell
+      session, if there is none, an exception is raised.
+
+      The password may be included on the connectionData, the optional
+      parameter should be used only if the connectionData does not contain it
+      already. If both are specified the password parameter will override the
+      password defined on the connectionData.
+
+      The connection data may be specified in the following formats:
+
+      - A URI string
+      - A dictionary with the connection options
+
+      A basic URI string has the following format:
+
+      [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+      Connection Options
+
+      The following options are valid for use either in a URI or in a
+      dictionary:
+
+      - ssl-mode: The SSL mode to be used in the connection.
+      - ssl-ca: The path to the X509 certificate authority file in PEM format.
+      - ssl-capath: The path to the directory that contains the X509
+        certificate authority files in PEM format.
+      - ssl-cert: The path to the SSL public key certificate file in PEM
+        format.
+      - ssl-key: The path to the SSL private key file in PEM format.
+      - ssl-crl: The path to file that contains certificate revocation lists.
+      - ssl-crlpath: The path of directory that contains certificate revocation
+        list files.
+      - ssl-cipher: The list of permissible encryption ciphers for connections
+        that use TLS protocols up through TLSv1.2.
+      - tls-version: List of protocols permitted for secure connections.
+      - tls-ciphers: List of TLS v1.3 ciphers to use.
+      - auth-method: Authentication method.
+      - get-server-public-key: Request public key from the server required for
+        RSA key pair-based password exchange. Use when connecting to MySQL 8.0
+        servers with classic MySQL sessions with SSL mode DISABLED.
+      - server-public-key-path: The path name to a file containing a
+        client-side copy of the public key required by the server for RSA key
+        pair-based password exchange. Use when connecting to MySQL 8.0 servers
+        with classic MySQL sessions with SSL mode DISABLED.
+      - connect-timeout: The connection timeout in milliseconds. If not
+        provided a default timeout of 10 seconds will be used. Specifying a
+        value of 0 disables the connection timeout.
+      - compression: Enable/disable compression in client/server protocol,
+        valid values: "true", "false", "1", and "0".
+      - connection-attributes: List of connection attributes to be registered
+        at the PERFORMANCE_SCHEMA connection attributes tables.
+      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+      - net-buffer-length: The buffer size for TCP/IP and socket communication.
+
+      When these options are defined in a URI, their values must be URL
+      encoded.
+
+      The following options are also valid when a dictionary is used:
+
+      Base Connection Options
+
+      - scheme: the protocol to be used on the connection.
+      - user: the MySQL user name to be used on the connection.
+      - dbUser: alias for user.
+      - password: the password to be used on the connection.
+      - dbPassword: same as password.
+      - host: the hostname or IP address to be used on the connection.
+      - port: the port to be used in a TCP connection.
+      - socket: the socket file name to be used on a connection through unix
+        sockets.
+      - schema: the schema to be selected once the connection is done.
+
+      ATTENTION: The dbUser and dbPassword options are will be removed in a
+                 future release.
+
+      The connection options are case insensitive and can only be defined once.
+
+      If an option is defined more than once, an error will be generated.
+
+      For additional information on connection data use \? connection.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - If connectionData was not given and there is no global shell session.
+      - If there is no primary member of an InnoDB cluster or ReplicaSet.
+      - If the target server is not a member of an InnoDB cluster or
+        ReplicaSet.
 
 #@<OUT> shell.create_extension_object
 NAME

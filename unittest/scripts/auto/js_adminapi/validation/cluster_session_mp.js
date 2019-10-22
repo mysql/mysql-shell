@@ -82,7 +82,7 @@
 
 //@ MP - Connect with --redirect-secondary (error)
 |While handling --redirect-secondary:|
-|Secondary member requested, but cluster is multi-primary|
+|Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
 
 //@ MPX - Connect with no options and ensure it will connect to the specified member
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
@@ -100,7 +100,7 @@
 
 //@ MPX - Connect with --redirect-secondary (error)
 |While handling --redirect-secondary:|
-|Secondary member requested, but cluster is multi-primary|
+|Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
 
 
 //@ MP - Connect with --cluster 1
@@ -119,7 +119,7 @@
 
 //@ MP - Connect with --cluster + --redirect-secondary (error)
 |While handling --redirect-secondary:|
-|Secondary member requested, but cluster is multi-primary|
+|Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
 
 //@ MPX - Connect with --cluster 1
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
@@ -137,7 +137,7 @@
 
 //@ MPX - Connect with --cluster + --redirect-secondary (error)
 |While handling --redirect-secondary:|
-|Secondary member requested, but cluster is multi-primary|
+|Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
 
 
 //@ Dissolve the multi-primary cluster while connected to sandbox2

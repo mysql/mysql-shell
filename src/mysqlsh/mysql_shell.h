@@ -49,10 +49,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
   virtual void connect(const mysqlshdk::db::Connection_options &args,
                        bool recreate_schema = false);
 
-  bool redirect_session_if_needed(bool secondary);
-
-  std::shared_ptr<mysqlsh::dba::Cluster> set_default_cluster(
-      const std::string &name);
+  bool redirect_session_if_needed(
+      bool secondary, const Connection_options &opts = Connection_options());
 
   bool cmd_print_shell_help(const std::vector<std::string> &args);
   bool cmd_start_multiline(const std::vector<std::string> &args);
@@ -102,6 +100,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
                    bool allow_recursive);
   void finish_init() override;
 
+  void init_extra_globals();
+
  protected:
   static void set_sql_safe_for_logging(const std::string &patterns);
 
@@ -127,10 +127,16 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::Util> _global_util;
   std::shared_ptr<mysqlsh::Os> m_global_js_os;
 
+  std::shared_ptr<mysqlsh::dba::Cluster> m_default_cluster;
+  std::shared_ptr<mysqlsh::dba::ReplicaSet> m_default_replicaset;
+
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;
 
  private:
+  std::shared_ptr<mysqlsh::dba::Cluster> create_default_cluster_object();
+  std::shared_ptr<mysqlsh::dba::ReplicaSet> create_default_replicaset_object();
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);
   FRIEND_TEST(Cmdline_shell, check_history_overflow_del);

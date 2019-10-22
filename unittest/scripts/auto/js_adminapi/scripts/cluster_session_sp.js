@@ -270,6 +270,9 @@ testutil.callMysqlsh([__sandbox_uri3, "--js", "--interactive", "-e", "println(cl
 //@ SP - Connect with --cluster on a non-cluster member (error)
 testutil.callMysqlsh([__sandbox_uri3, "--js", "--cluster"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 
+//@ SP - Connect with --replicaset, expect error
+testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "println(replicaset.status())", "--replicaset"]);
+
 //@ SP - Connect with --cluster + --redirect-primary 1
 testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
 
@@ -281,6 +284,18 @@ testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-secondary", "-e", "pri
 
 //@ SP - Connect with --cluster + --redirect-secondary 2
 testutil.callMysqlsh([__sandbox_uri2, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);
+
+//@ SP - Connect with --replicaset + --redirect-primary 1, expect error
+testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-primary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SP - Connect with --replicaset + --redirect-primary 2, expect error
+testutil.callMysqlsh([__sandbox_uri2, "--js", "--redirect-primary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SP - Connect with --replicaset + --redirect-secondary 1, expect error
+testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-secondary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SP - Connect with --replicaset + --redirect-secondary 2, expect error
+testutil.callMysqlsh([__sandbox_uri2, "--js", "--redirect-secondary", "-e", "println(replicaset.status())", "--replicaset"]);
 
 //@ SPX - Connect with --cluster 1
 testutil.callMysqlsh([__sandbox_xuri1, "--js", "-e", "println(cluster.status())", "--cluster"]);
@@ -294,6 +309,9 @@ testutil.callMysqlsh([__sandbox_xuri2, "--py", "-e", "print(cluster.status())", 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
 testutil.callMysqlsh([__sandbox_xuri3, "--js", "-e", "println(cluster.status())", "--cluster"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 
+//@ SPX - Connect with --replicaset, expect error [USE: SP - Connect with --replicaset, expect error]
+testutil.callMysqlsh([__sandbox_xuri1, "--js", "-e", "println(replicaset.status())", "--replicaset"]);
+
 //@ SPX - Connect with --cluster + --redirect-primary 1
 testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
 
@@ -305,6 +323,18 @@ testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-secondary", "-e", "pr
 
 //@ SPX - Connect with --cluster + --redirect-secondary 2
 testutil.callMysqlsh([__sandbox_xuri2, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);
+
+//@ SPX - Connect with --replicaset + --redirect-primary 1, expect error [USE: SP - Connect with --replicaset + --redirect-primary 1, expect error]
+testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-primary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SPX - Connect with --replicaset + --redirect-primary 2, expect error
+testutil.callMysqlsh([__sandbox_xuri2, "--js", "--redirect-primary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SPX - Connect with --replicaset + --redirect-secondary 1, expect error
+testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-secondary", "-e", "println(replicaset.status())", "--replicaset"]);
+
+//@ SPX - Connect with --replicaset + --redirect-secondary 2, expect error [USE: SP - Connect with --replicaset + --redirect-secondary 2, expect error]
+testutil.callMysqlsh([__sandbox_xuri2, "--js", "--redirect-secondary", "-e", "println(replicaset.status())", "--replicaset"]);
 
 //@ SPX implicit - Connect with --cluster 1
 testutil.callMysqlsh([__sandbox_xuri1_, "--js", "-e", "println(cluster.status())", "--cluster"]);

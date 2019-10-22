@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/common/dba_errors.h"
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
@@ -56,7 +55,6 @@ void finalize_debug_shell(mysqlsh::Command_line_shell *shell);
 #endif
 
 const char *g_mysqlsh_path;
-static mysqlsh::Command_line_shell *g_shell_ptr;
 
 #ifdef WIN32
 #include <windows.h>
@@ -499,69 +497,43 @@ std::string pick_prompt_theme() {
   return path;
 }
 
-static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
-                           const mysqlsh::Shell_options::Storage &options) {
-  switch (options.redirect_session) {
-    case mysqlsh::Shell_options::Storage::None:
+static std::string option_for(
+    mysqlsh::Shell_options::Storage::Redirect_to target) {
+  using Redirect_to = mysqlsh::Shell_options::Storage::Redirect_to;
+
+  switch (target) {
+    case Redirect_to::Primary:
+      return "--redirect-primary";
+
+    case Redirect_to::Secondary:
+      return "--redirect-secondary";
+
+    default:
       break;
-    case mysqlsh::Shell_options::Storage::Primary: {
-      try {
-        if (!shell->redirect_session_if_needed(false)) {
-          std::cerr << "NOTE: --redirect-primary ignored because target is "
-                       "already a PRIMARY\n";
-        }
-      } catch (const shcore::Exception &e) {
-        std::cerr << "While handling --redirect-primary:\n";
-        if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
-          std::cerr << "ERROR: The cluster appears to be under a partial "
-                       "or total outage and the PRIMARY cannot be "
-                       "selected.\n"
-                    << e.what() << "\n";
-          return 1;
-        }
-        throw;
-      } catch (...) {
-        std::cerr << "While handling --redirect-primary:\n";
-        throw;
-      }
-      break;
-    }
-    case mysqlsh::Shell_options::Storage::Secondary: {
-      try {
-        if (!shell->redirect_session_if_needed(true)) {
-          std::cerr << "NOTE: --redirect-secondary ignored because target is "
-                       "already a SECONDARY\n";
-        }
-      } catch (const shcore::Exception &e) {
-        std::cerr << "While handling --redirect-secondary:\n";
-        if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
-          std::cerr << "ERROR: The cluster appears to be under a partial "
-                       "or total outage and an ONLINE SECONDARY cannot "
-                       "be selected.\n"
-                    << e.what() << "\n";
-          return 1;
-        }
-        throw;
-      } catch (...) {
-        std::cerr << "While handling --redirect-secondary:\n";
-        throw;
-      }
-      break;
-    }
   }
-  return 0;
+
+  throw std::logic_error("No option associated");
 }
 
-static void show_cluster_info(
-    std::shared_ptr<mysqlsh::Command_line_shell> /* shell */,
-    std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
-  // cluster->diagnose();
-  auto console = mysqlsh::current_console();
-  console->println("You are connected to a member of cluster '" +
-                   cluster->impl()->get_name() + "'.");
-  console->println(
-      "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
-      "get status of this cluster or cluster.help() for more commands.");
+static void handle_redirect(
+    const std::shared_ptr<mysqlsh::Command_line_shell> &shell,
+    mysqlsh::Shell_options::Storage::Redirect_to target) {
+  using Redirect_to = mysqlsh::Shell_options::Storage::Redirect_to;
+
+  if (Redirect_to::None != target) {
+    try {
+      const auto secondary = Redirect_to::Secondary == target;
+
+      if (!shell->redirect_session_if_needed(secondary)) {
+        std::cerr << "NOTE: " << option_for(target)
+                  << " ignored because target is already a "
+                  << (secondary ? "SECONDARY" : "PRIMARY") << "\n";
+      }
+    } catch (...) {
+      std::cerr << "While handling " << option_for(target) << ":\n";
+      throw;
+    }
+  }
 }
 
 bool stdin_is_tty = false;
@@ -758,8 +730,7 @@ int main(int argc, char **argv) {
           shell->connect(target, options.recreate_database);
 
           // If redirect is requested, then reconnect to the right instance
-          ret_val = handle_redirect(shell, options);
-          if (ret_val != 0) return ret_val;
+          handle_redirect(shell, options.redirect_session);
         } catch (const mysqlshdk::db::Error &e) {
           std::string error = "MySQL Error ";
           error.append(std::to_string(e.code()));
@@ -782,15 +753,16 @@ int main(int argc, char **argv) {
         }
       } else {
         shell->restore_print();
-        if (options.redirect_session) {
+
+        if (mysqlsh::Shell_options::Storage::Redirect_to::None !=
+            options.redirect_session) {
           mysqlsh::current_console()->print_error(
-              "--redirect option requires a session to a member of an InnoDB "
-              "cluster");
+              "The " + option_for(options.redirect_session) +
+              " option requires a session to a member of an InnoDB cluster or "
+              "ReplicaSet.");
           return 1;
         }
       }
-
-      std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
 
 #ifdef WITH_OCI
       if (options.oci_wizard) {
@@ -804,23 +776,18 @@ int main(int argc, char **argv) {
       }
 #endif
 
-      // If default cluster specified on the cmdline, set cluster global var
-
-      auto shell_cli_operation = shell_options->get_shell_cli_operation();
-      if (options.default_cluster_set && !shell_cli_operation) {
-        try {
-          default_cluster = shell->set_default_cluster(options.default_cluster);
-        } catch (const shcore::Exception &e) {
-          mysqlsh::current_console()->print_warning(
-              "Option --cluster requires a session to a member of an InnoDB "
-              "cluster.");
-          mysqlsh::current_console()->print_error(e.format());
-          return 1;
-        }
+      try {
+        // initialize globals requested via command line (i.e. --cluster,
+        // --replicaset)
+        shell->init_extra_globals();
+      } catch (const shcore::Exception &e) {
+        mysqlsh::current_console()->print_error(e.format());
+        return 1;
       }
 
-      g_shell_ptr = shell.get();
       if (valid_color_capability) shell->load_prompt_theme(pick_prompt_theme());
+
+      const auto shell_cli_operation = shell_options->get_shell_cli_operation();
 
       if (shell_cli_operation && !shell_cli_operation->empty()) {
         try {
@@ -856,9 +823,7 @@ int main(int argc, char **argv) {
       } else if (options.interactive) {
         shell->load_state();
 
-        if (default_cluster) {
-          show_cluster_info(shell, default_cluster);
-        }
+        shell->pre_command_loop();
 
         shell->command_loop();
 

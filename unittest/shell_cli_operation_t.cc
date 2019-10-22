@@ -195,7 +195,8 @@ TEST_F(Shell_cli_operation_test, cluster_object) {
   mysqlsh::Mysql_shell shell(options, &output_handler.deleg);
   ASSERT_TRUE(options->get_shell_cli_operation() != nullptr);
   EXPECT_THROW_LIKE(options->get_shell_cli_operation()->execute(),
-                    shcore::Exception, "Dba.getCluster");
+                    shcore::Exception,
+                    "An open session is required to perform this operation.");
 }
 
 TEST_F(Shell_cli_operation_test, shell_object) {

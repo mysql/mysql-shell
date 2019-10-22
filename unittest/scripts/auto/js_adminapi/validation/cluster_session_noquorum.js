@@ -101,13 +101,11 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> Connect shell to surviving member with --redirect-primary (fail)
-ERROR: The cluster appears to be under a partial or total outage and the PRIMARY cannot be selected.
-Group has no quorum
+//@ Connect shell to surviving member with --redirect-primary (fail)
+|The InnoDB cluster appears to be under a partial or total outage and an ONLINE PRIMARY cannot be selected. (Group has no quorum)|
 
-//@<OUT> Connect shell to surviving member with --redirect-secondary (fail)
-ERROR: The cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected.
-Group has no quorum
+//@ Connect shell to surviving member with --redirect-secondary (fail)
+|The InnoDB cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected. (Group has no quorum)|
 
 //@<OUT> Connect shell to surviving member with --cluster (ok)
 {
@@ -209,13 +207,11 @@ Group has no quorum
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
-//@<OUT> 2 Connect shell to surviving member with --redirect-primary (fail)
-ERROR: The cluster appears to be under a partial or total outage and the PRIMARY cannot be selected.
-Group has no quorum
+//@ 2 Connect shell to surviving member with --redirect-primary (fail)
+|The InnoDB cluster appears to be under a partial or total outage and an ONLINE PRIMARY cannot be selected. (Group has no quorum)|
 
-//@<OUT> 2 Connect shell to surviving member with --redirect-secondary (fail)
-ERROR: The cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected.
-Group has no quorum
+//@ 2 Connect shell to surviving member with --redirect-secondary (fail)
+|The InnoDB cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected. (Group has no quorum)|
 
 //@<OUT> 2 Connect shell to surviving member with --cluster (ok)
 {

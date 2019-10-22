@@ -122,9 +122,14 @@ class Shell_options : public shcore::Options {
     std::string histignore;
     int history_max_size = 1000;
     bool history_autosave = false;
-    enum { None, Primary, Secondary } redirect_session = None;
+    enum class Redirect_to {
+      None,
+      Primary,
+      Secondary
+    } redirect_session = Redirect_to::None;
     std::string default_cluster;
     bool default_cluster_set = false;
+    bool default_replicaset_set = false;
     bool get_server_public_key = false;
     std::string server_public_key_path;
     // cmdline params to be passed to script

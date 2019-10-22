@@ -547,6 +547,64 @@ function EXPECT_STDERR_CONTAINS(text) {
   }
 }
 
+function __split_trim_join(text) {
+  const needle = '\n';
+  const s = text.split(needle);
+  s.forEach(function (item, index) { this[index] = item.trimEnd(); }, s);
+  return {'str': s.join(needle), 'array': s};
+}
+
+function __make_multiline_diff(expected, actual) {
+  const needle = '\n';
+  const idx = actual.indexOf(expected[0]);
+
+  if (idx < 0) {
+    expected[0] += '<yellow><------ INCONSISTENCY</yellow>';
+  } else {
+    for (var i = 0; i < expected.length; ++i) {
+      if (idx + i >= actual.length) {
+        expected[i] += '<yellow><------ MISSING</yellow>';
+        break;
+      } else if (expected[i] !== actual[idx + i]) {
+        expected[i] += '<yellow><------ INCONSISTENCY</yellow>';
+        break;
+      }
+    }
+  }
+
+  return expected.join(needle);
+}
+
+function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  if (out.str.indexOf(text.str) < 0 && err.str.indexOf(text.str) < 0) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + __make_multiline_diff(text.array, out.array) + "\n<yellow>Diff with stderr:</yellow>\n" + __make_multiline_diff(text.array, err.array);
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_STDOUT_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  if (out.str.indexOf(text.str) < 0) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + __make_multiline_diff(text.array, out.array);
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_STDERR_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  if (err.str.indexOf(text.str) < 0) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stderr:</yellow>\n" + __make_multiline_diff(text.array, err.array);
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_OUTPUT_MATCHES(re) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
