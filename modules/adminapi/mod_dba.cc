@@ -2711,7 +2711,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       get_function_name("rebootClusterFromCompleteOutage"));
 
   if (interactive) {
-    console->println();
     console->println("The cluster was successfully rebooted.");
     console->println();
   }

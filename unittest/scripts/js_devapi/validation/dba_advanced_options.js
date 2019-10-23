@@ -13,6 +13,10 @@
 //@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__mysql_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__mysql_port>>>'. (RuntimeError)
 
+//@ Create cluster error when localaddress not used and generated port higher than 6553
+|NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__generated_local_address>>>'. Use the localAddress option to override.|
+||Dba.createCluster: Automatically generated port for localAddress falls out of valid range. The port must be an integer between 1 and 65535. Please use the localAddress option to manually set a valid value. (ArgumentError)
+
 //@ Create cluster errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
 ||Dba.createCluster: Invalid address format: 'abc'

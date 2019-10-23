@@ -37,6 +37,18 @@ var c = dba.createCluster('test', {localAddress: ":123456"});
 var __local_address_1 = __host + ":" + __mysql_port;
 var c = dba.createCluster('test', {localAddress: __local_address_1});
 
+//@<> Prepare: Regression test for BUG#30405569: BAD USABILITY IN DBA.CREATECLUSTER() WHEN MYSQLD PORT > 6553
+session.close();
+testutil.deploySandbox(__mysql_sandbox_gr_port4, "root", {report_host: hostname});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_gr_port4, user: 'root', password: 'root'});
+var __generated_local_address = __mysql_sandbox_gr_port4 * 10 + 1;
+//@ Create cluster error when localaddress not used and generated port higher than 6553
+dba.createCluster('test');
+
+//@<> Clean-up: Regression test for BUG#30405569: BAD USABILITY IN DBA.CREATECLUSTER() WHEN MYSQLD PORT > 6553
+testutil.destroySandbox(__mysql_sandbox_gr_port4);
+shell.connect(__sandbox_uri1);
+
 //@ Create cluster errors using groupSeeds option
 // FR2-TS-1-3
 var c = dba.createCluster('test', {groupSeeds: ""});

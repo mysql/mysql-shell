@@ -84,12 +84,12 @@ the cluster or a subset of it. To use this method by default, set the
 'recoveryMethod' option to 'incremental'.
 
 Incremental distributed state recovery was selected because it seems to be safely usable.
+
 ?{VER(<8.0.11)}
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 ?{}
-
 The cluster was successfully rebooted.
 
 //@ Cleanup

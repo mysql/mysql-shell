@@ -41,8 +41,8 @@ void ensure_instance_configuration_valid(
   shcore::Value result;
 
   if (full) {
-    console->println("Validating instance at " + target_instance.descr() +
-                     "...");
+    console->print_info("Validating instance at " + target_instance.descr() +
+                        "...");
 
     Check_instance check(target_instance.get_connection_options(), "", true);
     check.prepare();
@@ -50,7 +50,8 @@ void ensure_instance_configuration_valid(
     check.finish();
 
     if (!result || result.as_map()->at("status").get_string() == "ok") {
-      console->println("Instance configuration is suitable.");
+      console->print_info("Instance configuration is suitable.");
+      console->print_info();
     } else {
       console->print_error(
           "Instance must be configured and validated with "
@@ -77,7 +78,7 @@ void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance) {
                                               current_host, &error_info)) {
     auto console = mysqlsh::current_console();
     console->print_error(error_info);
-    console->println("For more information, see the online documentation.");
+    console->print_info("For more information, see the online documentation.");
     throw shcore::Exception::runtime_error(
         "The account " + shcore::make_account(current_user, current_host) +
         " is missing privileges required to manage an InnoDB cluster.");

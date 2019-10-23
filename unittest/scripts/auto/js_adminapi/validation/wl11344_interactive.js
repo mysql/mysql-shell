@@ -87,6 +87,9 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
+
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
+
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 Creating InnoDB cluster 'C' on 'localhost:<<<__mysql_sandbox_port1>>>'...
 
@@ -136,6 +139,9 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 Instance configuration is suitable.
+
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
+
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB cluster 'ClusterName' on 'localhost:<<<__mysql_sandbox_port1>>>'...
 
@@ -339,6 +345,9 @@ the cluster or a subset of it. To use this method by default, set the
 'recoveryMethod' option to 'incremental'.
 
 Incremental distributed state recovery was selected because it seems to be safely usable.
+
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
+
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -346,6 +355,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
+
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
@@ -489,6 +499,9 @@ the cluster or a subset of it. To use this method by default, set the
 'recoveryMethod' option to 'incremental'.
 
 Incremental distributed state recovery was selected because it seems to be safely usable.
+
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
+
 Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -496,6 +509,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
+
 WARNING: Instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.

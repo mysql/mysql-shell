@@ -35,7 +35,7 @@
 |'recoveryMethod' option to 'incremental'.|
 ||
 ||
-|Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): Validating instance at localhost:<<<__mysql_sandbox_port2>>>...|
+|Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): |
 
 ||Cluster.addInstance: debug (LogicError)
 

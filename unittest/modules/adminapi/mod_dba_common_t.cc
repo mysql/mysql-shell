@@ -1603,4 +1603,187 @@ TEST(mod_dba_common, is_valid_identifier) {
       t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
 }
 
+TEST_F(Dba_common_test, resolve_gr_local_address) {
+  mysqlshdk::utils::nullable<std::string> local_address;
+  std::string raw_report_host = "127.0.0.1";
+  int port;
+
+  // Tests for empty localAddress
+
+  // Valid port, local_address null
+  {
+    local_address = mysqlshdk::utils::nullable<std::string>();
+    port = 3306;
+    EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
+        local_address, raw_report_host, port));
+  }
+
+  // Valid port, local_address empty
+  {
+    local_address = std::string("");
+    port = 3306;
+    EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
+        local_address, raw_report_host, port));
+  }
+
+  // Invalid port, local_address null
+  {
+    local_address.reset();
+    port = 13040;
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Automatically generated port for localAddress falls out of valid "
+        "range. The port must be an integer between 1 and 65535. Please use "
+        "the localAddress option to manually set a valid value.");
+  }
+
+  // Invalid port, local_address empty
+  {
+    local_address = std::string("");
+    port = 13040;
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Automatically generated port for localAddress falls out of valid "
+        "range. The port must be an integer between 1 and 65535. Please use "
+        "the localAddress option to manually set a valid value.");
+  }
+
+  // Busy port
+  {
+    testutil->deploy_sandbox(_mysql_sandbox_ports[0] * 10 + 1, "root");
+
+    local_address = std::string("");
+    port = _mysql_sandbox_ports[0];
+    try {
+      mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                             port);
+      testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
+      SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
+      ADD_FAILURE();
+    } catch (const shcore::Exception &e) {
+      std::string expected =
+          "The port '" + std::to_string(port * 10 + 1) +
+          "' for localAddress option is already in use. Specify an "
+          "available port to be used with localAddress option or free port "
+          "'" +
+          std::to_string(port * 10 + 1) + "'.";
+
+      EXPECT_STREQ(expected.c_str(), e.what());
+    }
+  }
+
+  // Tests for non-empty localAddress
+
+  // Valid port, non-empty local_address
+  {
+    local_address = std::string("127.0.0.1");
+    port = 3306;
+    EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
+        local_address, raw_report_host, port));
+  }
+
+  // Invalid port, complete local_address
+  {
+    local_address = std::string("127.0.0.1:130400");
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Invalid port '130400' for localAddress option. The port must be an "
+        "integer between 1 and 65535.");
+  }
+
+  // Invalid port (string), complete local_address
+  {
+    local_address = std::string("127.0.0.1:a");
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Invalid port 'a' for localAddress option. The port must be an "
+        "integer between 1 and 65535.");
+  }
+
+  // Invalid port, local_address without port part
+  {
+    local_address = std::string("127.0.0.2");
+    port = 13040;
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Automatically generated port for localAddress falls out of valid "
+        "range. The port must be an integer between 1 and 65535. Please use "
+        "the localAddress option to manually set a valid value.");
+  }
+
+  // Invalid port, local_address without port part, using ":"
+  {
+    local_address = std::string("127.0.0.2:");
+    port = 13040;
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Automatically generated port for localAddress falls out of valid "
+        "range. The port must be an integer between 1 and 65535. Please use "
+        "the localAddress option to manually set a valid value.");
+  }
+
+  // Valid port, local_address without separator ':', assumed to be the port
+  {
+    int unused_port = _mysql_sandbox_ports[1];
+    local_address = std::to_string(unused_port);
+
+    EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
+        local_address, raw_report_host, port));
+  }
+
+  // Invalid port, local_address without separator ':', assumed to be the port
+  {
+    local_address = std::string("130401");
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                               port),
+        shcore::Exception,
+        "Invalid port '130401' for localAddress option. The port must be an "
+        "integer between 1 and 65535.");
+  }
+
+  // Busy port
+  {
+    int used_port = _mysql_sandbox_ports[0] * 10 + 1;
+    local_address = std::string("127.0.0.1:") + std::to_string(used_port);
+
+    try {
+      mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
+                                             port);
+      testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
+      SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
+      ADD_FAILURE();
+    } catch (const shcore::Exception &e) {
+      std::string expected =
+          "The port '" + std::to_string(used_port) +
+          "' for localAddress option is already in use. Specify an "
+          "available port to be used with localAddress option or free port "
+          "'" +
+          std::to_string(used_port) + "'.";
+
+      EXPECT_STREQ(expected.c_str(), e.what());
+    }
+  }
+
+  testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
+}
 }  // namespace testing

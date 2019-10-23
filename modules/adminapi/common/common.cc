@@ -44,6 +44,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -1818,6 +1819,7 @@ std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
     const std::string &raw_report_host, int port) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
+  bool generated = false;
 
   // if report host is an IPv6 address, surround it with []
   // The [] are necessary for IPv6 because we later have to append a colon and
@@ -1835,6 +1837,15 @@ std::string resolve_gr_local_address(
     // No local address specified, use instance host and port * 10 + 1.
     local_host = report_host;
     local_port = port * 10 + 1;
+    generated = true;
+
+    auto console = mysqlsh::current_console();
+
+    console->print_note(
+        "Group Replication will communicate with other members using '" +
+        local_host + ":" + std::to_string(local_port) +
+        "'. Use the localAddress option to override.");
+    console->print_info();
   } else if (local_address->front() == '[' && local_address->back() == ']') {
     // It is an IPV6 address (no port specified), since it is surrounded by [].
     // NOTE: Must handle this situation first to avoid splitting IPv6 addresses
@@ -1858,20 +1869,13 @@ std::string resolve_gr_local_address(
       // No port part, then use instance port * 10 +1.
       if (str_local_port.empty()) {
         local_port = port * 10 + 1;
+        generated = true;
       } else {
         // Convert port string value to int
         try {
           local_port = std::stoi(str_local_port);
         } catch (const std::exception &) {
           // Error if the port cannot be converted to an integer (not valid).
-          throw shcore::Exception::argument_error(
-              "Invalid port '" + str_local_port +
-              "' for localAddress option. The port must be an integer between "
-              "1 and 65535.");
-        }
-
-        // The specified port must have a valid range.
-        if (local_port <= 0 || local_port > k_max_port) {
           throw shcore::Exception::argument_error(
               "Invalid port '" + str_local_port +
               "' for localAddress option. The port must be an integer between "
@@ -1885,31 +1889,36 @@ std::string resolve_gr_local_address(
                       ::isdigit)) {
         local_port = std::stoi(*local_address);
         local_host = report_host;
-
-        // The specified port must have a valid range.
-        if (local_port <= 0 || local_port > k_max_port) {
-          throw shcore::Exception::argument_error(
-              "Invalid port '" + str_local_port +
-              "' for localAddress option. The port must be an integer between "
-              "1 and 65535.");
-        }
       } else {
         // Otherwise, assume only the host part was provided.
         local_host = *local_address;
         local_port = port * 10 + 1;
+        generated = true;
       }
     }
   }
 
   // Check the port value, if out of range then issue an error.
-  // NOTE: This error may only be issued if the port was automatically assigned
-  //       based on instance port (when specified by the user an error is
-  //       raised before reach this part of the code).
   if (local_port <= 0 || local_port > k_max_port) {
-    throw shcore::Exception::argument_error(
-        "Invalid port '" + std::to_string(local_port) +
-        "' used by default for localAddress option. The port must be an "
-        "integer between 1 and 65535.");
+    std::string msg;
+
+    if (generated) {
+      msg =
+          "Automatically generated port for localAddress falls out of valid "
+          "range.";
+    } else {
+      msg = "Invalid port '" + std::to_string(local_port) +
+            "' for localAddress option.";
+    }
+
+    msg += " The port must be an integer between 1 and 65535.";
+
+    if (generated) {
+      msg +=
+          " Please use the localAddress option to manually set a valid value.";
+    }
+
+    throw shcore::Exception::argument_error(msg);
   }
 
   // Verify if the port is already in use.
@@ -1922,7 +1931,7 @@ std::string resolve_gr_local_address(
     // possibly fail (e.g., if a wrong host is used).
   }
   if (port_busy) {
-    throw std::runtime_error(
+    throw shcore::Exception::runtime_error(
         "The port '" + std::to_string(local_port) +
         "' for localAddress option is already in use. Specify an "
         "available port to be used with localAddress option or free port '" +

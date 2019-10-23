@@ -113,6 +113,10 @@ class Auto_script_py : public Shell_py_script_tester,
                                 _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
 
+      code = shcore::str_format("__mysql_sandbox_gr_port%i = %i;", i + 1,
+                                _mysql_sandbox_ports[i] * 10 + 1);
+      exec_and_out_equals(code);
+
       code = shcore::str_format(
           "__sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);

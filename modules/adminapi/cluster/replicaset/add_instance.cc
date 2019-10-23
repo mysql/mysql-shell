@@ -412,6 +412,7 @@ Member_recovery_method Add_instance::validate_instance_recovery() {
               "seems to be safely usable.");
           recovery_method = Member_recovery_method::INCREMENTAL;
         }
+        console->print_info();
       } else {
         if (m_clone_supported && !m_clone_disabled) {
           prompt = Clone_incremental_abort;
@@ -444,8 +445,6 @@ Member_recovery_method Add_instance::validate_instance_recovery() {
         throw shcore::Exception::runtime_error(
             "'recoveryMethod' option must be set to 'clone' or 'incremental'");
       }
-
-      console->print_info();
 
       switch (prompt) {
         case Clone_incremental_abort:
