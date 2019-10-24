@@ -32,6 +32,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/lock_service.h"
 #include "mysqlshdk/libs/utils/threads.h"
 
 namespace mysqlsh {
@@ -90,8 +91,69 @@ class Instance : public mysqlshdk::mysql::Instance {
 
   void execute(const std::string &sql) const override;
 
- public:
   void prepare_session();
+
+  /**
+   * Try to acquire a shared lock on the instance.
+   *
+   * NOTE: Required lock service UDFs are automatically installed if needed.
+   *
+   * @param timeout maximum time in seconds to wait for the lock to be
+   *        available if it cannot be obtained immediately. By default 0,
+   *        meaning that it will not wait if the lock cannot be acquired
+   *        immediately, issuing an error.
+   * @param skip_fail_install_warn boolean value that controls if a warning is
+   *        printed in case the lock service UDFs failed to be installed. This
+   *        can be useful to avoid multiple warnings to be repeated for the same
+   *        operation. By default false, meaning that the warning can be
+   *        printed.
+   *
+   * @throw shcore::Exception if the lock cannot be acquired or any other error
+   *        occur when trying to obtain the lock.
+   *
+   * @return int with the exit code of the function execution: 1 - a warning
+   *         was issued because service lock UDFs could not be installed;
+   *         2 - lock UDFs could not be installed (no warning);
+   *         O - otherwise (success installing lock UDFs or already available).
+   */
+  int get_lock_shared(unsigned int timeout = 0,
+                      bool skip_fail_install_warn = false);
+
+  /**
+   * Try to acquire an exclusive lock on the instance.
+   *
+   * NOTE: Required lock service UDFs are automatically installed if needed.
+   *
+   * @param timeout maximum time in seconds to wait for the lock to be
+   *        available if it cannot be obtained immediately. By default 0,
+   *        meaning that it will not wait if the lock cannot be acquired
+   *        immediately, issuing an error.
+   * @param skip_fail_install_warn boolean value that controls if a warning is
+   *        printed in case the lock service UDFs failed to be installed. This
+   *        can be useful to avoid multiple warnings to be repeated for the same
+   *        operation. By default false, meaning that the warning can be
+   *        printed.
+   *
+   * @throw shcore::Exception if the lock cannot be acquired or any other error
+   *        occur when trying to obtain the lock.
+   *
+   * @return int with the exit code of the function execution: 1 - a warning
+   *         was issued because service lock UDFs could not be installed;
+   *         2 - lock UDFs could not be installed (no warning);
+   *         O - otherwise (success installing lock UDFs or already available).
+   */
+  int get_lock_exclusive(unsigned int timeout = 0,
+                         bool skip_fail_install_warn = false);
+
+  /**
+   * Release all locks on the instance.
+   *
+   * @param no_throw boolean indicating if exceptions are thrown in case a
+   *                 failure occur releasing locks. By default, true meaning
+   *                 that no exception is thrown.
+   *
+   */
+  void release_lock(bool no_throw = true) const;
 
  private:
   friend class Instance_pool;
@@ -100,6 +162,10 @@ class Instance : public mysqlshdk::mysql::Instance {
 
   void log_sql(const std::string &sql) const;
   void log_sql_error(const shcore::Error &e) const;
+
+  int ensure_lock_service_udfs_installed(bool skip_fail_install_warn);
+  int get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout = 0,
+               bool skip_fail_install_warn = false);
 };
 
 struct Scoped_instance {
@@ -324,6 +390,59 @@ std::list<shcore::Dictionary_t> execute_in_parallel(
 
   return errors;
 }
+
+/**
+ * Try to acquire a shared lock on all the given instances.
+ *
+ * NOTE: If it fails to acquire the lock on an instance, then the lock is
+ *       released on all previous instances.
+ *
+ * @param instances List of instances to get the lock.
+ * @param timeout maximum time in seconds to wait for the lock to be
+ *        available if it cannot be obtained immediately. By default 0,
+ *        meaning that it will not wait if the lock cannot be acquired
+ *        immediately, issuing an error.
+ * @param skip_uuid UUID of an instance to be ignored from the list (no lock
+ *        acquired). By default "", no instance skipped.
+ *
+ * @throw shcore::Exception if the lock cannot be acquired or any other error
+ *        occur when trying to obtain the lock.
+ */
+void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
+                              unsigned int timeout = 0,
+                              const std::string &skip_uuid = "");
+
+/**
+ * Try to acquire an exclusive lock on all the given instances.
+ *
+ * NOTE: If it fails to acquire the lock on an instance, then the lock is
+ *       released on all previous instances.
+ *
+ * @param instances List of instances to get the lock.
+ * @param timeout maximum time in seconds to wait for the lock to be
+ *        available if it cannot be obtained immediately. By default 0,
+ *        meaning that it will not wait if the lock cannot be acquired
+ *        immediately, issuing an error.
+ * @param skip_uuid UUID of an instance to be ignored from the list (no lock
+ *        acquired). By default "", no instance skipped.
+ *
+ * @throw shcore::Exception if the lock cannot be acquired or any other error
+ *        occur when trying to obtain the lock.
+ */
+void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
+                                 unsigned int timeout = 0,
+                                 const std::string &skip_uuid = "");
+
+/**
+ * Release all instance locks for all the given instances.
+ *
+ * @param instances List of instances to release the locks.
+ * @param skip_uuid UUID of an instance to be ignored from the list (no lock
+ *        released). By default "", no instance skipped.
+ *
+ */
+void release_instance_lock(const std::list<Scoped_instance> &instances,
+                           const std::string &skip_uuid = "");
 
 }  // namespace dba
 }  // namespace mysqlsh

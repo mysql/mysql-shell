@@ -395,7 +395,7 @@
 |                "status": "UNREACHABLE"|
 
 //@# Primary is down
-|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Can't connect to MySQL server on '<<<hostname_ip>>>'|
+|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Can't connect to MySQL server on '<<<hostname_ip>>>'|
 |Cluster change operations will not be possible unless the PRIMARY can be reached.|
 |If the PRIMARY is unavailable, you must either repair it or perform a forced failover.|
 |See \help forcePrimaryInstance for more information.|

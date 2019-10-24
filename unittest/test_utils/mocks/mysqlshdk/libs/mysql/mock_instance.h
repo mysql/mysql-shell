@@ -127,6 +127,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
 
   MOCK_METHOD1(suppress_binary_log, void(bool));
 
+  MOCK_CONST_METHOD0(get_plugin_library_extension, std::string());
+
   MOCK_CONST_METHOD2(query, std::shared_ptr<mysqlshdk::db::IResult>(
                                 const std::string &, bool));
 

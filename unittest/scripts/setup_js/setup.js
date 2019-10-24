@@ -42,7 +42,8 @@ var kGrantsForPerformanceSchema = ["GRANT SELECT ON `performance_schema`.`replic
 "GRANT SELECT ON `performance_schema`.`replication_connection_status` TO `admin`@`%` WITH GRANT OPTION",
 "GRANT SELECT ON `performance_schema`.`replication_group_member_stats` TO `admin`@`%` WITH GRANT OPTION",
 "GRANT SELECT ON `performance_schema`.`replication_group_members` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`threads` TO `admin`@`%` WITH GRANT OPTION"];
+"GRANT SELECT ON `performance_schema`.`threads` TO `admin`@`%` WITH GRANT OPTION",
+"GRANT SELECT ON `mysql`.`func` TO `admin`@`%` WITH GRANT OPTION"];
 
 /**
  * Verifies if a variable is defined, returning true or false accordingly

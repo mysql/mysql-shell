@@ -154,6 +154,8 @@ class IInstance {
 
   virtual void suppress_binary_log(bool) = 0;
 
+  virtual std::string get_plugin_library_extension() const = 0;
+
  public:
   // Convenience interface for session
   virtual std::shared_ptr<mysqlshdk::db::IResult> query(
@@ -320,6 +322,8 @@ class Instance : public IInstance {
 
   void suppress_binary_log(bool flag) override;
 
+  std::string get_plugin_library_extension() const override;
+
  public:
   std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql, bool buffered = false) const override;
@@ -336,8 +340,6 @@ class Instance : public IInstance {
   mutable std::string m_hostname;
   mutable int m_port = 0;
   int m_sql_binlog_suppress_count = 0;
-
-  std::string get_plugin_library_extension() const;
 };
 
 }  // namespace mysql

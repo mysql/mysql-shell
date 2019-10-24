@@ -37,6 +37,7 @@
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/mysql/lock_service.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -94,9 +95,11 @@ class Base_cluster_impl {
     return m_admin_credentials;
   }
 
-  virtual mysqlshdk::mysql::IInstance *acquire_primary() = 0;
+  virtual mysqlsh::dba::Instance *acquire_primary(
+      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
+      const std::string &skip_lock_uuid = "") = 0;
 
-  virtual void release_primary() = 0;
+  virtual void release_primary(mysqlsh::dba::Instance *primary = nullptr) = 0;
 
   mysqlshdk::mysql::Auth_options create_replication_user(
       mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix,

@@ -88,6 +88,8 @@ class Configure_instance : public Command_interface {
   bool clear_super_read_only();
   void restore_super_read_only();
 
+  void check_lock_service();
+
  protected:
   const mysqlshdk::db::Connection_options m_instance_cnx_opts;
   const bool m_interactive;
@@ -105,6 +107,8 @@ class Configure_instance : public Command_interface {
   // By default, the clusterAdmin account will be created unless
   // it's not specified on the command options or it already exists
   bool m_create_cluster_admin = true;
+
+  bool m_install_lock_service_udfs = false;
 
   mysqlshdk::utils::nullable<bool> m_can_set_persist;
   bool m_can_restart = false;

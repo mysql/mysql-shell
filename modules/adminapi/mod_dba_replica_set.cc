@@ -940,9 +940,13 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
   ipool->set_metadata(metadata);
 
   // Acquire the primary to update the metadata on it.
-  m_impl->acquire_primary();
-  auto finally =
-      shcore::on_leave_scope([this]() { m_impl->release_primary(); });
+  // NOTE: Acquire a shared lock on the primary. The metadata instance (primary)
+  // can be "shared" by other operations executing concurrently on other
+  // instances.
+  auto active_master =
+      m_impl->acquire_primary(mysqlshdk::mysql::Lock_mode::SHARED);
+  auto finally = shcore::on_leave_scope(
+      [&active_master, this]() { m_impl->release_primary(active_master); });
 
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +

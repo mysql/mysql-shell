@@ -39,6 +39,12 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+// Constants with the names used to lock instances.
+static constexpr char k_lock[] = "AdminAPI_lock";
+static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
+}  // namespace
+
 // default SQL_MODE as of 8.0.19
 static constexpr const char *k_default_sql_mode =
     "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
@@ -91,6 +97,11 @@ void Instance::prepare_session() {
     set_sysvar("group_replication_consistency", std::string("EVENTUAL"),
                mysqlshdk::mysql::Var_qualifier::SESSION);
   }
+
+  // Cache the hostname, port, and UUID to avoid errors accessing this data if
+  // the instance fails during an operation.
+  get_canonical_address();
+  get_uuid();
 }
 
 Instance::Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session)
@@ -184,6 +195,176 @@ void Instance::execute(const std::string &sql) const {
   } catch (const shcore::Error &e) {
     log_sql_error(e);
     throw;
+  }
+}
+
+/**
+ * Check if the lock service UDFs is available and install if needed.
+ *
+ * @param skip_fail_install_warn boolean value that controls if a warning is
+ *        printed in case the lock service UDFs failed to be installed. This
+ *        can be useful to avoid multiple warnings to be repeated for the same
+ *        operation. By default false, meaning that the warning can be
+ *        printed.
+ * @return int with the exit code of the function execution: 1 - a warning
+ *         was issued because service lock UDFs could not be installed;
+ *         2 - lock UDFs could not be installed (no warning);
+ *         O - otherwise (success installing lock UDFs or already available).
+ */
+int Instance::ensure_lock_service_udfs_installed(bool skip_fail_install_warn) {
+  auto console = current_console();
+  int exit_code = 0;
+
+  // Install Locking Service UDFs if needed.
+  if (!mysqlshdk::mysql::has_lock_service_udfs(*this)) {
+    log_debug("Installing lock service UDFs.");
+    try {
+      // Check if instance is read-only otherwise it will fail to install
+      // the locking UDFs (e.g., it might happen for clusters created with an
+      // older MySQL Shell version).
+      bool super_read_only = *get_sysvar_bool("super_read_only");
+      if (super_read_only) {
+        // Temporarly disable super_read_only to install UDFs.
+        set_sysvar("super_read_only", false,
+                   mysqlshdk::mysql::Var_qualifier::GLOBAL);
+      }
+
+      // Re-enable super_read_only at the end (even if install UDFs fail).
+      shcore::on_leave_scope restore_read_only([super_read_only, this]() {
+        if (super_read_only)
+          set_sysvar("super_read_only", true,
+                     mysqlshdk::mysql::Var_qualifier::GLOBAL);
+      });
+
+      mysqlshdk::mysql::install_lock_service_udfs(this);
+    } catch (const std::exception &err) {
+      // Nlogicotify the user in case the MySQL lock service cannot be installed
+      // (not available) and continue (without concurrent execution support).
+      log_warning("Failed to install lock service UDFs on %s: %s",
+                  descr().c_str(), err.what());
+      if (!skip_fail_install_warn) {
+        console->print_warning(
+            "Concurrent execution of ReplicaSet operations is not supported "
+            "because the required MySQL lock service UDFs could not be "
+            "installed on instance '" +
+            descr() + "'.");
+        console->print_info(
+            "Make sure the MySQL lock service plugin is available on all "
+            "instances if you want to be able to execute some operations at "
+            "the same time. The operation will continue without concurrent "
+            "execution support.");
+        console->print_info();
+
+        // Return 1, if failed to install and a warning was printed.
+        exit_code = 1;
+      } else {
+        // Return 2, if failed to install, no warning printed.
+        exit_code = 2;
+      }
+    }
+  }
+
+  return exit_code;
+}
+
+/**
+ * Try to acquire a specific lock on the instance.
+ *
+ * NOTE: Required lock service UDFs are automatically installed if needed.
+ *
+ * @param mode type of lock to acquire: READ (shared) or WRITE (exclusive).
+ * @param timeout maximum time in seconds to wait for the lock to be
+ *        available if it cannot be obtained immediately. By default 0,
+ *        meaning that it will not wait if the lock cannot be acquired
+ *        immediately, issuing an error.
+ * @param skip_fail_install_warn boolean value that controls if a warning is
+ *        printed in case the lock service UDFs failed to be installed. This
+ *        can be useful to avoid multiple warnings to be repeated for the same
+ *        operation. By default false, meaning that the warning can be
+ *        printed.
+ *
+ * @throw shcore::Exception if the lock cannot be acquired or any other error
+ *        occur when trying to obtain the lock.
+ *
+ * @return int with the exit code of the function execution: 1 - a warning
+ *         was issued because service lock UDFs could not be installed;
+ *         2 - lock UDFs could not be installed (no warning);
+ *         O - otherwise (success installing lock UDFs or already available).
+ */
+
+int Instance::get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout,
+                       bool skip_fail_install_warn) {
+  auto console = current_console();
+
+  // Install Locking Service UDFs if needed.
+  int exit_code = ensure_lock_service_udfs_installed(skip_fail_install_warn);
+
+  // Return immediatly if lock_service UDFs failed to install
+  // (no need to try to acquire any lock).
+  if (exit_code != 0) return exit_code;
+
+  DBUG_EXECUTE_IF("dba_locking_timeout_one", { timeout = 1; });
+
+  // Try to acquire the specified lock.
+  // NOTE: Only one lock per namespace is used because lock release is
+  //       performed by namespace.
+  try {
+    log_debug("Acquiring %s lock ('%s', '%s') on %s.",
+              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_instance,
+              k_lock, descr().c_str());
+    mysqlshdk::mysql::get_lock(*this, k_lock_name_instance, k_lock, mode,
+                               timeout);
+  } catch (const shcore::Exception &err) {
+    // Abort the operation in case the required lock cannot be acquired.
+    log_debug("Failed to get %s lock ('%s', '%s'): %s",
+              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_instance,
+              k_lock, err.what());
+    console->print_error(
+        "The operation cannot be executed because it failed to acquire the "
+        "lock on instance '" +
+        descr() +
+        "'. Another operation requiring exclusive access to the instance is "
+        "still in progress, please wait for it to finish and try again.");
+    throw shcore::Exception(
+        "Failed to acquire lock on instance '" + descr() + "'",
+        SHERR_DBA_LOCK_GET_FAILED);
+  }
+
+  return exit_code;
+}
+
+int Instance::get_lock_shared(unsigned int timeout,
+                              bool skip_fail_install_warn) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::SHARED, timeout,
+                  skip_fail_install_warn);
+}
+
+int Instance::get_lock_exclusive(unsigned int timeout,
+                                 bool skip_fail_install_warn) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout,
+                  skip_fail_install_warn);
+}
+
+void Instance::release_lock(bool no_throw) const {
+  // Release all instance locks in the k_lock_name_instance namespace.
+  // NOTE: Only perform the operation if the lock service UDFs are available
+  //       otherwise do nothing (ignore if concurrent execution is not
+  //       supported, e.g., lock service plugin not available).
+  try {
+    if (mysqlshdk::mysql::has_lock_service_udfs(*this)) {
+      log_debug("Releasing locks for '%s' on %s.", k_lock_name_instance,
+                descr().c_str());
+      mysqlshdk::mysql::release_lock(*this, k_lock_name_instance);
+    }
+  } catch (const shcore::Error &error) {
+    if (no_throw) {
+      // Ignore any error trying to release locks (e.g., might have not been
+      // previously acquired due to lack of permissions).
+      log_error("Unable to release '%s' locks for '%s': %s",
+                k_lock_name_instance, descr().c_str(), error.what());
+    } else {
+      throw;
+    }
   }
 }
 
@@ -825,6 +1006,82 @@ std::shared_ptr<Instance_pool> Scoped_instance_pool::get() const {
 std::shared_ptr<Instance_pool> current_ipool() {
   DBUG_TRACE;
   return g_ipool_storage.get();
+}
+
+void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
+                              unsigned int timeout,
+                              const std::string &skip_uuid) {
+  shcore::Scoped_callback_list revert_list;
+  bool skip_warn = false;
+  for (const auto &instance : instances) {
+    // Skip the instance with the given UUID (if not empty).
+    if (!skip_uuid.empty() && instance->get_uuid() == skip_uuid) {
+      continue;
+    }
+
+    try {
+      if (instance->get_lock_shared(timeout, skip_warn) == 1) {
+        // Only print warning once if concurrent execution is not supported.
+        skip_warn = true;
+      }
+
+      // Add the corresponding release operation to the revert list.
+      revert_list.push_front([=]() { instance->release_lock(); });
+    } catch (...) {
+      // Release any previously acquired lock.
+      revert_list.call();
+      throw;
+    }
+  }
+
+  revert_list.cancel();
+}
+
+void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
+                                 unsigned int timeout,
+                                 const std::string &skip_uuid) {
+  shcore::Scoped_callback_list revert_list;
+  bool skip_warn = false;
+  for (const auto &instance : instances) {
+    // Skip the instance with the given UUID (if not empty).
+    if (!skip_uuid.empty() && instance->get_uuid() == skip_uuid) {
+      continue;
+    }
+
+    try {
+      if (instance->get_lock_exclusive(timeout, skip_warn) == 1) {
+        // Only print warning once if concurrent execution is not supported.
+        skip_warn = true;
+      }
+
+      // Add the corresponding release operation to the revert list.
+      revert_list.push_front([=]() { instance->release_lock(); });
+    } catch (...) {
+      // Release any previously acquired lock.
+      revert_list.call();
+      throw;
+    }
+  }
+
+  revert_list.cancel();
+}
+
+void release_instance_lock(const std::list<Scoped_instance> &instances,
+                           const std::string &skip_uuid) {
+  for (const auto &instance : instances) {
+    // Skip the instance with the given UUID (if not empty).
+    if (!skip_uuid.empty() && instance->get_uuid() == skip_uuid) {
+      continue;
+    }
+
+    try {
+      instance->release_lock();
+    } catch (const std::exception &err) {
+      // Ignore any error trying to release locks and continue.
+      log_info("Failed to release instance locks on %s: %s",
+               instance->descr().c_str(), err.what());
+    }
+  }
 }
 
 }  // namespace dba

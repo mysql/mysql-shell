@@ -56,6 +56,11 @@ Upgrade_metadata::Upgrade_metadata(
  * the command execution
  */
 void Upgrade_metadata::prepare() {
+  // Acquire required locks on target instance.
+  // No "write" operation allowed to be executed concurrently on the target
+  // instance.
+  m_target_instance->get_lock_exclusive();
+
   std::string current_user, current_host;
   m_target_instance->get_current_user(&current_user, &current_host);
 
@@ -477,7 +482,12 @@ shcore::Value Upgrade_metadata::execute() {
 
 void Upgrade_metadata::rollback() {}
 
-void Upgrade_metadata::finish() {}
+void Upgrade_metadata::finish() {
+  if (m_target_instance) {
+    // Release locks at the end.
+    m_target_instance->release_lock();
+  }
+}
 
 }  // namespace dba
 }  // namespace mysqlsh

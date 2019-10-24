@@ -219,6 +219,10 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::vector<Instance_metadata> get_replica_set_members(
       const Cluster_id &cluster_id, uint64_t *out_view_id);
 
+  void get_replica_set_primary_info(const Cluster_id &cluster_id,
+                                    std::string *out_primary_id,
+                                    uint64_t *out_view_id);
+
   std::vector<Instance_metadata> get_all_instances(Cluster_id cluster_id = "");
 
   Instance_metadata get_instance_by_uuid(const std::string &uuid) const;
@@ -307,6 +311,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
     check_version();
     return m_md_state;
   }
+
+  /**
+   * Try to acquire an exclusive lock on the metadata.
+   *
+   * NOTE: Required lock service UDFs which is assumed to be already available
+   *       if supported (automatically installed if needed by the instance
+   *       level lock).
+   *
+   * @throw shcore::Exception if the lock cannot be acquired or any other
+   * error occur when trying to obtain the lock.
+   */
+  void get_lock_exclusive() const;
+
+  /**
+   * Release all locks on the metadata.
+   *
+   * @param no_throw boolean indicating if exceptions are thrown in case a
+   *                 failure occur releasing locks. By default, true meaning
+   *                 that no exception is thrown.
+   *
+   */
+  void release_lock(bool no_throw = true) const;
 
  private:
   uint32_t inc_view_failover_counter(uint32_t view_id) const;

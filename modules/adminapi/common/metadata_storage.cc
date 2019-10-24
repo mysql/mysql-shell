@@ -25,15 +25,13 @@
 
 #include <mysql.h>
 #include <mysqld_error.h>
+
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "utils/utils_file.h"
-#include "utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -166,6 +164,13 @@ std::string get_all_online_check_query(
   else
     return k_all_online_check_query;
 }
+
+// Constants with the names used to lock instances.
+static constexpr char k_lock[] = "AdminAPI_lock";
+static constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
+
+// Timeout for the Metadata lock (60 sec).
+constexpr const int k_lock_timeout = 60;
 
 }  // namespace
 
@@ -981,6 +986,26 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_members(
   return members;
 }
 
+void MetadataStorage::get_replica_set_primary_info(const Cluster_id &cluster_id,
+                                                   std::string *out_primary_id,
+                                                   uint64_t *out_view_id) {
+  auto result = execute_sqlf(
+      "SELECT view_id, member_id "
+      "FROM  mysql_innodb_cluster_metadata.v2_ar_members "
+      "WHERE cluster_id = ? AND member_role = 'PRIMARY'",
+      cluster_id);
+  auto row = result->fetch_one_named();
+  if (row) {
+    if (out_view_id) *out_view_id = row.get_uint("view_id");
+    if (out_primary_id) *out_primary_id = row.get_string("member_id");
+  } else {
+    throw shcore::Exception(
+        "Metadata information on PRIMARY not found for replicaset (" +
+            cluster_id + ")",
+        SHERR_DBA_METADATA_INFO_MISSING);
+  }
+}
+
 std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     Cluster_id cluster_id) {
   std::vector<Instance_metadata> ret_val;
@@ -1121,6 +1146,74 @@ void MetadataStorage::update_cluster_topology_mode(
 
 // ----------------------------------------------------------------------------
 
+void MetadataStorage::get_lock_exclusive() const {
+  auto console = current_console();
+
+  // Use a predefined timeout value (60 sec) to try to acquire the lock.
+  int timeout = k_lock_timeout;
+  mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::EXCLUSIVE;
+
+  DBUG_EXECUTE_IF("dba_locking_timeout_one", { timeout = 1; });
+
+  // Try to acquire the specified lock.
+  // NOTE: Only one lock per namespace is used because lock release is
+  //       performed by namespace.
+  if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+    // No need install Locking Service UDFs, already done at a higher level
+    // (instance) if needed/supported. Thus, we only try to acquire the lock if
+    // the lock UDFs are available (skipped otherwise).
+
+    try {
+      log_debug("Acquiring %s lock ('%s', '%s') on %s.",
+                mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_metadata,
+                k_lock, m_md_server->descr().c_str());
+      mysqlshdk::mysql::get_lock(*m_md_server, k_lock_name_metadata, k_lock,
+                                 mode, timeout);
+    } catch (const shcore::Exception &err) {
+      // Abort the operation in case the required lock cannot be acquired.
+      log_debug("Failed to get %s lock ('%s', '%s'): %s",
+                mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_metadata,
+                k_lock, err.what());
+      console->print_error(
+          "Cannot update the metadata because the maximum wait time to "
+          "acquire a write lock has been reached.");
+      console->print_info(
+          "Other operations requiring "
+          "exclusive access to the metadata are running concurrently, please "
+          "wait for those operations to finish and try again.");
+
+      throw shcore::Exception(
+          "Failed to acquire lock to update the metadata on instance '" +
+              m_md_server->descr() + "', wait timeout exceeded",
+          SHERR_DBA_LOCK_GET_TIMEOUT);
+    }
+  }
+}
+
+void MetadataStorage::release_lock(bool no_throw) const {
+  // Release all metadata locks in the k_lock_name_metadata namespace.
+  // NOTE: Only perform the operation if the lock service UDFs are available
+  //       otherwise do nothing (ignore if concurrent execution is not
+  //       supported, e.g., lock service plugin not available).
+  try {
+    if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+      log_debug("Releasing locks for '%s' on %s.", k_lock_name_metadata,
+                m_md_server->descr().c_str());
+      mysqlshdk::mysql::release_lock(*m_md_server, k_lock_name_metadata);
+    }
+  } catch (const shcore::Error &error) {
+    if (no_throw) {
+      // Ignore any error trying to release locks (e.g., might have not been
+      // previously acquired due to lack of permissions).
+      log_error("Unable to release '%s' locks for '%s': %s",
+                k_lock_name_metadata, m_md_server->descr().c_str(),
+                error.what());
+    } else {
+      throw;
+    }
+  }
+}
+
 constexpr const char *k_async_view_change_reason_create = "CREATE";
 constexpr const char *k_async_view_change_reason_switch_primary =
     "SWITCH_ACTIVE";
@@ -1260,6 +1353,12 @@ void MetadataStorage::begin_acl_change_record(const Cluster_id &cluster_id,
 
 Instance_id MetadataStorage::record_async_member_added(
     const Instance_metadata &member) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
   Transaction tx(this);
 
   Instance_id member_id = insert_instance(member);
@@ -1305,6 +1404,12 @@ Instance_id MetadataStorage::record_async_member_added(
 
 void MetadataStorage::record_async_member_rejoined(
     const Instance_metadata &member) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
   Transaction tx(this);
 
   uint32_t aclvid;
@@ -1346,6 +1451,12 @@ void MetadataStorage::record_async_member_rejoined(
 
 void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
                                                   Instance_id instance_id) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
   uint32_t aclvid;
   uint32_t last_aclvid;
 
@@ -1376,6 +1487,10 @@ void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
 }
 
 void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
+  // NO need to acquire a Metadata lock because an exclusive locks is already
+  // acquired (with a higher level) on all instances of the replica set for
+  // set_primary_instance().
+
   // In a safe active switch, we copy over the whole view of the cluster
   // at once, at the beginning.
   uint32_t aclvid;
@@ -1470,6 +1585,10 @@ void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
 
 void MetadataStorage::record_async_primary_forced_switch(
     Instance_id new_primary_id, const std::list<Instance_id> &invalidated) {
+  // NO need to acquire a Metadata lock because an exclusive locks is already
+  // acquired (with a higher level) on all instances of the replica set for
+  // set_primary_instance().
+
   uint32_t aclvid;
   uint32_t last_aclvid;
 
@@ -1595,6 +1714,12 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
   std::string name;
 
   parse_router_definition(router_def, &address, &name);
+
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.

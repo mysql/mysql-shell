@@ -32,6 +32,7 @@ set(mysql_SOURCE
     user_privileges.cc
     utils.cc
     plugin.cc
+    lock_service.cc
 )
 
 add_convenience_library(mysql ${mysql_SOURCE})

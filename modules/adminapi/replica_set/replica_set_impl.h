@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -123,9 +123,11 @@ class Replica_set_impl : public Base_cluster_impl {
       uint32_t read_timeout, bool skip_primary,
       std::list<Instance_metadata> *out_unreachable) override;
 
-  mysqlshdk::mysql::IInstance *acquire_primary() override;
+  mysqlsh::dba::Instance *acquire_primary(
+      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
+      const std::string &skip_lock_uuid = "") override;
 
-  void release_primary() override;
+  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
  private:
   void create(const std::string &instance_label, bool dry_run);
@@ -136,15 +138,16 @@ class Replica_set_impl : public Base_cluster_impl {
   Cluster_check_info check_preconditions(
       const std::string &function_name) const override;
 
-  std::shared_ptr<Instance> validate_add_instance(
-      Global_topology_manager *topology, const std::string &target_def,
-      const Async_replication_options &ar_options, Clone_options *clone_options,
-      bool interactive);
+  void validate_add_instance(Global_topology_manager *topology,
+                             mysqlshdk::mysql::IInstance *master,
+                             Instance *target_instance,
+                             const Async_replication_options &ar_options,
+                             Clone_options *clone_options, bool interactive);
 
-  std::shared_ptr<Instance> validate_rejoin_instance(
-      Global_topology_manager *topology_mng, const std::string &target_def,
-      Clone_options *clone_options, Instance_metadata *out_instance_md,
-      bool interactive);
+  void validate_rejoin_instance(Global_topology_manager *topology_mng,
+                                Instance *target, Clone_options *clone_options,
+                                Instance_metadata *out_instance_md,
+                                bool interactive);
 
   void validate_remove_instance(Global_topology_manager *topology,
                                 mysqlshdk::mysql::IInstance *master,

@@ -520,6 +520,9 @@ void Configure_instance::prepare() {
   // Ensure the user has privs to do all these checks
   ensure_user_privileges(*m_target_instance);
 
+  // Check lock service UDFs availability (after checking privileges).
+  check_lock_service();
+
   ensure_instance_address_usable();
 
   // Validate the admin_account privileges:
@@ -600,14 +603,25 @@ void Configure_instance::prepare() {
  * Executes the API command.
  */
 shcore::Value Configure_instance::execute() {
-  // Handle the clusterAdmin account creation
-  if (m_create_cluster_admin) {
-    bool need_restore = clear_super_read_only();
+  {
+    bool need_restore = false;
+    if (m_install_lock_service_udfs || m_create_cluster_admin) {
+      need_restore = clear_super_read_only();
+    }
+
     shcore::on_leave_scope reset_read_only([this, need_restore]() {
       if (need_restore) restore_super_read_only();
     });
 
-    create_admin_user();
+    // Acquire required locks on target instance (check user privileges first).
+    // No "write" operation allowed to be executed concurrently on the target
+    // instance.
+    m_target_instance->get_lock_exclusive();
+
+    // Handle the clusterAdmin account creation
+    if (m_create_cluster_admin) {
+      create_admin_user();
+    }
   }
 
   auto console = mysqlsh::current_console();
@@ -692,11 +706,19 @@ void Configure_instance::restore_super_read_only() {
   }
 }
 
+void Configure_instance::check_lock_service() {
+  m_install_lock_service_udfs =
+      mysqlshdk::mysql::has_lock_service_udfs(*m_target_instance);
+}
+
 void Configure_instance::rollback() {}
 
 void Configure_instance::finish() {
   // Close the instance session at the end if available.
   if (m_target_instance) {
+    // Release locks before closing the session.
+    m_target_instance->release_lock();
+
     m_target_instance->close_session();
   }
 }

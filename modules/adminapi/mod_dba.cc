@@ -2305,9 +2305,18 @@ void Dba::do_configure_instance(
           cluster_admin_password, clear_read_only, interactive, restart,
           cluster_type));
 
-    op_configure_instance->prepare();
-    op_configure_instance->execute();
-    op_configure_instance->finish();
+    try {
+      // Always execute finish when leaving "try catch".
+      auto finally = shcore::on_leave_scope(
+          [&op_configure_instance]() { op_configure_instance->finish(); });
+
+      // Prepare and execute the operation.
+      op_configure_instance->prepare();
+      op_configure_instance->execute();
+    } catch (...) {
+      op_configure_instance->rollback();
+      throw;
+    }
   }
 }
 

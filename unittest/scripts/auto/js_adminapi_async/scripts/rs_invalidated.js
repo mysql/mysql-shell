@@ -27,7 +27,7 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ Try addInstance (should fail)
-rs.addInstance(__mysqluripwd);
+rs.addInstance(__sandbox_uri2);
 
 //@ Try removeInstance (should fail)
 rs.removeInstance(__sandbox_uri2);

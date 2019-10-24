@@ -82,8 +82,10 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "mysqlshdk/libs/mysql/lock_service.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -214,6 +216,13 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getInstalledMetadataVersion",
          &Testutils::get_installed_metadata_version_string);
   expose("wipeAllOutput", &Testutils::wipe_all_output);
+
+  expose("getExclusiveLock", &Testutils::get_exclusive_lock, "classic_session",
+         "name_space", "name", "?timeout");
+  expose("getSharedLock", &Testutils::get_shared_lock, "classic_session",
+         "name_space", "name", "?timeout");
+  expose("releaseLocks", &Testutils::release_locks, "classic_session",
+         "name_space");
 
   // expose("slowify", &Testutils::slowify, "port", "start");
   expose("bp", &Testutils::bp, "flag");
@@ -3172,6 +3181,99 @@ bool Testutils::version_check(const std::string &v1, const std::string &op,
   }
 
   return ret_val;
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Get an exclusive lock.
+ *
+ * @param classic_session ClassicSession object to get the lock.
+ * @param name_space string with the name space used to identify the lock.
+ * @param name string with the name of the lock.
+ * @param timeout time in seconds to wait to be able to get the lock before
+ *                failing with an error.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::getExclusiveLock(ClassicSession classic_session,
+                                      string name_space, string name,
+                                      number timeout);
+#elif DOXYGEN_PY
+None Testutils::get_exclusive_lock(ClassicSession classic_session,
+                                   str name_space, str name, int timeout);
+#endif
+///@}
+void Testutils::get_exclusive_lock(const shcore::Value &classic_session,
+                                   const std::string name_space,
+                                   const std::string name,
+                                   unsigned int timeout) {
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session_obj =
+      classic_session.as_object<mysqlsh::mysql::ClassicSession>();
+  mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
+
+  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
+    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  }
+
+  mysqlshdk::mysql::get_lock(instance, name_space, name,
+                             mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Get a shared lock.
+ *
+ * @param classic_session ClassicSession object to get the lock.
+ * @param name_space string with the name space used to identify the lock.
+ * @param name string with the name of the lock.
+ * @param timeout time in seconds to wait to be able to get the lock before
+ *                failing with an error.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::getSharedLock(ClassicSession classic_session,
+                                   string name_space, string name,
+                                   number timeout);
+#elif DOXYGEN_PY
+None Testutils::get_shared_lock(ClassicSession classic_session, str name_space,
+                                str name, int timeout);
+#endif
+///@}
+void Testutils::get_shared_lock(const shcore::Value &classic_session,
+                                const std::string name_space,
+                                const std::string name, unsigned int timeout) {
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session_obj =
+      classic_session.as_object<mysqlsh::mysql::ClassicSession>();
+  mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
+
+  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
+    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  }
+
+  mysqlshdk::mysql::get_lock(instance, name_space, name,
+                             mysqlshdk::mysql::Lock_mode::SHARED, timeout);
+}
+
+/**
+ * Release locks.
+ *
+ * @param classic_session ClassicSession object to release the locks.
+ * @param name_space string identifying the name space to release all locks.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::releaseLocks(ClassicSession classic_session,
+                                  string name_space);
+#elif DOXYGEN_PY
+None Testutils::release_locks(ClassicSession classic_session, str name_space);
+#endif
+///@}
+void Testutils::release_locks(const shcore::Value &classic_session,
+                              const std::string name_space) {
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session_obj =
+      classic_session.as_object<mysqlsh::mysql::ClassicSession>();
+  mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
+
+  mysqlshdk::mysql::release_lock(instance, name_space);
 }
 
 /**  @name Sandbox Operations

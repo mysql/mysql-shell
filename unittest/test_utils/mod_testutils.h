@@ -29,6 +29,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_extensible_object.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -295,6 +296,15 @@ class Testutils : public mysqlsh::Extensible_object {
                         const std::string &servercn,
                         const std::string &clientcn);
 
+  void get_exclusive_lock(const shcore::Value &classic_session,
+                          const std::string name_space, const std::string name,
+                          unsigned int timeout = 0);
+  void get_shared_lock(const shcore::Value &classic_session,
+                       const std::string name_space, const std::string name,
+                       unsigned int timeout = 0);
+  void release_locks(const shcore::Value &classic_session,
+                     const std::string name_space);
+
  public:
   // These should produce test failure output similar to that of gtest,
   // possibly including a stacktrace in the target language
@@ -320,14 +330,14 @@ class Testutils : public mysqlsh::Extensible_object {
                      const std::string &v2);
 
   /**
-   * This function is used as a demostration on how to use extensible objects
+   * This function is used as a demonstration on how to use extensible objects
    * which allow:
    *
    * - Help data registration into the help system for objects and members.
-   * - Creation of extendible objects from C++.
+   * - Creation of extensible objects from C++.
    *
    * This code has been let as a regression test for the extensible object
-   * class (including it's test at extendible_objects_norecord.py/js)
+   * class (including it's test at extensible_objects_norecord.py/js)
    */
   void enable_extensible();
 

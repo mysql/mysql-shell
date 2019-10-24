@@ -321,6 +321,15 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
     bool gtid_set_is_complete) {
   auto console = current_console();
 
+  // Acquire required locks on target instance.
+  // No "write" operation allowed to be executed concurrently on the target
+  // instance.
+  target_server->get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope(
+      [&target_server]() { target_server->release_lock(); });
+
   // Validate the cluster_name
   mysqlsh::dba::validate_cluster_name(full_cluster_name,
                                       Cluster_type::ASYNC_REPLICATION);
@@ -510,22 +519,22 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
   }
 }
 
-std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
-    Global_topology_manager *topology, const std::string &target_def,
-    const Async_replication_options &ar_options, Clone_options *clone_options,
-    bool interactive) {
+void Replica_set_impl::validate_add_instance(
+    Global_topology_manager *topology, mysqlshdk::mysql::IInstance * /*master*/,
+    Instance *target_instance, const Async_replication_options &ar_options,
+    Clone_options *clone_options, bool interactive) {
   auto console = current_console();
 
-  auto validate_not_managed = [this](const std::shared_ptr<Instance> &target) {
+  auto validate_not_managed = [this](const Instance &target) {
     // Check if the instance is already a member of this replicaset
     Instance_metadata md;
     bool already_managed = false;
     try {
-      md = m_metadata_storage->get_instance_by_uuid(target->get_uuid());
+      md = m_metadata_storage->get_instance_by_uuid(target.get_uuid());
       already_managed = true;
     } catch (const shcore::Exception &e) {
       log_info("Error querying metadata for %s: %s\n",
-               target->get_uuid().c_str(), e.what());
+               target.get_uuid().c_str(), e.what());
     }
     bool is_invalidated = false;
     if (!already_managed) {
@@ -535,13 +544,13 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
 
       if (metadata.check_version()) {
         try {
-          md = metadata.get_instance_by_uuid(target->get_uuid());
+          md = metadata.get_instance_by_uuid(target.get_uuid());
 
           // Check whether the other instance was once part of the same rs
           if (md.cluster_id == get_id()) is_invalidated = true;
         } catch (const std::exception &e) {
           log_info("Error querying local copy of metadata for %s: %s",
-                   target->get_uuid().c_str(), e.what());
+                   target.get_uuid().c_str(), e.what());
         }
       }
     }
@@ -550,15 +559,15 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
       // only add it back if the GTID set has not diverged.
       // The GTID check will happen later on, as part of the regular checks.
       log_info("%s appears to be an invalidated ex-member of the replicaset",
-               target->descr().c_str());
+               target.descr().c_str());
     } else {
       // Check whether the instance we found is really the target one
       // or if it's just a case of duplicate UUID
       if (!md.cluster_id.empty() &&
-          md.address != target->get_canonical_address()) {
-        log_info("%s: UUID %s already in used by %s", target->descr().c_str(),
-                 target->get_uuid().c_str(), md.address.c_str());
-        throw shcore::Exception("server_uuid in " + target->descr() +
+          md.address != target.get_canonical_address()) {
+        log_info("%s: UUID %s already in used by %s", target.descr().c_str(),
+                 target.get_uuid().c_str(), md.address.c_str());
+        throw shcore::Exception("server_uuid in " + target.descr() +
                                     " is expected to be unique, but " +
                                     md.address + " already uses the same value",
                                 SHERR_DBA_INVALID_SERVER_CONFIGURATION);
@@ -566,13 +575,13 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
 
       if (md.cluster_id == get_id()) {
         throw shcore::Exception(
-            target->descr() + " is already a member of this replicaset.",
+            target.descr() + " is already a member of this replicaset.",
             SHERR_DBA_BADARG_INSTANCE_ALREADY_MANAGED);
 
       } else if (!md.cluster_id.empty()) {
         std::string label = md.group_name.empty() ? "replicaset." : "cluster.";
         throw shcore::Exception(
-            target->descr() + " is already managed by a " + label,
+            target.descr() + " is already managed by a " + label,
             SHERR_DBA_BADARG_INSTANCE_ALREADY_MANAGED);
       }
     }
@@ -596,35 +605,24 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
     }
   };
 
-  log_debug("Connecting to target instance: %s", target_def.c_str());
-  Scoped_instance target;
-  try {
-    target = Scoped_instance(connect_target_instance(target_def));
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(target_def).uri_endpoint().c_str()));
-    throw;
-  }
-
   // Validate the Clone options.
-  clone_options->check_option_values(target->get_version());
+  clone_options->check_option_values(target_instance->get_version());
 
   // Check version early on, so that other checks don't need to care about it
-  validate_version(*target);
+  validate_version(*target_instance);
 
   // Check if the target is already managed by us or some other cluster
-  validate_not_managed(target);
+  validate_not_managed(*target_instance);
 
   // regular instance checks
-  validate_instance(target.get());
-  validate_instance_is_standalone(target.get(), true);
+  validate_instance(target_instance);
+  validate_instance_is_standalone(target_instance, true);
 
-  validate_unique_server_id(target.get(), topology);
+  validate_unique_server_id(target_instance, topology);
 
   // check consistency of the global topology
   console->print_info();
-  topology->validate_add_replica(nullptr, target.get(), ar_options);
+  topology->validate_add_replica(nullptr, target_instance, ar_options);
 
   std::shared_ptr<Instance> donor_instance = get_target_server();
 
@@ -632,14 +630,11 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
   console->print_info("* Checking transaction state of the instance...");
 
   clone_options->recovery_method = validate_instance_recovery(
-      Member_op_action::ADD_INSTANCE, donor_instance.get(), target.get(),
+      Member_op_action::ADD_INSTANCE, donor_instance.get(), target_instance,
       *clone_options->recovery_method, get_gtid_set_is_complete(), interactive);
 
   DBUG_EXECUTE_IF("dba_abort_async_add_replica",
                   { throw std::logic_error("debug"); });
-
-  target->retain();
-  return target;
 }
 
 void Replica_set_impl::add_instance(
@@ -660,8 +655,45 @@ void Replica_set_impl::add_instance(
 
   auto console = current_console();
 
-  auto active_master = acquire_primary();
-  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
+  // Connect to the target Instance.
+  Scoped_instance target_instance;
+  std::string target_uuid;
+  try {
+    target_instance = Scoped_instance(connect_target_instance(instance_def));
+    target_uuid = target_instance->get_uuid();
+  } catch (const shcore::Exception &e) {
+    current_console()->print_error(shcore::str_format(
+        k_error_connecting_to_instance,
+        Connection_options(instance_def).uri_endpoint().c_str()));
+    throw;
+  }
+
+  // Acquire required locks on target instance (acquired on primary after).
+  // No "write" operation allowed to be executed concurrently on the target
+  // instance, but the primary can be "shared" by other operations on different
+  // target instances.
+  target_instance->get_lock_exclusive();
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_target = shcore::on_leave_scope(
+      [&target_instance]() { target_instance->release_lock(); });
+
+  // NOTE: Acquire a shared lock on the primary only if the UUID is different
+  // from the target instance.
+  auto active_master =
+      acquire_primary(mysqlshdk::mysql::Lock_mode::SHARED, target_uuid);
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_primary =
+      shcore::on_leave_scope([&target_instance, &active_master, this]() {
+        if (target_instance->get_uuid() != active_master->get_uuid()) {
+          release_primary(active_master);
+        } else {
+          // Reset the primary but no need to release the lock if the target and
+          // primary are the same (already released by finally_target).
+          release_primary();
+        }
+      });
 
   auto topology = setup_topology_manager();
 
@@ -669,8 +701,8 @@ void Replica_set_impl::add_instance(
   console->println();
 
   console->print_info("* Performing validation checks");
-  Scoped_instance target_instance(validate_add_instance(
-      topology.get(), instance_def, ar_options, &clone_options, interactive));
+  validate_add_instance(topology.get(), active_master, target_instance.get(),
+                        ar_options, &clone_options, interactive);
 
   console->print_info("* Updating topology");
 
@@ -787,22 +819,11 @@ void Replica_set_impl::add_instance(
   }
 }
 
-std::shared_ptr<Instance> Replica_set_impl::validate_rejoin_instance(
-    Global_topology_manager *topology_mng, const std::string &target_def,
+void Replica_set_impl::validate_rejoin_instance(
+    Global_topology_manager *topology_mng, Instance *target,
     Clone_options *clone_options, Instance_metadata *out_instance_md,
     bool interactive) {
   auto console = current_console();
-
-  log_debug("Connecting to target instance: %s", target_def.c_str());
-  Scoped_instance target;
-  try {
-    target = Scoped_instance(connect_target_instance(target_def));
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(target_def).uri_endpoint().c_str()));
-    throw;
-  }
 
   // Validate the Clone options.
   clone_options->check_option_values(target->get_version());
@@ -826,18 +847,15 @@ std::shared_ptr<Instance> Replica_set_impl::validate_rejoin_instance(
   }
 
   // Check instance status and consistency with the global topology
-  topology_mng->validate_rejoin_replica(target.get());
+  topology_mng->validate_rejoin_replica(target);
 
   std::shared_ptr<Instance> donor_instance = get_target_server();
 
   console->print_info("** Checking transaction state of the instance...");
 
   clone_options->recovery_method = validate_instance_recovery(
-      Member_op_action::REJOIN_INSTANCE, donor_instance.get(), target.get(),
+      Member_op_action::REJOIN_INSTANCE, donor_instance.get(), target,
       *clone_options->recovery_method, get_gtid_set_is_complete(), interactive);
-
-  target->retain();
-  return target.ptr;
 }
 
 void Replica_set_impl::rejoin_instance(const std::string &instance_def,
@@ -852,19 +870,55 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
   auto console = current_console();
 
+  log_debug("Connecting to target instance.");
+  Scoped_instance target_instance;
+  std::string target_uuid;
+  try {
+    target_instance = Scoped_instance(connect_target_instance(instance_def));
+    target_uuid = target_instance->get_uuid();
+  } catch (const shcore::Exception &e) {
+    current_console()->print_error(shcore::str_format(
+        k_error_connecting_to_instance,
+        Connection_options(instance_def).uri_endpoint().c_str()));
+    throw;
+  }
+
+  // Acquire required locks on target instance (already acquired on primary).
+  // No "write" operation allowed to be executed concurrently on the target
+  // instance, but the primary can be "shared" by other operations on different
+  // target instances.
+  target_instance->get_lock_exclusive();
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_target = shcore::on_leave_scope(
+      [&target_instance]() { target_instance->release_lock(); });
+
   log_debug("Setting up topology manager.");
   auto topology_mng = setup_topology_manager(nullptr, true);
 
   log_debug("Get current PRIMARY and ensure it is healthy (updatable).");
-  auto active_primary = acquire_primary();
-  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
+  // NOTE: Acquire a shared lock on the primary only if the UUID is different
+  // from the target instance.
+  auto active_primary =
+      acquire_primary(mysqlshdk::mysql::Lock_mode::SHARED, target_uuid);
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_primary =
+      shcore::on_leave_scope([&target_instance, &active_primary, this]() {
+        if (target_instance->get_uuid() != active_primary->get_uuid()) {
+          release_primary(active_primary);
+        } else {
+          // Reset the primary but no need to release the lock if the target and
+          // primary are the same (already released by finally_target).
+          release_primary();
+        }
+      });
 
   console->print_info("* Validating instance...");
   Instance_metadata instance_md;
 
-  Scoped_instance target_instance(
-      validate_rejoin_instance(topology_mng.get(), instance_def, &clone_options,
-                               &instance_md, interactive));
+  validate_rejoin_instance(topology_mng.get(), target_instance.get(),
+                           &clone_options, &instance_md, interactive);
 
   // Update target instance replication settings and restart replication.
   console->print_info("* Rejoining instance to replicaset...");
@@ -1034,9 +1088,6 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   auto topology = setup_topology_manager();
 
   log_debug("Connecting to target instance.");
-  mysqlshdk::mysql::IInstance *master_server = acquire_primary();
-  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
-
   Scoped_instance target_server;
   try {
     target_server = Scoped_instance(connect_target_instance(instance_def_));
@@ -1083,6 +1134,43 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
       }
     }
   }
+
+  // Acquire required locks on target instance and primary.
+  // No "write" operation allowed to be executed concurrently on the target
+  // instance, but the primary can be "shared" by other operations on different
+  // target instances.
+  // NOTE: Do not lock target instance if unreachable, and skip primary if the
+  //       same as the target instance.
+  std::string target_uuid;
+  if (target_server) {
+    target_server->get_lock_exclusive();
+    target_uuid = target_server->get_uuid();
+  }
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_target = shcore::on_leave_scope([&target_server]() {
+    if (target_server) {
+      target_server->release_lock();
+    }
+  });
+
+  // NOTE: Acquire a shared lock on the primary only if the UUID is different
+  // from the target instance.
+  mysqlsh::dba::Instance *master_server =
+      acquire_primary(mysqlshdk::mysql::Lock_mode::SHARED, target_uuid);
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_primary =
+      shcore::on_leave_scope([&target_server, &master_server, this]() {
+        if (!target_server ||
+            target_server->get_uuid() != master_server->get_uuid()) {
+          release_primary(master_server);
+        } else {
+          // Reset the primary but no need to release the lock if the target and
+          // primary are the same (already released by finally_target).
+          release_primary();
+        }
+      });
 
   Instance_metadata md;
   bool repl_working = false;
@@ -1188,8 +1276,13 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
 
   check_preconditions("setPrimaryInstance");
 
-  acquire_primary();
-  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
+  // NOTE: Acquire an exclusive lock on the primary.
+  auto current_primary =
+      acquire_primary(mysqlshdk::mysql::Lock_mode::EXCLUSIVE);
+
+  // Always release lock at the end, when leaving the function scope.
+  auto finally_primary = shcore::on_leave_scope(
+      [&current_primary, this]() { release_primary(current_primary); });
 
   topology::Server_global_topology *srv_topology = nullptr;
   auto topology = setup_topology_manager(&srv_topology);
@@ -1221,6 +1314,16 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
     throw shcore::Exception("One or more instances are unreachable",
                             SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
   }
+
+  // Acquire required locks on all (alive) replica set instances (except the
+  // primary, already acquired). No "write" operation allowed to be executed
+  // concurrently on the instances.
+  get_instance_lock_exclusive(instances, 0, current_primary->get_uuid());
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([&instances, &current_primary]() {
+    release_instance_lock(instances, current_primary->get_uuid());
+  });
 
   // another set of connections for locks
   // Note: give extra margin for the connection read timeout, so that it doesn't
@@ -1448,6 +1551,14 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     }
     console->print_info();
   }
+
+  // Acquire required locks on all (alive) replica set instances.
+  // No "write" operation allowed to be executed concurrently on the instances.
+  get_instance_lock_exclusive(instances);
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope(
+      [&instances]() { release_instance_lock(instances); });
 
   // Check for replication applier errors on all (online) instances, in order
   // to anticipate issues when applying retrieved transaction and try to
@@ -1686,7 +1797,8 @@ std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
 /*
  * Acquire the primary.
  *
- * Ensures the replicaset object can perform update operations.
+ * Find the primary and lock it if needed, ensuring the replicaset object can
+ * perform update operations.
  *
  * For a replicaset to be updatable, it's necessary that:
  * - the MD object is connected to the PRIMARY of the primary master of the
@@ -1699,7 +1811,8 @@ std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
  * An Instance object connected to the primary master is returned. The session
  * is owned by the replicaset object.
  */
-mysqlshdk::mysql::IInstance *Replica_set_impl::acquire_primary() {
+mysqlsh::dba::Instance *Replica_set_impl::acquire_primary(
+    mysqlshdk::mysql::Lock_mode mode, const std::string &skip_lock_uuid) {
   auto console = current_console();
 
   auto check_not_invalidated = [&](Instance *primary,
@@ -1742,41 +1855,86 @@ mysqlshdk::mysql::IInstance *Replica_set_impl::acquire_primary() {
     return true;
   };
 
-  // Always search for the primary (no cache, since it might have changed).
-  auto ipool = current_ipool();
-  try {
-    std::shared_ptr<Instance> primary(
-        ipool->connect_async_cluster_primary(get_id()));
-
-    primary->steal();
-    m_primary_master = primary;
-    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
-    ipool->set_metadata(m_metadata_storage);
-
-    log_info("Connected to replicaset PRIMARY instance %s",
-             m_primary_master->descr().c_str());
-  } catch (const shcore::Exception &e) {
-    console->print_error("Unable to connect to the PRIMARY of the replicaset " +
-                         get_name() + ": " + e.what());
-
-    if (e.code() == SHERR_DBA_ASYNC_MEMBER_INVALIDATED) {
-      console->print_error(get_name() +
-                           " was invalidated by a failover. Please "
-                           "repair it or remove it from the replicaset.");
-    } else {
-      console->print_info(
-          "Cluster change operations will not be possible unless the PRIMARY "
-          "can be reached.");
-      console->print_info(
-          "If the PRIMARY is unavailable, you must either repair it or "
-          "perform a forced failover.");
-      console->print_info(
-          "See \\help <<<forcePrimaryInstance>>> for more information.");
-
-      throw shcore::Exception("PRIMARY instance is unavailable",
-                              SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE);
+  // Auxiliary lambda function to acquire the needed lock on the primary.
+  auto acquire_lock_if_needed = [mode, &skip_lock_uuid](Instance *primary) {
+    // No lock is acquired if UUID in lock_if_not_uuid is the same of primary.
+    if (skip_lock_uuid.empty() || skip_lock_uuid != primary->get_uuid()) {
+      if (mode == mysqlshdk::mysql::Lock_mode::SHARED) {
+        primary->get_lock_shared();
+      } else if (mode == mysqlshdk::mysql::Lock_mode::EXCLUSIVE) {
+        primary->get_lock_exclusive();
+      }
     }
-    throw;
+  };
+
+  // Auxiliary lambda function to find the primary.
+  auto find_primary = [&]() {
+    auto ipool = current_ipool();
+    try {
+      std::shared_ptr<Instance> primary(
+          ipool->connect_async_cluster_primary(get_id()));
+
+      primary->steal();
+      m_primary_master = primary;
+      m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
+      ipool->set_metadata(m_metadata_storage);
+
+      log_info("Connected to replicaset PRIMARY instance %s",
+               m_primary_master->descr().c_str());
+    } catch (const shcore::Exception &e) {
+      console->print_error(
+          "Unable to connect to the PRIMARY of the replicaset " + get_name() +
+          ": " + e.format());
+
+      if (e.code() == SHERR_DBA_ASYNC_MEMBER_INVALIDATED) {
+        console->print_error(get_name() +
+                             " was invalidated by a failover. Please "
+                             "repair it or remove it from the replicaset.");
+      } else {
+        console->print_info(
+            "Cluster change operations will not be possible unless the PRIMARY "
+            "can be reached.");
+        console->print_info(
+            "If the PRIMARY is unavailable, you must either repair it or "
+            "perform a forced failover.");
+        console->print_info(
+            "See \\help <<<forcePrimaryInstance>>> for more information.");
+
+        throw shcore::Exception("PRIMARY instance is unavailable",
+                                SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE);
+      }
+      throw;
+    }
+  };
+
+  // Always search for the primary (no cache, since it might have changed).
+  uint64_t view_id, new_view_id;
+  std::string uuid, new_uuid;
+  bool primary_found = false;
+
+  // Make sure the primary did not changed while determining it and acquiring
+  // the lock on it, avoiding any race condition.
+  while (!primary_found) {
+    // Get the primary info (before acquiring lock);
+    m_metadata_storage->get_replica_set_primary_info(get_id(), &uuid, &view_id);
+
+    find_primary();
+
+    acquire_lock_if_needed(m_primary_master.get());
+
+    // Get the primary info again (after acquiring lock);
+    m_metadata_storage->get_replica_set_primary_info(get_id(), &new_uuid,
+                                                     &new_view_id);
+
+    if (uuid != new_uuid) {
+      // Primary changed while finding it and acquiring lock on it:
+      // - Release any acquired lock on the old primary and try again.
+      if (mode != mysqlshdk::mysql::Lock_mode::NONE) {
+        m_primary_master->release_lock();
+      }
+    } else {
+      primary_found = true;
+    }
   }
 
   // ensure that the primary isn't invalidated
@@ -1798,7 +1956,12 @@ mysqlshdk::mysql::IInstance *Replica_set_impl::acquire_primary() {
   return m_primary_master.get();
 }
 
-void Replica_set_impl::release_primary() { m_primary_master.reset(); }
+void Replica_set_impl::release_primary(mysqlsh::dba::Instance *primary) {
+  if (primary) {
+    primary->release_lock();
+  }
+  m_primary_master.reset();
+}
 
 void Replica_set_impl::primary_instance_did_change(
     const std::shared_ptr<Instance> &new_primary) {
