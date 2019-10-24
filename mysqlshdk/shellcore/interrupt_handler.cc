@@ -204,8 +204,7 @@ void Interrupts::push_handler(std::function<bool()> handler) {
   // register a handler that will in turn result in the cancellation of the
   // background thread.
   if (!in_main_thread()) {
-    throw std::logic_error(
-        "Interrupt handler push ignored for non-main thread");
+    return;
   }
 
   // Note: If you're getting a stack overflow pushing handlers, there may be
@@ -228,7 +227,7 @@ void Interrupts::pop_handler() {
   if (_ignore_current_thread) return;
 
   if (!in_main_thread()) {
-    throw std::logic_error("Interrupt handler pop ignored for non-main thread");
+    return;
   }
   std::lock_guard<std::mutex> lock(_handler_mutex);
   int n = _num_handlers.load();

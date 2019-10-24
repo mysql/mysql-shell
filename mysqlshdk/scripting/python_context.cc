@@ -196,8 +196,6 @@ class Python_init_singleton final {
       std::string home;
 #ifdef _WIN32
 #define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
-      Py_NoSiteFlag = 1;
-
       const auto env_value = getenv("PYTHONHOME");
 
       // If PYTHONHOME is available, honors it
@@ -232,9 +230,6 @@ class Python_init_singleton final {
         home = env_value;
       } else {
 #if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
-        // This flag prevents site.py from being imported, which depends
-        // on pyconfig.h
-        Py_NoSiteFlag = 1;
         // If not will associate what should be the right path in
         // a standard distribution
         std::string python_path = shcore::path::join_path(

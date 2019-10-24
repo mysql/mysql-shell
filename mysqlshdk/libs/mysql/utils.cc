@@ -214,7 +214,7 @@ std::string generate_password(size_t password_length) {
   // 4 upperCase alphas and 4 lowerCase alphas
   std::string alphas = get_random(4, alpha_upper);
   alphas += get_random(4, alpha_lower);
-  std::random_shuffle(alphas.begin(), alphas.end());
+  std::shuffle(alphas.begin(), alphas.end(), rd);
 
   std::uniform_int_distribution<int> rand_pos(0, pwd.length() - 1);
   size_t lower = 0;
