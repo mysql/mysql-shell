@@ -75,7 +75,7 @@ this is second line."
 //@<OUT> get as table
 <Table:bug25789575>
 
-//@<OUT> select()
+//@<OUT> select() {VER(< 8.0.19)}
 +-----------------------------------------------------------------------------+-----+
 | doc                                                                         | _id |
 +-----------------------------------------------------------------------------+-----+
@@ -88,7 +88,20 @@ this is second line."
 | {"_id": "7", "tab_stop": "\\t is a tab stop\n\tnewline with tab stop."}     | 7   |
 +-----------------------------------------------------------------------------+-----+
 
-//@<OUT> execute().fetchAll()
+//@<OUT> select() {VER(>= 8.0.19)}
++-----------------------------------------------------------------------------+-----+--------------------+
+| doc                                                                         | _id | _json_schema       |
++-----------------------------------------------------------------------------+-----+--------------------+
+| {"a": 1, "_id": "1"}                                                        | 1   | {"type": "object"} |
+| {"_id": "2", "key'with'single'quotes": "value'with'single'quotes"}          | 2   | {"type": "object"} |
+| {"_id": "3", "key\"with\"double\"quotes": "value\"with\"double\"quotes"}    | 3   | {"type": "object"} |
+| {"_id": "4", "key\"with\"mixed'quo'\"tes": "value\"with'mixed\"quotes''\""} | 4   | {"type": "object"} |
+| {"_id": "5", "utf8": "I ❤ MySQL Shell"}                                     | 5   | {"type": "object"} |
+| {"_id": "6", "new_line": "\\n is a newline\nthis is second line."}          | 6   | {"type": "object"} |
+| {"_id": "7", "tab_stop": "\\t is a tab stop\n\tnewline with tab stop."}     | 7   | {"type": "object"} |
++-----------------------------------------------------------------------------+-----+--------------------+
+
+//@<OUT> execute().fetchAll() {VER(< 8.0.19)}
 [
     [
         "{\"a\": 1, \"_id\": \"1\"}",
@@ -117,6 +130,45 @@ this is second line."
     [
         "{\"_id\": \"7\", \"tab_stop\": \"\\\\t is a tab stop\\n\\tnewline with tab stop.\"}",
         "7"
+    ]
+]
+
+//@<OUT> execute().fetchAll() {VER(>= 8.0.19)}
+[
+    [
+        "{\"a\": 1, \"_id\": \"1\"}",
+        "1",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"2\", \"key'with'single'quotes\": \"value'with'single'quotes\"}",
+        "2",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"3\", \"key\\\"with\\\"double\\\"quotes\": \"value\\\"with\\\"double\\\"quotes\"}",
+        "3",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"4\", \"key\\\"with\\\"mixed'quo'\\\"tes\": \"value\\\"with'mixed\\\"quotes''\\\"\"}",
+        "4",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"5\", \"utf8\": \"I ❤ MySQL Shell\"}",
+        "5",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"6\", \"new_line\": \"\\\\n is a newline\\nthis is second line.\"}",
+        "6",
+        "{\"type\": \"object\"}"
+    ],
+    [
+        "{\"_id\": \"7\", \"tab_stop\": \"\\\\t is a tab stop\\n\\tnewline with tab stop.\"}",
+        "7",
+        "{\"type\": \"object\"}"
     ]
 ]
 

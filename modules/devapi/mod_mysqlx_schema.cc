@@ -651,14 +651,14 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
                          shcore::Argument_list());
     } else {
       if ((type == "Table") || (type == "Collection")) {
-        shcore::Argument_list command_args;
-        command_args.push_back(schema);
-        command_args.push_back(Value(name));
+        auto command_args = shcore::make_dict();
+        command_args->emplace("name", name);
+        command_args->emplace("schema", schema);
 
         std::shared_ptr<Session> sess(
             std::static_pointer_cast<Session>(_session.lock()));
         try {
-          sess->executeAdminCommand("drop_collection", false, command_args);
+          sess->execute_mysqlx_stmt("drop_collection", command_args);
         } catch (const mysqlshdk::db::Error &e) {
           if (e.code() != ER_BAD_TABLE_ERROR) throw;
         }

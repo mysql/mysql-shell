@@ -105,12 +105,13 @@ util.importTable(__import_data_path + '/world_x_cities.csv', {
     fieldsTerminatedBy: ',', fieldsEnclosedBy: '"', fieldsOptionallyEnclosed: true, linesTerminatedBy: '\n'
 });
 
-EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key 'PRIMARY'");
+var keyname = testutil.versionCheck(__version, '<', '8.0.19') ? `'PRIMARY'` : `'cities.PRIMARY'`;
+
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.csv' (250.53 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
 
@@ -121,11 +122,11 @@ util.importTable(__import_data_path + '/world_x_cities_header.csv', {
 });
 
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key 'PRIMARY'");
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities_header.csv' (250.57 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
 
@@ -190,12 +191,15 @@ util.importTable(__import_data_path + '/primer-dataset-id.json', {
     schema: target_schema, table: 'document_store',
     columns: ['doc'], dialect: 'json', bytesPerChunk: '20M'
 });
+
+keyname = testutil.versionCheck(__version, '<', '8.0.19') ? `'PRIMARY'` : `'document_store.PRIMARY'`;
+
 EXPECT_STDOUT_CONTAINS("wl12193.document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000001' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000002' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000003' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000004' for key 'PRIMARY'");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000005' for key 'PRIMARY'");
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000001' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000002' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000003' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000004' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000005' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/primer-dataset-id.json' (11.29 MB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359");
 

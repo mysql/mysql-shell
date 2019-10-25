@@ -183,8 +183,11 @@
 }
 
 
-#@ replace_one: error replacing with key
+#@ replace_one: error replacing with key {VER(< 8.0.19)}
 ||Duplicate entry 'simple' for key '_name'
+
+#@ replace_one: error replacing with key {VER(>= 8.0.19)}
+||Duplicate entry 'simple' for key 'replace_one._name'
 
 #@ replace_one: replacing document matching id and key
 |Query OK, 1 item affected|

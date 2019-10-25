@@ -826,12 +826,16 @@ shcore::Value Session::set_fetch_warnings(const shcore::Argument_list &args) {
   bool enable = args.bool_at(0);
   std::string command = enable ? "enable_notices" : "disable_notices";
 
-  shcore::Argument_list command_args;
-  command_args.push_back(Value("warnings"));
+  auto notices = shcore::make_array();
+  notices->emplace_back("warnings");
+
+  auto command_args = shcore::make_dict();
+  command_args->emplace("notice", std::move(notices));
 
   shcore::Value ret_val;
   try {
-    ret_val = executeAdminCommand(command, false, command_args);
+    ret_val = shcore::Value(
+        std::make_shared<Result>(execute_mysqlx_stmt(command, command_args)));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setFetchWarnings"));
 
@@ -1125,14 +1129,6 @@ static ::xcl::Argument_array convert_args(const shcore::Argument_list &args) {
     cargs.push_back(convert(arg));
   }
   return cargs;
-}
-
-Value Session::executeAdminCommand(const std::string &command, bool expect_data,
-                                   const Argument_list &args) {
-  std::string function = class_name() + '.' + "executeAdminCommand";
-  args.ensure_at_least(1, function.c_str());
-
-  return _execute_stmt("xplugin", command, convert_args(args), expect_data);
 }
 
 shcore::Value Session::_execute_mysqlx_stmt(const std::string &command,

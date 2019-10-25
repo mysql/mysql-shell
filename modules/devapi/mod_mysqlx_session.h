@@ -205,10 +205,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   }
 
  public:
-  // TODO(alfredo) legacy - replace with mysqlx calls
-  shcore::Value executeAdminCommand(const std::string &command, bool,
-                                    const shcore::Argument_list &args);
-
   // TODO(alfredo) delete this eventually
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string &query);
 

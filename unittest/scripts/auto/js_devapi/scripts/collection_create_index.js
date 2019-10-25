@@ -16,7 +16,7 @@ function createIndexColumnVars() {
   var col_count = 0;
   for(index in columns) {
     var c = columns[index];
-    if (c.columnName != 'doc' && c.columnName != '_id') {
+    if (c.columnName != 'doc' && c.columnName != '_id' && c.columnName != '_json_schema') {
       col_count += 1;
       var code = "idx_col_" + col_count + " = '" + c.columnName + "'";
       eval(code);

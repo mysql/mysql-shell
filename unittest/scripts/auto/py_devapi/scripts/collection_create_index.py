@@ -15,7 +15,7 @@ def create_index_column_vars():
   columns = res.get_columns()
   col_count = 0
   for c in columns:
-    if c.column_name != 'doc' and c.column_name != '_id':
+    if c.column_name != 'doc' and c.column_name != '_id' and c.column_name != '_json_schema':
       col_count += 1
       globals()["idx_col_%d" % col_count] = '%s' % c.column_name
 

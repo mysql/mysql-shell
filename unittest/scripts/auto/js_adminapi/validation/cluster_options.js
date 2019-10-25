@@ -514,6 +514,16 @@
                     "value": "OFF",
                     "variable": "group_replication_recovery_ssl_verify_server_cert"
                 },
+?{VER(>=8.0.19)}
+                {
+                    "value": "", 
+                    "variable": "group_replication_recovery_tls_ciphersuites"
+                }, 
+                {
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "variable": "group_replication_recovery_tls_version"
+                }, 
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
@@ -749,6 +759,16 @@
                     "value": "OFF",
                     "variable": "group_replication_recovery_ssl_verify_server_cert"
                 },
+?{VER(>=8.0.19)}
+                {
+                    "value": "", 
+                    "variable": "group_replication_recovery_tls_ciphersuites"
+                }, 
+                {
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "variable": "group_replication_recovery_tls_version"
+                }, 
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
@@ -984,6 +1004,16 @@
                     "value": "OFF",
                     "variable": "group_replication_recovery_ssl_verify_server_cert"
                 },
+?{VER(>=8.0.19)}
+                {
+                    "value": "", 
+                    "variable": "group_replication_recovery_tls_ciphersuites"
+                }, 
+                {
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "variable": "group_replication_recovery_tls_version"
+                }, 
+?{}
                 {
                     "value": "ON",
                     "variable": "group_replication_recovery_use_ssl"
