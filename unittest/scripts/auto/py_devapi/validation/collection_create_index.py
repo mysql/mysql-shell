@@ -135,7 +135,12 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
   `<<<idx_col_1>>>` text GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$.myField'))) VIRTUAL,
   `<<<idx_col_2>>>` text GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$.myField2'))) VIRTUAL,
+?{VER(<8.0.19)}
   `<<<idx_col_3>>>` int(11) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField3')) VIRTUAL,
+?{}
+?{VER(>=8.0.19)}
+  `<<<idx_col_3>>>` int GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField3')) VIRTUAL,
+?{}
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10),`<<<idx_col_2>>>`(10),`<<<idx_col_3>>>`)
@@ -207,7 +212,12 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
   `<<<idx_col_1>>>` text GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$.myField'))) VIRTUAL,
   `<<<idx_col_2>>>` text GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$.myField2'))) VIRTUAL NOT NULL,
+?{VER(<8.0.19)}
   `<<<idx_col_3>>>` int(11) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField3')) VIRTUAL,
+?{}
+?{VER(>=8.0.19)}
+  `<<<idx_col_3>>>` int GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField3')) VIRTUAL,
+?{}
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10),`<<<idx_col_2>>>`(10),`<<<idx_col_3>>>`)
@@ -708,10 +718,13 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
+?{VER(<8.0.19)}
+  `<<<idx_col_1>>>` bigint(20) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
+?{}
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
+  `<<<idx_col_1>>>` bigint GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
 ?{}
-  `<<<idx_col_1>>>` bigint(20) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`)
@@ -747,10 +760,13 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
+?{VER(<8.0.19)}
+  `<<<idx_col_1>>>` int(10) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
+?{}
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
+  `<<<idx_col_1>>>` int unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
 ?{}
-  `<<<idx_col_1>>>` int(10) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`)
@@ -786,10 +802,13 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
+?{VER(<8.0.19)}
+  `<<<idx_col_1>>>` mediumint(8) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
+?{}
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
+  `<<<idx_col_1>>>` mediumint unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
 ?{}
-  `<<<idx_col_1>>>` mediumint(8) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`)
@@ -825,10 +844,13 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
+?{VER(<8.0.19)}
+  `<<<idx_col_1>>>` smallint(6) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
+?{}
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
+  `<<<idx_col_1>>>` smallint GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
 ?{}
-  `<<<idx_col_1>>>` smallint(6) GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`)
@@ -864,10 +886,13 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
+?{VER(<8.0.19)}
+  `<<<idx_col_1>>>` tinyint(3) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
+?{}
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
+  `<<<idx_col_1>>>` tinyint unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
 ?{}
-  `<<<idx_col_1>>>` tinyint(3) unsigned GENERATED ALWAYS AS (json_extract(`doc`,_utf8mb4'$.myField')) VIRTUAL,
   PRIMARY KEY (`_id`),
 ?{VER(<8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`)

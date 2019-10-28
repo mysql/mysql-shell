@@ -17,7 +17,7 @@
 | sample                |
 +-----------------------+
 
-//@<OUT> 'query' - show description of sample table
+//@<OUT> 'query' - show description of sample table {VER(<8.0.19)}
 +----------+------------------+------+-----+---------+-------+
 | Field    | Type             | Null | Key | Default | Extra |
 +----------+------------------+------+-----+---------+-------+
@@ -37,6 +37,27 @@
 | fourteen | enum('a','b')    | YES  |     | NULL    |       |
 | fifteen  | set('c','d')     | YES  |     | NULL    |       |
 +----------+------------------+------+-----+---------+-------+
+
+//@<OUT> 'query' - show description of sample table {VER(>=8.0.19)}
++----------+---------------+------+-----+---------+-------+
+| Field    | Type          | Null | Key | Default | Extra |
++----------+---------------+------+-----+---------+-------+
+| one      | varchar(20)   | YES  |     | NULL    |       |
+| two      | int           | YES  |     | NULL    |       |
+| three    | int unsigned  | YES  |     | NULL    |       |
+| four     | float         | YES  |     | NULL    |       |
+| five     | double        | YES  |     | NULL    |       |
+| six      | decimal(10,0) | YES  |     | NULL    |       |
+| seven    | date          | YES  |     | NULL    |       |
+| eight    | datetime      | YES  |     | NULL    |       |
+| nine     | bit(1)        | YES  |     | NULL    |       |
+| ten      | blob          | YES  |     | NULL    |       |
+| eleven   | geometry      | YES  |     | NULL    |       |
+| twelve   | json          | YES  |     | NULL    |       |
+| thirteen | time          | YES  |     | NULL    |       |
+| fourteen | enum('a','b') | YES  |     | NULL    |       |
+| fifteen  | set('c','d')  | YES  |     | NULL    |       |
++----------+---------------+------+-----+---------+-------+
 
 //@ 'query' - insert some values
 |Report returned no data.|
