@@ -253,15 +253,6 @@ lexical_cast(const S &data) {
 std::istream &getline(std::istream &in, std::string &out);
 
 /**
- * Temporary implementation for make_unique
- * Should be deleted when we migrate to C++14
- */
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args &&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-/**
  * Verifies the status code of an application.
  *
  * @param status - status code to be checked

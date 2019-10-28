@@ -35,13 +35,13 @@ namespace import_table {
 
 std::unique_ptr<IFile> make_file_handler(const std::string &filepath) {
   if (shcore::str_beginswith(filepath, "oci+os://")) {
-    return shcore::make_unique<Oci_object_storage>(filepath);
+    return std::make_unique<Oci_object_storage>(filepath);
   } else if (shcore::str_beginswith(filepath, "http://") ||
              shcore::str_beginswith(filepath, "https://")) {
-    return shcore::make_unique<Http_get>(filepath);
+    return std::make_unique<Http_get>(filepath);
   }
   // implicit file://
-  return shcore::make_unique<File>(filepath);
+  return std::make_unique<File>(filepath);
 }
 
 }  // namespace import_table

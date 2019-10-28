@@ -237,7 +237,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
     }
   } else {
     m_target_instance_protocol_upgrade =
-        shcore::make_unique<Instance>(group_instance->get_session());
+        std::make_unique<Instance>(group_instance->get_session());
   }
 
   try {

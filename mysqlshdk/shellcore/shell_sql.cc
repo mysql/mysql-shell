@@ -262,7 +262,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       return;
     }
   } else if (!m_buffer->empty()) {
-    context_switcher = shcore::make_unique<Context_switcher>(this);
+    context_switcher = std::make_unique<Context_switcher>(this);
   }
 
   state = Input_state::Ok;

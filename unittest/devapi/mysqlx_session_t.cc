@@ -99,7 +99,7 @@ TEST_F(Mysqlx_session, connect) {
   {
     // FIXME when exception cleanup happens, these should expect nested
     // FIXME exceptions with db::Error inside
-    std::unique_ptr<Session> session(new Session());
+    auto session = std::make_unique<Session>();
     mysqlshdk::db::Connection_options opts(_uri_nopasswd);
     opts.set_password("???");
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
@@ -112,7 +112,7 @@ TEST_F(Mysqlx_session, connect) {
   }
 
   {
-    std::unique_ptr<Session> session(new Session());
+    auto session = std::make_unique<Session>();
     mysqlshdk::db::Connection_options opts;
     opts.set_host("blabla");
     EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,

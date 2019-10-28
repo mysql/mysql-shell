@@ -601,9 +601,9 @@ std::unique_ptr<mysqlshdk::db::IRow> Shell_test_env::set_replay_row_hook(
 #ifdef _WIN32
     datadir = shcore::str_replace(datadir, "/", "\\");
 #endif
-    return std::unique_ptr<mysqlshdk::db::IRow>{new tests::Override_row_string(
+    return std::make_unique<tests::Override_row_string>(
         std::move(source), std::vector<uint32_t>{(uint32_t)datadir_column},
-        std::vector<std::string>{datadir})};
+        std::vector<std::string>{datadir});
   }
 
 #ifdef __sun

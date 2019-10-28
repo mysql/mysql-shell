@@ -324,7 +324,7 @@ bool Result::next_resultset() {
 std::unique_ptr<Warning> Result::fetch_one_warning() {
   const auto &warnings = _result->get_warnings();
   if (_fetched_warning_count < warnings.size()) {
-    std::unique_ptr<Warning> w(new Warning());
+    auto w = std::make_unique<Warning>();
     const Mysqlx::Notice::Warning &warning = warnings[_fetched_warning_count];
     switch (warning.level()) {
       case Mysqlx::Notice::Warning::NOTE:

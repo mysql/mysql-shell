@@ -137,10 +137,10 @@ void Cluster_set_option::prepare() {
 
     if (!m_value_str.is_null()) {
       m_replicaset_set_option =
-          shcore::make_unique<Set_option>(*default_rs, m_option, *m_value_str);
+          std::make_unique<Set_option>(*default_rs, m_option, *m_value_str);
     } else {
       m_replicaset_set_option =
-          shcore::make_unique<Set_option>(*default_rs, m_option, *m_value_int);
+          std::make_unique<Set_option>(*default_rs, m_option, *m_value_int);
     }
 
     // If m_replicaset_set_option is set it means that the option is a

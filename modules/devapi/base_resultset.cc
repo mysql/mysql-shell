@@ -74,7 +74,7 @@ std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {
   if (result && columns) {
     const mysqlshdk::db::IRow *row = result->fetch_one();
     if (row) {
-      ret_val = shcore::make_unique<mysqlsh::Row>(columns, *row);
+      ret_val = std::make_unique<mysqlsh::Row>(columns, *row);
     }
   }
 

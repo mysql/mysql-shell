@@ -38,7 +38,7 @@ namespace mysqlsh {
 namespace import_table {
 
 Http_get::Http_get(const std::string &uri) : m_uri(uri) {
-  m_rest = shcore::make_unique<Rest_service>(m_uri, true);
+  m_rest = std::make_unique<Rest_service>(m_uri, true);
   m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
                                // ok? maybe we could make it configurable
   auto response = m_rest->head(std::string{});

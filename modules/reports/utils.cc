@@ -82,7 +82,7 @@ class Array_as_result : public mysqlshdk::db::IResult {
     }
 
     if (m_current_row < m_data.size()) {
-      m_row = shcore::make_unique<Vector_as_row>(m_data[m_current_row]);
+      m_row = std::make_unique<Vector_as_row>(m_data[m_current_row]);
       ++m_current_row;
       return m_row.get();
     } else {

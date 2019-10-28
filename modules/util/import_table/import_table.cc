@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,12 +46,12 @@ Import_table::Import_table(const Import_table_options &options)
 
   if (m_opt.show_progress()) {
     if (m_use_json) {
-      m_progress = shcore::make_unique<mysqlshdk::textui::Json_progress>();
+      m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
     } else {
-      m_progress = shcore::make_unique<mysqlshdk::textui::Text_progress>();
+      m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
     }
   } else {
-    m_progress = shcore::make_unique<mysqlshdk::textui::IProgress>();
+    m_progress = std::make_unique<mysqlshdk::textui::IProgress>();
   }
 
   m_progress->total(m_opt.file_size());

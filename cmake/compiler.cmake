@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Check for C++ 11 support
+# Check for C++ 14 support
 include(CheckCXXCompilerFlag)
 
 macro(APPEND_FLAG _string_var _addition)
@@ -33,33 +33,33 @@ macro(APPEND_MISSING_FLAG _string_var _addition)
   endif()
 endmacro()
 
-function(CHECK_CXX11)
-  check_cxx_compiler_flag("-std=c++11" support_11)
+function(CHECK_CXX14)
+  check_cxx_compiler_flag("-std=c++14" support_14)
 
-  if(support_11)
+  if(support_14)
     IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
       FOREACH(flag
               CMAKE_CXX_FLAGS_MINSIZEREL
               CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO
               CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_DEBUG_INIT)
-        SET("${flag}" "${${flag}} /std:c++11")
+        SET("${flag}" "${${flag}} /std:c++14")
       ENDFOREACH()
     ELSE()
-      SET(CXX11_FLAG "-std=c++11" PARENT_SCOPE)
+      SET(CXX14_FLAG "-std=c++14" PARENT_SCOPE)
     ENDIF()
   else()
-    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++11 standard")
+    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++14 standard")
   endif()
-  set(CMAKE_CXX_FLAGS ${CXX11_FLAG} PARENT_SCOPE)
+  set(CMAKE_CXX_FLAGS ${CXX14_FLAG} PARENT_SCOPE)
 endfunction()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-  check_cxx11()
+  check_cxx14()
   #set(${CMAKE_CXX_FLAGS} "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wpedantic -Wshadow")
 
   # Flags to use in old parts of the code, where we have too many warnings
   # as result of the typo above. We incrementally add warnings until everything is on
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_FLAG} -Werror -Wall -Wno-unused-parameter -Wno-unused-result")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX14_FLAG} -Werror -Wall -Wno-unused-parameter -Wno-unused-result")
   # Flags to use in new parts of the code, where we're trying to be strict from the beginning
   set(CXX_FLAGS_FULL_WARNINGS "${CMAKE_CXX_FLAGS} -Wextra -Wno-shadow")
 
@@ -74,7 +74,7 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     message(FATAL_ERROR "Need at least ${CMAKE_CXX_COMPILER} 12.0")
   endif()
 
-  check_cxx11()
+  check_cxx14()
 
   # /TP is needed so .cc files are recognoized as C++ source files by MSVC
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /TP")
@@ -93,7 +93,7 @@ elseif(CMAKE_C_COMPILER_ID MATCHES "SunPro" AND NOT CMAKE_CXX_COMPILER_VERSION V
     APPEND_MISSING_FLAG(${_flag} "-xatomic=studio")
   endforeach()
 
-  APPEND_MISSING_FLAG(CMAKE_CXX_FLAGS "-std=c++11")
+  APPEND_MISSING_FLAG(CMAKE_CXX_FLAGS "-std=c++14")
 
   foreach(_flag CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_C_LINK_FLAGS CMAKE_CXX_LINK_FLAGS)
     if(${_flag} MATCHES "-m32")

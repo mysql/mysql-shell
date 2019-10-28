@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -431,7 +431,7 @@ std::unique_ptr<Mutable_result> merge_sorted(
     IResult *left, IResult *right, const std::vector<uint32_t> &key_fields) {
   if (left->get_metadata() != right->get_metadata())
     throw std::invalid_argument("Results to merge have different fields");
-  std::unique_ptr<Mutable_result> res(new Mutable_result(left->get_metadata()));
+  auto res = std::make_unique<Mutable_result>(left->get_metadata());
 
   const auto *lrow = left->fetch_one();
   const auto *rrow = right->fetch_one();
@@ -444,20 +444,20 @@ std::unique_ptr<Mutable_result> merge_sorted(
     }
     if (r == 0) r = compare(*lrow, *rrow);
     if (r < 0) {
-      res->add_row(std::unique_ptr<Mem_row>(new Row_copy(*lrow)));
+      res->add_row(std::make_unique<Row_copy>(*lrow));
       lrow = left->fetch_one();
     } else {
-      res->add_row(std::unique_ptr<Mem_row>(new Row_copy(*rrow)));
+      res->add_row(std::make_unique<Row_copy>(*rrow));
       rrow = right->fetch_one();
     }
   }
 
   while (rrow) {
-    res->add_row(std::unique_ptr<Mem_row>(new Row_copy(*rrow)));
+    res->add_row(std::make_unique<Row_copy>(*rrow));
     rrow = right->fetch_one();
   }
   while (lrow) {
-    res->add_row(std::unique_ptr<Mem_row>(new Row_copy(*lrow)));
+    res->add_row(std::make_unique<Row_copy>(*lrow));
     lrow = left->fetch_one();
   }
 

@@ -1739,7 +1739,7 @@ std::string get_report_host_address(
 std::unique_ptr<mysqlshdk::config::Config> create_server_config(
     mysqlshdk::mysql::IInstance *instance,
     const std::string &srv_cfg_handler_name, bool silent) {
-  auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
+  auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   // Get the capabilities to use set persist by the server.
   mysqlshdk::utils::nullable<bool> can_set_persist =
@@ -1749,7 +1749,7 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
   cfg->add_handler(
       srv_cfg_handler_name,
       std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          shcore::make_unique<mysqlshdk::config::Config_server_handler>(
+          std::make_unique<mysqlshdk::config::Config_server_handler>(
               instance, (!can_set_persist.is_null() && *can_set_persist)
                             ? mysqlshdk::mysql::Var_qualifier::PERSIST
                             : mysqlshdk::mysql::Var_qualifier::GLOBAL)));

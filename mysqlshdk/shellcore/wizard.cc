@@ -41,13 +41,13 @@ Wizard::Wizard_step *Wizard::add_step(const std::string &id, Prompt_type type) {
 
   switch (type) {
     case Prompt_type::PROMPT:
-      m_steps.emplace(id, shcore::make_unique<Wizard_prompt>(id));
+      m_steps.emplace(id, std::make_unique<Wizard_prompt>(id));
       break;
     case Prompt_type::CONFIRM:
-      m_steps.emplace(id, shcore::make_unique<Wizard_confirm>(id));
+      m_steps.emplace(id, std::make_unique<Wizard_confirm>(id));
       break;
     case Prompt_type::SELECTION:
-      m_steps.emplace(id, shcore::make_unique<Wizard_select>(id));
+      m_steps.emplace(id, std::make_unique<Wizard_select>(id));
       break;
   }
 

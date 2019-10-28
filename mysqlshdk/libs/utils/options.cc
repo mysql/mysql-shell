@@ -278,7 +278,7 @@ static std::unique_ptr<rapidjson::Document> read_json_from_file(
   if (filename.empty())
     throw std::runtime_error("Configuration file was not specified");
 
-  std::unique_ptr<rapidjson::Document> d(new rapidjson::Document());
+  auto d = std::make_unique<rapidjson::Document>();
 
   std::ifstream f(filename, std::ios::binary);
   if (f.is_open()) {

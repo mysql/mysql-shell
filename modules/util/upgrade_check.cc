@@ -268,7 +268,7 @@ Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "oldTemporalCheck", "Usage of old temporal type",
       std::vector<std::string>{
           "SELECT table_schema, table_name,column_name,column_type "
@@ -310,7 +310,7 @@ Sql_upgrade_check::get_reserved_keywords_check(
   add_keywords("8.0.17", "'ARRAY' ,'MEMBER' ");
 
   keywords = "(" + keywords + ");";
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "reservedKeywordsCheck",
       "Usage of db objects with names conflicting with new reserved keywords",
       std::vector<std::string>{
@@ -354,7 +354,7 @@ bool UNUSED_VARIABLE(register_reserved) = Upgrade_check::register_check(
 
 /// In this check we are only interested if any such table/database exists
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_utf8mb3_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "utf8mb3Check", "Usage of utf8mb3 charset",
       std::vector<std::string>{
           "select SCHEMA_NAME, concat('schema''s default character set: ',  "
@@ -379,7 +379,7 @@ bool UNUSED_VARIABLE(register_utf8mb3) = Upgrade_check::register_check(
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "mysqlSchemaCheck",
       "Table names in the mysql schema conflicting with new tables in 8.0",
       std::vector<std::string>{
@@ -410,7 +410,7 @@ bool UNUSED_VARIABLE(register_mysql_schema) = Upgrade_check::register_check(
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_innodb_rowformat_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "innodbRowFormatCheck", "InnoDB tables with non-default row format",
       std::vector<std::string>{
           "select table_schema, table_name, row_format from "
@@ -421,7 +421,7 @@ Sql_upgrade_check::get_innodb_rowformat_check() {
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "zerofillCheck", "Usage of use ZEROFILL/display length type attributes",
       std::vector<std::string>{
           "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
@@ -451,7 +451,7 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_nonnative_partitioning_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "nonNativePartitioningCheck",
       "Partitioned tables using engines with non native partitioning",
       std::vector<std::string>{
@@ -478,7 +478,7 @@ bool UNUSED_VARIABLE(register_nonnative_partitioning) =
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_foreign_key_length_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "foreignKeyLengthCheck",
       "Foreign key constraint names longer than 64 characters",
       std::vector<std::string>{
@@ -500,7 +500,7 @@ bool UNUSED_VARIABLE(register_foreing_key) = Upgrade_check::register_check(
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "maxdbFlagCheck", "Usage of obsolete MAXDB sql_mode flag",
       std::vector<std::string>{
           "select routine_schema, routine_name, concat(routine_type, ' uses "
@@ -561,7 +561,7 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
         mode, mode));
   }
 
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "sqlModeFlagCheck", "Usage of obsolete sql_mode flags",
       std::move(queries), Upgrade_issue::NOTICE,
       "The following DB objects have obsolete options persisted for sql_mode, "
@@ -621,7 +621,7 @@ class Enum_set_element_length_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_enum_set_element_length_check() {
-  return shcore::make_unique<Enum_set_element_length_check>();
+  return std::make_unique<Enum_set_element_length_check>();
 }
 
 namespace {
@@ -634,7 +634,7 @@ bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
     const Upgrade_check_options &opts) {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "partitionedTablesInSharedTablespaceCheck",
       "Usage of partitioned tables in shared tablespaces",
       std::vector<std::string>{
@@ -672,7 +672,7 @@ bool UNUSED_VARIABLE(register_sharded_tablespaces) =
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_circular_directory_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "circularDirectoryCheck",
       "Circular directory references in tablespace data file paths",
       std::vector<std::string>{
@@ -848,7 +848,7 @@ class Removed_functions_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_removed_functions_check() {
-  return shcore::make_unique<Removed_functions_check>();
+  return std::make_unique<Removed_functions_check>();
 }
 
 namespace {
@@ -927,7 +927,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_groupby_asc_syntax_check() {
-  return shcore::make_unique<Groupby_asc_syntax_check>();
+  return std::make_unique<Groupby_asc_syntax_check>();
 }
 
 namespace {
@@ -1061,13 +1061,13 @@ Sql_upgrade_check::get_removed_sys_log_vars_check(
 
   if (opts.server_version < mysqlshdk::utils::Version(8, 0, 0) &&
       opts.server_version >= mysqlshdk::utils::Version(5, 7, 0))
-    return shcore::make_unique<Config_check>(
+    return std::make_unique<Config_check>(
         name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
         Upgrade_issue::ERROR, problem_description, title, advice);
 
-  return shcore::make_unique<Removed_sys_var_check>(
-      name, title, std::move(vars), problem_description, advice,
-      Upgrade_issue::ERROR);
+  return std::make_unique<Removed_sys_var_check>(name, title, std::move(vars),
+                                                 problem_description, advice,
+                                                 Upgrade_issue::ERROR);
 }
 
 namespace {
@@ -1133,11 +1133,11 @@ std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_removed_sys_vars_check(
       "upgrade.";
 
   if (ver < Version(8, 0, 0))
-    return shcore::make_unique<Config_check>(
+    return std::make_unique<Config_check>(
         name, std::move(vars), Config_check::Mode::FLAG_DEFINED,
         Upgrade_issue::ERROR, problem_description, title, advice);
-  return shcore::make_unique<Removed_sys_var_check>(
-      name, title, std::move(vars), problem_description, advice);
+  return std::make_unique<Removed_sys_var_check>(name, title, std::move(vars),
+                                                 problem_description, advice);
 }
 
 namespace {
@@ -1149,7 +1149,7 @@ bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
 
 std::unique_ptr<Upgrade_check>
 Sql_upgrade_check::get_sys_vars_new_defaults_check() {
-  return shcore::make_unique<Config_check>(
+  return std::make_unique<Config_check>(
       "sysVarsNewDefaults",
       std::map<std::string, const char *>{
           {"character_set_server", "from latin1 to utf8mb4"},
@@ -1207,7 +1207,7 @@ bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
 // clang-format off
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_schema_inconsistency_check() {
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "schemaInconsistencyCheck",
       "Schema inconsistencies resulting from file removal or corruption",
       std::vector<std::string>{
@@ -1244,7 +1244,7 @@ Sql_upgrade_check::get_fts_in_tablename_check(
       shcore::str_beginswith(opts.server_os, "WIN"))
     throw Check_not_needed();
 
-  return shcore::make_unique<Sql_upgrade_check>(
+  return std::make_unique<Sql_upgrade_check>(
       "ftsTablenameCheck", "Table names containing 'FTS'",
       std::vector<std::string>{
           "select table_schema, table_name , 'table name contains ''FTS''' "
@@ -1319,7 +1319,7 @@ std::vector<Upgrade_issue> Check_table_command::run(
 namespace {
 bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
     [](const Upgrade_check_options &) {
-      return shcore::make_unique<Check_table_command>();
+      return std::make_unique<Check_table_command>();
     },
     Upgrade_check::ALL_VERSIONS);
 }
@@ -1330,7 +1330,7 @@ void Upgrade_check::register_manual_check(const char *ver, const char *name,
       std::forward_list<mysqlshdk::utils::Version>{
           mysqlshdk::utils::Version(ver)},
       [name, level](const Upgrade_check_options &) {
-        return shcore::make_unique<Manual_check>(name, level);
+        return std::make_unique<Manual_check>(name, level);
       });
 }
 

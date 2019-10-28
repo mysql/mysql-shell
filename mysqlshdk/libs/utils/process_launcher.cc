@@ -895,7 +895,7 @@ void Process::start_reader_threads() {
     // operations non-blocking. This may be required i.e. on Windows, where we
     // use anonymous pipes to transfer output from child processes. If output is
     // not read, pipe's buffer will become full and child process will hang.
-    m_reader_thread = shcore::make_unique<std::thread>([this]() {
+    m_reader_thread = std::make_unique<std::thread>([this]() {
       try {
         char c;
         while (do_read(&c, 1) > 0) {
@@ -911,7 +911,7 @@ void Process::start_reader_threads() {
   // need to drain output from controlling terminal, otherwise launched
   // process will hang on exit
   if (m_use_pseudo_tty && !m_terminal_reader_thread) {
-    m_terminal_reader_thread = shcore::make_unique<std::thread>([this]() {
+    m_terminal_reader_thread = std::make_unique<std::thread>([this]() {
       static constexpr size_t k_buffer_size = 512;
       char buffer[k_buffer_size];
       int n = 0;

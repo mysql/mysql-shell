@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ class Helper_name::Helper_name_impl {
 
 Helper_name::Helper_name(const std::string &name,
                          const std::string &path) noexcept
-    : m_impl{new Helper_name_impl{name, path}} {}
+    : m_impl{std::make_unique<Helper_name_impl>(name, path)} {}
 
 Helper_name::Helper_name(const Helper_name &name) noexcept { *this = name; }
 
@@ -55,7 +55,7 @@ std::string Helper_name::path() const noexcept { return m_impl->path(); }
 
 Helper_name &Helper_name::operator=(const Helper_name &r) noexcept {
   if (this != &r) {
-    m_impl = std::unique_ptr<Helper_name_impl>{new Helper_name_impl{*r.m_impl}};
+    m_impl = std::make_unique<Helper_name_impl>(*r.m_impl);
   }
 
   return *this;

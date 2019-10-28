@@ -66,7 +66,7 @@ std::unique_ptr<mysqlshdk::db::Warning> Fake_result::fetch_one_warning() {
  * same position.
  */
 void Fake_result::add_row(const std::vector<std::string> &data) {
-  std::unique_ptr<NiceMock<Mock_row>> row(new NiceMock<Mock_row>());
+  auto row = std::make_unique<NiceMock<Mock_row>>();
 
   row->init(_names, _types, data);
 
@@ -74,8 +74,7 @@ void Fake_result::add_row(const std::vector<std::string> &data) {
 }
 
 void Fake_result::add_warning(const mysqlshdk::db::Warning &warning) {
-  _warnings.push_back(std::unique_ptr<mysqlshdk::db::Warning>(
-      new mysqlshdk::db::Warning(warning)));
+  _warnings.push_back(std::make_unique<mysqlshdk::db::Warning>(warning));
 }
 
 Mock_result::Mock_result() : _index(0) {
@@ -124,7 +123,7 @@ void Mock_result::add_result(
     const std::vector<std::string> &names,
     const std::vector<mysqlshdk::db::Type> &types,
     const std::vector<std::vector<std::string>> &rows) {
-  std::unique_ptr<Fake_result> result(new Fake_result(names, types));
+  auto result = std::make_unique<Fake_result>(names, types);
 
   for (auto row : rows) result->add_row(row);
 

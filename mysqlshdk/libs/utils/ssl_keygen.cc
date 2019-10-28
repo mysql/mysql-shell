@@ -158,7 +158,7 @@ bool decode_base64(const std::string &source, std::string *target) {
 
   const size_t expected_size = (size * 3) / 4 - padding;
 
-  std::unique_ptr<char[]> buffer(new char[expected_size]);
+  auto buffer = std::make_unique<char[]>(expected_size);
 
   BIO_ptr bio_source(BIO_new_mem_buf(source.c_str(), source.size()),
                      ::BIO_free);

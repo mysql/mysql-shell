@@ -343,7 +343,7 @@ class Rest_service::Impl {
 };
 
 Rest_service::Rest_service(const std::string &base_url, bool verify_ssl)
-    : m_impl(shcore::make_unique<Impl>(base_url, verify_ssl)) {}
+    : m_impl(std::make_unique<Impl>(base_url, verify_ssl)) {}
 
 Rest_service::Rest_service(Rest_service &&) = default;
 

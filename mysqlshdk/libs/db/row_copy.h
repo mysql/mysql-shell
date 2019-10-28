@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -143,7 +143,7 @@ class SHCORE_PUBLIC Mutable_row : public Mem_row {
           "Attempt to write floating point number to not neither float or "
           "double field.");
     _data->fields[index] =
-        std::unique_ptr<Field_data_>(new Field_data<T>(std::forward<T>(arg)));
+        std::make_unique<Field_data<T>>(std::forward<T>(arg));
   }
 
   template <class T>

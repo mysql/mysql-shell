@@ -400,18 +400,15 @@ struct Parameter final {
 
     switch (m_type) {
       case Value_type::Object:
-        set_validator(
-            std::unique_ptr<Object_validator>(new Object_validator()));
+        set_validator(std::make_unique<Object_validator>());
         break;
 
       case Value_type::String:
-        set_validator(
-            std::unique_ptr<String_validator>(new String_validator()));
+        set_validator(std::make_unique<String_validator>());
         break;
 
       case Value_type::Map:
-        set_validator(
-            std::unique_ptr<Option_validator>(new Option_validator()));
+        set_validator(std::make_unique<Option_validator>());
         break;
 
       default:

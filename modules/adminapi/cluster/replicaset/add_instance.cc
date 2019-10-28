@@ -809,7 +809,7 @@ void Add_instance::prepare() {
     } else {
       peer_session = m_replicaset.get_cluster()->get_group_session();
     }
-    m_peer_instance = shcore::make_unique<mysqlsh::dba::Instance>(peer_session);
+    m_peer_instance = std::make_unique<mysqlsh::dba::Instance>(peer_session);
   }
 
   // Validate the GR options.

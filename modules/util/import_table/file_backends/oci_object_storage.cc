@@ -68,7 +68,7 @@ std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
   }
 
   const auto siglen = EVP_PKEY_size(sigkey);
-  std::unique_ptr<unsigned char[]> md_value{new unsigned char[siglen + 1]};
+  const auto md_value = std::make_unique<unsigned char[]>(siglen + 1);
 
   r = EVP_DigestSignUpdate(mctx.get(), string_to_sign.data(),
                            string_to_sign.size());
@@ -107,7 +107,7 @@ void Oci_object_storage::parse_uri(const std::string &uri) {
 Oci_object_storage::Oci_object_storage(const std::string &uri)
     : m_oci_uri(uri) {
   parse_uri(uri);
-  m_rest = shcore::make_unique<Rest_service>("https://" + m_uri.hostname, true);
+  m_rest = std::make_unique<Rest_service>("https://" + m_uri.hostname, true);
   m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
                                // ok? maybe we could make it configurable
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ Mutable_result::Mutable_result(IResult *result)
     : _metadata(result->get_metadata()) {
   auto *row = result->fetch_one();
   while (row) {
-    _rows.emplace_back(std::unique_ptr<Row_copy>(new Row_copy(*row)));
+    _rows.emplace_back(std::make_unique<Row_copy>(*row));
     row = result->fetch_one();
   }
 }

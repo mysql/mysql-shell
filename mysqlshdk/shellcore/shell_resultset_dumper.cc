@@ -542,7 +542,7 @@ Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
                                    const std::string &wrap_json,
                                    const std::string &format, bool buffer_data,
                                    bool show_warnings, bool show_stats)
-    : Resultset_dumper_base(target, shcore::make_unique<Console_printer>(),
+    : Resultset_dumper_base(target, std::make_unique<Console_printer>(),
                             wrap_json, format),
       m_show_warnings(show_warnings),
       m_show_stats(show_stats),
@@ -1050,7 +1050,7 @@ void Resultset_dumper_base::dump_warnings() {
 
 Resultset_writer::Resultset_writer(mysqlshdk::db::IResult *target)
     : Resultset_dumper_base(
-          target, shcore::make_unique<String_printer>(),
+          target, std::make_unique<String_printer>(),
           mysqlsh::current_shell_options()->get().wrap_json,
           mysqlsh::current_shell_options()->get().result_format) {}
 

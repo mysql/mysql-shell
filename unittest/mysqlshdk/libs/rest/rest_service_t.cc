@@ -69,7 +69,7 @@ class Rest_service_test : public ::testing::Test {
       std::vector<const char *> args{"python", script.c_str(),
                                      port_number.c_str(), nullptr};
 
-      s_test_server = shcore::make_unique<shcore::Process_launcher>(&args[0]);
+      s_test_server = std::make_unique<shcore::Process_launcher>(&args[0]);
       s_test_server->enable_reader_thread();
 #ifdef _WIN32
       s_test_server->set_create_process_group();

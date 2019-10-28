@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ MACRO(ADD_STAN_TARGET TARGET)
     GET_TARGET_PROPERTY(DEFINES ${TARGET} COMPILE_DEFINITIONS)
     GET_TARGET_PROPERTY(OPTIONS ${TARGET} COMPILE_OPTIONS)
     ADD_CUSTOM_TARGET(tidy-${TARGET}
-      ${CLANG_TIDY} ${CLANG_TIDY_FLAGS} ${ARGN} -config='' -- -x=c++ -std=c++11 -fexceptions ${INCLUDES} ${DEFINES} ${OPTIONS}
+      ${CLANG_TIDY} ${CLANG_TIDY_FLAGS} ${ARGN} -config='' -- -x=c++ -std=c++14 -fexceptions ${INCLUDES} ${DEFINES} ${OPTIONS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   ENDIF()
 ENDMACRO()

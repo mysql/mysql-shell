@@ -327,15 +327,15 @@ void Cluster_impl::set_option(const std::string &option,
   if (value.type == shcore::String) {
     std::string value_str = value.as_string();
     op_cluster_set_option =
-        shcore::make_unique<Cluster_set_option>(this, option, value_str);
+        std::make_unique<Cluster_set_option>(this, option, value_str);
   } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
     int64_t value_int = value.as_int();
     op_cluster_set_option =
-        shcore::make_unique<Cluster_set_option>(this, option, value_int);
+        std::make_unique<Cluster_set_option>(this, option, value_int);
   } else if (value.type == shcore::Bool) {
     bool value_bool = value.as_bool();
     op_cluster_set_option =
-        shcore::make_unique<Cluster_set_option>(this, option, value_bool);
+        std::make_unique<Cluster_set_option>(this, option, value_bool);
   } else {
     throw shcore::Exception::argument_error(
         "Argument #2 is expected to be a string, an integer or a boolean.");
@@ -656,7 +656,7 @@ std::unique_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(instance_cnx_opts);
     log_debug("Successfully connected to instance");
-    return shcore::make_unique<mysqlsh::dba::Instance>(session);
+    return std::make_unique<mysqlsh::dba::Instance>(session);
   } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
     throw;

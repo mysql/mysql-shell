@@ -424,7 +424,7 @@ class Helper_executable_tester : public Helper_tester {
         paths.begin(), paths.end(),
         [&name](const std::string &p) { return get_helper_name(p) == name; });
     ASSERT_NE(paths.end(), helper);
-    m_invoker = std::unique_ptr<Helper_invoker>{new Helper_invoker{*helper}};
+    m_invoker = std::make_unique<Helper_invoker>(*helper);
     ASSERT_NE(nullptr, m_invoker);
   }
 

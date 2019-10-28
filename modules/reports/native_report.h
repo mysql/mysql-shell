@@ -63,7 +63,7 @@ class Native_report {
   struct Registrar {
    public:
     static std::unique_ptr<Report> create() {
-      auto report = shcore::make_unique<Report>(
+      auto report = std::make_unique<Report>(
           T::Config::name(), T::Config::type(),
           [](const std::shared_ptr<ShellBaseSession> &session,
              const shcore::Array_t &argv, const shcore::Dictionary_t &options) {

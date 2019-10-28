@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,23 +37,14 @@ namespace mysql {
 namespace secret_store {
 namespace core {
 
-namespace {
-
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args &&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-}  // namespace
-
 Program::Program(std::unique_ptr<common::Helper> helper)
     : m_helper{std::move(helper)} {
   const auto ptr = m_helper.get();
-  m_commands.emplace_back(make_unique<Version_command>(ptr));
-  m_commands.emplace_back(make_unique<Store_command>(ptr));
-  m_commands.emplace_back(make_unique<Get_command>(ptr));
-  m_commands.emplace_back(make_unique<Erase_command>(ptr));
-  m_commands.emplace_back(make_unique<List_command>(ptr));
+  m_commands.emplace_back(std::make_unique<Version_command>(ptr));
+  m_commands.emplace_back(std::make_unique<Store_command>(ptr));
+  m_commands.emplace_back(std::make_unique<Get_command>(ptr));
+  m_commands.emplace_back(std::make_unique<Erase_command>(ptr));
+  m_commands.emplace_back(std::make_unique<List_command>(ptr));
 }
 
 int Program::run(int argc, char *argv[]) {

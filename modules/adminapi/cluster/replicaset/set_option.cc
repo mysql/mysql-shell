@@ -124,7 +124,7 @@ void Set_option::ensure_all_members_replicaset_online() {
 
         // Add the instance to instances internal list
         m_cluster_instances.emplace_back(
-            shcore::make_unique<mysqlsh::dba::Instance>(session));
+            std::make_unique<mysqlsh::dba::Instance>(session));
       } catch (const std::exception &err) {
         log_debug("Failed to connect to instance: %s", err.what());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,7 @@ std::unique_ptr<::Mysqlx::Expr::Expr>
 Collection_crud_definition::encode_document_expr(shcore::Value docexpr) {
   assert(docexpr.type == shcore::Map);
 
-  std::unique_ptr<::Mysqlx::Expr::Expr> expr(new ::Mysqlx::Expr::Expr());
+  auto expr = std::make_unique<::Mysqlx::Expr::Expr>();
   encode_expression_value(expr.get(), docexpr);
   return expr;
 }

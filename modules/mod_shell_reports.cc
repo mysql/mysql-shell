@@ -1102,7 +1102,7 @@ void Shell_reports::register_report(const std::string &name,
   }
 
   auto new_report =
-      shcore::make_unique<Report>(name, to_report_type(type), report);
+      std::make_unique<Report>(name, to_report_type(type), report);
 
   if (description) {
     std::string brief;
@@ -1177,7 +1177,7 @@ void Shell_reports::register_report(std::unique_ptr<Report> report) {
     argv->brief =
         "Extra arguments. Report expects " + to_string(report->argc()) + ".";
     argv->parameter->set_validator(
-        shcore::make_unique<Argv_validator>(report->argc()));
+        std::make_unique<Argv_validator>(report->argc()));
 
     parameters.emplace_back(std::move(argv));
   }
@@ -1202,7 +1202,7 @@ void Shell_reports::register_report(std::unique_ptr<Report> report) {
   const auto function = report->function();
   const auto examples = get_function_examples(*report);
 
-  auto roptions = shcore::make_unique<Report_options>(std::move(report));
+  auto roptions = std::make_unique<Report_options>(std::move(report));
 
   // Reports must have the same name in both Python and JavaScript
   auto fd = std::make_shared<Function_definition>(

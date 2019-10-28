@@ -223,11 +223,11 @@ void ReplicaSet::set_instance_option(const Connection_options &instance_def,
   // gone, this type checking shall go away too.
   if (value.type == shcore::String) {
     std::string value_str = value.as_string();
-    op_set_instance_option = shcore::make_unique<Set_instance_option>(
+    op_set_instance_option = std::make_unique<Set_instance_option>(
         *this, instance_def, option, value_str);
   } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
     int64_t value_int = value.as_int();
-    op_set_instance_option = shcore::make_unique<Set_instance_option>(
+    op_set_instance_option = std::make_unique<Set_instance_option>(
         *this, instance_def, option, value_int);
   } else {
     throw shcore::Exception::argument_error(
@@ -1279,7 +1279,7 @@ std::unique_ptr<mysqlsh::dba::Instance> ReplicaSet::get_online_instance(
         session->connect(coptions);
 
         // Return the first valid (reachable) instance.
-        return shcore::make_unique<mysqlsh::dba::Instance>(session);
+        return std::make_unique<mysqlsh::dba::Instance>(session);
 
       } catch (const std::exception &e) {
         log_debug(
@@ -1659,7 +1659,7 @@ ReplicaSet::get_instances_with_state() const {
 
 std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object(
     std::vector<std::string> ignored_instances, bool skip_invalid_state) const {
-  auto cfg = shcore::make_unique<mysqlshdk::config::Config>();
+  auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   auto console = mysqlsh::current_console();
 
@@ -1721,8 +1721,8 @@ std::unique_ptr<mysqlshdk::config::Config> ReplicaSet::create_config_object(
       cfg->add_handler(
           instance_def.first.endpoint,
           std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-              shcore::make_unique<mysqlshdk::config::Config_server_handler>(
-                  shcore::make_unique<mysqlsh::dba::Instance>(instance),
+              std::make_unique<mysqlshdk::config::Config_server_handler>(
+                  std::make_unique<mysqlsh::dba::Instance>(instance),
                   set_type)));
 
       // Print a warning if SET PERSIST is not supported, for users to execute

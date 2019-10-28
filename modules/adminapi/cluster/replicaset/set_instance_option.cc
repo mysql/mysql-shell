@@ -118,7 +118,7 @@ void Set_instance_option::ensure_target_member_online() {
   try {
     session = mysqlshdk::db::mysql::Session::create();
     session->connect(m_instance_cnx_opts);
-    m_target_instance = shcore::make_unique<mysqlsh::dba::Instance>(session);
+    m_target_instance = std::make_unique<mysqlsh::dba::Instance>(session);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();

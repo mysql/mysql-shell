@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,8 +40,7 @@ Debug_object_info *debug_object_enable(const char *name) {
     if (c->name.compare(name) == 0) return c.get();
   }
 
-  g_debug_object_list.push_back(
-      std::unique_ptr<Debug_object_info>(new Debug_object_info(name)));
+  g_debug_object_list.push_back(std::make_unique<Debug_object_info>(name));
   return g_debug_object_list[g_debug_object_list.size() - 1].get();
 }
 

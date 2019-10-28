@@ -791,8 +791,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       if (m_shell_cli_operation)
         throw std::invalid_argument(
             "MySQL Shell can handle only one operation at a time");
-      m_shell_cli_operation =
-          shcore::make_unique<shcore::Shell_cli_operation>();
+      m_shell_cli_operation = std::make_unique<shcore::Shell_cli_operation>();
       m_shell_cli_operation->set_object_name("util");
       m_shell_cli_operation->set_method_name("importJson");
 

@@ -92,7 +92,7 @@ class Mod_shell_reports_test : public ::testing::Test {
   void SetUp() override {
     const auto test_info =
         ::testing::UnitTest::GetInstance()->current_test_info();
-    m_reports = shcore::make_unique<Shell_reports>(
+    m_reports = std::make_unique<Shell_reports>(
         test_info->name(),
         test_info->test_case_name() + std::string{"."} + test_info->name());
     m_session = std::make_shared<Mock_shell_base_session>();
@@ -115,7 +115,7 @@ class Mod_shell_reports_test : public ::testing::Test {
 };
 
 TEST_F(Mod_shell_reports_test, report_no_options_no_args) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
@@ -137,7 +137,7 @@ TEST_F(Mod_shell_reports_test, report_no_options_no_args) {
 }
 
 TEST_F(Mod_shell_reports_test, report_no_options_args) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
@@ -161,7 +161,7 @@ TEST_F(Mod_shell_reports_test, report_no_options_args) {
 }
 
 TEST_F(Mod_shell_reports_test, report_options_no_args) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
@@ -188,7 +188,7 @@ TEST_F(Mod_shell_reports_test, report_options_no_args) {
 }
 
 TEST_F(Mod_shell_reports_test, report_options_args) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
@@ -217,7 +217,7 @@ TEST_F(Mod_shell_reports_test, report_options_args) {
 }
 
 TEST_F(Mod_shell_reports_test, report_bool_option) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
@@ -243,7 +243,7 @@ TEST_F(Mod_shell_reports_test, report_bool_option) {
 }
 
 TEST_F(Mod_shell_reports_test, report_optional_string_option) {
-  auto report = shcore::make_unique<Report>(
+  auto report = std::make_unique<Report>(
       k_test_report, Report::Type::REPORT,
       [](const std::shared_ptr<ShellBaseSession> &, const shcore::Array_t &argv,
          const shcore::Dictionary_t &options) {
