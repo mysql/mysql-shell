@@ -25,6 +25,7 @@
 #include <array>
 #include <map>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
@@ -698,144 +699,131 @@ bool UNUSED_VARIABLE(circular_directory_check) = Upgrade_check::register_check(
 
 class Removed_functions_check : public Sql_upgrade_check {
  private:
-  const std::array<std::pair<std::string, const char *>, 71> functions{
-      {{"ENCODE", "AES_ENCRYPT and AES_DECRYPT"},
-       {"DECODE", "AES_ENCRYPT and AES_DECRYPT"},
-       {"ENCRYPT", "SHA2"},
-       {"DES_ENCRYPT", "AES_ENCRYPT and AES_DECRYPT"},
-       {"DES_DECRYPT", "AES_ENCRYPT and AES_DECRYPT"},
-       {"AREA", "ST_AREA"},
-       {"ASBINARY", "ST_ASBINARY"},
-       {"ASTEXT", "ST_ASTEXT"},
-       {"ASWKB", "ST_ASWKB"},
-       {"ASWKT", "ST_ASWKT"},
-       {"BUFFER", "ST_BUFFER"},
-       {"CENTROID", "ST_CENTROID"},
-       {"CONTAINS", "MBRCONTAINS"},
-       {"CROSSES", "ST_CROSSES"},
-       {"DIMENSION", "ST_DIMENSION"},
-       {"DISJOINT", "MBRDISJOINT"},
-       {"DISTANCE", "ST_DISTANCE"},
-       {"ENDPOINT", "ST_ENDPOINT"},
-       {"ENVELOPE", "ST_ENVELOPE"},
-       {"EQUALS", "MBREQUALS"},
-       {"EXTERIORRING", "ST_EXTERIORRING"},
-       {"GEOMCOLLFROMTEXT", "ST_GEOMCOLLFROMTEXT"},
-       {"GEOMCOLLFROMWKB", "ST_GEOMCOLLFROMWKB"},
-       {"GEOMETRYCOLLECTIONFROMTEXT", "ST_GEOMETRYCOLLECTIONFROMTEXT"},
-       {"GEOMETRYCOLLECTIONFROMWKB", "ST_GEOMETRYCOLLECTIONFROMWKB"},
-       {"GEOMETRYFROMTEXT", "ST_GEOMETRYFROMTEXT"},
-       {"GEOMETRYFROMWKB", "ST_GEOMETRYFROMWKB"},
-       {"GEOMETRYN", "ST_GEOMETRYN"},
-       {"GEOMETRYTYPE", "ST_GEOMETRYTYPE"},
-       {"GEOMFROMTEXT", "ST_GEOMFROMTEXT"},
-       {"GEOMFROMWKB", "ST_GEOMFROMWKB"},
-       {"GLENGTH", "ST_LENGTH"},
-       {"INTERIORRINGN", "ST_INTERIORRINGN"},
-       {"INTERSECTS", "MBRINTERSECTS"},
-       {"ISCLOSED", "ST_ISCLOSED"},
-       {"ISEMPTY", "ST_ISEMPTY"},
-       {"ISSIMPLE", "ST_ISSIMPLE"},
-       {"LINEFROMTEXT", "ST_LINEFROMTEXT"},
-       {"LINEFROMWKB", "ST_LINEFROMWKB"},
-       {"LINESTRINGFROMTEXT", "ST_LINESTRINGFROMTEXT"},
-       {"LINESTRINGFROMWKB", "ST_LINESTRINGFROMWKB"},
-       {"MBREQUAL", "MBREQUALS"},
-       {"MLINEFROMTEXT", "ST_MLINEFROMTEXT"},
-       {"MLINEFROMWKB", "ST_MLINEFROMWKB"},
-       {"MPOINTFROMTEXT", "ST_MPOINTFROMTEXT"},
-       {"MPOINTFROMWKB", "ST_MPOINTFROMWKB"},
-       {"MPOLYFROMTEXT", "ST_MPOLYFROMTEXT"},
-       {"MPOLYFROMWKB", "ST_MPOLYFROMWKB"},
-       {"MULTILINESTRINGFROMTEXT", "ST_MULTILINESTRINGFROMTEXT"},
-       {"MULTILINESTRINGFROMWKB", "ST_MULTILINESTRINGFROMWKB"},
-       {"MULTIPOINTFROMTEXT", "ST_MULTIPOINTFROMTEXT"},
-       {"MULTIPOINTFROMWKB", "ST_MULTIPOINTFROMWKB"},
-       {"MULTIPOLYGONFROMTEXT", "ST_MULTIPOLYGONFROMTEXT"},
-       {"MULTIPOLYGONFROMWKB", "ST_MULTIPOLYGONFROMWKB"},
-       {"NUMGEOMETRIES", "ST_NUMGEOMETRIES"},
-       {"NUMINTERIORRINGS", "ST_NUMINTERIORRINGS"},
-       {"NUMPOINTS", "ST_NUMPOINTS"},
-       {"OVERLAPS", "MBROVERLAPS"},
-       {"POINTFROMTEXT", "ST_POINTFROMTEXT"},
-       {"POINTFROMWKB", "ST_POINTFROMWKB"},
-       {"POINTN", "ST_POINTN"},
-       {"POLYFROMTEXT", "ST_POLYFROMTEXT"},
-       {"POLYFROMWKB", "ST_POLYFROMWKB"},
-       {"POLYGONFROMTEXT", "ST_POLYGONFROMTEXT"},
-       {"POLYGONFROMWKB", "ST_POLYGONFROMWKB"},
-       {"SRID", "ST_SRID"},
-       {"STARTPOINT", "ST_STARTPOINT"},
-       {"TOUCHES", "ST_TOUCHES"},
-       {"WITHIN", "MBRWITHIN"},
-       {"X", "ST_X"},
-       {"Y", "ST_Y"}}};
+  const std::unordered_map<std::string, const char *> functions{
+      {"ENCODE", "AES_ENCRYPT and AES_DECRYPT"},
+      {"DECODE", "AES_ENCRYPT and AES_DECRYPT"},
+      {"ENCRYPT", "SHA2"},
+      {"DES_ENCRYPT", "AES_ENCRYPT and AES_DECRYPT"},
+      {"DES_DECRYPT", "AES_ENCRYPT and AES_DECRYPT"},
+      {"AREA", "ST_AREA"},
+      {"ASBINARY", "ST_ASBINARY"},
+      {"ASTEXT", "ST_ASTEXT"},
+      {"ASWKB", "ST_ASWKB"},
+      {"ASWKT", "ST_ASWKT"},
+      {"BUFFER", "ST_BUFFER"},
+      {"CENTROID", "ST_CENTROID"},
+      {"CONTAINS", "MBRCONTAINS"},
+      {"CROSSES", "ST_CROSSES"},
+      {"DIMENSION", "ST_DIMENSION"},
+      {"DISJOINT", "MBRDISJOINT"},
+      {"DISTANCE", "ST_DISTANCE"},
+      {"ENDPOINT", "ST_ENDPOINT"},
+      {"ENVELOPE", "ST_ENVELOPE"},
+      {"EQUALS", "MBREQUALS"},
+      {"EXTERIORRING", "ST_EXTERIORRING"},
+      {"GEOMCOLLFROMTEXT", "ST_GEOMCOLLFROMTEXT"},
+      {"GEOMCOLLFROMWKB", "ST_GEOMCOLLFROMWKB"},
+      {"GEOMETRYCOLLECTIONFROMTEXT", "ST_GEOMETRYCOLLECTIONFROMTEXT"},
+      {"GEOMETRYCOLLECTIONFROMWKB", "ST_GEOMETRYCOLLECTIONFROMWKB"},
+      {"GEOMETRYFROMTEXT", "ST_GEOMETRYFROMTEXT"},
+      {"GEOMETRYFROMWKB", "ST_GEOMETRYFROMWKB"},
+      {"GEOMETRYN", "ST_GEOMETRYN"},
+      {"GEOMETRYTYPE", "ST_GEOMETRYTYPE"},
+      {"GEOMFROMTEXT", "ST_GEOMFROMTEXT"},
+      {"GEOMFROMWKB", "ST_GEOMFROMWKB"},
+      {"GLENGTH", "ST_LENGTH"},
+      {"INTERIORRINGN", "ST_INTERIORRINGN"},
+      {"INTERSECTS", "MBRINTERSECTS"},
+      {"ISCLOSED", "ST_ISCLOSED"},
+      {"ISEMPTY", "ST_ISEMPTY"},
+      {"ISSIMPLE", "ST_ISSIMPLE"},
+      {"LINEFROMTEXT", "ST_LINEFROMTEXT"},
+      {"LINEFROMWKB", "ST_LINEFROMWKB"},
+      {"LINESTRINGFROMTEXT", "ST_LINESTRINGFROMTEXT"},
+      {"LINESTRINGFROMWKB", "ST_LINESTRINGFROMWKB"},
+      {"MBREQUAL", "MBREQUALS"},
+      {"MLINEFROMTEXT", "ST_MLINEFROMTEXT"},
+      {"MLINEFROMWKB", "ST_MLINEFROMWKB"},
+      {"MPOINTFROMTEXT", "ST_MPOINTFROMTEXT"},
+      {"MPOINTFROMWKB", "ST_MPOINTFROMWKB"},
+      {"MPOLYFROMTEXT", "ST_MPOLYFROMTEXT"},
+      {"MPOLYFROMWKB", "ST_MPOLYFROMWKB"},
+      {"MULTILINESTRINGFROMTEXT", "ST_MULTILINESTRINGFROMTEXT"},
+      {"MULTILINESTRINGFROMWKB", "ST_MULTILINESTRINGFROMWKB"},
+      {"MULTIPOINTFROMTEXT", "ST_MULTIPOINTFROMTEXT"},
+      {"MULTIPOINTFROMWKB", "ST_MULTIPOINTFROMWKB"},
+      {"MULTIPOLYGONFROMTEXT", "ST_MULTIPOLYGONFROMTEXT"},
+      {"MULTIPOLYGONFROMWKB", "ST_MULTIPOLYGONFROMWKB"},
+      {"NUMGEOMETRIES", "ST_NUMGEOMETRIES"},
+      {"NUMINTERIORRINGS", "ST_NUMINTERIORRINGS"},
+      {"NUMPOINTS", "ST_NUMPOINTS"},
+      {"OVERLAPS", "MBROVERLAPS"},
+      {"PASSWORD", nullptr},
+      {"POINTFROMTEXT", "ST_POINTFROMTEXT"},
+      {"POINTFROMWKB", "ST_POINTFROMWKB"},
+      {"POINTN", "ST_POINTN"},
+      {"POLYFROMTEXT", "ST_POLYFROMTEXT"},
+      {"POLYFROMWKB", "ST_POLYFROMWKB"},
+      {"POLYGONFROMTEXT", "ST_POLYGONFROMTEXT"},
+      {"POLYGONFROMWKB", "ST_POLYGONFROMWKB"},
+      {"SRID", "ST_SRID"},
+      {"STARTPOINT", "ST_STARTPOINT"},
+      {"TOUCHES", "ST_TOUCHES"},
+      {"WITHIN", "MBRWITHIN"},
+      {"X", "ST_X"},
+      {"Y", "ST_Y"}};
 
  public:
   Removed_functions_check()
       : Sql_upgrade_check(
             "removedFunctionsCheck", "Usage of removed functions",
             {"select table_schema, table_name, '', 'VIEW', "
-             "UPPER(view_definition) from information_schema.views",
+             "UPPER(view_definition) from information_schema.views where "
+             "table_schema not in "
+             "('performance_schema','information_schema','sys','mysql');",
              "select routine_schema, routine_name, '', routine_type, "
-             "UPPER(routine_definition) from information_schema.routines;",
+             "UPPER(routine_definition) from information_schema.routines where"
+             " routine_schema not in "
+             "('performance_schema','information_schema','sys','mysql');",
              "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
              ", UPPER(GENERATION_EXPRESSION) from "
-             "information_schema.columns where extra regexp 'generated';",
+             "information_schema.columns where extra regexp 'generated' and "
+             "table_schema not in "
+             "('performance_schema','information_schema','sys','mysql');",
              "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
-             "UPPER(ACTION_STATEMENT) from information_schema.triggers;",
+             "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
+             "TRIGGER_SCHEMA not in "
+             "('performance_schema','information_schema','sys','mysql');",
              "select event_schema, event_name, '', 'EVENT', "
-             "UPPER(EVENT_DEFINITION) from information_schema.events"},
+             "UPPER(EVENT_DEFINITION) from information_schema.events where "
+             "event_schema not in "
+             "('performance_schema','information_schema','sys','mysql')"},
             Upgrade_issue::ERROR,
             "Following DB objects make use of functions that have "
             "been removed in version 8.0. Please make sure to update them to "
             "use supported alternatives before upgrade.") {}
 
  protected:
-  std::size_t find_function(const std::string &str, const std::string &function,
-                            std::size_t it = 0) {
-    std::size_t pos = 0;
-    do {
-      pos = str.find(function, it);
-      if (pos == std::string::npos) return pos;
-      if (pos != 0 && std::isalnum(str[pos - 1])) {
-        it = pos + 1;
-      } else {
-        std::size_t after = pos + function.size();
-        if (after < str.size()) {
-          while (std::isspace(str[after])) ++after;
-          if (str[after] != '(') it = after;
-        }
-      }
-    } while (it > pos);
-
-    return pos;
-  }
-
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue res;
-    std::vector<const std::pair<std::string, const char *> *> flagged_functions;
+    std::vector<std::pair<std::string, const char *>> flagged_functions;
     std::string definition = row->get_as_string(4);
-    for (const auto &func : functions) {
-      std::size_t pos = find_function(definition, func.first);
-
-      mysqlshdk::utils::SQL_string_iterator it(definition);
-      while (pos != std::string::npos && it < pos) {
-        ++it;
-        if (it > pos) pos = find_function(definition, func.first, it);
-      }
-
-      if (pos != std::string::npos) flagged_functions.push_back(&func);
+    mysqlshdk::utils::SQL_string_iterator it(definition);
+    std::string func;
+    while (!(func = it.get_next_sql_function()).empty()) {
+      auto i = functions.find(func);
+      if (i != functions.end()) flagged_functions.emplace_back(*i);
     }
 
     if (flagged_functions.empty()) return res;
-
     std::stringstream ss;
     ss << row->get_as_string(3) << " uses removed function";
     if (flagged_functions.size() > 1) ss << "s";
-    for (std::size_t i = 0; i < flagged_functions.size(); ++i)
-      ss << (i > 0 ? ", " : " ") << flagged_functions[i]->first
-         << " (consider using " << flagged_functions[i]->second << " instead)";
+    for (std::size_t i = 0; i < flagged_functions.size(); ++i) {
+      ss << (i > 0 ? ", " : " ") << flagged_functions[i].first;
+      if (flagged_functions[i].second != nullptr)
+        ss << " (consider using " << flagged_functions[i].second << " instead)";
+    }
 
     res.schema = row->get_as_string(0);
     res.table = row->get_as_string(1);
@@ -864,20 +852,28 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
             "groupByAscCheck", "Usage of removed GROUP BY ASC/DESC syntax",
             {"select table_schema, table_name, 'VIEW', "
              "UPPER(view_definition) from information_schema.views where "
-             "UPPER(view_definition) like '%ASC%' or UPPER(view_definition) "
-             "like '%DESC%';",
+             "table_schema not in "
+             "('performance_schema','information_schema','sys','mysql') and "
+             "(UPPER(view_definition) like '%ASC%' or UPPER(view_definition) "
+             "like '%DESC%');",
              "select routine_schema, routine_name, routine_type, "
              "UPPER(routine_definition) from information_schema.routines where "
-             "UPPER(routine_definition) like '%ASC%' or "
-             "UPPER(routine_definition) like '%DESC%';",
+             "routine_schema not in "
+             "('performance_schema','information_schema','sys','mysql') and "
+             "(UPPER(routine_definition) like '%ASC%' or "
+             "UPPER(routine_definition) like '%DESC%');",
              "select TRIGGER_SCHEMA, TRIGGER_NAME, 'TRIGGER', "
-             "UPPER(ACTION_STATEMENT) from information_schema.triggers  where "
-             "UPPER(ACTION_STATEMENT) like '%ASC%' or UPPER(ACTION_STATEMENT) "
-             "like '%DESC%';",
+             "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
+             "TRIGGER_SCHEMA not in "
+             "('performance_schema','information_schema','sys','mysql') and "
+             "(UPPER(ACTION_STATEMENT) like '%ASC%' or UPPER(ACTION_STATEMENT) "
+             "like '%DESC%');",
              "select event_schema, event_name, 'EVENT', "
              "UPPER(EVENT_DEFINITION) from information_schema.events where "
-             "UPPER(event_definition) like '%ASC%' or UPPER(event_definition) "
-             "like '%DESC%';"},
+             "event_schema not in "
+             "('performance_schema','information_schema','sys','mysql') and "
+             "(UPPER(event_definition) like '%ASC%' or UPPER(event_definition) "
+             "like '%DESC%');"},
             Upgrade_issue::ERROR,
             "The following DB objects use removed GROUP BY ASC/DESC syntax. "
             "They need to be altered so that ASC/DESC keyword is removed "
@@ -898,6 +894,8 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
           gb_found = true;
         else
           it.set_position(pos);
+      } else if (token.back() == ';') {
+        gb_found = false;
       } else if (token == "ORDER") {
         auto pos = it.position();
         if (it.get_next_sql_token() == "BY")
@@ -1197,6 +1195,45 @@ bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
         "8.0.11");
 }
 
+std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zero_dates_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "zeroDatesCheck", "Zero Date, Datetime, and Timestamp values",
+      std::vector<std::string>{
+          "select 'global.sql_mode', 'does not contain either NO_ZERO_DATE or "
+          "NO_ZERO_IN_DATE which allows insertion of zero dates' from (SELECT "
+          "@@global.sql_mode like '%NO_ZERO_IN_DATE%' and @@global.sql_mode "
+          "like '%NO_ZERO_DATE%' as zeroes_enabled) as q where "
+          "q.zeroes_enabled = 0;",
+          "select 'session.sql_mode', concat(' of ', q.thread_count, ' "
+          "session(s) does not contain either NO_ZERO_DATE or NO_ZERO_IN_DATE "
+          "which allows insertion of zero dates') FROM (select "
+          "count(thread_id) as thread_count from "
+          "performance_schema.variables_by_thread WHERE variable_name = "
+          "'sql_mode' and (variable_value not like '%NO_ZERO_IN_DATE%' or "
+          "variable_value not like '%NO_ZERO_DATE%')) as q where "
+          "q.thread_count > 0;",
+          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column has "
+          "zero default value: ', COLUMN_DEFAULT) from "
+          "information_schema.columns where TABLE_SCHEMA not in "
+          "('performance_schema','information_schema','sys','mysql') and "
+          "DATA_TYPE in ('timestamp', 'datetime', 'date') and COLUMN_DEFAULT "
+          "like '0000-00-00%';"},
+      Upgrade_issue::WARNING,
+      "By default zero date/datetime/timestamp values are no longer allowed in "
+      "MySQL, as of 5.7.8 NO_ZERO_IN_DATE and NO_ZERO_DATE are included in "
+      "SQL_MODE by default. These modes should be used with strict mode as "
+      "they will be merged with strict mode in a future release. If you do not "
+      "include these modes in your SQL_MODE setting, you are able to insert "
+      "date/datetime/timestamp values that contain zeros. It is strongly "
+      "advised to replace zero values with valid ones, as they may not work "
+      "correctly in the future.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_zero_dates_check) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_zero_dates_check), "8.0.11");
+}
+
 #define replace_in_SQL(string)                                               \
   "replace(replace(replace(replace(replace(replace(replace(replace(replace(" \
   "replace(replace(" string                                                  \
@@ -1215,7 +1252,7 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
        "INNODB_SYS_TABLES table but missing from TABLES table' from (select "
        "distinct "
        replace_in_SQL("substring_index(NAME, '/',1)")
-       "as schema_name, "
+       " as schema_name, "
        replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#',1)")
        " as table_name from "
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
@@ -1261,6 +1298,32 @@ namespace {
 bool UNUSED_VARIABLE(register_fts_tablename_check) =
     Upgrade_check::register_check(
         &Sql_upgrade_check::get_fts_in_tablename_check, "8.0.11");
+}
+
+// clang-format off
+std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_engine_mixup_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "engineMixupCheck",
+      "Tables recognized by InnoDB that belong to a different engine",
+      std::vector<std::string>{
+          "select a.table_schema, a.table_name, concat('recognized by the "
+          "InnoDB engine but belongs to ', a.engine) from "
+          "information_schema.tables a join (select "
+          replace_in_SQL("substring_index(NAME, '/',1)")
+          " as table_schema, "
+          replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#',1)")
+          " as table_name from "
+          "information_schema.innodb_sys_tables where NAME like '%/%') b on "
+          "a.table_schema = b.table_schema and a.table_name = b.table_name "
+          "where a.engine != 'Innodb';"},
+      Upgrade_issue::ERROR);
+}
+// clang-format on
+
+namespace {
+bool UNUSED_VARIABLE(register_engine_mixup_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_engine_mixup_check), "8.0.11");
 }
 
 Check_table_command::Check_table_command()

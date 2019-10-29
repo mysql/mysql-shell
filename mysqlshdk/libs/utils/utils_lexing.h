@@ -293,6 +293,8 @@ class SQL_string_iterator {
 
   std::string get_next_sql_token();
 
+  std::string get_next_sql_function();
+
  private:
   const std::string &m_s;
   std::string::size_type m_offset;

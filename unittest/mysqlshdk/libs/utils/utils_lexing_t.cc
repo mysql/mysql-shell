@@ -187,13 +187,17 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ("INSERT", it.get_next_sql_token());
   EXPECT_EQ("INTO", it.get_next_sql_token());
   EXPECT_EQ("genre_summary", it.get_next_sql_token());
-  EXPECT_EQ("(genre,", it.get_next_sql_token());
+  EXPECT_EQ("(", it.get_next_sql_token());
+  EXPECT_EQ("genre,", it.get_next_sql_token());
   EXPECT_EQ("count,", it.get_next_sql_token());
-  EXPECT_EQ("time)", it.get_next_sql_token());
+  EXPECT_EQ("time", it.get_next_sql_token());
+  EXPECT_EQ(")", it.get_next_sql_token());
   EXPECT_EQ("select", it.get_next_sql_token());
   EXPECT_EQ("genre,", it.get_next_sql_token());
   EXPECT_EQ(",", it.get_next_sql_token());
-  EXPECT_EQ("now()", it.get_next_sql_token());
+  EXPECT_EQ("now", it.get_next_sql_token());
+  EXPECT_EQ("(", it.get_next_sql_token());
+  EXPECT_EQ(")", it.get_next_sql_token());
   EXPECT_EQ("from", it.get_next_sql_token());
   EXPECT_EQ("movies", it.get_next_sql_token());
   EXPECT_EQ("group", it.get_next_sql_token());
@@ -201,6 +205,24 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ("genre", it.get_next_sql_token());
   EXPECT_EQ("asc", it.get_next_sql_token());
   EXPECT_EQ(";", it.get_next_sql_token());
+  EXPECT_TRUE(it.get_next_sql_function().empty());
+}
+
+TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
+  std::string sql(
+      "create procedure contains_proc(p1 geometry,p2 geometry) begin select "
+      "col1, 'Y()' from tab1 where col2=@p1 and col3=@p2 and contains(p1,p2) "
+      "and TOUCHES(p1, p2);\n"
+      "-- This is a test NUMGEOMETRIES ()\n"
+      "# This is a test GLENGTH()\n"
+      "/* just a comment X() */end;");
+
+  SQL_string_iterator it(sql);
+
+  EXPECT_EQ("contains_proc", it.get_next_sql_function());
+  EXPECT_EQ("contains", it.get_next_sql_function());
+  EXPECT_EQ("TOUCHES", it.get_next_sql_function());
+  EXPECT_TRUE(it.get_next_sql_function().empty());
 }
 
 }  // namespace utils

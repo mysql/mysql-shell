@@ -528,7 +528,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
       "/* just a comment X() */end;"));
   ASSERT_NO_THROW(session->execute(
       "create function test_astext() returns TEXT deterministic return "
-      "AsText('MULTIPOINT(1 1, 2 2, 3 3)');"));
+      "PASSWORD(AsText('MULTIPOINT(1 1, 2 2, 3 3)'));"));
   ASSERT_NO_THROW(
       session->execute("create function test_enc() returns text deterministic "
                        "return encrypt('123');"));
@@ -551,6 +551,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   EXPECT_NE(std::string::npos, issues[1].description.find("PROCEDURE"));
   EXPECT_NE(std::string::npos,
             issues[0].description.find("ST_TOUCHES instead"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("PASSWORD"));
   EXPECT_NE(std::string::npos, issues[2].description.find("ASTEXT"));
   EXPECT_NE(std::string::npos, issues[2].description.find("ST_ASTEXT"));
   EXPECT_NE(std::string::npos, issues[2].description.find("FUNCTION"));
@@ -861,6 +862,49 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
   EXPECT_TRUE(issues.empty());
 }
 
+TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("mysql_zero_dates_check_test");
+  auto check = Sql_upgrade_check::get_zero_dates_check();
+  EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
+                      check->get_doc_link()));
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(
+      session->execute("set @@session.sql_mode = "
+                       "'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_"
+                       "DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';"));
+  ASSERT_NO_THROW(session->execute(
+      "create table dt (i integer, dt datetime default '0000-00-00', ts "
+      "timestamp default '0000-00-00', d date default '0000-00-00');"));
+  EXPECT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_EQ(4, issues.size());
+  EXPECT_NE(std::string::npos,
+            issues[0].description.find("1 session(s) does not contain either"));
+  EXPECT_EQ("dt", issues[1].column);
+  EXPECT_EQ("ts", issues[2].column);
+  EXPECT_EQ("d", issues[3].column);
+}
+
+TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  auto check = Sql_upgrade_check::get_engine_mixup_check();
+  EXPECT_NE(nullptr, strstr(check->get_description(),
+                            "Rename the MyISAM table to a temporary name"));
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_TRUE(issues.empty());
+
+  // positive test cases performed manually as it requires manual changes to the
+  // datadir files
+}
+
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
   auto manual = Upgrade_check::create_checklist(
       Upgrade_check_options{Version("5.7.0"), Version("8.0.11"), "", ""});
@@ -1141,6 +1185,8 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
     MY_EXPECT_STDOUT_CONTAINS(
         "global system variable sql_mode - defined using obsolete MAXDB");
     MY_EXPECT_STDOUT_CONTAINS("obsolete NO_KEY_OPTIONS");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "global.sql_mode - does not contain either NO_ZERO_DATE");
 
     EXPECT_EQ(gtid_executed, s->query("select @@global.GTID_EXECUTED;")
                                  ->fetch_one()

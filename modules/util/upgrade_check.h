@@ -160,9 +160,11 @@ class Sql_upgrade_check : public Upgrade_check {
       const Upgrade_check_options &opts);
 
   static std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check();
+  static std::unique_ptr<Sql_upgrade_check> get_zero_dates_check();
   static std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
   static std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
       const Upgrade_check_options &opts);
+  static std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,

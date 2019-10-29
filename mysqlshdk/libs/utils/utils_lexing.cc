@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,13 +82,23 @@ std::string SQL_string_iterator::get_next_sql_token() {
   auto previous = m_offset;
   const auto start = previous;
 
-  while ((++(*this)).valid()) {
-    if (std::isspace(get_char()) || get_char() == ';' ||
-        m_offset - previous > 1)
+  do {
+    if (std::isspace(get_char()) || get_char() == ';' || get_char() == '(' ||
+        get_char() == ')' || m_offset - previous > 1)
       break;
     previous = m_offset;
-  }
+  } while ((++(*this)).valid());
+  if (m_offset == start) ++m_offset;
   return m_s.substr(start, previous + 1 - start);
+}
+
+std::string SQL_string_iterator::get_next_sql_function() {
+  std::string token;
+  while (!(token = get_next_sql_token()).empty()) {
+    if (!std::isalpha(token.front())) continue;
+    if (valid() && get_char() == '(') break;
+  }
+  return token;
 }
 
 }  // namespace utils

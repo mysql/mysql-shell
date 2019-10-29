@@ -213,6 +213,20 @@ https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-re
 * sysVarsNewDefaults.docLink
 https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
 
+* zeroDatesCheck.title
+# Zero Date, Datetime, and Timestamp values
+
+* zeroDatesCheck.description
+# Warning: By default zero date/datetime/timestamp values are no longer allowed in MySQL, as of
+# 5.7.8 NO_ZERO_IN_DATE and NO_ZERO_DATE are included in SQL_MODE by default. These modes should be
+# used with strict mode as they will be merged with strict mode in a future release. If you do not
+# include these modes in your SQL_MODE setting, you are able to insert date/datetime/timestamp
+# values that contain zeros. It is strongly advised to replace zero values with valid ones, as they
+# may not work correctly in the future.
+
+* zeroDatesCheck.docLink
+https://lefred.be/content/mysql-8-0-and-wrong-dates/
+
 * schemaInconsistencyCheck.title
 # Schema inconsistencies resulting from file removal or corruption
 
@@ -227,11 +241,29 @@ https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
 # Table names containing 'FTS'
 
 * ftsTablenameCheck.description
-# Warning: Upgrading from 5.7 to 8.0 does not support tables with name containing 'FTS' character
+# Error: Upgrading from 5.7 to 8.0 does not support tables with name containing 'FTS' character
 # string. The workaround is to rename the table for the upgrade - e.g. it is enough to change any
 # letter of the 'FTS' part to a lower case. It can be renamed back again after the upgrade.
 
 * ftsTablenameCheck.docLink
+
+* engineMixupCheck.title
+# Tables recognized by InnoDB that belong to a different engine
+
+* engineMixupCheck.description
+Error: Following tables are recognized by InnoDB engine while the SQL layer believes they belong
+to a different engine. Such situation may happen when one removes InnoDB table files manually from
+the disk and creates e.g. a MyISAM table with the same name.\n
+\n
+A possible way to solve this situation is to e.g. in case of MyISAM table:\n
+\n
+1. Rename the MyISAM table to a temporary name (RENAME TABLE).\n
+2. Create some dummy InnoDB table (its definition does not need to match), then copy (copy, not move)
+and rename the dummy .frm and .ibd files to the orphan name using OS file commands.\n
+3. The orphan table can be then dropped (DROP TABLE), as well as the dummy table.\n
+4. Finally the MyISAM table can be renamed back to its original name.
+
+* engineMixupCheck.docLink
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command
