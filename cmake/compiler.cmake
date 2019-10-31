@@ -19,8 +19,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Check for C++ 14 support
 include(CheckCXXCompilerFlag)
+
+# Check for C++ 14 support
+set(CXX_STD "14")
 
 macro(APPEND_FLAG _string_var _addition)
   set(${_string_var} "${${_string_var}} ${_addition}")
@@ -33,46 +35,52 @@ macro(APPEND_MISSING_FLAG _string_var _addition)
   endif()
 endmacro()
 
-function(CHECK_CXX14)
-  check_cxx_compiler_flag("-std=c++14" support_14)
+function(CHECK_CXX_STD)
+  IF(MSVC)
+    SET(CXX_STD_FLAG "/std:c++${CXX_STD}")
+  ELSE()
+    SET(CXX_STD_FLAG "-std=c++${CXX_STD}")
+  ENDIF()
 
-  if(support_14)
-    IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  check_cxx_compiler_flag("${CXX_STD_FLAG}" supports_std)
+
+  if(supports_std)
+    IF(MSVC)
       FOREACH(flag
               CMAKE_CXX_FLAGS_MINSIZEREL
               CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO
               CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_DEBUG_INIT)
-        SET("${flag}" "${${flag}} /std:c++14")
+        SET("${flag}" "${${flag}} ${CXX_STD_FLAG}" PARENT_SCOPE)
       ENDFOREACH()
-    ELSE()
-      SET(CXX14_FLAG "-std=c++14" PARENT_SCOPE)
     ENDIF()
   else()
-    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++14 standard")
+    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++${CXX_STD} standard")
   endif()
-  set(CMAKE_CXX_FLAGS ${CXX14_FLAG} PARENT_SCOPE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_STD_FLAG}" PARENT_SCOPE)
 endfunction()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-  check_cxx14()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  CHECK_CXX_STD()
   #set(${CMAKE_CXX_FLAGS} "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wpedantic -Wshadow")
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX14_FLAG} -Werror -Wall -Wno-unused-result -Wextra -Wno-shadow")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wno-unused-result -Wextra -Wno-shadow")
 
   if(ENABLE_GCOV)
     message(STATUS "Enabling code coverage using Gcov")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
   endif()
 
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+elseif(MSVC)
   # Overview of MSVC versions: http://www.cmake.org/cmake/help/v3.3/variable/MSVC_VERSION.html
-  if("${MSVC_VERSION}" VERSION_LESS 1800)
-    message(FATAL_ERROR "Need at least ${CMAKE_CXX_COMPILER} 12.0")
+  if(MSVC_VERSION LESS 1900)
+    message(FATAL_ERROR "Need at least Visual Studio 2015")
   endif()
 
-  check_cxx14()
+  message(STATUS "Using Visual Studio version: ${MSVC_VERSION} (${MSVC_TOOLSET_VERSION})")
 
-  # /TP is needed so .cc files are recognoized as C++ source files by MSVC
+  CHECK_CXX_STD()
+
+  # /TP is needed so .cc files are recognized as C++ source files by MSVC
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /TP")
 
   if(ENABLE_GCOV)
@@ -89,7 +97,7 @@ elseif(CMAKE_C_COMPILER_ID MATCHES "SunPro" AND NOT CMAKE_CXX_COMPILER_VERSION V
     APPEND_MISSING_FLAG(${_flag} "-xatomic=studio")
   endforeach()
 
-  APPEND_MISSING_FLAG(CMAKE_CXX_FLAGS "-std=c++14")
+  APPEND_MISSING_FLAG(CMAKE_CXX_FLAGS "-std=c++${CXX_STD}")
 
   foreach(_flag CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_C_LINK_FLAGS CMAKE_CXX_LINK_FLAGS)
     if(${_flag} MATCHES "-m32")

@@ -82,8 +82,9 @@
                 Name="Version"
                 Type="raw" />
         </Property>
-        <Condition Message="This application requires Visual Studio 2015 Redistributable. Please install the Redistributable then run this installer again.">
-            Installed OR VS14REDIST
+        <Condition Message="This application requires Visual Studio @CPACK_WIX_REDIST_YEAR@ Redistributable. Please install the Redistributable then run this installer again.">
+            <!-- This is a string-based comparison, but we should be OK, given the versioning scheme used, since we only care about major.minor part. -->
+            <![CDATA[Installed OR VS14REDIST >= "@CPACK_WIX_REDIST_VERSION@"]]>
         </Condition>
         <?endif?>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
