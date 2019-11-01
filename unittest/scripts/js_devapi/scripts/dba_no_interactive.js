@@ -58,10 +58,7 @@ var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
 var row = result.fetchOne();
 print("Current sql_mode is: "+ row[0] + "\n");
 
-if (__have_ssl)
-    var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
-else
-    var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
@@ -83,10 +80,7 @@ c1
 c1.dissolve({force:true});
 
 //@ Dba: createCluster success
-if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
-else
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 print(c1)
 
 //@# Dba: createCluster already exist

@@ -8,10 +8,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ Create cluster (topology type: primary master by default)
-if (__have_ssl)
-  var cluster = dba.createCluster('pmCluster', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('pmCluster', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('pmCluster', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 //@ Adding instances to cluster
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

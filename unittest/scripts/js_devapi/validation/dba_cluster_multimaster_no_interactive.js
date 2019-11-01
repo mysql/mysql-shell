@@ -44,7 +44,7 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
@@ -105,7 +105,7 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -152,7 +152,7 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
@@ -202,7 +202,7 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {

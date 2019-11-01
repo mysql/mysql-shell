@@ -16,7 +16,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
@@ -58,7 +58,7 @@
     "clusterName": "pmCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {

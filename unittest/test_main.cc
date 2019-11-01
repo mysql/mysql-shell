@@ -69,6 +69,7 @@ int g_test_trace_scripts = 0;
 int g_test_default_verbosity = 0;
 bool g_test_fail_early = false;
 int g_test_color_output = 0;
+bool g_bp = false;
 
 // Default trace set (MySQL version) to be used for replay mode
 mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");

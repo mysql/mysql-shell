@@ -282,6 +282,22 @@ function disable_auto_rejoin(session, port) {
     session.close();
 }
 
+function wait_member_state_from(session, member_port, state) {
+  // wait for the given member to appear in the given state from the point of
+  // view of a specific session
+  const timeout = 60;
+  for (i = 0; i < timeout; i++) {
+    var r = session.runSql("SELECT member_state FROM performance_schema.replication_group_members WHERE member_port=?", [member_port]).fetchOne();
+    if (!r) {
+      testutil.fail("member_state query returned no rows for "+member_port);
+      break;
+    }
+    if (r[0] == state) return;
+    os.sleep(1);
+  }
+  testutil.fail("Timeout while waiting for "+member_port+" to become "+state+" when queried from "+session.runSql("select @@port").fetchOne()[0]);
+}
+
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];

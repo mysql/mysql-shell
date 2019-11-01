@@ -35,6 +35,7 @@ extern const char *g_mysqlsh_path;
 // Needed by testutil
 int g_test_color_output = 0;
 int g_test_trace_scripts = 0;
+bool g_bp = false;
 
 namespace {
 std::list<std::weak_ptr<mysqlshdk::db::ISession>> g_open_sessions;

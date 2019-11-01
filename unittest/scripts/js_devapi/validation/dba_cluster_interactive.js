@@ -171,7 +171,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
@@ -240,7 +240,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -407,7 +407,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
@@ -479,7 +479,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {

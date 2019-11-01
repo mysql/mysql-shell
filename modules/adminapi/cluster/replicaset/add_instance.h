@@ -48,8 +48,7 @@ class Add_instance : public Command_interface {
                bool interactive, int wait_recovery,
                const std::string &replication_user = "",
                const std::string &replication_password = "",
-               bool overwrite_seed = false, bool skip_instance_check = false,
-               bool skip_rpl_user = false);
+               bool rebooting = false);
 
   Add_instance(mysqlsh::dba::Instance *target_instance,
                const ReplicaSet &replicaset,
@@ -59,8 +58,7 @@ class Add_instance : public Command_interface {
                bool interactive, int wait_recovery,
                const std::string &replication_user = "",
                const std::string &replication_password = "",
-               bool overwrite_seed = false, bool skip_instance_check = false,
-               bool skip_rpl_user = false);
+               bool rebooting = false);
 
   ~Add_instance() override;
 
@@ -127,9 +125,11 @@ class Add_instance : public Command_interface {
   //               refactor of reboot cluster (WL#11561), since
   //               mysqlsh::dba::start_replicaset() should be used directly
   //               instead of the Add_instance operation.
+  //               Same for m_rebooting
   bool m_seed_instance;
   bool m_skip_instance_check;
   bool m_skip_rpl_user;
+  bool m_rebooting;
 
   std::string m_instance_address;
   mysqlsh::dba::Instance *m_target_instance = nullptr;

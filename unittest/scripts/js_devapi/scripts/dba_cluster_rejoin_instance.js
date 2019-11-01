@@ -35,10 +35,7 @@ session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'foo', password: 'bar'});
 
 //@ create cluster
-if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 //@ Adding instance 2 using the root account
 cluster.addInstance({dbUser: 'root', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'root'});
@@ -67,10 +64,7 @@ cluster.status()
 
 //@<OUT> Rejoin instance 2
 // Regression for BUG#270621122: Deprecate memberSslMode
-if (__have_ssl)
-  cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
-else
-  cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'DISABLED', password: 'bar'});
+cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
 
 // Waiting for instance 2 to become back online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

@@ -64,10 +64,7 @@ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port1});
 Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
-if (__have_ssl)
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -109,10 +106,7 @@ Cluster.rejoinInstance({host: "localhost", schema: "abs", "authMethod":56});
 Cluster.rejoinInstance("localhost:3306");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
-if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
-else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'DISABLED'});
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

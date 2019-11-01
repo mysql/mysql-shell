@@ -59,10 +59,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
 //@ Create cluster with success.
-if (__have_ssl)
-    var cluster = dba.createCluster('bug26818744', {memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
-else
-    var cluster = dba.createCluster('bug26818744', {memberSslMode: 'DISABLED', clearReadOnly: true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('bug26818744', {memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Add instance on port 2 to cluster with success.
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

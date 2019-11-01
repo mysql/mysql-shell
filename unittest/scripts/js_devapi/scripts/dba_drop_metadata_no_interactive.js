@@ -9,10 +9,7 @@ shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', 
 dba.dropMetadataSchema(1,2,3,4,5);
 
 //@# create cluster
-if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
-else
-  dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
+dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 
 //@# drop metadata: force false
 dba.dropMetadataSchema({force:false});

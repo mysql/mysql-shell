@@ -61,8 +61,7 @@ Add_instance::Add_instance(
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     bool interactive, int wait_recovery, const std::string &replication_user,
-    const std::string &replication_password, bool overwrite_seed,
-    bool skip_instance_check, bool skip_rpl_user)
+    const std::string &replication_password, bool rebooting)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_replicaset(replicaset),
       m_gr_opts(gr_options),
@@ -71,9 +70,10 @@ Add_instance::Add_instance(
       m_interactive(interactive),
       m_rpl_user(replication_user),
       m_rpl_pwd(replication_password),
-      m_seed_instance(overwrite_seed),
-      m_skip_instance_check(skip_instance_check),
-      m_skip_rpl_user(skip_rpl_user) {
+      m_seed_instance(rebooting),
+      m_skip_instance_check(rebooting),
+      m_skip_rpl_user(rebooting),
+      m_rebooting(rebooting) {
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
@@ -94,8 +94,7 @@ Add_instance::Add_instance(
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     bool interactive, int wait_recovery, const std::string &replication_user,
-    const std::string &replication_password, bool overwrite_seed,
-    bool skip_instance_check, bool skip_rpl_user)
+    const std::string &replication_password, bool rebooting)
     : m_replicaset(replicaset),
       m_gr_opts(gr_options),
       m_clone_opts(clone_options),
@@ -103,9 +102,10 @@ Add_instance::Add_instance(
       m_interactive(interactive),
       m_rpl_user(replication_user),
       m_rpl_pwd(replication_password),
-      m_seed_instance(overwrite_seed),
-      m_skip_instance_check(skip_instance_check),
-      m_skip_rpl_user(skip_rpl_user) {
+      m_seed_instance(rebooting),
+      m_skip_instance_check(rebooting),
+      m_skip_rpl_user(rebooting),
+      m_rebooting(rebooting) {
   assert(target_instance);
   m_reuse_session_for_target_instance = true;
   m_target_instance = target_instance;
@@ -914,9 +914,19 @@ void Add_instance::prepare() {
   // Resolve GR local address.
   // NOTE: Must be done only after getting the report_host used by GR and for
   //       the metadata;
-  m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
-      m_gr_opts.local_address, m_host_in_metadata,
-      m_instance_cnx_opts.get_port());
+  try {
+    m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
+        m_gr_opts.local_address, m_host_in_metadata,
+        m_instance_cnx_opts.get_port());
+  } catch (const std::runtime_error &e) {
+    // TODO: this is a hack.. rebootCluster shouldn't do the busy port check,
+    // which can fail if the instance is trying to auto-rejoin. Once
+    // rebootCluster is refactored and doesn't call addInstance() directly
+    // anymore, this can be removed.
+    if (!m_rebooting || !strstr(e.what(), "is already in use")) {
+      throw;
+    }
+  }
 
   // If this is not seed instance, then we should try to read the
   // failoverConsistency and expelTimeout values from a a cluster member.

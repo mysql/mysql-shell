@@ -21,10 +21,7 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
 
 //@ Dba.createCluster (fail because of bad configuration)
-if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
 //@ Setup next test
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

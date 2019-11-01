@@ -18,10 +18,7 @@ for (i = 0; i < 20; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
-if (__have_ssl)
-  var cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 var Cluster = dba.getCluster('devCluster');
 

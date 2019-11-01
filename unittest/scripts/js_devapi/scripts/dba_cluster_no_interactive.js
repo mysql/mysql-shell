@@ -7,10 +7,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 var singleSession = session;
 
-if (__have_ssl)
-  var devCluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
-else
-  var devCluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
+var devCluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
 devCluster.disconnect();
 
@@ -175,10 +172,7 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"});
 
 //@#: Dba: rejoin instance 3 ok {VER(<8.0.11)}
-if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
-else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, "password":"root"});
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

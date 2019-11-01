@@ -8,10 +8,7 @@ shell.connect(__sandbox_uri1);
 var clusterSession = session;
 
 //@<OUT> create cluster
-if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 cluster.status();
 
@@ -83,19 +80,13 @@ cluster.forceQuorumUsingPartitionOf({HOST:localhost, Port: __mysql_sandbox_port1
 cluster.status();
 
 //@ Rejoin instance 2
-if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
-else
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'DISABLED'});
+cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
 
 // Waiting for the second rejoined instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Rejoin instance 3
-if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
-else
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', user:'root'}, {memberSslMode: 'DISABLED'});
+cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
 
 // Waiting for the third rejoined instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

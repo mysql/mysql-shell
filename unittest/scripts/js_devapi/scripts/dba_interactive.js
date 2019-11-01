@@ -58,10 +58,7 @@ var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
 var row = result.fetchOne();
 print("Current sql_mode is: "+ row[0] + "\n");
 
-if (__have_ssl)
-    var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
-else
-    var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
@@ -103,10 +100,7 @@ session.runSql("DROP user 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 //@<OUT> Dba: createCluster with interaction
-if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
-else
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 
 //@ Dba: checkInstanceConfiguration error
 testutil.expectPassword("*", "root");

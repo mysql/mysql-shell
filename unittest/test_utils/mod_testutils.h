@@ -90,6 +90,10 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined dbugSet(String s);
   Undefined dprint(String s);
   Undefined setenv(String var, String value);
+  Undefined sslCreateCA(String name);
+  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
+                           String clientcn);
+
   // Undefined slowify(Integer port, Boolean start);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
@@ -132,6 +136,8 @@ class Testutils : public mysqlsh::Extensible_object {
   None dprint(str s);
   None skip(int port, bool start);
   None setenv(str var, str value);
+  None ssl_create_ca(str name);
+  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -243,7 +249,12 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void dprint(const std::string &s);
 
-  // void slowify(int port, bool flag);
+  void bp(bool flag);
+
+  void ssl_create_ca(const std::string &name);
+  void ssl_create_certs(int sbport, const std::string &caname,
+                        const std::string &servercn,
+                        const std::string &clientcn);
 
  public:
   // These should produce test failure output similar to that of gtest,

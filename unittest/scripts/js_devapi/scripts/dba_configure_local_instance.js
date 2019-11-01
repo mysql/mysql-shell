@@ -25,10 +25,7 @@ session.close();
 
 //@ create cluster using cluster admin account (BUG#26523629)
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
-if (__have_ssl)
-  var cluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED', clearReadOnly: true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
 
 //@ Validates the createCluster successfully configured the grLocal member of the instance addresses
 var gr_local_port = __mysql_sandbox_port1 * 10 + 1;

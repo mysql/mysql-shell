@@ -143,9 +143,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
         exec_and_out_equals(code);
       }
     }
-    std::string str_have_ssl = _have_ssl ? "true" : "false";
-    code = "var __have_ssl = " + str_have_ssl + ";";
-    exec_and_out_equals(code);
     code = "var localhost = 'localhost'";
     exec_and_out_equals(code);
     code =
@@ -154,12 +151,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
 
     code = "var add_instance_extra_opts = {};";
-    exec_and_out_equals(code);
-    if (_have_ssl) {
-      code = "var __ssl_mode = 'REQUIRED';";
-    } else {
-      code = "var __ssl_mode = 'DISABLED';";
-    }
     exec_and_out_equals(code);
 
     _sandbox_share = shcore::path::join_path(_sandbox_dir, "sandbox.share");

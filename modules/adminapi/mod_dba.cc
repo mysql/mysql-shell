@@ -592,10 +592,28 @@ void Dba::connect_to_target_group(
         std::shared_ptr<mysqlshdk::db::mysql::Session> session;
         session = mysqlshdk::db::mysql::Session::create();
         session->connect(coptions);
+
+        auto instance = std::make_shared<Instance>(session);
+        mysqlshdk::gr::Member_state state =
+            mysqlshdk::gr::get_member_state(*instance);
+
+        // Check whether the member we connected to is really ONLINE. If e.g.
+        // the PRIMARY restarted, it will not be expelled from the group until
+        // some time has passed.
+        if (state != mysqlshdk::gr::Member_state::ONLINE) {
+          log_warning("PRIMARY member %s is currently in state %s",
+                      instance->descr().c_str(),
+                      mysqlshdk::gr::to_string(state).c_str());
+          throw shcore::Exception("Group PRIMARY is not ONLINE",
+                                  SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
+        }
+
         log_info(
             "Metadata and group sessions are now using the primary member");
         if (owns_target_member_session) target_member->close_session();
-        target_member = std::make_shared<Instance>(session);
+        target_member = instance;
+      } catch (const shcore::Exception &) {
+        throw;
       } catch (const std::exception &e) {
         throw shcore::Exception::runtime_error(
             std::string("Unable to find a primary member in the cluster: ") +
@@ -717,8 +735,9 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
                                e.format());
       }
 
-      if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM && fallback_to_anything &&
-          connect_to_primary) {
+      if ((e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM ||
+           e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE) &&
+          fallback_to_anything && connect_to_primary) {
         log_info("Retrying getCluster() without connectToPrimary");
         connect_to_target_group({}, &metadata, &group_server, false);
       } else {
@@ -2192,6 +2211,18 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
   return ret_val;
 }
 
+namespace {
+void ensure_not_auto_rejoining(Instance *instance) {
+  if (mysqlshdk::gr::is_group_replication_delayed_starting(*instance) ||
+      mysqlshdk::gr::is_running_gr_auto_rejoin(*instance)) {
+    auto console = current_console();
+    console->print_note("Cancelling active GR auto-initialization at " +
+                        instance->descr());
+    mysqlshdk::gr::stop_group_replication(*instance);
+  }
+}
+}  // namespace
+
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE, R"*(
 Brings a cluster back ONLINE when all members are OFFLINE.
@@ -2601,6 +2632,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     // message the instance with the GTID superset
     validate_instances_gtid_reboot_cluster(cluster, options, *target_instance);
 
+    // Check if trying to auto-rejoin and if so, stop GR to abort the
+    // auto-rejoin
+    ensure_not_auto_rejoining(target_instance.get());
+
     // 6. Set the current session instance as the seed instance of the Cluster
     {
       // Disable super_read_only mode if it is enabled.
@@ -2639,7 +2674,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         // Create the add_instance command and execute it.
         Add_instance op_add_instance(target_instance.get(), *default_replicaset,
                                      gr_options, clone_options, {}, interactive,
-                                     0, "", "", true, true, true);
+                                     0, "", "", true);
 
         // Always execute finish when leaving scope.
         auto finally = shcore::on_leave_scope(
@@ -2777,8 +2812,7 @@ Dba::get_replicaset_instances_status(
     auto connection_options =
         shcore::get_connection_options(instance_address, false);
 
-    connection_options.set_user(current_session_options.get_user());
-    connection_options.set_password(current_session_options.get_password());
+    connection_options.set_login_options_from(current_session_options);
 
     try {
       log_info(
@@ -2895,8 +2929,7 @@ void Dba::validate_instances_status_reboot_cluster(
 
     mysqlshdk::db::Connection_options connection_options =
         shcore::get_connection_options(instance_address, false);
-    connection_options.set_user(member_connection_options.get_user());
-    connection_options.set_password(member_connection_options.get_password());
+    connection_options.set_login_options_from(member_connection_options);
 
     std::shared_ptr<mysqlshdk::db::ISession> session;
     try {
@@ -2960,8 +2993,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     auto connection_options =
         shcore::get_connection_options(inst.endpoint, false);
-    connection_options.set_user(current_session_options.get_user());
-    connection_options.set_password(current_session_options.get_password());
+    connection_options.set_login_options_from(current_session_options);
 
     // Connect to the instance to obtain the GLOBAL.GTID_EXECUTED
     try {

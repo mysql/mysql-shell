@@ -29,10 +29,7 @@ function host_exist_in_metadata_schema(port) {
 shell.connect(__sandbox_uri1);
 
 //@ create cluster
-if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 //@ Adding instance
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

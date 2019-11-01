@@ -271,8 +271,7 @@ void ReplicaSet::adopt_from_gr() {
 
     auto session_data = md_instance->get_connection_options();
 
-    newly_discovered_instance.set_user(session_data.get_user());
-    newly_discovered_instance.set_password(session_data.get_password());
+    newly_discovered_instance.set_login_options_from(session_data);
 
     add_instance_metadata(newly_discovered_instance);
   }
@@ -544,10 +543,8 @@ std::string ReplicaSet::get_cluster_group_seeds(
     Connection_options target_coptions =
         shcore::get_connection_options(instance_address, false);
     // It is assumed that the same user and password is used by all members.
-    if (cluster_cnx_opt.has_user())
-      target_coptions.set_user(cluster_cnx_opt.get_user());
-    if (cluster_cnx_opt.has_password())
-      target_coptions.set_password(cluster_cnx_opt.get_password());
+    target_coptions.set_login_options_from(cluster_cnx_opt);
+
     // Connect to the instance.
     std::shared_ptr<mysqlshdk::db::ISession> session;
     try {
@@ -557,15 +554,18 @@ std::string ReplicaSet::get_cluster_group_seeds(
           instance_address.c_str());
       session = establish_mysql_session(target_coptions,
                                         current_shell_options()->get().wizards);
-    } catch (const std::exception &e) {
-      // Do not issue an error if we are unable to connect to the instance,
-      // it might have failed in the meantime, just skip the use of its GR
-      // local address.
-      log_info(
-          "Could not connect to instance '%s', its local address will not "
-          "be used for the group seeds: %s",
-          instance_address.c_str(), e.what());
-      break;
+    } catch (const mysqlshdk::db::Error &e) {
+      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+        log_info(
+            "Could not connect to instance '%s', its local address will not "
+            "be used for the group seeds: %s",
+            instance_address.c_str(), e.format().c_str());
+        break;
+      } else {
+        throw shcore::Exception::runtime_error("While connecting to " +
+                                               target_coptions.uri_endpoint() +
+                                               ": " + e.what());
+      }
     }
     auto instance = mysqlsh::dba::Instance(session);
     // Get the instance GR local address and add it to the GR group seeds list.
@@ -580,6 +580,7 @@ std::string ReplicaSet::get_cluster_group_seeds(
     }
     session->close();
   }
+
   return shcore::str_join(gr_group_seeds_list, ",");
 }
 
@@ -1567,8 +1568,7 @@ void ReplicaSet::rejoin_instances(
       // performed by the caller Dba::reboot_cluster_from_complete_outage().
       auto connection_options = shcore::get_connection_options(instance, false);
 
-      connection_options.set_user(instance_data.get_user());
-      connection_options.set_password(instance_data.get_password());
+      connection_options.set_login_options_from(instance_data);
 
       // If rejoinInstance fails we don't want to stop the execution of the
       // function, but to log the error.

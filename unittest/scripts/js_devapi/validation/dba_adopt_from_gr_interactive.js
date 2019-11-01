@@ -151,7 +151,7 @@ Cluster successfully created based on existing replication group.
     "clusterName": "testCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {

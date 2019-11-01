@@ -95,6 +95,7 @@
 
 extern int g_test_trace_scripts;
 extern int g_test_color_output;
+extern bool g_bp;
 
 namespace tests {
 constexpr int k_wait_sandbox_dead_timeout = 120;
@@ -192,6 +193,11 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getUserConfigPath", &Testutils::get_user_config_path);
   expose("setenv", &Testutils::setenv, "variable", "?value");
   // expose("slowify", &Testutils::slowify, "port", "start");
+  expose("bp", &Testutils::bp, "flag");
+
+  expose("sslCreateCa", &Testutils::ssl_create_ca, "name");
+  expose("sslCreateCerts", &Testutils::ssl_create_certs, "sbport", "caname",
+         "servercn", "clientcn");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -219,6 +225,18 @@ std::string Testutils::get_mysqld_version(const std::string &mysqld_path) {
 void Testutils::dbug_set(const std::string &s) {
   (void)s;
   DBUG_SET(s.c_str());
+}
+
+void Testutils::bp(bool flag) {
+  // Use for setting conditional breakpoints, like:
+  //
+  // In gdb/lldb:
+  // break set -n __cxa_throw -c g_bp
+  // And in the test:
+  // lots of code
+  // testutil.bp(true);
+  // code where bp should be enabled
+  g_bp = flag;
 }
 
 void Testutils::enable_extensible() {
@@ -2257,6 +2275,168 @@ void Testutils::dprint(const std::string &s) {
 #endif
 }
 
+//!<  @name Testing Utilities
+///@{
+/**
+ * Generates a named CA that can be used to create certificates.
+ *
+ * @param name a name for the CA to be created
+ */
+#if DOXYGEN_JS
+Undefined Testutils::sslCreateCa(String s);
+#elif DOXYGEN_PY
+None Testutils::ssl_create_ca(str s);
+#endif
+///@}
+void Testutils::ssl_create_ca(const std::string &name) {
+  if (!_dummy_sandboxes) {
+    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+    if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
+
+    std::string key_path = shcore::path::join_path(basedir, name + "-key.pem");
+    std::string req_path = shcore::path::join_path(basedir, name + "-req.pem");
+    std::string ca_path = shcore::path::join_path(basedir, name + ".pem");
+
+    std::string cmd;
+
+    std::string cav3_ext = shcore::path::join_path(basedir, "cav3.ext");
+    std::string certv3_ext = shcore::path::join_path(basedir, "certv3.ext");
+    shcore::delete_file(cav3_ext);
+    shcore::delete_file(certv3_ext);
+
+    shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+    shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+
+    std::string keyfmt =
+        "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
+        "-subj /CN=A_test_CA_called_$cn$ -out $ca-req.pem$ "
+        "&& openssl rsa -in $ca-key.pem$ -out $ca-key.pem$";
+
+    cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path.c_str());
+    cmd = shcore::str_replace(cmd, "$cn$", name.c_str());
+    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
+
+    dprint("-> " + cmd);
+    if (system(cmd.c_str()) != 0)
+      throw std::runtime_error("CA creation failed");
+
+    std::string certfmt =
+        "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -CAcreateserial "
+        "-req -in $ca-req.pem$ -signkey $ca-key.pem$ -out $ca.pem$";
+    cmd = shcore::str_replace(certfmt, "$ca-key.pem$", key_path.c_str());
+    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
+    cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
+    cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
+
+    dprint("-> " + cmd);
+    if (system(cmd.c_str()) != 0)
+      throw std::runtime_error("CA creation failed");
+
+    shcore::delete_file(req_path);
+    shcore::delete_file(cav3_ext);
+    shcore::delete_file(certv3_ext);
+  }
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Generats client and server certs signed by the named CA.
+ *
+ * @param sbport port of the sandbox that will use the certificates
+ * @param caname the name of the CA as given to sslCreateCa
+ * @param servercn the CN to be used for the server certificate
+ * @param clientcn the CN to be used for the client certificate
+ *
+ * Both client and server certificates signed by the CA that was given will
+ * be created and replace the equivalent ones in the given sandbox.
+ *
+ * The sandbox must be restarted for the changes to take effect.
+ *
+ * Output is enabled if tracing is enabled.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::sslCreateCerts(Integer sbport, String caname,
+                                    String servercn, String clientcn);
+#elif DOXYGEN_PY
+None Testutils::ssl_create_certs(int sbport, str caname, str servercn,
+                                 str clientcn);
+#endif
+///@}
+void Testutils::ssl_create_certs(int sbport, const std::string &caname,
+                                 const std::string &servercn,
+                                 const std::string &clientcn) {
+  if (!_dummy_sandboxes) {
+    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+    std::string sbdir = get_sandbox_datadir(sbport);
+
+    std::string ca_key_path =
+        shcore::path::join_path(basedir, caname + "-key.pem");
+    std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
+
+    // first copy the CA to the target dir
+    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
+    // Note: in reality, I don't think we would deploy the CA key too, but we do
+    // to overwrite the one generated by default
+    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
+
+    auto mkcert = [&](const std::string &name, const std::string &cn) {
+      std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
+      std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
+      std::string cert_path =
+          shcore::path::join_path(sbdir, name + "-cert.pem");
+
+      std::string cmd;
+
+      std::string cav3_ext = shcore::path::join_path(sbdir, "cav3.ext");
+      std::string certv3_ext = shcore::path::join_path(sbdir, "certv3.ext");
+      shcore::delete_file(cav3_ext);
+      shcore::delete_file(certv3_ext);
+
+      shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+      shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+
+      std::string keyfmt =
+          "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout "
+          "$cert-key.pem$ "
+          "-subj '/CN=$cn$' -out $cert-req.pem$ "
+          "&& openssl rsa -in $cert-key.pem$ -out $cert-key.pem$";
+
+      cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path.c_str());
+      cmd = shcore::str_replace(cmd, "$cn$", cn.c_str());
+      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
+
+      dprint("-> " + cmd);
+      if (system(cmd.c_str()) != 0)
+        throw std::runtime_error("CA creation failed");
+
+      std::string certfmt =
+          "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ "
+          "-req -in $cert-req.pem$ -CA $ca.pem$ -CAkey $ca-key.pem$ "
+          "-CAcreateserial -out $cert.pem$";
+      cmd = shcore::str_replace(certfmt, "$ca-key.pem$", ca_key_path.c_str());
+      cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
+      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
+      cmd = shcore::str_replace(cmd, "$cert.pem$", cert_path.c_str());
+      cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
+
+      dprint("-> " + cmd);
+      if (system(cmd.c_str()) != 0)
+        throw std::runtime_error("CA creation failed");
+
+      shcore::delete_file(req_path);
+      shcore::delete_file(cav3_ext);
+      shcore::delete_file(certv3_ext);
+    };
+
+    // then generate the server certs
+    mkcert("server", servercn);
+
+    // and finally the client certs
+    mkcert("client", clientcn);
+  }
+}
+
 std::string Testutils::fetch_captured_stdout(bool eat_one) {
   return _fetch_stdout(eat_one);
 }
@@ -2435,16 +2615,20 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
       shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
 #endif
 
-  shcore::delete_file(
-      shcore::path::join_path(boilerplate, "sandboxdata", "auto.cnf"));
-  shcore::delete_file(
-      shcore::path::join_path(boilerplate, "sandboxdata", "general.log"));
-  shcore::delete_file(
-      shcore::path::join_path(boilerplate, "sandboxdata", "mysqld.sock"));
-  shcore::delete_file(
-      shcore::path::join_path(boilerplate, "sandboxdata", "mysqlx.sock"));
-  shcore::delete_file(
-      shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
+  std::string sbdir = shcore::path::join_path(boilerplate, "sandboxdata");
+
+  shcore::delete_file(shcore::path::join_path(sbdir, "auto.cnf"));
+  shcore::delete_file(shcore::path::join_path(sbdir, "general.log"));
+  shcore::delete_file(shcore::path::join_path(sbdir, "mysqld.sock"));
+  shcore::delete_file(shcore::path::join_path(sbdir, "mysqlx.sock"));
+  shcore::delete_file(shcore::path::join_path(sbdir, "error.log"));
+
+  // Delete all SSL related files to force them to be re-created
+  shcore::iterdir(sbdir, [&sbdir](const std::string &name) {
+    if (shcore::str_endswith(name, ".pem"))
+      shcore::delete_file(shcore::path::join_path(sbdir, name));
+    return true;
+  });
 
 #ifdef _WIN32
   std::string start("start.bat");

@@ -143,23 +143,16 @@ const std::map<std::string, FunctionAvailability>
  *
  * Checks if the given session is valid for use with AdminAPI.
  *
- * @param group_session A group session to validate.
+ * @param instance A group session to validate.
  *
  * @throws shcore::Exception::runtime_error if session is not valid.
  */
-void validate_group_session(
-    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+void validate_group_session(const mysqlsh::dba::Instance &instance) {
   // Validate if the server version is open and supported by the AdminAPI
-  validate_session(group_session);
+  validate_session(instance.get_session());
 
-  validate_connection_options(group_session->get_connection_options(),
+  validate_connection_options(instance.get_connection_options(),
                               shcore::Exception::runtime_error);
-
-  if (mysqlshdk::gr::is_group_replication_delayed_starting(
-          mysqlsh::dba::Instance(group_session)))
-    throw shcore::Exception::runtime_error(
-        "Cannot perform operation while group replication is "
-        "starting up");
 }
 
 }  // namespace
@@ -231,7 +224,7 @@ void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
 
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<Instance> &group_server) {
-  validate_group_session(group_server->get_session());
+  validate_group_session(*group_server);
 
   Cluster_check_info state;
   // Retrieves the instance configuration type from the perspective of the
@@ -297,6 +290,7 @@ void check_preconditions(const std::string &function_name,
         }
       } else {
         error = "This function is not available through a session";
+
         switch (state.source_state) {
           case ManagedInstance::OnlineRO:
             error += " to a read only instance";

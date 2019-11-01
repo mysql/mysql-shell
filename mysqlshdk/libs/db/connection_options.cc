@@ -95,10 +95,12 @@ void Connection_options::set_login_options_from(
     set_password(options.get_password());
   }
 
+  m_ssl_options.clear_ca();
   m_ssl_options.clear_cert();
   m_ssl_options.clear_key();
   // SSL client certificate options are login options
   const Ssl_options &ssl = options.get_ssl_options();
+  if (ssl.has_ca()) m_ssl_options.set_ca(ssl.get_ca());
   if (ssl.has_cert()) m_ssl_options.set_cert(ssl.get_cert());
   if (ssl.has_key()) m_ssl_options.set_key(ssl.get_key());
 }
@@ -109,9 +111,11 @@ void Connection_options::set_ssl_connection_options_from(
   // Copy all SSL options
   m_ssl_options = options;
   // Restore the client certificate options
+  m_ssl_options.clear_ca();
   m_ssl_options.clear_cert();
   m_ssl_options.clear_key();
   // SSL client certificate options are login options
+  if (orig.has_ca()) m_ssl_options.set_ca(orig.get_ca());
   if (orig.has_cert()) m_ssl_options.set_cert(orig.get_cert());
   if (orig.has_key()) m_ssl_options.set_key(orig.get_key());
 }

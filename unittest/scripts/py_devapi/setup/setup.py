@@ -500,30 +500,3 @@ def try_delete_sandbox(port, sandbox_dir):
         print('Delete succeeded at: %s' % port)
     else:
         print('Delete failed at: %s' % port)
-
-
-# Check if the instance (sandbox) on the given port has SSL enabled and update
-# the global SSL values used by the test scripts accordingly.
-def update_have_ssl(port):
-    # Check the instance SSL support
-    res = False
-    connected = connect_to_sandbox([port])
-    if (connected):
-        result = session.run_sql("SELECT @@GLOBAL.have_ssl")
-        row = result.fetch_one()
-        value = row[0]
-        if (value == 'YES'):
-            res = True
-        session.close()
-    print("Value of 'have_ssl' for instance on " + str(port) + ": " + value)
-    # Update SSL global values used by test scripts
-    global __have_ssl
-    global add_instance_extra_opts
-    global __ssl_mode
-    __have_ssl = res
-    if __have_ssl:
-        add_instance_extra_opts = {'memberSslMode': 'REQUIRED'}
-        __ssl_mode = 'REQUIRED'
-    else:
-        add_instance_extra_opts = {'memberSslMode': 'DISABLED'}
-        __ssl_mode = 'DISABLED'

@@ -39,17 +39,10 @@ function has_new_rpl_users(rows) {
     }
 }
 
-// Update __have_ssl and other with the real instance SSL support.
-// NOTE: Workaround BUG#25503817 to display the right ssl info for status()
-update_have_ssl(__mysql_sandbox_port1);
-
 shell.connect(__sandbox_uri1);
 
 //@<OUT> create cluster
-if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
-else
-  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED', gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 

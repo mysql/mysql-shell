@@ -66,10 +66,7 @@ Cluster.dissolve({force: true});
 Cluster.disconnect();
 
 //@ Dba: createCluster multiPrimary 2, ok
-if (__have_ssl)
-    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
-else
-    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true, gtidSetIsComplete: true});
+Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
 
 Cluster.disconnect();
 
@@ -113,10 +110,7 @@ Cluster.rejoinInstance({host: "localhost"});
 Cluster.rejoinInstance("localhost:3306");
 
 //@#: Dba: rejoin instance 3 ok
-if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, password:"root"}, {memberSslMode: 'REQUIRED'});
-else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, password: "root"}, {memberSslMode: 'DISABLED'});
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, password:"root"}, {memberSslMode: 'REQUIRED'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
