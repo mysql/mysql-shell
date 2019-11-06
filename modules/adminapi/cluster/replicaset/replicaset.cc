@@ -912,7 +912,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
 void ReplicaSet::update_group_members_for_removed_member(
     const std::string &local_gr_address,
-    const mysqlsh::dba::Instance &instance) {
+    const mysqlsh::dba::Instance & /* instance */) {
   // Get the ReplicaSet Config Object
   auto cfg = create_config_object({}, true);
 

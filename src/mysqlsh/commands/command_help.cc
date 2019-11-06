@@ -328,7 +328,8 @@ void Command_help::print_help_global() {
                                  object->class_name() + "_GLOBAL",
                                  nullptr,
                                  {},
-                                 nullptr});
+                                 nullptr,
+                                 {}});
       }
     }
 
@@ -339,14 +340,16 @@ void Command_help::print_help_global() {
                              "MYSQLX_GLOBAL",
                              nullptr,
                              {},
-                             nullptr});
+                             nullptr,
+                             {}});
     global_topics.push_back({"",
                              "mysql",
                              shcore::Topic_type::TOPIC,
                              "MYSQL_GLOBAL",
                              nullptr,
                              {},
-                             nullptr});
+                             nullptr,
+                             {}});
 
     // We need the references to use the existing formatting code
     for (auto &topic : global_topics) global_refs.push_back(&topic);

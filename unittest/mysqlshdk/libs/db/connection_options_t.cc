@@ -626,7 +626,8 @@ TEST(Connection_options, set_socket) {
 TEST(Connection_options, case_insensitive_duplicated_attribute) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters on ssl-mode
-  auto callback = [](const std::string &property, const std::string &twisted) {
+  auto callback = [](const std::string & /* property */,
+                     const std::string &twisted) {
     mysqlshdk::db::Connection_options data;
     data.set(mysqlshdk::db::kAuthMethod, "Value");
 
@@ -644,7 +645,8 @@ TEST(Connection_options, case_insensitive_duplicated_attribute) {
 TEST(Connection_options, invalid_options_after_WL10912) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters for each property
-  auto callback = [](const std::string &property, const std::string &twisted) {
+  auto callback = [](const std::string & /* property */,
+                     const std::string &twisted) {
     std::string uri = "mysql://root@host?" + twisted + "=whatever";
     std::string message =
         "Invalid URI: Invalid connection option '" + twisted + "'.";

@@ -34,16 +34,14 @@ class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
   // to be modules
 };
 
-#define DECLARE_MODULE(C, N)                                    \
-  class SHCORE_PUBLIC C : public shcore::Module_base {          \
-   public:                                                      \
-    C();                                                        \
-    void init();                                                \
-    virtual std::string class_name() const { return #N; };      \
-    virtual bool operator==(const Object_bridge &other) const { \
-      return false;                                             \
-    }                                                           \
-    static std::shared_ptr<shcore::Object_bridge> create(       \
+#define DECLARE_MODULE(C, N)                                               \
+  class SHCORE_PUBLIC C : public shcore::Module_base {                     \
+   public:                                                                 \
+    C();                                                                   \
+    void init();                                                           \
+    virtual std::string class_name() const { return #N; };                 \
+    virtual bool operator==(const Object_bridge &) const { return false; } \
+    static std::shared_ptr<shcore::Object_bridge> create(                  \
         const shcore::Argument_list &args)
 
 #define DECLARE_FUNCTION(F) shcore::Value F(const shcore::Argument_list &args);
@@ -54,7 +52,7 @@ class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
   shcore::Module_register<C> C##_##N##_register(#N);       \
   C::C() { init(); }                                       \
   std::shared_ptr<shcore::Object_bridge> C::create(        \
-      const shcore::Argument_list &args) {                 \
+      const shcore::Argument_list &) {                     \
     auto object = new C();                                 \
     return std::shared_ptr<shcore::Object_bridge>(object); \
   }                                                        \

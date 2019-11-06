@@ -117,12 +117,14 @@ const std::map<std::string, Option_availability>
         {kMemberWeight,
          {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
           mysqlshdk::utils::Version("5.7.20")}},
-        {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
+        {kExpelTimeout,
+         {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13"), {}}},
         {kFailoverConsistency,
-         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
-        {kConsistency, {kGrConsistency, mysqlshdk::utils::Version("8.0.14")}},
+         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
+        {kConsistency,
+         {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kAutoRejoinTries,
-         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}}};
+         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
 
 /**
  * Map of the supported global Cluster configuration options in the AdminAPI
@@ -131,8 +133,8 @@ const std::map<std::string, Option_availability>
 // TODO(.) This and its dependencies must be moved out to a new user_options.h
 const std::map<std::string, Option_availability>
     k_global_cluster_supported_options{
-        {kClusterName, {""}},
-        {kDisableClone, {"", mysqlshdk::utils::Version("8.0.17")}}};
+        {kClusterName, {"", {}, {}}},
+        {kDisableClone, {"", mysqlshdk::utils::Version("8.0.17"), {}}}};
 
 /**
  * Map of the supported instance configuration options in the AdminAPI
@@ -146,7 +148,7 @@ const std::map<std::string, Option_availability> k_instance_supported_options{
      {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
       mysqlshdk::utils::Version("5.7.20")}},
     {kAutoRejoinTries,
-     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}}};
+     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
 
 struct Instance_definition {
   int host_id;

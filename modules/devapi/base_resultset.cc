@@ -52,7 +52,7 @@ bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
 }
 
-void ShellBaseResult::dump(const shcore::Dictionary_t &options) {
+void ShellBaseResult::dump(const shcore::Dictionary_t & /* options */) {
   Resultset_dumper dumper(get_result(), true);
 
   bool is_result = class_name() == "Result";

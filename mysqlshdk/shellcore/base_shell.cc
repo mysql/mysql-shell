@@ -446,7 +446,7 @@ void Base_shell::notify_executed_statement(const std::string &line) {
 
 void Base_shell::process_sql_result(
     const std::shared_ptr<mysqlshdk::db::IResult> &result,
-    const shcore::Sql_result_info &info) {
+    const shcore::Sql_result_info & /*info*/) {
   if (!result) {
     // Return value of undefined implies an error processing
     // TODO(alfredo) - signaling of errors should be moved down

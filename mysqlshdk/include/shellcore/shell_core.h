@@ -105,7 +105,7 @@ class SHCORE_PUBLIC Shell_language {
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
-  virtual bool handle_input_stream(std::istream *istream) {
+  virtual bool handle_input_stream(std::istream * /*istream*/) {
     throw std::logic_error("not implemented");
   }
 

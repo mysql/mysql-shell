@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,6 +44,7 @@ class Scoped_storage {
 
   void pop(const std::shared_ptr<T> &object) {
     assert(!m_objects.empty() && m_objects.top() == object);
+    (void)object;  // silence warning if NDEBUG=0
     m_objects.pop();
   }
 

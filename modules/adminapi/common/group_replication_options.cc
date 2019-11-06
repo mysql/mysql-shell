@@ -362,6 +362,7 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
     // share the same options except for groupName
     case CREATE:
       unpacker->optional(kGroupName, &group_name);
+      // fallthrough
     case JOIN:
       unpacker->optional(kMemberSslMode, &ssl_mode)
           .optional(kIpWhitelist, &ip_whitelist)
@@ -373,7 +374,6 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
           .optional(kConsistency, &consistency)
           .optional_exact(kExpelTimeout, &expel_timeout)
           .optional(kAutoRejoinTries, &auto_rejoin_tries);
-
       break;
 
     case REJOIN:

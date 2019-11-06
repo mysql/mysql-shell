@@ -83,10 +83,13 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
   switch (static_cast<int>(cand.size()) - m) {
     case 3:  // 3 params extra, if the rest is optional, it's a match
       match = match && (cand[c - 3]->flag == Param_flag::Optional);
+      // fallthrough
     case 2:  // 2 params extra, if the rest is optional, it's a match
       match = match && (cand[c - 2]->flag == Param_flag::Optional);
+      // fallthrough
     case 1:  // 1 param extra, if the rest is optional, it's a match
       match = match && (cand[c - 1]->flag == Param_flag::Optional);
+      // fallthrough
     case 0:  // # of params match
       break;
     default:
@@ -128,6 +131,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
         }
         exact_matches -= (wanted[2] != cand[2]->type());
         have_object_params = have_object_params || (wanted[2] == Object);
+        // fallthrough
       case 2:  // 2 params to be considered
         if (!kTypeConvertible[static_cast<int>(wanted[1])]
                              [static_cast<int>(cand[1]->type())]) {
@@ -137,6 +141,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
         }
         exact_matches -= (wanted[1] != cand[1]->type());
         have_object_params = have_object_params || (wanted[1] == Object);
+        // fallthrough
       case 1:  // 1 param to be considered
         if (!kTypeConvertible[static_cast<int>(wanted[0])]
                              [static_cast<int>(cand[0]->type())]) {
@@ -146,6 +151,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
         }
         exact_matches -= (wanted[0] != cand[0]->type());
         have_object_params = have_object_params || (wanted[0] == Object);
+        // fallthrough
       case 0:  // 0 params to be considered = nothing to check
         break;
     }

@@ -123,7 +123,7 @@ that the shell itself should abort immediately.
 @param [IN]               Signal number
 */
 
-static void handle_ctrlc_signal(int sig) {
+static void handle_ctrlc_signal(int /* sig */) {
   int errno_save = errno;
   try {
     shcore::Interrupts::interrupt();
@@ -553,7 +553,7 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
 }
 
 static void show_cluster_info(
-    std::shared_ptr<mysqlsh::Command_line_shell> shell,
+    std::shared_ptr<mysqlsh::Command_line_shell> /* shell */,
     std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
   // cluster->diagnose();
   auto console = mysqlsh::current_console();

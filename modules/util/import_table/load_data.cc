@@ -50,7 +50,8 @@ using off64_t = off_t;
 namespace mysqlsh {
 namespace import_table {
 
-int local_infile_init(void **buffer, const char *filename, void *userdata) {
+int local_infile_init(void **buffer, const char * /* filename */,
+                      void *userdata) {
   File_info *file_info = static_cast<File_info *>(userdata);
   // todo(kg): we can get rid of file open and close (in local_infile_end()).
   //           We can open it when constructing File_info object.

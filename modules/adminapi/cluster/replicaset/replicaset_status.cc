@@ -741,7 +741,7 @@ std::pair<std::string, shcore::Value> recovery_status(
 
 shcore::Dictionary_t Replicaset_status::get_topology(
     const std::vector<mysqlshdk::gr::Member> &member_info,
-    const mysqlsh::dba::Instance *primary_instance) {
+    const mysqlsh::dba::Instance * /* primary_instance */) {
   Member_stats_map member_stats = query_member_stats();
 
   shcore::Dictionary_t dict = shcore::make_dict();

@@ -913,7 +913,7 @@ void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
   storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
 }
 
-void Shell_options::set_connection_timeout(const std::string &option,
+void Shell_options::set_connection_timeout(const std::string & /*option*/,
                                            const char *value) {
   // Creates a temporary connection options object so the established
   // validations are performed on the data

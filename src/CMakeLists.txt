@@ -44,6 +44,10 @@ set(mysh_SRC
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp
 )
 
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
+ENDIF()
+
 ADD_CONVENIENCE_LIBRARY(shellfe ${mysh_SRC})
 ADD_STAN_TARGET(shellfe ${mysh_SRC})
 

@@ -952,7 +952,7 @@ Config_check::Config_check(const char *name,
 }
 
 std::vector<Upgrade_issue> Config_check::run(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> /* session */,
     const Upgrade_check_options &options) {
   if (options.config_path.empty())
     throw Check_configuration_error(

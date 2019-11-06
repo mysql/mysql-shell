@@ -84,7 +84,8 @@ std::shared_ptr<EVP_PKEY> load_private_key(const std::string &path,
     throw std::runtime_error("'" + path + "' is not a file.");
   }
 
-  auto get_password = [](char *buf, int size, int rwflag, void *u) -> int {
+  auto get_password = [](char *buf, int size, int /* rwflag */,
+                         void *u) -> int {
     auto state = reinterpret_cast<Read_key_state *>(u);
     state->attempt++;
     auto console = mysqlsh::current_console();

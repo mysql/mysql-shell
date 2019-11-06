@@ -145,10 +145,13 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
     switch (self->get_verbose()) {
       case 4:
         if (log.level == shcore::Logger::LOG_DEBUG3) show_prefix = "";
+        // fallthrough
       case 3:
         if (log.level == shcore::Logger::LOG_DEBUG2) show_prefix = "";
+        // fallthrough
       case 2:
         if (log.level == shcore::Logger::LOG_DEBUG) show_prefix = "";
+        // fallthrough
       case 1:
         switch (log.level) {
           case shcore::Logger::LOG_INFO:

@@ -386,7 +386,8 @@ void Oci_setup::init_create_profile_wizard() {
         return load_private_key(stripped,
                                 "The selected API key requires a passphrase: ");
       })
-      .on_leave([](const std::string &value, shcore::wizard::Wizard *wizard) {
+      .on_leave([](const std::string & /* value */,
+                   shcore::wizard::Wizard *wizard) {
         if (wizard->has(kPassphrase))
           wizard->relink(kKeyFile, shcore::wizard::K_NEXT, kStorePassphrase);
       });
@@ -400,7 +401,7 @@ void Oci_setup::init_create_profile_wizard() {
 std::string Oci_setup::load_private_key(const std::string &path,
                                         const std::string &inital_prompt) {
   // Password callback in case the key file is encrypted
-  auto pwd_cb = [](char *buf, int size, int rwflag, void *u) -> int {
+  auto pwd_cb = [](char *buf, int size, int /* rwflag */, void *u) -> int {
     std::string pass_phrase;
 
     auto wizard = static_cast<shcore::wizard::Wizard *>(u);
@@ -567,7 +568,7 @@ void Oci_setup::load_profile(const std::string &profile_name) {
     if (m_config.has_option(profile_name, kKeyFile)) {
       std::string key_file = *m_config.get(profile_name, kKeyFile);
 
-      auto pwd_cb = [](char *buf, int size, int rwflag, void *u) -> int {
+      auto pwd_cb = [](char *buf, int size, int /* rwflag */, void *u) -> int {
         auto wizard = static_cast<shcore::wizard::Wizard *>(u);
 
         std::string passphrase;

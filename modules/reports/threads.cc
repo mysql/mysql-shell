@@ -346,16 +346,18 @@ class Threads_report : public Native_report {
     static Report::Examples examples() {
       return {{"Show foreground threads, display 'tid' and 'cid' columns and "
                "value of 'autocommit' system variable.",
-               {{"o", "tid,cid,system.autocommit"}, {"foreground", "true"}}},
+               {{"o", "tid,cid,system.autocommit"}, {"foreground", "true"}},
+               {}},
               {"Show background threads with 'tid' greater than 10 and name "
                "containing 'innodb' string.",
                {{"where", "tid > 10 AND name LIKE '%innodb%'"},
-                {"background", "true"}}}};
+                {"background", "true"}},
+               {}}};
     }
   };
 
  private:
-  void parse(const shcore::Array_t &argv,
+  void parse(const shcore::Array_t & /* argv */,
              const shcore::Dictionary_t &options) override {
 #define X X_OPTIONS_STRUCT
     OPTIONS_STRUCT

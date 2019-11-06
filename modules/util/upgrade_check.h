@@ -256,8 +256,8 @@ class Manual_check : public Upgrade_check {
   bool is_runnable() const override { return false; }
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &options) override {
+      std::shared_ptr<mysqlshdk::db::ISession> /* session */,
+      const Upgrade_check_options & /* options */) override {
     throw std::runtime_error("Manual check not meant to be executed");
   }
 

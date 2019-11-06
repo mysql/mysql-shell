@@ -116,6 +116,11 @@ if(WITH_TESTS)
 
     add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
 
+    IF(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+      set_target_properties(run_unit_tests PROPERTIES COMPILE_FLAGS "-Wno-extra")
+    ENDIF()
+
+
     add_dependencies(run_unit_tests
             shellfe
             api_modules

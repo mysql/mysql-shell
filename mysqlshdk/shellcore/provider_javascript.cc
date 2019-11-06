@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ static std::vector<std::string> k_builtin_keywords = {
 class JavaScript_proxy : public Object {
  public:
   explicit JavaScript_proxy(Provider_javascript *completer, const JSObject &obj,
-                            const std::string &obj_class, bool callable)
+                            const std::string &obj_class, bool /* callable */)
       : completer_(completer), jsobj_(obj), jsobj_class_(obj_class) {}
 
   std::string get_type() const override { return jsobj_class_; }

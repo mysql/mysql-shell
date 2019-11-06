@@ -2801,7 +2801,8 @@ Dba::get_replicaset_instances_status(
 
 static void validate_instance_belongs_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::string &gr_group_name, const std::string &restore_function) {
+    const std::string & /* gr_group_name */,
+    const std::string &restore_function) {
   // TODO(alfredo) gr_group_name should receive the group_name as stored
   // in the metadata to validate if it matches the expected value
   // if the name does not match, an error should be thrown asking for an

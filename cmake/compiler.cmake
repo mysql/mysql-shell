@@ -57,11 +57,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   check_cxx14()
   #set(${CMAKE_CXX_FLAGS} "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wpedantic -Wshadow")
 
-  # Flags to use in old parts of the code, where we have too many warnings
-  # as result of the typo above. We incrementally add warnings until everything is on
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX14_FLAG} -Werror -Wall -Wno-unused-parameter -Wno-unused-result")
-  # Flags to use in new parts of the code, where we're trying to be strict from the beginning
-  set(CXX_FLAGS_FULL_WARNINGS "${CMAKE_CXX_FLAGS} -Wextra -Wno-shadow")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX14_FLAG} -Werror -Wall -Wno-unused-result -Wextra -Wno-shadow")
 
   if(ENABLE_GCOV)
     message(STATUS "Enabling code coverage using Gcov")

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,26 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _INCLUDE_V8_H_
-#define _INCLUDE_V8_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_COMPILER_H_
+#define MYSQLSHDK_LIBS_UTILS_COMPILER_H_
 
-// Include and avoid warnings from v8
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#if __GNUC__ > 7 && !defined(__clang__)
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif
-#elif defined _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4018 4996)
-#endif
-#include <v8.h>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#elif defined _MSC_VER
-#pragma warning(pop)
+// Older gcc versions don't have this but newer ones do
+#ifndef __has_warning
+#define __has_warning(x) 0
 #endif
 
-#endif  // _INCLUDE_V8_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_COMPILER_H_

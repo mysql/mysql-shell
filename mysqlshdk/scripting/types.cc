@@ -2126,8 +2126,8 @@ void Object_bridge::append_json(JSON_dumper &dumper) const {
   dumper.end_object();
 }
 
-std::string &Function_base::append_descr(std::string *s_out, int indent,
-                                         int quote_strings) const {
+std::string &Function_base::append_descr(std::string *s_out, int /* indent */,
+                                         int /* quote_strings */) const {
   const auto &n = name();
   s_out->append("<Function").append(n.empty() ? "" : ":" + n).append(">");
   return *s_out;

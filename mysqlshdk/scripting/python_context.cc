@@ -366,7 +366,7 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
 }
 
 bool Python_context::raw_execute_helper(const std::string &statement,
-                                        std::string *error) {
+                                        std::string * /* error */) {
   bool ret_val = false;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   try {
@@ -926,17 +926,17 @@ PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
   return shell_print(self, args, "error");
 }
 
-PyObject *Python_context::shell_flush_stderr(PyObject *self, PyObject *args) {
+PyObject *Python_context::shell_flush_stderr(PyObject *, PyObject *) {
   Py_INCREF(Py_None);
   return Py_None;
 }
 
-PyObject *Python_context::shell_flush(PyObject *self, PyObject *args) {
+PyObject *Python_context::shell_flush(PyObject *, PyObject *) {
   Py_INCREF(Py_None);
   return Py_None;
 }
 
-PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
+PyObject *Python_context::shell_stdin_read(PyObject *, PyObject *args) {
   Python_context *ctx;
 
   if (!(ctx = Python_context::get_and_check())) return nullptr;
@@ -975,7 +975,7 @@ PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
   }
 }
 
-PyObject *Python_context::shell_stdin_readline(PyObject *self, PyObject *args) {
+PyObject *Python_context::shell_stdin_readline(PyObject *, PyObject *) {
   Python_context *ctx;
 
   if (!(ctx = Python_context::get_and_check())) return nullptr;
@@ -994,7 +994,7 @@ PyObject *Python_context::shell_stdin_readline(PyObject *self, PyObject *args) {
   return PyString_FromString(line.c_str());
 }
 
-PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self),
+PyObject *Python_context::shell_interactive_eval_hook(PyObject *,
                                                       PyObject *args) {
   Python_context *ctx;
   std::string text;

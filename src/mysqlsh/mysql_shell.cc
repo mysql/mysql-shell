@@ -810,9 +810,9 @@ void Mysql_shell::get_plugins(File_list *file_list) {
   switch_shell_mode(initial_mode, {}, true);
 }
 
-void Mysql_shell::print_connection_message(mysqlsh::SessionType type,
-                                           const std::string &uri,
-                                           const std::string &sessionid) {
+void Mysql_shell::print_connection_message(
+    mysqlsh::SessionType type, const std::string &uri,
+    const std::string & /* sessionid */) {
   std::string stype;
 
   switch (type) {
@@ -1391,7 +1391,7 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
   return true;
 }
 
-bool Mysql_shell::cmd_rehash(const std::vector<std::string> &args) {
+bool Mysql_shell::cmd_rehash(const std::vector<std::string> & /* args */) {
   if (_shell->get_dev_session()) {
     refresh_schema_completion(true);
     refresh_completion(true);

@@ -415,8 +415,7 @@ static PyTypeObject Key_iterator_type = {
     PyObject_SelfIter,                   /* tp_iter */
     (iternextfunc)Key_iterator_next_key, /* tp_iternext */
     0,                                   /* tp_methods */
-    0,
-};
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static PyObject *dict_iter(PyShDictObject *self) {
   Key_iterator *iterator = PyObject_New(Key_iterator, &Key_iterator_type);

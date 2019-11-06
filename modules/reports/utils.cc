@@ -158,7 +158,7 @@ class Array_as_result : public mysqlshdk::db::IResult {
    public:
     explicit Vector_as_row(const std::vector<std::string> &row) : m_row(row) {}
 
-    mysqlshdk::db::Type get_type(uint32_t idx) const override {
+    mysqlshdk::db::Type get_type(uint32_t /* idx */) const override {
       return mysqlshdk::db::Type::String;
     }
 
@@ -184,11 +184,11 @@ class Array_as_result : public mysqlshdk::db::IResult {
       throw std::logic_error("Not implemented.");
     }
 
-    float get_float(uint32_t idx) const override {
+    float get_float(uint32_t) const override {
       throw std::logic_error("Not implemented.");
     }
 
-    double get_double(uint32_t idx) const override {
+    double get_double(uint32_t) const override {
       throw std::logic_error("Not implemented.");
     }
 

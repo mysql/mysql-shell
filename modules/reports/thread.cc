@@ -105,12 +105,15 @@ class Thread_report : public Native_report {
     static Report::Examples examples() {
       return {{"Show general, locks, InnoDB and client information for the "
                "thread used by the current connection.",
-               {{"G", "true"}, {"L", "true"}, {"I", "true"}, {"C", "true"}}},
+               {{"G", "true"}, {"L", "true"}, {"I", "true"}, {"C", "true"}},
+               {}},
               {"Show general information for the thread with thread ID 55.",
-               {{"tid", "55"}}},
+               {{"tid", "55"}},
+               {}},
               {"Show status variables which begin with 'Bytes' and 'Ssl' for "
                "the thread with connection ID 72.",
-               {{"cid", "72"}, {"status", "Bytes,Ssl"}}}};
+               {{"cid", "72"}, {"status", "Bytes,Ssl"}},
+               {}}};
     }
   };
 
@@ -249,7 +252,7 @@ class Thread_report : public Native_report {
     return Section::format(data);
   }
 
-  void parse(const shcore::Array_t &argv,
+  void parse(const shcore::Array_t & /* argv */,
              const shcore::Dictionary_t &options) override {
 #define X X_OPTIONS_STRUCT
     OPTIONS_STRUCT

@@ -1351,7 +1351,7 @@ bool prompt_account_host(std::string *out_host) {
  * (or was resolved), or not.
  */
 bool prompt_create_usable_admin_account(const std::string &user,
-                                        const std::string &host,
+                                        const std::string & /* host */,
                                         std::string *out_create_account) {
   assert(out_create_account);
   int result;

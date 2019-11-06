@@ -35,7 +35,7 @@ REGISTER_HELP_GLOBAL_OBJECT_MODE(sys, shellapi, JAVASCRIPT);
 REGISTER_HELP(SYS_BRIEF, "Gives access to system specific parameters.");
 REGISTER_HELP(SYS_GLOBAL_BRIEF, "Gives access to system specific parameters.");
 
-Sys::Sys(shcore::IShell_core *owner) { init(); }
+Sys::Sys(shcore::IShell_core * /* owner */) { init(); }
 
 void Sys::init() {
   _argv = shcore::make_array();

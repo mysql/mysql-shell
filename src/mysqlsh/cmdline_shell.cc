@@ -511,7 +511,7 @@ void Command_line_shell::save_state(shcore::Shell_core::Mode mode) {
 bool Command_line_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
                                            const std::vector<std::string> &args,
                                            bool initializing,
-                                           bool prompt_variables_update) {
+                                           bool /* prompt_variables_update */) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool ret = Mysql_shell::switch_shell_mode(mode, args, initializing);
 
@@ -1020,7 +1020,7 @@ bool Command_line_shell::cmd_process_file(
 }
 
 void Command_line_shell::handle_notification(
-    const std::string &name, const shcore::Object_bridge_ref &sender,
+    const std::string &name, const shcore::Object_bridge_ref & /* sender */,
     shcore::Value::Map_type_ref data) {
   if (name == "SN_STATEMENT_EXECUTED") {
     std::string executed = data->get_string("statement");

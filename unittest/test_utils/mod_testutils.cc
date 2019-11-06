@@ -215,7 +215,10 @@ std::string Testutils::get_mysqld_version(const std::string &mysqld_path) {
   return "";
 }
 
-void Testutils::dbug_set(const std::string &s) { DBUG_SET(s.c_str()); }
+void Testutils::dbug_set(const std::string &s) {
+  (void)s;
+  DBUG_SET(s.c_str());
+}
 
 void Testutils::enable_extensible() {
   register_help("Gives access to general testing functions and properties.",

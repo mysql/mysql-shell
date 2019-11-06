@@ -30,11 +30,6 @@ include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
     ${CMAKE_BINARY_DIR}/mysqlshdk/include)
 
-# Enable full warnings for new libraries only for now
-# Once warnings everywhere are low, we enable same flags for all
-
-SET(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_FULL_WARNINGS}")
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/mysql)
@@ -42,10 +37,9 @@ ADD_SUBDIRECTORY(libs/textui)
 ADD_SUBDIRECTORY(libs/config)
 ADD_SUBDIRECTORY(libs/secret-store-api)
 ADD_SUBDIRECTORY(libs/rest)
-SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
+ADD_SUBDIRECTORY(scripting)
+ADD_SUBDIRECTORY(shellcore)
 
-add_subdirectory(scripting)
-add_subdirectory(shellcore)
 
 #TODO: ADD_VERSION_INFO
 #merge_libraries(mysqlshdk SHARED

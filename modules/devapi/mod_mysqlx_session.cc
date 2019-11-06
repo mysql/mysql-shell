@@ -189,7 +189,7 @@ void Session::init() {
     return shcore::Value::wrap<Schema>(new Schema(shared_from_this(), name));
   };
   update_schema_cache = [generator, this](const std::string &name,
-                                          bool exists) {
+                                          bool /* exists */) {
     DatabaseObject::update_cache(name, generator, true, _schemas);
   };
 
