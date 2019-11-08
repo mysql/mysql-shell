@@ -300,6 +300,8 @@ testutil.rmfile(exe_file);
 modules.remove();
 
 //@ create modules in the absolute directory present in the sys.path variable [USE: create modules in the current working directory]
+const backup_path = sys.path;
+sys.path = [__tmp_dir];
 modules = new Modules(os.path.join(sys.path[0], modules_subfolder), cache);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -316,6 +318,7 @@ modules.test(`./${modules_subfolder}/`);
 
 //@ delete modules in the absolute directory present in the sys.path variable [USE: delete modules in the current working directory]
 modules.remove();
+sys.path = backup_path;
 
 ////////////////////////////////////////////////////////////////////////////////
 
