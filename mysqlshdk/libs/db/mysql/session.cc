@@ -182,10 +182,9 @@ void Session_impl::connect(
               ? _connection_options.get_schema().c_str()
               : NULL,
           _connection_options.has_port() ? _connection_options.get_port() : 0,
-          _connection_options.has_socket()
-              ? (_connection_options.get_socket().empty()
-                     ? MYSQL_UNIX_ADDR
-                     : _connection_options.get_socket().c_str())
+          _connection_options.has_socket() &&
+                  !_connection_options.get_socket().empty()
+              ? _connection_options.get_socket().c_str()
               : NULL,
           flags)) {
     throw_on_connection_fail();
@@ -210,11 +209,7 @@ void Session_impl::connect(
 #ifdef _WIN32
       _connection_options.set_pipe("MySQL");
 #else
-      char *socket = getenv("MYSQL_UNIX_PORT");
-      if (socket)
-        _connection_options.set_socket(socket);
-      else
-        _connection_options.set_socket(MYSQL_UNIX_ADDR);
+      _connection_options.set_socket(mysql_unix_port);
 #endif
     }
   }

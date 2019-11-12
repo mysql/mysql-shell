@@ -155,10 +155,14 @@ void Trace_writer::serialize_connect(
   _log_label = shcore::path::basename(_path);
   auto ext = _log_label.rfind('.');
   if (ext != std::string::npos) _log_label = _log_label.substr(0, ext);
-  _log_label.append("/")
-      .append(data.get_host())
-      .append(":")
-      .append(std::to_string(data.get_port()));
+  if (data.has_host()) {
+    _log_label.append("/").append(data.get_host());
+    if (data.has_port())
+      _log_label.append(":").append(
+          std::to_string(data.has_port() ? data.get_port() : 3306));
+  } else {
+    _log_label.append(data.get_socket());
+  }
 
   DBUG_LOG("sql",
            _log_label << ": connect " << data.as_uri(uri::formats::full()));

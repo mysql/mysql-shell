@@ -90,8 +90,6 @@ cluster.rescan({addInstances: ["localhost:3300", ":3301"]});
 cluster.rescan({addInstances: ["localhost:3300", "@", "myhost:3301"]});
 cluster.rescan({addInstances: [{}]});
 cluster.rescan({addInstances: [{host: "myhost"}]});
-cluster.rescan({addInstances: [{host: "myhost", port:3300}, {port:3301}]});
-cluster.rescan({addInstances: [{host: "myhost", port:3300}, {user: "root"}, {host: "localhost", port:3301}]});
 cluster.rescan({addInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
 
 //@ WL10644: Duplicated values for addInstances.

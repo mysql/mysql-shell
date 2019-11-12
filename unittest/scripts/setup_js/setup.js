@@ -13,6 +13,21 @@ function create_root_from_anywhere(session, clear_super_read_only) {
   session.runSql("SET SQL_LOG_BIN=1");
 }
 
+function get_socket_path(session) {
+  var row = session.runSql("SELECT @@socket, @@datadir").fetchOne();
+
+  if (row[0][0] == '/')
+    p = row[0];
+  else if (row[1][row[1].length-1] == '/')
+    p = row[1] + row[0];
+  else
+    p = row[1] + "/" + row[0];
+  if (p.length > 100) {
+    testutil.fail("socket path is too long (>100): " + p);
+  }
+  return p;
+}
+
 /**
  * Verifies if a variable is defined, returning true or false accordingly
  * @param cb An anonymous function that simply executes the variable to be
@@ -32,7 +47,7 @@ function defined(cb) {
 }
 
 function set_sysvar(session, variable, value) {
-  session.runSql("SET GLOBAL "+variable+" = ?", [value]);
+  session.runSql("SET GLOBAL " + variable + " = ?", [value]);
 }
 
 function get_sysvar(session, variable, type) {
@@ -169,8 +184,8 @@ function get_persisted_gr_sysvars(session) {
 function number_of_gr_recovery_accounts(session) {
   // All internal recovery users have the prefix: 'mysql_innodb_cluster_'.
   var res = session.runSql(
-      "SELECT COUNT(*)  FROM mysql.user u " +
-      "WHERE u.user LIKE 'mysql_innodb_cluster_%'");
+    "SELECT COUNT(*)  FROM mysql.user u " +
+    "WHERE u.user LIKE 'mysql_innodb_cluster_%'");
   var row = res.fetchOne();
   return row[0];
 }
@@ -304,7 +319,7 @@ function EXPECT_EQ(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }
@@ -329,7 +344,7 @@ function EXPECT_NE(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (expected == actual) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't differ as expected:</red> "+note+"\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't differ as expected:</red> " + note + "\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
     testutil.fail(context);
   }
 }
@@ -440,7 +455,7 @@ function EXPECT_STDERR_MATCHES(re) {
 function EXPECT_SHELL_LOG_CONTAINS(text) {
   var log_path = testutil.getShellLogPath();
   var match_list = testutil.grepFile(log_path, text);
-  if (match_list.length === 0){
+  if (match_list.length === 0) {
     var log_out = testutil.catFile(log_path);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing log output:</red> " + text + "\n<yellow>Actual log output:</yellow> " + log_out;
     testutil.fail(context);
@@ -450,7 +465,7 @@ function EXPECT_SHELL_LOG_CONTAINS(text) {
 function EXPECT_SHELL_LOG_NOT_CONTAINS(text) {
   var log_path = testutil.getShellLogPath();
   var match_list = testutil.grepFile(log_path, text);
-  if (match_list.length !== 0){
+  if (match_list.length !== 0) {
     var log_out = testutil.catFile(log_path);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected log output:</red> " + text + "\n<yellow>Full log output:</yellow> " + log_out;
     testutil.fail(context);
@@ -538,12 +553,12 @@ function WIPE_OUTPUT() {
 // ** Non-cluster/non-group standalone instances
 function StandaloneScenario(ports) {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
+    testutil.deploySandbox(ports[i], "root", { report_host: hostname });
   }
   // Always connect to the 1st port
-  this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);
+  this.session = shell.connect("mysql://root:root@localhost:" + ports[0]);
 
-  this.destroy = function() {
+  this.destroy = function () {
     this.session.close();
     for (i in ports) {
       testutil.destroySandbox(ports[i]);
@@ -553,25 +568,25 @@ function StandaloneScenario(ports) {
 }
 
 // ** Cluster based scenarios
-function ClusterScenario(ports, topology_mode="pm") {
+function ClusterScenario(ports, topology_mode = "pm") {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
+    testutil.deploySandbox(ports[i], "root", { report_host: hostname });
   }
 
-  this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);
+  this.session = shell.connect("mysql://root:root@localhost:" + ports[0]);
   if (topology_mode == "mm") {
-    this.cluster = dba.createCluster("cluster", {multiPrimary: true, force: true, gtidSetIsComplete: true});
+    this.cluster = dba.createCluster("cluster", { multiPrimary: true, force: true, gtidSetIsComplete: true });
   } else {
-    this.cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+    this.cluster = dba.createCluster("cluster", { gtidSetIsComplete: true });
   }
   for (i in ports) {
     if (i > 0) {
-      this.cluster.addInstance("mysql://root:root@localhost:"+ports[i]);
+      this.cluster.addInstance("mysql://root:root@localhost:" + ports[i]);
       testutil.waitMemberState(ports[i], "ONLINE");
     }
   }
 
-  this.destroy = function() {
+  this.destroy = function () {
     this.session.close();
     this.cluster.disconnect();
     for (i in ports) {
@@ -585,19 +600,19 @@ function ClusterScenario(ports, topology_mode="pm") {
 
   // Make this an unmanaged/non-InnoDB cluster GR group
   // by dropping the metadata
-  this.make_unmanaged = function() {
+  this.make_unmanaged = function () {
     this.session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
   }
 
   // Make the cluster quorumless by killing all but given members and
   // wait them to become UNREACHABLE
-  this.make_no_quorum = function(survivor_ports) {
+  this.make_no_quorum = function (survivor_ports) {
     for (i in ports) {
       if (survivor_ports.indexOf(ports[i]) < 0) {
         testutil.killSandbox(ports[i]);
         var state = testutil.waitMemberState(ports[i], "UNREACHABLE,(MISSING)");
         if (state != "UNREACHABLE" && state != "(MISSING)")
-          testutil.fail("Member "+ports[i]+" got into state that was not supposed to: "+state);
+          testutil.fail("Member " + ports[i] + " got into state that was not supposed to: " + state);
       }
     }
   }
@@ -605,34 +620,33 @@ function ClusterScenario(ports, topology_mode="pm") {
   return this;
 }
 
-function validate_crud_functions(crud, expected)
-{
-    var actual = dir(crud);
+function validate_crud_functions(crud, expected) {
+  var actual = dir(crud);
 
-    // Ensures expected functions are on the actual list
-    var missing = [];
-    for(exp_funct of expected){
-        var pos = actual.indexOf(exp_funct);
-        if(pos == -1){
-            missing.push(exp_funct);
-        }
-        else{
-            actual.splice(pos, 1);
-        }
+  // Ensures expected functions are on the actual list
+  var missing = [];
+  for (exp_funct of expected) {
+    var pos = actual.indexOf(exp_funct);
+    if (pos == -1) {
+      missing.push(exp_funct);
     }
+    else {
+      actual.splice(pos, 1);
+    }
+  }
 
-    if(missing.length == 0){
-        print ("All expected functions are available\n");
-    }
-    else{
-        print("Missing Functions:", missing);
-    }
+  if (missing.length == 0) {
+    print("All expected functions are available\n");
+  }
+  else {
+    print("Missing Functions:", missing);
+  }
 
-    // help is ignored cuz it's always available
-    if (actual.length == 0 || (actual.length == 1 && actual[0] == 'help')) {
-        print("No additional functions are available\n")
-    }
-    else{
-        print("Extra Functions:", actual);
-    }
+  // help is ignored cuz it's always available
+  if (actual.length == 0 || (actual.length == 1 && actual[0] == 'help')) {
+    print("No additional functions are available\n")
+  }
+  else {
+    print("Extra Functions:", actual);
+  }
 }

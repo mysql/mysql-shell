@@ -10,7 +10,6 @@
 ||Cluster.addInstance: Argument #1 is expected to be a string
 ||Cluster.addInstance: Invalid URI: empty.
 ||Cluster.addInstance: Invalid values in connection options: ipWhitelist, memberSslMode
-||Cluster.addInstance: Missing values in connection options: host
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.

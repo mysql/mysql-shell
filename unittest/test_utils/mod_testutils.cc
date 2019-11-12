@@ -190,6 +190,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("dbugSet", &Testutils::dbug_set, "dbug");
   expose("dprint", &Testutils::dprint, "s");
   expose("getUserConfigPath", &Testutils::get_user_config_path);
+  expose("setenv", &Testutils::setenv, "variable", "?value");
   // expose("slowify", &Testutils::slowify, "port", "start");
 
   std::string local_mp_path =
@@ -2262,6 +2263,24 @@ std::string Testutils::fetch_captured_stdout(bool eat_one) {
 
 std::string Testutils::fetch_captured_stderr(bool eat_one) {
   return _fetch_stderr(eat_one);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Sets or clears the value of an environment variable.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::setenv(String var, String value);
+#elif DOXYGEN_PY
+None Testutils::setenv(str var, str value);
+#endif
+///@}
+void Testutils::setenv(const std::string &var, const std::string &value) {
+  if (value.empty())
+    shcore::unsetenv(var);
+  else
+    shcore::setenv(var, value);
 }
 
 void Testutils::handle_remote_root_user(const std::string &rootpass, int port,

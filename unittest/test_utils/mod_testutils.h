@@ -89,6 +89,7 @@ class Testutils : public mysqlsh::Extensible_object {
   List wipeFileContents(String path);
   Undefined dbugSet(String s);
   Undefined dprint(String s);
+  Undefined setenv(String var, String value);
   // Undefined slowify(Integer port, Boolean start);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
@@ -130,6 +131,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None dbug_set(str s);
   None dprint(str s);
   None skip(int port, bool start);
+  None setenv(str var, str value);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -285,6 +287,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::string fetch_captured_stdout(bool eat_one);
   std::string fetch_captured_stderr(bool eat_one);
+
+  void setenv(const std::string &var, const std::string &value);
 
  private:
   struct Slower_thread {

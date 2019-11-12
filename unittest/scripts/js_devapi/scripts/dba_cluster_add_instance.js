@@ -58,6 +58,15 @@ single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2
 
 //@ Success adding instance to the single cluster
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+// wait til instance becomes R/W, there seems to be a delay for that to happen recently
+var session2 = mysql.getSession(__sandbox_uri2);
+while (1) {
+  if (!session2.runSql("SELECT @@super_read_only").fetchOne()[0]) {
+    break;
+  }
+  os.sleep(0.2);
+}
 single.addInstance(__sandbox_uri3);
 
 //@ Remove the instance from the cluster

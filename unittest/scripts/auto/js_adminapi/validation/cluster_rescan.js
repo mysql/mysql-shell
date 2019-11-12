@@ -65,8 +65,6 @@ Result of the rescanning operation for the 'default' ReplicaSet:
 ||Cluster.rescan: Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information (ArgumentError)
 ||Cluster.rescan: Invalid value '{}' for 'addInstances' option: Invalid connection options, no options provided. (ArgumentError)
 ||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value '{"port": 3301}' for 'addInstances' option: Missing values in connection options: host (ArgumentError)
-||Cluster.rescan: Invalid value '{"user": "root"}' for 'addInstances' option: Missing values in connection options: host (ArgumentError)
 ||Cluster.rescan: Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for addInstances.
@@ -114,8 +112,6 @@ WARNING: The following instances were not added to the metadata because they are
 ||Cluster.rescan: Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information (ArgumentError)
 ||Cluster.rescan: Invalid value '{}' for 'removeInstances' option: Invalid connection options, no options provided. (ArgumentError)
 ||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value '{"port": 3301}' for 'removeInstances' option: Missing values in connection options: host (ArgumentError)
-||Cluster.rescan: Invalid value '{"user": "root"}' for 'removeInstances' option: Missing values in connection options: host (ArgumentError)
 ||Cluster.rescan: Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for removeInstances.

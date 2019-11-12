@@ -20,7 +20,7 @@ sock
 sess.close()
 
 //@# Connect using auth_socket plugin
-sess = mysql.getClassicSession(__system_user + ":@("+ __socket +")")
+sess = mysql.getClassicSession(__system_user + ":@(" + __socket + ")")
 sess.isOpen()
 
 //@# Close session

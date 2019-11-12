@@ -73,9 +73,10 @@ mysqlshdk::db::Connection_options get_connection_options(
   shcore::Argument_map connection_map(*instance_def);
 
   std::set<std::string> mandatory;
-  if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
-    mandatory.insert(mysqlshdk::db::kHost);
-  }
+  // host defaults to localhost, so it's not mandatory
+  // if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
+  //   mandatory.insert(mysqlshdk::db::kHost);
+  // }
 
   connection_map.ensure_keys(
       mandatory, mysqlshdk::db::connection_attributes, "connection options",
