@@ -170,6 +170,8 @@ void Logger::log(LOG_LEVEL level, const char *formats, ...) {
 }
 
 void Logger::do_log(const Log_entry &entry) {
+  std::lock_guard<std::recursive_mutex> lock(s_instance->m_mutex);
+
   if (s_instance->m_log_file.is_open() &&
       entry.level <= s_instance->m_log_level) {
     const auto s = format_message(entry);

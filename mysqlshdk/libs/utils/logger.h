@@ -28,6 +28,7 @@
 #include <fstream>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -142,6 +143,8 @@ class SHCORE_PUBLIC Logger final {
   std::list<std::tuple<Log_hook, void *, bool>> m_hook_list;
 
   std::list<std::string> m_log_context;
+
+  std::recursive_mutex m_mutex;
 };
 
 struct Log_context {
