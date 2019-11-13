@@ -32,7 +32,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10)),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -70,7 +70,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10)),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -147,7 +147,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10),`<<<idx_col_2>>>`(10),`<<<idx_col_3>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -224,7 +224,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10),`<<<idx_col_2>>>`(10),`<<<idx_col_3>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -263,7 +263,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -301,7 +301,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -340,7 +340,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -378,7 +378,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -417,7 +417,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -455,7 +455,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -494,7 +494,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -533,7 +533,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -572,7 +572,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -611,7 +611,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -650,7 +650,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -689,7 +689,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -731,7 +731,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -773,7 +773,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -815,7 +815,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -857,7 +857,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -899,7 +899,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -938,7 +938,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{}
 ?{VER(>=8.0.19)}
   KEY `myIndex` (`<<<idx_col_1>>>`(10)),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
@@ -958,7 +958,7 @@ Create Table: CREATE TABLE `my_coll` (
 ?{VER(>=8.0.19)}
   `_json_schema` json GENERATED ALWAYS AS (_utf8mb4'{"type":"object"}') VIRTUAL,
   PRIMARY KEY (`_id`),
-  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`))
+  CONSTRAINT `$val_strict_98ECC39AA1BEFEB54F58E37A530CD5D1BD7631C5` CHECK (json_schema_valid(`_json_schema`,`doc`)) /*!80016 NOT ENFORCED */
 ?{}
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
