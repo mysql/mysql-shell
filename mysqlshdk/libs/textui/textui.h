@@ -111,18 +111,12 @@ struct SHCORE_PUBLIC Style {
   static const int Color_bg_mask =
       (Color_16_bg_set | Color_256_bg_set | Color_rgb_bg_set);
 
-  struct Color {
+  struct Color final {
     uint8_t color_16 = 0;
     uint8_t color_256 = 0;
     uint8_t color_rgb[3] = {0, 0, 0};
 
-    Color() {}
-
-    Color(const Color &c) : color_16(c.color_16), color_256(c.color_256) {
-      color_rgb[0] = c.color_rgb[0];
-      color_rgb[1] = c.color_rgb[1];
-      color_rgb[2] = c.color_rgb[2];
-    }
+    Color() = default;
 
     Color(uint8_t c16, uint8_t c256, const uint8_t rgb[3])
         : color_16(c16), color_256(c256) {
