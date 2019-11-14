@@ -31,6 +31,11 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 namespace mysqlsh {
 
 // The following tests check interruption of the shell in batch mode
@@ -596,14 +601,14 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
 +-----------+)*";
 
   for (const auto &command : {"test_show.py", "test_watch.py"}) {
-    for (const auto &session : {_mysql_uri, _uri}) {
-      SCOPED_TRACE(shcore::str_format("Executing '%s' via '%s'", command,
-                                      session.c_str()));
+    for (const auto &uri : {_mysql_uri, _uri}) {
+      SCOPED_TRACE(
+          shcore::str_format("Executing '%s' via '%s'", command, uri.c_str()));
       mysqlshdk::utils::Profile_timer timer;
       kill_on_ready();
 
       timer.stage_begin("execution");
-      execute({_mysqlsh, session.c_str(), "--py", "--interactive", nullptr},
+      execute({_mysqlsh, uri.c_str(), "--py", "--interactive", nullptr},
               nullptr, command);
       timer.stage_end();
 
@@ -616,3 +621,7 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
 }
 
 }  // namespace mysqlsh
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif

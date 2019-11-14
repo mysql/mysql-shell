@@ -202,7 +202,9 @@ bool SHCORE_PUBLIC is_absolute(const std::string &path) {
 
 std::string SHCORE_PUBLIC getcwd() {
   char path[PATH_MAX] = {0};
-  ::getcwd(path, PATH_MAX);
+  if (nullptr == ::getcwd(path, PATH_MAX)) {
+    throw std::runtime_error("Failed to get current working directory.");
+  }
   return path;
 }
 

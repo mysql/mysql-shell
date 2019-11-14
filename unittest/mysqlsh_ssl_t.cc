@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
     Identity_bad    // SSL enabled but with wrong host certificate
   };
 
-  void reconfigure_sandbox(Ssl_config sslconf) {
+  void reconfigure_sandbox(Ssl_config /* sslconf */) {
     // TODO(alfredo)
   }
 
@@ -103,6 +103,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
     switch (protocol) {
       case Proto::X:
         argv.push_back("--mysqlx");
+        // fallthrough
       case Proto::X_auto:
         switch (server) {
           case Srv::Main:
@@ -117,6 +118,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
         break;
       case Proto::C:
         argv.push_back("--mysql");
+        // fallthrough
       case Proto::C_auto:
         switch (server) {
           case Srv::Main:

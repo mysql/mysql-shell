@@ -44,7 +44,7 @@ class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
     static std::shared_ptr<shcore::Object_bridge> create(                  \
         const shcore::Argument_list &args)
 
-#define DECLARE_FUNCTION(F) shcore::Value F(const shcore::Argument_list &args);
+#define DECLARE_FUNCTION(F) shcore::Value F(const shcore::Argument_list &args)
 
 #define END_DECLARE_MODULE() }
 
@@ -78,5 +78,5 @@ struct Module_register {
                                              &ObjectBridgeClass::create);
   }
 };
-};      // namespace shcore
+}  // namespace shcore
 #endif  //_MODULE_REGISTRY_H_

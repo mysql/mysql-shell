@@ -942,9 +942,9 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
 
   // valid mysql 5.7 superuser
   args.push_back(shcore::Value(_mysql_uri));
-  shcore::Value::Map_type_ref opts(new shcore::Value::Map_type());
-  opts->set("outputFormat", shcore::Value("JSON"));
-  args.push_back(shcore::Value(opts));
+  const auto options = shcore::make_dict();
+  options->set("outputFormat", shcore::Value("JSON"));
+  args.push_back(shcore::Value(options));
   try {
     util.check_for_server_upgrade(args);
     rapidjson::Document d;

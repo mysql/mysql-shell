@@ -460,7 +460,8 @@ Value::Value(float f) : type(Float) {
   // binary IEEE representation, which will result in a different number
   // So we convert through decimal instead
   char buffer[100];
-  my_gcvt(f, MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer, NULL);
+  my_gcvt(static_cast<double>(f), MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer,
+          NULL);
   value.d = std::stod(buffer);
 }
 
@@ -1536,7 +1537,7 @@ std::string Value::as_string() const {
 
 std::string Value::yaml() const { return "---\n" + yaml(0) + "\n"; }
 
-std::string Value::yaml(int indent) const {
+std::string Value::yaml(int init_indent) const {
   // implementation based on: http://yaml.org/spec/1.2/spec.html
   static constexpr size_t k_indent_size = 2;
 
@@ -1696,10 +1697,10 @@ std::string Value::yaml(int indent) const {
     case Value_type::Object:
     case Value_type::Function:
       // we treat these as scalars
-      return string2yaml(descr(), indent);
+      return string2yaml(descr(), init_indent);
 
     case Value_type::String:
-      return string2yaml(*value.s, indent);
+      return string2yaml(*value.s, init_indent);
 
     case Value_type::Array: {
       std::string array;
@@ -1709,11 +1710,11 @@ std::string Value::yaml(int indent) const {
         if (first_item) {
           first_item = false;
         } else {
-          new_line(&array, indent);
+          new_line(&array, init_indent);
         }
 
         array += "-";
-        const auto sub_yaml = v.yaml(indent + 1);
+        const auto sub_yaml = v.yaml(init_indent + 1);
 
         if (!sub_yaml.empty()) {
           array += " " + sub_yaml;
@@ -1724,10 +1725,10 @@ std::string Value::yaml(int indent) const {
     }
 
     case Value_type::Map:
-      return map2yaml(*value.map, indent);
+      return map2yaml(*value.map, init_indent);
 
     case Value_type::MapRef:
-      return map2yaml(value.mapref->lock(), indent);
+      return map2yaml(value.mapref->lock(), init_indent);
   }
 
   throw std::logic_error("Type '" + type_name(type) + "' was not handled.");

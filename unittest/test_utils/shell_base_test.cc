@@ -153,23 +153,23 @@ bool Shell_base_test::multi_value_compare(const std::string &expected,
                                           const std::string &actual) {
   bool ret_val = false;
 
-  const auto value_compare = [](const std::string &expected,
-                                const std::string &actual) {
+  const auto value_compare = [](const std::string &exp,
+                                const std::string &act) {
     static constexpr auto k_wildcard = "[[*]]";
 
-    const auto pos = expected.find(k_wildcard);
+    const auto pos = exp.find(k_wildcard);
 
     if (pos == std::string::npos) {
       // not found -> exact match
-      return expected == actual;
+      return exp == act;
     } else {
       const auto right_match_position = pos + strlen(k_wildcard);
-      const auto right_match_length = expected.length() - right_match_position;
+      const auto right_match_length = exp.length() - right_match_position;
       // match values to the left and to the right of wildcard
-      return (expected.substr(0, pos) == actual.substr(0, pos)) &&
-             actual.length() >= right_match_length &&
-             (expected.substr(right_match_position) ==
-              actual.substr(actual.length() - right_match_length));
+      return (exp.substr(0, pos) == act.substr(0, pos)) &&
+             act.length() >= right_match_length &&
+             (exp.substr(right_match_position) ==
+              act.substr(act.length() - right_match_length));
     }
   };
 
@@ -233,7 +233,7 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
                                              const std::string &stream,
                                              const std::string &expected,
                                              const std::string &actual,
-                                             int srcline, int valline) {
+                                             int /* srcline */, int valline) {
   bool ret_val = true;
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");

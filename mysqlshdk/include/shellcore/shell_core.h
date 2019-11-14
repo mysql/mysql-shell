@@ -244,6 +244,6 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   int _global_return_code;
   Help_manager m_help;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif  // _SHELLCORE_H_

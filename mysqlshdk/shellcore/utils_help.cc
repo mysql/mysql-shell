@@ -1076,12 +1076,11 @@ std::string Help_manager::get_signature(const Help_topic &function) {
  */
 void Help_manager::add_chained_function_help(
     const Help_topic &main_function, std::vector<std::string> *sections) {
-  std::string name = main_function.get_base_name();
   Help_topic *parent = main_function.m_parent;
 
   // Gets the chain definition already formatted for the active language
-  auto chain_definition =
-      get_help_text(parent->m_name + "_" + name + "_CHAINED");
+  auto chain_definition = get_help_text(
+      parent->m_name + "_" + main_function.get_base_name() + "_CHAINED");
   format_help_text(&chain_definition, MAX_HELP_WIDTH, 0, false);
 
   // Gets the main chain definition elements
@@ -1185,9 +1184,9 @@ void Help_manager::add_chained_function_help(
     std::string title = space + textui::bold(dname + signature);
 
     if (signature == "(...)") {
-      auto signatures = get_help_text(target_class + "_" + name + "_SIGNATURE");
       section.push_back("This function has the following overloads:");
-      for (auto &real_signature : signatures) {
+      for (auto &real_signature :
+           get_help_text(target_class + "_" + name + "_SIGNATURE")) {
         section.push_back("@li " + dname + real_signature);
       }
 

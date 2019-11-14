@@ -59,6 +59,6 @@ class Shell_javascript : public Shell_language {
   std::function<void(shcore::Value, bool)> _result_processor;
   Input_state m_last_input_state;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

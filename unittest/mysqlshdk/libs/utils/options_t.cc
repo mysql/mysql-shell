@@ -35,9 +35,9 @@ using opts::Source;
 
 class Options_test : public Shell_core_test_wrapper, public Options {
  public:
-  Options_test(std::string options_file =
+  Options_test(std::string options_file_ =
                    get_options_file_name("options_test_options.json"))
-      : Options(options_file), options_file(options_file) {}
+      : Options(options_file_), options_file(options_file_) {}
 
   void SetUp() {
     Shell_core_test_wrapper::SetUp();
@@ -49,6 +49,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
 
   void HandleMode(const std::string &opt, const char *value) {
     assert(value == nullptr);
+    (void)value;  // silence warning if NDEBUG=0
     if (opt == "--some-mode" || opt == "-m") some_mode = true;
   }
 

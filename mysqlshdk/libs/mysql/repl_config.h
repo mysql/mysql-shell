@@ -63,11 +63,11 @@ struct Invalid_config {
                        std::move(req_val), Config_types(), false,
                        shcore::Value_type::String) {}
   Invalid_config(std::string name, std::string curr_val, std::string req_val,
-                 Config_types types, bool rest, shcore::Value_type val_t)
+                 Config_types types_, bool rest, shcore::Value_type val_t)
       : var_name(std::move(name)),
         current_val(std::move(curr_val)),
         required_val(std::move(req_val)),
-        types(std::move(types)),
+        types(std::move(types_)),
         restart(rest),
         val_type(val_t) {}
   // comparison operator to be used for sorting Invalid_config objects

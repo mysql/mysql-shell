@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -466,15 +466,15 @@ TEST(modules_mod_utils, unpack_options_validation) {
         "Invalid and missing options (invalid: opt3), (missing: opt5)");
   }
   {
-    shcore::Dictionary_t options = shcore::make_dict();
-    (*options)["opt1"] = shcore::Value(2);
-    (*options)["str"] = shcore::Value("foo");
-    (*options)["b"] = shcore::Value::False();
+    const auto opts = shcore::make_dict();
+    (*opts)["opt1"] = shcore::Value(2);
+    (*opts)["str"] = shcore::Value("foo");
+    (*opts)["b"] = shcore::Value::False();
 
     int64_t o1 = 0;
     std::string str;
     bool b = false;
-    Unpack_options(options)
+    Unpack_options(opts)
         .required("opt1", &o1)
         .optional_ci("str", &str)
         .optional("b", &b)

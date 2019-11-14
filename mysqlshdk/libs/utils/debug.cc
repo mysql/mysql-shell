@@ -95,10 +95,10 @@ void Debug_object_info::on_alloc(void *p, const std::string &tag) {
 }
 
 void Debug_object_info::on_alloc(void *p,
-                                 std::function<std::string(void *)> get_debug,
+                                 std::function<std::string(void *)> get_debug_,
                                  const std::string &tag) {
   on_alloc(p, tag);
-  this->get_debug = get_debug;
+  this->get_debug = get_debug_;
 }
 
 void Debug_object_info::on_dealloc(void *p) {

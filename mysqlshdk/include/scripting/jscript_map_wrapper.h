@@ -60,6 +60,6 @@ class JScript_map_wrapper {
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _map_template;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

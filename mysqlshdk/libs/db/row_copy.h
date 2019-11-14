@@ -92,8 +92,8 @@ class SHCORE_PUBLIC Mem_row : public IRow {
 
     Data() {}
 
-    explicit Data(const std::vector<Type> &types)
-        : types(types), fields(types.size()) {}
+    explicit Data(const std::vector<Type> &types_)
+        : types(types_), fields(types_.size()) {}
   };
   std::shared_ptr<Data> _data;
 };

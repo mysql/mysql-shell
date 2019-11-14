@@ -52,13 +52,12 @@ class TYPES_COMMON_PUBLIC Interpreter_print_handler {
 
   using Print = bool (Interpreter_print_handler::*)(const char *) const;
 
-  Interpreter_print_handler(void *user_data, Print_function print,
-                            Print_function print_error,
-                            Print_function print_diag)
+  Interpreter_print_handler(void *user_data, Print_function print_,
+                            Print_function error, Print_function diag)
       : m_user_data(user_data),
-        m_print(print),
-        m_print_error(print_error),
-        m_print_diag(print_diag) {}
+        m_print(print_),
+        m_print_error(error),
+        m_print_diag(diag) {}
 
   virtual ~Interpreter_print_handler() = default;
 
@@ -96,12 +95,12 @@ class TYPES_COMMON_PUBLIC Interpreter_delegate
   using Prompt = Prompt_result (Interpreter_delegate ::*)(const char *,
                                                           std::string *) const;
 
-  Interpreter_delegate(void *user_data, Print_function print,
-                       Prompt_function prompt, Prompt_function password,
-                       Print_function print_error, Print_function print_diag)
-      : Interpreter_print_handler(user_data, print, print_error, print_diag),
-        m_prompt(prompt),
-        m_password(password) {}
+  Interpreter_delegate(void *user_data, Print_function print_,
+                       Prompt_function prompt_, Prompt_function password_,
+                       Print_function error, Print_function diag)
+      : Interpreter_print_handler(user_data, print_, error, diag),
+        m_prompt(prompt_),
+        m_password(password_) {}
 
   Prompt_result prompt(const char *msg, std::string *result) const {
     return delegate(msg, result, m_prompt);

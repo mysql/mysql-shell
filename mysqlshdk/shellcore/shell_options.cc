@@ -917,8 +917,8 @@ void Shell_options::set_connection_timeout(const std::string & /*option*/,
                                            const char *value) {
   // Creates a temporary connection options object so the established
   // validations are performed on the data
-  mysqlshdk::db::Connection_options options;
-  options.set(mysqlshdk::db::kConnectTimeout, value);
+  mysqlshdk::db::Connection_options{}.set(mysqlshdk::db::kConnectTimeout,
+                                          value);
   storage.m_connect_timeout.assign(value);
 }
 

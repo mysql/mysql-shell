@@ -19,13 +19,14 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
+
 INCLUDE_DIRECTORIES(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
-    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
     ${CMAKE_SOURCE_DIR}/common/uuid/include
     ${MYSQL_INCLUDE_DIRS})
 

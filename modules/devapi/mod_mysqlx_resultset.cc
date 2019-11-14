@@ -340,12 +340,13 @@ shcore::Value Result::get_member(const std::string &prop) const {
   } else if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
   } else if (prop == "generatedIds") {
-    shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
-    std::vector<std::string> doc_ids = get_generated_ids();
+    auto array = shcore::make_array();
 
-    for (auto doc_id : doc_ids) ret_val->push_back(shcore::Value(doc_id));
+    for (auto &doc_id : get_generated_ids()) {
+      array->emplace_back(std::move(doc_id));
+    }
 
-    return shcore::Value(ret_val);
+    ret_val = Value(std::move(array));
   } else {
     ret_val = BaseResult::get_member(prop);
   }

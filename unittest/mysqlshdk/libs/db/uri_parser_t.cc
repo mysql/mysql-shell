@@ -77,8 +77,8 @@ void validate_uri(
     const mysqlshdk::utils::nullable<const char *> &host,
     const mysqlshdk::utils::nullable<int> &port,
     const mysqlshdk::utils::nullable<const char *> &sock,
-    const mysqlshdk::utils::nullable<const char *> &db, bool has_password,
-    bool has_port, Transport_type target_type,
+    const mysqlshdk::utils::nullable<const char *> &db, bool /* has_password */,
+    bool /* has_port */, Transport_type target_type,
     const std::map<std::string, std::vector<std::string>> *attributes = 0) {
   SCOPED_TRACE(connstring);
 
@@ -865,8 +865,8 @@ TEST(Uri_parser, parse_pipe) {
                    "Illegal character [\\] found at position 23");
   validate_bad_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)/",
                    "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@\(\\\\.\\d:\\path\\to\\socket)",
-                   "Illegal character [\\] found at position 23");
+  validate_bad_uri("mysql://user:password@\\(\\\\.\\d:\\path\\to\\socket)",
+                   "Illegal character [\\] found at position 22");
 
   validate_bad_uri(
       "mysql://user:password@\\\\.\\d:%5Cpath%5Cto%5Csocket/schema",

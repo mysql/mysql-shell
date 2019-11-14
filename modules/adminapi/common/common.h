@@ -168,7 +168,7 @@ namespace ReplicaSetStatus {
 enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, UNKNOWN };
 
 std::string describe(Status state);
-};  // namespace ReplicaSetStatus
+}  // namespace ReplicaSetStatus
 
 enum class ConfigureInstanceAction {
   UPDATE_SERVER_AND_CONFIG_DYNAMIC,  // "server_update+config_update" - no

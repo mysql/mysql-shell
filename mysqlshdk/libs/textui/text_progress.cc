@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,7 +76,10 @@ void Text_progress::show_status(bool force) {
     if (status_printable_size < m_last_status_size) {
       clear_status();
     }
-    write(fileno(stderr), &m_status[0], m_status.size());
+    {
+      const auto ignore = write(fileno(stderr), &m_status[0], m_status.size());
+      (void)ignore;
+    }
     m_last_status_size = status_printable_size;
     m_refresh_clock = current_time;
   }
@@ -86,10 +89,16 @@ void Text_progress::clear_status() {
   std::string space(m_last_status_size + 2, ' ');
   space[0] = '\r';
   space[m_last_status_size + 1] = '\r';
-  write(fileno(stderr), &space[0], space.size());
+  {
+    const auto ignore = write(fileno(stderr), &space[0], space.size());
+    (void)ignore;
+  }
 }
 
-void Text_progress::shutdown() { write(fileno(stderr), "\n", 1); }
+void Text_progress::shutdown() {
+  const auto ignore = write(fileno(stderr), "\n", 1);
+  (void)ignore;
+}
 
 void Text_progress::render_status() {
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s

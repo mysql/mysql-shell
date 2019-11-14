@@ -74,9 +74,6 @@ class Command_line_connection_test : public Command_line_test {
     else
       MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Creating a Classic session to ");
   }
-
- private:
-  std::string pwd_param;
 };
 
 TEST_F(Command_line_connection_test, classic_no_socket_no_port) {

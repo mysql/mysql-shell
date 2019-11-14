@@ -223,11 +223,11 @@ void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
   signature = params;
 
   for (const auto &param : signature) {
-    std::string name = param->name;
+    std::string param_name = param->name;
 
-    if (param->flag == Param_flag::Optional) name = "?" + name;
+    if (param->flag == Param_flag::Optional) param_name = "?" + param_name;
 
-    param_types.push_back(std::make_pair(name, param->type()));
+    param_types.push_back(std::make_pair(param_name, param->type()));
   }
 
   return_type = rtype;
@@ -961,7 +961,7 @@ void Option_validator::validate(const Parameter &param, const Value &data,
 
     unpacker.end("at " + context->str());
   }
-};
+}
 
 void Parameter::validate(const Value &data, Parameter_context *context) const {
   if (m_validator) {
@@ -969,8 +969,7 @@ void Parameter::validate(const Value &data, Parameter_context *context) const {
   } else {
     // If no validator was set on the option, uses the
     // default validator.
-    Parameter_validator validator;
-    validator.validate(*this, data, context);
+    Parameter_validator{}.validate(*this, data, context);
   }
 }
 

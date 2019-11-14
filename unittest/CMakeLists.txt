@@ -34,8 +34,7 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=1 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
-    include_directories(SYSTEM
-                ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
+    include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
     include_directories(BEFORE
                 ${CMAKE_SOURCE_DIR}/unittest
@@ -114,12 +113,15 @@ if(WITH_TESTS)
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp)
 
-    add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
-
-    IF(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-      set_target_properties(run_unit_tests PROPERTIES COMPILE_FLAGS "-Wno-extra")
+    IF(CMAKE_COMPILER_IS_GNUCXX)
+      SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
     ENDIF()
 
+    IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-keyword-macro")
+    ENDIF()
+
+    add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
 
     add_dependencies(run_unit_tests
             shellfe

@@ -79,18 +79,20 @@ std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   std::string ret_val = line;
 
   // @code tags are only used in Doxygen, in the console they are removed.
-  size_t start = ret_val.find("@code");
-  size_t end = ret_val.find("@endcode", start);
-  while (start != std::string::npos && end != std::string::npos) {
-    std::string tmp_line = ret_val.substr(0, start);
-    size_t skip = 5;  // The length of @code
+  {
+    size_t start = ret_val.find("@code");
+    size_t end = ret_val.find("@endcode", start);
+    while (start != std::string::npos && end != std::string::npos) {
+      std::string tmp_line = ret_val.substr(0, start);
+      size_t skip = 5;  // The length of @code
 
-    tmp_line += ret_val.substr(start + skip, end - start - 5);
-    tmp_line += ret_val.substr(end + 8);
+      tmp_line += ret_val.substr(start + skip, end - start - 5);
+      tmp_line += ret_val.substr(end + 8);
 
-    ret_val = tmp_line;
-    start = ret_val.find("@code");
-    end = ret_val.find("@endcode", start);
+      ret_val = tmp_line;
+      start = ret_val.find("@code");
+      end = ret_val.find("@endcode", start);
+    }
   }
 
   // Some characters need to be specified using special doxygen format to

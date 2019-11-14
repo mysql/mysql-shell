@@ -38,7 +38,7 @@
 
 namespace mysqlsh {
 enum class SessionType { Auto, X, Classic };
-};
+}  // namespace mysqlsh
 
 namespace mysqlshdk {
 namespace db {

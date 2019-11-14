@@ -2486,13 +2486,13 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // list exist on the Metadata Schema and are valid
       if (rejoin_instances_ref) {
         for (const auto &value : rejoin_instances_list) {
-          shcore::Argument_list args;
-          args.push_back(shcore::Value(value));
+          shcore::Argument_list args_;
+          args_.push_back(shcore::Value(value));
 
           std::string md_address = value;
           try {
             auto instance_def = mysqlsh::get_connection_options(
-                args, mysqlsh::PasswordFormat::NONE);
+                args_, mysqlsh::PasswordFormat::NONE);
 
             // Get the instance metadata address (reported host).
             md_address = mysqlsh::dba::get_report_host_address(
@@ -2554,13 +2554,13 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // list exist on the Metadata Schema and are valid
       if (remove_instances_ref) {
         for (const auto &value : remove_instances_list) {
-          shcore::Argument_list args;
-          args.push_back(shcore::Value(value));
+          shcore::Argument_list args_;
+          args_.push_back(shcore::Value(value));
 
           std::string md_address = value;
           try {
             auto instance_def = mysqlsh::get_connection_options(
-                args, mysqlsh::PasswordFormat::NONE);
+                args_, mysqlsh::PasswordFormat::NONE);
 
             // Get the instance metadata address (reported host).
             md_address = mysqlsh::dba::get_report_host_address(

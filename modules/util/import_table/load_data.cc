@@ -262,10 +262,9 @@ void Load_data_worker::operator()() {
         const char *mysql_info = session->get_mysql_info();
         std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
         m_progress->clear_status();
-        const std::string msg = worker_name + m_opt.schema() + "." +
-                                m_opt.table() + ": " +
-                                (mysql_info ? mysql_info : "ERROR");
-        mysqlsh::current_console()->print_info(msg);
+        mysqlsh::current_console()->print_info(
+            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
+            (mysql_info ? mysql_info : "ERROR"));
 
         if (mysql_info) {
           size_t records = 0;

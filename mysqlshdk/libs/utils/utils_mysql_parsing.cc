@@ -207,11 +207,11 @@ constexpr int k_delimiter_len = 9;
  */
 bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                               std::string *out_delim) {
-  auto unfinished_stmt = [this](char *bos, Range *out_range) {
+  auto unfinished_stmt = [this](char *bos, Range *result_range) {
     Range range{static_cast<size_t>(bos - m_begin),
                 static_cast<size_t>(m_end - bos), m_current_line};
     m_ptr = bos;
-    *out_range = range;
+    *result_range = range;
     return false;
   };
 

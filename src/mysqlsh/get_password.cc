@@ -262,13 +262,15 @@ class Prompt_password {
 
   void print(const char *msg) const {
     if (m_echo) {
-      write(m_output_fd, msg, strlen(msg));
+      const auto ignore = write(m_output_fd, msg, strlen(msg));
+      (void)ignore;
     }
   }
 
   void print(const char c) const {
     if (m_echo) {
-      write(m_output_fd, &c, 1);
+      const auto ignore = write(m_output_fd, &c, 1);
+      (void)ignore;
     }
   }
 

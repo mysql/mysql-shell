@@ -207,7 +207,7 @@ float Row::get_float(uint32_t index) const {
                         ftype == Type::Decimal));
 
   ret_val = strtof(_row[index], nullptr);
-  if (errno == ERANGE && (ret_val == HUGE_VAL || ret_val == -HUGE_VAL))
+  if (errno == ERANGE && (ret_val == HUGE_VALF || ret_val == -HUGE_VALF))
     throw FIELD_ERROR(index, "float value out of the allowed range");
   return ret_val;
 }

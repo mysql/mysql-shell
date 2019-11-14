@@ -40,7 +40,7 @@
 namespace shcore {
 class Shell_core;
 class Proxy_object;
-};  // namespace shcore
+}  // namespace shcore
 
 namespace mysqlsh {
 class DatabaseObject;
@@ -175,7 +175,7 @@ class SHCORE_PUBLIC ClassicSession
   shcore::Value _run_sql(const std::string &function,
                          const shcore::Argument_list &args);
 };
-};  // namespace mysql
-};  // namespace mysqlsh
+}  // namespace mysql
+}  // namespace mysqlsh
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,11 +32,14 @@ namespace shcore {
  * Wraps an map object as a Python sequence object
  */
 struct PyShDictObject {
-  PyObject_HEAD shcore::Value::Map_type_ref *map;
+  // clang-format off
+  PyObject_HEAD
+  shcore::Value::Map_type_ref *map;
+  // clang-format on
 };
 
 PyObject *wrap(std::shared_ptr<Value::Map_type> map);
 bool unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object);
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

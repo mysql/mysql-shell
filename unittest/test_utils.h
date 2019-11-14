@@ -168,35 +168,35 @@ class Shell_test_output_handler {
   bool m_errors_on_stderr;
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x, ...)                           \
-  do {                                                              \
-    SCOPED_TRACE("...in stdout check\n");                           \
-    output_handler.validate_stdout_content(x, true, ##__VA_ARGS__); \
+#define MY_EXPECT_STDOUT_CONTAINS(x)                 \
+  do {                                               \
+    SCOPED_TRACE("...in stdout check\n");            \
+    output_handler.validate_stdout_content(x, true); \
   } while (0)
-#define MY_EXPECT_STDERR_CONTAINS(x, ...)                           \
-  do {                                                              \
-    SCOPED_TRACE("...in stderr check\n");                           \
-    output_handler.validate_stderr_content(x, true, ##__VA_ARGS__); \
+#define MY_EXPECT_STDERR_CONTAINS(x)                 \
+  do {                                               \
+    SCOPED_TRACE("...in stderr check\n");            \
+    output_handler.validate_stderr_content(x, true); \
   } while (0)
-#define MY_EXPECT_LOG_CONTAINS(x, ...)                           \
-  do {                                                           \
-    SCOPED_TRACE("...in log check\n");                           \
-    output_handler.validate_log_content(x, true, ##__VA_ARGS__); \
+#define MY_EXPECT_LOG_CONTAINS(x)                 \
+  do {                                            \
+    SCOPED_TRACE("...in log check\n");            \
+    output_handler.validate_log_content(x, true); \
   } while (0)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x, ...)                        \
-  do {                                                               \
-    SCOPED_TRACE("...in stdout check\n");                            \
-    output_handler.validate_stdout_content(x, false, ##__VA_ARGS__); \
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x)              \
+  do {                                                \
+    SCOPED_TRACE("...in stdout check\n");             \
+    output_handler.validate_stdout_content(x, false); \
   } while (0)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x, ...)                        \
-  do {                                                               \
-    SCOPED_TRACE("...in stderr check\n");                            \
-    output_handler.validate_stderr_content(x, false, ##__VA_ARGS__); \
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x)              \
+  do {                                                \
+    SCOPED_TRACE("...in stderr check\n");             \
+    output_handler.validate_stderr_content(x, false); \
   } while (0)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x, ...)                        \
-  do {                                                            \
-    SCOPED_TRACE("...in log check\n");                            \
-    output_handler.validate_log_content(x, false, ##__VA_ARGS__); \
+#define MY_EXPECT_LOG_NOT_CONTAINS(x)              \
+  do {                                             \
+    SCOPED_TRACE("...in log check\n");             \
+    output_handler.validate_log_content(x, false); \
   } while (0)
 
 /**

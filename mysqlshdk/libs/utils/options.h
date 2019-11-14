@@ -119,26 +119,26 @@ class Concrete_option : public Generic_option {
 
   using Serializer = typename std::function<std::string(const T &)>;
 
-  Concrete_option(T *landing_spot, T default_value, const std::string &name,
-                  const char *environment_variable,
-                  std::vector<std::string> &&command_line_names,
-                  const char *help, Validator validator,
-                  Serializer serializer = nullptr)
+  Concrete_option(T *landing_spot_, T default_value_, const std::string &name_,
+                  const char *environment_variable_,
+                  std::vector<std::string> &&command_line_names_,
+                  const char *help_, Validator validator_,
+                  Serializer serializer_ = nullptr)
       : Generic_option(
-            name, environment_variable,
-            std::forward<std::vector<std::string> &&>(command_line_names),
-            help),
-        landing_spot(landing_spot),
-        default_value(default_value),
-        validator(validator),
-        serializer(serializer) {
+            name_, environment_variable_,
+            std::forward<std::vector<std::string> &&>(command_line_names_),
+            help_),
+        landing_spot(landing_spot_),
+        default_value(default_value_),
+        validator(validator_),
+        serializer(serializer_) {
     assert(validator != nullptr);
     *landing_spot = default_value;
   }
 
-  void set(const std::string &new_value, Source source) override {
-    *landing_spot = validator(new_value, source);
-    this->source = source;
+  void set(const std::string &new_value, Source source_) override {
+    *landing_spot = validator(new_value, source_);
+    this->source = source_;
   }
 
   std::string get_value_as_string() const override {
@@ -280,7 +280,7 @@ struct Read_only : public Basic_type<T> {
 /// Extension of Basic_type validator to enable range checks
 template <class T>
 struct Range : public Basic_type<T> {
-  Range(T min, T max) : min(min), max(max) { assert(max >= min); }
+  Range(T min_, T max_) : min(min_), max(max_) { assert(max >= min); }
 
   T operator()(const std::string &data, Source source) {
     T t = Basic_type<T>::operator()(data, source);
@@ -391,8 +391,8 @@ class Options {
  public:
   class Cmdline_iterator {
    public:
-    Cmdline_iterator(int argc, char const *const *argv, int start)
-        : argv(argv), argc(argc), current(start) {}
+    Cmdline_iterator(int argc_, char const *const *argv_, int start)
+        : argv(argv_), argc(argc_), current(start) {}
 
     /// Return current cmdline argument.
     const char *peek() const { return argv[current]; }

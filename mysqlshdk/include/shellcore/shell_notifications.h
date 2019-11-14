@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,7 +62,7 @@ class SHCORE_PUBLIC ShellNotifications {
               shcore::Value::Map_type_ref data);
   void notify(const std::string &name, const shcore::Object_bridge_ref &sender);
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #define DEBUG_NOTIFICATION(X)                                        \
   {                                                                  \

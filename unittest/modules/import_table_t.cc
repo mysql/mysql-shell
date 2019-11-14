@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -504,7 +504,6 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
   {
     mysqlsh::import_table::File_handler fh{path};
     std::queue<Range> r;
-    const size_t needle_size = line_terminator.size();
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
                        line_terminator, kSkipBytes, &r);
 

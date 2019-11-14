@@ -594,15 +594,15 @@ class Help_manager {
   std::vector<std::string> get_topic_brief(Help_topic *member);
 };
 
-};  // namespace shcore
+}  // namespace shcore
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
 
 #define REGISTER_HELP_CLASS(name, parent) \
-  shcore::Help_class_register class_##parent##name(#name, #parent, "");
+  shcore::Help_class_register class_##parent##name(#name, #parent, "")
 
 #define REGISTER_HELP_SUB_CLASS(name, parent, upper) \
-  shcore::Help_class_register class_##parent##name(#name, #parent, #upper);
+  shcore::Help_class_register class_##parent##name(#name, #parent, #upper)
 
 #define REGISTER_HELP_TOPIC(name, type, tag, parent, mode) \
   shcore::Help_topic_register topic_##type##parent##tag(   \

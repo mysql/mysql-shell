@@ -40,11 +40,11 @@ class SqlResult;
 class RowResult;
 class Result;
 class DocResult;
-};  // namespace mysqlx
+}  // namespace mysqlx
 
 namespace mysql {
 class ClassicResult;
-};
+}  // namespace mysql
 
 enum class Print_flag {
   PRINT_0_AS_SPC = 1,

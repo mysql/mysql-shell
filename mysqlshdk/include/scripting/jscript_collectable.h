@@ -96,6 +96,6 @@ struct Collectable_config {
 
 }  // namespace details
 
-};  // namespace shcore
+}  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SCRIPTING_JSCRIPT_COLLECTABLE_H_

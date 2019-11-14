@@ -96,12 +96,12 @@ std::string Logger::s_output_format;
 Logger::Log_entry::Log_entry()
     : Log_entry(nullptr, nullptr, LOG_LEVEL::LOG_NONE) {}
 
-Logger::Log_entry::Log_entry(const char *domain, const char *message,
-                             LOG_LEVEL level)
+Logger::Log_entry::Log_entry(const char *domain_, const char *message_,
+                             LOG_LEVEL level_)
     : timestamp{time(nullptr)},
-      domain{domain},
-      message{message},
-      level{level} {}
+      domain{domain_},
+      message{message_},
+      level{level_} {}
 
 void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
   if (hook) {
@@ -131,7 +131,8 @@ void Logger::assert_logger_initialized() {
 #ifdef _WIN32
     ::_write(fileno(stderr), msg_noinit, strlen(msg_noinit));
 #else   // !_WIN32
-    ::write(STDERR_FILENO, msg_noinit, strlen(msg_noinit));
+    const auto ignore = ::write(STDERR_FILENO, msg_noinit, strlen(msg_noinit));
+    (void)ignore;
 #endif  // !_WIN32
   }
 }
@@ -236,7 +237,8 @@ void Logger::out_to_stderr(const Log_entry &entry, void *) {
 #ifdef _WIN32
   OutputDebugString(msg.c_str());
 #else   // !_WIN32
-  ::write(STDERR_FILENO, msg.c_str(), msg.length());
+  const auto ignore = ::write(STDERR_FILENO, msg.c_str(), msg.length());
+  (void)ignore;
 #endif  // !_WIN32
 }
 

@@ -105,7 +105,9 @@ struct Type_info<double> {
 
 template <>
 struct Type_info<float> {
-  static float to_native(const shcore::Value &in) { return in.as_double(); }
+  static float to_native(const shcore::Value &in) {
+    return static_cast<float>(in.as_double());
+  }
   static Value_type vtype() { return shcore::Float; }
   static const char *code() { return "f"; }
   static float default_value() { return 0.0f; }
@@ -419,8 +421,8 @@ struct Parameter final {
 
   Value_type type() const { return m_type; }
 
-  void set_validator(std::unique_ptr<Parameter_validator> validator) {
-    m_validator = std::move(validator);
+  void set_validator(std::unique_ptr<Parameter_validator> v) {
+    m_validator = std::move(v);
   }
 
   template <typename T,

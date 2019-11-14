@@ -139,7 +139,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
       ++it;
     }
   }
-};
+}
 
 std::vector<std::string> Rescan::detect_invalid_members(
     const std::vector<mysqlshdk::db::Connection_options> &instances_list,

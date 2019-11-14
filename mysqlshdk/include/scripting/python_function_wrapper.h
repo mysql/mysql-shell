@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,11 +34,14 @@ class Python_context;
  * Wraps a native/bridged C++ function reference as a Python sequence object
  */
 struct PyShFuncObject {
-  PyObject_HEAD shcore::Function_base_ref *func;
+  // clang-format off
+  PyObject_HEAD
+  shcore::Function_base_ref *func;
+  // clang-format on
 };
 
 PyObject *wrap(std::shared_ptr<Function_base> func);
 bool unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func);
-};  // namespace shcore
+}  // namespace shcore
 
 #endif  // _PYTHON_FUNCTION_WRAPPER_H_

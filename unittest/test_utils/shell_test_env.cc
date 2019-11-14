@@ -578,8 +578,8 @@ static int find_column_in_select_stmt(const std::string &sql,
 }
 
 std::unique_ptr<mysqlshdk::db::IRow> Shell_test_env::set_replay_row_hook(
-    const mysqlshdk::db::Connection_options &target, const std::string &sql,
-    std::unique_ptr<mysqlshdk::db::IRow> source) {
+    const mysqlshdk::db::Connection_options & /* target */,
+    const std::string &sql, std::unique_ptr<mysqlshdk::db::IRow> source) {
   int datadir_column = -1;
 
   if (sql.find("@@datadir") != std::string::npos &&

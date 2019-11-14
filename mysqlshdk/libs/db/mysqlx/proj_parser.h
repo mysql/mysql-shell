@@ -52,5 +52,5 @@ class Proj_parser : public Expr_parser {
   const std::string &id();
   void source_expression(Mysqlx::Crud::Projection &column);
 };
-};  // namespace mysqlx
+}  // namespace mysqlx
 #endif

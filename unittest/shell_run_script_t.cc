@@ -39,6 +39,11 @@
 
 extern mysqlshdk::utils::Version g_target_server_version;
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 namespace shellcore {
 
 class ShellRunScript : public Shell_core_test_wrapper {
@@ -911,3 +916,7 @@ TEST_F(ShellExeRunScript, bug30156304) {
 }
 
 }  // namespace shellcore
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif

@@ -93,8 +93,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
     std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func) {
   bool interrupted = false;
 
-  std::shared_ptr<ShellBaseSession> session(_owner->session());
-  std::weak_ptr<ShellBaseSession> weak_session(session);
+  std::weak_ptr<ShellBaseSession> weak_session(_owner->session());
 
   shcore::Interrupt_handler intrl([weak_session, &interrupted]() {
     try {
@@ -298,8 +297,8 @@ void Crud_definition::encode_expression_value(Mysqlx::Expr::Expr *expr,
     case shcore::Array: {
       shcore::Value::Array_type_ref array(value.as_array());
       expr->set_type(Mysqlx::Expr::Expr::Expr::ARRAY);
-      for (shcore::Value &value : *array) {
-        encode_expression_value(expr->mutable_array()->add_value(), value);
+      for (shcore::Value &item : *array) {
+        encode_expression_value(expr->mutable_array()->add_value(), item);
       }
       break;
     }

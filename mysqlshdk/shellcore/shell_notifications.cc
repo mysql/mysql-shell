@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,10 +113,10 @@ void ShellNotifications::notify(const std::string &name,
       it = next;
     }
   }
-};
+}
 
 void ShellNotifications::notify(const std::string &name,
                                 const shcore::Object_bridge_ref &sender) {
   notify(name, sender, shcore::Value::Map_type_ref());
 }
-};  // namespace shcore
+}  // namespace shcore

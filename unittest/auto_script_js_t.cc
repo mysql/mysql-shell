@@ -243,27 +243,23 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
   return filtered;
 }
 
-#if 0
-// Once we upgrade to gtest 1.8 this should be passed to INSTANTIATE_TEST_CASE_P
-// so we can get filenames in the test name instead of /0
-std::string fmt_param(testing::TestParamInfo<std::string> info) {
-  return info.GetParam();
-}
-#endif
-
 // General test cases
 INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_adminapi", ".js")));
+                        testing::ValuesIn(find_js_tests("js_adminapi", ".js")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_shell", ".js")));
+                        testing::ValuesIn(find_js_tests("js_shell", ".js")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_devapi", ".js")));
+                        testing::ValuesIn(find_js_tests("js_devapi", ".js")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_js,
                         testing::ValuesIn(find_js_tests("js_mixed_versions",
-                                                        ".js")));
+                                                        ".js")),
+                        fmt_param);
 
 namespace {
 
@@ -392,7 +388,8 @@ TEST_P(Credential_store_test, run_and_check) {
 
 INSTANTIATE_TEST_CASE_P(Credential_store_scripted, Credential_store_test,
                         testing::ValuesIn(find_js_tests("js_credential",
-                                                        ".js")));
+                                                        ".js")),
+                        fmt_param);
 
 class Pager_test : public Auto_script_js {
  public:
@@ -441,6 +438,7 @@ TEST_P(Pager_test, run_and_check) {
 }
 
 INSTANTIATE_TEST_CASE_P(Pager_scripted, Pager_test,
-                        testing::ValuesIn(find_js_tests("js_pager", ".js")));
+                        testing::ValuesIn(find_js_tests("js_pager", ".js")),
+                        fmt_param);
 
 }  // namespace tests

@@ -35,6 +35,8 @@ function(add_helper_executable)
     ${helper_src}
   )
 
+  include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
+
   include_directories(BEFORE
     "${CMAKE_SOURCE_DIR}"
     "${CMAKE_SOURCE_DIR}/mysql-secret-store/include"

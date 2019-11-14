@@ -184,8 +184,8 @@ struct SHCORE_PUBLIC Value {
     size_t count(const std::string &k) const { return _map.count(k); }
 
     template <class T>
-    std::pair<iterator, bool> emplace(const std::string &key, const T &value) {
-      return _map.emplace(key, Value(value));
+    std::pair<iterator, bool> emplace(const std::string &key, const T &v) {
+      return _map.emplace(key, Value(v));
     }
 
    private:

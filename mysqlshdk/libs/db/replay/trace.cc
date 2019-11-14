@@ -133,8 +133,8 @@ std::string make_json(
   set(&doc, "type", type);
   set(&doc, "subtype", subtype);
   set(&doc, "index", i);
-  for (const auto &i : items) {
-    set(&doc, i.first.c_str(), i.second);
+  for (const auto &item : items) {
+    set(&doc, item.first.c_str(), item.second);
   }
 
   rapidjson::StringBuffer buffer;

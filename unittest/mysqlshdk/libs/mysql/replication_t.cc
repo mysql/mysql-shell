@@ -313,7 +313,7 @@ TEST_F(Replication_test, is_async_replication_running) {
           "a.CHANNEL_NAME != 'group_replication_recovery' AND "
           "b.CHANNEL_NAME != 'group_replication_applier' AND "
           "b.CHANNEL_NAME != 'group_replication_recovery'")
-      .then_return({{""}});
+      .then_return({{"", {}, {}, {}}});
   EXPECT_FALSE(mysqlshdk::mysql::is_async_replication_running(instance));
 }
 
@@ -462,12 +462,12 @@ TEST_F(Replication_test, get_channel_status) {
   {
     Replication_channel ch;
     mock_session->expect_query(shcore::str_format(k_repl_channel_query, ""))
-        .then_return({{""}});
+        .then_return({{"", {}, {}, {}}});
     EXPECT_FALSE(get_channel_status(instance, "", &ch));
 
     mock_session
         ->expect_query(shcore::str_format(k_repl_channel_query, "mychannel"))
-        .then_return({{""}});
+        .then_return({{"", {}, {}, {}}});
     EXPECT_FALSE(get_channel_status(instance, "mychannel", &ch));
   }
 
@@ -1280,7 +1280,8 @@ TEST_F(Replication_test, get_incoming_channels) {
 
   // channel doesn't exist
   {
-    mock_session->expect_query(k_repl_channels_query).then_return({{""}});
+    mock_session->expect_query(k_repl_channels_query)
+        .then_return({{"", {}, {}, {}}});
     EXPECT_EQ(0, get_incoming_channels(instance).size());
   }
 

@@ -47,7 +47,8 @@ class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
     _new_format = true;
   }
 
-  virtual void pre_process_line(const std::string &path, std::string *line) {
+  virtual void pre_process_line(const std::string & /* path */,
+                                std::string *line) {
     // Unit tests work using default ports, if that is not the case
     // We need to update them before being executed
     if (!_port.empty() && _port != "33060") {

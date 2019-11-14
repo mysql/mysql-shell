@@ -120,17 +120,19 @@ static void detect_mysql_environment(int port, const char *pwd) {
   // if connect succeeds or error is a server error, then there's a server
   if (mysql_real_connect(mysql, "127.0.0.1", "root", pwd, NULL, port, NULL,
                          0)) {
-    const char *query = "show variables like '%socket'";
-    if (mysql_real_query(mysql, query, strlen(query)) == 0) {
-      MYSQL_RES *res = mysql_store_result(mysql);
-      while (MYSQL_ROW row = mysql_fetch_row(res)) {
-        auto lengths = mysql_fetch_lengths(res);
-        if (strcmp(row[0], "socket") == 0 && row[1])
-          socket = std::string(row[1], lengths[1]);
-        if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
-          xsocket = std::string(row[1], lengths[1]);
+    {
+      const char *query = "show variables like '%socket'";
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
+        while (MYSQL_ROW row = mysql_fetch_row(res)) {
+          auto lengths = mysql_fetch_lengths(res);
+          if (strcmp(row[0], "socket") == 0 && row[1])
+            socket = std::string(row[1], lengths[1]);
+          if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
+            xsocket = std::string(row[1], lengths[1]);
+        }
+        mysql_free_result(res);
       }
-      mysql_free_result(res);
     }
 
     {
@@ -518,7 +520,7 @@ class Fail_logger : public EmptyTestEventListener {
   }
 
   // Called before a test starts.
-  void OnTestStart(const ::testing::TestInfo &test_info) override {
+  void OnTestStart(const ::testing::TestInfo & /* test_info */) override {
     m_failed = false;
   }
 

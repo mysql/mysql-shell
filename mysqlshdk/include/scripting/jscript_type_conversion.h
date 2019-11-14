@@ -56,6 +56,6 @@ struct JScript_type_bridger {
   class JScript_map_wrapper *map_wrapper;
   class JScript_array_wrapper *array_wrapper;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

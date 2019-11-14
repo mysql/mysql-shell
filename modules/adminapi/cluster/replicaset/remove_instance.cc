@@ -315,8 +315,8 @@ void Remove_instance::prepare() {
     // interactive mode.
     try {
       find_failure_cause(err, metadata);
-    } catch (const std::exception &err) {
-      log_warning("%s", err.what());
+    } catch (const std::exception &exc) {
+      log_warning("%s", exc.what());
 
       // Ask the user if in interactive is used and 'force' option was not used.
       if (m_interactive && m_force.is_null()) {

@@ -58,7 +58,7 @@ class Interrupt_tester : public shcore::Interrupt_helper {
     unblocked_++;
   }
 
-  virtual void unblock(bool clear_pending) { unblocked_--; }
+  virtual void unblock(bool /* clear_pending */) { unblocked_--; }
 
   int unblocked_ = 0;
   bool setup_ = false;
@@ -224,7 +224,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   static void TearDownTestCase() { run_script_classic({"drop schema itst;"}); }
 
   std::shared_ptr<mysqlsh::ShellBaseSession> connect_classic(
-      const std::string &uri, const std::string &password) {
+      const std::string & /* uri */, const std::string & /* password */) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysql::ClassicSession());
     auto connection_options = shcore::get_connection_options(_mysql_uri);
@@ -233,7 +233,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   }
 
   std::shared_ptr<mysqlsh::ShellBaseSession> connect_node(
-      const std::string &uri, const std::string &password) {
+      const std::string & /* uri */, const std::string & /* password */) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysqlx::Session());
     shcore::Argument_list args;
@@ -328,7 +328,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id, &kill_sent]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       // wait for the test session to popup up to 3s
       session_wait(connection_id, 3, "test1");
       // then kill it
@@ -362,7 +362,7 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
@@ -396,7 +396,7 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
@@ -429,7 +429,7 @@ TEST_F(Interrupt_mysqlx, sql_x) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id, &kill_sent]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       // wait for the test session to popup up to 3s
       session_wait(connection_id, 3, "test1");
       // then kill it
@@ -462,7 +462,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "mysql");
       shcore::Interrupts::interrupt();
     });
@@ -493,7 +493,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_sql) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
@@ -528,7 +528,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -566,7 +566,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -601,7 +601,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -639,7 +639,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -680,7 +680,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -697,7 +697,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -738,7 +738,7 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -773,7 +773,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -808,7 +808,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -843,7 +843,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -881,7 +881,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -907,7 +907,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
@@ -950,7 +950,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
@@ -966,7 +966,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
@@ -1014,7 +1014,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
@@ -1031,7 +1031,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
     std::thread thd([connection_id]() {
-      Mysql_thread thd;
+      Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });

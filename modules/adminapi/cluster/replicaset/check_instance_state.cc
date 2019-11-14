@@ -178,11 +178,11 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
         mysqlsh::dba::Instance instance(session);
 
         // Get the gtid state in regards to the cluster_session
-        mysqlshdk::mysql::Replica_gtid_state state =
+        mysqlshdk::mysql::Replica_gtid_state gtid_state =
             mysqlshdk::mysql::check_replica_gtid_state(
                 instance, *m_target_instance, nullptr, nullptr);
 
-        if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+        if (gtid_state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
           all_purged = true;
         } else {
           all_purged = false;

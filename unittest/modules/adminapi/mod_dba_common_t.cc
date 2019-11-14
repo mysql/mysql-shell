@@ -643,8 +643,8 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
   // privileges, which is not the one currently used (passed as parameter):
   // - Return true independently of the interactive mode.
 
-  auto expect_all_privileges = [](std::shared_ptr<Mock_session> &mock_session) {
-    mock_session
+  auto expect_all_privileges = [](std::shared_ptr<Mock_session> &session) {
+    session
         ->expect_query(
             "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
             "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
@@ -680,7 +680,7 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                         {"EVENT", "YES"},
                         {"TRIGGER", "YES"},
                         {"CREATE TABLESPACE", "YES"}}}});
-    mock_session
+    session
         ->expect_query(
             "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
             "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
@@ -692,7 +692,7 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
             {Type::String, Type::String, Type::String},
             {}  // No Records.
         }});
-    mock_session
+    session
         ->expect_query(
             "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
             "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
@@ -706,7 +706,7 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
         }});
 
     // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles data.
-    EXPECT_CALL(*mock_session, get_server_version())
+    EXPECT_CALL(*session, get_server_version())
         .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 0)));
   };
 

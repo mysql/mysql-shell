@@ -163,6 +163,6 @@ class Expr_unparser {
   static void replace(std::string &target, const std::string &old_val,
                       const std::string &new_val);
 };
-};  // namespace mysqlx
+}  // namespace mysqlx
 
 #endif

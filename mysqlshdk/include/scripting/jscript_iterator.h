@@ -119,6 +119,6 @@ void add_iterator(v8::Local<v8::ObjectTemplate> templ, v8::Isolate *isolate) {
                                                 v8::DontDelete));
 }
 
-};  // namespace shcore
+}  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SCRIPTING_JSCRIPT_ITERATOR_H_

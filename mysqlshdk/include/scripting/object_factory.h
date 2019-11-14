@@ -61,5 +61,5 @@ struct Object_bridge_register {
                                              &ObjectBridgeClass::create);
   }
 };
-};      // namespace shcore
+}  // namespace shcore
 #endif  //_OBJECT_FACTORY_H_

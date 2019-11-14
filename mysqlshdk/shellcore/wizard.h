@@ -181,8 +181,8 @@ class Wizard {
    * A link on K_NEXT must be defined for this step.
    */
   struct Wizard_prompt : public Wizard_common<Wizard_prompt> {
-    explicit Wizard_prompt(const std::string &id)
-        : Wizard_common(id, Prompt_type::PROMPT) {}
+    explicit Wizard_prompt(const std::string &id_)
+        : Wizard_common(id_, Prompt_type::PROMPT) {}
 
     explicit Wizard_prompt(const Wizard_prompt &other) = default;
 
@@ -212,8 +212,8 @@ class Wizard {
    * or K_NEXT in case one of them is missing.
    */
   struct Wizard_confirm : public Wizard_common<Wizard_confirm> {
-    explicit Wizard_confirm(const std::string &id)
-        : Wizard_common(id, Prompt_type::CONFIRM) {}
+    explicit Wizard_confirm(const std::string &id_)
+        : Wizard_common(id_, Prompt_type::CONFIRM) {}
     explicit Wizard_confirm(const Wizard_confirm &other) = default;
     virtual ~Wizard_confirm() {}
 
@@ -235,8 +235,8 @@ class Wizard {
    * link for K_NEXT is defined.
    */
   struct Wizard_select : public Wizard_common<Wizard_select> {
-    explicit Wizard_select(const std::string &id)
-        : Wizard_common(id, Prompt_type::SELECTION) {}
+    explicit Wizard_select(const std::string &id_)
+        : Wizard_common(id_, Prompt_type::SELECTION) {}
     explicit Wizard_select(const Wizard_select &other) = default;
     virtual ~Wizard_select() {}
 

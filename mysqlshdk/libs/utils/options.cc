@@ -57,14 +57,14 @@ std::string to_string(Source s) {
   return "";
 }
 
-Generic_option::Generic_option(const std::string &name,
-                               const char *environment_variable,
-                               std::vector<std::string> &&command_line_names,
-                               const char *help)
-    : name(name),
-      environment_variable(environment_variable),
-      command_line_names(std::move(command_line_names)),
-      help(help) {}
+Generic_option::Generic_option(const std::string &name_,
+                               const char *environment_variable_,
+                               std::vector<std::string> &&command_line_names_,
+                               const char *help_)
+    : name(name_),
+      environment_variable(environment_variable_),
+      command_line_names(std::move(command_line_names_)),
+      help(help_) {}
 
 void Generic_option::handle_environment_variable() {
   if (environment_variable != nullptr) {
@@ -138,20 +138,20 @@ std::vector<std::string> Generic_option::get_cmdline_help(
   return result;
 }
 
-Proxy_option::Proxy_option(const char *environment_variable,
-                           std::vector<std::string> &&command_line_names,
-                           const char *help, Handler handler,
-                           const std::string &name)
-    : Generic_option(name, environment_variable, std::move(command_line_names),
-                     help),
-      handler(handler) {
+Proxy_option::Proxy_option(const char *environment_variable_,
+                           std::vector<std::string> &&command_line_names_,
+                           const char *help_, Handler handler_,
+                           const std::string &name_)
+    : Generic_option(name_, environment_variable_,
+                     std::move(command_line_names_), help_),
+      handler(handler_) {
   assert(environment_variable == nullptr || handler != nullptr);
 }
 
-void Proxy_option::set(const std::string &new_value, Source source) {
+void Proxy_option::set(const std::string &new_value, Source new_source) {
   assert(handler != nullptr);
   handler("", new_value.c_str());
-  this->source = source;
+  this->source = new_source;
 }
 
 void Proxy_option::handle_command_line_input(const std::string &option,
@@ -254,7 +254,7 @@ std::string serialize(const std::string &val) {
 
 }  // namespace opts
 
-Options::Options(const std::string &config_file) : config_file(config_file) {}
+Options::Options(const std::string &config_file_) : config_file(config_file_) {}
 
 void Options::set(const std::string &option_name,
                   const std::string &new_value) {

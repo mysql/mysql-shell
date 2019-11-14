@@ -62,11 +62,14 @@ bool Db_tests::switch_proto() {
 TEST_F(Db_tests, connect_uri) {
   do {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
-    auto connection_options = shcore::get_connection_options(uri_nopass());
-    connection_options.set_password("fake_pwd");
 
     // Connection failure
-    EXPECT_THROW(session->connect(connection_options), std::exception);
+    {
+      auto connection_options = shcore::get_connection_options(uri_nopass());
+      connection_options.set_password("fake_pwd");
+
+      EXPECT_THROW(session->connect(connection_options), std::exception);
+    }
 
     // Success connection, no schema selected
     {

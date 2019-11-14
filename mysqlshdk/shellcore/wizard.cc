@@ -95,15 +95,15 @@ void Wizard::Wizard_select::verify() {
 }
 
 std::string Wizard::Wizard_prompt::execute() {
-  std::string answer;
+  std::string response;
 
   auto console = mysqlsh::current_console();
   if (password)
-    console->prompt_password(text, &answer, validate_cb);
+    console->prompt_password(text, &response, validate_cb);
   else
-    console->prompt(text, &answer, validate_cb);
+    console->prompt(text, &response, validate_cb);
 
-  return answer;
+  return response;
 }
 
 std::string Wizard::Wizard_confirm::execute() {

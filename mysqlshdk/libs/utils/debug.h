@@ -153,7 +153,7 @@ bool debug_object_dump_report(bool verbose);
 
 #define DEBUG_OBJ_FOR_CLASS(klass)
 
-#define DEBUG_OBJ_ENABLE(name)
+#define DEBUG_OBJ_ENABLE(name) struct dummy_##name
 
 #define DEBUG_OBJ_ALLOC(name) \
   do {                        \

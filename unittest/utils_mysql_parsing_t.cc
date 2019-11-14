@@ -96,14 +96,14 @@ class TestMySQLSplitter : public ::testing::Test {
 
     while (!splitter->eof()) {
       Sql_splitter::Range range;
-      std::string delim;
+      std::string delimiter;
 
-      if (splitter->next_range(&range, &delim)) {
+      if (splitter->next_range(&range, &delimiter)) {
         if (debug)
-          std::cout << buffer.substr(range.offset, range.length) << delim
+          std::cout << buffer.substr(range.offset, range.length) << delimiter
                     << "\n";
-        results.emplace_back(buffer.substr(range.offset, range.length), delim,
-                             range.line_num);
+        results.emplace_back(buffer.substr(range.offset, range.length),
+                             delimiter, range.line_num);
       } else {
         splitter->pack_buffer(&buffer, range);
 
@@ -1238,17 +1238,26 @@ TEST_P(Statement_splitter, line_numbering) {
   // clang-format on
 }
 
+namespace {
+
+const auto g_format_parameter = [](const auto &info) {
+  return "chunk_size_" + std::to_string(info.param);
+};
+
+}  // namespace
+
 // Runs tests processing script in 1 chunk
 INSTANTIATE_TEST_CASE_P(Statement_splitter_full, Statement_splitter,
-                        ::testing::Values(0));
+                        ::testing::Values(0), g_format_parameter);
 
 // Runs tests processing script in small chunks with size incrementing by 1
 INSTANTIATE_TEST_CASE_P(Statement_splitter_1, Statement_splitter,
-                        ::testing::Range(1, 16, 1));
+                        ::testing::Range(1, 16, 1), g_format_parameter);
 
 // Runs tests processing script in multiple chunks with various sizes
 INSTANTIATE_TEST_CASE_P(Statement_splitter_chunks, Statement_splitter,
-                        ::testing::Values(4, 8, 16, 32, 64));
+                        ::testing::Values(4, 8, 16, 32, 64),
+                        g_format_parameter);
 
 }  // namespace utils
 }  // namespace mysqlshdk

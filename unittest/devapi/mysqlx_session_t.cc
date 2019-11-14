@@ -43,24 +43,24 @@ void print_message(const std::string &direction,
 }
 
 xcl::Handler_result trace_send_messages(
-    xcl::XProtocol *protocol,
-    const xcl::XProtocol::Client_message_type_id msg_id,
+    xcl::XProtocol * /* protocol */,
+    const xcl::XProtocol::Client_message_type_id /* msg_id */,
     const xcl::XProtocol::Message &msg) {
   print_message(">>>> SEND ", msg);
 
-  /** Non of processed messages should be filtered out*/
+  // None of processed messages should be filtered out
   return xcl::Handler_result::Continue;
 }
 
 extern mysqlshdk::utils::Version g_target_server_version;
 
 xcl::Handler_result trace_received_messages(
-    xcl::XProtocol *protocol,
-    const xcl::XProtocol::Server_message_type_id msg_id,
+    xcl::XProtocol * /* protocol */,
+    const xcl::XProtocol::Server_message_type_id /* msg_id */,
     const xcl::XProtocol::Message &msg) {
   print_message("<<<< RECEIVE ", msg);
 
-  /** Non of processed messages should be filtered out*/
+  // None of processed messages should be filtered out
   return xcl::Handler_result::Continue;
 }
 
@@ -68,17 +68,17 @@ void enable_trace(xcl::XSession *sess) {
   auto &protocol = sess->get_protocol();
 
   protocol.add_received_message_handler(
-      [](xcl::XProtocol *protocol,
+      [](xcl::XProtocol *proto,
          const xcl::XProtocol::Server_message_type_id msg_id,
          const xcl::XProtocol::Message &msg) -> xcl::Handler_result {
-        return trace_received_messages(protocol, msg_id, msg);
+        return trace_received_messages(proto, msg_id, msg);
       });
 
   protocol.add_send_message_handler(
-      [](xcl::XProtocol *protocol,
+      [](xcl::XProtocol *proto,
          const xcl::XProtocol::Client_message_type_id msg_id,
          const xcl::XProtocol::Message &msg) -> xcl::Handler_result {
-        return trace_send_messages(protocol, msg_id, msg);
+        return trace_send_messages(proto, msg_id, msg);
       });
 }
 

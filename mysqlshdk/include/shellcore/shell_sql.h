@@ -120,6 +120,6 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   void cmd_process_file(const std::vector<std::string> &params);
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

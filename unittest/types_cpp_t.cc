@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -154,7 +154,7 @@ class Test_object : public Cpp_object_bridge {
     return "null";
   }
 
-  std::string f_s_o(std::shared_ptr<Test_object> obj) { return "ble"; }
+  std::string f_s_o(std::shared_ptr<Test_object>) { return "ble"; }
 
   std::shared_ptr<Test_object> f_o_o(std::shared_ptr<Test_object> obj) {
     return obj;
@@ -177,23 +177,23 @@ class Test_object : public Cpp_object_bridge {
 
   int f_overload() { return 10; }
 
-  int f_overload(int a) { return 11; }
+  int f_overload(int) { return 11; }
 
-  int f_overload_dup(int a) { return 12; }
+  int f_overload_dup(int) { return 12; }
 
-  int f_overload(int a, int b) { return 13; }
+  int f_overload(int, int) { return 13; }
 
-  int f_overload(const std::string &a) { return 14; }
+  int f_overload(const std::string &) { return 14; }
 
-  int f_overload(shcore::Dictionary_t dict) { return 15; }
+  int f_overload(shcore::Dictionary_t) { return 15; }
 
-  int f_overload(int a, const std::string &b) { return 121; }
+  int f_overload(int, const std::string &) { return 121; }
 
-  float f_overload_bad(int a) { return 16; }
+  float f_overload_bad(int) { return 16; }
 
-  std::string f_overload_bad2(int a, int b, int c) { return "17"; }
+  std::string f_overload_bad2(int, int, int) { return "17"; }
 
-  int f_overload2(int a) { return 18; }
+  int f_overload2(int) { return 18; }
 
   FRIEND_TEST(Types_cpp, arg_check_overload);
   FRIEND_TEST(Types_cpp, arg_check_overload_ambiguous);

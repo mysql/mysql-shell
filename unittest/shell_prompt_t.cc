@@ -502,8 +502,8 @@ TEST(Shell_prompt_manager, load) {
   shcore::Value theme;
   std::map<std::string, std::string> vars;
   auto getvar =
-      [](const std::string &var,
-         mysqlsh::Prompt_manager::Dynamic_variable_type type) -> std::string {
+      [](const std::string &,
+         mysqlsh::Prompt_manager::Dynamic_variable_type) -> std::string {
     return "";
   };
 
@@ -581,8 +581,8 @@ TEST(Shell_prompt_manager, classes) {
   shcore::Value theme;
   std::map<std::string, std::string> vars;
   auto getvar =
-      [](const std::string &var,
-         mysqlsh::Prompt_manager::Dynamic_variable_type type) -> std::string {
+      [](const std::string &,
+         mysqlsh::Prompt_manager::Dynamic_variable_type) -> std::string {
     return "";
   };
 
@@ -646,27 +646,25 @@ TEST(Shell_prompt_manager, variables) {
   Prompt_manager promptm;
   Prompt_manager::Variables_map vars;
 
-  EXPECT_NE("",
-            promptm.do_apply_vars("%date%", &vars,
-                                  [](const std::string &var,
-                                     Prompt_manager::Dynamic_variable_type type)
-                                      -> std::string { return ""; }));
-  EXPECT_NE("",
-            promptm.do_apply_vars("%time%", &vars,
-                                  [](const std::string &var,
-                                     Prompt_manager::Dynamic_variable_type type)
-                                      -> std::string { return ""; }));
+  EXPECT_NE("", promptm.do_apply_vars("%date%", &vars,
+                                      [](const std::string &,
+                                         Prompt_manager::Dynamic_variable_type)
+                                          -> std::string { return ""; }));
+  EXPECT_NE("", promptm.do_apply_vars("%time%", &vars,
+                                      [](const std::string &,
+                                         Prompt_manager::Dynamic_variable_type)
+                                          -> std::string { return ""; }));
   EXPECT_EQ("%invalid%",
-            promptm.do_apply_vars("%invalid%", &vars,
-                                  [](const std::string &var,
-                                     Prompt_manager::Dynamic_variable_type type)
-                                      -> std::string { return ""; }));
+            promptm.do_apply_vars(
+                "%invalid%", &vars,
+                [](const std::string &, Prompt_manager::Dynamic_variable_type)
+                    -> std::string { return ""; }));
 
   EXPECT_EQ(std::string(getenv("PATH")),
-            promptm.do_apply_vars("%env:PATH%", &vars,
-                                  [](const std::string &var,
-                                     Prompt_manager::Dynamic_variable_type type)
-                                      -> std::string { return ""; }));
+            promptm.do_apply_vars(
+                "%env:PATH%", &vars,
+                [](const std::string &, Prompt_manager::Dynamic_variable_type)
+                    -> std::string { return ""; }));
 
   EXPECT_EQ("FOO",
             promptm.do_apply_vars(
@@ -751,8 +749,8 @@ TEST(Shell_prompt_manager, custom_variable) {
   vars["value"] = "FOOOOOOOBAR";
   vars["pattern"] = "FOO*BAR";
   auto getvar =
-      [](const std::string &var,
-         mysqlsh::Prompt_manager::Dynamic_variable_type type) -> std::string {
+      [](const std::string &,
+         mysqlsh::Prompt_manager::Dynamic_variable_type) -> std::string {
     return "";
   };
   EXPECT_EQ("IS_TRUE> ", prompt.get_prompt(&vars, getvar));
@@ -797,8 +795,8 @@ TEST(Shell_prompt_manager, custom_variables_bug26502508) {
   vars["value"] = "FOOOOOOOBAR";
   vars["pattern"] = "FOO*BAR";
   auto getvar =
-      [](const std::string &var,
-         mysqlsh::Prompt_manager::Dynamic_variable_type type) -> std::string {
+      [](const std::string &,
+         mysqlsh::Prompt_manager::Dynamic_variable_type) -> std::string {
     return "";
   };
 

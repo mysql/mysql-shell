@@ -207,16 +207,16 @@ void Shell_console::dump_json(const char *tag, const std::string &s) const {
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json) const {
   using Print_func = void (Shell_console::*)(const char *) const;
-  Print_func print = stream == Output_stream::STDOUT
-                         ? &Shell_console::delegate_print
-                         : &Shell_console::delegate_print_diag;
+  Print_func func = stream == Output_stream::STDOUT
+                        ? &Shell_console::delegate_print
+                        : &Shell_console::delegate_print_diag;
 
   // format_json=false means bypass JSON wrapping
   if (use_json() && format_json) {
     const char *tag = stream == Output_stream::STDOUT ? "info" : "error";
     dump_json(tag, text);
   } else {
-    (this->*print)(text.c_str());
+    (this->*func)(text.c_str());
   }
 }
 
@@ -643,10 +643,10 @@ void Shell_console::delegate_print_diag(const char *msg) const {
 }
 
 void Shell_console::delegate(
-    const char *msg, shcore::Interpreter_print_handler::Print print) const {
+    const char *msg, shcore::Interpreter_print_handler::Print func) const {
   for (auto it = m_print_handlers.crbegin(); it != m_print_handlers.crend();
        ++it) {
-    if ((*it->*print)(msg)) {
+    if ((*it->*func)(msg)) {
       return;
     }
   }

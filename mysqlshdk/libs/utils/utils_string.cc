@@ -224,7 +224,7 @@ std::string unquote_string(const std::string &s, char quote) {
   result = shcore::str_replace(result, "\\\\", "\\");
 
   return result;
-};
+}
 
 std::vector<std::string> str_break_into_lines(const std::string &line,
                                               std::size_t line_width) {

@@ -498,7 +498,7 @@ size_t estimate_gtid_set_size(const std::string &gtid_set) {
         size_t p = s.find(':');
         if (p != std::string::npos) {
           size_t begin, end;
-          switch (sscanf(&s[p + 1], "%zd-%zd", &begin, &end)) {
+          switch (sscanf(&s[p + 1], "%zu-%zu", &begin, &end)) {
             case 2:
               count += end - begin + 1;
               break;

@@ -40,12 +40,18 @@ struct PyMemberCache {
  * Wraps a native/bridged C++ object reference as a Python sequence object
  */
 struct PyShObjObject {
-  PyObject_HEAD shcore::Object_bridge_ref *object;
+  // clang-format off
+  PyObject_HEAD
+  shcore::Object_bridge_ref *object;
+  // clang-format on
   PyMemberCache *cache;
 };
 
 struct PyShObjIndexedObject {
-  PyObject_HEAD shcore::Object_bridge_ref *object;
+  // clang-format off
+  PyObject_HEAD
+  shcore::Object_bridge_ref *object;
+  // clang-format on
   PyMemberCache *cache;
 };
 

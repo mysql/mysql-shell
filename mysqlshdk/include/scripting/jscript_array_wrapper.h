@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,6 +54,6 @@ class JScript_array_wrapper {
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _array_template;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

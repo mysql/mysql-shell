@@ -345,8 +345,10 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
 }
 
 struct Key_iterator {
-  PyObject_HEAD;
+  // clang-format off
+  PyObject_HEAD
   shcore::Value::Map_type_ref *map;
+  // clang-format on
   size_t initial_size;
   shcore::Value::Map_type::iterator next;
 };

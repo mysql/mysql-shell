@@ -1278,10 +1278,13 @@ std::vector<Upgrade_issue> Check_table_command::run(
       "SELECT TABLE_SCHEMA, TABLE_NAME FROM "
       "INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA not in "
       "('information_schema', 'performance_schema', 'sys')");
-  const mysqlshdk::db::IRow *pair = nullptr;
-  while ((pair = result->fetch_one()) != nullptr)
-    tables.push_back(std::pair<std::string, std::string>(pair->get_string(0),
-                                                         pair->get_string(1)));
+  {
+    const mysqlshdk::db::IRow *pair = nullptr;
+    while ((pair = result->fetch_one()) != nullptr) {
+      tables.push_back(
+          std::make_pair(pair->get_string(0), pair->get_string(1)));
+    }
+  }
 
   std::vector<Upgrade_issue> issues;
   for (const auto &pair : tables) {

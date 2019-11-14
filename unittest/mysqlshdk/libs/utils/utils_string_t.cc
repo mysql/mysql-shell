@@ -567,9 +567,9 @@ TEST(UtilsString, str_span) {
 
 TEST(UtilsString, str_subvars) {
   EXPECT_EQ("", str_subvars(
-                    "", [](const std::string &v) { return ""; }, "$", ""));
+                    "", [](const std::string &) { return ""; }, "$", ""));
   EXPECT_EQ("", str_subvars(
-                    "$", [](const std::string &v) { return ""; }, "$", ""));
+                    "$", [](const std::string &) { return ""; }, "$", ""));
   EXPECT_EQ("boo",
             str_subvars(
                 "$boo", [](const std::string &v) { return v; }, "$", ""));

@@ -1139,11 +1139,11 @@ void Python_context::register_mysqlsh_module() {
 
   shcore::Scoped_naming_style lower(NamingStyle::LowerCaseUnderscores);
 
-  for (auto name : modules) {
+  for (const auto &name : modules) {
     auto module_obj = Object_factory::call_constructor("__modules__", name,
                                                        shcore::Argument_list());
 
-    std::shared_ptr<shcore::Module_base> module =
+    const auto module =
         std::dynamic_pointer_cast<shcore::Module_base>(module_obj);
 
     // The modules will be registered in python as __<name>__
@@ -1161,12 +1161,12 @@ void Python_context::register_mysqlsh_module() {
     // Now inserts every element on the module
     PyObject *py_dict = PyModule_GetDict(py_module_ref);
 
-    for (auto &name : module->get_members()) {
-      shcore::Value member = module->get_member_advanced(name);
+    for (const auto &member_name : module->get_members()) {
+      shcore::Value member = module->get_member_advanced(member_name);
       if (member.type == shcore::Function || member.type == shcore::Object) {
         PyObject *p = _types.shcore_value_to_pyobj(member);
         // incrs ref
-        PyDict_SetItemString(py_dict, name.c_str(), p);
+        PyDict_SetItemString(py_dict, member_name.c_str(), p);
         Py_XDECREF(p);
       }
     }

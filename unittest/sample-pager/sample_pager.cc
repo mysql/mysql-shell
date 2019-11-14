@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,11 +131,13 @@ class Pager {
   }
 
   void write(const char *data, size_t length) {
-    ::write(m_fd, data, length);
+    auto ignore = ::write(m_fd, data, length);
 
     if (m_echo) {
-      ::write(::fileno(stdout), data, length);
+      ignore = ::write(::fileno(stdout), data, length);
     }
+
+    (void)ignore;
   }
 
   void close_file() {

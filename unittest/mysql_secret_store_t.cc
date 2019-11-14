@@ -51,6 +51,10 @@ namespace tests {
 
 namespace {
 
+const auto g_format_parameter = [](const auto &info) {
+  return shcore::str_replace(info.param, "-", "_");
+};
+
 template <typename T>
 ::testing::AssertionResult is_empty(const T &container) {
   if (container.empty()) {
@@ -1210,12 +1214,13 @@ void test_available_helpers() {
     invoker.clear();                                                          \
   }
 
-#define REGISTER_TESTS(test_case_name)                               \
-  namespace {                                                        \
-  const auto test_case_name##_list = test_case_name::list_helpers(); \
-  }                                                                  \
-  INSTANTIATE_TEST_CASE_P(Helpers, test_case_name,                   \
-                          ::testing::ValuesIn(test_case_name##_list))
+#define REGISTER_TESTS(test_case_name)                                \
+  namespace {                                                         \
+  const auto test_case_name##_list = test_case_name::list_helpers();  \
+  }                                                                   \
+  INSTANTIATE_TEST_CASE_P(Helpers, test_case_name,                    \
+                          ::testing::ValuesIn(test_case_name##_list), \
+                          g_format_parameter)
 
 }  // namespace
 
@@ -1225,7 +1230,7 @@ void test_available_helpers() {
 class Mysql_secret_store_api_test
     : public Parametrized_helper_test<Mysql_secret_store_api_tester> {};
 
-ADD_TESTS(Mysql_secret_store_api_test);
+ADD_TESTS(Mysql_secret_store_api_test)
 
 #undef VALIDATION_TEST
 #undef NORMALIZATION_TEST
@@ -1281,7 +1286,7 @@ REGISTER_TESTS(Mysql_secret_store_api_test);
 
 class Shell_api_test : public Parametrized_helper_test<Shell_api_tester> {};
 
-ADD_TESTS(Shell_api_test);
+ADD_TESTS(Shell_api_test)
 
 #undef VALIDATION_TEST
 #undef NORMALIZATION_TEST
@@ -1304,7 +1309,7 @@ REGISTER_TESTS(Shell_api_test);
 class Helper_executable_test
     : public Parametrized_helper_test<Helper_executable_tester> {};
 
-ADD_TESTS(Helper_executable_test);
+ADD_TESTS(Helper_executable_test)
 
 #undef VALIDATION_TEST
 #undef NORMALIZATION_TEST

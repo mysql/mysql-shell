@@ -2511,13 +2511,17 @@ void replace_file_text(const std::string &file, const std::string &from,
                              "': " + shcore::errno_to_string(errno));
   }
 
-  std::string line;
-  while (std::getline(ifile, line)) {
-    lines.push_back(shcore::str_replace(line, from, to));
+  {
+    std::string line;
+    while (std::getline(ifile, line)) {
+      lines.push_back(shcore::str_replace(line, from, to));
+    }
   }
+
   ifile.close();
 
   std::ofstream ofile(file);
+
   if (!ofile.good()) {
     throw std::runtime_error("Could not open file '" + from +
                              "': " + shcore::errno_to_string(errno));

@@ -681,6 +681,9 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
   // iterate over directories, find files to load
   if (shcore::is_folder(dir)) {
     shcore::iterdir(dir, [&dir, file_list](const std::string &name) {
+#if !defined(HAVE_V8) && !defined(HAVE_PYTHON)
+      (void)file_list;
+#endif
       const auto full_path = shcore::path::join_path(dir, name);
 
       // make sure it's a file, not a directory
@@ -743,7 +746,6 @@ bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
         bool is_js = shcore::is_file(init_js);
         bool is_py = shcore::is_file(init_py);
 
-        std::string msg;
         if (is_js && is_py) {
           auto msg = shcore::str_format(
               "Found multiple plugin initialization files for plugin "
@@ -1198,10 +1200,10 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
   if (session && session->is_open()) {
     auto status = session->get_status();
     (*status)["DELIMITER"] = shcore::Value(_shell->get_main_delimiter());
-    std::string format = options().wrap_json;
+    std::string json_format = options().wrap_json;
 
-    if (format.find("json") == 0) {
-      println(shcore::Value(status).json(format == "json"));
+    if (json_format.find("json") == 0) {
+      println(shcore::Value(status).json(json_format == "json"));
     } else {
       const std::string format = "%-30s%s";
 

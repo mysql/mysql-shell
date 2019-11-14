@@ -19,13 +19,14 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
+
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
                     "${CMAKE_BINARY_DIR}/mysqlshdk/include"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/src"
-                    "${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include"
-                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
+                    "${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include")
 
 set(mysh_SRC
     mysqlsh/get_password.cc
@@ -46,6 +47,10 @@ set(mysh_SRC
 
 IF(CMAKE_COMPILER_IS_GNUCXX)
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
+ENDIF()
+
+IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-keyword-macro")
 ENDIF()
 
 ADD_CONVENIENCE_LIBRARY(shellfe ${mysh_SRC})

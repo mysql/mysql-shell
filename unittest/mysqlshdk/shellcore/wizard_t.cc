@@ -101,16 +101,15 @@ TEST_F(Wizard_test, prompt_step) {
           .prompt("This is the sample prompt.")
           .description(
               {"These details give an explanation about the following prompt."})
-          .validator(
-              [&validation_called](const std::string &value) -> std::string {
-                validation_called = true;
-                return "";
-              })
-          .on_leave([&leave_cb_called, answer](const std::string &value,
-                                               Wizard *wizard) {
-            leave_cb_called = true;
-            EXPECT_STREQ(answer.c_str(), value.c_str());
-          });
+          .validator([&validation_called](const std::string &) -> std::string {
+            validation_called = true;
+            return "";
+          })
+          .on_leave(
+              [&leave_cb_called, answer](const std::string &value, Wizard *) {
+                leave_cb_called = true;
+                EXPECT_STREQ(answer.c_str(), value.c_str());
+              });
 
   EXPECT_THROW_LIKE(wizard.verify("step_id"), std::logic_error,
                     "Missing link 'K_NEXT' for step 'step_id'");
@@ -142,11 +141,10 @@ TEST_F(Wizard_test, confirm_step) {
           .prompt("This is the sample prompt.")
           .description(
               {"These details give an explanation about the following prompt."})
-          .on_leave(
-              [&leave_cb_called](const std::string &value, Wizard *wizard) {
-                leave_cb_called = true;
-                EXPECT_STREQ(K_NO, value.c_str());
-              });
+          .on_leave([&leave_cb_called](const std::string &value, Wizard *) {
+            leave_cb_called = true;
+            EXPECT_STREQ(K_NO, value.c_str());
+          });
 
   EXPECT_THROW_LIKE(wizard.verify("step_id"), std::logic_error,
                     "Missing link, either 'K_YES' or 'K_NEXT' must be defined "
@@ -177,7 +175,7 @@ TEST_F(Wizard_test, confirm_step) {
   // Test user overriding the default answer of NO to YES
   wizard.reset();
   leave_cb_called = false;
-  step.on_leave([&leave_cb_called](const std::string &value, Wizard *wizard) {
+  step.on_leave([&leave_cb_called](const std::string &value, Wizard *) {
     leave_cb_called = true;
     EXPECT_STREQ(K_YES, value.c_str());
   });
@@ -208,7 +206,7 @@ TEST_F(Wizard_test, confirm_step) {
   // Now tests overriding the default answer of YES to NO
   wizard.reset();
   leave_cb_called = false;
-  step.on_leave([&leave_cb_called](const std::string &value, Wizard *wizard) {
+  step.on_leave([&leave_cb_called](const std::string &value, Wizard *) {
     leave_cb_called = true;
     EXPECT_STREQ(K_NO, value.c_str());
   });
@@ -240,11 +238,10 @@ TEST_F(Wizard_test, select_step) {
                 EXPECT_STREQ("TWO", value.c_str());
                 return "";
               })
-          .on_leave(
-              [&leave_cb_called](const std::string &value, Wizard *wizard) {
-                leave_cb_called = true;
-                EXPECT_STREQ("TWO", value.c_str());
-              });
+          .on_leave([&leave_cb_called](const std::string &value, Wizard *) {
+            leave_cb_called = true;
+            EXPECT_STREQ("TWO", value.c_str());
+          });
 
   EXPECT_THROW_LIKE(wizard.verify("step_id"), std::logic_error,
                     "No items defined for select step 'step_id'.");
@@ -307,7 +304,7 @@ TEST_F(Wizard_test, select_step) {
         EXPECT_STREQ("custom answer", value.c_str());
         return "";
       })
-      .on_leave([&leave_cb_called](const std::string &value, Wizard *wizard) {
+      .on_leave([&leave_cb_called](const std::string &value, Wizard *) {
         leave_cb_called = true;
         EXPECT_STREQ("custom answer", value.c_str());
       });

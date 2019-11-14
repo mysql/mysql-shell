@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <set>
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/console.h"
@@ -672,13 +673,12 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
         callowed = *allowed_classes;
         auto help = shcore::Help_registry::get();
         std::set<std::string> classes;
-        std::vector<shcore::Topic_type> allowed_types = {
-            shcore::Topic_type::CLASS, shcore::Topic_type::GLOBAL_OBJECT,
-            shcore::Topic_type::OBJECT};
 
-        for (const auto type : allowed_types) {
-          auto topics = help->get_help_topics(type);
-          for (auto topic : topics) {
+        for (const auto allowed_type :
+             {shcore::Topic_type::CLASS, shcore::Topic_type::GLOBAL_OBJECT,
+              shcore::Topic_type::OBJECT}) {
+          auto topics = help->get_help_topics(allowed_type);
+          for (const auto &topic : topics) {
             classes.insert(topic->get_base_name());
           }
         }

@@ -83,7 +83,7 @@ std::string describe(Status state) {
   }
   return ret_val;
 }
-};  // namespace ReplicaSetStatus
+}  // namespace ReplicaSetStatus
 
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors) {

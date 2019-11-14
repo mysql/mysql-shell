@@ -161,38 +161,36 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
         for (auto token_type : _custom_tokens) {
           if (_token_functions.find(token_type) != _token_functions.end()) {
             std::string text;
-            size_t start = i;
+            size_t begin = i;
             if (_token_functions[token_type](_input, i, text)) {
-              add_token(BaseToken(token_type, text, start));
+              add_token(BaseToken(token_type, text, begin));
               found = true;
               i--;
               break;
             } else
-              i = start;
+              i = begin;
           }
 
           // Token sequences are to create a single token with many characters
           // as long as they belong to the given sequence
           else if (_token_sequences.find(token_type) !=
                    _token_sequences.end()) {
-            size_t start = i;
+            size_t begin = i;
 
             while (i < _input.length() && _token_sequences[token_type].find(
                                               _input[i]) != std::string::npos)
               i++;
 
-            found = i > start;
+            found = i > begin;
             if (found) {
-              add_token(BaseToken(token_type, _input.substr(start, i - start),
-                                  start));
+              add_token(BaseToken(token_type, _input.substr(begin, i - begin),
+                                  begin));
               i--;
               break;
             }
-          }
-
-          else if (_token_vectors.find(token_type) != _token_vectors.end()) {
+          } else if (_token_vectors.find(token_type) != _token_vectors.end()) {
             std::string text;
-            size_t start = i;
+            size_t begin = i;
             for (auto item : _token_vectors[token_type]) {
               if (item.find(_input[i]) != std::string::npos) {
                 text += _input[i];
@@ -201,13 +199,13 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
                 break;
             }
 
-            if ((i - start) == _token_vectors[token_type].size()) {
-              add_token(BaseToken(token_type, text, start));
+            if ((i - begin) == _token_vectors[token_type].size()) {
+              add_token(BaseToken(token_type, text, begin));
               found = true;
               i--;
               break;
             } else
-              i = start;
+              i = begin;
           }
         }
 

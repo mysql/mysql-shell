@@ -815,13 +815,10 @@ shcore::Dictionary_t Replicaset_status::get_topology(
       shcore::Dictionary_t mdict = member;
 
       auto dict_for = [mdict](const std::string &key) {
-        if (mdict->has_key(key)) {
-          return mdict->get_map(key);
-        } else {
-          shcore::Dictionary_t dict = shcore::make_dict();
-          (*mdict)[key] = shcore::Value(dict);
-          return dict;
+        if (!mdict->has_key(key)) {
+          (*mdict)[key] = shcore::Value(shcore::make_dict());
         }
+        return mdict->get_map(key);
       };
 
       if (member_stats[inst.uuid].first) {

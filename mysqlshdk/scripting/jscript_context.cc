@@ -540,8 +540,10 @@ void JScript_context::Impl::f_list_native_modules(const V8_args &args) {
     const auto array = v8::Array::New(isolate, size);
 
     for (int i = 0; i < size; ++i) {
-      array->Set(isolate->GetCurrentContext(), i,
-                 v8_string(isolate, core_modules[i]));
+      array
+          ->Set(isolate->GetCurrentContext(), i,
+                v8_string(isolate, core_modules[i]))
+          .FromJust();
     }
 
     args.GetReturnValue().Set(array);
@@ -709,9 +711,9 @@ v8::Local<v8::FunctionTemplate> JScript_context::Impl::wrap_callback(
 
         if (self->is_terminating()) return;
 
-        const auto callback = reinterpret_cast<v8::FunctionCallback>(
+        const auto func = reinterpret_cast<v8::FunctionCallback>(
             v8::External::Cast(*args.Data())->Value());
-        callback(args);
+        func(args);
       },
       data);
 }
@@ -736,8 +738,9 @@ v8::Local<v8::Context> JScript_context::Impl::copy_global_context() const {
 
   for (uint32_t c = names->Length(), i = 0; i < c; ++i) {
     const auto name = names->Get(origin, i).ToLocalChecked();
-    new_globals->Set(new_context, name,
-                     globals->Get(origin, name).ToLocalChecked());
+    new_globals
+        ->Set(new_context, name, globals->Get(origin, name).ToLocalChecked())
+        .FromJust();
   }
 
   return new_context;

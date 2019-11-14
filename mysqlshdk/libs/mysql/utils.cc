@@ -216,7 +216,6 @@ std::string generate_password(size_t password_length) {
   alphas += get_random(4, alpha_lower);
   std::shuffle(alphas.begin(), alphas.end(), rd);
 
-  std::uniform_int_distribution<int> rand_pos(0, pwd.length() - 1);
   size_t lower = 0;
   size_t step = password_length / 8;
 

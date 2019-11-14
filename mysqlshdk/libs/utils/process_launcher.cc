@@ -241,16 +241,14 @@ int open_pseudo_terminal(int *in_master, int *in_slave, char *in_name) {
 
 namespace shcore {
 
-Process::Process(const char *const *argv, bool redirect_stderr)
-    : is_alive(false) {
+Process::Process(const char *const *argv_, bool redirect_stderr_)
+    : argv(argv_), is_alive(false), redirect_stderr(redirect_stderr_) {
 #ifdef WIN32
   if (strstr(argv[0], "cmd.exe"))
     throw std::logic_error("launching cmd.exe currently not supported");
 // To suport cmd.exe, we need to handle special quoting rules
 // required by it
 #endif
-  this->argv = argv;
-  this->redirect_stderr = redirect_stderr;
 }
 
 /** Joins list of strings into a command line that is suitable for Windows

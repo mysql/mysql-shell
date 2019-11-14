@@ -263,7 +263,7 @@ void DatabaseObject::update_cache(
   std::set<std::string> existing;
 
   // Backups the existing items in the collection
-  shcore::Value::Map_type::iterator index, end = target_cache->end();
+  const auto end = target_cache->end();
 
   for (auto index = target_cache->begin(); index != end; index++)
     existing.insert(index->first);
@@ -276,8 +276,7 @@ void DatabaseObject::update_cache(
       if (target && shcore::is_valid_identifier(name)) {
         // Dynamic properties must keep the name as in the database
         // i.e. Name must not change to match the python naming style
-        std::string names = name + "|" + name;
-        target->add_property(names);
+        target->add_property(name + "|" + name);
       }
     }
 

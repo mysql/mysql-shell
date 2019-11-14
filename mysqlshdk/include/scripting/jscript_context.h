@@ -108,6 +108,6 @@ v8::Local<v8::String> v8_string(v8::Isolate *isolate, const std::string &data);
 
 std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj);
 
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

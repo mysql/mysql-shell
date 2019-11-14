@@ -188,7 +188,7 @@ std::string describe(State state) {
   }
   return ret_val;
 }
-};  // namespace ManagedInstance
+}  // namespace ManagedInstance
 
 /**
  * Validates the session for AdminAPI operations.

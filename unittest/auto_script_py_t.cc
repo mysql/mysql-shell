@@ -231,16 +231,20 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
 
 // General test cases
 INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_adminapi", ".py")));
+                        testing::ValuesIn(find_py_tests("py_adminapi", ".py")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_shell", ".py")));
+                        testing::ValuesIn(find_py_tests("py_shell", ".py")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_devapi", ".py")));
+                        testing::ValuesIn(find_py_tests("py_devapi", ".py")),
+                        fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_py,
                         testing::ValuesIn(find_py_tests("py_mixed_versions",
-                                                        ".py")));
+                                                        ".py")),
+                        fmt_param);
 
 }  // namespace tests

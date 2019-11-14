@@ -33,10 +33,19 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+// This is used to change the test names, so that the script name is used
+// to refer to them instead of an index
+inline std::string fmt_param(const testing::TestParamInfo<std::string> &info) {
+  // get the script filename alone, without the prefix directory
+  return std::get<0>(
+      shcore::path::split_extension(shcore::path::basename(info.param)));
+}
 
 extern std::vector<std::pair<std::string, std::string>> g_skipped_tests;
 extern std::vector<std::pair<std::string, std::string>> g_skipped_chunks;

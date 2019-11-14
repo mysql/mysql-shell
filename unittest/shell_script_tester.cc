@@ -41,13 +41,13 @@ extern bool g_generate_validation_file;
 
 //-----------------------------------------------------------------------------
 
-static bool do_print(void *udata, const char *s) {
+static bool do_print(void * /* udata */, const char *s) {
   printf("%s", s);
   fflush(stdout);
   return true;
 }
 
-static shcore::Prompt_result do_prompt(void *udata, const char *prompt,
+static shcore::Prompt_result do_prompt(void * /* udata */, const char *prompt,
                                        std::string *ret_input) {
   printf("%s", prompt);
   fflush(stdout);
@@ -77,7 +77,7 @@ class Test_debugger {
     m_shell = shell;
   }
 
-  Action will_execute(const std::string &source, int lnum,
+  Action will_execute(const std::string &source, int /* lnum */,
                       const std::string &code) {
     if (m_main_source.empty()) m_main_source = source;
 
@@ -109,7 +109,7 @@ class Test_debugger {
     return Action::Continue;
   }
 
-  void did_execute(int lnum, const std::string &code) {}
+  void did_execute(int /* lnum */, const std::string & /* code */) {}
 
   Action did_execute_test_failure() {
     if (m_exit_on_test_error) exit(1);
@@ -122,7 +122,7 @@ class Test_debugger {
     return Action::Continue;
   }
 
-  void did_throw(int lnum, const std::string &code) {
+  void did_throw(int /* lnum */, const std::string & /* code */) {
     if (m_enabled && m_break_on_throw) interact();
   }
 
@@ -1279,8 +1279,6 @@ void Shell_script_tester::execute_script(const std::string &path,
           execute("");
 
           if (g_generate_validation_file) {
-            auto chunk = _chunks[_chunk_order[index]];
-
             // Only saves the data if the chunk is not a reference
             if (chunk.def->id == chunk.def->validation_id) {
               if (_options->trace_protocol) {

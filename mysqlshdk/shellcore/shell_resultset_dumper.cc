@@ -326,7 +326,8 @@ class Field_formatter {
       auto value = row->get_float(index);
       char buffer[32];
       size_t len;
-      len = my_gcvt(value, MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer, NULL);
+      len = my_gcvt(static_cast<double>(value), MY_GCVT_ARG_FLOAT,
+                    sizeof(buffer) - 1, buffer, NULL);
       tmp.assign(buffer, len);
     } else if (m_type == mysqlshdk::db::Type::Integer) {
       return std::to_string(row->get_int(index));
@@ -660,11 +661,11 @@ void dump_json_row(shcore::JSON_dumper *dumper,
     } else if (type == mysqlshdk::db::Type::UInteger) {
       dumper->append_uint64(row->get_uint(col_index));
     } else if (type == mysqlshdk::db::Type::Float) {
-      dumper->append_float(row->get_float(col_index));
+      dumper->append_float(static_cast<double>(row->get_float(col_index)));
     } else if (type == mysqlshdk::db::Type::Double) {
       dumper->append_float(row->get_double(col_index));
     } else if (type == mysqlshdk::db::Type::Decimal) {
-      dumper->append_float(row->get_float(col_index));
+      dumper->append_float(static_cast<double>(row->get_float(col_index)));
     } else if (type == mysqlshdk::db::Type::Bit) {
       dumper->append_int64(row->get_bit(col_index));
     }

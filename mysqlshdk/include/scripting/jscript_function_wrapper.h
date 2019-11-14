@@ -54,6 +54,6 @@ class JScript_function_wrapper {
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _object_template;
 };
-};  // namespace shcore
+}  // namespace shcore
 
 #endif

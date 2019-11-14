@@ -104,7 +104,8 @@ void set_echo(bool flag) {
 void send_escape(const char *s) {
   if (s) {
     int fd = tty_fd();
-    write(fd, s, strlen(s));
+    const auto ignore = write(fd, s, strlen(s));
+    (void)ignore;
   }
 }
 
@@ -115,12 +116,7 @@ bool read_escape(const char *terminator, char *buffer, size_t buflen) {
 
   // read the prefix esc[
   if (read(fd, buffer, 2) < 2) return false;
-  if (strncmp(buffer,
-              "\x1b"
-              "[",
-              2) != 0)
-    return false;
-  if (strncmp(buffer, "\e[", 2) != 0) return false;
+  if (strncmp(buffer, "\x1b[", 2) != 0) return false;
   while (i < buflen) {
     if (read(fd, buffer + i, 1) < 1) return false;
     ++i;

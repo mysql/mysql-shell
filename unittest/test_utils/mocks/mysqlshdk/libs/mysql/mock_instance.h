@@ -110,7 +110,7 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   //                      std::unique_ptr<mysqlshdk::mysql::User_privileges>(
   //                          const std::string &, const std::string &));
   std::unique_ptr<mysqlshdk::mysql::User_privileges> get_user_privileges(
-      const std::string &user, const std::string &host) const {
+      const std::string & /* user */, const std::string & /* host */) const {
     // gmock can't handle noncopyable return args... otoh we don't need this
     // method for now
     return {};

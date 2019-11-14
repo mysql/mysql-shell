@@ -69,7 +69,7 @@ enum State {
 };
 
 std::string describe(State state);
-};  // namespace ManagedInstance
+}  // namespace ManagedInstance
 
 namespace ReplicationQuorum {
 enum State {

@@ -132,13 +132,13 @@ class Thread_report : public Native_report {
 #undef X
     };
 
-    static std::string format(const shcore::Array_t &section,
+    static std::string format(const shcore::Array_t &sections,
                               uint32_t level = 0) {
       constexpr auto k_section_not_available = "N/A\n";
 
       std::string result;
 
-      for (const auto &row : *section) {
+      for (const auto &row : *sections) {
         const auto section = row.as_map();
         const auto &name = section->at(k_section_title).get_string();
 

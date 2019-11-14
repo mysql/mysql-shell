@@ -164,6 +164,6 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   mutable shcore::Value::Array_type_ref _columns;
 };
 }  // namespace mysql
-};  // namespace mysqlsh
+}  // namespace mysqlsh
 
 #endif

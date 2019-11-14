@@ -1554,7 +1554,7 @@ REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL37,
               "Users may create custom report files in the <b>init.d</b> "
               "folder located in the Shell configuration path (by default it "
               "is <b>~/.mysqlsh/init.d</b> in Unix and "
-              "<b>\%AppData\%\\MySQL\\mysqlsh\\init.d</b> in Windows).");
+              "<b>@%AppData@%\\MySQL\\mysqlsh\\init.d</b> in Windows).");
 REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL38,
               "Custom reports may be written in either JavaScript or Python. "
               "The standard file extension for each case should be used to get "

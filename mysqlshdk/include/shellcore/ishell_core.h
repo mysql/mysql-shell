@@ -38,7 +38,7 @@
 
 namespace mysqlsh {
 class ShellBaseSession;
-};
+}
 
 namespace shcore {
 class Help_manager;

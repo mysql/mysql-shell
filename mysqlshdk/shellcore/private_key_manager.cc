@@ -55,8 +55,8 @@ void throw_last_error(const std::string &context) {
 struct Read_key_state final {
  public:
   Read_key_state() = delete;
-  Read_key_state(const std::string &path, const std::string &passphrase)
-      : key_path(path), passphrase(passphrase) {}
+  Read_key_state(const std::string &path, const std::string &passphrase_)
+      : key_path(path), passphrase(passphrase_) {}
   Read_key_state(const Read_key_state &other) = delete;
   Read_key_state(Read_key_state &&other) = delete;
 

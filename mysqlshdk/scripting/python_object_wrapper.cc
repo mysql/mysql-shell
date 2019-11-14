@@ -53,9 +53,10 @@ DEBUG_OBJ_ENABLE(PythonObjectWrapper);
 /** Wraps a GRT method as a Python object
  */
 struct PyShMethodObject {
-  PyObject_HEAD;
-
+  // clang-format off
+  PyObject_HEAD
   std::shared_ptr<Cpp_object_bridge> *object;
+  // clang-format on
   std::string *method;
 };
 
