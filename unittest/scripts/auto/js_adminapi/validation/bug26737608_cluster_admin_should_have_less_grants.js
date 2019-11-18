@@ -16,12 +16,31 @@
 | SUPER              | YES          |
 +--------------------+--------------+
 
-//@<OUT> check global privileges of cluster admin {VER(>=8.0.11)}
+//@<OUT> check global privileges of cluster admin {VER(>=8.0.11) && VER(<8.0.17)}
++----------------------------+--------------+
+| PRIVILEGE_TYPE             | IS_GRANTABLE |
++----------------------------+--------------+
+| CREATE USER                | YES          |
+| FILE                       | YES          |
+| PERSIST_RO_VARIABLES_ADMIN | YES          |
+| PROCESS                    | YES          |
+| RELOAD                     | YES          |
+| REPLICATION CLIENT         | YES          |
+| REPLICATION SLAVE          | YES          |
+| SELECT                     | YES          |
+| SHUTDOWN                   | YES          |
+| SUPER                      | YES          |
+| SYSTEM_VARIABLES_ADMIN     | YES          |
++----------------------------+--------------+
+
+//@<OUT> check global privileges of cluster admin {VER(>=8.0.17)}
 +----------------------------+--------------+
 | PRIVILEGE_TYPE             | IS_GRANTABLE |
 +----------------------------+--------------+
 | BACKUP_ADMIN               | YES          |
+| CLONE_ADMIN                | YES          |
 | CREATE USER                | YES          |
+| EXECUTE                    | YES          |
 | FILE                       | YES          |
 | PERSIST_RO_VARIABLES_ADMIN | YES          |
 | PROCESS                    | YES          |

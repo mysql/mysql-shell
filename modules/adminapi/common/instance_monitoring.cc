@@ -32,35 +32,34 @@
 namespace mysqlsh {
 namespace dba {
 
-void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
-                         mysqlsh::dba::Instance *out_instance, int timeout,
-                         Recovery_progress_style progress_style) {
+std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
+    const mysqlshdk::db::Connection_options &instance_def, int timeout,
+    Recovery_progress_style progress_style) {
   mysqlshdk::textui::Spinny_stick stick("* Waiting for server restart...");
+
+  std::shared_ptr<mysqlsh::dba::Instance> out_instance;
 
   if (progress_style == Recovery_progress_style::NOINFO) {
     stick.done("");
   }
 
-  bool stop = false;
-  shcore::Interrupt_handler intr([&stop]() {
-    stop = true;
-    return true;
-  });
-
   timeout *= 2;
-  while (timeout > 0 && !stop) {
+  while (timeout > 0) {
     try {
       auto session = mysqlshdk::db::mysql::Session::create();
       session->connect(instance_def);
-      *out_instance = mysqlsh::dba::Instance(session);
+      out_instance = std::make_shared<mysqlsh::dba::Instance>(session);
+
       if (progress_style != Recovery_progress_style::NOWAIT &&
           progress_style != Recovery_progress_style::NOINFO) {
         stick.done("ready");
       }
+
       log_info("%s has started", out_instance->get_canonical_address().c_str());
-      return;
+      return out_instance;
     } catch (const mysqlshdk::db::Error &e) {
       log_debug2("While waiting for server to start: %s", e.format().c_str());
+
       if (e.code() == ER_SERVER_SHUTDOWN ||
           mysqlshdk::db::is_mysql_client_error(e.code())) {
         // still not started
@@ -79,8 +78,6 @@ void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
     timeout--;
     shcore::sleep_ms(k_server_restart_poll_interval_ms);
   }
-
-  if (stop) throw stop_wait();
 
   if (progress_style != Recovery_progress_style::NOWAIT &&
       progress_style != Recovery_progress_style::NOINFO) {

@@ -27,6 +27,8 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include "scripting/types.h"
 
@@ -106,6 +108,9 @@ class Base_cluster_impl {
 
   void drop_replication_user(mysqlshdk::mysql::IInstance *slave,
                              const std::string &user_prefix);
+
+  std::string get_replication_user(mysqlshdk::mysql::IInstance *target_instance,
+                                   const std::string &user_prefix) const;
 
   virtual void disconnect();
 

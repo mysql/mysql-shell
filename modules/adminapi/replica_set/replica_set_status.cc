@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -410,7 +411,8 @@ shcore::Dictionary_t server_status(const topology::Server &server,
       for (const auto &channel : instance->unmanaged_channels) {
         unknown_channels->push_back(shcore::Value(shcore::make_dict(
             "channel", shcore::Value(channel.channel_name), "source",
-            shcore::Value(channel.host + ":" + std::to_string(channel.port)))));
+            shcore::Value(mysqlshdk::utils::make_host_and_port(
+                channel.host, channel.port)))));
       }
       status->set("unknownChannels", shcore::Value(unknown_channels));
     }
@@ -418,8 +420,8 @@ shcore::Dictionary_t server_status(const topology::Server &server,
     if (!instance->unmanaged_replicas.empty()) {
       shcore::Array_t unknown_replicas = shcore::make_array();
       for (const auto &slave : instance->unmanaged_replicas) {
-        unknown_replicas->push_back(
-            shcore::Value(slave.host + ":" + std::to_string(slave.port)));
+        unknown_replicas->push_back(shcore::Value(
+            mysqlshdk::utils::make_host_and_port(slave.host, slave.port)));
       }
       status->set("unknownReplicas", shcore::Value(unknown_replicas));
     }

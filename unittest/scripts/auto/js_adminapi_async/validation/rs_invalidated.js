@@ -126,14 +126,16 @@
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' was removed from the replicaset.|
 
 //@ add back the split-brained instance (should fail)
+|Adding instance to the replicaset...|
+|* Performing validation checks|
 |This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
-|Instance configuration is suitable.|
+|<<<__endpoint_uri1>>>: Instance configuration is suitable.|
+|* Checking async replication topology...|
 |* Checking transaction state of the instance...|
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' determined that|
 |contains transactions that do not originate from the replicaset, which must|
 |discarded before it can join the replicaset.|
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> has the following errant GTIDs that do not exist in the replicaset:|
-|The transaction set in <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> cannot catch up to the rest of the replicaset unless it is provisioned from an existing member.|
+//@ add back the split-brained instance (should fail)
 ||ReplicaSet.addInstance: Instance provisioning required (MYSQLSH 51153)
 
 //@ add back the split-brained instance after re-building it

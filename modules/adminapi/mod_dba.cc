@@ -1131,7 +1131,7 @@ Cluster Dba::create_cluster(str name, dict options) {}
 shcore::Value Dba::create_cluster(const std::string &cluster_name,
                                   const shcore::Dictionary_t &options) {
   Group_replication_options gr_options(Group_replication_options::CREATE);
-  Clone_options clone_options(Clone_options::CREATE);
+  Clone_options clone_options(Clone_options::CREATE_CLUSTER);
   bool adopt_from_gr = false;
   mysqlshdk::utils::nullable<bool> multi_primary;
   bool force = false;

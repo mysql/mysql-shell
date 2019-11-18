@@ -38,13 +38,15 @@ class stop_wait {};
  * Wait for the target MySQL instance to start
  *
  * @param instance_def target instance connection options
- * @param instance output instance object
  * @param timeout maximum value to wait for the startup, in seconds
  * @param progress_style progress style: Recovery_progress_style
+ *
+ * returns shared_ptr holding a mysqlsh::dba::Instance object with an open
+ * session to the target instance
  */
-void wait_server_startup(const mysqlshdk::db::Connection_options &instance_def,
-                         mysqlsh::dba::Instance *out_instance, int timeout,
-                         Recovery_progress_style progress_style);
+std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
+    const mysqlshdk::db::Connection_options &instance_def, int timeout,
+    Recovery_progress_style progress_style);
 
 }  // namespace dba
 }  // namespace mysqlsh

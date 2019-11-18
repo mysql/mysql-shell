@@ -210,7 +210,7 @@ mark_clone_disabled(false);
 
 // ====
 
-//@ recoveryMethod:auto, non-interactive, empty GTID -> error
+//@ recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>=8.0.17)}
 session2.runSql("RESET MASTER");
 mark_gtid_set_complete(false);
 

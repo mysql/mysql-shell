@@ -16,32 +16,38 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server.
 Cluster admin user 'admin'@'%' created.
 Configuring instance...
-The instance '<<<__address1>>>' was configured to be used in an InnoDB ReplicaSet.
-NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 
 //@<OUT> configureReplicaSetInstance 
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
-Assuming full account name 'admin'@'%' for admin
 
-The instance '<<<__address2>>>' is valid to be used in an InnoDB ReplicaSet.
-Cluster admin user 'admin'@'%' created.
-The instance '<<<__address2>>>' is already ready to be used in an InnoDB ReplicaSet.
+NOTE: Some configuration options need to be fixed:
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Configuring instance...
+The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB ReplicaSet.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 //@<OUT> createReplicaSet
-A new replicaset with instance '<<<__address1>>>' will be created.
+A new replicaset with instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' will be created.
 
-* Checking MySQL instance at <<<__address1>>>
+* Checking MySQL instance at 127.0.0.1:<<<__mysql_sandbox_port1>>>
 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
-<<<__address1>>>: Instance configuration is suitable.
+127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 
 * Updating metadata...
 
-ReplicaSet object successfully created for <<<__address1>>>.
+ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 Use rs.addInstance() to add more asynchronously replicated instances to this replicaset and rs.status() to check its status.
 
 <ReplicaSet:myrs>
@@ -72,66 +78,20 @@ Use rs.addInstance() to add more asynchronously replicated instances to this rep
 You are connected to a member of replicaset 'myrs'.
 <ReplicaSet:myrs>
 
-//@<OUT> addInstance
-Adding instance to the replicaset...
+//@# addInstance (incremental)
+|Adding instance to the replicaset...|
+|This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>|
+|127.0.0.1:<<<__mysql_sandbox_port2>>>: Instance configuration is suitable.|
+|NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.|
+|** Configuring 127.0.0.1:<<<__mysql_sandbox_port2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>|
+|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 
-* Performing validation checks
+//@# addInstance (clone) {VER(>=8.0.17)}
+|Clone based recovery selected through the recoveryMethod option|
+|The instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
-<<<__address2>>>: Instance configuration is suitable.
-** Checking transaction state of the instance...
-
-NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
-
-Incremental state recovery selected through the recoveryMethod option
-* Checking async replication topology...
-
-
-* Updating topology
-** Configuring <<<__address2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Waiting for new instance to synchronize with PRIMARY...
-
-The instance '<<<__address2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
-
-Adding instance to the replicaset...
-
-* Performing validation checks
-
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port3>>>
-<<<__address3>>>: Instance configuration is suitable.
-** Checking transaction state of the instance...
-
-NOTE: The target instance '<<<__address3>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
-
-Incremental state recovery selected through the recoveryMethod option
-* Checking async replication topology...
-
-
-* Updating topology
-** Configuring <<<__address3>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Waiting for new instance to synchronize with PRIMARY...
-
-The instance '<<<__address3>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
-
-//@<OUT> removeInstance
-The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was removed from the replicaset.
-
-Adding instance to the replicaset...
-
-* Performing validation checks
-
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
-<<<__address2>>>: Instance configuration is suitable.
-** Checking transaction state of the instance...
-Incremental state recovery selected through the recoveryMethod option
-* Checking async replication topology...
-
-
-* Updating topology
-** Configuring <<<__address2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Waiting for new instance to synchronize with PRIMARY...
-
-The instance '<<<__address2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
+//@# removeInstance
+|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was removed from the replicaset.|
 
 //@<OUT> setPrimaryInstance
 127.0.0.1:<<<__mysql_sandbox_port3>>> will be promoted to PRIMARY of 'myrs'.
@@ -242,13 +202,13 @@ NOTE: Former PRIMARY 127.0.0.1:<<<__mysql_sandbox_port3>>> is now invalidated an
 
 Failover finished successfully.
 
-//@<OUT> rejoinInstance
-* Validating instance...
-* Rejoining instance to replicaset...
-** Configuring <<<__address3>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Checking replication channel status...
-* Updating the Metadata...
-The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
+//@# rejoinInstance
+|* Rejoining instance to replicaset...|
+|The instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
+
+//@# rejoinInstance (clone) {VER(>=8.0.17)}
+
+|The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 
 //@<OUT> listRouters
 {
@@ -295,14 +255,14 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
 }
 
 //@<OUT> createReplicaSet(adopt)
-A new replicaset with the topology visible from '<<<__address1>>>' will be created.
+A new replicaset with the topology visible from '127.0.0.1:<<<__mysql_sandbox_port1>>>' will be created.
 
 * Scanning replication topology...
-** Scanning state of instance <<<__address1>>>
+** Scanning state of instance 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Scanning state of instance 127.0.0.1:<<<__mysql_sandbox_port2>>>
 ** Scanning state of instance 127.0.0.1:<<<__mysql_sandbox_port3>>>
 
-* Discovering async replication topology starting with <<<__address1>>>
+* Discovering async replication topology starting with 127.0.0.1:<<<__mysql_sandbox_port1>>>
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=yes
@@ -332,7 +292,7 @@ Validations completed successfully.
 
 * Updating metadata...
 
-ReplicaSet object successfully created for <<<__address1>>>.
+ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 Use rs.addInstance() to add more asynchronously replicated instances to this replicaset and rs.status() to check its status.
 
 <ReplicaSet:adopted>

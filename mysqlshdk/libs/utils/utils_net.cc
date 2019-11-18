@@ -50,6 +50,7 @@
 #include <bitset>
 #include <iomanip>
 #include <tuple>
+#include <regex>
 
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -655,5 +656,41 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
   }
   throw std::runtime_error("Could not resolve address");
 }
+
+std::pair<std::string, uint16_t> split_host_and_port(const std::string &s) {
+  std::string host;
+  std::string port;
+
+  std::smatch m;
+  if (!s.empty() && s[0] == '[') {
+    std::regex re("^\\[([a-fA-F0-9:]+|[a-fA-F0-9:]+%[^%\\]:]+)\\]:([0-9]+)$");
+
+    if (!std::regex_match(s, m, re)) {
+      throw std::invalid_argument("Invalid IPv6 address format in '" + s +
+                                  "'. Must be [<host>]:<port>");
+    }
+  } else {
+    std::regex re("^([a-zA-Z0-9._-]+):([0-9]+)$");
+
+    if (!std::regex_match(s, m, re)) {
+      throw std::invalid_argument(
+          "Invalid address format in '" + s +
+          "'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
+    }
+  }
+  int nport = std::stoi(m[2].str());
+  if (nport < 1 || nport > UINT16_MAX)
+    throw std::invalid_argument("Invalid port number in '" + s + "'");
+
+  return {m[1].str(), static_cast<uint16_t>(nport)};
+}
+
+std::string make_host_and_port(const std::string &host, uint16_t port) {
+  if (mysqlshdk::utils::Net::is_ipv6(host))
+    return "[" + host + "]:" + std::to_string(port);
+  else
+    return host + ":" + std::to_string(port);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

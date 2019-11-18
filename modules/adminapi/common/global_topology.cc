@@ -29,6 +29,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -84,72 +85,6 @@ Global_topology_type to_topology_type(const std::string &s_) {
   else
     throw std::invalid_argument("Invalid replication topology type '" + s_ +
                                 "'");
-}
-
-std::string to_string(Cluster_type type) {
-  switch (type) {
-    case Cluster_type::NONE:
-      return "NONE";
-
-    case Cluster_type::GROUP_REPLICATION:
-      return "GROUP-REPLICATION";
-
-    case Cluster_type::ASYNC_REPLICATION:
-      return "ASYNC-REPLICATION";
-  }
-  throw std::logic_error("internal error");
-}
-
-std::string to_display_string(Cluster_type type, Display_form form) {
-  switch (type) {
-    case Cluster_type::NONE:
-      return "NONE";
-
-    case Cluster_type::GROUP_REPLICATION:
-      switch (form) {
-        case Display_form::THING_FULL:
-          return "InnoDB cluster";
-
-        case Display_form::A_THING_FULL:
-          return "an InnoDB cluster";
-
-        case Display_form::THINGS_FULL:
-          return "InnoDB clusters";
-
-        case Display_form::THING:
-          return "cluster";
-
-        case Display_form::A_THING:
-          return "a cluster";
-
-        case Display_form::THINGS:
-          return "clusters";
-      }
-      break;
-
-    case Cluster_type::ASYNC_REPLICATION:
-      switch (form) {
-        case Display_form::THING_FULL:
-          return "InnoDB ReplicaSet";
-
-        case Display_form::A_THING_FULL:
-          return "an InnoDB ReplicaSet";
-
-        case Display_form::THINGS_FULL:
-          return "InnoDB ReplicaSets";
-
-        case Display_form::THING:
-          return "replicaset";
-
-        case Display_form::A_THING:
-          return "a replicaset";
-
-        case Display_form::THINGS:
-          return "replicasets";
-      }
-      break;
-  }
-  throw std::logic_error("internal error");
 }
 
 namespace topology {
@@ -788,8 +723,8 @@ Server *Server_global_topology::scan_instance_recursive(
   if (member->master_channel) {
     // Check first if the master is already known
     if (!try_find_member(member->master_channel->info.source_uuid)) {
-      std::string endpoint = member->master_channel->info.host + ":" +
-                             std::to_string(member->master_channel->info.port);
+      std::string endpoint = mysqlshdk::utils::make_host_and_port(
+          member->master_channel->info.host, member->master_channel->info.port);
 
       log_info("%s replicates from %s", instance->descr().c_str(),
                endpoint.c_str());
@@ -819,7 +754,8 @@ Server *Server_global_topology::scan_instance_recursive(
     auto slave_it = next_it++;
     const auto &slave = *slave_it;
 
-    std::string endpoint = slave.host + ":" + std::to_string(slave.port);
+    std::string endpoint =
+        mysqlshdk::utils::make_host_and_port(slave.host, slave.port);
 
     // Connect to the slave and scan it
     Scoped_instance slave_conn;

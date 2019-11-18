@@ -30,7 +30,7 @@ FUNCTIONS
       listRouters([options])
             Lists the Router instances.
 
-      rejoinInstance(instance)
+      rejoinInstance(instance[, options])
             Rejoins an instance to the replicaset.
 
       removeInstance(instance[, options])
@@ -98,10 +98,16 @@ DESCRIPTION
 
       - binary log and replication related options must have been validated
         and/or configured by dba.configureReplicaSetInstance()
+
+      If the selected recovery method is incremental:
+
       - transaction set in the instance being added must not contain
         transactions that don't exist in the PRIMARY
       - transaction set in the instance being added must not be missing
         transactions that have been purged from the binary log of the PRIMARY
+
+      If clone is available, the pre-requisites listed above can be overcome by
+      using clone as the recovery method.
 
       Options
 
@@ -111,13 +117,49 @@ DESCRIPTION
         but does not execute them
       - label: an identifier for the instance being added, used in the output
         of status()
-      - recoveryMethod: Preferred method of state recovery. May be auto or
-        incremental. Default is auto.
+      - recoveryMethod: Preferred method of state recovery. May be auto, clone
+        or incremental. Default is auto.
+      - waitRecovery: Integer value to indicate the recovery process verbosity
+        level.
+      - cloneDonor: host:port of an existing replicaSet member to clone from.
+        IPv6 addresses are not supported for this option.
       - interactive: if true, enables interactive password and confirmation
         prompts. Defaults to the value of the useWizards shell option.
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
+
+      The recoveryMethod option supports the following values:
+
+      - incremental: waits until the new instance has applied missing
+        transactions from the PRIMARY
+      - clone: uses MySQL clone to provision the instance, which completely
+        replaces the state of the target instance with a full snapshot of
+        another ReplicaSet member. Requires MySQL 8.0.17 or newer.
+      - auto: compares the transaction set of the instance with that of the
+        PRIMARY to determine if incremental recovery is safe to be
+        automatically chosen as the most appropriate recovery method. A prompt
+        will be shown if not possible to safely determine a safe way forward.
+        If interaction is disabled, the operation will be canceled instead.
+
+      If recoveryMethod is not specified 'auto' will be used by default.
+
+      The waitRecovery option supports the following values:
+
+      - 0: not supported.
+      - 1: do not show any progress information.
+      - 2: show detailed static progress information.
+      - 3: show detailed dynamic progress information using progress bars.
+
+      By default, if the standard output on which the Shell is running refers
+      to a terminal, the waitRecovery option has the value of 3. Otherwise, it
+      has the value of 2.
+
+      The cloneDonor option is used to override the automatic selection of a
+      donor to be used when clone is selected as the recovery method. By
+      default, a SECONDARY member will be chosen as donor. If no SECONDARY
+      members are available the PRIMARY will be selected. The option accepts
+      values in the format: 'host:port'. IPv6 addresses are not supported.
 
 //@<OUT> Disconnect
 NAME
@@ -219,10 +261,11 @@ NAME
       rejoinInstance - Rejoins an instance to the replicaset.
 
 SYNTAX
-      <ReplicaSet>.rejoinInstance(instance)
+      <ReplicaSet>.rejoinInstance(instance[, options])
 
 WHERE
       instance: host:port of the target instance to be rejoined.
+      options: Dictionary with options for the operation.
 
 RETURNS
       Nothing.
@@ -235,6 +278,74 @@ DESCRIPTION
 
       The PRIMARY of the replicaset must be reachable and available during this
       operation.
+
+      Pre-Requisites
+
+      The following pre-requisites are expected for instances rejoined to a
+      replicaset. They will be automatically checked by rejoinInstance(), which
+      will stop if any issues are found.
+
+      If the selected recovery method is incremental:
+
+      - transaction set in the instance being rejoined must not contain
+        transactions that don't exist in the PRIMARY
+      - transaction set in the instance being rejoined must not be missing
+        transactions that have been purged from the binary log of the PRIMARY
+      - executed transactions set (GTID_EXECUTED) in the instance being
+        rejoined must not be empty.
+
+      If clone is available, the pre-requisites listed above can be overcome by
+      using clone as the recovery method.
+
+      Options
+
+      The options dictionary may contain the following values:
+
+      - dryRun: if true, performs checks and logs changes that would be made,
+        but does not execute them
+      - recoveryMethod: Preferred method of state recovery. May be auto, clone
+        or incremental. Default is auto.
+      - waitRecovery: Integer value to indicate the recovery process verbosity
+        level.
+      - cloneDonor: host:port of an existing replicaSet member to clone from.
+        IPv6 addresses are not supported for this option.
+      - interactive: if true, enables interactive password and confirmation
+        prompts. Defaults to the value of the useWizards shell option.
+      - timeout: timeout in seconds for transaction sync operations; 0 disables
+        timeout and force the Shell to wait until the transaction sync
+        finishes. Defaults to 0.
+
+      The recoveryMethod option supports the following values:
+
+      - incremental: waits until the rejoining instance has applied missing
+        transactions from the PRIMARY
+      - clone: uses MySQL clone to provision the instance, which completely
+        replaces the state of the target instance with a full snapshot of
+        another ReplicaSet member. Requires MySQL 8.0.17 or newer.
+      - auto: compares the transaction set of the instance with that of the
+        PRIMARY to determine if incremental recovery is safe to be
+        automatically chosen as the most appropriate recovery method. A prompt
+        will be shown if not possible to safely determine a safe way forward.
+        If interaction is disabled, the operation will be canceled instead.
+
+      If recoveryMethod is not specified 'auto' will be used by default.
+
+      The waitRecovery option supports the following values:
+
+      - 0: not supported.
+      - 1: do not show any progress information.
+      - 2: show detailed static progress information.
+      - 3: show detailed dynamic progress information using progress bars.
+
+      By default, if the standard output on which the Shell is running refers
+      to a terminal, the waitRecovery option has the value of 3. Otherwise, it
+      has the value of 2.
+
+      The cloneDonor option is used to override the automatic selection of a
+      donor to be used when clone is selected as the recovery method. By
+      default, a SECONDARY member will be chosen as donor. If no SECONDARY
+      members are available the PRIMARY will be selected. The option accepts
+      values in the format: 'host:port'. IPv6 addresses are not supported.
 
 //@<OUT> Remove Instance
 NAME

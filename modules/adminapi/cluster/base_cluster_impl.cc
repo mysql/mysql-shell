@@ -114,8 +114,8 @@ void Base_cluster_impl::sync_transactions(
   std::string gtid_set =
       mysqlshdk::mysql::get_executed_gtid_set(*m_primary_master);
 
-  bool sync_res =
-      wait_for_gtid_set_safe(target_instance, gtid_set, channel_name, timeout);
+  bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
+                                         channel_name, timeout, true);
 
   if (!sync_res) {
     throw shcore::Exception("Timeout reached waiting for transactions from " +
@@ -175,7 +175,7 @@ mysqlshdk::mysql::Auth_options Base_cluster_impl::create_replication_user(
     }
 
     creds.password = repl_password;
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Error while setting up replication account: %s", e.what()));
   }
@@ -207,7 +207,7 @@ mysqlshdk::mysql::Auth_options Base_cluster_impl::refresh_replication_user(
                                             {"%"}, &repl_password);
       creds.password = repl_password;
     }
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Error while resetting password for replication account: %s",
         e.what()));
@@ -234,6 +234,12 @@ void Base_cluster_impl::drop_replication_user(
         slave->get_canonical_hostname().c_str(), e.format().c_str()));
     // ignore the error and move on
   }
+}
+
+std::string Base_cluster_impl::get_replication_user(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const std::string &user_prefix) const {
+  return format_repl_user_name(target_instance, user_prefix);
 }
 
 void Base_cluster_impl::set_target_server(

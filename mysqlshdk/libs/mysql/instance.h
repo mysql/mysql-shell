@@ -87,6 +87,8 @@ class IInstance {
 
   virtual const std::string &get_uuid() const = 0;
   virtual const std::string &get_group_name() const = 0;
+  virtual const std::string &get_version_compile_os() const = 0;
+  virtual const std::string &get_version_compile_machine() const = 0;
 
   virtual void refresh() = 0;
 
@@ -217,6 +219,8 @@ class Instance : public IInstance {
 
   const std::string &get_uuid() const override;
   const std::string &get_group_name() const override;
+  const std::string &get_version_compile_os() const override;
+  const std::string &get_version_compile_machine() const override;
 
   // Clears cached values, forcing all methods (except for those that have
   // values that cannot change) to query the DB again, if they use a cache.
@@ -326,13 +330,13 @@ class Instance : public IInstance {
   std::shared_ptr<db::ISession> _session;
   mutable mysqlshdk::utils::Version _version;
   mutable std::string m_version_compile_os;
+  mutable std::string m_version_compile_machine;
   mutable std::string m_uuid;
   mutable std::string m_group_name;
   mutable std::string m_hostname;
   mutable int m_port = 0;
   int m_sql_binlog_suppress_count = 0;
 
-  const std::string &get_version_compile_os() const;
   std::string get_plugin_library_extension() const;
 };
 

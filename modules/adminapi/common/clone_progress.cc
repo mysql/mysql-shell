@@ -63,11 +63,12 @@ void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
         status.stages[current_stage];
     log_debug2(
         "Clone state=%s, elapsed=%s, errno=%i, error=%s, stage=(%i, %s, "
-        "state=%s, elapsed=%s)",
+        "state=%s, elapsed=%s, begin_time=%s)",
         status.state.c_str(), std::to_string(status.seconds_elapsed).c_str(),
         status.error_n, status.error.c_str(), current_stage,
         stage.stage.c_str(), stage.state.c_str(),
-        std::to_string(stage.seconds_elapsed).c_str());
+        std::to_string(stage.seconds_elapsed).c_str(),
+        status.begin_time.c_str());
   }
 
   if (m_style != Recovery_progress_style::NOWAIT &&

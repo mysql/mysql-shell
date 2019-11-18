@@ -134,7 +134,6 @@ class Add_instance : public Command_interface {
   std::string m_instance_address;
   mysqlsh::dba::Instance *m_target_instance = nullptr;
   bool m_reuse_session_for_target_instance = false;
-  std::string m_host_in_metadata;
   std::string m_address_in_metadata;
   std::unique_ptr<mysqlsh::dba::Instance> m_peer_instance;
   bool m_use_cluster_session_for_peer = true;
@@ -148,8 +147,6 @@ class Add_instance : public Command_interface {
   Recovery_progress_style m_progress_style;
 
   int64_t m_restore_clone_threshold = 0;
-
-  Member_recovery_method validate_instance_recovery();
 
   void ensure_instance_check_installed_schema_version() const;
 

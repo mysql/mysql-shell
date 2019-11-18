@@ -31,6 +31,7 @@
 #include "mysqld_error.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlsh {
@@ -322,8 +323,9 @@ Instance_metadata query_instance_info(
   instance_def.address = instance.get_canonical_address();
   instance_def.endpoint = instance.get_canonical_address();
   if (xport != -1)
-    instance_def.xendpoint =
-        instance.get_canonical_hostname() + ":" + std::to_string(xport);
+    instance_def.xendpoint = mysqlshdk::utils::make_host_and_port(
+        instance.get_canonical_hostname(), xport);
+
   instance_def.grendpoint = local_gr_address;
   instance_def.uuid = instance.get_uuid();
 

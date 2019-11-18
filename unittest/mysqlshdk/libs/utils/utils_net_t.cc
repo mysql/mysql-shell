@@ -337,5 +337,83 @@ TEST(utils_net, strip_cidr) {
   }
 }
 
+TEST(utils_net, make_host_and_port) {
+  EXPECT_EQ("a:1", make_host_and_port("a", 1));
+  EXPECT_EQ("localhost:1234", make_host_and_port("localhost", 1234));
+
+  EXPECT_EQ("127.0.0.1:3306", make_host_and_port("127.0.0.1", 3306));
+  EXPECT_EQ("132.1.2.5:3306", make_host_and_port("132.1.2.5", 3306));
+  EXPECT_EQ("0:3306", make_host_and_port("0", 3306));
+
+  EXPECT_EQ("foo.bar.com:3306", make_host_and_port("foo.bar.com", 3306));
+  EXPECT_EQ("foo-bar.com:3306", make_host_and_port("foo-bar.com", 3306));
+
+  EXPECT_EQ("[::1]:3306", make_host_and_port("::1", 3306));
+  EXPECT_EQ("[fe80::7a7b:8aff:feb8:ed32%utun1]:3232",
+            make_host_and_port("fe80::7a7b:8aff:feb8:ed32%utun1", 3232));
+}
+
+TEST(utils_net, split_host_and_port) {
+  EXPECT_EQ("a", split_host_and_port("a:1").first);
+  EXPECT_EQ(1, split_host_and_port("a:1").second);
+
+  EXPECT_EQ("localhost", split_host_and_port("localhost:1234").first);
+  EXPECT_EQ(1234, split_host_and_port("localhost:1234").second);
+
+  EXPECT_EQ("foo-bar.com", split_host_and_port("foo-bar.com:3232").first);
+  EXPECT_EQ(3232, split_host_and_port("foo-bar.com:3232").second);
+
+  EXPECT_EQ("127.0.0.1", split_host_and_port("127.0.0.1:3232").first);
+  EXPECT_EQ(3232, split_host_and_port("127.0.0.1:3232").second);
+
+  EXPECT_EQ("::1", split_host_and_port("[::1]:3232").first);
+  EXPECT_EQ(3232, split_host_and_port("[::1]:3232").second);
+
+  EXPECT_EQ(
+      "fe80::7a7b:8aff:feb8:ed32%utun1",
+      split_host_and_port("[fe80::7a7b:8aff:feb8:ed32%utun1]:3232").first);
+  EXPECT_EQ(
+      3232,
+      split_host_and_port("[fe80::7a7b:8aff:feb8:ed32%utun1]:3232").second);
+
+  EXPECT_THROW(split_host_and_port("root@localhost:3232"),
+               std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("root@[::1]:3232"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("[root@::1]:3232"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("fe80::7a7b:8aff:feb8:ed32%utun1:3232"),
+               std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("[fe80::7a7b:8aff:feb8:ed32%utun1]"),
+               std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("fe80::7a7b:8aff:feb8:ed32%utun1"),
+               std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("localhost"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("127.0.0.1"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port(""), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port(":"), std::invalid_argument);
+  EXPECT_THROW(split_host_and_port("::"), std::invalid_argument);
+  EXPECT_THROW(split_host_and_port("[]:"), std::invalid_argument);
+  EXPECT_THROW(split_host_and_port("[:]"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("localhost:"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("1234"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port(":1234"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("localhost:port"), std::invalid_argument);
+  EXPECT_THROW(split_host_and_port("[::1]:port"), std::invalid_argument);
+
+  EXPECT_THROW(split_host_and_port("[]:1234"), std::invalid_argument);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

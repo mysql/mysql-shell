@@ -215,6 +215,22 @@ class Net {
 #endif
 };
 
+/** Splits an address in format <host>:<port>.
+ *
+ * Supports hostname:port, ipv4:port and [ipv6]:port
+ *
+ * port value range is checked, but IP or hostname syntax is only roughly
+ * checked (as in, only checks for valid characters.)
+ *
+ * IPv6 addresses are removed from the []
+ */
+std::pair<std::string, uint16_t> split_host_and_port(const std::string &s);
+
+/** Joins a host and port into a host:port string, enclosing IPv6 addresses
+ * within [] if needed.
+ */
+std::string make_host_and_port(const std::string &host, uint16_t port);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

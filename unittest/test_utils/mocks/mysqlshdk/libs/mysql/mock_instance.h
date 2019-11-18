@@ -44,6 +44,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD0(get_canonical_address, std::string());
   MOCK_CONST_METHOD0(get_uuid, const std::string &());
   MOCK_CONST_METHOD0(get_group_name, const std::string &());
+  MOCK_CONST_METHOD0(get_version_compile_os, const std::string &());
+  MOCK_CONST_METHOD0(get_version_compile_machine, const std::string &());
 
   MOCK_METHOD0(refresh, void());
 

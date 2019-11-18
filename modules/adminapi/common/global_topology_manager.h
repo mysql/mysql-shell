@@ -52,7 +52,6 @@ class Global_topology_manager {
       const Async_replication_options &repl_options) = 0;
 
   virtual void validate_rejoin_replica(
-      mysqlshdk::mysql::IInstance *primary,
       mysqlshdk::mysql::IInstance *instance) = 0;
 
   virtual void validate_remove_replica(mysqlshdk::mysql::IInstance *master,

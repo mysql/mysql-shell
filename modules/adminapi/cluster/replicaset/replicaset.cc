@@ -274,7 +274,7 @@ void GRReplicaSet::add_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Dictionary_t &options) {
   Group_replication_options gr_options(Group_replication_options::JOIN);
-  Clone_options clone_options(Clone_options::JOIN);
+  Clone_options clone_options(Clone_options::JOIN_CLUSTER);
   mysqlshdk::utils::nullable<std::string> label;
   std::string password;
 

@@ -21,14 +21,14 @@
 
 //@# recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>=8.0.17)}
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether incremental distributed state|
+|empty). The Shell is unable to decide whether incremental state|
 |recovery can correctly provision it.|
 |The safest and most convenient way to provision a new instance is through|
 |automatic clone provisioning, which will completely overwrite the state of|
 |'<<<__address2>>>' with a physical snapshot from an existing cluster member. To|
 |use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
-|The incremental distributed state recovery may be safely used if you are sure|
+|The incremental state recovery may be safely used if you are sure|
 |all updates ever executed in the cluster were done with GTIDs enabled, there|
 |are no purged transactions and the new instance contains the same GTID set as|
 |the cluster or a subset of it. To use this method by default, set the|
@@ -46,11 +46,11 @@
 ||Cluster.addInstance: Cancelled (RuntimeError)
 
 //@# recoveryMethod:auto, interactive, empty GTIDs + gtidSetIsComplete -> incr
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
+|Incremental state recovery was selected because it seems to be safely usable.|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, subset GTIDs -> incr {VER(>=8.0.17)}
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
+|Incremental state recovery was selected because it seems to be safely usable.|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a {VER(>=8.0.17)}
@@ -92,21 +92,21 @@
 ||
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
 ||
-|Automatic clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
 ||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
 ||Cluster.addInstance: Instance provisioning required
 
-//@# recoveryMethod:auto, non-interactive, empty GTID -> error
+//@# recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>=8.0.17)}
 ||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, empty GTID -> error
-||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||Cluster.addInstance: 'recoveryMethod' option must be set to 'incremental' (RuntimeError)
 
 //@# recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
+|Incremental state recovery was selected because it seems to be safely usable.|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:auto, non-interactive, subset GTIDs -> incr
@@ -115,13 +115,13 @@
 |'<<<__address2>>>' with a physical snapshot from an existing cluster member. To|
 |use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
-|The incremental distributed state recovery may be safely used if you are sure|
+|The incremental state recovery may be safely used if you are sure|
 |all updates ever executed in the cluster were done with GTIDs enabled, there|
 |are no purged transactions and the new instance contains the same GTID set as|
 |the cluster or a subset of it. To use this method by default, set the|
 |'recoveryMethod' option to 'incremental'.|
 ||
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
+|Incremental state recovery was selected because it seems to be safely usable.|
 ||
 ||Cluster.addInstance: debug (LogicError)
 
@@ -142,9 +142,7 @@
 |this further and ensure that the data can be removed prior to choosing the|
 |clone recovery method.|
 ||
-//@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.17)}
-||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
-//@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(<8.0.17)}
+//@# recoveryMethod:auto, non-interactive, errant GTIDs -> error
 ||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, errant GTIDs -> error
@@ -156,25 +154,25 @@
 
 //@# recoveryMethod:incremental, empty GTID -> incr
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether incremental distributed state|
+|empty). The Shell is unable to decide whether incremental state|
 |recovery can correctly provision it.|
-|Incremental distributed state recovery selected through the recoveryMethod option|
+|Incremental state recovery selected through the recoveryMethod option|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, cloneDisabled, empty GTID -> incr
-|Incremental distributed state recovery selected through the recoveryMethod option|
+|Incremental state recovery selected through the recoveryMethod option|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty), but the cluster was configured to assume that incremental distributed|
+|empty), but the cluster was configured to assume that incremental|
 |state recovery can correctly provision it in this case.|
 ||
-|Incremental distributed state recovery selected through the recoveryMethod option|
+|Incremental state recovery selected through the recoveryMethod option|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, subset GTIDs -> incr
-|Incremental distributed state recovery selected through the recoveryMethod option|
+|Incremental state recovery selected through the recoveryMethod option|
 ||Cluster.addInstance: debug (LogicError)
 
 //@# recoveryMethod:incremental, errant GTIDs -> error

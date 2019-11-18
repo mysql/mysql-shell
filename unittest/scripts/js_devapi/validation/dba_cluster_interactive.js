@@ -22,38 +22,32 @@
 //@ Cluster: addInstance with interaction, error
 ||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
-//@# Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
-|NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has|
-|The safest and most convenient way to provision a new instance is through|
-|automatic clone provisioning, which will completely overwrite the state of|
-|'<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from|
-||
-|The incremental distributed state recovery may be safely used if you are sure|
-|all updates ever executed in the cluster were done with GTIDs enabled, there|
-|are no purged transactions and the new instance contains the same GTID set as|
-|the cluster or a subset of it. To use this method by default, set the|
-|'recoveryMethod' option to 'incremental'.|
-||
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
-||
-|NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.|
-||
-|Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
-|NOTE: Instance detected as a sandbox.|
-|Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.|
-||
-|This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
-||
-|Instance configuration is suitable.|
-|A new instance will be added to the InnoDB cluster. Depending on the amount of|
-|data on the cluster this might take from a few seconds to several hours.|
-||
-|Adding instance to the cluster...|
-||
-|Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.|
+//@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
+NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty), but the cluster was configured to assume that incremental state recovery can correctly provision it in this case.
+The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental state recovery may be safely used if you are sure all updates ever executed in the cluster were done with GTIDs enabled, there are no purged transactions and the new instance contains the same GTID set as the cluster or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.
+
+Incremental state recovery was selected because it seems to be safely usable.
+
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
+
+Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
+
+Instance configuration is suitable.
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster...
+
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
@@ -75,7 +69,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
@@ -97,7 +91,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
 The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
@@ -119,7 +113,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
@@ -305,7 +299,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
@@ -327,7 +321,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
@@ -349,7 +343,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
 The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
@@ -371,7 +365,7 @@ Adding instance to the cluster...
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
-{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.

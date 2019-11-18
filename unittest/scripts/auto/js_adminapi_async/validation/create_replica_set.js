@@ -22,7 +22,7 @@
 
 //@# create with unmanaged AR (should fail)
 |ERROR: Extraneous replication channels found at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>:|
-|- channel '' from localhost:<<<__mysql_sandbox_port2>>>|
+|- channel '' from <<<__endpoint_uri2>>>|
 |Unmanaged replication channels are not supported in a replicaset. If you'd like|
 |to manage an existing MySQL replication topology with the Shell, use the|
 |createReplicaSet() operation with the adoptFromAR option.|

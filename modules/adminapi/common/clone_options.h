@@ -39,9 +39,10 @@ enum class Member_recovery_method { AUTO, INCREMENTAL, CLONE };
 
 struct Clone_options {
   enum Unpack_target {
-    NONE,    // none
-    CREATE,  // only disableClone
-    JOIN     // all but disableClone
+    NONE,            // none
+    CREATE_CLUSTER,  // only disableClone
+    JOIN_CLUSTER,    // all but disableClone
+    JOIN_REPLICASET  // ReplicaSet only options
   };
 
   Clone_options() : target(NONE) {}
@@ -61,8 +62,9 @@ struct Clone_options {
 
   mysqlshdk::utils::nullable<bool> disable_clone;
   bool gtid_set_is_complete = false;
-  Member_recovery_method recovery_method = Member_recovery_method::AUTO;
+  mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
+  mysqlshdk::utils::nullable<std::string> clone_donor;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);

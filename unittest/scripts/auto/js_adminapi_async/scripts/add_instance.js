@@ -42,6 +42,18 @@ rs.addInstance({}, {});
 rs.addInstance(__sandbox1, {badOption:123});
 rs.addInstance([__endpoint1]);
 rs.addInstance(__sandbox3);
+rs.addInstance(__sandbox2, {waitRecovery:0});
+rs.addInstance(__sandbox1, {recoveryMethod: "bogus"});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
+rs.addInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
+rs.addInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:""});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"foobar"});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"root@foobar:3232"});
+// IPv6 not supported for cloneDonor. We check for auto-chosen donors that are IPv6 in simple_ipv6.js
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"[::1]:3232"});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1:3232"});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1"});
 
 //@ disconnected rs object (should fail)
 rs.disconnect();
@@ -377,20 +389,37 @@ EXPECT_EQ(undefined, rs.status().replicaSet.topology[__endpoint_uri2]);
 reset_instance(session2);
 inject_errant_gtid(session2);
 
-rs.addInstance(__sandbox2);
+rs.addInstance(__sandbox2, {recoveryMethod: "incremental"});
 
 //@ instance has a subset of the master GTID set
 reset_provision_instance(session2, session);
 
+// Falls-back automatically to incremental recovery
 rs.addInstance(__sandbox2);
 
 rs.removeInstance(__sandbox2);
 
+//@ instance has more GTIDs (should work with clone) {VER(>=8.0.17)}
+var session2 = mysql.getSession(__sandbox_uri2);
+reset_instance(session2);
+inject_errant_gtid(session2);
+rs.addInstance(__sandbox2, {recoveryMethod: "clone"});
+
+//@<> remove instance (diverged GTID-set) {VER(>=8.0.17)}
+rs.removeInstance(__sandbox2);
+
 //@ master has purged GTIDs (should fail)
+var session2 = mysql.getSession(__sandbox_uri2);
 inject_purged_gtids(session);
 reset_instance(session2);
 
-rs.addInstance(__sandbox2);
+rs.addInstance(__sandbox2, {recoveryMethod: "incremental"});
+
+//@ master has purged GTIDs (should work with clone) {VER(>=8.0.17)}
+rs.addInstance(__sandbox2, {recoveryMethod: "clone"});
+
+//@<> remove instance (purged GTIDs) {VER(>=8.0.17)}
+rs.removeInstance(__sandbox2);
 
 //@ Re-create the replicaset without gtidSetIsComplete
 reset_instance(session);
@@ -399,20 +428,29 @@ shell.connect(__sandbox_uri1);
 var rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:false});
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 + not interactive (should fail)
+var session2 = mysql.getSession(__sandbox_uri2);
 reset_instance(session2);
 
 rs.addInstance(__sandbox2, {interactive:false});
 
-//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail)
+//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail) {VER(<8.0.17)}
 reset_instance(session2);
-
-testutil.expectPrompt("Please confirm whether the GTID set at the PRIMARY can be assumed to contain its complete transaction history and use incremental recovery through replication. [I]ncremental/[A]bort (default Abort): ", "a");
+testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "a");
 rs.addInstance(__sandbox2, {interactive:true});
 
-//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-yes
+//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail) {VER(>=8.0.17)}
 reset_instance(session2);
+testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "a");
+rs.addInstance(__sandbox2, {interactive:true});
 
-testutil.expectPrompt("Please confirm whether the GTID set at the PRIMARY can be assumed to contain its complete transaction history and use incremental recovery through replication. [I]ncremental/[A]bort (default Abort): ", "i");
+//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-yes {VER(<8.0.17)}
+reset_instance(session2);
+testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "i");
+rs.addInstance(__sandbox2, {interactive:true});
+
+//@ instance has empty GTID set + gtidSetIsComplete:0 prompt-yes {VER(>=8.0.17)}
+reset_instance(session2);
+testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "i");
 rs.addInstance(__sandbox2, {interactive:true});
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:INCREMENTAL
@@ -421,11 +459,49 @@ reset_instance(session2);
 
 rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"INCREMENTAL"});
 
+//@ instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:CLONE {VER(>=8.0.17)}
+rs.removeInstance(__sandbox2);
+reset_instance(session2);
+
+rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"CLONE"});
+
 //@ instance has a subset of the master GTID set + gtidSetIsComplete:0
+// Falls-back automatically to incremental recovery
 rs.removeInstance(__sandbox2);
 
 rs.addInstance(__sandbox2);
 
+//@ cloneDonor invalid: not a ReplicaSet member {VER(>=8.0.17)}
+var session2 = mysql.getSession(__sandbox_uri2);
+rs.removeInstance(__sandbox2);
+reset_instance(session2);
+
+rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox3});
+
+//@ cloneDonor valid {VER(>=8.0.17)}
+rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox1});
+
+//@ cloneDonor valid 2 {VER(>=8.0.17)}
+rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+
+// BUG#30628746: ADD_INSTANCE: CLONEDONOR FAILS, USER DOES NOT EXIST
+// This bug caused a failure when a clone donor was selected that was processing transactions.
+// A new sync was added to ensure the donor was in sync with the primary before starting clone
+// so to test the fix we need to simulate an wait for that sync to happen. To simplify the test
+// we simply lock the mysql.user table triggering that desired wait and wait until the timeout happens.
+
+//@<> BUG#30628746: preparation {VER(>=8.0.17)}
+rs.removeInstance(__sandbox3);
+var session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("lock tables mysql.user read");
+
+//@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
+rs.addInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
+
+//@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
+rs.addInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+
+session2.runSql("unlock tables");
 
 // Rollback
 //--------------------------------

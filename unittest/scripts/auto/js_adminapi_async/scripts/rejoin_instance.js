@@ -29,6 +29,17 @@ rs.rejoinInstance("", {});
 rs.rejoinInstance(__sandbox1, {}, {});
 rs.rejoinInstance(__sandbox1, {badOption:123});
 rs.rejoinInstance(__sandbox3);
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "bogus"});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:""});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"foobar"});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"root@foobar:3232"});
+// IPv6 not supported for cloneDonor. We check for auto-chosen donors that are IPv6 in simple_ipv6.js
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"[::1]:3232"});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1:3232"});
+rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1"});
 
 //@ Try rejoin ONLINE instance (fail).
 rs.rejoinInstance(__sandbox2);
@@ -142,7 +153,7 @@ s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "INCONSISTENT");
 
 //@ Try to rejoin instance with errant transaction (fail).
-rs.rejoinInstance(__sandbox3);
+rs.rejoinInstance(__sandbox3, {recoveryMethod: "incremental"});
 
 //@<> Fix the errant transaction (inject empty transaction).
 inject_empty_trx(session2, errant_trx_gtid);
@@ -202,8 +213,43 @@ session2.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
 //@ Try to rejoin instance with purged transactions on PRIMARY (fail).
 rs.rejoinInstance(__sandbox3);
 
+//@ Try to rejoin instance with purged transactions on PRIMARY (should work with clone) {VER(>=8.0.17)}
+rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone"});
 
 //TODO(pjesus): try rejoin instance belonging to another cluster (fail).
+
+//@<> Stop replication at instance 3
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+
+//@ cloneDonor valid {VER(>=8.0.17)}
+rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox1});
+
+//@<> Stop replication at instance 3 again
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+
+//@ cloneDonor valid 2 {VER(>=8.0.17)}
+rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+
+// BUG#30628746: ADD_INSTANCE: CLONEDONOR FAILS, USER DOES NOT EXIST
+// This bug caused a failure when a clone donor was selected that was processing transactions.
+// A new sync was added to ensure the donor was in sync with the primary before starting clone
+// so to test the fix we need to simulate an wait for that sync to happen. To simplify the test
+// we simply lock the mysql.user table triggering that desired wait and wait until the timeout happens.
+
+//@<> BUG#30628746: preparation {VER(>=8.0.17)}
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+var session1 = mysql.getSession(__sandbox_uri1);
+session1.runSql("lock tables mysql.user read");
+
+//@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
+rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+
+//@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
+rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
+session1.runSql("unlock tables");
 
 //@<> Cleanup.
 testutil.destroySandbox(__mysql_sandbox_port1);

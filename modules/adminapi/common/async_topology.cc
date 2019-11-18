@@ -39,28 +39,6 @@ static constexpr const int k_replication_stop_timeout = 60;
 
 namespace {
 
-void stop_channel(mysqlshdk::mysql::IInstance *instance,
-                  const std::string &channel_name, bool dry_run) {
-  auto console = mysqlsh::current_console();
-
-  log_info("Stopping channel '%s' at %s", channel_name.c_str(),
-           instance->descr().c_str());
-  if (!dry_run) {
-    try {
-      if (!mysqlshdk::mysql::stop_replication_safe(
-              instance, channel_name, k_replication_stop_timeout)) {
-        throw shcore::Exception(
-            "Could not stop replication channel at " + instance->descr() +
-                " because there are unexpected open temporary tables.",
-            SHERR_DBA_REPLICATION_INVALID);
-      }
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
-    }
-  }
-}
-
 void start_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name, bool dry_run) {
   auto console = mysqlsh::current_console();
@@ -441,6 +419,28 @@ void wait_all_apply_retrieved_trx(
 void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    bool reset_credentials, bool dry_run) {
   reset_channel(instance, k_channel_name, reset_credentials, dry_run);
+}
+
+void stop_channel(mysqlshdk::mysql::IInstance *instance,
+                  const std::string &channel_name, bool dry_run) {
+  auto console = mysqlsh::current_console();
+
+  log_info("Stopping channel '%s' at %s", channel_name.c_str(),
+           instance->descr().c_str());
+  if (!dry_run) {
+    try {
+      if (!mysqlshdk::mysql::stop_replication_safe(
+              instance, channel_name, k_replication_stop_timeout)) {
+        throw shcore::Exception(
+            "Could not stop replication channel at " + instance->descr() +
+                " because there are unexpected open temporary tables.",
+            SHERR_DBA_REPLICATION_INVALID);
+      }
+    } catch (const mysqlshdk::db::Error &e) {
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.what(), e.code(), e.sqlstate());
+    }
+  }
 }
 
 }  // namespace dba

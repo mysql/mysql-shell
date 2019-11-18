@@ -347,41 +347,33 @@ void Star_global_topology_manager::validate_add_replica(
                               SHERR_DBA_INVALID_SERVER_CONFIGURATION);
     }
   }
-
-  console->print_info();
 }
 
 void Star_global_topology_manager::validate_rejoin_replica(
-    mysqlshdk::mysql::IInstance *primary,
     mysqlshdk::mysql::IInstance *instance) {
   auto console = mysqlsh::current_console();
 
   // Validate that the topology is active (available healthy PRIMARY).
   validate_global_topology_active_cluster_available(*m_topology);
 
-  // Validate if rejoining instance has any errant transactions.
-  ensure_gtid_no_errants(*primary, *instance, true);
-
   // Validate the status of the target instance.
   auto topology_node = m_topology->try_get_node_for_uuid(instance->get_uuid());
   topology::Node_status status = topology_node->status();
-  if (status != topology::Node_status::INVALIDATED &&
-      status != topology::Node_status::ERROR &&
-      status != topology::Node_status::OFFLINE) {
+  if (status == topology::Node_status::ONLINE ||
+      status == topology::Node_status::UNREACHABLE) {
     console->print_error("Unable to rejoin an " + to_string(status) +
                          " instance. This operation can only be used to rejoin "
                          "instances with an " +
                          to_string(topology::Node_status::INVALIDATED) + ", " +
-                         to_string(topology::Node_status::OFFLINE) + ", or " +
-                         to_string(topology::Node_status::ERROR) + " status.");
+                         to_string(topology::Node_status::OFFLINE) + ", " +
+                         to_string(topology::Node_status::INCONSISTENT) +
+                         " or " + to_string(topology::Node_status::ERROR) +
+                         " status.");
     throw shcore::Exception("Invalid status to execute operation, " +
                                 topology_node->label + " is " +
                                 to_string(status),
                             SHERR_DBA_ASYNC_MEMBER_INVALID_STATUS);
   }
-
-  // Validate if rejoining instance can sync (no missing GTIDs were purged).
-  ensure_gtid_sync_possible(*primary, *instance, true);
 }
 
 void Star_global_topology_manager::validate_remove_replica(

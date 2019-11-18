@@ -115,6 +115,7 @@ shell.connect(ssl_sandbox_uri2);
 cluster = dba.getCluster();
 
 cluster.forceQuorumUsingPartitionOf(ssl_sandbox_uri2);
+shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"));
 cluster.rejoinInstance(ssl_sandbox_uri1);
 
 //@<> forceQuorum (rejoin restarted sandbox without persisted start_on_boot) {VER(<8.0.0)}

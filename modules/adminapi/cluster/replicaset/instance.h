@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICASET_INSTANCE_H_
-#define MODULES_ADMINAPI_REPLICASET_INSTANCE_H_
+#ifndef MODULES_ADMINAPI_CLUSTER_REPLICASET_INSTANCE_H_
+#define MODULES_ADMINAPI_CLUSTER_REPLICASET_INSTANCE_H_
 
 #include <string>
 #include "scripting/types.h"
@@ -105,4 +105,4 @@ class Instance : public shcore::Cpp_object_bridge {
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif  // MODULES_ADMINAPI_REPLICASET_INSTANCE_H_
+#endif  // MODULES_ADMINAPI_CLUSTER_REPLICASET_INSTANCE_H_

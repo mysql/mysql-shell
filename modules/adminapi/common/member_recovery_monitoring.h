@@ -43,12 +43,17 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
     const mysqlshdk::db::Connection_options &instance_def,
     const std::string &begin_time, int timeout_sec);
 
+std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const std::string &begin_time, int timeout_sec);
+
 void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
                                   Recovery_progress_style /*progress_style*/);
 
-void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
-                            Recovery_progress_style progress_style,
-                            int restart_timeout_sec);
+void monitor_clone_instance(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const std::string &begin_time, Recovery_progress_style progress_style,
+    int startup_timeout_sec, int restart_timeout_sec);
 
 void monitor_post_clone_gr_recovery_status(
     mysqlsh::dba::Instance *instance, const std::string &begin_time,

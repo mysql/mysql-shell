@@ -46,8 +46,7 @@ class Star_global_topology_manager : public Global_topology_manager {
       const topology::Node *master_node, mysqlshdk::mysql::IInstance *instance,
       const Async_replication_options &repl_options) override;
 
-  void validate_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
-                               mysqlshdk::mysql::IInstance *instance) override;
+  void validate_rejoin_replica(mysqlshdk::mysql::IInstance *instance) override;
 
   void validate_remove_replica(mysqlshdk::mysql::IInstance *master,
                                mysqlshdk::mysql::IInstance *instance,

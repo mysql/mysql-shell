@@ -79,7 +79,8 @@ void ReplicaSet::init() {
   add_property("name", "getName");
 
   expose("addInstance", &ReplicaSet::add_instance, "instanceDef", "?options");
-  expose("rejoinInstance", &ReplicaSet::rejoin_instance, "instanceDef");
+  expose("rejoinInstance", &ReplicaSet::rejoin_instance, "instanceDef",
+         "?options");
   expose("removeInstance", &ReplicaSet::remove_instance, "instanceDef",
          "?options");
 
@@ -230,10 +231,16 @@ if any issues are found.
 
 @li binary log and replication related options must have been validated
 and/or configured by dba.<<<configureReplicaSetInstance>>>()
+
+If the selected recovery method is incremental:
+
 @li transaction set in the instance being added must not contain transactions
 that don't exist in the PRIMARY
 @li transaction set in the instance being added must not be missing transactions
-that have been purged from the binary log of the PRIMARY 
+that have been purged from the binary log of the PRIMARY
+
+If clone is available, the pre-requisites listed above can be overcome by using
+clone as the recovery method.
 
 <b>Options</b>
 
@@ -241,15 +248,51 @@ The options dictionary may contain the following values:
 
 @li dryRun: if true, performs checks and logs changes that would be made, but
 does not execute them
-@li label: an identifier for the instance being added, used in the output of 
+@li label: an identifier for the instance being added, used in the output of
 status()
-@li recoveryMethod: Preferred method of state recovery. May be auto or
+@li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
+@li waitRecovery: Integer value to indicate the recovery process verbosity
+level.
+@li cloneDonor: host:port of an existing replicaSet member to clone from.
+IPv6 addresses are not supported for this option.
 @li interactive: if true, enables interactive password and confirmation
 prompts. Defaults to the value of the useWizards shell option.
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
+
+The recoveryMethod option supports the following values:
+
+@li incremental: waits until the new instance has applied missing transactions
+from the PRIMARY
+@li clone: uses MySQL clone to provision the instance, which completely
+replaces the state of the target instance with a full snapshot of another
+ReplicaSet member. Requires MySQL 8.0.17 or newer.
+@li auto: compares the transaction set of the instance with that of the
+PRIMARY to determine if incremental recovery is safe to be automatically
+chosen as the most appropriate recovery method.
+A prompt will be shown if not possible to safely determine a safe way forward.
+If interaction is disabled, the operation will be canceled instead.
+
+If recoveryMethod is not specified 'auto' will be used by default.
+
+The waitRecovery option supports the following values:
+
+@li 0: not supported.
+@li 1: do not show any progress information.
+@li 2: show detailed static progress information.
+@li 3: show detailed dynamic progress information using progress bars.
+
+By default, if the standard output on which the Shell is running refers to a
+terminal, the waitRecovery option has the value of 3. Otherwise, it has the
+value of 2.
+
+The cloneDonor option is used to override the automatic selection of a donor to
+be used when clone is selected as the recovery method. By default, a SECONDARY
+member will be chosen as donor. If no SECONDARY members are available the
+PRIMARY will be selected. The option accepts values in the format: 'host:port'.
+IPv6 addresses are not supported.
 )*");
 
 /**
@@ -272,38 +315,53 @@ void ReplicaSet::add_instance(const std::string &instance_def,
   std::string instance_label;
   bool dry_run = false;
   Async_replication_options ar_options(Async_replication_options::CREATE);
+  Clone_options clone_options(Clone_options::JOIN_REPLICASET);
   std::string recovery_method_str;
+  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
+  std::string clone_donor;
 
   // Parse and check user options
   Unpack_options(options)
       .unpack(&ar_options)
+      .unpack(&clone_options)
       .optional("label", &instance_label)
       .optional("dryRun", &dry_run)
       .optional("interactive", &interactive)
-      .optional("recoveryMethod", &recovery_method_str)
+      .optional("waitRecovery", &wait_recovery)
       .optional("timeout", &sync_timeout)
       .end();
 
-  Member_recovery_method recovery_method = Member_recovery_method::AUTO;
-  if (!recovery_method_str.empty()) {
-    if (shcore::str_caseeq(recovery_method_str, "incremental"))
-      recovery_method = Member_recovery_method::INCREMENTAL;
-    else if (shcore::str_caseeq(recovery_method_str, "auto"))
-      recovery_method = Member_recovery_method::AUTO;
-    else
-      throw shcore::Exception::argument_error(
-          "Invalid value for option recoveryMethod: " + recovery_method_str);
+  // Validate waitRecovery option UInteger [1, 3]
+  if (wait_recovery < 1 || wait_recovery > 3) {
+    throw shcore::Exception::argument_error(
+        "Invalid value '" + std::to_string(wait_recovery) +
+        "' for option 'waitRecovery'. It must be an integer in the range "
+        "[1, 3].");
   }
 
   if (sync_timeout < 0) {
     throw shcore::Exception::argument_error("timeout option must be >= 0");
   }
 
+  // Validate the connection options (in order to issue user friendly errors).
+  Connection_options cnx_opts = get_connection_options(instance_def);
+  validate_connection_options(cnx_opts);
+
+  // Init progress_style
+  Recovery_progress_style progress_style;
+
+  if (wait_recovery == 1)
+    progress_style = Recovery_progress_style::NOINFO;
+  else if (wait_recovery == 2)
+    progress_style = Recovery_progress_style::TEXTUAL;
+  else if (wait_recovery == 3)
+    progress_style = Recovery_progress_style::PROGRESSBAR;
+
   execute_with_pool(
       [&]() {
-        impl()->add_instance(instance_def, ar_options, instance_label,
-                             recovery_method, sync_timeout, interactive,
-                             dry_run);
+        impl()->add_instance(instance_def, ar_options, clone_options,
+                             instance_label, progress_style, sync_timeout,
+                             interactive, dry_run);
         return shcore::Value();
       },
       interactive);
@@ -314,6 +372,7 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_REJOININSTANCE, R"*(
 Rejoins an instance to the replicaset.
 
 @param instance host:port of the target instance to be rejoined.
+@param options Optional dictionary with options for the operation.
 
 @returns Nothing.
 
@@ -325,6 +384,74 @@ add a new instance.
 
 The PRIMARY of the replicaset must be reachable and available during this
 operation.
+
+<b>Pre-Requisites</b>
+
+The following pre-requisites are expected for instances rejoined to a
+replicaset. They will be automatically checked by <<<rejoinInstance>>>(), which
+will stop if any issues are found.
+
+If the selected recovery method is incremental:
+
+@li transaction set in the instance being rejoined must not contain
+transactions that don't exist in the PRIMARY
+@li transaction set in the instance being rejoined must not be missing
+transactions that have been purged from the binary log of the PRIMARY
+@li executed transactions set (GTID_EXECUTED) in the instance being
+rejoined must not be empty.
+
+If clone is available, the pre-requisites listed above can be overcome by using
+clone as the recovery method.
+
+<b>Options</b>
+
+The options dictionary may contain the following values:
+
+@li dryRun: if true, performs checks and logs changes that would be made, but
+does not execute them
+@li recoveryMethod: Preferred method of state recovery. May be auto, clone or
+incremental. Default is auto.
+@li waitRecovery: Integer value to indicate the recovery process verbosity
+level.
+@li cloneDonor: host:port of an existing replicaSet member to clone from.
+IPv6 addresses are not supported for this option.
+@li interactive: if true, enables interactive password and confirmation
+prompts. Defaults to the value of the useWizards shell option.
+@li timeout: timeout in seconds for transaction sync operations; 0 disables
+timeout and force the Shell to wait until the transaction sync finishes.
+Defaults to 0.
+
+The recoveryMethod option supports the following values:
+
+@li incremental: waits until the rejoining instance has applied missing
+transactions from the PRIMARY
+@li clone: uses MySQL clone to provision the instance, which completely
+replaces the state of the target instance with a full snapshot of another
+ReplicaSet member. Requires MySQL 8.0.17 or newer.
+@li auto: compares the transaction set of the instance with that of the
+PRIMARY to determine if incremental recovery is safe to be automatically
+chosen as the most appropriate recovery method.
+A prompt will be shown if not possible to safely determine a safe way forward.
+If interaction is disabled, the operation will be canceled instead.
+
+If recoveryMethod is not specified 'auto' will be used by default.
+
+The waitRecovery option supports the following values:
+
+@li 0: not supported.
+@li 1: do not show any progress information.
+@li 2: show detailed static progress information.
+@li 3: show detailed dynamic progress information using progress bars.
+
+By default, if the standard output on which the Shell is running refers to a
+terminal, the waitRecovery option has the value of 3. Otherwise, it has the
+value of 2.
+
+The cloneDonor option is used to override the automatic selection of a donor to
+be used when clone is selected as the recovery method. By default, a SECONDARY
+member will be chosen as donor. If no SECONDARY members are available the
+PRIMARY will be selected. The option accepts values in the format: 'host:port'.
+IPv6 addresses are not supported.
 )*");
 
 /**
@@ -333,23 +460,61 @@ operation.
  * $(REPLICASET_REJOININSTANCE)
  */
 #if DOXYGEN_JS
-Undefined ReplicaSet::rejoinInstance(String instance) {}
+Undefined ReplicaSet::rejoinInstance(String instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None ReplicaSet::rejoin_instance(str instance) {}
+None ReplicaSet::rejoin_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::rejoin_instance(const std::string &instance_def) {
+void ReplicaSet::rejoin_instance(const std::string &instance_def,
+                                 const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
   bool interactive = current_shell_options()->get().wizards;
+  bool dry_run = false;
+  int sync_timeout = 0;
+  Clone_options clone_options(Clone_options::JOIN_REPLICASET);
+  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
+  std::string clone_donor;
+
+  // Parse and check user options
+  Unpack_options(options)
+      .unpack(&clone_options)
+      .optional("dryRun", &dry_run)
+      .optional("interactive", &interactive)
+      .optional("waitRecovery", &wait_recovery)
+      .optional("timeout", &sync_timeout)
+      .end();
+
+  // Validate wait_recovery option UInteger [1, 3]
+  if (wait_recovery < 1 || wait_recovery > 3) {
+    throw shcore::Exception::argument_error(
+        "Invalid value '" + std::to_string(wait_recovery) +
+        "' for option 'waitRecovery'. It must be an integer in the range "
+        "[1, 3].");
+  }
+
+  if (sync_timeout < 0) {
+    throw shcore::Exception::argument_error("timeout option must be >= 0");
+  }
 
   // Validate the connection options (in order to issue user friendly errors).
   Connection_options cnx_opts = get_connection_options(instance_def);
   validate_connection_options(cnx_opts);
 
+  // Init progress_style
+  Recovery_progress_style progress_style;
+
+  if (wait_recovery == 1)
+    progress_style = Recovery_progress_style::NOINFO;
+  else if (wait_recovery == 2)
+    progress_style = Recovery_progress_style::TEXTUAL;
+  else if (wait_recovery == 3)
+    progress_style = Recovery_progress_style::PROGRESSBAR;
+
   execute_with_pool(
       [&]() {
-        impl()->rejoin_instance(instance_def);
+        impl()->rejoin_instance(instance_def, clone_options, progress_style,
+                                sync_timeout, interactive, dry_run);
         return shcore::Value();
       },
       interactive);

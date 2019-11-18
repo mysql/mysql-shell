@@ -28,11 +28,17 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
+
+std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
+    mysqlsh::dba::Instance *instance, Recovery_progress_style progress_style,
+    int restart_timeout_sec);
 
 namespace {
 
@@ -135,15 +141,17 @@ void do_monitor_gr_recovery_status(
       if (method == mysqlshdk::gr::Group_member_recovery_status::CLONE_ERROR) {
         throw_clone_recovery_error(*instance);
       } else if (progress_style != Recovery_progress_style::NOWAIT) {
-        monitor_clone_recovery(instance, progress_style, restart_timeout_sec);
+        Scoped_instance new_instance(monitor_clone_recovery(
+            instance, progress_style, restart_timeout_sec));
 
         // After a clone, a distributed recovery is done by GR, but there's a
         // time gap between clone finishing and the next recovery starting.
         // We can only be sure that the recovery is over if member_state
         // switches away from RECOVERING, so we need to poll again until we know
         // what's happening.
-        monitor_post_clone_gr_recovery_status(
-            instance, begin_time, progress_style, startup_timeout_sec);
+        monitor_post_clone_gr_recovery_status(new_instance.get(), begin_time,
+                                              progress_style,
+                                              startup_timeout_sec);
       } else {
         console->print_info(
             "State recovery will continue in background, you may monitor its "
@@ -170,7 +178,7 @@ void do_monitor_gr_recovery_status(
         }
       }
       console->print_info(
-          bold("Incremental distributed state recovery is now in progress."));
+          bold("Incremental state recovery is now in progress."));
       console->print_info();
       if (method ==
           mysqlshdk::gr::Group_member_recovery_status::DISTRIBUTED_ERROR) {
@@ -229,8 +237,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
   timeout_sec = adjust_timeout(timeout_sec, k_recovery_status_poll_interval_ms);
   bool reconnect = true;
 
-  mysqlsh::dba::Instance instance;
-  std::shared_ptr<mysqlshdk::db::ISession> session;
+  Scoped_instance instance;
 
   bool stop = false;
   shcore::Interrupt_handler intr([&stop]() {
@@ -240,8 +247,8 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
   while (timeout_sec > 0 && !stop) {
     if (reconnect) {
       try {
-        wait_server_startup(instance_def, &instance, timeout_sec,
-                            Recovery_progress_style::NOWAIT);
+        instance = Scoped_instance(wait_server_startup(
+            instance_def, timeout_sec, Recovery_progress_style::NOWAIT));
         reconnect = false;
       } catch (const shcore::Exception &e) {
         if (e.code() == SHERR_DBA_SERVER_RESTART_TIMEOUT) break;
@@ -252,7 +259,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
     if (!reconnect) {
       try {
         mysqlshdk::gr::Group_member_recovery_status rm =
-            mysqlshdk::gr::detect_recovery_status(instance, begin_time);
+            mysqlshdk::gr::detect_recovery_status(*instance, begin_time);
         if (rm != mysqlshdk::gr::Group_member_recovery_status::UNKNOWN) {
           // We keep trying until we can detect which method is in use
           return rm;
@@ -274,11 +281,70 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
     timeout_sec--;
   }
 
-  if (session) session->close();
-
   if (stop) throw stop_monitoring();
 
   return mysqlshdk::gr::Group_member_recovery_status::UNKNOWN;
+}
+
+std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const std::string &begin_time, int timeout_sec) {
+  // We wait in this loop until something shows up in PFS.clone_status
+  timeout_sec = adjust_timeout(timeout_sec, k_recovery_status_poll_interval_ms);
+
+  std::shared_ptr<mysqlsh::dba::Instance> out_instance;
+
+  bool reconnect = true;
+
+  bool stop = false;
+  shcore::Interrupt_handler intr([&stop]() {
+    stop = true;
+    return true;
+  });
+
+  while (timeout_sec > 0 && !stop) {
+    if (reconnect) {
+      try {
+        out_instance = wait_server_startup(instance_def, timeout_sec,
+                                           Recovery_progress_style::NOWAIT);
+        reconnect = false;
+      } catch (const shcore::Exception &e) {
+        if (e.code() == SHERR_DBA_SERVER_RESTART_TIMEOUT) break;
+        throw;
+      }
+    }
+
+    if (!reconnect) {
+      try {
+        mysqlshdk::mysql::Clone_status status =
+            mysqlshdk::mysql::check_clone_status(*out_instance, begin_time);
+
+        if (!status.state.empty() && !status.stages.empty()) {
+          // We keep trying until we can detect clone has started
+          break;
+        }
+        reconnect = false;
+      } catch (const mysqlshdk::db::Error &err) {
+        log_warning("Error during clone start check: %s", err.format().c_str());
+
+        if (mysqlshdk::db::is_mysql_client_error(err.code()) ||
+            err.code() == ER_SERVER_SHUTDOWN) {
+          // client errors are probably a lost connection, which may mean the
+          // instance is restarting
+          reconnect = true;
+        } else {
+          throw;
+        }
+      }
+    }
+
+    shcore::sleep_ms(k_recovery_status_poll_interval_ms);
+    timeout_sec--;
+  }
+
+  if (stop) throw stop_monitoring();
+
+  return out_instance;
 }
 
 void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
@@ -321,9 +387,10 @@ void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
           show_distributed_recovery_error(instance, last_error_time, &channel);
 
       if (first) {
-        console->print_note("'" + instance.descr() +
-                            "' is being recovered from '" + channel.host + ":" +
-                            std::to_string(channel.port) + "'");
+        console->print_note(
+            "'" + instance.descr() + "' is being recovered from '" +
+            mysqlshdk::utils::make_host_and_port(channel.host, channel.port) +
+            "'");
         first = false;
       }
     }
@@ -338,11 +405,31 @@ void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
   console->print_info();
 }
 
-void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
-                            Recovery_progress_style progress_style,
-                            int restart_timeout_sec) {
+void monitor_clone_instance(
+    const mysqlshdk::db::Connection_options &instance_def,
+    const std::string &begin_time, Recovery_progress_style progress_style,
+    int startup_timeout_sec, int restart_timeout_sec) {
+  auto console = current_console();
+
+  console->print_info(
+      "Waiting for clone process of the new member to complete. "
+      "Press ^C to abort the operation.");
+
+  log_info("Waiting for clone process to start at %s...",
+           instance_def.uri_endpoint().c_str());
+
+  Scoped_instance instance(
+      wait_clone_start(instance_def, begin_time, startup_timeout_sec));
+
+  monitor_clone_recovery(instance.get(), progress_style, restart_timeout_sec);
+}
+
+std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
+    mysqlsh::dba::Instance *instance, Recovery_progress_style progress_style,
+    int restart_timeout_sec) {
   auto console = current_console();
   bool wait_restart = false;
+  bool ignore_cancel = false;
   Clone_progress progress(progress_style);
 
   bool stop = false;
@@ -365,6 +452,10 @@ void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
       }
     } catch (const mysqlshdk::db::Error &e) {
       if (e.code() == ER_SERVER_SHUTDOWN) {
+        // From the very same moment the instance starts the shutdown, aborting
+        // the process with ctrl-c must be disabled
+        ignore_cancel = true;
+
         progress.on_restart();
 
         console->print_info();
@@ -399,19 +490,24 @@ void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
 
     shcore::sleep_ms(k_clone_status_poll_interval_ms);
   }
-  if (stop) throw stop_monitoring();
+  if (stop && !ignore_cancel) throw stop_monitoring();
+
+  std::shared_ptr<mysqlsh::dba::Instance> new_instance;
 
   if (wait_restart) {
+    ignore_cancel = true;
+
     // Wait for the server to start again
-    wait_server_startup(instance->get_connection_options(), instance,
-                        restart_timeout_sec, progress_style);
+    new_instance = wait_server_startup(instance->get_connection_options(),
+                                       restart_timeout_sec, progress_style);
+
     console->print_info("* " + instance->get_canonical_address() +
                         " has restarted, waiting for clone to finish...");
   }
   // Wait for clone recovery to finish
   while (!stop) {
     mysqlshdk::mysql::Clone_status status;
-    status = mysqlshdk::mysql::check_clone_status(*instance);
+    status = mysqlshdk::mysql::check_clone_status(*new_instance);
 
     try {
       progress.update(status);
@@ -452,7 +548,11 @@ void monitor_clone_recovery(mysqlsh::dba::Instance *instance,
     }
     shcore::sleep_ms(k_clone_status_poll_interval_ms);
   }
-  if (stop) throw stop_monitoring();
+  if (stop && !ignore_cancel) throw stop_monitoring();
+
+  // TODO(miguel/alfredo): refactor this monitoring code to pass the less
+  // possible pointers around
+  return new_instance;
 }
 
 void monitor_post_clone_gr_recovery_status(

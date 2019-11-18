@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/async_replication_options.h"
 
 #include <list>
+#include <string>
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -125,6 +126,9 @@ void unfence_instance(mysqlshdk::mysql::IInstance *instance);
 
 void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    bool reset_credentials, bool dry_run);
+
+void stop_channel(mysqlshdk::mysql::IInstance *instance,
+                  const std::string &channel_name = "", bool dry_run = false);
 
 }  // namespace dba
 }  // namespace mysqlsh

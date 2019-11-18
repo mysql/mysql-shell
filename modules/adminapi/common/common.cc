@@ -31,11 +31,13 @@
 #include <string>
 #include <utility>
 
+#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -52,6 +54,7 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
@@ -254,6 +257,7 @@ std::pair<int, int> find_cluster_admin_accounts(
 }
 
 namespace {
+using mysqlshdk::utils::Version;
 
 /*
  * Validate if the user specified for being the cluster admin has all of the
@@ -268,21 +272,21 @@ namespace {
 // BUG#30339460: SYSTEM_VARIABLES_ADMIN and PERSIST_RO_VARIABLES_ADMIN
 //               privileges needed to change Global system variables for 8.0
 //               servers (not for 5.7).
-const std::set<std::string> k_global_privileges{"RELOAD",
-                                                "SHUTDOWN",
-                                                "PROCESS",
-                                                "FILE",
-                                                "SELECT",
-                                                "SUPER",
-                                                "REPLICATION SLAVE",
-                                                "REPLICATION CLIENT",
-                                                "CREATE USER",
-                                                "SYSTEM_VARIABLES_ADMIN",
-                                                "PERSIST_RO_VARIABLES_ADMIN"};
-const std::set<std::string> k_global_privileges_57{
-    "RELOAD",     "SHUTDOWN", "PROCESS",           "FILE",
-    "SELECT",     "SUPER",    "REPLICATION SLAVE", "REPLICATION CLIENT",
-    "CREATE USER"};
+const std::vector<std::pair<std::string, Version>> k_global_privileges{
+    {"RELOAD", Version()},
+    {"SHUTDOWN", Version()},
+    {"PROCESS", Version()},
+    {"FILE", Version()},
+    {"SELECT", Version()},
+    {"SUPER", Version()},
+    {"REPLICATION SLAVE", Version()},
+    {"REPLICATION CLIENT", Version()},
+    {"CREATE USER", Version()},
+    {"SYSTEM_VARIABLES_ADMIN", Version(8, 0, 0)},
+    {"PERSIST_RO_VARIABLES_ADMIN", Version(8, 0, 0)},
+    {"EXECUTE", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version},
+    {"BACKUP_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version},
+    {"CLONE_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version}};
 
 // Schema privileges needed on the metadata schema
 // NOTE: SELECT *.* required (BUG#29743910), thus no longer needed here.
@@ -347,6 +351,19 @@ const std::map<std::string, std::map<std::string, std::set<std::string>>>
 //             {"threads", {"SELECT"}},  // used in code
 //         }}};
 
+std::set<std::string> global_privileges_for_server_version(
+    const Version &version) {
+  std::set<std::string> privs;
+
+  for (const auto &priv : k_global_privileges) {
+    if (priv.second.get_major() == 0 || version >= priv.second) {
+      privs.insert(priv.first);
+    }
+  }
+
+  return privs;
+}
+
 }  // namespace
 
 /** Check that the provided account has privileges to manage a cluster.
@@ -376,9 +393,8 @@ bool validate_cluster_admin_user_privileges(
 
   // Check global privileges.
   const auto global_privileges =
-      (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11))
-          ? k_global_privileges
-          : k_global_privileges_57;
+      global_privileges_for_server_version(instance.get_version());
+
   auto global = user_privileges.validate(global_privileges);
 
   if (global.has_missing_privileges()) {
@@ -433,21 +449,14 @@ std::string create_grant(const std::string &username,
 }
 
 std::vector<std::string> create_grants(
-    const std::string &username, bool clone_available,
+    const std::string &username,
     const mysqlshdk::utils::Version &instance_version) {
   std::vector<std::string> grants;
 
   // global privileges
   const auto global_privileges =
-      (instance_version >= mysqlshdk::utils::Version(8, 0, 11))
-          ? k_global_privileges
-          : k_global_privileges_57;
+      global_privileges_for_server_version(instance_version);
   grants.emplace_back(create_grant(username, global_privileges));
-
-  if (clone_available) {
-    const std::set<std::string> clone_privs{"BACKUP_ADMIN"};
-    grants.emplace_back(create_grant(username, clone_privs));
-  }
 
   // privileges for schemas
   for (const auto &schema : k_schema_grants)
@@ -476,13 +485,6 @@ void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
   // If the current user doesn't have the right privileges to create a cluster
   // admin, one of the SQL statements below will throw.
 
-  // Check if BACKUP_ADMIN should be added
-  bool add_backup_admin =
-      (instance.get_version() >=
-       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
-          ? true
-          : false;
-
   instance.execute("SET sql_log_bin = 0");
   try {
     log_info("Creating account %s", username.c_str());
@@ -490,8 +492,7 @@ void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
     instance.executef("CREATE USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", user,
                       host, password);
     // Give the grants
-    for (const auto &grant :
-         create_grants(username, add_backup_admin, instance.get_version()))
+    for (const auto &grant : create_grants(username, instance.get_version()))
       instance.execute(grant);
 
     instance.execute("SET sql_log_bin = 1");
@@ -2156,16 +2157,26 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
 
 bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
-                            const std::string &channel_name, int timeout) {
+                            const std::string &channel_name, int timeout,
+                            bool cancelable) {
   // The GTID wait will not abort if an error occurs, so calling it without a
   // timeout will just freeze forever. To prevent that, we call the wait with
   // smaller incremental timeouts and wait for errors during that.
 
   // wait for at most 10s at a time
   int incremental_timeout = std::min(timeout, 10);
-  if (incremental_timeout == 0) incremental_timeout = 10;
+  if (incremental_timeout == 0) incremental_timeout = 2;
 
   int time_elapsed = 0;
+
+  bool stop = false;
+
+  shcore::Interrupt_handler intr(
+      [&stop]() {
+        stop = true;
+        return true;
+      },
+      !cancelable);
 
   bool sync_res;
   do {
@@ -2183,7 +2194,9 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       // wait succeeded, get out of here
       break;
     }
-  } while (timeout == 0 || time_elapsed < timeout);
+  } while ((timeout == 0 || time_elapsed < timeout) && !stop);
+
+  if (stop) throw cancel_sync();
 
   return sync_res;
 }

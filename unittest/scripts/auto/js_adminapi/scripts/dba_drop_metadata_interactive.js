@@ -74,7 +74,14 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
 var rset = dba.createReplicaSet("myrs");
-testutil.expectPrompt("Please confirm whether the GTID set at the PRIMARY can be assumed to contain its complete transaction history and use incremental recovery through replication. [I]ncremental/[A]bort (default Abort): ", "i")
+
+//@<> Add instance to RS {VER(>=8.0.17)}
+testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone)", "i")
+rset.addInstance(__sandbox_uri2);
+EXPECT_STDERR_EMPTY()
+
+//@<> Add instance to RS {VER(>= 8.0.0) && VER(< 8.0.17)}
+testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery):", "i")
 rset.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY()
 

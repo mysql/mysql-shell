@@ -35,6 +35,9 @@ namespace mysql {
 
 constexpr const char k_mysql_clone_plugin_name[] = "clone";
 
+// # of seconds to wait until server finished restarting during recovery
+constexpr const int k_server_recovery_restart_timeout = 60;
+
 // The 1st version where the remote clone plugin became available
 const mysqlshdk::utils::Version k_mysql_clone_plugin_initial_version("8.0.17");
 
@@ -91,6 +94,31 @@ bool is_clone_available(const mysqlshdk::mysql::IInstance &instance);
  * @return The original value of group_replication_clone_threshold
  */
 int64_t force_clone(const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Performs a clone of an instance using the MySQL Clone Plugin
+ *
+ * @param recipient Instance object of the target instance (recipient).
+ * @param clone_donor_ops Connections_options object with the connection
+ * information of the donor instance
+ * @param clone_recovery_account Auth_options object with the clone recovery
+ * account
+ *
+ * @return nothing
+ */
+void do_clone(const mysqlshdk::mysql::IInstance &recipient,
+              const mysqlshdk::db::Connection_options &clone_donor_opts,
+              const mysqlshdk::mysql::Auth_options &clone_recovery_account);
+
+/**
+ * Cancels the on-going execution of a clone of an instance using the MySQL
+ * Clone Plugin
+ *
+ * @param recipient Instance object of the target instance (recipient)
+ *
+ * @return nothing
+ */
+void cancel_clone(const mysqlshdk::mysql::IInstance &recipient);
 
 constexpr const char *k_CLONE_STATE_NONE = "Not Started";
 constexpr const char *k_CLONE_STATE_STARTED = "In Progress";
@@ -152,7 +180,8 @@ struct Clone_status {
  * This function assumes the CLONE was started by GR, which means we don't
  * have details about clone errors.
  */
-Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance);
+Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
+                                const std::string &start_time = "");
 
 }  // namespace mysql
 }  // namespace mysqlshdk

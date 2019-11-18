@@ -22,14 +22,22 @@
  */
 
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+
 #include <mysql.h>
 #include <mysqld_error.h>
+#include <future>
+#include <thread>
+#include <utility>
+
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
+#include "modules/adminapi/common/gtid_validations.h"
+#include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -38,12 +46,15 @@
 #include "modules/adminapi/replica_set/replica_set_status.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
@@ -54,6 +65,9 @@ constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs";
 constexpr const char *k_error_connecting_to_instance =
     "Unable to connect to the target instance %s. Please verify the connection "
     "settings, make sure the instance is available and try again.";
+
+// # of seconds to wait until clone starts
+constexpr const int k_clone_start_timeout = 30;
 
 namespace {
 std::unique_ptr<topology::Server_global_topology> discover_unmanaged_topology(
@@ -115,7 +129,8 @@ get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
     // slaves that have stopped replicating, so we need to double-check that
     // the channel is still active to prevent false positives.
 
-    std::string endpoint = ch.host + ":" + std::to_string(ch.port);
+    std::string endpoint =
+        mysqlshdk::utils::make_host_and_port(ch.host, ch.port);
     std::string channel_name;
     bool ghost_slave = true;
 
@@ -161,17 +176,20 @@ void validate_instance_is_standalone(Instance *target_server,
     console->print_error("Extraneous replication channels found at " +
                          target_server->descr() + ":");
     for (const auto &ch : channels) {
-      console->print_info("- channel '" + ch.channel_name + "' from " +
-                          ch.host + ":" + std::to_string(ch.port));
+      console->print_info(
+          "- channel '" + ch.channel_name + "' from " +
+          mysqlshdk::utils::make_host_and_port(ch.host, ch.port));
     }
     for (const auto &sl : slaves) {
       if (sl.second.empty())
-        console->print_info("- " + sl.first.host + ":" +
-                            std::to_string(sl.first.port) +
-                            " replicates from this instance");
+        console->print_info(
+            "- " +
+            mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
+            " replicates from this instance");
       else
         console->print_info(
-            "- " + sl.first.host + ":" + std::to_string(sl.first.port) +
+            "- " +
+            mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
             " replicates from this instance (channel " + sl.second + ")");
     }
     console->print_info();
@@ -220,6 +238,62 @@ void validate_adopted_topology(Global_topology_manager *topology,
   console->print_info();
 }
 
+void create_clone_recovery_user_nobinlog(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::mysql::Auth_options &donor_account, bool dry_run) {
+  log_info("Creating clone recovery user %s@%% at %s%s.",
+           donor_account.user.c_str(), target_instance->descr().c_str(),
+           dry_run ? " (dryRun)" : "");
+
+  if (!dry_run) {
+    try {
+      auto console = mysqlsh::current_console();
+
+      mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+      // Create recovery user for clone equal to the donor user
+      mysqlshdk::mysql::create_user_with_password(
+          *target_instance, donor_account.user, {"%"},
+          {std::make_tuple("CLONE_ADMIN, EXECUTE", "*.*", false),
+           std::make_tuple("SELECT", "performance_schema.*", false)},
+          *donor_account.password);
+    } catch (const mysqlshdk::db::Error &e) {
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.what(), e.code(), e.sqlstate());
+    }
+  }
+}
+
+void drop_clone_recovery_user_nobinlog(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::mysql::Auth_options &account) {
+  log_info("Dropping account %s@%% at %s", account.user.c_str(),
+           target_instance->descr().c_str());
+
+  try {
+    mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+    target_instance->drop_user(account.user, "%", true);
+  } catch (const mysqlshdk::db::Error &e) {
+    auto console = current_console();
+    console->print_warning(shcore::str_format(
+        "%s: Error dropping account %s@%%.", target_instance->descr().c_str(),
+        account.user.c_str()));
+    // ignore the error and move on
+  }
+}
+
+void revert_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
+                           const mysqlshdk::mysql::Auth_options &clone_user) {
+  // NOTE: disable binlog to avoid messing up with the GTID
+  drop_clone_recovery_user_nobinlog(recipient, clone_user);
+
+  // Reset clone settings
+  recipient->set_sysvar_default("clone_valid_donor_list");
+
+  // Uninstall the clone plugin
+  log_info("Uninstalling the clone plugin on recipient '%s'.",
+           recipient->get_canonical_address().c_str());
+  mysqlshdk::mysql::uninstall_clone_plugin(*recipient, nullptr);
+}
 }  // namespace
 
 Replica_set_impl::Replica_set_impl(
@@ -437,156 +511,10 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
   }
 }
 
-namespace {
-
-void check_gtid_consistency_and_recoverability(
-    const Replica_set_impl *replicaset,
-    mysqlshdk::mysql::IInstance *target_instance,
-    Member_recovery_method recovery_method, bool *out_recovery_possible,
-    bool *out_recovery_safe) {
-  auto console = current_console();
-
-  std::string errant_gtid_set;
-
-  // Get the gtid state in regards to the cluster_session
-  mysqlshdk::mysql::Replica_gtid_state state =
-      mysqlshdk::mysql::check_replica_gtid_state(
-          *replicaset->get_target_server(), *target_instance, nullptr,
-          &errant_gtid_set);
-
-  switch (state) {
-    case mysqlshdk::mysql::Replica_gtid_state::NEW:
-      console->println();
-      if (replicaset->get_gtid_set_is_complete()) {
-        console->print_note(
-            "The target instance '" + target_instance->descr() +
-            "' has not been pre-provisioned (GTID set is empty), but the "
-            "cluster was configured to assume that replication can completely "
-            "recover the state of new instances.");
-
-        *out_recovery_possible = true;
-        *out_recovery_safe = true;
-      } else {
-        console->print_note(
-            "The target instance '" + target_instance->descr() +
-            "' has not been pre-provisioned (GTID set is empty). The Shell is"
-            " unable to decide whether replication can completely recover "
-            "its state.");
-
-        *out_recovery_possible = true;
-        *out_recovery_safe = false;
-      }
-
-      if (recovery_method == Member_recovery_method::AUTO) {
-        console->print_info(mysqlshdk::textui::format_markup_text(
-            {"It should be safe to rely on replication to incrementally "
-             "recover the state of the new instance if you are sure all "
-             "updates ever executed in the cluster were done with GTIDs "
-             "enabled, there are no purged transactions and the new "
-             "instance contains the same GTID set as the cluster or a subset "
-             "of it. To use this method by default, set the 'recoveryMethod' "
-             "option to 'incremental'."},
-            80));
-      }
-
-      console->print_info();
-      break;
-
-    case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
-      console->println();
-      console->print_warning(
-          "A GTID set check of the MySQL instance at '" +
-          target_instance->descr() +
-          "' determined that it contains transactions that "
-          "do not originate from the replicaset, which must be "
-          "discarded before it can join the replicaset.");
-
-      console->print_info();
-      console->print_info(target_instance->descr() +
-                          " has the following errant GTIDs that do not exist "
-                          "in the replicaset:\n" +
-                          errant_gtid_set);
-      console->print_info();
-
-      *out_recovery_possible = false;
-      *out_recovery_safe = false;
-      break;
-
-    case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
-      console->print_note("A GTID set check of the MySQL instance at '" +
-                          target_instance->descr() +
-                          "' determined that it is missing transactions that "
-                          "were purged from the PRIMARY.");
-
-      *out_recovery_possible = false;
-      *out_recovery_safe = false;
-      break;
-
-    case mysqlshdk::mysql::Replica_gtid_state::RECOVERABLE:
-    case mysqlshdk::mysql::Replica_gtid_state::IDENTICAL:
-      // This is the only case where it's safe to assume that the instance can
-      // be safely recovered through binlog.
-      *out_recovery_possible = true;
-      *out_recovery_safe = true;
-      break;
-
-    default:
-      throw std::logic_error("Internal error");
-  }
-}
-
-Member_recovery_method validate_instance_recovery(
-    Replica_set_impl *rs, Instance *target,
-    Member_recovery_method recovery_method, bool interactive) {
-  // GTID consistency checks
-  bool recovery_possible;
-  bool recovery_safe;
-  auto console = current_console();
-
-  check_gtid_consistency_and_recoverability(rs, target, recovery_method,
-                                            &recovery_possible, &recovery_safe);
-
-  if (recovery_method == Member_recovery_method::INCREMENTAL) {
-    if (recovery_possible) {
-      console->print_info(
-          "Incremental state recovery selected through the "
-          "recoveryMethod option");
-    } else {
-      throw shcore::Exception::runtime_error(
-          "Cannot use recoveryMethod=incremental option because the GTID state "
-          "is not compatible or cannot be recovered.");
-    }
-  } else {
-    if (!recovery_possible || !recovery_safe) {
-      if (!recovery_possible)
-        console->print_info(
-            "The transaction set in " + target->descr() +
-            " cannot catch up to the rest of the "
-            "replicaset unless it is provisioned from an existing member.");
-
-      if (recovery_possible && interactive) {
-        if (console->confirm(
-                "Please confirm whether the GTID set at the PRIMARY can be "
-                "assumed to contain its complete transaction history and use "
-                "incremental recovery through replication.",
-                mysqlsh::Prompt_answer::NO, "&Incremental",
-                "&Abort") == mysqlsh::Prompt_answer::NO)
-          throw shcore::cancelled("Cancelled");
-      } else {
-        throw shcore::Exception("Instance provisioning required",
-                                SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
-      }
-    }
-  }
-  return recovery_method;
-}
-
-}  // namespace
-
 std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
-    Global_topology_manager *topology, mysqlshdk::mysql::IInstance * /*master*/,
-    const std::string &target_def, const Async_replication_options &ar_options,
-    Member_recovery_method recovery_method, bool interactive) {
+    Global_topology_manager *topology, const std::string &target_def,
+    const Async_replication_options &ar_options, Clone_options *clone_options,
+    bool interactive) {
   auto console = current_console();
 
   auto validate_not_managed = [this](const std::shared_ptr<Instance> &target) {
@@ -669,6 +597,7 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
     }
   };
 
+  log_debug("Connecting to target instance: %s", target_def.c_str());
   Scoped_instance target;
   try {
     target = Scoped_instance(connect_target_instance(target_def));
@@ -678,6 +607,9 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
         Connection_options(target_def).uri_endpoint().c_str()));
     throw;
   }
+
+  // Validate the Clone options.
+  clone_options->check_option_values(target->get_version());
 
   // Check version early on, so that other checks don't need to care about it
   validate_version(*target);
@@ -691,25 +623,36 @@ std::shared_ptr<Instance> Replica_set_impl::validate_add_instance(
 
   validate_unique_server_id(target.get(), topology);
 
-  console->print_info("** Checking transaction state of the instance...");
-  recovery_method = validate_instance_recovery(this, target.get(),
-                                               recovery_method, interactive);
-
   // check consistency of the global topology
+  console->print_info();
   topology->validate_add_replica(nullptr, target.get(), ar_options);
 
+  std::shared_ptr<Instance> donor_instance = get_target_server();
+
+  console->print_info();
+  console->print_info("* Checking transaction state of the instance...");
+
+  clone_options->recovery_method = validate_instance_recovery(
+      Member_op_action::ADD_INSTANCE, donor_instance.get(), target.get(),
+      *clone_options->recovery_method, get_gtid_set_is_complete(), interactive);
+
+  DBUG_EXECUTE_IF("dba_abort_async_add_replica",
+                  { throw std::logic_error("debug"); });
+
   target->retain();
-  return target.ptr;
+  return target;
 }
 
 void Replica_set_impl::add_instance(
     const std::string &instance_def,
     const Async_replication_options &ar_options_,
-    const mysqlshdk::null_string &label, Member_recovery_method recovery_method,
-    int sync_timeout, bool interactive, bool dry_run) {
+    const Clone_options &clone_options_, const mysqlshdk::null_string &label,
+    Recovery_progress_style progress_style, int sync_timeout, bool interactive,
+    bool dry_run) {
   check_preconditions("addInstance");
 
   Async_replication_options ar_options(ar_options_);
+  Clone_options clone_options(clone_options_);
 
   // Testing hack to set a replication delay. This should be removed
   // if/when a replication delay option is ever added.
@@ -727,31 +670,42 @@ void Replica_set_impl::add_instance(
   console->println();
 
   console->print_info("* Performing validation checks");
-  Scoped_instance target_server(
-      validate_add_instance(topology.get(), active_master, instance_def,
-                            ar_options, recovery_method, interactive));
-  console->print_info();
+  Scoped_instance target_instance(validate_add_instance(
+      topology.get(), instance_def, ar_options, &clone_options, interactive));
 
   console->print_info("* Updating topology");
+
+  // Create the recovery account
   ar_options.repl_credentials = create_replication_user(
-      target_server.get(), k_async_cluster_user_name, dry_run);
+      target_instance.get(), k_async_cluster_user_name, dry_run);
 
   try {
-    // Update the global topology first, which means setting replication channel
-    // to the primary in the master replica, so we can know if that works.
-    // Async replication between DCs has many things
-    // that can go wrong (bad address, private vs public address, network issue,
-    // account issues, firewalls etc), so we do this first to keep an eventual
-    // rollback to a minimum while retries would also be simpler to handle.
+    if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
+      // Do and monitor the clone
+      handle_clone(target_instance, clone_options, ar_options, progress_style,
+                   sync_timeout, dry_run);
 
-    async_add_replica(active_master, target_server.get(), ar_options, dry_run);
+      // When clone is used, the target instance will restart and all
+      // connections are closed so we need to test if the connection to the
+      // target instance and MD are closed and re-open if necessary
+      refresh_target_connections(target_instance.get());
+    }
+    // Update the global topology first, which means setting replication
+    // channel to the primary in the master replica, so we can know if that
+    // works. Async replication between DCs has many things that can go wrong
+    // (bad address, private vs public address, network issue, account issues,
+    // firewalls etc), so we do this first to keep an eventual rollback to a
+    // minimum while retries would also be simpler to handle.
+
+    async_add_replica(active_master, target_instance.get(), ar_options,
+                      dry_run);
 
     console->print_info(
         "** Waiting for new instance to synchronize with PRIMARY...");
     if (!dry_run) {
       try {
         // Sync and check whether the slave started OK
-        sync_transactions(*target_server, k_async_cluster_channel_name,
+        sync_transactions(*target_instance, k_async_cluster_channel_name,
                           sync_timeout);
       } catch (const shcore::Exception &e) {
         if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
@@ -759,6 +713,9 @@ void Replica_set_impl::add_instance(
               "You may increase or disable the transaction sync timeout with "
               "the timeout option for <<<addInstance>>>()");
         }
+        throw;
+      } catch (const cancel_sync &) {
+        // Throw it up
         throw;
       }
     }
@@ -768,31 +725,31 @@ void Replica_set_impl::add_instance(
                                 topology->topology()->get_primary_master_node())
                                 ->instance_id;
 
-    log_info("Recording metadata for %s", target_server->descr().c_str());
+    log_info("Recording metadata for %s", target_instance->descr().c_str());
     if (!dry_run)
-      manage_instance(target_server.get(), *label, master_id, false);
+      manage_instance(target_instance.get(), *label, master_id, false);
+  } catch (const cancel_sync &) {
+    if (!dry_run) {
+      revert_topology_changes(target_instance.get(), true, false);
+    }
+
+    console->print_info();
+    console->print_info("Changes successfully reverted.");
+
+    return;
   } catch (const std::exception &e) {
     console->print_error("Error adding instance to replicaset: " +
                          format_active_exception());
     log_warning("While adding async instance: %s", e.what());
 
     if (!dry_run) {
-      // revert changes by deleting the account we created for it and
-      // clearing replication
-      console->print_info("Reverting topology changes...");
-      try {
-        drop_replication_user(target_server.get(), k_async_cluster_user_name);
-
-        async_remove_replica(target_server.get(), dry_run);
-      } catch (const std::exception &exc) {
-        console->print_error(
-            std::string("Error while reverting replication changes: ") +
-            format_active_exception());
-        log_warning("While reverting replication changes: %s", exc.what());
-      }
+      revert_topology_changes(target_instance.get(), true, false);
     }
 
-    console->print_error(target_server->descr() +
+    console->print_info();
+    console->print_info("Changes successfully reverted.");
+
+    console->print_error(target_instance->descr() +
                          " could not be added to the replicaset");
 
     throw;
@@ -801,13 +758,13 @@ void Replica_set_impl::add_instance(
   console->print_info(shcore::str_format(
       "The instance '%s' was added to the replicaset and is replicating "
       "from %s.\n",
-      target_server->descr().c_str(),
+      target_instance->descr().c_str(),
       active_master->get_canonical_address().c_str()));
 
   // Wait for the new replica to catch up metadata state
   // Errors after this point don't rollback.
-  if (target_server && !dry_run && sync_timeout >= 0) {
-    sync_transactions(*target_server, k_async_cluster_channel_name,
+  if (target_instance && !dry_run && sync_timeout >= 0) {
+    sync_transactions(*target_instance, k_async_cluster_channel_name,
                       sync_timeout);
   }
 
@@ -817,10 +774,25 @@ void Replica_set_impl::add_instance(
   }
 }
 
-void Replica_set_impl::validate_rejoin_instance(
-    Global_topology_manager *topology_mng, mysqlshdk::mysql::IInstance *primary,
-    Instance *target, Instance_metadata *out_instance_md) {
+std::shared_ptr<Instance> Replica_set_impl::validate_rejoin_instance(
+    Global_topology_manager *topology_mng, const std::string &target_def,
+    Clone_options *clone_options, Instance_metadata *out_instance_md,
+    bool interactive) {
   auto console = current_console();
+
+  log_debug("Connecting to target instance: %s", target_def.c_str());
+  Scoped_instance target;
+  try {
+    target = Scoped_instance(connect_target_instance(target_def));
+  } catch (const shcore::Exception &e) {
+    current_console()->print_error(shcore::str_format(
+        k_error_connecting_to_instance,
+        Connection_options(target_def).uri_endpoint().c_str()));
+    throw;
+  }
+
+  // Validate the Clone options.
+  clone_options->check_option_values(target->get_version());
 
   // Check if the target instance belongs to the replicaset (MD).
   std::string target_address = target->get_canonical_address();
@@ -840,30 +812,35 @@ void Replica_set_impl::validate_rejoin_instance(
     throw;
   }
 
-  // Check instance status and consistency with the global topology (no errant
-  // transaction and no missing GTID purged).
-  topology_mng->validate_rejoin_replica(primary, target);
+  // Check instance status and consistency with the global topology
+  topology_mng->validate_rejoin_replica(target.get());
+
+  std::shared_ptr<Instance> donor_instance = get_target_server();
+
+  console->print_info("** Checking transaction state of the instance...");
+
+  clone_options->recovery_method = validate_instance_recovery(
+      Member_op_action::REJOIN_INSTANCE, donor_instance.get(), target.get(),
+      *clone_options->recovery_method, get_gtid_set_is_complete(), interactive);
+
+  target->retain();
+  return target.ptr;
 }
 
-void Replica_set_impl::rejoin_instance(const std::string &instance_def) {
+void Replica_set_impl::rejoin_instance(const std::string &instance_def,
+                                       const Clone_options &clone_options_,
+                                       Recovery_progress_style progress_style,
+                                       int sync_timeout, bool interactive,
+                                       bool dry_run) {
   log_debug("Checking rejoin instance preconditions.");
   check_preconditions("rejoinInstance");
 
+  Clone_options clone_options(clone_options_);
+
   auto console = current_console();
 
-  log_debug("Connecting to target instance.");
-  Scoped_instance target_instance;
-  try {
-    target_instance = Scoped_instance(connect_target_instance(instance_def));
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(instance_def).uri_endpoint().c_str()));
-    throw;
-  }
-
   log_debug("Setting up topology manager.");
-  auto topology_mng = setup_topology_manager();
+  auto topology_mng = setup_topology_manager(nullptr, true);
 
   log_debug("Get current PRIMARY and ensure it is healthy (updatable).");
   auto active_primary = acquire_primary();
@@ -871,34 +848,102 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def) {
 
   console->print_info("* Validating instance...");
   Instance_metadata instance_md;
-  validate_rejoin_instance(topology_mng.get(), active_primary,
-                           target_instance.get(), &instance_md);
+
+  Scoped_instance target_instance(
+      validate_rejoin_instance(topology_mng.get(), instance_def, &clone_options,
+                               &instance_md, interactive));
 
   // Update target instance replication settings and restart replication.
   console->print_info("* Rejoining instance to replicaset...");
+
+  DBUG_EXECUTE_IF("dba_abort_async_rejoin_replica",
+                  { throw std::logic_error("debug"); });
 
   // NOTE: Replication user needs to be refreshed in case we are rejoining the
   // old PRIMARY from the replicaset.
   Async_replication_options ar_options;
   ar_options.repl_credentials = refresh_replication_user(
-      target_instance.get(), k_async_cluster_user_name, false);
+      target_instance.get(), k_async_cluster_user_name, dry_run);
 
-  async_rejoin_replica(active_primary, target_instance.get(), ar_options);
+  try {
+    if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
+      // Do and monitor the clone
+      handle_clone(target_instance, clone_options, ar_options, progress_style,
+                   sync_timeout, dry_run);
 
-  console->print_info("* Updating the Metadata...");
-  // Set new instance information and store in MD.
-  instance_md.master_id =
-      static_cast<const topology::Server *>(
-          topology_mng->topology()->get_primary_master_node())
-          ->instance_id;
-  instance_md.primary_master = false;
-  m_metadata_storage->record_async_member_rejoined(instance_md);
+      // When clone is used, the target instance will restart and all
+      // connections are closed so we need to test if the connection to the
+      // target instance and MD are closed and re-open if necessary
+      refresh_target_connections(target_instance.get());
+    }
+
+    if (!dry_run) {
+      async_rejoin_replica(active_primary, target_instance.get(), ar_options);
+
+      console->print_info(
+          "** Waiting for rejoined instance to synchronize with PRIMARY...");
+
+      try {
+        // Sync and check whether the slave started OK
+        sync_transactions(*target_instance, k_async_cluster_channel_name,
+                          sync_timeout);
+      } catch (const cancel_sync &) {
+        log_info("Operating canceled during transactions sync at %s.",
+                 target_instance->descr().c_str());
+        // Throw it up
+        throw;
+      } catch (const shcore::Exception &e) {
+        if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
+          console->print_info(
+              "You may increase or disable the transaction sync timeout with "
+              "the timeout option for <<<rejoinInstance>>>()");
+        }
+        throw e;
+      }
+    }
+
+    console->print_info();
+
+    console->print_info("* Updating the Metadata...");
+    // Set new instance information and store in MD.
+    if (!dry_run) {
+      instance_md.master_id =
+          static_cast<const topology::Server *>(
+              topology_mng->topology()->get_primary_master_node())
+              ->instance_id;
+      instance_md.primary_master = false;
+      m_metadata_storage->record_async_member_rejoined(instance_md);
+    }
+  } catch (const cancel_sync &) {
+    stop_channel(target_instance.get());
+
+    console->print_info();
+    console->print_info("Changes successfully reverted.");
+
+    return;
+  } catch (const std::exception &e) {
+    console->print_error("Error rejoining instance to replicaset: " +
+                         format_active_exception());
+    log_warning("While rejoining async instance: %s", e.what());
+
+    stop_channel(target_instance.get());
+
+    console->print_error(target_instance->descr() +
+                         " could not be rejoined to the replicaset");
+
+    throw;
+  }
 
   console->print_info(shcore::str_format(
       "The instance '%s' rejoined the replicaset and is replicating "
       "from %s.\n",
       target_instance->descr().c_str(),
       active_primary->get_canonical_address().c_str()));
+
+  if (dry_run) {
+    console->print_info("dryRun finished.");
+    console->print_info();
+  }
 }
 
 void Replica_set_impl::validate_remove_instance(
@@ -1576,7 +1621,7 @@ Cluster_check_info Replica_set_impl::check_preconditions(
 
 std::shared_ptr<Global_topology_manager>
 Replica_set_impl::setup_topology_manager(
-    topology::Server_global_topology **out_topology) {
+    topology::Server_global_topology **out_topology, bool deep) {
   Cluster_metadata cmd;
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd))
     throw shcore::Exception("Metadata not found for replicaset " + get_name(),
@@ -1584,7 +1629,7 @@ Replica_set_impl::setup_topology_manager(
 
   std::unique_ptr<topology::Global_topology> topology(
       topology::scan_global_topology(get_metadata_storage().get(), cmd,
-                                     k_async_cluster_channel_name, false));
+                                     k_async_cluster_channel_name, deep));
 
   auto gtm =
       std::make_shared<Star_global_topology_manager>(0, std::move(topology));
@@ -1744,6 +1789,489 @@ void Replica_set_impl::primary_instance_did_change(
 void Replica_set_impl::invalidate_handle() {
   if (m_primary_master) m_primary_master->release();
   m_primary_master.reset();
+}
+
+void Replica_set_impl::ensure_compatible_donor(
+    const std::string &instance_def, mysqlshdk::mysql::IInstance *recipient) {
+  /*
+   * A donor is compatible if:
+   *
+   *   - It's an ONLINE ReplicaSet member
+   *   - The target (recipient) and donor instances support clone (version
+   *     >= 8.0.17)
+   *   - It has the same version of the recipient
+   *   - It has the same operating system as the recipient
+   */
+
+  auto console = current_console();
+
+  Scoped_instance target;
+  try {
+    target = Scoped_instance(connect_target_instance(instance_def));
+  } catch (const shcore::Exception &e) {
+    console->print_error(shcore::str_format(k_error_connecting_to_instance,
+                                            instance_def.c_str()));
+    throw;
+  }
+
+  // Check if the target belongs to the ReplicaSet (MD)
+  std::string target_address = target->get_canonical_address();
+  try {
+    m_metadata_storage->get_instance_by_address(target_address);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw shcore::Exception(
+          "Instance " + target_address + " does not belong to the replicaset",
+          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
+    }
+    throw;
+  }
+
+  // Check if the instance is ONLINE
+  auto topology_mng = setup_topology_manager();
+  auto topology_node =
+      topology_mng->topology()->try_get_node_for_uuid(target->get_uuid());
+  topology::Node_status status = topology_node->status();
+
+  if (status != topology::Node_status::ONLINE) {
+    throw shcore::Exception("Instance " + target_address +
+                                " is not an ONLINE member of the ReplicaSet.",
+                            SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+  }
+
+  // Check if the instance support clone (the recipient was already checked)
+  if (target->get_version() <
+      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+    throw shcore::Exception(
+        "Instance " + target_address + " does not support MySQL Clone.",
+        SHERR_DBA_CLONE_NO_SUPPORT);
+  }
+
+  // Check if the instance has the same version of the recipient
+  if (target->get_version() != recipient->get_version()) {
+    throw shcore::Exception("Instance " + target_address +
+                                " cannot be a donor because it has a different "
+                                "version than the recipient.",
+                            SHERR_DBA_CLONE_DIFF_VERSION);
+  }
+
+  // Check if the instance has the same OS the recipient
+  if (target->get_version_compile_os() != recipient->get_version_compile_os()) {
+    throw shcore::Exception("Instance " + target_address +
+                                " cannot be a donor because it has a different "
+                                "Operating System than the recipient.",
+                            SHERR_DBA_CLONE_DIFF_OS);
+  }
+
+  // Check if the instance is running on the same platform of the recipient
+  if (target->get_version_compile_machine() !=
+      recipient->get_version_compile_machine()) {
+    throw shcore::Exception(
+        "Instance " + target_address +
+            " cannot be a donor because it is running on a different "
+            "platform than the recipient.",
+        SHERR_DBA_CLONE_DIFF_PLATFORM);
+  }
+}
+
+std::string Replica_set_impl::pick_clone_donor(
+    mysqlshdk::mysql::IInstance *recipient) {
+  auto console = current_console();
+
+  std::string r;
+  auto topology_mng = setup_topology_manager();
+  auto topology = topology_mng->topology();
+
+  // Get the ReplicaSet primary member
+  const topology::Node *primary = topology->get_primary_master_node();
+
+  // Get the ReplicaSet secondary members
+  std::list<const topology::Node *> secondaries =
+      topology_mng->topology()->get_slave_nodes(primary);
+
+  std::string full_msg;
+
+  // By default, the donor must be an online secondary member. If not available,
+  // then it must be the primary
+  if (!secondaries.empty()) {
+    for (const auto *s : secondaries) {
+      if (recipient->get_uuid() != s->get_primary_member()->uuid) {
+        std::string instance_def = s->get_primary_member()->endpoint;
+
+        try {
+          if (mysqlshdk::utils::Net::is_ipv6(
+                  mysqlshdk::utils::split_host_and_port(instance_def).first))
+            throw shcore::Exception::runtime_error(
+                "Instance hostname/report_host is an IPv6 address, which is "
+                "not supported for cloning");
+
+          ensure_compatible_donor(instance_def, recipient);
+          r = instance_def;
+
+          // No need to continue looking for more
+          break;
+        } catch (const shcore::Exception &e) {
+          std::string msg = "SECONDARY '" + instance_def +
+                            "' is not a suitable clone donor: " + e.what();
+          log_info("%s", msg.c_str());
+          full_msg += msg + "\n";
+          continue;
+        }
+      }
+    }
+  }
+
+  // If no secondary is suitable, use the primary
+  if (r.empty()) {
+    std::string instance_def = primary->get_primary_member()->endpoint;
+
+    try {
+      if (mysqlshdk::utils::Net::is_ipv6(
+              mysqlshdk::utils::split_host_and_port(instance_def).first))
+        throw shcore::Exception::runtime_error(
+            "Instance hostname/report_host is an IPv6 address, which is "
+            "not supported for cloning");
+
+      ensure_compatible_donor(instance_def, recipient);
+      r = instance_def;
+    } catch (const shcore::Exception &e) {
+      std::string msg = "PRIMARY '" + instance_def +
+                        "' is not a suitable clone donor: " + e.what();
+      log_info("%s", msg.c_str());
+      full_msg += msg + "\n";
+    }
+  }
+
+  // If nobody is compatible...
+  if (r.empty()) {
+    console->print_error(
+        "None of the members in the replicaSet are compatible to be used as "
+        "clone donors for " +
+        recipient->descr());
+    console->print_info(full_msg);
+
+    throw shcore::Exception("The ReplicaSet has no compatible clone donors.",
+                            SHERR_DBA_CLONE_NO_DONORS);
+  }
+
+  return r;
+}
+
+void Replica_set_impl::revert_topology_changes(
+    mysqlshdk::mysql::IInstance *target_server, bool remove_user,
+    bool dry_run) {
+  auto console = current_console();
+  // revert changes by deleting the account we created for it and
+  // clearing replication
+  console->print_info("Reverting topology changes...");
+  try {
+    if (remove_user) {
+      drop_replication_user(target_server, k_async_cluster_user_name);
+    }
+
+    async_remove_replica(target_server, dry_run);
+  } catch (const std::exception &e) {
+    console->print_error(
+        std::string("Error while reverting replication changes: ") +
+        format_active_exception());
+  }
+}
+
+void Replica_set_impl::handle_clone(
+    const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
+    const Clone_options &clone_options,
+    const Async_replication_options &ar_options,
+    const Recovery_progress_style &progress_style, int sync_timeout,
+    bool dry_run) {
+  auto console = current_console();
+  Scoped_instance donor_instance;
+  /*
+   * Clone handling:
+   *
+   * 1.  Pick a valid donor (unless cloneDonor is set). By default, the donor
+   *     must be an ONLINE SECONDARY member. If not available, then must be the
+   *     PRIMARY.
+   * 2.  Install the Clone plugin on the donor and recipient (if not installed
+   *     already)
+   * 3.  Set the donor to the selected donor: SET GLOBAL clone_valid_donor_list
+   *     = "donor_host:donor_port";
+   * 4.  Create or update a recovery account with the required
+   *     privileges for replicaSets management + clone usage (BACKUP_ADMIN)
+   * 5.  Ensure the donor's recovery account has the clone usage required
+   *     privileges: BACKUP_ADMIN
+   * 6.  Grant the CLONE_ADMIN privilege to the recovery account
+   *     at the recipient
+   * 7.  Create the SQL clone command based on the above
+   * 8.  Execute the clone command
+   */
+
+  // Pick a valid donor
+  std::string donor;
+  if (!clone_options.clone_donor.is_null()) {
+    ensure_compatible_donor(*clone_options.clone_donor, recipient.get());
+    donor = *clone_options.clone_donor;
+  } else {
+    donor = pick_clone_donor(recipient.get());
+  }
+
+  // Install the clone plugin on the recipient and donor
+  try {
+    donor_instance = Scoped_instance(connect_target_instance(donor));
+  } catch (const shcore::Exception &e) {
+    console->print_error(
+        shcore::str_format(k_error_connecting_to_instance,
+                           Connection_options(donor).uri_endpoint().c_str()));
+    throw;
+  }
+
+  log_info("Installing the clone plugin on donor '%s'%s.",
+           donor_instance.get()->get_canonical_address().c_str(),
+           dry_run ? " (dryRun)" : "");
+
+  if (!dry_run) {
+    mysqlshdk::mysql::install_clone_plugin(*donor_instance, nullptr);
+  }
+
+  log_info("Installing the clone plugin on recipient '%s'%s.",
+           recipient->get_canonical_address().c_str(),
+           dry_run ? " (dryRun)" : "");
+
+  if (!dry_run) {
+    mysqlshdk::mysql::install_clone_plugin(*recipient, nullptr);
+  }
+
+  // Set the donor to the selected donor on the recipient
+  if (!dry_run) {
+    recipient->set_sysvar("clone_valid_donor_list", donor);
+  }
+
+  // Create or update a recovery account with the required privileges for
+  // replicaSets management + clone usage (BACKUP_ADMIN) on the recipient
+
+  // Check if super_read_only is enabled. If so it must be disabled to create
+  // the account
+  if (recipient->get_sysvar_bool("super_read_only").get_safe()) {
+    recipient->set_sysvar("super_read_only", false);
+  }
+
+  // Clone requires a user in both donor and recipient:
+  //
+  // On the donor, the clone user requires the BACKUP_ADMIN privilege for
+  // accessing and transferring data from the donor, and for blocking DDL
+  // during the cloning operation.
+  //
+  // On the recipient, the clone user requires the CLONE_ADMIN privilege for
+  // replacing recipient data, blocking DDL during the cloning operation, and
+  // automatically restarting the server. The CLONE_ADMIN privilege includes
+  // BACKUP_ADMIN and SHUTDOWN privileges implicitly.
+  //
+  // For that reason, we create a user in the recipient with the same username
+  // and password as the replication user created in the donor.
+  create_clone_recovery_user_nobinlog(recipient.get(),
+                                      *ar_options.repl_credentials, dry_run);
+
+  if (!dry_run) {
+    // Ensure the donor's recovery account has the clone usage required
+    // privileges: BACKUP_ADMIN
+    get_primary_master()->executef("GRANT BACKUP_ADMIN ON *.* TO ?@?",
+                                   ar_options.repl_credentials->user, "%");
+
+    // If the donor instance is processing transactions, it may have the
+    // clone-user handling (create + grant) still in the backlog waiting to be
+    // applied. For that reason, we must wait for it to be in sync with the
+    // primary before starting the clone itself (BUG#30628746)
+    std::string primary_address = get_primary_master()->get_canonical_address();
+
+    std::string donor_address = donor_instance->get_canonical_address();
+
+    if (primary_address != donor_address) {
+      console->print_info(
+          "* Waiting for the donor to synchronize with PRIMARY...");
+      if (!dry_run) {
+        try {
+          // Sync the donor with the primary
+          sync_transactions(*donor_instance, k_async_cluster_channel_name,
+                            sync_timeout);
+        } catch (const shcore::Exception &e) {
+          if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
+            console->print_error(
+                "The donor instance failed to synchronize its transaction set "
+                "with the PRIMARY.");
+          }
+          throw;
+        } catch (const cancel_sync &) {
+          // Throw it up
+          throw;
+        }
+      }
+      console->print_info();
+    }
+
+    // Create a new connection to the recipient and run clone asynchronously
+    Scoped_instance recipient_clone;
+    std::string instance_def =
+        recipient->get_connection_options().uri_endpoint();
+    try {
+      recipient_clone = Scoped_instance(connect_target_instance(instance_def));
+    } catch (const shcore::Exception &e) {
+      current_console()->print_error(shcore::str_format(
+          k_error_connecting_to_instance, instance_def.c_str()));
+      throw;
+    }
+
+    mysqlshdk::db::Connection_options clone_donor_opts(donor);
+
+    std::string begin_time =
+        recipient->queryf_one_string(0, "", "SELECT NOW(6)");
+
+    std::exception_ptr error_ptr;
+
+    std::thread clone_thread = std::thread(
+        [&recipient_clone, clone_donor_opts, ar_options, &error_ptr]() {
+          mysqlsh::thread_init();
+
+          try {
+            mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
+                                       *ar_options.repl_credentials);
+          } catch (const mysqlshdk::db::Error &err) {
+            // Clone canceled
+            if (err.code() == ER_QUERY_INTERRUPTED) {
+              log_info("Clone canceled: %s", err.format().c_str());
+            } else {
+              log_info("Error cloning from instance '%s': %s",
+                       clone_donor_opts.uri_endpoint().c_str(),
+                       err.format().c_str());
+              error_ptr = std::current_exception();
+            }
+          } catch (const std::exception &err) {
+            log_info("Error cloning from instance '%s': %s",
+                     clone_donor_opts.uri_endpoint().c_str(), err.what());
+            error_ptr = std::current_exception();
+          }
+
+          mysqlsh::thread_end();
+        });
+
+    shcore::Scoped_callback join([&clone_thread, error_ptr]() {
+      if (clone_thread.joinable()) clone_thread.join();
+    });
+
+    try {
+      monitor_clone_instance(
+          recipient->get_connection_options(), begin_time, progress_style,
+          k_clone_start_timeout,
+          mysqlshdk::mysql::k_server_recovery_restart_timeout);
+
+      // When clone is used, the target instance will restart and all
+      // connections are closed so we need to test if the connection to the
+      // target instance and MD are closed and re-open if necessary
+      refresh_target_connections(recipient.get());
+
+      // Remove the BACKUP_ADMIN grant from the recovery account
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
+                                     ar_options.repl_credentials->user);
+    } catch (const stop_monitoring &) {
+      console->print_info();
+      console->print_note("Recovery process canceled. Reverting changes...");
+
+      // Cancel the clone query
+      mysqlshdk::mysql::cancel_clone(*recipient);
+
+      log_info("Clone canceled.");
+
+      log_debug("Waiting for clone thread...");
+      // wait for the clone thread to finish
+      clone_thread.join();
+      log_debug("Clone thread joined");
+
+      // When clone is canceled, the target instance will restart and all
+      // connections are closed so we need to wait for the server to start-up
+      // and re-establish the session. Also we need to test if the connection
+      // to the target instance and MD are closed and re-open if necessary
+      *recipient = *wait_server_startup(
+          recipient->get_connection_options(),
+          mysqlshdk::mysql::k_server_recovery_restart_timeout,
+          Recovery_progress_style::NOWAIT);
+
+      refresh_target_connections(recipient.get());
+
+      // Remove the BACKUP_ADMIN grant from the recovery account
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
+                                     ar_options.repl_credentials->user);
+
+      revert_clone_recovery(recipient.get(), *ar_options.repl_credentials);
+
+      // Thrown the exception cancel_sync up
+      throw cancel_sync();
+    } catch (const mysqlshdk::db::Error &e) {
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.what(), e.code(), e.sqlstate());
+    }
+  }
+}
+
+Member_recovery_method Replica_set_impl::validate_instance_recovery(
+    Member_op_action op_action, mysqlshdk::mysql::IInstance *donor_instance,
+    mysqlshdk::mysql::IInstance *target_instance,
+    Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
+    bool interactive) {
+  auto check_recoverable =
+      [donor_instance](mysqlshdk::mysql::IInstance *tgt_instance) {
+        // Get the gtid state in regards to the donor
+        mysqlshdk::mysql::Replica_gtid_state state =
+            mysqlshdk::mysql::check_replica_gtid_state(
+                *donor_instance, *tgt_instance, nullptr, nullptr);
+
+        if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE)
+          return true;
+        else
+          return false;
+      };
+
+  Member_recovery_method recovery_method =
+      mysqlsh::dba::validate_instance_recovery(
+          Cluster_type::ASYNC_REPLICATION, op_action, donor_instance,
+          target_instance, check_recoverable, opt_recovery_method,
+          gtid_set_is_complete, interactive);
+
+  return recovery_method;
+}
+
+void Replica_set_impl::refresh_target_connections(
+    mysqlshdk::mysql::IInstance *recipient) {
+  Connection_options opts = recipient->get_connection_options();
+
+  try {
+    recipient->query("SELECT 1");
+  } catch (const mysqlshdk::db::Error &e) {
+    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      log_debug(
+          "Target instance connection lost: %s. Re-establishing a "
+          "connection.",
+          e.format().c_str());
+
+      recipient->get_session()->connect(opts);
+    } else {
+      throw;
+    }
+  }
+
+  try {
+    m_metadata_storage->get_md_server()->query("SELECT 1");
+  } catch (const mysqlshdk::db::Error &e) {
+    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      log_debug(
+          "Metadata connection lost: %s. Re-establishing a "
+          "connection.",
+          e.format().c_str());
+
+      auto md_session = m_metadata_storage->get_md_server()->get_session();
+
+      md_session->connect(md_session->get_connection_options());
+    } else {
+      throw;
+    }
+  }
 }
 
 Instance_id Replica_set_impl::manage_instance(Instance *instance,

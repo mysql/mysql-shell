@@ -52,6 +52,7 @@ enum class Display_form {
   A_THING_FULL,  // an InnoDB Cluster, a ReplicaSet
   THINGS_FULL    // InnoDB Clusters, ReplicaSets
 };
+
 std::string to_display_string(Cluster_type type, Display_form form);
 
 inline std::string thing(Cluster_type type) {

@@ -72,9 +72,6 @@ std::string Instance::get_canonical_hostname() const {
     auto row = result->fetch_one();
     m_hostname = row->get_as_string(0);
   }
-  if (mysqlshdk::utils::Net::is_ipv6(m_hostname)) {
-    m_hostname = "[" + m_hostname + "]";
-  }
   return m_hostname;
 }
 
@@ -99,10 +96,7 @@ std::string Instance::get_canonical_address() const {
     m_hostname = row->get_string(0, "");
     m_port = row->get_int(1);
   }
-  if (mysqlshdk::utils::Net::is_ipv6(m_hostname)) {
-    m_hostname = "[" + m_hostname + "]";
-  }
-  return m_hostname + ":" + std::to_string(m_port);
+  return mysqlshdk::utils::make_host_and_port(m_hostname, m_port);
 }
 
 const std::string &Instance::get_uuid() const {
@@ -117,6 +111,24 @@ const std::string &Instance::get_group_name() const {
     m_group_name = get_sysvar_string("group_replication_group_name").get_safe();
   }
   return m_group_name;
+}
+
+const std::string &Instance::get_version_compile_os() const {
+  if (m_version_compile_os.empty()) {
+    m_version_compile_os =
+        get_sysvar_string("version_compile_os", Var_qualifier::GLOBAL)
+            .get_safe();
+  }
+  return m_version_compile_os;
+}
+
+const std::string &Instance::get_version_compile_machine() const {
+  if (m_version_compile_machine.empty()) {
+    m_version_compile_machine =
+        get_sysvar_string("version_compile_machine", Var_qualifier::GLOBAL)
+            .get_safe();
+  }
+  return m_version_compile_machine;
 }
 
 namespace {
@@ -444,14 +456,6 @@ utils::nullable<std::string> Instance::get_plugin_status(
   else
     // No state information found, return NULL.
     return utils::nullable<std::string>();
-}
-
-const std::string &Instance::get_version_compile_os() const {
-  if (m_version_compile_os.empty()) {
-    m_version_compile_os =
-        *get_sysvar_string("version_compile_os", Var_qualifier::GLOBAL);
-  }
-  return m_version_compile_os;
 }
 
 std::string Instance::get_plugin_library_extension() const {

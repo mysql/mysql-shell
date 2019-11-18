@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/global_topology_manager.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
@@ -77,11 +78,15 @@ class Replica_set_impl : public Base_cluster_impl {
 
   void add_instance(const std::string &instance_def,
                     const Async_replication_options &ar_options,
+                    const Clone_options &clone_options,
                     const mysqlshdk::null_string &label,
-                    Member_recovery_method recovery_method, int sync_timeout,
+                    Recovery_progress_style progress_style, int sync_timeout,
                     bool interactive, bool dry_run);
 
-  void rejoin_instance(const std::string &instance_def);
+  void rejoin_instance(const std::string &instance_def,
+                       const Clone_options &clone_options,
+                       Recovery_progress_style progress_style, int sync_timeout,
+                       bool interactive, bool dry_run);
 
   void remove_instance(const std::string &instance_def,
                        const mysqlshdk::null_bool &force, int timeout);
@@ -122,15 +127,14 @@ class Replica_set_impl : public Base_cluster_impl {
       const std::string &function_name) const override;
 
   std::shared_ptr<Instance> validate_add_instance(
-      Global_topology_manager *topology, mysqlshdk::mysql::IInstance *master,
-      const std::string &target_def,
-      const Async_replication_options &ar_options,
-      Member_recovery_method recovery_method, bool interactive);
+      Global_topology_manager *topology, const std::string &target_def,
+      const Async_replication_options &ar_options, Clone_options *clone_options,
+      bool interactive);
 
-  void validate_rejoin_instance(Global_topology_manager *topology_mng,
-                                mysqlshdk::mysql::IInstance *primary,
-                                Instance *target,
-                                Instance_metadata *out_instance_md);
+  std::shared_ptr<Instance> validate_rejoin_instance(
+      Global_topology_manager *topology_mng, const std::string &target_def,
+      Clone_options *clone_options, Instance_metadata *out_instance_md,
+      bool interactive);
 
   void validate_remove_instance(Global_topology_manager *topology,
                                 mysqlshdk::mysql::IInstance *master,
@@ -149,7 +153,8 @@ class Replica_set_impl : public Base_cluster_impl {
                                bool dry_run);
 
   std::shared_ptr<Global_topology_manager> setup_topology_manager(
-      topology::Server_global_topology **out_topology = nullptr);
+      topology::Server_global_topology **out_topology = nullptr,
+      bool deep = false);
 
   Cluster_metadata get_metadata() const;
   std::vector<Instance_metadata> get_instances_from_metadata() const;
@@ -169,6 +174,28 @@ class Replica_set_impl : public Base_cluster_impl {
       const std::shared_ptr<Instance> &new_primary = {});
 
   void invalidate_handle();
+
+  void ensure_compatible_donor(const std::string &instance_def,
+                               mysqlshdk::mysql::IInstance *recipient);
+
+  std::string pick_clone_donor(mysqlshdk::mysql::IInstance *recipient);
+
+  void revert_topology_changes(mysqlshdk::mysql::IInstance *target_server,
+                               bool remove_user, bool dry_run);
+
+  void refresh_target_connections(mysqlshdk::mysql::IInstance *recipient);
+
+  void handle_clone(const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
+                    const Clone_options &clone_options,
+                    const Async_replication_options &ar_options,
+                    const Recovery_progress_style &progress_style,
+                    int sync_timeout, bool dry_run);
+
+  Member_recovery_method validate_instance_recovery(
+      Member_op_action op_action, mysqlshdk::mysql::IInstance *donor_instance,
+      mysqlshdk::mysql::IInstance *target_instance,
+      Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
+      bool interactive);
 
   Global_topology_type m_topology_type;
 };

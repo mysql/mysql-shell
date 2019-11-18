@@ -17,6 +17,17 @@
 ||ReplicaSet.addInstance: Invalid options: badOption (ArgumentError)
 ||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
 ||ReplicaSet.addInstance: localhost:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on 'localhost'
+||ReplicaSet.addInstance: Invalid value '0' for option 'waitRecovery'. It must be an integer in the range [1, 3].
+||ReplicaSet.addInstance: Invalid value for option recoveryMethod: bogus (ArgumentError)
+||ReplicaSet.addInstance: Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
+||ReplicaSet.addInstance: Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
+||ReplicaSet.addInstance: Option cloneDonor only allowed if option recoveryMethod is set to 'clone'. (ArgumentError)
+||ReplicaSet.addInstance: Invalid value for cloneDonor, string value cannot be empty. (ArgumentError)
+||ReplicaSet.addInstance: Invalid value for cloneDonor: Invalid address format in 'foobar'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
+||ReplicaSet.addInstance: Invalid value for cloneDonor: Invalid address format in 'root@foobar:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
+||ReplicaSet.addInstance: IPv6 addresses not supported for cloneDonor (ArgumentError)
+||ReplicaSet.addInstance: Invalid value for cloneDonor: Invalid address format in '::1:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
+||ReplicaSet.addInstance: Invalid value for cloneDonor: Invalid address format in '::1'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
 
 //@# disconnected rs object (should fail)
 ||ReplicaSet.addInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
@@ -190,8 +201,8 @@
 //@# dryRun - 1
 |This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |Instance configuration is suitable.|
-|* Checking transaction state of the instance...|
 |* Checking async replication topology...|
+|* Checking transaction state of the instance...|
 |* Updating topology|
 |** Configuring <<<__endpoint_uri2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |** Waiting for new instance to synchronize with PRIMARY...|
@@ -201,8 +212,8 @@
 //@# dryRun - 2
 |This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |Instance configuration is suitable.|
-|* Checking transaction state of the instance...|
 |* Checking async replication topology...|
+|* Checking transaction state of the instance...|
 |* Updating topology|
 |** Configuring <<<__endpoint_uri2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |** Waiting for new instance to synchronize with PRIMARY...|
@@ -254,15 +265,29 @@
 |WARNING: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that|
 |it contains transactions that do not originate from the replicaset, which must|
 |be discarded before it can join the replicaset.|
-||ReplicaSet.addInstance: Instance provisioning required
+||ReplicaSet.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@ instance has a subset of the master GTID set
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
+//@ instance has more GTIDs (should work with clone) {VER(>=8.0.17)}
+|Clone based recovery selected through the recoveryMethod option|
+|Waiting for clone process of the new member to complete. Press ^C to abort the operation.|
+|* Waiting for clone to finish...|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+
 //@# master has purged GTIDs (should fail)
-|NOTE: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that|
-|it is missing transactions that were purged from the PRIMARY.|
-||ReplicaSet.addInstance: Instance provisioning required
+|NOTE: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+||ReplicaSet.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+
+//@ master has purged GTIDs (should work with clone) {VER(>=8.0.17)}
+|Clone based recovery selected through the recoveryMethod option|
+|Waiting for clone process of the new member to complete. Press ^C to abort the operation.|
+|* Waiting for clone to finish...|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
 //@ Re-create the replicaset without gtidSetIsComplete
 ||
@@ -271,7 +296,10 @@
 |NOTE: The target instance '<<<__endpoint_uri2>>>' has not been pre-provisioned (GTID set|
 |is empty). The Shell is unable to decide whether replication can completely|
 |recover its state.|
-||ReplicaSet.addInstance: Instance provisioning required (MYSQLSH 51153)
+//@# instance has empty GTID set + gtidSetIsComplete:0 + not interactive (should fail) {VER(>=8.0.17)}
+||ReplicaSet.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+//@# instance has empty GTID set + gtidSetIsComplete:0 + not interactive (should fail) {VER(<8.0.17)}
+||ReplicaSet.addInstance: 'recoveryMethod' option must be set to 'incremental'
 
 //@# instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail)
 |NOTE: The target instance '<<<__endpoint_uri2>>>' has not been pre-provisioned (GTID set|
@@ -285,8 +313,31 @@
 |NOTE: The target instance '<<<__endpoint_uri2>>>' has not been pre-provisioned (GTID set|
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
+//@# instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:CLONE {VER(>=8.0.17)}
+|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+
 //@# instance has a subset of the master GTID set + gtidSetIsComplete:0
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+
+//@ cloneDonor invalid: not a ReplicaSet member {VER(>=8.0.17)}
+||ReplicaSet.addInstance: Instance <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> does not belong to the replicaset (MYSQLSH 51310)
+
+//@ cloneDonor valid {VER(>=8.0.17)}
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<__sandbox1>>>|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+
+//@ cloneDonor valid 2 {VER(>=8.0.17)}
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<__sandbox2>>>|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+
+//@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
+|* Waiting for the donor to synchronize with PRIMARY...|
+|ERROR: The donor instance failed to synchronize its transaction set with the PRIMARY.|
+||ReplicaSet.addInstance: Timeout reached waiting for transactions from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to be applied on instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' (MYSQLSH 51157)
+
+//@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
 //@# Cleanup
 ||

@@ -54,7 +54,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined dissolve(Dictionary options);
   String getName();
   Dictionary listRouters(Dictionary options);
-  Undefined rejoinInstance(String instance);
+  Undefined rejoinInstance(String instance, Dictionary options);
   Undefined removeInstance(String instance, Dictionary options);
   String status(Dictionary options);
   Undefined setPrimaryInstance(String instance, Dictionary options);
@@ -68,7 +68,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None dissolve(dict options);
   str get_name();
   dict list_routers(dict options);
-  None rejoin_instance(str instance);
+  None rejoin_instance(str instance, dict options);
   None remove_instance(str instance, dict options);
   str status(dict options);
   None set_primary_instance(str instance, dict options);
@@ -101,7 +101,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void add_instance(const std::string &instance_def,
                     const shcore::Dictionary_t &options);
 
-  void rejoin_instance(const std::string &instance_def);
+  void rejoin_instance(const std::string &instance_def,
+                       const shcore::Dictionary_t &options);
 
   void remove_instance(const std::string &instance_def,
                        const shcore::Dictionary_t &options);

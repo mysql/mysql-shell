@@ -1,11 +1,17 @@
 //@ {VER(>=8.0.11)}
 
-// Plain replicaset setup test using the admin account
+// Plain replicaset setup test, use as a template for other tests that check
+// a specific feature/aspect across the whole API
+
+// simple_plain should be _norecord to force at least one direct execution of the API in all platforms
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_ip});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {"report_host": hostname_ip});
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.options.useWizards = false;
 
@@ -13,25 +19,12 @@ shell.options.useWizards = false;
 dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 testutil.restartSandbox(__mysql_sandbox_port1);
 
+//@ configureReplicaSetInstance
 dba.configureReplicaSetInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 dba.configureReplicaSetInstance(__sandbox_uri3, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
-// drop root account just in case
-s = mysql.getSession(__sandbox_uri1);
-s.runSql("SET SESSION sql_log_bin=0");
-s.runSql("DROP USER root@'%'");
-s.runSql("DROP USER root@localhost");
-s = mysql.getSession(__sandbox_uri2);
-s.runSql("SET SESSION sql_log_bin=0");
-s.runSql("DROP USER root@'%'");
-s.runSql("DROP USER root@localhost");
-s = mysql.getSession(__sandbox_uri3);
-s.runSql("SET SESSION sql_log_bin=0");
-s.runSql("DROP USER root@'%'");
-s.runSql("DROP USER root@localhost");
-
 //@ createReplicaSet
-shell.connect("admin:bla@"+__sandbox1);
+shell.connect(__sandbox_uri1);
 
 rs = dba.createReplicaSet("myrs");
 
@@ -45,38 +38,42 @@ rs.disconnect();
 rs = dba.getReplicaSet();
 
 //@ addInstance (incremental)
-rs.addInstance(__sandbox2, {recoveryMethod:'incremental'});
+rs.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 
 //@ addInstance (clone) {VER(>=8.0.17)}
-rs.addInstance(__sandbox3, {recoveryMethod:'clone'});
+rs.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
+
+//@ addInstance (no clone) {VER(<8.0.17)}
+rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 //@ removeInstance
-rs.removeInstance(__sandbox2);
+rs.removeInstance(__sandbox_uri2);
 
-rs.addInstance(__sandbox2, {recoveryMethod:'incremental'});
+rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 //@ setPrimaryInstance
-rs.setPrimaryInstance(__sandbox3);
+rs.setPrimaryInstance(__sandbox_uri3);
 
 //@ forcePrimaryInstance (prepare)
-testutil.killSandbox(__mysql_sandbox_port3);
+testutil.stopSandbox(__mysql_sandbox_port3, {wait:1});
 rs = dba.getReplicaSet();
 
 rs.status();
 
 //@ forcePrimaryInstance
-rs.forcePrimaryInstance(__sandbox1);
+rs.forcePrimaryInstance(__sandbox_uri1);
 
 //@ rejoinInstance
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitSandboxAlive(__mysql_sandbox_port3);
 
-rs.rejoinInstance("admin:bla@"+__sandbox3);
+rs.rejoinInstance(__sandbox_uri3);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
-session3 = mysql.getSession("admin:bla@"+__sandbox3);
+session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP SLAVE");
 
-rs.rejoinInstance("admin:bla@"+__sandbox3, {recoveryMethod:"clone"});
+rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 
 //@ listRouters
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
@@ -92,7 +89,6 @@ rs.listRouters();
 
 //@ createReplicaSet(adopt)
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
-
 rs = dba.createReplicaSet("adopted", {adoptFromAR:true});
 
 rs.status();

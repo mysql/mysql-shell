@@ -74,13 +74,57 @@ int64_t force_clone(const mysqlshdk::mysql::IInstance &instance) {
   }
 }
 
-Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance) {
-  Clone_status status;
+void do_clone(const mysqlshdk::mysql::IInstance &recipient,
+              const mysqlshdk::db::Connection_options &clone_donor_opts,
+              const mysqlshdk::mysql::Auth_options &clone_recovery_account) {
+  log_debug("Cloning instance '%s' into '%s'.",
+            clone_donor_opts.uri_endpoint().c_str(), recipient.descr().c_str());
 
-  auto result = instance.query(
+  std::string clone_donor_host = clone_donor_opts.get_host();
+  std::string clone_donor_port = std::to_string(clone_donor_opts.get_port());
+
+  std::string clone_stmt_ftm = "CLONE INSTANCE FROM ?@?:" + clone_donor_port +
+                               " IDENTIFIED BY /*((*/ ? /*))*/";
+
+  try {
+    recipient.executef(clone_stmt_ftm, clone_recovery_account.user,
+                       clone_donor_host, *clone_recovery_account.password);
+  } catch (const std::exception &err) {
+    throw;
+  }
+}
+
+void cancel_clone(const mysqlshdk::mysql::IInstance &recipient) {
+  auto result =
+      recipient.query("SELECT PID FROM performance_schema.clone_status");
+
+  if (auto row = result->fetch_one_named()) {
+    uint64_t pid = row.get_uint("PID");
+
+    recipient.executef("KILL QUERY ?", pid);
+  }
+}
+
+Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
+                                const std::string &start_time) {
+  Clone_status status;
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  std::string query =
       "SELECT *, end_time-begin_time as elapsed"
-      " FROM performance_schema.clone_status"
-      " ORDER BY id DESC LIMIT 1");
+      " FROM performance_schema.clone_status";
+
+  if (!start_time.empty()) {
+    query += " WHERE begin_time >= ?";
+  }
+
+  query += " ORDER BY id DESC LIMIT 1";
+
+  if (!start_time.empty()) {
+    result = instance.queryf(query, start_time);
+  } else {
+    result = instance.query(query);
+  }
 
   if (auto row = result->fetch_one_named()) {
     uint64_t id = row.get_uint("ID");

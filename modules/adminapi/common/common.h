@@ -46,6 +46,8 @@
 namespace mysqlsh {
 namespace dba {
 
+class cancel_sync : public std::exception {};
+
 class MetadataStorage;
 
 void SHCORE_PUBLIC parse_fully_qualified_cluster_name(
@@ -438,13 +440,16 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
  * @param gtid_set the transaction set to wait for
  * @param channel_name the name of the channel to monitor
  * @param timeout number of seconds to wait
+ * @param cancelable boolean to indicate if the operation is cancelable with
+ * SIGINT or not
  *
  * @throw RuntimeError if the timeout is reached when waiting for
  * transactions to be applied or replication errors are detected.
  */
 bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
-                            const std::string &channel_name, int timeout);
+                            const std::string &channel_name, int timeout,
+                            bool cancelable = false);
 
 void execute_script(const std::shared_ptr<Instance> &group_server,
                     const std::string &script, const std::string &context);

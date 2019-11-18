@@ -346,15 +346,15 @@ one server failure.
 |NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been|
 |The safest and most convenient way to provision a new instance is through|
 |automatic clone provisioning, which will completely overwrite the state of|
-|The incremental distributed state recovery may be safely used if you are sure|
-|Incremental distributed state recovery was selected because it seems to be safely usable.|
+|The incremental state recovery may be safely used if you are sure|
+|Incremental state recovery was selected because it seems to be safely usable.|
 |Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...|
 |Instance configuration is suitable.|
 ||
 |Adding instance to the cluster...|
 
 #@<OUT> add_instance() 1 clone {VER(>=8.0.17)}
-{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 #@<OUT> add_instance() 1 clone {VER(>=8.0.17)}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
@@ -374,7 +374,7 @@ data on the cluster this might take from a few seconds to several hours.
 Adding instance to the cluster...
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
-{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental distributed state recovery is now in progress.}}
+{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configure_local_instance() command locally to persist the changes.
