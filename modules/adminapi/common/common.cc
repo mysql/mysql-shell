@@ -921,18 +921,18 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
   if (super_read_only) {
     auto console = mysqlsh::current_console();
 
-    const std::string error_message = mysqlsh::fit_screen(
+    const std::string error_message =
         "The MySQL instance at '" + instance.descr() +
         "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications. You must "
-        "first unset it to be able to perform any changes to this "
-        "instance.\n"
-        "For more information see: https://dev.mysql.com/doc/refman/en/"
-        "server-system-variables.html#sysvar_super_read_only.");
+        "protect it from inadvertent updates from applications.";
 
     if (clear_read_only.is_null() && interactive) {
-      console->print_info(error_message);
-      console->print_info();
+      console->print_error(error_message);
+      console->print_para(
+          "You must first unset it to be able to perform any changes to this "
+          "instance.\n"
+          "For more information see: https://dev.mysql.com/doc/refman/en/"
+          "server-system-variables.html#sysvar_super_read_only.");
 
       if (console->confirm(
               "Do you want to disable super_read_only and continue?",
@@ -941,7 +941,7 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
         throw shcore::Exception::runtime_error(
             "Server in SUPER_READ_ONLY mode");
       } else {
-        console->println();
+        console->print_info();
         clear_read_only = true;
       }
     }
@@ -1422,24 +1422,23 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
   // If super_read_only is not null and enabled
   if (*super_read_only) {
     auto console = mysqlsh::current_console();
-    console->print_info(mysqlsh::fit_screen(
+    console->print_para(
         "The MySQL instance at '" + active_session_address +
         "' currently has the super_read_only system variable set to "
         "protect it from inadvertent updates from applications. "
         "You must first unset it to be able to perform any changes "
         "to this instance.\n"
         "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only."));
-    console->println();
+        "en/server-system-variables.html#sysvar_super_read_only.");
 
     // Get the list of open session to the instance
     std::vector<std::pair<std::string, int>> open_sessions;
     open_sessions = mysqlsh::dba::get_open_sessions(instance);
 
     if (!open_sessions.empty()) {
-      console->print_note(
-          "There are open sessions to '" + active_session_address +
-          "'.\n"
+      console->print_note("There are open sessions to '" +
+                          active_session_address + "'.");
+      console->print_info(
           "You may want to kill these sessions to prevent them from "
           "performing unexpected updates: \n");
 
@@ -1447,21 +1446,21 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
         std::string account = value.first;
         int num_open_sessions = value.second;
 
-        console->println("" + std::to_string(num_open_sessions) +
-                         " open session(s) of "
-                         "'" +
-                         account + "'. \n");
+        console->print_info("" + std::to_string(num_open_sessions) +
+                            " open session(s) of "
+                            "'" +
+                            account + "'. \n");
       }
     }
 
     if (console->confirm("Do you want to disable super_read_only and continue?",
                          Prompt_answer::NO) == Prompt_answer::NO) {
-      console->println();
+      console->print_info();
 
       if (throw_on_error)
         throw shcore::cancelled("Cancelled");
       else
-        console->println("Cancelled");
+        console->print_info("Cancelled");
 
       return false;
     } else {

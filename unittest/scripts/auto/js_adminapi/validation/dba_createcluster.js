@@ -15,6 +15,7 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
+
 Confirm [y/N]:
 
 //@<ERR> WL#12011: FR2-01 - interactive = true.

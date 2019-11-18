@@ -9,6 +9,7 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
+
 Confirm [y/N]:
 
 //@<ERR> Dba: createCluster multiPrimary with interaction, cancel
@@ -25,7 +26,8 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
-Confirm [y/N]: 
+
+Confirm [y/N]:
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -62,6 +64,7 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
+
 Confirm [y/N]:
 Disabling super_read_only mode on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -275,6 +278,7 @@ proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
+
 Confirm [y/N]:
 Disabling super_read_only mode on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...

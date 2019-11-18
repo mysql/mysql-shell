@@ -120,17 +120,17 @@ void Create_cluster::validate_create_cluster_options() {
 
   if (!m_adopt_from_gr && *m_multi_primary && !m_force) {
     if (m_interactive) {
-      console->print_info(fit_screen(
+      console->print_para(
           "The MySQL InnoDB cluster is going to be setup in advanced "
           "Multi-Primary Mode. Before continuing you have to confirm that you "
           "understand the requirements and limitations of Multi-Primary Mode. "
           "For more information see "
           "https://dev.mysql.com/doc/refman/en/"
-          "group-replication-limitations.html before proceeding."));
-      console->println();
-      console->print_info(fit_screen(
+          "group-replication-limitations.html before proceeding.");
+
+      console->print_para(
           "I have read the MySQL InnoDB cluster manual and I understand the "
-          "requirements and limitations of advanced Multi-Primary Mode."));
+          "requirements and limitations of advanced Multi-Primary Mode.");
 
       if (console->confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
           mysqlsh::Prompt_answer::NO) {

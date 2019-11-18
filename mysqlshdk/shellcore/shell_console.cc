@@ -237,7 +237,7 @@ void Shell_console::println(const std::string &text) const {
 }
 
 namespace {
-std::string format(const std::string &text) {
+std::string format_vars(const std::string &text) {
   return shcore::str_subvars(
       text,
       [](const std::string &var) {
@@ -245,10 +245,27 @@ std::string format(const std::string &text) {
       },
       "<<<", ">>>");
 }
+
+std::string fit_screen(const std::string &text) {
+  // int r, c;
+  // if (!mysqlshdk::vt100::get_screen_size(&r, &c)) c = 80;
+
+  // if (c >= 120)
+  //   c = 120;
+  // else if (c >= 80)
+  //   c = 80;
+  // else
+  //   return text;
+  constexpr const int c = 80;
+
+  return mysqlshdk::textui::format_markup_text(shcore::str_split(text, "\n"), c,
+                                               0, false);
+}
+
 }  // namespace
 
 void Shell_console::print_diag(const std::string &text) const {
-  std::string ftext = format(text);
+  std::string ftext = format_vars(text);
   if (use_json()) {
     dump_json("error", ftext);
   } else {
@@ -262,7 +279,7 @@ void Shell_console::print_diag(const std::string &text) const {
 }
 
 void Shell_console::print_error(const std::string &text) const {
-  std::string ftext = format(text);
+  std::string ftext = format_vars(text);
   if (use_json()) {
     dump_json("error", ftext);
   } else {
@@ -277,7 +294,7 @@ void Shell_console::print_error(const std::string &text) const {
 }
 
 void Shell_console::print_warning(const std::string &text) const {
-  std::string ftext = format(text);
+  std::string ftext = format_vars(text);
   if (use_json()) {
     dump_json("warning", ftext);
   } else {
@@ -292,7 +309,7 @@ void Shell_console::print_warning(const std::string &text) const {
 }
 
 void Shell_console::print_note(const std::string &text) const {
-  std::string ftext = format(text);
+  std::string ftext = format_vars(text);
   if (use_json()) {
     dump_json("note", ftext);
   } else {
@@ -301,13 +318,13 @@ void Shell_console::print_note(const std::string &text) const {
   }
   if (g_dont_log == 0) {
     g_dont_log++;
-    log_debug("%s", text.c_str());
+    log_info("%s", text.c_str());
     g_dont_log--;
   }
 }
 
 void Shell_console::print_info(const std::string &text) const {
-  std::string ftext = format(text);
+  std::string ftext = format_vars(text);
   if (use_json()) {
     dump_json("info", ftext);
   } else {
@@ -316,6 +333,34 @@ void Shell_console::print_info(const std::string &text) const {
   if (g_dont_log == 0 && !text.empty()) {
     g_dont_log++;
     log_debug("%s", ftext.c_str());
+    g_dont_log--;
+  }
+}
+
+void Shell_console::print_status(const std::string &text) const {
+  std::string ftext = format_vars(text);
+  if (use_json()) {
+    dump_json("status", ftext);
+  } else {
+    delegate_print_error((ftext + "\n").c_str());
+  }
+  if (g_dont_log == 0 && !text.empty()) {
+    g_dont_log++;
+    log_debug("%s", ftext.c_str());
+    g_dont_log--;
+  }
+}
+
+void Shell_console::print_para(const std::string &text) const {
+  std::string ftext = format_vars(text);
+  if (use_json()) {
+    dump_json("info", ftext);
+  } else {
+    delegate_print_error((fit_screen(ftext) + "\n\n").c_str());
+  }
+  if (g_dont_log == 0 && !text.empty()) {
+    g_dont_log++;
+    log_debug2("%s", ftext.c_str());
     g_dont_log--;
   }
 }
@@ -650,22 +695,6 @@ void Shell_console::delegate(
       return;
     }
   }
-}
-
-std::string fit_screen(const std::string &text) {
-  // int r, c;
-  // if (!mysqlshdk::vt100::get_screen_size(&r, &c)) c = 80;
-
-  // if (c >= 120)
-  //   c = 120;
-  // else if (c >= 80)
-  //   c = 80;
-  // else
-  //   return text;
-  constexpr const int c = 80;
-
-  return mysqlshdk::textui::format_markup_text(shcore::str_split(text, "\n"), c,
-                                               0, false);
 }
 
 }  // namespace mysqlsh

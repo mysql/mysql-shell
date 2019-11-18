@@ -365,12 +365,11 @@ void Remove_instance::prepare() {
 
 shcore::Value Remove_instance::execute() {
   auto console = mysqlsh::current_console();
-  console->print_info(fit_screen(
+  console->print_para(
       "The instance will be removed from the InnoDB cluster. Depending on the "
       "instance being the Seed or not, the Metadata session might become "
       "invalid. If so, please start a new session to the Metadata Storage R/W "
-      "instance."));
-  console->println();
+      "instance.");
 
   if (m_target_instance) {
     // Remove recovery user being used by the target instance from the

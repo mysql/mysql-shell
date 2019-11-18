@@ -30,6 +30,47 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/lang_base.h"
 
+// How to use different print methods from console:
+//
+// - print(), println(), print_value()
+//   Use for the primary output of a command. The primary output is usually
+//   what the user would want to capture from the stdout, pipe to other commands
+//   etc. Errors and status messages meant for the user shouldn't use this.
+//
+// - print_error()
+//   Use for errors that prevent the shell from doing something. Not all errors
+//   should use this. Errors that are recovered from or that can be ignored can
+//   use print_warning() or print_note() instead.
+//   If the shell was a GUI, this would open a popup dialog.
+//   Should be short, to the point and potentially parseable.
+//
+// - print_warning()
+//   Use for non-fatal errors that should be receive attention from the user
+//   and ideally be corrected.
+//   If the shell was a GUI, this would open a popup dialog.
+//   Should be short, to the point and potentially parseable.
+//
+// - print_note()
+//   Use for error-like messages that should receive attention (making sure the
+//   user is aware of something) from the user but there's nothing that needs to
+//   be corrected.
+//   If the shell was a GUI, this would open a popup notification.
+//   Should be short, to the point and potentially parseable.
+//
+// - print_status()
+//   Use for printing informational messages that tell what the shell is doing,
+//   progress text etc.
+//   If the shell was a GUI, this would be shown as a statusbar or progress
+//   dialog message.
+//
+// - print_para()
+//   Use for printing paragraphs of text explaining a previous message or some
+//   general help-like text meant for a human user. An experienced user should
+//   be fine completely ignoring these messages.
+//
+// - print_info()
+//   Use for other informational text meant for users.
+
 namespace mysqlsh {
 
 class Shell_console : public IConsole {
@@ -67,6 +108,8 @@ class Shell_console : public IConsole {
    * The produced output will depend on the active output format:
    * - If JSON is active it will produce a JSON object as {"info": <text>}
    * - Otherwise the raw text will be sent to STDOUT.
+   *
+   * NOTE: Use only for primary output, not side-messages meant for the user.
    */
   void print(const std::string &text) const override;
 
@@ -76,6 +119,8 @@ class Shell_console : public IConsole {
    * The produced output will depend on the active output format:
    * - If JSON is active it will produce a JSON object as {"info": <text>}
    * - Otherwise the raw text will be sent to STDOUT followed by a new line.
+   *
+   * NOTE: Use only for primary output, not side-messages meant for the user.
    */
   void println(const std::string &text = "") const override;
 
@@ -117,7 +162,26 @@ class Shell_console : public IConsole {
    *   supported.
    */
   void print_note(const std::string &text) const override;
+
+  /**
+   * Sends the provided text to the STDERR.
+   */
   void print_info(const std::string &text = "") const override;
+
+  /**
+   * Sends the provided text to the STDERR.
+   */
+  void print_status(const std::string &text) const override;
+
+  /**
+   * Formats and sends the given text to STDERR.
+   *
+   * This will:
+   * - Break lines at 80 char boundaries
+   * - Insert a newline after the paragraph
+   * - Substitute <<<vars>>>
+   */
+  virtual void print_para(const std::string &text) const override;
 
   bool prompt(const std::string &prompt, std::string *out_val,
               Validator validator = nullptr) const override;
@@ -163,8 +227,6 @@ class Shell_console : public IConsole {
   std::shared_ptr<IPager> m_global_pager;
   std::list<shcore::Interpreter_print_handler *> m_print_handlers;
 };
-
-std::string fit_screen(const std::string &text);
 
 }  // namespace mysqlsh
 
