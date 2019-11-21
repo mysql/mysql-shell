@@ -59,10 +59,7 @@ class Dba_replicaset_test : public Admin_api_test {
     auto dba = _interactive_shell->shell_context()
                    ->get_global("dba")
                    .as_object<mysqlsh::dba::Dba>();
-
-    shcore::Argument_list args;
-    args.emplace_back("sample");
-    m_cluster = dba->get_cluster_(args).as_object<mysqlsh::dba::Cluster>();
+    m_cluster = dba->get_cluster({"sample"});
 
     execute("session.close()");
   }

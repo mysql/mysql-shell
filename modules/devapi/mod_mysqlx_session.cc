@@ -25,33 +25,36 @@
 
 #include <stdlib.h>
 #include <string.h>
+
 #include <algorithm>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
-#include "modules/devapi/mod_mysqlx_session.h"
 
 #include "modules/devapi/mod_mysqlx_constants.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
+#include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/mod_mysqlx_session_sql.h"
 #include "modules/mod_utils.h"
+#include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/object_factory.h"
+#include "mysqlshdk/include/scripting/proxy_object.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"  // for options
+#include "mysqlshdk/include/shellcore/shell_core.h"
+#include "mysqlshdk/include/shellcore/shell_notifications.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_uuid.h"
-#include "mysqlxtest_utils.h"
-#include "scripting/object_factory.h"
-#include "scripting/proxy_object.h"
-#include "shellcore/base_shell.h"  // for options
-#include "shellcore/shell_core.h"
-#include "shellcore/shell_notifications.h"
-#include "shellcore/utils_help.h"
-#include "utils/logger.h"
-#include "utils/utils_file.h"
-#include "utils/utils_general.h"
-#include "utils/utils_path.h"
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_string.h"
 
 #if _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
@@ -1177,26 +1180,23 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_sql(
 }
 
 std::shared_ptr<shcore::Object_bridge> Session::create(
-    const shcore::Argument_list &args) {
-  std::shared_ptr<Session> session(new Session());
-
-  auto connection_options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-
+    const mysqlshdk::db::Connection_options &co_) {
+  auto co = co_;
   // DevAPI getSession uses ssl-mode = REQUIRED by default if no
   // ssl-ca or ssl-capath are specified
-  if (!connection_options.get_ssl_options().has_mode() &&
-      !connection_options.has_value(mysqlshdk::db::kSslCa) &&
-      !connection_options.has_value(mysqlshdk::db::kSslCaPath)) {
-    connection_options.get_ssl_options().set_default(
-        mysqlshdk::db::kSslMode, mysqlshdk::db::kSslModeRequired);
+  if (!co.get_ssl_options().has_mode() &&
+      !co.has_value(mysqlshdk::db::kSslCa) &&
+      !co.has_value(mysqlshdk::db::kSslCaPath)) {
+    co.get_ssl_options().set_default(mysqlshdk::db::kSslMode,
+                                     mysqlshdk::db::kSslModeRequired);
   }
 
-  session->connect(connection_options);
+  const auto session = std::make_shared<Session>();
+  session->connect(co);
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 
-  return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
+  return session;
 }
 
 // Documentation of sql function

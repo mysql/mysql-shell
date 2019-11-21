@@ -49,7 +49,7 @@ The instance cluster settings were successfully persisted.
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 ||Dba.rebootClusterFromCompleteOutage: The cluster with the name '' does not exist.
-||Dba.rebootClusterFromCompleteOutage: Invalid values in the options: invalidOpt
+||Dba.rebootClusterFromCompleteOutage: Invalid options: invalidOpt
 ||Dba.rebootClusterFromCompleteOutage: The cluster with the name 'dev2' does not exist.
 ||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
 

@@ -25,7 +25,6 @@
 
 #include "scripting/types.h"
 #include "scripting/types_common.h"
-#include "scripting/types_cpp.h"  // NamingStyle
 
 namespace shcore {
 class SHCORE_PUBLIC Object_factory {

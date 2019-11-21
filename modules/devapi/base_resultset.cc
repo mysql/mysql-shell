@@ -22,20 +22,23 @@
  */
 
 #include "modules/devapi/base_resultset.h"
+
 #include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/object_factory.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"  // TODO(alfredo) - move this to modules/
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "scripting/common.h"
-#include "scripting/lang_base.h"
-#include "scripting/obj_date.h"
-#include "scripting/object_factory.h"
-#include "shellcore/shell_core.h"
-#include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 using namespace mysqlsh;
 using namespace shcore;

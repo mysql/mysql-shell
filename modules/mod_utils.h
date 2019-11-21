@@ -38,24 +38,10 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+
 using mysqlshdk::db::Connection_options;
 
-enum class PasswordFormat {
-  NONE,
-  STRING,
-  OPTIONS,
-};
-
-Connection_options SHCORE_PUBLIC
-get_connection_options(const shcore::Value &args);
-Connection_options SHCORE_PUBLIC get_connection_options(
-    const shcore::Argument_list &args, PasswordFormat format);
-
-Connection_options SHCORE_PUBLIC
-get_connection_options(const shcore::Dictionary_t &instance_def);
-
-Connection_options SHCORE_PUBLIC
-get_connection_options(const std::string &instance_def);
+Connection_options SHCORE_PUBLIC get_connection_options(const shcore::Value &v);
 
 /*
  * Unpack an options dictionary.
@@ -110,8 +96,10 @@ class Unpack_options : public shcore::Option_unpacker {
   }
 };
 
-void SHCORE_PUBLIC set_password_from_map(
-    Connection_options *options, const shcore::Value::Map_type_ref &map);
+void SHCORE_PUBLIC set_password_from_map(Connection_options *options,
+                                         const shcore::Dictionary_t &map);
+void SHCORE_PUBLIC set_password_from_string(Connection_options *options,
+                                            const char *password);
 void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
                                      const shcore::Value::Map_type_ref &map);
 

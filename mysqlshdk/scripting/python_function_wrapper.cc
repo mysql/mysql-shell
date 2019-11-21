@@ -49,31 +49,15 @@ static void method_dealloc(PyShFuncObject *self) {
   Py_TYPE(self)->tp_free(self);
 }
 
-static PyObject *method_call(PyShFuncObject *self, PyObject *args,
-                             PyObject *kw) {
+static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
-  std::shared_ptr<Function_base> func(*self->func);
-
-  if (!func->has_var_args() &&
-      func->signature().size() != (size_t)PyTuple_Size(args)) {
-    std::shared_ptr<Cpp_function> cfunc(
-        std::static_pointer_cast<Cpp_function>(func));
-    std::stringstream err;
-    err << cfunc->name(shcore::LowerCaseUnderscores).c_str() << "()"
-        << " takes " << (int)func->signature().size() << " arguments ("
-        << (int)PyTuple_Size(args) << " given)";
-
-    Python_context::set_python_error(PyExc_TypeError, err.str().c_str());
-    return NULL;
-  }
+  const auto func = *self->func;
 
   Argument_list r;
 
-  if (kw)
-    r.push_back(ctx->pyobj_to_shcore_value(kw));
-  else if (args) {
+  if (args) {
     for (size_t c = (size_t)PyTuple_Size(args), i = 0; i < c; i++) {
       PyObject *argval = PyTuple_GetItem(args, i);
 
@@ -89,16 +73,14 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args,
 
   try {
     Value result;
-    {
-      auto pfunc(std::dynamic_pointer_cast<shcore::Python_function>(func));
 
-      if (pfunc) {
-        result = func->invoke(r);
-      } else {
-        WillLeavePython lock;
-        result = func->invoke(r);
-      }
+    if (std::dynamic_pointer_cast<shcore::Python_function>(func)) {
+      result = func->invoke(r);
+    } else {
+      WillLeavePython lock;
+      result = func->invoke(r);
     }
+
     return ctx->shcore_value_to_pyobj(result);
   } catch (...) {
     translate_python_exception();

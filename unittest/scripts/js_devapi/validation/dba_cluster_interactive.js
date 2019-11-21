@@ -5,11 +5,11 @@
 //@ Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
-||Cluster.addInstance: Argument #1 is expected to be a string
 ||Cluster.addInstance: Argument #2 is expected to be a map
-||Cluster.addInstance: Argument #1 is expected to be a string
-||Cluster.addInstance: Invalid URI: empty.
-||Cluster.addInstance: Invalid values in connection options: ipWhitelist, memberSslMode
+||Cluster.addInstance: Argument #2 is expected to be a map
+||Cluster.addInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||Cluster.addInstance: Argument #1: Invalid URI: empty.
+||Cluster.addInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
@@ -186,8 +186,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 //@<ERR> Cluster: removeInstance errors
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
-Cluster.removeInstance: Argument auth-method is expected to be a string (TypeError)
+Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string (ArgumentError)
 Cluster.removeInstance: {{Protocol mismatch; server version =|Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
 Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
 
@@ -418,8 +418,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 //@: Cluster: rejoinInstance errors
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
+||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
 ||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
 ||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'

@@ -203,7 +203,7 @@
 |`sample```|
 
 //@# Session: bad params
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
+||mysqlx.getSession: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
+||mysqlx.getSession: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||mysqlx.getSession: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||mysqlx.getSession: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)

@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -40,6 +41,8 @@
 
 namespace mysqlsh {
 
+namespace {
+
 /**
  * Retrieves the connection data from a String
  *
@@ -47,8 +50,7 @@ namespace mysqlsh {
  *
  * @return a Connection_options object with the connection data
  */
-mysqlshdk::db::Connection_options get_connection_options(
-    const std::string &instance_def) {
+Connection_options get_connection_options(const std::string &instance_def) {
   if (instance_def.empty()) throw std::invalid_argument("Invalid URI: empty.");
 
   return shcore::get_connection_options(instance_def, false);
@@ -61,10 +63,8 @@ mysqlshdk::db::Connection_options get_connection_options(
  *
  * @return a Connection_options object with the connection data
  */
-mysqlshdk::db::Connection_options get_connection_options(
+Connection_options get_connection_options(
     const shcore::Dictionary_t &instance_def) {
-  mysqlshdk::db::Connection_options ret_val;
-
   if (instance_def == nullptr || instance_def->size() == 0) {
     throw std::invalid_argument(
         "Invalid connection options, no options provided.");
@@ -77,6 +77,8 @@ mysqlshdk::db::Connection_options get_connection_options(
   // if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
   //   mandatory.insert(mysqlshdk::db::kHost);
   // }
+
+  Connection_options ret_val;
 
   connection_map.ensure_keys(
       mandatory, mysqlshdk::db::connection_attributes, "connection options",
@@ -139,68 +141,29 @@ mysqlshdk::db::Connection_options get_connection_options(
   return ret_val;
 }
 
-/**
- * This function will retrieve the connection data from the received arguments
- * Connection data can be specified in one of:
- * - Dictionary
- * - URI
- *
- * A common pattern is functions with a signature as follows:
- *
- * function name(connection[, password])
- * function name(connection[, options])
- *
- * On both functions connection may be either a dictionary or a string (URI)
- * An optional password parameter may be defined, this will override the
- * password defined in connection.
- *
- * An optional options parameter may be defined, it may contain a password
- * entry that wold override the one defined in connection.
- *
- * Conflicting options will also be validated.
- */
-mysqlshdk::db::Connection_options get_connection_options(
-    const shcore::Argument_list &args, PasswordFormat format) {
-  mysqlshdk::db::Connection_options ret_val;
+}  // namespace
 
-  try {
-    if (args.size() > 0 && args[0].type == shcore::String) {
-      std::string uri = args.string_at(0);
-
-      ret_val = get_connection_options(uri);
-    } else if (args.size() > 0 && args[0].type == shcore::Map) {
-      shcore::Value::Map_type_ref options = args.map_at(0);
-
-      ret_val = get_connection_options(options);
-    } else {
-      throw std::invalid_argument(
-          "Invalid connection options, expected either "
-          "a URI or a Dictionary.");
-    }
-
-    // Some functions override the password in a second parameter
-    // which could be either a string or an options map, such behavior is
-    // handled here
-    if (format != PasswordFormat::NONE && args.size() > 1) {
-      if (format == PasswordFormat::OPTIONS) {
-        set_password_from_map(&ret_val, args.map_at(1));
-      } else if (format == PasswordFormat::STRING) {
-        ret_val.clear_password();
-        ret_val.set_password(args.string_at(1));
-      }
-    }
-  } catch (const std::invalid_argument &error) {
-    throw shcore::Exception::argument_error(error.what());
+Connection_options get_connection_options(const shcore::Value &v) {
+  if (shcore::String == v.type) {
+    return get_connection_options(v.get_string());
+  } else if (shcore::Map == v.type) {
+    return get_connection_options(v.as_map());
+  } else {
+    throw std::invalid_argument(
+        "Invalid connection options, expected either a URI or a Dictionary.");
   }
-
-  return ret_val;
 }
 
-void SHCORE_PUBLIC set_password_from_map(
-    Connection_options *options, const shcore::Value::Map_type_ref &map) {
+void SHCORE_PUBLIC set_password_from_map(Connection_options *options,
+                                         const shcore::Dictionary_t &map) {
+  if (!options || !map) {
+    return;
+  }
+
   bool override_pwd = false;
   std::string key;
-  for (auto option : *map) {
+
+  for (const auto &option : *map) {
     if (!options->compare(option.first, mysqlshdk::db::kPassword) ||
         !options->compare(option.first, mysqlshdk::db::kDbPassword)) {
       // Will allow one override, a second means the password option was
@@ -216,6 +179,14 @@ void SHCORE_PUBLIC set_password_from_map(
   // Removes the password from the map if found, this is because password is
   // case insensitive and the rest of the options are not
   if (override_pwd) map->erase(key);
+}
+
+void set_password_from_string(Connection_options *options,
+                              const char *password) {
+  if (options && password) {
+    options->clear_password();
+    options->set_password(password);
+  }
 }
 
 void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
@@ -639,3 +610,26 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
 }
 
 }  // namespace mysqlsh
+
+// We need to hide these from doxygen to avoid warnings
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
+namespace shcore {
+namespace detail {
+
+mysqlshdk::db::Connection_options Type_info<
+    mysqlshdk::db::Connection_options>::to_native(const shcore::Value &in) {
+  try {
+    return mysqlsh::get_connection_options(in);
+  } catch (const shcore::Exception &ex) {
+    throw std::invalid_argument(ex.what());
+  }
+}
+
+mysqlshdk::db::Connection_options
+Type_info<mysqlshdk::db::Connection_options>::default_value() {
+  return mysqlshdk::db::Connection_options();
+}
+
+}  // namespace detail
+}  // namespace shcore
+#endif

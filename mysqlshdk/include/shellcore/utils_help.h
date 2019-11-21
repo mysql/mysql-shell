@@ -33,7 +33,6 @@
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/common.h"
-#include "scripting/types_cpp.h"
 
 namespace shcore {
 

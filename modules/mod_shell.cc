@@ -30,14 +30,16 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/shexcept.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/shell_notifications.h"
+#include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
-#include "scripting/shexcept.h"
-#include "shellcore/base_session.h"
-#include "shellcore/shell_notifications.h"
-#include "shellcore/shell_resultset_dumper.h"
-#include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
 
 using namespace std::placeholders;
 
@@ -169,8 +171,7 @@ void Shell::init() {
   expose("parseUri", &Shell::parse_uri, "uri");
   expose("unparseUri", &Shell::unparse_uri, "options");
 
-  add_varargs_method("prompt", std::bind(&Shell::prompt, this, _1));
-  add_varargs_method("connect", std::bind(&Shell::connect, this, _1));
+  expose("prompt", &Shell::prompt, "message", "?options");
   add_method("setCurrentSchema",
              std::bind(&Shell::_set_current_schema, this, _1), "name",
              shcore::String);
@@ -199,6 +200,7 @@ void Shell::init() {
   expose("registerGlobal", &Shell::register_global, "name", "object",
          "?definition");
   expose("dumpRows", &Shell::dump_rows, "resultset", "?format", "table");
+  expose("connect", &Shell::connect, "connectionData", "?password");
 }
 
 Shell::~Shell() {}
@@ -293,10 +295,8 @@ Dictionary Shell::parseUri(String uri) {}
 dict Shell::parse_uri(str uri) {}
 #endif
 shcore::Dictionary_t Shell::parse_uri(const std::string &uri) {
-  auto options = mysqlsh::get_connection_options(uri);
-  auto map = mysqlsh::get_connection_map(options);
-
-  return mysqlsh::get_connection_map(options);
+  return mysqlsh::get_connection_map(
+      mysqlsh::get_connection_options(shcore::Value(uri)));
 }
 
 REGISTER_HELP_FUNCTION(unparseUri, shell);
@@ -321,9 +321,8 @@ String Shell::unparseUri(Dictionary options) {}
 str Shell::unparse_uri(dict options) {}
 #endif
 std::string Shell::unparse_uri(const shcore::Dictionary_t &options) {
-  auto coptions = mysqlsh::get_connection_options(options);
-
-  return coptions.as_uri(mysqlshdk::db::uri::formats::full());
+  return mysqlsh::get_connection_options(shcore::Value(options))
+      .as_uri(mysqlshdk::db::uri::formats::full());
 }
 
 // clang-format off
@@ -368,58 +367,44 @@ String Shell::prompt(String message, Dictionary options) {}
 #elif DOXYGEN_PY
 str Shell::prompt(str message, dict options) {}
 #endif
-shcore::Value Shell::prompt(const shcore::Argument_list &args) {
+std::string Shell::prompt(const std::string &message,
+                          const shcore::Dictionary_t &options) {
   std::string ret_val;
+  std::string default_value;
+  bool password = false;
 
-  args.ensure_count(1, 2, get_function_name("prompt").c_str());
-
-  try {
-    std::string prompt = args.string_at(0);
-
-    shcore::Value::Map_type_ref options;
-
-    if (args.size() == 2) options = args.map_at(1);
-
+  if (options) {
     // If there are options, reads them to determine how to proceed
-    std::string default_value;
-    bool password = false;
+    mysqlshdk::db::nullable<std::string> type;
 
-    if (options) {
-      shcore::Argument_map opt_map(*options);
-      opt_map.ensure_keys({}, {"defaultValue", "type"}, "prompt options");
+    Unpack_options(options)
+        .optional("defaultValue", &default_value)
+        .optional("type", &type)
+        .end();
 
-      if (opt_map.has_key("defaultValue"))
-        default_value = opt_map.string_at("defaultValue");
-
-      if (opt_map.has_key("type")) {
-        std::string type = opt_map.string_at("type");
-
-        if (type != "password")
-          throw shcore::Exception::runtime_error(
-              "Unsupported value for parameter 'type', allowed values: "
-              "password");
-        else
-          password = true;
-      }
+    if (type) {
+      if (*type != "password")
+        throw shcore::Exception::runtime_error(
+            "Unsupported value for parameter 'type', allowed values: password");
+      else
+        password = true;
     }
-
-    // Performs the actual prompt
-    auto console = mysqlsh::current_console();
-
-    bool r;
-    if (password)
-      r = console->prompt_password(prompt, &ret_val) ==
-          shcore::Prompt_result::Ok;
-    else
-      r = console->prompt(prompt, &ret_val);
-
-    // Uses the default value if needed (but not if cancelled)
-    if (!default_value.empty() && (r && ret_val.empty()))
-      ret_val = default_value;
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("prompt"));
 
-  return shcore::Value(ret_val);
+  // Performs the actual prompt
+  const auto console = mysqlsh::current_console();
+
+  bool r;
+  if (password)
+    r = console->prompt_password(message, &ret_val) ==
+        shcore::Prompt_result::Ok;
+  else
+    r = console->prompt(message, &ret_val);
+
+  // Uses the default value if needed (but not if canceled)
+  if (!default_value.empty() && (r && ret_val.empty())) ret_val = default_value;
+
+  return ret_val;
 }
 
 // These two lines link the help to be shown on \? connection
@@ -784,19 +769,13 @@ Session Shell::connect(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY
 Session Shell::connect(ConnectionData connectionData, str password) {}
 #endif
-shcore::Value Shell::connect(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("connect").c_str());
-
-  try {
-    auto connection_options =
-        mysqlsh::get_connection_options(args, PasswordFormat::STRING);
-
-    _shell->connect(connection_options);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
-
-  return shcore::Value(
-      std::static_pointer_cast<Object_bridge>(get_dev_session()));
+std::shared_ptr<ShellBaseSession> Shell::connect(
+    const mysqlshdk::db::Connection_options &connection_options_,
+    const char *password) {
+  auto connection_options = connection_options_;
+  mysqlsh::set_password_from_string(&connection_options, password);
+  _shell->connect(connection_options);
+  return get_dev_session();
 }
 
 void Shell::set_current_schema(const std::string &name) {

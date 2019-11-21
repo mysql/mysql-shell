@@ -21,9 +21,9 @@ EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2)},
 //@<> configure default session {VER(>8.0.0)}
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance()});
-EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance("")});
+EXPECT_THROWS(function(){dba.configureReplicaSetInstance("")}, "Dba.configureReplicaSetInstance: Argument #1: Invalid URI: empty.");
 EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance(null)});
-EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance({})});
+EXPECT_THROWS(function(){dba.configureReplicaSetInstance({})}, "Dba.configureReplicaSetInstance: Argument #1: Invalid connection options, no options provided.");
 
 //@ configure and restart:0 {VER(>8.0.0)}
 // Covers Bug #30510625 DBA.CONFIGURE_REPLICA_SET_INSTANCE: RESTART = TRUE IGNORED, NO ERROR GIVEN

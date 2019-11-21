@@ -24,6 +24,8 @@
 #include "modules/adminapi/mod_dba_replica_set.h"
 
 #include "modules/adminapi/common/dba_errors.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -344,8 +346,8 @@ void ReplicaSet::add_instance(const std::string &instance_def,
   }
 
   // Validate the connection options (in order to issue user friendly errors).
-  Connection_options cnx_opts = get_connection_options(instance_def);
-  validate_connection_options(cnx_opts);
+  validate_connection_options(
+      get_connection_options(shcore::Value(instance_def)));
 
   // Init progress_style
   Recovery_progress_style progress_style;
@@ -498,8 +500,8 @@ void ReplicaSet::rejoin_instance(const std::string &instance_def,
   }
 
   // Validate the connection options (in order to issue user friendly errors).
-  Connection_options cnx_opts = get_connection_options(instance_def);
-  validate_connection_options(cnx_opts);
+  validate_connection_options(
+      get_connection_options(shcore::Value(instance_def)));
 
   // Init progress_style
   Recovery_progress_style progress_style;

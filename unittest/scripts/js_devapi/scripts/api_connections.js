@@ -326,7 +326,7 @@ function create_uri(port, connection_attributes) {
     } else {
         uri = uri + "?connection-attributes";
     }
-    
+
     if (secure_transport == 'disabled') {
         uri = uri + "&ssl-mode=disabled";
     }
@@ -355,11 +355,11 @@ function test_shell_connect(port, connection_attributes) {
 }
 
 var connection_attributes_supported = true;
-var connection_attributes_error = "Capability 'session_connect_attrs' doesn't exist";
+const connection_attributes_error = "Capability 'session_connect_attrs' doesn't exist";
 try {
     test_x("[sample=1]");
 } catch (err) {
-    if (err.message == connection_attributes_error) {
+    if (err.message.indexOf(connection_attributes_error) !== -1) {
         connection_attributes_supported = false;
     }
 }

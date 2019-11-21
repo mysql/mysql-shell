@@ -64,9 +64,7 @@ enum Value_type {
   Function  //! A function reference, not serializable.
 };
 
-// kTypeConvertible[from_type][to_type] = is_convertible
-// from_type = row, to_type = column
-extern const bool kTypeConvertible[12][12];
+bool is_compatible_type(Value_type source_type, Value_type target_type);
 
 std::string type_description(Value_type type);
 
@@ -832,8 +830,6 @@ class SHCORE_PUBLIC Function_base {
   //! Invokes the function and passes back the return value.
   // arglist must match the signature
   virtual Value invoke(const Argument_list &args) = 0;
-
-  virtual bool has_var_args() = 0;
 
   virtual std::string &append_descr(std::string *s_out, int indent = -1,
                                     int quote_strings = 0) const;

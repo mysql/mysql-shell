@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,16 @@
 #define _MOD_MYSQL_H_
 
 #include <string>
-#include "scripting/module_registry.h"
+
+#include "mysqlshdk/include/scripting/module_registry.h"
+
+namespace mysqlshdk {
+namespace db {
+
+class Connection_options;
+
+}  // namespace db
+}  // namespace mysqlshdk
 
 namespace mysqlsh {
 /**
@@ -74,11 +83,12 @@ ClassicSession get_session(ConnectionData connectionData, str password);
 
 DECLARE_MODULE(Mysql, mysql);
 
-DECLARE_FUNCTION(get_classic_session);
-DECLARE_FUNCTION(get_session);
-
-// We need to hide this from doxygen to avoif warnings
+// We need to hide these from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
+std::shared_ptr<shcore::Object_bridge> get_session(
+    const mysqlshdk::db::Connection_options &co,
+    const char *password = nullptr);
+
 virtual shcore::Value get_member(const std::string &prop) const;
 #endif
 

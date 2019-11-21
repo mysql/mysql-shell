@@ -60,8 +60,6 @@ class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
 
 #define REGISTER_FUNCTION(C, F, N, ...) \
   add_method(#N, std::bind(&C::F, this, _1), __VA_ARGS__)
-#define REGISTER_VARARGS_FUNCTION(C, F, N) \
-  add_varargs_method(#N, std::bind(&C::F, this, _1))
 
 #define END_REGISTER_MODULE() }
 

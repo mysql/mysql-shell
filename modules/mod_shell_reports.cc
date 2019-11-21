@@ -355,7 +355,6 @@ class Native_report_function : public shcore::Cpp_function {
                               {"?options", shcore::Value_type::Map}};
     m_metadata.signature = gen_signature(m_metadata.param_types);
     m_metadata.return_type = shcore::Value_type::Map;
-    m_metadata.var_args = false;
   }
 
   ~Native_report_function() override = default;

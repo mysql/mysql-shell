@@ -28,6 +28,7 @@
 #include <set>
 #include <utility>
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1127,3 +1128,25 @@ std::string Extensible_object::get_help_id() const {
 }
 
 }  // namespace mysqlsh
+
+namespace shcore {
+namespace detail {
+
+std::shared_ptr<mysqlsh::Extensible_object>
+Type_info<std::shared_ptr<mysqlsh::Extensible_object>>::to_native(
+    const shcore::Value &in) {
+  std::shared_ptr<mysqlsh::Extensible_object> object;
+
+  if (in.type == shcore::Object)
+    object = in.as_object<mysqlsh::Extensible_object>();
+
+  if (!object) {
+    throw shcore::Exception::type_error(
+        "Invalid typecast: extension object expected.");
+  }
+
+  return object;
+}
+
+}  // namespace detail
+}  // namespace shcore

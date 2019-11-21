@@ -21,10 +21,10 @@
 |2017-12-10 10:10:10.599000|
 
 //@ mysqlx module: Bug #26429377
-||mysqlx.dateValue: Invalid number of arguments, expected 3 to 7 but got 0 (ArgumentError)
+||mysqlx.dateValue: Invalid number of arguments, expected 3 but got 0 (ArgumentError)
 
 //@ mysqlx module: Bug #26429377 - 4/5 arguments
-||mysqlx.dateValue: 3,6 or 7 arguments expected (ArgumentError)
+||mysqlx.dateValue: Invalid number of arguments, expected 3 but got 4 (ArgumentError)
 
 //@ mysqlx module: Bug #26429426
 ||mysqlx.dateValue: Valid day range is 0-31 (ArgumentError)
@@ -45,4 +45,4 @@
 ||mysqlx.dateValue: Valid second range is 0-59 (ArgumentError)
 
 //@ usecond validation
-||mysqlx.dateValue: Valid second range is 0-999999 (ArgumentError)
+||mysqlx.dateValue: Valid millisecond range is 0-999999 (ArgumentError)

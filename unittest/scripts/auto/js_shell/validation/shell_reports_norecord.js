@@ -117,7 +117,7 @@ DESCRIPTION
 ||Shell.registerReport: Argument #3 is expected to be a function (ArgumentError)
 
 //@ try to register the report with options set to invalid type
-||Shell.registerReport: Argument description at pos 3 for registerReport() has wrong type: expected Map but got String (ArgumentError)
+||Shell.registerReport: Argument #4 is expected to be a map (ArgumentError)
 
 //@ WL11263_TSF9_1 - Try to register a plugin report with a duplicated name, error is expected.
 ||Shell.registerReport: Duplicate report: query (ArgumentError)

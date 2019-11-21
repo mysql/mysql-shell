@@ -447,32 +447,4 @@ class Extensible_object
 };
 }  // namespace mysqlsh
 
-namespace shcore {
-
-template <>
-struct Type_info<std::shared_ptr<mysqlsh::Extensible_object>> {
-  static std::shared_ptr<mysqlsh::Extensible_object> to_native(
-      const shcore::Value &in) {
-    std::shared_ptr<mysqlsh::Extensible_object> object;
-
-    if (in.type == shcore::Object)
-      object = in.as_object<mysqlsh::Extensible_object>();
-
-    if (!object) {
-      throw shcore::Exception::type_error(
-          "Invalid typecast: extension object expected.");
-    }
-
-    return object;
-  }
-  static Value_type vtype() { return shcore::Object; }
-  static const char *code() { return "O"; }
-  static std::shared_ptr<mysqlsh::Extensible_object> default_value() {
-    return std::shared_ptr<mysqlsh::Extensible_object>();
-  }
-  static std::string desc() { return "an extension object"; }
-};
-
-}  // namespace shcore
-
 #endif  // MODULES_MOD_EXTENSIBLE_OBJECT_H_

@@ -29,8 +29,11 @@
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
+
 #include "unittest/test_utils.h"
 
 namespace shcore {

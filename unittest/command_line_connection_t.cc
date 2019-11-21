@@ -124,12 +124,13 @@ TEST_F(Command_line_connection_test, bug25268670) {
        NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.connect: Invalid values in connection options: invalid_option");
+      "Shell.connect: Argument #1: Invalid values in connection options: "
+      "invalid_option");
 }
 
 TEST_F(Command_line_connection_test, bug28899522) {
   static constexpr auto expected =
-      "Shell.connect: Host value cannot be an empty string.";
+      "Shell.connect: Argument #1: Host value cannot be an empty string.";
 
   execute(
       {_mysqlsh, "-e", "shell.connect({'user':'root','host':''})", nullptr});
@@ -538,6 +539,8 @@ TEST_F(Command_line_connection_test, expired_account) {
 }
 
 TEST_F(Command_line_connection_test, invalid_options_WL10912) {
+  const std::string prefix =
+      "Shell.connect: Argument #1: Invalid values in connection options: ";
   {
     execute({_mysqlsh, "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
@@ -545,8 +548,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "'whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslMode");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslMode");
   }  // namespace tests
 
   {
@@ -556,8 +558,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCa");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCa");
   }
 
   {
@@ -567,8 +568,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCaPath");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCaPath");
   }
 
   {
@@ -578,8 +578,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCrl");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCrl");
   }
 
   {
@@ -589,8 +588,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "'whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCrlPath");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCrlPath");
   }
 
   {
@@ -600,8 +598,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCert");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCert");
   }
 
   {
@@ -611,8 +608,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslKey");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslKey");
   }
 
   {
@@ -622,8 +618,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "'whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCipher");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslCipher");
   }
 
   {
@@ -632,8 +627,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "'sslTlsVersion':'whatever'})",
              NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslTlsVersion");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(prefix + "sslTlsVersion");
   }
 }
 

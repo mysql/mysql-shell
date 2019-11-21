@@ -28,6 +28,7 @@
 #include <string>
 
 #include "mysqlshdk/include/scripting/include_v8.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace shcore {

@@ -62,8 +62,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Dictionary_t parse_uri(const std::string &uri);
   std::string unparse_uri(const shcore::Dictionary_t &options);
 
-  shcore::Value prompt(const shcore::Argument_list &args);
-  shcore::Value connect(const shcore::Argument_list &args);
+  std::string prompt(const std::string &message,
+                     const shcore::Dictionary_t &options = {});
+  std::shared_ptr<ShellBaseSession> connect(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const char *password = {});
 
 #if !defined(DOXYGEN_PY)
   void set_current_schema(const std::string &name);
@@ -82,7 +85,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Dictionary parseUri(String uri);
   String unparseUri(Dictionary options);
   String prompt(String message, Dictionary options);
-  Undefined connect(ConnectionData connectionData, String password);
+  Session connect(ConnectionData connectionData, String password);
   Session getSession();
   Undefined setSession(Session session);
   Undefined setCurrentSchema(String name);
@@ -109,7 +112,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   dict parse_uri(str uri);
   str unparse_uri(dict options);
   str prompt(str message, dict options);
-  None connect(ConnectionData connectionData, str password);
+  Session connect(ConnectionData connectionData, str password);
   Session get_session();
   None set_session(Session session);
   None set_current_schema(str name);

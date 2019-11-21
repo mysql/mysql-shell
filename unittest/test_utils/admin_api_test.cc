@@ -64,7 +64,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   options->emplace("gtidSetIsComplete", true);
   _cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
-  _cluster->add_instance("root:root@localhost:" + shell_env.sb_port_str(1), {});
+  _cluster->add_instance({"root:root@localhost:" + shell_env.sb_port_str(1)});
   _replicaset = _cluster->impl()->get_default_replicaset();
 
   shell_env.execute("session.close()");

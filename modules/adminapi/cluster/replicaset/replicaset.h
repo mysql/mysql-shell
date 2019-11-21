@@ -143,13 +143,13 @@ class GRReplicaSet {
                     const shcore::Dictionary_t &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
 
-  shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
-                                const shcore::Value::Map_type_ref &options);
-  shcore::Value remove_instance(const shcore::Argument_list &args);
+  void rejoin_instance(const Connection_options &instance_def,
+                       const shcore::Value::Map_type_ref &options);
+  void remove_instance(const Connection_options &instance_def,
+                       const shcore::Dictionary_t &options = {});
   void dissolve(const shcore::Dictionary_t &options);
   void rescan(const shcore::Dictionary_t &options);
-  shcore::Value force_quorum_using_partition_of(
-      const shcore::Argument_list &args);
+  void force_quorum_using_partition_of(const Connection_options &instance_def);
 
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,

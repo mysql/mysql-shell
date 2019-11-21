@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,43 +21,24 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_PYTHON_H_
-#define _TYPES_PYTHON_H_
-
-// python_context.h has to be included first
-
-#include "scripting/python_context.h"
-
-#include <memory>
-
-#include "scripting/types.h"
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_NAMING_STYLE_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_NAMING_STYLE_H_
 
 namespace shcore {
 
-class SHCORE_PUBLIC Python_function : public Function_base {
- public:
-  Python_function(Python_context *context, PyObject *function);
-  ~Python_function() override;
-
-  const std::string &name() const override { return m_name; }
-
-  const std::vector<std::pair<std::string, Value_type>> &signature()
-      const override;
-
-  Value_type return_type() const override;
-
-  bool operator==(const Function_base &other) const override;
-
-  bool operator!=(const Function_base &other) const;
-
-  Value invoke(const Argument_list &args) override;
-
- private:
-  Python_context *_py;
-  std::weak_ptr<AutoPyObject> m_function;
-  std::string m_name;
+enum NamingStyle {
+  LowerCamelCase = 0,
+  LowerCaseUnderscores = 1,
+  Constants = 2
 };
+
+struct Scoped_naming_style {
+  explicit Scoped_naming_style(NamingStyle style);
+  ~Scoped_naming_style();
+};
+
+NamingStyle current_naming_style();
 
 }  // namespace shcore
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_NAMING_STYLE_H_

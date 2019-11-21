@@ -28,6 +28,7 @@
 
 #include <Python-ast.h>
 
+#include "mysqlshdk/include/scripting/python_object_wrapper.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/common.h"
 #include "scripting/module_registry.h"
@@ -1164,7 +1165,9 @@ void Python_context::register_mysqlsh_module() {
     for (const auto &member_name : module->get_members()) {
       shcore::Value member = module->get_member_advanced(member_name);
       if (member.type == shcore::Function || member.type == shcore::Object) {
-        PyObject *p = _types.shcore_value_to_pyobj(member);
+        PyObject *p = member.type == shcore::Object
+                          ? _types.shcore_value_to_pyobj(member)
+                          : wrap(module, member_name);
         // incrs ref
         PyDict_SetItemString(py_dict, member_name.c_str(), p);
         Py_XDECREF(p);

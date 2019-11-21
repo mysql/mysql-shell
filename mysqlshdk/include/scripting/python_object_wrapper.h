@@ -30,6 +30,8 @@
 #include "scripting/types.h"
 
 namespace shcore {
+
+class Cpp_object_bridge;
 class Python_context;
 
 struct PyMemberCache {
@@ -55,7 +57,11 @@ struct PyShObjIndexedObject {
   PyMemberCache *cache;
 };
 
-PyObject *wrap(std::shared_ptr<Object_bridge> object);
+PyObject *wrap(const std::shared_ptr<Object_bridge> &object);
+
+PyObject *wrap(const std::shared_ptr<Cpp_object_bridge> &object,
+               const std::string &method);
+
 bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
 
 bool unwrap_method(PyObject *value, std::shared_ptr<Function_base> *method);

@@ -54,6 +54,10 @@
 #endif
 
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -80,8 +84,6 @@
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "mysqlshdk/include/shellcore/shell_init.h"
-#include "scripting/obj_date.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -190,7 +192,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("skip", &Testutils::skip, "reason");
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
   expose("waitForDelayedGRStart", &Testutils::wait_for_delayed_gr_start, "port",
-         "rootpass", "?timeout", k_wait_delayed_gr_start_timeout);
+         "rootpass", "?timeout",
+         static_cast<int>(k_wait_delayed_gr_start_timeout));
   expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
   expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
   expose("chmod", &Testutils::ch_mod, "path", "mode");

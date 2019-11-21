@@ -39,10 +39,10 @@
 #include <unistd.h>
 #endif
 
+#include "mysqlshdk/include/scripting/naming_style.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
 
 namespace shcore {
 

@@ -938,39 +938,34 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
-  args.push_back(shcore::Value(_mysql_uri));
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade({_mysql_uri});
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }
-  args.clear();
 
   // valid mysql 5.7 superuser X protocol
-  args.push_back(shcore::Value(_uri));
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
-  args.clear();
+  EXPECT_NO_THROW(util.check_for_server_upgrade({_uri}));
 
   // new user with all privileges sans grant option and '%' in host
   EXPECT_NO_THROW(session->execute(
       "create user if not exists 'percent'@'%' identified by 'percent';"));
   std::string percent_uri = _mysql_uri;
   percent_uri.replace(0, 4, "percent:percent");
-  args.push_back(shcore::Value(percent_uri));
+
   // No privileges function should throw
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_THROW(util.check_for_server_upgrade({percent_uri}), std::exception);
 
   // Still not enough privileges
   EXPECT_NO_THROW(session->execute("grant SUPER on *.* to 'percent'@'%';"));
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_THROW(util.check_for_server_upgrade({percent_uri}), std::exception);
 
   // Privileges check out we should succeed
   EXPECT_NO_THROW(session->execute("grant ALL on *.* to 'percent'@'%';"));
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
+  EXPECT_NO_THROW(util.check_for_server_upgrade({percent_uri}));
 
   EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
 }
@@ -982,15 +977,13 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
         "This test requires running against MySQL server version 5.7 up to but "
         "not including " MYSH_VERSION);
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
-  args.push_back(shcore::Value(_mysql_uri));
   const auto options = shcore::make_dict();
   options->set("outputFormat", shcore::Value("JSON"));
-  args.push_back(shcore::Value(options));
+
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade({_mysql_uri}, options);
     rapidjson::Document d;
     d.Parse(output_handler.std_out.c_str());
 
@@ -1065,8 +1058,7 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     EXPECT_NE("json/raw", _options->wrap_json);
     auto old_wrap = _options->wrap_json;
     _options->wrap_json = "json/raw";
-    args.pop_back();
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade({_mysql_uri});
     _options->wrap_json = old_wrap;
     rapidjson::Document d1;
     d1.Parse(output_handler.std_out.c_str());
@@ -1076,7 +1068,6 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }
-  args.clear();
 }
 
 TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
@@ -1088,22 +1079,21 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
         "This test requires running against MySQL server version 8.0, equal "
         "or greater than the shell version");
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri));
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+
+  EXPECT_THROW(util.check_for_server_upgrade({_mysql_uri}), std::exception);
 }
 
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
   output_handler.passwords.push_back(
       {"Please provide the password for "
        "'" +
            _mysql_uri_nopasswd + "': ",
        "WhAtEvEr"});
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+
+  EXPECT_THROW(util.check_for_server_upgrade({_mysql_uri_nopasswd}),
+               shcore::Exception);
 
   // Passwords are consumed if prompted, so verifying this indicates the
   // password was prompted as expected and consumed
@@ -1112,14 +1102,12 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
 
 TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri));
 
   output_handler.passwords.push_back(
       {"If this was prompted it is an error", "WhAtEvEr"});
 
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade({_mysql_uri});
   } catch (...) {
     // We don't really care for this test
   }
@@ -1134,14 +1122,12 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   _options->wizards = false;
   reset_shell();
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
   output_handler.passwords.push_back(
       {"If this was prompted it is an error", "WhAtEvEr"});
 
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade({_mysql_uri_nopasswd});
   } catch (...) {
     // We don't really care for this test
   }

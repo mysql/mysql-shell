@@ -21,16 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mod_mysql_resultset.h"
+#include "modules/mod_mysql_resultset.h"
+
 #include <iomanip>
 #include <string>
+
 #include "modules/devapi/base_constants.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/utils/strformat.h"
-#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

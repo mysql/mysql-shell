@@ -21,15 +21,18 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdarg>
 #include <limits>
 #include <tuple>
-#include "scripting/common.h"
-#include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
+
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 #ifdef WIN32
 #ifdef max
@@ -42,16 +45,6 @@
 
 using namespace std::placeholders;
 namespace shcore {
-
-std::vector<NamingStyle> g_naming_style{NamingStyle::LowerCamelCase};
-
-Scoped_naming_style::Scoped_naming_style(NamingStyle style) {
-  g_naming_style.push_back(style);
-}
-
-Scoped_naming_style::~Scoped_naming_style() { g_naming_style.pop_back(); }
-
-NamingStyle current_naming_style() { return g_naming_style.back(); }
 
 Cpp_function::Raw_signature Cpp_function::gen_signature(
     const std::vector<std::pair<std::string, Value_type>> &args) {
@@ -78,9 +71,21 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
   bool match = true;
   std::string error;
 
-  // more than 3 params not supported atm...
+  // more than 7 params not supported atm...
   // extend when more expose() variations added
   switch (static_cast<int>(cand.size()) - m) {
+    case 7:  // 7 params extra, if the rest is optional, it's a match
+      match = match && (cand[c - 7]->flag == Param_flag::Optional);
+      // fallthrough
+    case 6:  // 6 params extra, if the rest is optional, it's a match
+      match = match && (cand[c - 6]->flag == Param_flag::Optional);
+      // fallthrough
+    case 5:  // 5 params extra, if the rest is optional, it's a match
+      match = match && (cand[c - 5]->flag == Param_flag::Optional);
+      // fallthrough
+    case 4:  // 4 params extra, if the rest is optional, it's a match
+      match = match && (cand[c - 4]->flag == Param_flag::Optional);
+      // fallthrough
     case 3:  // 3 params extra, if the rest is optional, it's a match
       match = match && (cand[c - 3]->flag == Param_flag::Optional);
       // fallthrough
@@ -122,9 +127,44 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
     // check if all provided params are implicitly convertible to the ones
     // from the candidate
     switch (m) {
+      case 7:  // 7 params to be considered
+        if (!cand[6]->valid_type(wanted[6])) {
+          match = false;
+          error = shcore::str_format("Argument #7 is expected to be %s",
+                                     type_description(cand[6]->type()).c_str());
+        }
+        exact_matches -= (wanted[6] != cand[6]->type());
+        have_object_params = have_object_params || (wanted[6] == Object);
+        // fallthrough
+      case 6:  // 6 params to be considered
+        if (!cand[5]->valid_type(wanted[5])) {
+          match = false;
+          error = shcore::str_format("Argument #6 is expected to be %s",
+                                     type_description(cand[5]->type()).c_str());
+        }
+        exact_matches -= (wanted[5] != cand[5]->type());
+        have_object_params = have_object_params || (wanted[5] == Object);
+        // fallthrough
+      case 5:  // 5 params to be considered
+        if (!cand[4]->valid_type(wanted[4])) {
+          match = false;
+          error = shcore::str_format("Argument #5 is expected to be %s",
+                                     type_description(cand[4]->type()).c_str());
+        }
+        exact_matches -= (wanted[4] != cand[4]->type());
+        have_object_params = have_object_params || (wanted[4] == Object);
+        // fallthrough
+      case 4:  // 4 params to be considered
+        if (!cand[3]->valid_type(wanted[3])) {
+          match = false;
+          error = shcore::str_format("Argument #4 is expected to be %s",
+                                     type_description(cand[3]->type()).c_str());
+        }
+        exact_matches -= (wanted[3] != cand[3]->type());
+        have_object_params = have_object_params || (wanted[3] == Object);
+        // fallthrough
       case 3:  // 3 params to be considered
-        if (!kTypeConvertible[static_cast<int>(wanted[2])]
-                             [static_cast<int>(cand[2]->type())]) {
+        if (!cand[2]->valid_type(wanted[2])) {
           match = false;
           error = shcore::str_format("Argument #3 is expected to be %s",
                                      type_description(cand[2]->type()).c_str());
@@ -133,8 +173,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
         have_object_params = have_object_params || (wanted[2] == Object);
         // fallthrough
       case 2:  // 2 params to be considered
-        if (!kTypeConvertible[static_cast<int>(wanted[1])]
-                             [static_cast<int>(cand[1]->type())]) {
+        if (!cand[1]->valid_type(wanted[1])) {
           match = false;
           error = shcore::str_format("Argument #2 is expected to be %s",
                                      type_description(cand[1]->type()).c_str());
@@ -143,8 +182,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
         have_object_params = have_object_params || (wanted[1] == Object);
         // fallthrough
       case 1:  // 1 param to be considered
-        if (!kTypeConvertible[static_cast<int>(wanted[0])]
-                             [static_cast<int>(cand[0]->type())]) {
+        if (!cand[0]->valid_type(wanted[0])) {
           match = false;
           error = shcore::str_format("Argument #1 is expected to be %s",
                                      type_description(cand[0]->type()).c_str());
@@ -234,7 +272,7 @@ void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
 }
 
 Cpp_object_bridge::Cpp_object_bridge() {
-  add_varargs_method("help", std::bind(&Cpp_object_bridge::help, this, _1));
+  expose("help", &Cpp_object_bridge::help, "?item");
 }
 
 Cpp_object_bridge::~Cpp_object_bridge() {
@@ -418,22 +456,6 @@ void Cpp_object_bridge::add_method_(
   _funcs.emplace(name.substr(0, name.find("|")), function);
 }
 
-void Cpp_object_bridge::add_varargs_method(const std::string &name,
-                                           Cpp_function::Function func) {
-  auto f = _funcs.find(name);
-  if (f != _funcs.end()) {
-#ifndef NDEBUG
-    log_warning("Attempt to register a duplicate method: %s", name.c_str());
-#endif
-    // overloading not supported in old API, erase the previous one
-    _funcs.erase(f);
-  }
-  auto function =
-      std::shared_ptr<Cpp_function>(new Cpp_function(name, func, true));
-  function->is_legacy = true;
-  _funcs.emplace(name.substr(0, name.find("|")), function);
-}
-
 void Cpp_object_bridge::add_constant(const std::string &name) {
   _properties.push_back(Cpp_property_name(name, true));
 }
@@ -600,18 +622,7 @@ Value Cpp_object_bridge::call(const std::string &name,
   return call_function(scope, func, args);
 }
 
-shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
-  args.ensure_count(0, 1, get_function_name("help").c_str());
-
-  std::string ret_val;
-  std::string item;
-
-  try {
-    if (args.size() == 1) item = args.string_at(0);
-  } catch (const Exception &e) {
-    throw Exception::type_error(get_function_name("help") + ": " + e.what());
-  }
-
+std::string Cpp_object_bridge::help(const std::string &item) {
   IShell_core::Mode mode;
 
   if (current_naming_style() == NamingStyle::LowerCamelCase)
@@ -625,8 +636,8 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   shcore::Topic_mask mask;
   std::string pattern = get_help_id();
   if (!item.empty()) {
-    // This group represents the API topics that can childs
-    // of another API topic
+    // This group represents the API topics that can be children of another API
+    // topic
     pattern += "." + item;
     mask.set(shcore::Topic_type::FUNCTION);
     mask.set(shcore::Topic_type::PROPERTY);
@@ -634,8 +645,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     mask.set(shcore::Topic_type::CLASS);
     mask.set(shcore::Topic_type::CONSTANTS);
   } else {
-    // This group represents the API topics that can contain
-    // children
+    // This group represents the API topics that can contain children
     mask.set(shcore::Topic_type::MODULE);
     mask.set(shcore::Topic_type::OBJECT);
     mask.set(shcore::Topic_type::GLOBAL_OBJECT);
@@ -643,9 +653,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     mask.set(shcore::Topic_type::CLASS);
   }
 
-  ret_val = help.get_help(pattern, mask);
-
-  return shcore::Value(ret_val);
+  return help.get_help(pattern, mask);
 }
 
 void Cpp_object_bridge::detect_overload_conflicts(
@@ -674,10 +682,8 @@ void Cpp_object_bridge::detect_overload_conflicts(
     size_t i = 0;
     size_t args_num = std::min(overload_sig.size(), function_sig.size());
     for (; i < args_num; i++)
-      if (!kTypeConvertible[static_cast<int>(overload_sig[i]->type())]
-                           [static_cast<int>(function_sig[i]->type())] &&
-          !kTypeConvertible[static_cast<int>(function_sig[i]->type())]
-                           [static_cast<int>(overload_sig[i]->type())])
+      if (!overload_sig[i]->valid_type(function_sig[i]->type()) &&
+          !function_sig[i]->valid_type(overload_sig[i]->type()))
         break;
     if (i == args_num)
       throw Exception::attrib_error(
@@ -689,25 +695,6 @@ void Cpp_object_bridge::detect_overload_conflicts(
 
 Cpp_function::Cpp_function(const Metadata *meta, const Function &func)
     : _func(func), _meta(meta) {}
-
-// TODO(alfredo) legacy, delme
-Cpp_function::Cpp_function(const std::string &name_, const Function &func,
-                           bool var_args)
-    : _func(func) {
-  // The | separator is used when specific names are given for a function
-  // Otherwise the function name is retrieved based on the style
-  auto index = name_.find("|");
-  if (index == std::string::npos) {
-    _meta_tmp.name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
-    _meta_tmp.name[LowerCaseUnderscores] =
-        get_member_name(name_, LowerCaseUnderscores);
-  } else {
-    _meta_tmp.name[LowerCamelCase] = name_.substr(0, index);
-    _meta_tmp.name[LowerCaseUnderscores] = name_.substr(index + 1);
-  }
-  _meta_tmp.var_args = var_args;
-  _meta = &_meta_tmp;
-}
 
 // TODO(alfredo) legacy, delme
 Cpp_function::Cpp_function(
@@ -726,7 +713,6 @@ Cpp_function::Cpp_function(
     _meta_tmp.name[LowerCaseUnderscores] = name_.substr(index + 1);
   }
   _meta_tmp.param_types = args;
-  _meta_tmp.var_args = false;
   _meta_tmp.signature = Cpp_function::gen_signature(args);
   _meta = &_meta_tmp;
 }
@@ -767,44 +753,40 @@ Value Cpp_function::invoke(const Argument_list &args) {
   // Check that the list of arguments is correct
   if (!_meta->signature.empty() && !is_legacy) {
     auto a = args.begin();
-    auto sig = signature();
-    auto s = sig.begin();
+    const auto &sig = signature();
+    auto s = _meta->signature.begin();
+    const auto s_end = _meta->signature.end();
     int n = 0;
-    while (s != sig.end()) {
+
+    if (args.size() > sig.size() ||
+        (args.size() < sig.size() &&
+         _meta->signature[args.size()]->flag != Param_flag::Optional)) {
+      throw Exception::argument_error(
+          name() + ": Invalid number of arguments, expected " +
+          num_args_expected(sig) + " but got " + std::to_string(args.size()));
+    }
+
+    while (s != s_end) {
       if (a == args.end()) {
-        if (s->first[0] == '?') {
+        if ((*s)->flag == Param_flag::Optional) {
           // param is optional... remaining expected params can only be optional
           // too
           break;
-        } else {
-          throw Exception::argument_error("Too few arguments for " + name() +
-                                          "()" + ": " + num_args_expected(sig) +
-                                          " expected, but got " +
-                                          std::to_string(args.size()));
         }
       }
-      try {
-        a->check_type(s->second);
-      } catch (...) {
-        std::string arg = s->first;
-        if (arg[0] == '?') arg = arg.substr(1);
 
+      if (!(*s)->valid_type(a->type)) {
         throw Exception::argument_error(
-            "Argument " + arg + " at pos " + std::to_string(n) + " for " +
-            name() + "() has wrong type: expected " + type_name(s->second) +
-            " but got " + type_name(a->type));
+            name() + ": Argument #" + std::to_string(n + 1) +
+            " is expected to be " + type_description((*s)->type()));
       }
+
       ++n;
       ++a;
       ++s;
     }
-    if (a != args.end()) {
-      throw Exception::argument_error("Too many arguments for " + name() +
-                                      "()" + ": " + num_args_expected(sig) +
-                                      " expected, but got " +
-                                      std::to_string(args.size()));
-    }
   }
+
   // Note: exceptions caught here should all be self-descriptive and be enough
   // for the caller to figure out what's wrong. Other specific exception
   // types should have been caught earlier, in the bridges
@@ -869,10 +851,17 @@ std::string Parameter_context::str() const {
   return (title.empty() ? "" : title + " ") + shcore::str_join(ctx_data, ", ");
 }
 
+bool Parameter_validator::valid_type(const Parameter &param,
+                                     Value_type type) const {
+  return is_compatible_type(type, param.type());
+}
+
 void Parameter_validator::validate(const Parameter &param, const Value &data,
                                    Parameter_context *context) const {
   try {
-    data.check_type(param.type());
+    if (!valid_type(param, data.type)) {
+      throw std::invalid_argument("Invalid type");
+    }
 
     // The call to check_type only verifies the kConvertible matrix there:
     // - A string is convertible to integer, bool and float
@@ -967,9 +956,17 @@ void Parameter::validate(const Value &data, Parameter_context *context) const {
   if (m_validator) {
     m_validator->validate(*this, data, context);
   } else {
-    // If no validator was set on the option, uses the
-    // default validator.
+    // If no validator was set, uses the default validator.
     Parameter_validator{}.validate(*this, data, context);
+  }
+}
+
+bool Parameter::valid_type(Value_type type) const {
+  if (m_validator) {
+    return m_validator->valid_type(*this, type);
+  } else {
+    // If no validator was set, uses the default validator.
+    return Parameter_validator{}.valid_type(*this, type);
   }
 }
 

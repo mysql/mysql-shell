@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,43 +21,25 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_PYTHON_H_
-#define _TYPES_PYTHON_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_STD_H_
+#define MYSQLSHDK_LIBS_UTILS_STD_H_
 
-// python_context.h has to be included first
+#include <type_traits>
 
-#include "scripting/python_context.h"
+namespace std20 {
 
-#include <memory>
+#if __cplusplus > 201703L
+#error "Already using C++20, please remove this namespace."
+#endif
 
-#include "scripting/types.h"
-
-namespace shcore {
-
-class SHCORE_PUBLIC Python_function : public Function_base {
- public:
-  Python_function(Python_context *context, PyObject *function);
-  ~Python_function() override;
-
-  const std::string &name() const override { return m_name; }
-
-  const std::vector<std::pair<std::string, Value_type>> &signature()
-      const override;
-
-  Value_type return_type() const override;
-
-  bool operator==(const Function_base &other) const override;
-
-  bool operator!=(const Function_base &other) const;
-
-  Value invoke(const Argument_list &args) override;
-
- private:
-  Python_context *_py;
-  std::weak_ptr<AutoPyObject> m_function;
-  std::string m_name;
+template <typename T>
+struct remove_cvref {
+  typedef std::remove_cv_t<std::remove_reference_t<T>> type;
 };
 
-}  // namespace shcore
+template <typename T>
+using remove_cvref_t = typename remove_cvref<T>::type;
 
-#endif
+}  // namespace std20
+
+#endif  // MYSQLSHDK_LIBS_UTILS_STD_H_

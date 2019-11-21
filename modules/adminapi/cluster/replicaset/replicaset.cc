@@ -276,8 +276,6 @@ void GRReplicaSet::add_instance(
   Group_replication_options gr_options(Group_replication_options::JOIN);
   Clone_options clone_options(Clone_options::JOIN_CLUSTER);
   mysqlshdk::utils::nullable<std::string> label;
-  std::string password;
-
   int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
   bool interactive = current_shell_options()->get().wizards;
 
@@ -290,7 +288,6 @@ void GRReplicaSet::add_instance(
         .optional("interactive", &interactive)
         .optional("label", &label)
         .optional("waitRecovery", &wait_recovery)
-        .optional_ci("password", &password)
         .end();
   }
 
@@ -300,13 +297,6 @@ void GRReplicaSet::add_instance(
         "Invalid value '" + std::to_string(wait_recovery) +
         "' for option 'waitRecovery'. It must be an integer in the range [0, "
         "3].");
-  }
-
-  // Override password if provided in options dictionary.
-  auto target_coptions = mysqlshdk::db::Connection_options(
-      connection_options.as_uri(mysqlshdk::db::uri::formats::full()));
-  if (!password.empty()) {
-    target_coptions.set_password(password);
   }
 
   // Validate the label value.
@@ -321,7 +311,7 @@ void GRReplicaSet::add_instance(
   }
 
   // Create the add_instance command to be executed.
-  Add_instance op_add_instance(target_coptions, *this, gr_options,
+  Add_instance op_add_instance(connection_options, *this, gr_options,
                                clone_options, label, interactive,
                                wait_recovery);
 
@@ -573,12 +563,12 @@ std::string GRReplicaSet::get_cluster_group_seeds(
   return shcore::str_join(gr_group_seeds_list, ",");
 }
 
-shcore::Value GRReplicaSet::rejoin_instance(
-    mysqlshdk::db::Connection_options *instance_def,
+void GRReplicaSet::rejoin_instance(
+    const Connection_options &instance_def_,
     const shcore::Value::Map_type_ref &rejoin_options) {
+  auto instance_def = instance_def_;
   Cluster_impl *cluster(get_cluster());
 
-  shcore::Value ret_val;
   Group_replication_options gr_options(Group_replication_options::REJOIN);
   // SSL Mode AUTO by default
   gr_options.ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
@@ -599,20 +589,20 @@ shcore::Value GRReplicaSet::rejoin_instance(
     }
   }
 
-  if (!instance_def->has_port() && !instance_def->has_socket())
-    instance_def->set_port(mysqlshdk::db::k_default_mysql_port);
+  if (!instance_def.has_port() && !instance_def.has_socket())
+    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
-  instance_def->set_default_connection_data();
+  instance_def.set_default_connection_data();
 
   // Get the target instance.
   try {
     log_info("Opening a new session to the rejoining instance %s",
-             instance_def->uri_endpoint().c_str());
-    instance = Instance::connect(*instance_def,
-                                 current_shell_options()->get().wizards);
+             instance_def.uri_endpoint().c_str());
+    instance =
+        Instance::connect(instance_def, current_shell_options()->get().wizards);
   } catch (const std::exception &e) {
     std::string err_msg = "Could not open connection to '" +
-                          instance_def->uri_endpoint() + "': " + e.what();
+                          instance_def.uri_endpoint() + "': " + e.what();
     throw shcore::Exception::runtime_error(err_msg);
   }
 
@@ -638,7 +628,7 @@ shcore::Value GRReplicaSet::rejoin_instance(
     }
 
     if (instance_md.cluster_id != get_cluster()->get_id()) {
-      std::string message = "The instance '" + instance_def->uri_endpoint() +
+      std::string message = "The instance '" + instance_def.uri_endpoint() +
                             "' " + "does not belong to the cluster: '" +
                             get_cluster()->get_name() + "'.";
 
@@ -650,7 +640,7 @@ shcore::Value GRReplicaSet::rejoin_instance(
     if (!validate_replicaset_group_name(*instance,
                                         get_cluster()->get_group_name())) {
       std::string nice_error =
-          "The instance '" + instance_def->uri_endpoint() +
+          "The instance '" + instance_def.uri_endpoint() +
           "' "
           "may belong to a different cluster as the one registered "
           "in the Metadata since the value of "
@@ -851,40 +841,25 @@ shcore::Value GRReplicaSet::rejoin_instance(
     log_info("The instance '%s' was successfully rejoined on the cluster.",
              seed_instance->descr().c_str());
   }
-  return ret_val;
 }
 
-shcore::Value GRReplicaSet::remove_instance(const shcore::Argument_list &args) {
+void GRReplicaSet::remove_instance(const Connection_options &instance_def,
+                                   const shcore::Dictionary_t &options) {
   mysqlshdk::utils::nullable<bool> force;
-  bool interactive;
-  std::string password;
-  mysqlshdk::db::Connection_options target_coptions;
-
-  // Get target instance connection options.
-  target_coptions =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-  interactive = current_shell_options()->get().wizards;
+  bool interactive = current_shell_options()->get().wizards;
 
   // Get optional options.
-  if (args.size() == 2) {
-    Unpack_options(args.map_at(1))
+  if (options) {
+    Unpack_options(options)
         .optional("force", &force)
         .optional("interactive", &interactive)
-        .optional_ci("password", &password)
         .end();
-  }
-
-  // Override password if provided in options dictionary.
-  if (!password.empty()) {
-    target_coptions.set_password(password);
   }
 
   // Remove the Instance from the GRReplicaSet
   try {
     // Create the remove_instance command and execute it.
-    Remove_instance op_remove_instance(target_coptions, interactive, force,
-                                       *this);
+    Remove_instance op_remove_instance(instance_def, interactive, force, *this);
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
         [&op_remove_instance]() { op_remove_instance.finish(); });
@@ -895,8 +870,6 @@ shcore::Value GRReplicaSet::remove_instance(const shcore::Argument_list &args) {
   } catch (...) {
     throw;
   }
-
-  return shcore::Value();
 }
 
 void GRReplicaSet::update_group_members_for_removed_member(
@@ -1030,13 +1003,8 @@ void unpack_auto_instances_list(
 
     // Process values from addInstances list (must be valid connection data).
     for (const shcore::Value &value : *instances_array.get()) {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(value));
-
       try {
-        mysqlshdk::db::Connection_options cnx_opt =
-            mysqlsh::get_connection_options(args,
-                                            mysqlsh::PasswordFormat::NONE);
+        auto cnx_opt = mysqlsh::get_connection_options(value);
 
         if (cnx_opt.get_host().empty()) {
           throw shcore::Exception::argument_error("host cannot be empty.");
@@ -1046,7 +1014,7 @@ void unpack_auto_instances_list(
           throw shcore::Exception::argument_error("port is missing.");
         }
 
-        instances_list->push_back(cnx_opt);
+        instances_list->emplace_back(std::move(cnx_opt));
       } catch (const std::exception &err) {
         std::string error(err.what());
         throw shcore::Exception::argument_error(
@@ -1278,13 +1246,10 @@ std::shared_ptr<mysqlsh::dba::Instance> GRReplicaSet::get_online_instance(
   return nullptr;
 }
 
-shcore::Value GRReplicaSet::force_quorum_using_partition_of(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
+void GRReplicaSet::force_quorum_using_partition_of(
+    const Connection_options &instance_def_) {
+  auto instance_def = instance_def_;
   std::shared_ptr<Instance> target_instance;
-
-  auto instance_def =
-      mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
   validate_connection_options(instance_def);
 
@@ -1306,7 +1271,6 @@ shcore::Value GRReplicaSet::force_quorum_using_partition_of(
              instance_address.c_str());
     target_instance =
         Instance::connect(instance_def, current_shell_options()->get().wizards);
-    instance_def = target_instance->get_connection_options();
   } catch (const std::exception &e) {
     log_error("Could not open connection to '%s': %s", instance_address.c_str(),
               e.what());
@@ -1398,7 +1362,8 @@ shcore::Value GRReplicaSet::force_quorum_using_partition_of(
     std::string instance_host = instance.endpoint;
     auto target_coptions = shcore::get_connection_options(instance_host, false);
     // We assume the login credentials are the same on all instances
-    target_coptions.set_login_options_from(instance_def);
+    target_coptions.set_login_options_from(
+        target_instance->get_connection_options());
 
     std::shared_ptr<Instance> instance_session;
     try {
@@ -1442,8 +1407,6 @@ shcore::Value GRReplicaSet::force_quorum_using_partition_of(
     target_instance->set_sysvar("group_replication_force_members",
                                 std::string());
   }
-
-  return ret_val;
 }
 
 void GRReplicaSet::switch_to_single_primary_mode(
@@ -1544,7 +1507,7 @@ void GRReplicaSet::rejoin_instances(
         std::string msg =
             "Rejoining the instance '" + instance + "' to the cluster.";
         log_warning("%s", msg.c_str());
-        rejoin_instance(&connection_options, shcore::Value::Map_type_ref());
+        rejoin_instance(connection_options, {});
       } catch (const shcore::Error &e) {
         auto console = mysqlsh::current_console();
         // TODO(miguel) Once WL#13535 is implemented and rejoin supports clone,

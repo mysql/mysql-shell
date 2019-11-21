@@ -34,6 +34,13 @@
 namespace shcore {
 
 Date::Date(int year, int month, int day, int hour, int min, int sec, int usec)
+    : Date(year, month, day, hour, min, sec, usec, true) {}
+
+Date::Date(int year, int month, int day)
+    : Date(year, month, day, 0, 0, 0, 0, false) {}
+
+Date::Date(int year, int month, int day, int hour, int min, int sec, int usec,
+           bool has_time)
     : _year(year),
       _month(month - 1),
       _day(day),
@@ -41,19 +48,7 @@ Date::Date(int year, int month, int day, int hour, int min, int sec, int usec)
       _min(min),
       _sec(sec),
       _usec(usec),
-      _has_time(true) {
-  validate();
-}
-
-Date::Date(int year, int month, int day)
-    : _year(year),
-      _month(month - 1),
-      _day(day),
-      _hour(0),
-      _min(0),
-      _sec(0),
-      _usec(0),
-      _has_time(false) {
+      _has_time(has_time) {
   validate();
 }
 
@@ -114,24 +109,6 @@ Value Date::get_member(const std::string &prop) const {
 
 void Date::set_member(const std::string &prop, Value value) {
   Cpp_object_bridge::set_member(prop, value);
-}
-
-Object_bridge_ref Date::create(const shcore::Argument_list &args) {
-#define GETi(i) (args.size() > i ? args.int_at(i) : 0)
-#define GETf(i) (args.size() > i ? args.double_at(i) : 0)
-
-  if (args.size() == 3)
-    return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2)));
-  else if (args.size() == 6)
-    return Object_bridge_ref(
-        new Date(GETi(0), GETi(1), GETi(2), GETi(3), GETi(4), GETf(5), 0));
-  else if (args.size() == 7)
-    return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2), GETi(3),
-                                      GETi(4), GETf(5), GETf(6)));
-  throw shcore::Exception::argument_error("3,6 or 7 arguments expected");
-
-#undef GETi
-#undef GETf
 }
 
 Object_bridge_ref Date::unrepr(const std::string &s) {
@@ -204,7 +181,8 @@ void Date::validate() {
     if (_sec > 59 || _sec < 0)
       throw shcore::Exception::argument_error("Valid second range is 0-59");
     if (_usec > 999999 || _usec < 0)
-      throw shcore::Exception::argument_error("Valid second range is 0-999999");
+      throw shcore::Exception::argument_error(
+          "Valid millisecond range is 0-999999");
   }
 }
 }  // namespace shcore

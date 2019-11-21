@@ -22,13 +22,18 @@
  */
 
 #include "modules/devapi/mod_mysqlx.h"
+
 #include <string>
+
 #include "modules/devapi/mod_mysqlx_constants.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
-#include "scripting/obj_date.h"
-#include "shellcore/utils_help.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {
@@ -177,15 +182,17 @@ REGISTER_HELP(LOCKCONTENTION_SKIP_LOCKED_BRIEF,
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   add_property("LockContention|LockContention");
-  REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
-  REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
+  expose("getSession", &Mysqlx::get_session, "connectionData", "?password");
+  expose("dateValue", &Mysqlx::date_value, "year", "month", "day");
+  expose("dateValue", &Mysqlx::date_value, "year", "month", "day", "hour",
+         "minutes", "seconds", "?milliseconds");
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String);
 
   _type.reset(new Type());
   _lock_contention.reset(new LockContention());
 }
 
-// We need to hide this from doxygen to avoif warnings
+// We need to hide this from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 shcore::Value Mysqlx::get_member(const std::string &prop) const {
   shcore::Value ret_val;
@@ -201,11 +208,6 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 }
 #endif
 
-// DEFINE_FUNCTION(Mysqlx, get_session) {
-//   auto session = connect(args, mysqlsh::SessionType::X);
-//   return
-//   shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
-// }
 REGISTER_HELP_FUNCTION(getSession, mysqlx);
 REGISTER_HELP(MYSQLX_GETSESSION_BRIEF,
               "Creates a Session instance using the provided connection data.");
@@ -243,9 +245,14 @@ Session getSession(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY
 Session get_session(ConnectionData connectionData, str password) {}
 #endif
-DEFINE_FUNCTION(Mysqlx, get_session) {
-  return shcore::Value(Session::create(args));
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
+std::shared_ptr<shcore::Object_bridge> Mysqlx::get_session(
+    const mysqlshdk::db::Connection_options &co_, const char *password) {
+  auto co = co_;
+  set_password_from_string(&co, password);
+  return Session::create(co);
 }
+#endif
 
 REGISTER_HELP_FUNCTION(expr, mysqlx);
 REGISTER_HELP(MYSQLX_EXPR_BRIEF,
@@ -301,12 +308,12 @@ REGISTER_HELP(MYSQLX_DATEVALUE_PARAM3,
               "@param hour Optional hour to be used in the new Date object.");
 REGISTER_HELP(
     MYSQLX_DATEVALUE_PARAM4,
-    "@param minutes optional minutes to be used in the new Date object.");
+    "@param minutes Optional minutes to be used in the new Date object.");
 REGISTER_HELP(
     MYSQLX_DATEVALUE_PARAM5,
-    "@param seconds optional seconds to be used in the new Date object.");
+    "@param seconds Optional seconds to be used in the new Date object.");
 REGISTER_HELP(MYSQLX_DATEVALUE_PARAM6,
-              "@param milliseconds optional milliseconds to be used in the new "
+              "@param milliseconds Optional milliseconds to be used in the new "
               "Date object.");
 REGISTER_HELP(MYSQLX_DATEVALUE_SIGNATURE,
               "(year, month, day[, hour, day, minute[, milliseconds]])");
@@ -330,22 +337,31 @@ REGISTER_HELP(MYSQLX_DATEVALUE_DETAIL3,
  * $(MYSQLX_DATEVALUE_PARAM6)
  *
  * $(MYSQLX_DATEVALUE_DETAIL)
+ * $(MYSQLX_DATEVALUE_DETAIL1)
+ * $(MYSQLX_DATEVALUE_DETAIL2)
+ * $(MYSQLX_DATEVALUE_DETAIL3)
  */
 #if DOXYGEN_JS
-String dateValue(Integer year, Integer month, Integer day, Integer hour,
-                 Integer minutes, Integer seconds, Integer milliseconds) {}
+Date dateValue(Integer year, Integer month, Integer day, Integer hour,
+               Integer minutes, Integer seconds, Integer milliseconds) {}
 #elif DOXYGEN_PY
-String date_value(int year, int month, int day, int hour, int minutes,
-                  int seconds, int milliseconds) {}
+Date date_value(int year, int month, int day, int hour, int minutes,
+                int seconds, int milliseconds) {}
 #endif
-DEFINE_FUNCTION(Mysqlx, date_value) {
-  args.ensure_count(3, 7, get_function_name("dateValue").c_str());
-  shcore::Value ret_val;
-  try {
-    ret_val = shcore::Value(shcore::Date::create(args));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dateValue"));
-  return ret_val;
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
+std::shared_ptr<shcore::Object_bridge> Mysqlx::date_value(int64_t year,
+                                                          int64_t month,
+                                                          int64_t day) {
+  return std::make_shared<shcore::Date>(year, month, day);
 }
+
+std::shared_ptr<shcore::Object_bridge> Mysqlx::date_value(
+    int64_t year, int64_t month, int64_t day, int64_t hour, int64_t minutes,
+    int64_t seconds, int64_t milliseconds) {
+  return std::make_shared<shcore::Date>(year, month, day, hour, minutes,
+                                        seconds, milliseconds);
+}
+#endif
+
 }  // namespace mysqlx
 }  // namespace mysqlsh

@@ -20,19 +20,23 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
-#include "modules/devapi/mod_mysqlx_collection.h"
-#include "modules/devapi/mod_mysqlx_expression.h"
-#include "modules/devapi/mod_mysqlx_resultset.h"
-#include "shellcore/utils_help.h"
-#include "utils/utils_string.h"
 
 #include <algorithm>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
-#include "scripting/common.h"
+
+#include "modules/devapi/mod_mysqlx_collection.h"
+#include "modules/devapi/mod_mysqlx_expression.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace mysqlx {

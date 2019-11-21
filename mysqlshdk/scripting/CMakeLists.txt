@@ -21,13 +21,15 @@
 
 set(SCRIPTING_SOURCES
     common.cc
+    naming_style.cc
     obj_date.cc
     object_factory.cc
     object_registry.cc
     proxy_object.cc
     types.cc
     types_cpp.cc
-    shexcept.cc)
+    shexcept.cc
+    type_info/custom.cc)
 
 # Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.

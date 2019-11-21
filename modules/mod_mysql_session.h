@@ -113,7 +113,7 @@ class SHCORE_PUBLIC ClassicSession
                                        const std::string &owner);
 
   static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
+      const mysqlshdk::db::Connection_options &co);
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
     return _session;

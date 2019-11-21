@@ -412,12 +412,6 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
 
   if (out_has_quorum) *out_has_quorum = online_members > members.size() / 2;
 
-  if (out_single_primary_mode) {
-    // Single primary mode if group_replication_primary_member is not empty.
-    *out_single_primary_mode =
-        !mysqlshdk::gr::get_group_primary_uuid(instance, nullptr).empty();
-  }
-
   return members;
 }
 

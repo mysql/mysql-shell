@@ -406,26 +406,22 @@ void ClassicSession::set_current_schema(const std::string &name) {
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
-    const shcore::Argument_list &args) {
-  std::shared_ptr<ClassicSession> session(new ClassicSession());
-
-  auto connection_options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-
+    const mysqlshdk::db::Connection_options &co_) {
+  auto co = co_;
   // DevAPI getClassicSession uses ssl-mode = REQUIRED by default if no
   // ssl-ca or ssl-capath are specified
-  if (!connection_options.get_ssl_options().has_mode() &&
-      !connection_options.has_value(mysqlshdk::db::kSslCa) &&
-      !connection_options.has_value(mysqlshdk::db::kSslCaPath)) {
-    connection_options.get_ssl_options().set_mode(
-        mysqlshdk::db::Ssl_mode::Required);
+  if (!co.get_ssl_options().has_mode() &&
+      !co.has_value(mysqlshdk::db::kSslCa) &&
+      !co.has_value(mysqlshdk::db::kSslCaPath)) {
+    co.get_ssl_options().set_mode(mysqlshdk::db::Ssl_mode::Required);
   }
 
-  session->connect(connection_options);
+  const auto session = std::make_shared<ClassicSession>();
+  session->connect(co);
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 
-  return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
+  return session;
 }
 
 void ClassicSession::drop_schema(const std::string &name) {

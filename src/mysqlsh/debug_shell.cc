@@ -23,6 +23,7 @@
 
 #include "modules/util/upgrade_check.h"
 #include "mysqlsh/cmdline_shell.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_path.h"

@@ -26,7 +26,10 @@
 
 #include <memory>
 #include <string>
-#include "scripting/types_cpp.h"
+
+#include "mysqlshdk/libs/db/connection_options.h"
+
+#include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace shcore {
 class IShell_core;
@@ -52,7 +55,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #elif DOXYGEN_PY
   None check_for_server_upgrade(ConnectionData connectionData, dict options);
 #endif
-  shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
+  void check_for_server_upgrade(
+      const mysqlshdk::utils::nullable<mysqlshdk::db::Connection_options>
+          &connection_options = {},
+      const shcore::Dictionary_t &options = {});
 
 #if DOXYGEN_JS
   Undefined importJson(String file, Dictionary options);

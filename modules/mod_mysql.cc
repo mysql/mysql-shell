@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,11 +21,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mod_mysql.h"
+#include "modules/mod_mysql.h"
+
 #include "modules/mod_mysql_constants.h"
 #include "modules/mod_mysql_session.h"
+#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
-#include "shellcore/utils_help.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {
@@ -59,13 +63,14 @@ REGISTER_HELP(MYSQL_DETAIL4,
               "automatically imported.");
 
 REGISTER_MODULE(Mysql, mysql) {
-  REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
-  REGISTER_VARARGS_FUNCTION(Mysql, get_session, getSession);
+  expose("getClassicSession", &Mysql::get_session, "connectionData",
+         "?password");
+  expose("getSession", &Mysql::get_session, "connectionData", "?password");
 
   _type.reset(new Type());
 }
 
-// We need to hide this from doxygen to avoif warnings
+// We need to hide this from doxygen to avoid warnings
 #if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
 shcore::Value Mysql::get_member(const std::string &prop) const {
   shcore::Value ret_val;
@@ -119,19 +124,6 @@ ClassicSession get_classic_session(ConnectionData connectionData,
                                    str password) {}
 #endif
 
-DEFINE_FUNCTION(Mysql, get_classic_session) {
-  args.ensure_count(1, 2, get_function_name("getClassicSession").c_str());
-
-  shcore::Value ret_val;
-  try {
-    ret_val = shcore::Value(ClassicSession::create(args));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("getClassicSession"));
-
-  return ret_val;
-}
-
 REGISTER_HELP_FUNCTION(getSession, mysql);
 REGISTER_HELP(MYSQL_GETSESSION_BRIEF,
               "Opens a classic MySQL protocol session to a MySQL server.");
@@ -169,18 +161,14 @@ ClassicSession getSession(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY
 ClassicSession get_session(ConnectionData connectionData, str password) {}
 #endif
-
-DEFINE_FUNCTION(Mysql, get_session) {
-  args.ensure_count(1, 2, get_function_name("getSession").c_str());
-
-  shcore::Value ret_val;
-  try {
-    ret_val = shcore::Value(ClassicSession::create(args));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSession"));
-
-  return ret_val;
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
+std::shared_ptr<shcore::Object_bridge> Mysql::get_session(
+    const mysqlshdk::db::Connection_options &co_, const char *password) {
+  auto co = co_;
+  set_password_from_string(&co, password);
+  return ClassicSession::create(co);
 }
+#endif
 
 }  // namespace mysql
 }  // namespace mysqlsh

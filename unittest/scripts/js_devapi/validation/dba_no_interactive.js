@@ -290,9 +290,9 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in
 ||Dba.createCluster: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@# Dba: getCluster errors
-||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
+||Dba.getCluster: Argument #1 is expected to be a string
 ||Dba.getCluster: Invalid number of arguments, expected 0 to 2 but got 3
-||Dba.getCluster: Invalid typecast: Map expected, but value is Integer
+||Dba.getCluster: Argument #2 is expected to be a map
 ||Dba.getCluster: The cluster with the name '' does not exist.
 ||Dba.getCluster: The cluster with the name '#' does not exist.
 ||Dba.getCluster: The cluster with the name 'over40chars_12345678901234567890123456789' does not exist.

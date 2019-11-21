@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,8 @@
 
 #include <mysqlxclient/xdatetime.h>
 #include <string>
-#include "scripting/types_cpp.h"
+
+#include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace mysqlx {
 class DateTime;
@@ -64,12 +65,14 @@ class SHCORE_PUBLIC Date : public Cpp_object_bridge {
   bool has_time() const { return _has_time; }
 
  public:
-  static Object_bridge_ref create(const shcore::Argument_list &args);
   static Object_bridge_ref unrepr(const std::string &s);
   static Object_bridge_ref from_ms(int64_t ms_since_epoch);
   static Object_bridge_ref from_mysqlx_datetime(const ::xcl::DateTime &dt);
 
  private:
+  Date(int year, int month, int day, int hour, int min, int sec, int usec,
+       bool has_time);
+
   void validate();
 
   int _year;

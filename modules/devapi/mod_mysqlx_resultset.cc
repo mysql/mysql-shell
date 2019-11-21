@@ -22,18 +22,21 @@
  */
 
 #include "modules/devapi/mod_mysqlx_resultset.h"
+
 #include <memory>
 #include <utility>
+
 #include "modules/devapi/base_constants.h"
+#include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/strformat.h"
-#include "mysqlxtest_utils.h"
-#include "scripting/common.h"
-#include "scripting/obj_date.h"
-#include "shellcore/utils_help.h"
 
 using shcore::Value;
 using std::placeholders::_1;

@@ -28,11 +28,8 @@
 namespace mysqlsh {
 
 TEST(modules_mod_utils, get_connection_data_uri) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-
   auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
+      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -43,15 +40,12 @@ TEST(modules_mod_utils, get_connection_data_uri) {
 }
 
 TEST(modules_mod_utils, get_connection_data_dictionary) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*map)[mysqlshdk::db::kPassword] = shcore::Value(mysqlshdk::db::kPassword);
-  args.push_back(shcore::Value(map));
 
-  auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
+  auto options = mysqlsh::get_connection_options(shcore::Value(map));
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -62,108 +56,33 @@ TEST(modules_mod_utils, get_connection_data_dictionary) {
 }
 
 TEST(modules_mod_utils, get_connection_data_invalid_uri) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:p@ssword@localhost"));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-
-    EXPECT_EQ(0, error.find("Invalid URI: "));
-  }
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value("root:p@ssword@localhost")),
+      std::invalid_argument, "Invalid URI: ");
 }
 
 TEST(modules_mod_utils, get_connection_data_invalid_connection_data) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(1));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-
-    EXPECT_EQ(
-        "Invalid connection options, expected either a URI or a "
-        "Dictionary.",
-        error);
-  }
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value(1)), std::invalid_argument,
+      "Invalid connection options, expected either a URI or a Dictionary.");
 }
 
 TEST(modules_mod_utils, get_connection_data_empty_uri_connection_data) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(""));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-
-    EXPECT_EQ("Invalid URI: empty.", error);
-  }
+  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value("")),
+                    std::invalid_argument, "Invalid URI: empty.");
 }
 
 TEST(modules_mod_utils, get_connection_data_empty_options_connection_data) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
-  args.push_back(shcore::Value(map));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-
-    EXPECT_EQ("Invalid connection options, no options provided.", error);
-  }
-}
-
-TEST(modules_mod_utils, get_connection_data_ignore_additional_string_password) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-  args.push_back(shcore::Value("overwritten_password"));
-
-  auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-
-  EXPECT_TRUE(options.has_host());
-  EXPECT_TRUE(options.has_user());
-  EXPECT_TRUE(options.has_password());
-  EXPECT_EQ("localhost", options.get_host());
-  EXPECT_EQ("root", options.get_user());
-  EXPECT_EQ("password", options.get_password());
-}
-
-TEST(modules_mod_utils,
-     get_connection_data_ignore_additional_options_password) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
-  (*map)[mysqlshdk::db::kPassword] = shcore::Value("overwritten_password");
-  args.push_back(shcore::Value(map));
-
-  auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-
-  EXPECT_TRUE(options.has_host());
-  EXPECT_TRUE(options.has_user());
-  EXPECT_TRUE(options.has_password());
-  EXPECT_EQ("localhost", options.get_host());
-  EXPECT_EQ("root", options.get_user());
-  EXPECT_EQ("password", options.get_password());
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value(shcore::make_dict())),
+      std::invalid_argument,
+      "Invalid connection options, no options provided.");
 }
 
 TEST(modules_mod_utils, get_connection_data_override_db_password_from_string) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-  args.push_back(shcore::Value("overwritten_password"));
-
   auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
+  set_password_from_string(&options, "overwritten_password");
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -175,15 +94,12 @@ TEST(modules_mod_utils, get_connection_data_override_db_password_from_string) {
 
 TEST(modules_mod_utils,
      get_connection_data_override_db_password_from_options_password) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kPassword] = shcore::Value("overwritten_password");
-  args.push_back(shcore::Value(map));
 
   auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
+  set_password_from_map(&options, map);
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -195,15 +111,12 @@ TEST(modules_mod_utils,
 
 TEST(modules_mod_utils,
      get_connection_data_override_db_password_from_options_db_password) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kDbPassword] = shcore::Value("overwritten_password");
-  args.push_back(shcore::Value(map));
 
   auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
+  set_password_from_map(&options, map);
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -215,20 +128,17 @@ TEST(modules_mod_utils,
 
 TEST(modules_mod_utils,
      get_connection_data_override_password_from_options_db_password) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref connection(new shcore::Value::Map_type());
+  const auto connection = shcore::make_dict();
   (*connection)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*connection)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*connection)[mysqlshdk::db::kPassword] =
       shcore::Value(mysqlshdk::db::kPassword);
-  args.push_back(shcore::Value(connection));
 
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kDbPassword] = shcore::Value("overwritten_password");
-  args.push_back(shcore::Value(map));
 
-  auto options =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+  auto options = mysqlsh::get_connection_options(shcore::Value(connection));
+  set_password_from_map(&options, map);
 
   EXPECT_TRUE(options.has_host());
   EXPECT_TRUE(options.has_user());
@@ -238,101 +148,48 @@ TEST(modules_mod_utils,
   EXPECT_EQ("overwritten_password", options.get_password());
 }
 
-TEST(modules_mod_utils, get_connection_data_invalid_password_param) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
-  (*map)[mysqlshdk::db::kPassword] = shcore::Value("overwritten_password");
-  args.push_back(shcore::Value(map));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-    EXPECT_EQ("Argument #2 is expected to be a string", error);
-  }
-}
-
-TEST(modules_mod_utils, get_connection_data_invalid_options_param) {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value("root:password@localhost"));
-  args.push_back(shcore::Value("overwritten_password"));
-
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-    EXPECT_EQ("Argument #2 is expected to be a map", error);
-  }
-}
-
 TEST(modules_mod_utils, get_connection_data_invalid_connection_options) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*map)[mysqlshdk::db::kPassword] = shcore::Value(mysqlshdk::db::kPassword);
   (*map)["invalid_option"] = shcore::Value("guess_what");
-  args.push_back(shcore::Value(map));
 
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-    EXPECT_EQ("Invalid values in connection options: invalid_option", error);
-  }
+  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
+                    shcore::Exception,
+                    "Invalid values in connection options: invalid_option");
 }
 
 TEST(modules_mod_utils, get_connection_data_conflicting_password_db_password) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*map)[mysqlshdk::db::kPassword] = shcore::Value(mysqlshdk::db::kPassword);
   (*map)[mysqlshdk::db::kDbPassword] = shcore::Value(mysqlshdk::db::kPassword);
-  args.push_back(shcore::Value(map));
 
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-    EXPECT_EQ(
-        "The connection option 'password' is already defined as "
-        "'password'.",
-        error);
-  }
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value(map)),
+      std::invalid_argument,
+      "The connection option 'password' is already defined as 'password'.");
 }
 
 TEST(modules_mod_utils, get_connection_data_conflicting_user_db_user) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*map)[mysqlshdk::db::kDbUser] = shcore::Value("root");
   (*map)[mysqlshdk::db::kDbPassword] = shcore::Value(mysqlshdk::db::kPassword);
-  args.push_back(shcore::Value(map));
 
-  try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception &e) {
-    std::string error(e.what());
-    EXPECT_EQ("The connection option 'user' is already defined as 'root'.",
-              error);
-  }
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value(map)),
+      std::invalid_argument,
+      "The connection option 'user' is already defined as 'root'.");
 }
 
 TEST(modules_mod_utils, get_connection_data_connect_timeout) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
-  args.push_back(shcore::Value(map));
 
   auto invalid_values = {shcore::Value(-1), shcore::Value(-100),
                          shcore::Value(-10.0), shcore::Value("-1"),
@@ -351,9 +208,8 @@ TEST(modules_mod_utils, get_connection_data_connect_timeout) {
         "' for 'connect-timeout'. The connection timeout value must "
         "be a positive integer (including 0).");
 
-    EXPECT_THROW_LIKE(
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE),
-        shcore::Exception, msg);
+    EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
+                      std::invalid_argument, msg);
   }
 
   auto valid_values = {shcore::Value(0), shcore::Value(1000)};
@@ -361,8 +217,7 @@ TEST(modules_mod_utils, get_connection_data_connect_timeout) {
   for (auto value : valid_values) {
     (*map)[mysqlshdk::db::kConnectTimeout] = value;
 
-    EXPECT_NO_THROW(
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE));
+    EXPECT_NO_THROW(mysqlsh::get_connection_options(shcore::Value(map)));
   }
 }
 
@@ -373,17 +228,14 @@ TEST(modules_mod_utils, get_connection_data_connect_timeout) {
 #endif  // !_WIN32
 
 TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
-  shcore::Argument_list args;
-  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
   (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
   (*map)["port"] = shcore::Value(3310);
   (*map)["socket"] = shcore::Value("/some/socket/path");
-  args.push_back(shcore::Value(map));
 
   try {
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
+    auto options = mysqlsh::get_connection_options(shcore::Value(map));
   } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Unable to set a " SOCKET_NAME
@@ -391,6 +243,12 @@ TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
               "'localhost:3310' is already defined.",
               error);
   }
+
+  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
+                    std::invalid_argument,
+                    "Unable to set a " SOCKET_NAME
+                    " connection to '/some/socket/path', a tcp connection to "
+                    "'localhost:3310' is already defined.");
 }
 
 #undef SOCKET_NAME

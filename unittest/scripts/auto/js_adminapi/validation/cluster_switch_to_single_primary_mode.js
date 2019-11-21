@@ -5,9 +5,9 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 Cluster.switchToSinglePrimaryMode: Operation not supported on target server version: '<<<__version>>>' (RuntimeError)
 
 //@ WL#12052: ArgumentErrors of switchToSinglePrimaryMode {VER(>=8.0.13)}
-||Invalid URI: empty. (ArgumentError)
-||Argument #1 is expected to be a string (ArgumentError)
-||Invalid connection options, no options provided. (ArgumentError)
+||Argument #1: Invalid URI: empty. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 
 //@ WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with 1 or more members not ONLINE
 ||Cluster.switchToSinglePrimaryMode: This operation requires all the cluster members to be ONLINE (RuntimeError)

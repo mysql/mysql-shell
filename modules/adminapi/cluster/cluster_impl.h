@@ -126,11 +126,12 @@ class Cluster_impl {
   shcore::Value options(const shcore::Dictionary_t &options);
   shcore::Value status(uint64_t extended);
   shcore::Value list_routers(bool only_upgrade_required);
-  shcore::Value remove_instance(const shcore::Argument_list &args);
+  void remove_instance(const Connection_options &instance_def,
+                       const shcore::Dictionary_t &options = {});
   void add_instance(const Connection_options &instance_def,
                     const shcore::Dictionary_t &options);
-  shcore::Value rejoin_instance(const Connection_options &instance_def,
-                                const shcore::Dictionary_t &options);
+  void rejoin_instance(const Connection_options &instance_def,
+                       const shcore::Dictionary_t &options);
 
   void set_option(const std::string &option, const shcore::Value &value);
 
@@ -176,8 +177,7 @@ class Cluster_impl {
   void init();
 
  public:
-  shcore::Value force_quorum_using_partition_of(
-      const shcore::Argument_list &args);
+  void force_quorum_using_partition_of(const Connection_options &instance_def);
 
   void dissolve(const shcore::Dictionary_t &options);
 

@@ -69,8 +69,6 @@ class JScript_function : public Function_base {
 
   Value invoke(const Argument_list &args) override;
 
-  bool has_var_args() override { return false; }
-
  private:
   JScript_context *_js;
   std::weak_ptr<JScript_function_storage> m_function;

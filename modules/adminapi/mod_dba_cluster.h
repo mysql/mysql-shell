@@ -119,47 +119,29 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
  public:
   void add_instance(const Connection_options &instance_def,
-                    const shcore::Dictionary_t &options);
-  void add_instance(const std::string &instance_def,
-                    const shcore::Dictionary_t &options);
-  void add_instance(const shcore::Dictionary_t &instance_def,
-                    const shcore::Dictionary_t &options);
-  shcore::Value rejoin_instance(const shcore::Argument_list &args);
-  shcore::Value remove_instance(const shcore::Argument_list &args);
+                    const shcore::Dictionary_t &options = {});
+  void rejoin_instance(const Connection_options &instance_def,
+                       const shcore::Dictionary_t &options = {});
+  void remove_instance(const Connection_options &instance_def,
+                       const shcore::Dictionary_t &options = {});
   shcore::Value get_replicaset(const shcore::Argument_list &args);
   shcore::Value describe(void);
   shcore::Value status(const shcore::Dictionary_t &options);
   shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
   void dissolve(const shcore::Dictionary_t &options);
-  shcore::Value check_instance_state(const std::string &instance_def);
-  shcore::Value check_instance_state(const shcore::Dictionary_t &instance_def);
-  shcore::Value check_instance_state(
-      const mysqlshdk::db::Connection_options &instance_def);
+  shcore::Value check_instance_state(const Connection_options &instance_def);
   void rescan(const shcore::Dictionary_t &options);
   void reset_recovery_accounts_password(const shcore::Dictionary_t &options);
-  shcore::Value force_quorum_using_partition_of(
-      const shcore::Argument_list &args);
+  void force_quorum_using_partition_of(const Connection_options &instance_def,
+                                       const char *password = nullptr);
   void disconnect();
 
   void remove_router_metadata(const std::string &router_def);
 
-  void switch_to_single_primary_mode(const std::string &instance_def) {
-    switch_to_single_primary_mode(get_connection_options(instance_def));
-  }
-
-  void switch_to_single_primary_mode(const shcore::Dictionary_t &instance_def) {
-    switch_to_single_primary_mode(get_connection_options(instance_def));
-  }
-
-  void switch_to_single_primary_mode(void) {
-    switch_to_single_primary_mode(mysqlshdk::db::Connection_options{});
-  }
-
-  void switch_to_single_primary_mode(const Connection_options &instance_def);
+  void switch_to_single_primary_mode(
+      const Connection_options &instance_def = Connection_options());
 
   void switch_to_multi_primary_mode(void);
-  void set_primary_instance(const std::string &instance_def);
-  void set_primary_instance(const shcore::Dictionary_t &instance_def);
   void set_primary_instance(const Connection_options &instance_def);
 
   shcore::Value options(const shcore::Dictionary_t &options);
@@ -167,12 +149,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void set_option(const std::string &option, const shcore::Value &value);
 
   void set_instance_option(const Connection_options &instance_def,
-                           const std::string &option,
-                           const shcore::Value &value);
-  void set_instance_option(const shcore::Dictionary_t &instance_def,
-                           const std::string &option,
-                           const shcore::Value &value);
-  void set_instance_option(const std::string &instance_def,
                            const std::string &option,
                            const shcore::Value &value);
 

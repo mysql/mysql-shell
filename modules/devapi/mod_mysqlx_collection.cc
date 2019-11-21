@@ -22,18 +22,22 @@
  */
 
 #include "modules/devapi/mod_mysqlx_collection.h"
+
 #include <mysqld_error.h>
+
 #include <memory>
 #include <string>
-#include "modules/devapi/mod_mysqlx_schema.h"
 
 #include "modules/devapi/mod_mysqlx_collection_add.h"
 #include "modules/devapi/mod_mysqlx_collection_find.h"
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
 #include "modules/devapi/mod_mysqlx_collection_remove.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
+#include "modules/devapi/mod_mysqlx_schema.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "shellcore/utils_help.h"
 
 namespace mysqlsh {
 namespace mysqlx {

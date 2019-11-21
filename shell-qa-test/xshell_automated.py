@@ -1879,6 +1879,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip('Disabled until proper handling is implemented')
     def test_MYS_470_2(self):
         '''Enable named parameters in python for mysqlx.getSession() and mysqlx.get_session()'''
         results = ''

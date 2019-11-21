@@ -43,6 +43,10 @@
 #endif
 #endif
 
+namespace shcore {
+
+namespace {
+
 // These is* functions have undefined behavior if the passed value
 // is out of the -1-255 range
 #define IS_ALPHA(x) (isalpha(static_cast<unsigned char>(x)))
@@ -52,7 +56,7 @@
 // from_type = row, to_type = column
 #define T true
 #define F false
-const bool shcore::kTypeConvertible[12][12] = {
+const bool kTypeConvertible[12][12] = {
     // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
     {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
     {T, T, F, F, F, F, F, T, T, T, T, T},  // Null
@@ -90,10 +94,6 @@ static const uint32_t ascii_to_hex[256] = {
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0};
-
-namespace shcore {
-
-namespace {
 
 void skip_whitespace(const char **pc) {
   while (**pc == ' ' || **pc == '\t' || **pc == '\r' || **pc == '\n' ||

@@ -141,7 +141,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   virtual SessionType session_type() const { return SessionType::X; }
 
   static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
+      const mysqlshdk::db::Connection_options &co);
 
   virtual void connect(const mysqlshdk::db::Connection_options &data);
   virtual void close();

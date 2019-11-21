@@ -66,14 +66,7 @@ Connection_options::Connection_options(Comparison_mode mode)
 
 Connection_options::Connection_options(const std::string &uri,
                                        Comparison_mode mode)
-    : m_mode(mode),
-      m_options(m_mode, "connection"),
-      m_ssl_options(m_mode),
-      m_extra_options(m_mode),
-      m_enable_connection_attributes(true),
-      m_connection_attributes(m_mode) {
-  for (auto o : fixed_str_list) m_options.set(o, nullptr, Set_mode::CREATE);
-
+    : Connection_options(mode) {
   try {
     uri::Uri_parser parser;
     *this = parser.parse(uri, m_options.get_mode());

@@ -26,7 +26,7 @@
 
 
 #@member definition must be a dictionary
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument definition at pos 3 for add_extension_object_member() has wrong type: expected Map but got Integer
+||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #4 is expected to be a map
 
 
 #@member definition 'brief' must be a string

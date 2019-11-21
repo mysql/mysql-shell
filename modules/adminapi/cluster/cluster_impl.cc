@@ -98,30 +98,19 @@ void Cluster_impl::add_instance(const Connection_options &instance_def,
   _default_replica_set->add_instance(instance_def, options);
 }
 
-shcore::Value Cluster_impl::rejoin_instance(
-    const Connection_options &instance_def,
-    const shcore::Dictionary_t &options) {
+void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
+                                   const shcore::Dictionary_t &options) {
   // rejoin the Instance to the Default ReplicaSet
-  shcore::Value ret_val;
-
   check_preconditions("rejoinInstance");
 
-  Connection_options instance(instance_def);
-
   // if not, call mysqlprovision to join the instance to its own group
-  ret_val = _default_replica_set->rejoin_instance(&instance, options);
-
-  return ret_val;
+  _default_replica_set->rejoin_instance(instance_def, options);
 }
 
-shcore::Value Cluster_impl::remove_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
+void Cluster_impl::remove_instance(const Connection_options &instance_def,
+                                   const shcore::Dictionary_t &options) {
   check_preconditions("removeInstance");
-
-  ret_val = _default_replica_set->remove_instance(args);
-
-  return ret_val;
+  _default_replica_set->remove_instance(instance_def, options);
 }
 
 std::shared_ptr<GRReplicaSet> Cluster_impl::create_default_replicaset(
@@ -232,13 +221,10 @@ void Cluster_impl::dissolve(const shcore::Dictionary_t &options) {
   _default_replica_set->dissolve(options);
 }
 
-shcore::Value Cluster_impl::force_quorum_using_partition_of(
-    const shcore::Argument_list &args) {
+void Cluster_impl::force_quorum_using_partition_of(
+    const Connection_options &instance_def) {
   check_preconditions("forceQuorumUsingPartitionOf");
-
-  // TODO(alfredo) - unpack the arguments here insetad of at
-  // force_quorum_using_partition_of
-  return _default_replica_set->force_quorum_using_partition_of(args);
+  _default_replica_set->force_quorum_using_partition_of(instance_def);
 }
 
 void Cluster_impl::rescan(const shcore::Dictionary_t &options) {

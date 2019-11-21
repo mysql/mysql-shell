@@ -121,8 +121,8 @@ static PyObject *method_call(PyShMethodObject *self, PyObject *args,
 
 static PyTypeObject PyShMethodObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
-    "shcore.ObjectMethod",  // char *tp_name; /* For printing, in format
-                            // "<module>.<name>" */
+    "builtin_function_or_method",  // char *tp_name; /* For printing, in format
+                                   // "<module>.<name>" */
     sizeof(PyShMethodObject),
     0,  // int tp_basicsize, tp_itemsize; /* For allocation */
 
@@ -206,7 +206,7 @@ static PyTypeObject PyShMethodObjectType = {
 #endif
 };
 
-static PyObject *wrap_method(std::shared_ptr<Cpp_object_bridge> object,
+static PyObject *wrap_method(const std::shared_ptr<Cpp_object_bridge> &object,
                              const char *method_name) {
   // create a method call object and return it
   PyShMethodObject *method =
@@ -771,7 +771,7 @@ void Python_context::init_shell_object_type() {
       PyModule_GetDict(get_shell_python_support_module()), "IndexedObject");
 }
 
-PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object) {
+PyObject *shcore::wrap(const std::shared_ptr<Object_bridge> &object) {
   PyShObjObject *wrapper;
 
   if (object->is_indexed())
@@ -784,6 +784,11 @@ PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object) {
   wrapper->object = new Object_bridge_ref(object);
   wrapper->cache = new PyMemberCache();
   return reinterpret_cast<PyObject *>(wrapper);
+}
+
+PyObject *shcore::wrap(const std::shared_ptr<Cpp_object_bridge> &object,
+                       const std::string &method) {
+  return wrap_method(object, method.c_str());
 }
 
 bool shcore::unwrap(PyObject *value,

@@ -3,9 +3,9 @@
 
 //@ checkInstanceState: ArgumentErrors
 ||Invalid number of arguments, expected 1 but got 0 (ArgumentError)
-||Invalid URI: empty. (ArgumentError)
-||Argument #1 is expected to be a string (ArgumentError)
-||Invalid connection options, no options provided. (ArgumentError)
+||Argument #1: Invalid URI: empty. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 
 //@ checkInstanceState: unreachable instance
 |ERROR: Failed to connect to instance: Can't connect to MySQL server on 'localhost' |Cluster.checkInstanceState: The instance 'localhost:11111' is not reachable. (RuntimeError)
@@ -51,7 +51,7 @@ Analyzing the instance 'localhost:<<<__mysql_sandbox_port2>>>' replication state
 The instance contains additional transactions in relation to the cluster. However, Clone is available and if desired can be used to overwrite the data and add the instance to a cluster.
 
 {
-    "reason": "diverged", 
+    "reason": "diverged",
     "state": "warning"
 }
 

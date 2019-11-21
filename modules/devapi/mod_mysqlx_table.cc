@@ -22,16 +22,17 @@
  */
 
 #include "modules/devapi/mod_mysqlx_table.h"
+
 #include <memory>
 #include <string>
-#include "modules/devapi/mod_mysqlx_schema.h"
 
+#include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_table_delete.h"
 #include "modules/devapi/mod_mysqlx_table_insert.h"
 #include "modules/devapi/mod_mysqlx_table_select.h"
 #include "modules/devapi/mod_mysqlx_table_update.h"
-
-#include "shellcore/utils_help.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

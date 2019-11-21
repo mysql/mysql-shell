@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,43 +21,24 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_PYTHON_H_
-#define _TYPES_PYTHON_H_
+#include "mysqlshdk/include/scripting/naming_style.h"
 
-// python_context.h has to be included first
-
-#include "scripting/python_context.h"
-
-#include <memory>
-
-#include "scripting/types.h"
+#include <vector>
 
 namespace shcore {
 
-class SHCORE_PUBLIC Python_function : public Function_base {
- public:
-  Python_function(Python_context *context, PyObject *function);
-  ~Python_function() override;
+namespace {
 
-  const std::string &name() const override { return m_name; }
+std::vector<NamingStyle> g_naming_style{NamingStyle::LowerCamelCase};
 
-  const std::vector<std::pair<std::string, Value_type>> &signature()
-      const override;
+}  // namespace
 
-  Value_type return_type() const override;
+Scoped_naming_style::Scoped_naming_style(NamingStyle style) {
+  g_naming_style.push_back(style);
+}
 
-  bool operator==(const Function_base &other) const override;
+Scoped_naming_style::~Scoped_naming_style() { g_naming_style.pop_back(); }
 
-  bool operator!=(const Function_base &other) const;
-
-  Value invoke(const Argument_list &args) override;
-
- private:
-  Python_context *_py;
-  std::weak_ptr<AutoPyObject> m_function;
-  std::string m_name;
-};
+NamingStyle current_naming_style() { return g_naming_style.back(); }
 
 }  // namespace shcore
-
-#endif

@@ -285,9 +285,7 @@ TEST_F(mod_shell_test, connect) {
 
   EXPECT_CALL(*_backend, connect(_, false));
 
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri));
-  _shell->connect(args);
+  _shell->connect({_mysql_uri});
 }
 
 TEST_F(mod_shell_test, dump_rows) {

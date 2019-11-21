@@ -32,10 +32,12 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "shellcore/utils_help.h"
-#include "utils/debug.h"
-#include "utils/utils_general.h"
 
 using std::placeholders::_1;
 
@@ -94,57 +96,29 @@ bool Cluster::operator==(const Object_bridge &other) const {
 
 void Cluster::init() {
   add_property("name", "getName");
-  expose<void, const std::string &, const shcore::Dictionary_t &, Cluster>(
-      "addInstance", &Cluster::add_instance, "instanceDef", "?options");
-  expose<void, const shcore::Dictionary_t &, const shcore::Dictionary_t &,
-         Cluster>("addInstance", &Cluster::add_instance, "instanceDef",
-                  "?options");
-  add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1),
-             "data");
-  add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1),
-             "data");
+  expose("addInstance", &Cluster::add_instance, "instanceDef", "?options");
+  expose("rejoinInstance", &Cluster::rejoin_instance, "instanceDef",
+         "?options");
+  expose("removeInstance", &Cluster::remove_instance, "instanceDef",
+         "?options");
   expose("describe", &Cluster::describe);
   expose("status", &Cluster::status, "?options");
   expose("dissolve", &Cluster::dissolve, "?options");
   expose("resetRecoveryAccountsPassword",
          &Cluster::reset_recovery_accounts_password, "?options");
-
-  expose<shcore::Value, const std::string &, Cluster>(
-      "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
-  expose<shcore::Value, const shcore::Dictionary_t &, Cluster>(
-      "checkInstanceState", &Cluster::check_instance_state, "instanceDef");
-
+  expose("checkInstanceState", &Cluster::check_instance_state, "instanceDef");
   expose("rescan", &Cluster::rescan, "?options");
-  add_varargs_method(
-      "forceQuorumUsingPartitionOf",
-      std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
+  expose("forceQuorumUsingPartitionOf",
+         &Cluster::force_quorum_using_partition_of, "instanceDef", "?password");
   expose("disconnect", &Cluster::disconnect);
-
-  expose<void, const std::string &, Cluster>(
-      "switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
-      "instanceDef");
-  expose<void, const shcore::Dictionary_t &, Cluster>(
-      "switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
-      "instanceDef");
-  expose("switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode);
+  expose("switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
+         "?instanceDef");
   expose("switchToMultiPrimaryMode", &Cluster::switch_to_multi_primary_mode);
-  expose<void, const std::string &, Cluster>(
-      "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
-  expose<void, const shcore::Dictionary_t &, Cluster>(
-      "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
-
+  expose("setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
   expose("options", &Cluster::options, "?options");
-
   expose("setOption", &Cluster::set_option, "option", "value");
-
-  expose<void, const shcore::Dictionary_t &, const std::string &,
-         const shcore::Value &, Cluster>("setInstanceOption",
-                                         &Cluster::set_instance_option,
-                                         "instanceDef", "option", "value");
-  expose<void, const std::string &, const std::string &, const shcore::Value &,
-         Cluster>("setInstanceOption", &Cluster::set_instance_option,
-                  "instanceDef", "option", "value");
-
+  expose("setInstanceOption", &Cluster::set_instance_option, "instanceDef",
+         "option", "value");
   expose("listRouters", &Cluster::list_routers, "?options");
   expose("removeRouterMetadata", &Cluster::remove_router_metadata, "routerDef");
 }
@@ -375,8 +349,11 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
-void Cluster::add_instance(const Connection_options &instance_def,
+void Cluster::add_instance(const Connection_options &instance_def_,
                            const shcore::Dictionary_t &options) {
+  auto instance_def = instance_def_;
+  set_password_from_map(&instance_def, options);
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
@@ -384,16 +361,6 @@ void Cluster::add_instance(const Connection_options &instance_def,
 
   // Add the Instance to the Default ReplicaSet
   m_impl->add_instance(instance_def, options);
-}
-
-void Cluster::add_instance(const std::string &instance_def,
-                           const shcore::Dictionary_t &options) {
-  add_instance(get_connection_options(instance_def), options);
-}
-
-void Cluster::add_instance(const shcore::Dictionary_t &instance_def,
-                           const shcore::Dictionary_t &options) {
-  add_instance(get_connection_options(instance_def), options);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
@@ -468,69 +435,54 @@ Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
-shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
+void Cluster::rejoin_instance(const Connection_options &instance_def_,
+                              const shcore::Dictionary_t &options) {
+  auto instance_def = instance_def_;
+  set_password_from_map(&instance_def, options);
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
-  args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
-
   bool interactive = current_shell_options()->get().wizards;
+  const auto console = current_console();
 
-  // rejoin the Instance to the Default ReplicaSet
-  shcore::Value ret_val;
-  mysqlshdk::db::Connection_options instance_def;
-  auto console = current_console();
-  try {
-    m_impl->check_preconditions("rejoinInstance");
-
-    instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    if (interactive) {
-      // TODO(rennox): This was done on the interactive call, wondering if
-      // either should be done only if interactive, or if it should be done at
-      // all
-      instance_def.set_default_connection_data();
-
-      std::string message =
-          "Rejoining the instance to the InnoDB cluster. "
-          "Depending on the original\n"
-          "problem that made the instance unavailable, the rejoin operation "
-          "might not be\n"
-          "successful and further manual steps will be needed to fix the "
-          "underlying\n"
-          "problem.\n"
-          "\n"
-          "Please monitor the output of the rejoin operation and take "
-          "necessary "
-          "action if\n"
-          "the instance cannot rejoin.\n\n";
-
-      console->print(message);
-
-      console->println("Rejoining instance to the cluster ...");
-      console->println();
-    }
-
-    validate_connection_options(instance_def);
-
-    shcore::Value::Map_type_ref options;
-
-    if (args.size() == 2) options = args.map_at(1);
-
-    // if not, call mysqlprovision to join the instance to its own group
-    ret_val = m_impl->rejoin_instance(instance_def, options);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
+  m_impl->check_preconditions("rejoinInstance");
 
   if (interactive) {
-    console->println("The instance '" + instance_def.as_uri(only_transport()) +
-                     ""
-                     "' was successfully rejoined on the cluster.");
+    // TODO(rennox): This was done on the interactive call, wondering if
+    // either should be done only if interactive, or if it should be done at
+    // all
+    instance_def.set_default_connection_data();
+
+    std::string message =
+        "Rejoining the instance to the InnoDB cluster. "
+        "Depending on the original\n"
+        "problem that made the instance unavailable, the rejoin operation "
+        "might not be\n"
+        "successful and further manual steps will be needed to fix the "
+        "underlying\n"
+        "problem.\n"
+        "\n"
+        "Please monitor the output of the rejoin operation and take "
+        "necessary "
+        "action if\n"
+        "the instance cannot rejoin.\n\n";
+
+    console->print(message);
+
+    console->println("Rejoining instance to the cluster ...");
     console->println();
   }
 
-  return ret_val;
+  validate_connection_options(instance_def);
+  // rejoin the Instance to the Default ReplicaSet
+  m_impl->rejoin_instance(instance_def, options);
+
+  if (interactive) {
+    console->println("The instance '" + instance_def.as_uri(only_transport()) +
+                     "' was successfully rejoined on the cluster.");
+    console->println();
+  }
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);
@@ -595,25 +547,16 @@ Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
-shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  // Check arguments count.
-  // NOTE: check for arguments need to be performed here for the correct
-  // context "Cluster.removeInstance" to be used in the error message
-  // (not ReplicaSet.removeInstance).
-  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
+void Cluster::remove_instance(const Connection_options &instance_def_,
+                              const shcore::Dictionary_t &options) {
+  auto instance_def = instance_def_;
+  set_password_from_map(&instance_def, options);
 
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
   // Remove the Instance from the Default ReplicaSet
-  try {
-    ret_val = m_impl->remove_instance(args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
-
-  return ret_val;
+  m_impl->remove_instance(instance_def, options);
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
@@ -1060,66 +1003,55 @@ None Cluster::force_quorum_using_partition_of(InstanceDef instance,
                                               str password) {}
 #endif
 
-shcore::Value Cluster::force_quorum_using_partition_of(
-    const shcore::Argument_list &args) {
+void Cluster::force_quorum_using_partition_of(
+    const Connection_options &instance_def_, const char *password) {
+  auto instance_def = instance_def_;
+  set_password_from_string(&instance_def, password);
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("forceQuorumUsingPartitionOf");
-
-  args.ensure_count(1, 2,
-                    get_function_name("forceQuorumUsingPartitionOf").c_str());
 
   m_impl->check_preconditions("forceQuorumUsingPartitionOf");
 
   bool interactive = current_shell_options()->get().wizards;
-  auto console = current_console();
+  const auto console = current_console();
 
-  shcore::Value ret_val;
-  try {
-    auto default_rs = m_impl->get_default_replicaset();
+  auto default_rs = m_impl->get_default_replicaset();
 
-    if (!default_rs)
-      throw shcore::Exception::logic_error("cluster not initialized.");
+  if (!default_rs)
+    throw shcore::Exception::logic_error("cluster not initialized.");
 
-    std::vector<Instance_metadata> online_instances =
-        default_rs->get_active_instances();
+  std::vector<Instance_metadata> online_instances =
+      default_rs->get_active_instances();
 
-    std::vector<std::string> online_instances_array;
-    for (const auto &instance : online_instances) {
-      online_instances_array.push_back(instance.endpoint);
-    }
-
-    if (online_instances_array.empty())
-      throw shcore::Exception::logic_error(
-          "No online instances are visible "
-          "from the given one.");
-
-    auto group_peers = shcore::str_join(online_instances_array, ",");
-
-    // Remove the trailing comma of group_peers
-    if (group_peers.back() == ',') group_peers.pop_back();
-
-    if (interactive) {
-      std::string message = "Restoring cluster '" + impl()->get_name() +
-                            "' from loss of quorum, by using the partition "
-                            "composed of [" +
-                            group_peers + "]\n\n";
-      console->print(message);
-
-      console->println("Restoring the InnoDB cluster ...");
-      console->println();
-    }
-
-    ret_val = m_impl->force_quorum_using_partition_of(args);
+  std::vector<std::string> online_instances_array;
+  for (const auto &instance : online_instances) {
+    online_instances_array.push_back(instance.endpoint);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("forceQuorumUsingPartitionOf"));
+
+  if (online_instances_array.empty())
+    throw shcore::Exception::logic_error(
+        "No online instances are visible from the given one.");
+
+  auto group_peers = shcore::str_join(online_instances_array, ",");
+
+  // Remove the trailing comma of group_peers
+  if (group_peers.back() == ',') group_peers.pop_back();
 
   if (interactive) {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, PasswordFormat::STRING);
+    std::string message = "Restoring cluster '" + impl()->get_name() +
+                          "' from loss of quorum, by using the partition "
+                          "composed of [" +
+                          group_peers + "]\n\n";
+    console->print(message);
 
-    instance_def.set_default_connection_data();
+    console->println("Restoring the InnoDB cluster ...");
+    console->println();
+  }
 
+  m_impl->force_quorum_using_partition_of(instance_def);
+
+  if (interactive) {
     console->println(
         "The InnoDB cluster was successfully restored using the partition from "
         "the instance '" +
@@ -1131,8 +1063,6 @@ shcore::Value Cluster::force_quorum_using_partition_of(
         "was restored.");
     console->println();
   }
-
-  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
@@ -1197,19 +1127,10 @@ None Cluster::check_instance_state(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::check_instance_state(
-    const mysqlshdk::db::Connection_options &instance_def) {
+    const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
 
   return m_impl->check_instance_state(instance_def);
-}
-
-shcore::Value Cluster::check_instance_state(const std::string &instance_def) {
-  return check_instance_state(get_connection_options(instance_def));
-}
-
-shcore::Value Cluster::check_instance_state(
-    const shcore::Dictionary_t &instance_def) {
-  return check_instance_state(get_connection_options(instance_def));
 }
 
 REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);
@@ -1342,22 +1263,6 @@ void Cluster::set_primary_instance(const Connection_options &instance_def) {
   assert_valid("setPrimaryInstance");
 
   m_impl->set_primary_instance(instance_def);
-}
-
-void Cluster::set_primary_instance(const std::string &instance_def) {
-  mysqlshdk::db::Connection_options target_instance;
-
-  target_instance = get_connection_options(instance_def);
-
-  set_primary_instance(target_instance);
-}
-
-void Cluster::set_primary_instance(const shcore::Dictionary_t &instance_def) {
-  mysqlshdk::db::Connection_options target_instance;
-
-  target_instance = get_connection_options(instance_def);
-
-  set_primary_instance(target_instance);
 }
 
 REGISTER_HELP_FUNCTION(setOption, Cluster);
@@ -1507,26 +1412,6 @@ void Cluster::set_instance_option(const Connection_options &instance_def,
 
   // Set the option in the Default ReplicaSet
   m_impl->set_instance_option(instance_def, option, value);
-}
-
-void Cluster::set_instance_option(const std::string &instance_def,
-                                  const std::string &option,
-                                  const shcore::Value &value) {
-  mysqlshdk::db::Connection_options target_instance;
-
-  target_instance = get_connection_options(instance_def);
-
-  set_instance_option(target_instance, option, value);
-}
-
-void Cluster::set_instance_option(const shcore::Dictionary_t &instance_def,
-                                  const std::string &option,
-                                  const shcore::Value &value) {
-  mysqlshdk::db::Connection_options target_instance;
-
-  target_instance = get_connection_options(instance_def);
-
-  set_instance_option(target_instance, option, value);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, Cluster);

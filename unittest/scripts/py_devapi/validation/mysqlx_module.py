@@ -24,7 +24,7 @@ Type: <mysqlx.Type>
 LockContention: <mysqlx.LockContention>
 
 #@# mysqlx module: expression errors
-||TypeError: expr() takes 1 arguments (0 given)
+||mysqlx.expr: Invalid number of arguments, expected 1 but got 0
 ||mysqlx.expr: Argument #1 is expected to be a string
 
 #@ mysqlx module: expression

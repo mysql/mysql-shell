@@ -29,288 +29,16 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
-#include "scripting/types.h"
-#include "scripting/types_common.h"
+#include "mysqlshdk/include/scripting/naming_style.h"
+#include "mysqlshdk/include/scripting/type_info.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_common.h"
 
 namespace shcore {
-enum NamingStyle {
-  LowerCamelCase = 0,
-  LowerCaseUnderscores = 1,
-  Constants = 2
-};
-
-// Helper type traits for automatic method wrapping
-template <typename T>
-struct Type_info {
-  static T to_native(const shcore::Value &in);
-};
-
-template <>
-struct Type_info<void> {
-  static Value_type vtype() { return shcore::Null; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<int64_t> {
-  static int64_t to_native(const shcore::Value &in) { return in.as_int(); }
-  static Value_type vtype() { return shcore::Integer; }
-  static const char *code() { return "i"; }
-  static int64_t default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<uint64_t> {
-  static uint64_t to_native(const shcore::Value &in) { return in.as_uint(); }
-  static Value_type vtype() { return shcore::UInteger; }
-  static const char *code() { return "u"; }
-  static uint64_t default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<int> {
-  static int to_native(const shcore::Value &in) {
-    return static_cast<int>(in.as_int());
-  }
-  static Value_type vtype() { return shcore::Integer; }
-  static const char *code() { return "i"; }
-  static int default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<unsigned int> {
-  static unsigned int to_native(const shcore::Value &in) {
-    return static_cast<unsigned int>(in.as_uint());
-  }
-  static Value_type vtype() { return shcore::UInteger; }
-  static const char *code() { return "u"; }
-  static unsigned int default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<double> {
-  static double to_native(const shcore::Value &in) { return in.as_double(); }
-  static Value_type vtype() { return shcore::Float; }
-  static const char *code() { return "f"; }
-  static double default_value() { return 0.0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<float> {
-  static float to_native(const shcore::Value &in) {
-    return static_cast<float>(in.as_double());
-  }
-  static Value_type vtype() { return shcore::Float; }
-  static const char *code() { return "f"; }
-  static float default_value() { return 0.0f; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<bool> {
-  static bool to_native(const shcore::Value &in) { return in.as_bool(); }
-  static Value_type vtype() { return shcore::Bool; }
-  static const char *code() { return "b"; }
-  static bool default_value() { return false; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<std::string> {
-  static const std::string &to_native(const shcore::Value &in) {
-    return in.get_string();
-  }
-  static Value_type vtype() { return shcore::String; }
-  static const char *code() { return "s"; }
-  static std::string default_value() { return std::string(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const std::string &> {
-  static const std::string &to_native(const shcore::Value &in) {
-    return in.get_string();
-  }
-  static Value_type vtype() { return shcore::String; }
-  static const char *code() { return "s"; }
-  static std::string default_value() { return std::string(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const std::vector<std::string> &> {
-  static std::vector<std::string> to_native(const shcore::Value &in) {
-    std::vector<std::string> strs;
-    shcore::Array_t array(in.as_array());
-    for (size_t i = 0; i < array->size(); ++i) {
-      strs.push_back(array->at(i).get_string());
-    }
-    return strs;
-  }
-  static Value_type vtype() { return shcore::Array; }
-  static const char *code() { return "A"; }
-  static std::vector<std::string> default_value() { return {}; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-// This mapping allows exposed functions to receive a Value parameter
-// On this case the expected type is Undefined and any value can be
-// mapped to it since the coming Value will simply by passed to the
-// function without any transformation
-template <>
-struct Type_info<shcore::Value> {
-  static shcore::Value to_native(const shcore::Value &in) { return in; }
-  static Value_type vtype() { return shcore::Undefined; }
-  static const char *code() { return "V"; }
-  static shcore::Value default_value() { return shcore::Value(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const shcore::Value &> {
-  static shcore::Value to_native(const shcore::Value &in) { return in; }
-  static Value_type vtype() { return shcore::Undefined; }
-  static const char *code() { return "V"; }
-  static shcore::Value default_value() { return shcore::Value(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const shcore::Dictionary_t &> {
-  static shcore::Dictionary_t to_native(const shcore::Value &in) {
-    return in.as_map();
-  }
-  static Value_type vtype() { return shcore::Map; }
-  static const char *code() { return "D"; }
-  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<shcore::Dictionary_t> {
-  static shcore::Dictionary_t to_native(const shcore::Value &in) {
-    return in.as_map();
-  }
-  static Value_type vtype() { return shcore::Map; }
-  static const char *code() { return "D"; }
-  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const shcore::Array_t &> {
-  static shcore::Array_t to_native(const shcore::Value &in) {
-    return in.as_array();
-  }
-  static Value_type vtype() { return shcore::Array; }
-  static const char *code() { return "A"; }
-  static shcore::Array_t default_value() { return shcore::Array_t(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<shcore::Array_t> {
-  static shcore::Array_t to_native(const shcore::Value &in) {
-    return in.as_array();
-  }
-  static Value_type vtype() { return shcore::Array; }
-  static const char *code() { return "A"; }
-  static shcore::Array_t default_value() { return shcore::Array_t(); }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<Function_base_ref> {
-  static shcore::Function_base_ref to_native(const shcore::Value &in) {
-    return in.as_function();
-  }
-  static Value_type vtype() { return shcore::Function; }
-  static const char *code() { return "F"; }
-  static shcore::Function_base_ref default_value() {
-    return shcore::Function_base_ref();
-  }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<const Function_base_ref &> {
-  static shcore::Function_base_ref to_native(const shcore::Value &in) {
-    return in.as_function();
-  }
-  static Value_type vtype() { return shcore::Function; }
-  static const char *code() { return "F"; }
-  static shcore::Function_base_ref default_value() {
-    return shcore::Function_base_ref();
-  }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <typename Bridge_class>
-struct Type_info<std::shared_ptr<Bridge_class>> {
-  static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
-    if (in.as_object()) {
-      auto tmp = in.as_object<Bridge_class>();
-      if (!tmp) throw std::invalid_argument("Object type mismatch");
-      return tmp;
-    }
-    return std::shared_ptr<Bridge_class>();
-  }
-  static Value_type vtype() { return shcore::Object; }
-  static const char *code() { return "O"; }
-  static std::shared_ptr<Bridge_class> default_value() {
-    return std::shared_ptr<Bridge_class>();
-  }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <typename Bridge_class>
-struct Type_info<const std::shared_ptr<Bridge_class> &> {
-  static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
-    if (in.as_object()) {
-      auto tmp = in.as_object<Bridge_class>();
-      if (!tmp) throw std::invalid_argument("Object type mismatch");
-      return tmp;
-    }
-    return std::shared_ptr<Bridge_class>();
-  }
-  static Value_type vtype() { return shcore::Object; }
-  static const char *code() { return "O"; }
-  static std::shared_ptr<Bridge_class> default_value() {
-    return std::shared_ptr<Bridge_class>();
-  }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-/**
- * This class is used in the expose() functions to validate conversion
- * of string values to numeric values (as they are marked as convertible
- * at kTypeConvertible).
- *
- * In case of failure the standard error message is generated.
- */
-template <typename T>
-struct Arg_handler {
-  static typename std::decay<T>::type get(uint64_t position,
-                                          const shcore::Argument_list &args) {
-    try {
-      return Type_info<T>::to_native(args.at(position));
-    } catch (...) {
-      std::string error = "Argument #";
-      error.append(std::to_string(position + 1));
-      error.append(" is expected to be ")
-          .append(Type_info<T>::desc().append("."));
-      throw Exception::argument_error(error);
-    }
-  }
-};
 
 class SHCORE_PUBLIC Cpp_property_name {
  public:
@@ -351,6 +79,7 @@ struct Parameter;
 struct Parameter_validator {
  public:
   virtual ~Parameter_validator() = default;
+  virtual bool valid_type(const Parameter &param, Value_type type) const;
   virtual void validate(const Parameter &param, const Value &data,
                         Parameter_context *context) const;
 };
@@ -396,6 +125,8 @@ struct Parameter final {
   Param_flag flag;
 
   void validate(const Value &data, Parameter_context *context) const;
+
+  bool valid_type(Value_type type) const;
 
   void set_type(Value_type type) {
     m_type = type;
@@ -454,8 +185,6 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   Value invoke(const Argument_list &args) override;
 
   bool is_legacy = false;
-  // TODO(alfredo) delme
-  bool has_var_args() override { return _meta->var_args; }
 
   static std::shared_ptr<Function_base> create(
       const std::string &name, const Function &func,
@@ -470,7 +199,6 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
 
     std::vector<std::pair<std::string, Value_type>> param_types;
     Value_type return_type;
-    bool var_args;  // delme
 
     void set_name(const std::string &name);
     void set(const std::string &name, Value_type rtype,
@@ -488,8 +216,6 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
       const Raw_signature &cand, const std::vector<Value_type> &wanted);
 
   Cpp_function(const std::string &name, const Function &func,
-               bool var_args);  // delme
-  Cpp_function(const std::string &name, const Function &func,
                const std::vector<std::pair<std::string, Value_type>>
                    &signature);  // delme
   Cpp_function(const Metadata *meta, const Function &func);
@@ -504,57 +230,34 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   Metadata _meta_tmp;  // temporary memory for legacy versions of Cpp_function
 };
 
-namespace internal {
-template <typename R>
-struct Result_wrapper {
-  template <typename F>
-  static inline shcore::Value call(F f) {
-    return shcore::Value(f());
-  }
-};
-
-template <>
-struct Result_wrapper<void> {
-  template <typename F>
-  static inline shcore::Value call(F f) {
-    f();
-    return shcore::Value();
-  }
-};
-}  // namespace internal
-
-struct Scoped_naming_style {
-  explicit Scoped_naming_style(NamingStyle style);
-  ~Scoped_naming_style();
-};
-
-NamingStyle current_naming_style();
-
 class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
  protected:
   Cpp_object_bridge();
   Cpp_object_bridge(const Cpp_object_bridge &) = delete;
 
  public:
-  virtual ~Cpp_object_bridge();
+  ~Cpp_object_bridge() override;
 
-  virtual bool operator==(const Object_bridge &other) const {
+  bool operator==(const Object_bridge &other) const override {
     return class_name() == other.class_name() && this == &other;
   }
 
-  virtual std::vector<std::string> get_members() const;
-  virtual Value get_member(const std::string &prop) const;
+  // required to expose() help method
+  std::string class_name() const override { return "Cpp_object_bridge"; }
 
-  virtual bool has_member(const std::string &prop) const;
-  virtual void set_member(const std::string &prop, Value value);
+  std::vector<std::string> get_members() const override;
+  Value get_member(const std::string &prop) const override;
 
-  virtual bool is_indexed() const;
-  virtual Value get_member(size_t index) const;
-  virtual void set_member(size_t index, Value value);
+  bool has_member(const std::string &prop) const override;
+  void set_member(const std::string &prop, Value value) override;
 
-  virtual bool has_method(const std::string &name) const;
+  bool is_indexed() const override;
+  Value get_member(size_t index) const override;
+  void set_member(size_t index, Value value) override;
 
-  virtual Value call(const std::string &name, const Argument_list &args);
+  bool has_method(const std::string &name) const override;
+
+  Value call(const std::string &name, const Argument_list &args) override;
 
   // Helper method to retrieve properties using a method
   shcore::Value get_member_method(const shcore::Argument_list &args,
@@ -571,11 +274,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   virtual Value call_advanced(const std::string &name,
                               const Argument_list &args);
 
-  virtual std::string &append_descr(std::string &s_out, int indent = -1,
-                                    int quote_strings = 0) const;
-  virtual std::string &append_repr(std::string &s_out) const;
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            int quote_strings = 0) const override;
+  std::string &append_repr(std::string &s_out) const override;
 
-  virtual shcore::Value help(const shcore::Argument_list &args);
+  virtual std::string help(const std::string &item = {});
   virtual std::string get_help_id() const { return class_name(); }
 
  protected:
@@ -618,69 +321,121 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     return &md;
   }
 
+  /**
+   * Expose method with no arguments, with automatic bridging.
+   * See expose__() for details.
+   */
+  template <typename R, typename C>
+  void expose(const std::string &name, R (C::*func)()) {
+    expose_(name, func, {});
+  }
+
+  template <typename R, typename C>
+  void expose(const std::string &name, R (C::*func)() const) {
+    expose_(name, func, {});
+  }
+
+  template <typename R>
+  void expose(const std::string &name, R (*func)()) {
+    expose_(name, func, {});
+  }
+
+  template <typename R>
+  void expose(const std::string &name, std::function<R()> &&func) {
+    expose_(name, std::move(func), {});
+  }
+
+  /**
+   * Expose method with 1 argument, with automatic bridging.
+   * See expose__() for details.
+   */
   template <typename R, typename A1, typename C>
-  Cpp_function::Metadata *expose(const std::string &name, R (C::*func)(A1),
-                                 const std::string &a1doc,
-                                 const typename std::remove_const<A1>::type
-                                     &a1def = Type_info<A1>::default_value()) {
-    return expose<R, A1, C, R (C::*)(A1)>(name, func, a1doc, a1def);
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1), const std::string &a1doc,
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc}, std::move(a1def));
   }
 
   template <typename R, typename A1, typename C>
   Cpp_function::Metadata *expose(
       const std::string &name, R (C::*func)(A1) const, const std::string &a1doc,
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, C, R (C::*)(A1) const>(name, func, a1doc, a1def);
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc}, std::move(a1def));
   }
 
-  template <typename R, typename C>
-  void expose(const std::string &name, R (C::*func)()) {
-    expose<R, C, R (C::*)()>(name, func);
+  template <typename R, typename A1>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1), const std::string &a1doc,
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc}, std::move(a1def));
   }
 
-  template <typename R, typename C>
-  void expose(const std::string &name, R (C::*func)() const) {
-    expose<R, C, R (C::*)() const>(name, func);
+  template <typename R, typename A1>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1)> &&func,
+      const std::string &a1doc,
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func), {a1doc}, std::move(a1def));
   }
 
+  /**
+   * Expose method with 2 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
   template <typename R, typename A1, typename A2, typename C>
   Cpp_function::Metadata *expose(
       const std::string &name, R (C::*func)(A1, A2), const std::string &a1doc,
       const std::string &a2doc,
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, C, R (C::*)(A1, A2)>(name, func, a1doc, a2doc,
-                                                  a2def, a1def);
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc}, std::move(a1def),
+                   std::move(a2def));
   }
 
   template <typename R, typename A1, typename A2, typename C>
   Cpp_function::Metadata *expose(
       const std::string &name, R (C::*func)(A1, A2) const,
       const std::string &a1doc, const std::string &a2doc,
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, C, R (C::*)(A1, A2) const>(name, func, a1doc,
-                                                        a2doc, a2def, a1def);
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc}, std::move(a1def),
+                   std::move(a2def));
   }
 
+  template <typename R, typename A1, typename A2>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2), const std::string &a1doc,
+      const std::string &a2doc,
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc}, std::move(a1def),
+                   std::move(a2def));
+  }
+
+  template <typename R, typename A1, typename A2>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1, A2)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func), {a1doc, a2doc}, std::move(a1def),
+                   std::move(a2def));
+  }
+
+  /**
+   * Expose method with 3 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
   template <typename R, typename A1, typename A2, typename A3, typename C>
   Cpp_function::Metadata *expose(
       const std::string &name, R (C::*func)(A1, A2, A3),
       const std::string &a1doc, const std::string &a2doc,
       const std::string &a3doc,
-      const typename std::remove_const<A3>::type &a3def =
-          Type_info<A3>::default_value(),
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, A3, C, R (C::*)(A1, A2, A3)>(
-        name, func, a1doc, a2doc, a3doc, a3def, a2def, a1def);
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def));
   }
 
   template <typename R, typename A1, typename A2, typename A3, typename C>
@@ -688,32 +443,52 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       const std::string &name, R (C::*func)(A1, A2, A3) const,
       const std::string &a1doc, const std::string &a2doc,
       const std::string &a3doc,
-      const typename std::remove_const<A3>::type &a3def =
-          Type_info<A3>::default_value(),
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, A3, C, R (C::*)(A1, A2, A3) const>(
-        name, func, a1doc, a2doc, a3doc, a3def, a2def, a1def);
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def));
   }
 
+  template <typename R, typename A1, typename A2, typename A3>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2, A3), const std::string &a1doc,
+      const std::string &a2doc, const std::string &a3doc,
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1, A2, A3)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc,
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func), {a1doc, a2doc, a3doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def));
+  }
+
+  /**
+   * Expose method with 4 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
   template <typename R, typename A1, typename A2, typename A3, typename A4,
             typename C>
   Cpp_function::Metadata *expose(
       const std::string &name, R (C::*func)(A1, A2, A3, A4),
       const std::string &a1doc, const std::string &a2doc,
       const std::string &a3doc, const std::string &a4doc,
-      const typename std::remove_const<A4>::type &a4def =
-          Type_info<A4>::default_value(),
-      const typename std::remove_const<A3>::type &a3def =
-          Type_info<A3>::default_value(),
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, A3, A4, C, R (C::*)(A1, A2, A3, A4)>(
-        name, func, a1doc, a2doc, a3doc, a4doc, a4def, a3def, a2def, a1def);
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def), std::move(a4def));
   }
 
   template <typename R, typename A1, typename A2, typename A3, typename A4,
@@ -722,16 +497,290 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       const std::string &name, R (C::*func)(A1, A2, A3, A4) const,
       const std::string &a1doc, const std::string &a2doc,
       const std::string &a3doc, const std::string &a4doc,
-      const typename std::remove_const<A4>::type &a4def =
-          Type_info<A4>::default_value(),
-      const typename std::remove_const<A3>::type &a3def =
-          Type_info<A3>::default_value(),
-      const typename std::remove_const<A2>::type &a2def =
-          Type_info<A2>::default_value(),
-      const typename std::remove_const<A1>::type &a1def =
-          Type_info<A1>::default_value()) {
-    return expose<R, A1, A2, A3, A4, C, R (C::*)(A1, A2, A3, A4) const>(
-        name, func, a1doc, a2doc, a3doc, a4doc, a4def, a3def, a2def, a1def);
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def), std::move(a4def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2, A3, A4),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def), std::move(a4def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1, A2, A3, A4)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func), {a1doc, a2doc, a3doc, a4doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def));
+  }
+
+  /**
+   * Expose method with 5 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc,
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5) const,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc,
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2, A3, A4, A5),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc,
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1, A2, A3, A4, A5)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc,
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func), {a1doc, a2doc, a3doc, a4doc, a5doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def));
+  }
+
+  /**
+   * Expose method with 6 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5, A6),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def), std::move(a6def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5, A6) const,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def), std::move(a6def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2, A3, A4, A5, A6),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def), std::move(a6def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6>
+  Cpp_function::Metadata *expose(
+      const std::string &name, std::function<R(A1, A2, A3, A4, A5, A6)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func),
+                   {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc}, std::move(a1def),
+                   std::move(a2def), std::move(a3def), std::move(a4def),
+                   std::move(a5def), std::move(a6def));
+  }
+
+  /**
+   * Expose method with 7 arguments, with automatic bridging.
+   * See expose__() for details.
+   */
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename A7, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5, A6, A7),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      const std::string &a7doc,
+      Type_info_t<A7> &&a7def = Type_info<A7>::default_value(),
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(
+        name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc, a7doc},
+        std::move(a1def), std::move(a2def), std::move(a3def), std::move(a4def),
+        std::move(a5def), std::move(a6def), std::move(a7def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename A7, typename C>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (C::*func)(A1, A2, A3, A4, A5, A6, A7) const,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      const std::string &a7doc,
+      Type_info_t<A7> &&a7def = Type_info<A7>::default_value(),
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(
+        name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc, a7doc},
+        std::move(a1def), std::move(a2def), std::move(a3def), std::move(a4def),
+        std::move(a5def), std::move(a6def), std::move(a7def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename A7>
+  Cpp_function::Metadata *expose(
+      const std::string &name, R (*func)(A1, A2, A3, A4, A5, A6, A7),
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      const std::string &a7doc,
+      Type_info_t<A7> &&a7def = Type_info<A7>::default_value(),
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(
+        name, func, {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc, a7doc},
+        std::move(a1def), std::move(a2def), std::move(a3def), std::move(a4def),
+        std::move(a5def), std::move(a6def), std::move(a7def));
+  }
+
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename A5, typename A6, typename A7>
+  Cpp_function::Metadata *expose(
+      const std::string &name,
+      std::function<R(A1, A2, A3, A4, A5, A6, A7)> &&func,
+      const std::string &a1doc, const std::string &a2doc,
+      const std::string &a3doc, const std::string &a4doc,
+      const std::string &a5doc, const std::string &a6doc,
+      const std::string &a7doc,
+      Type_info_t<A7> &&a7def = Type_info<A7>::default_value(),
+      Type_info_t<A6> &&a6def = Type_info<A6>::default_value(),
+      Type_info_t<A5> &&a5def = Type_info<A5>::default_value(),
+      Type_info_t<A4> &&a4def = Type_info<A4>::default_value(),
+      Type_info_t<A3> &&a3def = Type_info<A3>::default_value(),
+      Type_info_t<A2> &&a2def = Type_info<A2>::default_value(),
+      Type_info_t<A1> &&a1def = Type_info<A1>::default_value()) {
+    return expose_(name, std::move(func),
+                   {a1doc, a2doc, a3doc, a4doc, a5doc, a6doc, a7doc},
+                   std::move(a1def), std::move(a2def), std::move(a3def),
+                   std::move(a4def), std::move(a5def), std::move(a6def),
+                   std::move(a7def));
+  }
+
+  // adding overloads for more arguments requires changes in
+  // Cpp_function::match_signatures()
+
+  // Lambdas cannot be used directly in the expose() methods, as compiler
+  // is unable to deduce the correct type (no conversions are done during
+  // deduction). This method allows to automatically wrap any lambda into
+  // corresponding std::function.
+  template <typename L>
+  static auto wrap(L &&l) {
+    return to_function_t<decltype(&L::operator())>(std::forward<L>(l));
   }
 
  protected:
@@ -765,10 +814,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     add_method_(name, func, &signature);
   }
 
-  // delme - replace varargs with type overloading
-  virtual void add_varargs_method(const std::string &name,
-                                  Cpp_function::Function func);
-
   // Constants and properties are not handled through the Cpp_property_name
   // class which supports different naming styles
   virtual void add_constant(const std::string &name);
@@ -793,6 +838,17 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       const std::string &method) const;
 
  private:
+  template <typename T>
+  struct to_function {};
+
+  template <typename R, typename C, typename... A>
+  struct to_function<R (C::*)(A...) const> {
+    using type = std::function<R(A...)>;
+  };
+
+  template <typename T>
+  using to_function_t = typename to_function<T>::type;
+
   std::multimap<std::string, std::shared_ptr<Cpp_function>> _funcs;
 
   // Returns the base name of the given member
@@ -809,269 +865,158 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                       const std::shared_ptr<Cpp_function> &func,
                       const Argument_list &args);
 
-  /** Expose a method with 1 argument with automatic bridging.
-   *
-   * For use with methods with 1 argument, using shcore::Value compatible
-   * arguments and return type. String arguments must be passed by const ref.
+  // Helper methods which handle pointers to static, const and non-const
+  // methods, functions, and lambdas.
+  // These allow to call expose__() method without specifying the template
+  // arguments.
+  template <typename R, typename C, typename... A>
+  Cpp_function::Metadata *expose_(const std::string &name, R (C::*func)(A...),
+                                  const std::vector<std::string> &docs,
+                                  Type_info_t<A> &&... defs) {
+    return expose__<R, std::function<R(A...)>, A...>(
+        name,
+        [this, func](A... args) -> R {
+          return (static_cast<C *>(this)->*func)(args...);
+        },
+        docs, std::move(defs)...);
+  }
+
+  template <typename R, typename C, typename... A>
+  Cpp_function::Metadata *expose_(const std::string &name,
+                                  R (C::*func)(A...) const,
+                                  const std::vector<std::string> &docs,
+                                  Type_info_t<A> &&... defs) {
+    return expose__<R, std::function<R(A...)>, A...>(
+        name,
+        [this, func](A... args) -> R {
+          return (static_cast<C *>(this)->*func)(args...);
+        },
+        docs, std::move(defs)...);
+  }
+
+  template <typename R, typename... A>
+  Cpp_function::Metadata *expose_(const std::string &name, R (*func)(A...),
+                                  const std::vector<std::string> &docs,
+                                  Type_info_t<A> &&... defs) {
+    return expose__<R, std::function<R(A...)>, A...>(name, func, docs,
+                                                     std::move(defs)...);
+  }
+
+  template <typename R, typename... A>
+  Cpp_function::Metadata *expose_(const std::string &name,
+                                  std::function<R(A...)> &&func,
+                                  const std::vector<std::string> &docs,
+                                  Type_info_t<A> &&... defs) {
+    return expose__<R, std::function<R(A...)>, A...>(name, std::move(func),
+                                                     docs, std::move(defs)...);
+  }
+
+  /**
+   * Expose a method with variable number of arguments with automatic bridging.
    *
    * To mark a parameter as optional, add ? at the beginning of the name string.
    * Optional parameters must be marked from right to left, with no skips.
    *
-   * Runtime type checking and conversions done automatically.
+   * Run-time type checking and conversions are done automatically.
    *
-   * @param name - the name of the method, with description separated by space.
-   *               e.g. "expr filter expression for query"
-   * @param func - function pointer to the method
-   * @param a1doc - name of the 1st argument (must not be empty!)
-   * @param a1def - default value to be used if parameter is optional and not
-   *                given
-   * @return A reference to the function metadata so the default parameter
+   * @param name The name of the method, with description separated by space.
+   *             e.g. "expr filter expression for query"
+   * @param func The function to call.
+   * @param docs Names of the arguments (a name must not be empty!).
+   * @param defs The default values to be used if a parameter is optional and
+   *             not given. The number of docs and defs must be the same. The
+   *             order of docs and defs must be the same.
+   *
+   * @return A pointer to the function metadata so the default parameter
    *         validator can be replaced with a more complex one.
    */
-  template <typename R, typename A1, typename C, typename F>
-  Cpp_function::Metadata *expose(
-      const std::string &name, F func, const std::string &a1doc,
-      const typename std::remove_const<A1>::type &a1def) {
+  template <typename R, typename F, typename... A>
+  Cpp_function::Metadata *expose__(const std::string &name, F &&func,
+                                   const std::vector<std::string> &docs,
+                                   Type_info_t<A> &&... defs) {
     assert(func != nullptr);
     assert(!name.empty());
-    assert(!a1doc.empty());
+    assert(docs.size() == sizeof...(A));
+#ifndef NDEBUG
+    for (const auto &d : docs) {
+      assert(!d.empty());
+    }
+#endif  // NDEBUG
 
-    Cpp_function::Metadata &md =
-        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code());
+    const auto size = docs.size();
+
+    auto mangled_name = class_name() + "::" + name + ":";
+    // fold expressions are available in C++17, use std::initializer_list +
+    // comma operator trick instead
+    (void)std::initializer_list<int>{
+        (mangled_name.append(Type_info<A>::code()), 0)...};
+    auto &md = get_metadata(mangled_name);
+
     if (md.name[0].empty()) {
-      set_metadata(md, name, Type_info<R>::vtype(),
-                   {{a1doc, Type_info<A1>::vtype()}});
+      std::vector<std::pair<std::string, Value_type>> ptypes;
+      std::vector<Value_type> vtypes = {Type_info<A>::vtype()...};
+
+      for (size_t i = 0; i < size; ++i) {
+        ptypes.emplace_back(docs[i], vtypes[i]);
+      }
+
+      set_metadata(md, name, Type_info<R>::vtype(), ptypes);
     }
 
-    std::string registered_name = name.substr(0, name.find("|"));
+    {
+      std::vector<std::unique_ptr<Parameter_validator>> validators;
+      (void)std::initializer_list<int>{
+          (validators.emplace_back(Type_info<A>::validator()), 0)...};
+
+      for (size_t i = 0; i < size; ++i) {
+        if (validators[i]) {
+          md.signature[i]->set_validator(std::move(validators[i]));
+        }
+      }
+    }
+
+    const auto registered_name = name.substr(0, name.find("|"));
     detect_overload_conflicts(registered_name, md);
-    _funcs.emplace(std::make_pair(
+
+    _funcs.emplace(
         registered_name,
-        std::shared_ptr<Cpp_function>(new Cpp_function(
-            &md,
-            [this, func, &md,
-             a1def](const shcore::Argument_list &args) -> shcore::Value {
+        std::shared_ptr<Cpp_function>(
+            new Cpp_function(&md, [&md, func = std::forward<F>(func),
+                                   defs = std::make_tuple(std::move(defs)...)](
+                                      const shcore::Argument_list &args) {
               // Executes parameter validators
-              for (size_t index = 0; index < args.size(); index++) {
+              for (size_t index = 0, count = args.size(); index < count;
+                   ++index) {
                 Parameter_context context{
                     "", {{"Argument", static_cast<int>(index + 1)}}};
                 md.signature[index]->validate(args[index], &context);
               }
-              const A1 &&a1 =
-                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
-              return internal::Result_wrapper<R>::call([this, func, a1]() {
-                return (static_cast<C *>(this)->*func)(a1);
+
+              return detail::Result_wrapper<R>::call([&func, &args, &defs]() {
+                return call<R, F, A...>(func, args, defs,
+                                        std::index_sequence_for<A...>{});
               });
-            }))));
+            })));
 
     return &md;
   }
 
-  /**
-   * Expose method with no arguments, with automatic bridging.
-   * See above for details.
-   */
-  template <typename R, typename C, typename F>
-  void expose(const std::string &name, F func) {
-    assert(func != nullptr);
-    assert(!name.empty());
-
-    Cpp_function::Metadata &md = get_metadata(class_name() + "::" + name + ":");
-    if (md.name[0].empty()) {
-      set_metadata(md, name, Type_info<R>::vtype(), {});
-    }
-
-    std::string registered_name = name.substr(0, name.find("|"));
-    detect_overload_conflicts(registered_name, md);
-    _funcs.emplace(std::make_pair(
-        registered_name,
-        std::shared_ptr<Cpp_function>(new Cpp_function(
-            &md, [this, func](const shcore::Argument_list &) -> shcore::Value {
-              return internal::Result_wrapper<R>::call(
-                  [this, func]() { return (static_cast<C *>(this)->*func)(); });
-            }))));
-  }
-
-  /**
-   * Expose method with 2 arguments, with automatic bridging.
-   * See above for details.
-   * @return A reference to the function metadata so the default parameter
-   *         validators can be replaced with more complex ones.
-   */
-  template <typename R, typename A1, typename A2, typename C, typename F>
-  Cpp_function::Metadata *expose(
-      const std::string &name, F func, const std::string &a1doc,
-      const std::string &a2doc,
-      const typename std::remove_const<A2>::type &a2def,
-      const typename std::remove_const<A1>::type &a1def) {
-    assert(func != nullptr);
-    assert(!name.empty());
-    assert(!a1doc.empty());
-    assert(!a2doc.empty());
-
-    Cpp_function::Metadata &md =
-        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code() +
-                     Type_info<A2>::code());
-    if (md.name[0].empty()) {
-      set_metadata(
-          md, name, Type_info<R>::vtype(),
-          {{a1doc, Type_info<A1>::vtype()}, {a2doc, Type_info<A2>::vtype()}});
-    }
-
-    std::string registered_name = name.substr(0, name.find("|"));
-    detect_overload_conflicts(registered_name, md);
-    _funcs.emplace(std::make_pair(
-        registered_name,
-        std::shared_ptr<Cpp_function>(new Cpp_function(
-            &md,
-            [this, &md, func, a1def,
-             a2def](const shcore::Argument_list &args) -> shcore::Value {
-              // Executes parameter validators
-              for (size_t index = 0; index < args.size(); index++) {
-                Parameter_context context{
-                    "", {{"Argument", static_cast<int>(index + 1)}}};
-                md.signature[index]->validate(args[index], &context);
-              }
-              const A1 &&a1 =
-                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
-              const A2 &&a2 =
-                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
-              return internal::Result_wrapper<R>::call([this, func, a1, a2]() {
-                return (static_cast<C *>(this)->*func)(a1, a2);
-              });
-            }))));
-
-    return &md;
-  }
-
-  /**
-   * Expose method with 3 arguments, with automatic bridging.
-   * See above for details.
-   * @return A reference to the function metadata so the default parameter
-   *         validators can be replaced with more complex ones.
-   */
-  template <typename R, typename A1, typename A2, typename A3, typename C,
-            typename F>
-  Cpp_function::Metadata *expose(
-      const std::string &name, F func, const std::string &a1doc,
-      const std::string &a2doc, const std::string &a3doc,
-      const typename std::remove_const<A3>::type &a3def,
-      const typename std::remove_const<A2>::type &a2def,
-      const typename std::remove_const<A1>::type &a1def) {
-    assert(func != nullptr);
-    assert(!name.empty());
-    assert(!a1doc.empty());
-    assert(!a2doc.empty());
-    assert(!a3doc.empty());
-
-    Cpp_function::Metadata &md =
-        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code() +
-                     Type_info<A2>::code() + Type_info<A3>::code());
-    if (md.name[0].empty()) {
-      set_metadata(md, name, Type_info<R>::vtype(),
-                   {{a1doc, Type_info<A1>::vtype()},
-                    {a2doc, Type_info<A2>::vtype()},
-                    {a3doc, Type_info<A3>::vtype()}});
-    }
-
-    std::string registered_name = name.substr(0, name.find("|"));
-    detect_overload_conflicts(registered_name, md);
-    _funcs.emplace(std::make_pair(
-        registered_name,
-        std::shared_ptr<Cpp_function>(new Cpp_function(
-            &md,
-            [this, &md, func, a1def, a2def,
-             a3def](const shcore::Argument_list &args) -> shcore::Value {
-              // Executes parameter validators
-              for (size_t index = 0; index < args.size(); index++) {
-                Parameter_context context{
-                    "", {{"Argument", static_cast<int>(index + 1)}}};
-                md.signature[index]->validate(args[index], &context);
-              }
-              const A1 &&a1 =
-                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
-              const A2 &&a2 =
-                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
-              const A3 &&a3 =
-                  args.size() <= 2 ? a3def : Arg_handler<A3>::get(2, args);
-              return internal::Result_wrapper<R>::call(
-                  [this, func, a1, a2, a3]() {
-                    return (static_cast<C *>(this)->*func)(a1, a2, a3);
-                  });
-            }))));
-
-    return &md;
-  }
-
-  /**
-   * Expose method with 4 arguments, with automatic bridging.
-   * See above for details.
-   * @return A reference to the function metadata so the default parameter
-   *         validators can be replaced with more complex ones.
-   */
-  template <typename R, typename A1, typename A2, typename A3, typename A4,
-            typename C, typename F>
-  Cpp_function::Metadata *expose(
-      const std::string &name, F func, const std::string &a1doc,
-      const std::string &a2doc, const std::string &a3doc,
-      const std::string &a4doc,
-      const typename std::remove_const<A4>::type &a4def,
-      const typename std::remove_const<A3>::type &a3def,
-      const typename std::remove_const<A2>::type &a2def,
-      const typename std::remove_const<A1>::type &a1def) {
-    assert(func != nullptr);
-    assert(!name.empty());
-    assert(!a1doc.empty());
-    assert(!a2doc.empty());
-    assert(!a3doc.empty());
-    assert(!a4doc.empty());
-
-    Cpp_function::Metadata &md = get_metadata(
-        class_name() + "::" + name + ":" + Type_info<A2>::code() +
-        Type_info<A2>::code() + Type_info<A3>::code() + Type_info<A4>::code());
-    if (md.name[0].empty()) {
-      set_metadata(md, name, Type_info<R>::vtype(),
-                   {{a1doc, Type_info<A1>::vtype()},
-                    {a2doc, Type_info<A2>::vtype()},
-                    {a3doc, Type_info<A3>::vtype()},
-                    {a4doc, Type_info<A4>::vtype()}});
-    }
-
-    std::string registered_name = name.substr(0, name.find("|"));
-    detect_overload_conflicts(registered_name, md);
-    _funcs.emplace(std::make_pair(
-        registered_name,
-        std::shared_ptr<Cpp_function>(new Cpp_function(
-            &md,
-            [this, &md, func, a1def, a2def, a3def,
-             a4def](const shcore::Argument_list &args) -> shcore::Value {
-              // Executes parameter validators
-              for (size_t index = 0; index < args.size(); index++) {
-                Parameter_context context{
-                    "", {{"Argument", static_cast<int>(index + 1)}}};
-                md.signature[index]->validate(args[index], &context);
-              }
-              const A1 &&a1 =
-                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
-              const A2 &&a2 =
-                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
-              const A3 &&a3 =
-                  args.size() <= 2 ? a3def : Arg_handler<A3>::get(2, args);
-              const A4 &&a4 =
-                  args.size() <= 3 ? a4def : Arg_handler<A4>::get(3, args);
-              return internal::Result_wrapper<R>::call(
-                  [this, func, a1, a2, a3, a4]() {
-                    return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
-                  });
-            }))));
-
-    return &md;
+  // helper method which allows to bind position in template parameter pack with
+  // parameter pack expansion
+  template <typename R, typename F, typename... A, size_t... I>
+  static R call(const F &func, const shcore::Argument_list &args,
+                const std::tuple<Type_info_t<A>...> &defs,
+                std::index_sequence<I...>) {
+    const auto size = args.size();
+    return func(
+        (size <= I ? std::get<I>(defs) : Arg_handler<A>::get(I, args))...);
   }
 
 #ifdef FRIEND_TEST
   friend class Types_cpp;
 #endif
 };
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_
