@@ -39,6 +39,12 @@ schema.help('dropCollection');
 //@ Schema dropCollection, \? [USE:Help on dropCollection]
 \? schema.dropCollection
 
+//@ Help on modifyCollection
+schema.help('modifyCollection');
+
+//@ Schema modifyCollection, \? [USE:Help on modifyCollection]
+\? schema.modifyCollection
+
 //@ Help on existsInDatabase
 schema.help('existsInDatabase');
 

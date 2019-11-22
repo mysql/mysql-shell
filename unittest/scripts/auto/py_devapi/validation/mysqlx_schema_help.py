@@ -56,7 +56,7 @@ PROPERTIES
       DETAILS section.
 
 FUNCTIONS
-      create_collection(name)
+      create_collection(name[, options])
             Creates in the current schema a new collection with the specified
             name and retrieves an object representing the new collection
             created.
@@ -94,6 +94,9 @@ FUNCTIONS
       help([member])
             Provides help about this class and it's members
 
+      modify_collection(name, options)
+            Modifies the schema validation of a collection.
+
 RELATED TOPICS
  - Dynamic Properties
 
@@ -104,10 +107,11 @@ NAME
                           representing the new collection created.
 
 SYNTAX
-      <Schema>.create_collection(name)
+      <Schema>.create_collection(name[, options])
 
 WHERE
       name: the name of the collection.
+      options: Dictionary with options.
 
 RETURNS
       the new created collection.
@@ -115,6 +119,17 @@ RETURNS
 DESCRIPTION
       To specify a name for a collection, follow the naming conventions in
       MySQL.
+
+      The options dictionary may contain the following attributes:
+
+      - reuseExistingObject: boolean, indicating if the call should succeed
+        when collection with the same name already exists.
+      - validation: object defining JSON schema validation for the collection.
+
+      The validation object allows the following attributes:
+
+      - level: which can be either 'strict' or 'off'.
+      - schema: a JSON schema specification as described at json-schema.org.
 
 #@<OUT> schema.drop_collection
 NAME
@@ -125,6 +140,27 @@ SYNTAX
 
 RETURNS
       Nothing.
+
+#@<OUT> schema.modify_collection
+NAME
+      modify_collection - Modifies the schema validation of a collection.
+
+SYNTAX
+      <Schema>.modify_collection(name, options)
+
+WHERE
+      name: the name of the collection.
+      options: dictionary with options.
+
+DESCRIPTION
+      The options dictionary may contain the following attributes:
+
+      - validation: object defining JSON schema validation for the collection.
+
+      The validation object allows the following attributes:
+
+      - level: which can be either 'strict' or 'off'.
+      - schema: a JSON schema specification as described at json-schema.org.
 
 #@<OUT> schema.exists_in_database
 NAME

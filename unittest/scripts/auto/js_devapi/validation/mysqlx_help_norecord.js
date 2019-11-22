@@ -775,7 +775,7 @@ PROPERTIES
       DETAILS section.
 
 FUNCTIONS
-      createCollection(name)
+      createCollection(name[, options])
             Creates in the current schema a new collection with the specified
             name and retrieves an object representing the new collection
             created.
@@ -812,6 +812,9 @@ FUNCTIONS
 
       help([member])
             Provides help about this class and it's members
+
+      modifyCollection(name, options)
+            Modifies the schema validation of a collection.
 
 RELATED TOPICS
  - Dynamic Properties

@@ -45,6 +45,7 @@ validateMembers(schema, [
     'getCollections',
     'createCollection',
     'getCollectionAsTable',
+    'modifyCollection',
     'help',
     'dropCollection',
     'table1',

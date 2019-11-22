@@ -275,18 +275,30 @@ class Completer_frontend : public Shell_core_test_wrapper {
     if (_target_server_version < mysqlshdk::utils::Version("8.0")) {
       method_args.erase(
           remove_if(method_args.begin(), method_args.end(),
-                    [](const decltype(method_args)::value_type &other) {
+                    [](const auto &other) {
                       return other.first.compare("replaceOne") == 0 ||
                              other.first.compare("createIndex") == 0;
                     }),
           method_args.end());
-      completions.erase(
-          remove_if(completions.begin(), completions.end(),
-                    [](const decltype(completions)::value_type &other) {
-                      return other.compare("replaceOne()") == 0 ||
-                             other.compare("createIndex()") == 0;
-                    }),
-          completions.end());
+      completions.erase(remove_if(completions.begin(), completions.end(),
+                                  [](const auto &other) {
+                                    return other.compare("replaceOne()") == 0 ||
+                                           other.compare("createIndex()") == 0;
+                                  }),
+                        completions.end());
+    }
+
+    if (_target_server_version < mysqlshdk::utils::Version("8.0.19")) {
+      method_args.erase(remove_if(method_args.begin(), method_args.end(),
+                                  [](const auto &other) {
+                                    return other.first == "modifyCollection";
+                                  }),
+                        method_args.end());
+      completions.erase(remove_if(completions.begin(), completions.end(),
+                                  [](const auto &other) {
+                                    return other == "modifyCollection()";
+                                  }),
+                        completions.end());
     }
 
     // first execute the methods with special handling given by the test
@@ -1051,6 +1063,7 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
 
   std::vector<std::pair<std::string, std::string>> db_calls{
       {"createCollection", "('dropme')"},
+      {"modifyCollection", "('dropme', {'validation': {'level':'off'}})"},
       {"dropCollection", "('dropme')"},
       {"getCollection", "('testcol')"},
       {"getTable", "('testtab')"},

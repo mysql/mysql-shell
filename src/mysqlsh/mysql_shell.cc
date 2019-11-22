@@ -1897,7 +1897,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getSession", "Session", true},
                                   {"getTable", "Table", true},
                                   {"getTables", "list", true},
-                                  {"help", "string", true}});
+                                  {"help", "string", true},
+                                  {"modifyCollection", "", true}});
 
   registry->add_completable_type("Collection",
                                  {{"add", "CollectionAdd", true},

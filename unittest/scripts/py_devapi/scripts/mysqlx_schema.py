@@ -43,6 +43,7 @@ validate_members(schema, [
     'get_collections',
     'create_collection',
     'get_collection_as_table',
+    'modify_collection',
     'help',
     'drop_collection',
     'table1',

@@ -39,8 +39,10 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/db/mysqlx/xpl_error.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "shellcore/base_shell.h"  // for options
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
@@ -117,9 +119,8 @@ void Schema::init() {
              std::bind(&Schema::get_collection_as_table, this, _1), "name",
              shcore::String);
 
-  add_method("createCollection",
-             std::bind(&Schema::create_collection, this, _1), "name",
-             shcore::String);
+  expose("createCollection", &Schema::create_collection, "name", "?options");
+  expose("modifyCollection", &Schema::modify_collection, "name", "options");
   add_method("dropCollection",
              std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
              "name", shcore::String);
@@ -558,42 +559,62 @@ shcore::Value Schema::get_collection_as_table(
 
 // Documentation of createCollection function
 REGISTER_HELP_FUNCTION(createCollection, Schema);
-REGISTER_HELP(SCHEMA_CREATECOLLECTION_BRIEF,
-              "Creates in the current schema a new collection with the "
-              "specified name and "
-              "retrieves an object representing the new collection created.");
-REGISTER_HELP(SCHEMA_CREATECOLLECTION_PARAM,
-              "@param name the name of the collection.");
-REGISTER_HELP(SCHEMA_CREATECOLLECTION_RETURNS,
-              "@returns the new created collection.");
-REGISTER_HELP(SCHEMA_CREATECOLLECTION_DETAIL,
-              "To specify a name for a collection, follow the naming "
-              "conventions in MySQL.");
+REGISTER_HELP_FUNCTION_TEXT(SCHEMA_CREATECOLLECTION, R"*(
+Creates in the current schema a new collection with the specified name and
+retrieves an object representing the new collection created.
+
+@param name the name of the collection.
+@param options optional dictionary with options.
+
+@returns the new created collection.
+
+To specify a name for a collection, follow the naming conventions in MySQL.
+
+The options dictionary may contain the following attributes:
+
+@li reuseExistingObject: boolean, indicating if the call should succeed when
+collection with the same name already exists.
+@li validation: object defining JSON schema validation for the collection.
+
+The validation object allows the following attributes:
+
+@li level: which can be either 'strict' or 'off'.
+@li schema: a JSON schema specification as described at json-schema.org. 
+)*");
 
 /**
  * $(SCHEMA_CREATECOLLECTION_BRIEF)
  *
- * $(SCHEMA_CREATECOLLECTION_PARAM)
- *
- * $(SCHEMA_CREATECOLLECTION_RETURNS)
- *
- * $(SCHEMA_CREATECOLLECTION_DETAIL)
+ * $(SCHEMA_CREATECOLLECTION)
  */
 #if DOXYGEN_JS
-Collection Schema::createCollection(String name) {}
+Collection Schema::createCollection(String name, Dictionary options) {}
 #elif DOXYGEN_PY
-Collection Schema::create_collection(str name) {}
+Collection Schema::create_collection(str name, dict options) {}
 #endif
-shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
+shcore::Value Schema::create_collection(const std::string &name,
+                                        const shcore::Dictionary_t &opts) {
   Value ret_val;
-
-  args.ensure_count(1, get_function_name("createCollection").c_str());
 
   // Creates the collection on the server
   shcore::Dictionary_t options = shcore::make_dict();
-  std::string name = args.string_at(0);
   options->set("schema", Value(_name));
-  options->set("name", args[0]);
+  options->set("name", Value(name));
+  if (opts && !opts->empty()) {
+    shcore::Dictionary_t validation;
+    mysqlshdk::utils::nullable<bool> reuse;
+    shcore::Option_unpacker{opts}
+        .optional("validation", &validation)
+        .optional("reuseExistingObject", &reuse)
+        .end("in create collection options dictionary");
+
+    if (reuse) {
+      opts->erase("reuseExistingObject");
+      opts->emplace("reuse_existing", *reuse);
+    }
+
+    options->set("options", Value(opts));
+  }
 
   std::shared_ptr<Session> sess(
       std::static_pointer_cast<Session>(_session.lock()));
@@ -609,10 +630,119 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
       throw shcore::Exception::logic_error("Unable to create collection '" +
                                            name + "', no Session available");
     }
+  } catch (const mysqlshdk::db::Error &e) {
+    if (opts && !opts->empty()) {
+      std::string err_msg;
+      switch (e.code()) {
+        case ER_X_CMD_NUM_ARGUMENTS:
+          if (strstr(e.what(), "Invalid number of arguments") != nullptr)
+            err_msg =
+                "The target MySQL server does not support options in the "
+                "<<<createCollection>>> function";
+          break;
+        case ER_X_CMD_INVALID_ARGUMENT:
+          if (strstr(e.what(), "reuse_existing") != nullptr)
+            err_msg =
+                "The target MySQL server does not support the "
+                "reuseExistingObject attribute";
+          else if (strstr(e.what(), "field for create_collection command"))
+            err_msg = shcore::str_replace(
+                e.what(), "field for create_collection command", "option");
+          break;
+        case ER_X_INVALID_VALIDATION_SCHEMA:
+          err_msg = std::string("The provided validation schema is invalid (") +
+                    e.what() + ").";
+          break;
+      }
+      if (!err_msg.empty()) {
+        log_error("%s", e.what());
+        throw mysqlshdk::db::Error(err_msg, e.code());
+      }
+    }
+    throw;
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCollection"));
 
   return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(modifyCollection, Schema);
+REGISTER_HELP_FUNCTION_TEXT(SCHEMA_MODIFYCOLLECTION, R"*(
+Modifies the schema validation of a collection.
+
+@param name the name of the collection.
+@param options dictionary with options.
+
+The options dictionary may contain the following attributes:
+
+@li validation: object defining JSON schema validation for the collection. 
+
+The validation object allows the following attributes:
+
+@li level: which can be either 'strict' or 'off'.
+@li schema: a JSON schema specification as described at json-schema.org.
+)*");
+
+/**
+ * $(SCHEMA_MODIFYCOLLECTION_BRIEF)
+ *
+ * $(SCHEMA_MODIFYCOLLECTION)
+ */
+#if DOXYGEN_JS
+Undefined Schema::modifyCollection(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+None Schema::modify_collection(str name, dict options) {}
+#endif
+void Schema::modify_collection(const std::string &name,
+                               const shcore::Dictionary_t &opts) {
+  if (!opts)
+    throw Exception::argument_error(
+        "The options dictionary needs to be specified");
+
+  // Modifies collection on the server
+  shcore::Dictionary_t options = shcore::make_dict();
+  options->set("schema", Value(_name));
+  options->set("name", Value(name));
+  shcore::Argument_map(*opts).ensure_keys({"validation"}, {},
+                                          "modify collection options", true);
+  if (opts->get_type("validation") != Value_type::Map ||
+      opts->get_map("validation")->size() == 0)
+    throw Exception::argument_error(
+        "validation option's value needs to be a non empty map");
+  options->set("options", Value(opts));
+
+  std::shared_ptr<Session> sess(
+      std::static_pointer_cast<Session>(_session.lock()));
+
+  try {
+    if (sess)
+      sess->execute_mysqlx_stmt("modify_collection_options", options);
+    else
+      throw shcore::Exception::logic_error("Unable to create collection '" +
+                                           name + "', no Session available");
+  } catch (const mysqlshdk::db::Error &e) {
+    std::string err_msg;
+    switch (e.code()) {
+      case ER_X_INVALID_ADMIN_COMMAND:
+        err_msg =
+            "The target MySQL server does not support the requested operation.";
+        break;
+      case ER_X_CMD_INVALID_ARGUMENT:
+        if (strstr(e.what(), "field for modify_collection_options command"))
+          err_msg = shcore::str_replace(
+              e.what(), "field for modify_collection_options command",
+              "option");
+        break;
+      case ER_X_INVALID_VALIDATION_SCHEMA:
+        err_msg = std::string("The provided validation schema is invalid (") +
+                  e.what() + ").";
+        break;
+    }
+    if (!err_msg.empty()) {
+      log_error("%s", e.what());
+      throw mysqlshdk::db::Error(err_msg, e.code());
+    }
+    throw;
+  }
 }
 
 // Documentation of dropCollection function

@@ -30,13 +30,11 @@
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/mysqlx/xpl_error.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-
-// Server:plugin/x/ngs/include/ngs/ngs_error.h
-#define ER_X_CAPABILITY_NOT_FOUND 5002
 
 namespace mysqlshdk {
 namespace db {

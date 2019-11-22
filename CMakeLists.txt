@@ -388,10 +388,13 @@ if (NOT BUILD_SOURCE_PACKAGE)
   # Needed for protobuf header paths, which are needed to use libmysqlxclient
   INCLUDE(protobuf)
   INCLUDE(FindMySQLx)
+  # Needed for X protocol error codes
+  CONFIGURE_FILE(${MYSQL_SOURCE_DIR}/plugin/x/src/xpl_error.h ${CMAKE_SOURCE_DIR}/mysqlshdk/libs/db/mysqlx/xpl_error.h COPYONLY)
   INCLUDE(lz4)
   # Add lz4 library (Dependency for the X Client Lib)
   MYSQL_CHECK_LZ4()
 endif()
+
 
 ##
 ## Installation location

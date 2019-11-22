@@ -29,6 +29,15 @@ schema.help('drop_collection')
 #@ global help for drop_collection[USE:schema.drop_collection]
 \help Schema.drop_collection
 
+#@ schema.modify_collection
+schema.help('modify_collection')
+
+#@ global ? for modify_collection[USE:schema.modify_collection]
+\? Schema.modify_collection
+
+#@ global help for modify_collection[USE:schema.modify_collection]
+\help Schema.modify_collection
+
 #@ schema.exists_in_database
 schema.help('exists_in_database')
 

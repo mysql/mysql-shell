@@ -123,6 +123,10 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_collection) {
   validate_interactive("mysqlx_collection.js");
 }
 
+TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_options) {
+  validate_interactive("mysqlx_collection_options.js");
+}
+
 TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_find) {
   validate_interactive("mysqlx_collection_find.js");
 }

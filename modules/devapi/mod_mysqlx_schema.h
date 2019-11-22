@@ -84,7 +84,8 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   Table getTable(String name);
   Collection getCollection(String name);
   Table getCollectionAsTable(String name);
-  Collection createCollection(String name);
+  Collection createCollection(String name, Dictionary options);
+  Undefined modifyCollection(String name, Dictionary options);
   Undefined dropCollection(String name);
 #elif DOXYGEN_PY
   list get_tables();
@@ -93,7 +94,8 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   Table get_table(str name);
   Collection get_collection(str name);
   Table get_collection_as_table(str name);
-  Collection create_collection(str name);
+  Collection create_collection(str name, dict options);
+  None modify_collection(str name, dict options);
   None drop_collection(str name);
 #endif
  public:
@@ -102,7 +104,10 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   shcore::Value get_table(const shcore::Argument_list &args);
   shcore::Value get_collection(const shcore::Argument_list &args);
   shcore::Value get_collection_as_table(const shcore::Argument_list &args);
-  shcore::Value create_collection(const shcore::Argument_list &args);
+  shcore::Value create_collection(const std::string &name,
+                                  const shcore::Dictionary_t &options);
+  void modify_collection(const std::string &name,
+                         const shcore::Dictionary_t &options);
   shcore::Value drop_schema_object(const shcore::Argument_list &args,
                                    const std::string &type);
 
