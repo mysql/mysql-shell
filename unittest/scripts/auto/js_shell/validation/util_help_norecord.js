@@ -314,7 +314,7 @@ DESCRIPTION
       - [file://]/path/to/file - Read import data from local file
       - http[s]://host.domain[:port]/path/to/file - Read import data from file
         provided in URL
-      - oci+os://namespace/region/bucket/object - Read import data from object
+      - oci+os://region/namespace/bucket/object - Read import data from object
         stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
         needed to sign requests will be obtained from profile configured in OCI
         configuration file. Profile name and configuration file path are

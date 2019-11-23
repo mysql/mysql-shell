@@ -89,10 +89,10 @@ std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
 }  // namespace
 
 void Oci_object_storage::parse_uri(const std::string &uri) {
-  const auto parts = shcore::str_split(uri, "/");
+  const auto parts = shcore::str_split(uri, "/", 5);
   if (parts.size() != 6 || !shcore::str_beginswith(uri, "oci+os://")) {
     throw std::runtime_error(
-        "Invalid URI. Use oci+os://namespace/region/bucket/object pattern.");
+        "Invalid URI. Use oci+os://region/namespace/bucket/object pattern.");
   }
   m_uri.region = parts[2];
   m_uri.tenancy = parts[3];

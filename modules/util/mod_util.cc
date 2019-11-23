@@ -957,7 +957,7 @@ Supported filename formats:
 @li <b>[file://]/path/to/file</b> - Read import data from local file
 @li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
 file provided in URL
-@li <b>oci+os://namespace/region/bucket/object</b> - Read import data from
+@li <b>oci+os://region/namespace/bucket/object</b> - Read import data from
 object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
 needed to sign requests will be obtained from profile configured in OCI
 configuration file. Profile name and configuration file path are specified
@@ -1094,7 +1094,7 @@ Each parallel connection sets the following session variables:
  * @li <b>[file://]/path/to/file</b> - Read import data from local file
  * @li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
  * file provided in URL
- * @li <b>oci+os://namespace/region/bucket/object</b> - Read import data from
+ * @li <b>oci+os://region/namespace/bucket/object</b> - Read import data from
  * object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
  * needed to sign requests will be obtained from profile configured in OCI
  * configuration file. Profile name and configuration file path are specified
