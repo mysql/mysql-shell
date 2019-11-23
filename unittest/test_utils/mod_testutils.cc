@@ -1150,11 +1150,12 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
   std::string dirname = shcore::path::dirname(get_sandbox_conf_path(port));
   if (shcore::path::exists(dirname)) {
     for (const std::string &name : shcore::listdir(dirname)) {
-      std::string path = shcore::path::join_path({dirname, name});
-      auto dwAttrs = GetFileAttributes(path.c_str());
-      if (dwAttrs != INVALID_FILE_ATTRIBUTES) {
-        dwAttrs &= ~FILE_ATTRIBUTE_READONLY;
-        SetFileAttributes(path.c_str(), dwAttrs);
+      const std::string path = shcore::path::join_path({dirname, name});
+      const auto wide_path = shcore::utf8_to_wide(path);
+      auto attributes = GetFileAttributesW(wide_path.c_str());
+      if (attributes != INVALID_FILE_ATTRIBUTES) {
+        attributes &= ~FILE_ATTRIBUTE_READONLY;
+        SetFileAttributesW(wide_path.c_str(), attributes);
       }
     }
   }

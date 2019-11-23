@@ -29,6 +29,13 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef _WIN32
+#include <windows.h>
+// Starting with Windows 8: MultiByteToWideChar is declared in Stringapiset.h.
+// Before Windows 8, it was declared in Winnls.h.
+#include <Stringapiset.h>
+#endif
+
 namespace shcore {
 
 constexpr const char k_idchars[] =
@@ -330,4 +337,34 @@ std::string str_subvars(
   }
   return out_s;
 }
+
+#ifdef _WIN32
+std::wstring utf8_to_wide(const std::string &utf8) {
+  return utf8_to_wide(&utf8[0], utf8.size());
+}
+
+std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length) {
+  auto buffer_size_needed =
+      MultiByteToWideChar(CP_UTF8, 0, utf8, utf8_length, nullptr, 0);
+  std::wstring wide_string(buffer_size_needed, 0);
+  const auto wide_string_size = MultiByteToWideChar(
+      CP_UTF8, 0, utf8, utf8_length, &wide_string[0], buffer_size_needed);
+  wide_string.resize(wide_string_size);
+  return wide_string;
+}
+
+std::string wide_to_utf8(const std::wstring &utf16) {
+  return wide_to_utf8(&utf16[0], utf16.size());
+}
+
+std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length) {
+  auto string_size = WideCharToMultiByte(CP_UTF8, 0, utf16, utf16_length,
+                                         nullptr, 0, nullptr, nullptr);
+  std::string result_string(string_size, 0);
+  WideCharToMultiByte(CP_UTF8, 0, utf16, utf16_length, &result_string[0],
+                      string_size, nullptr, nullptr);
+  return result_string;
+}
+#endif
+
 }  // namespace shcore

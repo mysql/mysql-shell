@@ -427,6 +427,41 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
 std::pair<std::string::size_type, std::string::size_type> get_quote_span(
     const char quote_char, const std::string &str);
 
+#ifdef _WIN32
+/**
+ * Convert UTF-8 string to UTF-16 (wide character) string.
+ *
+ * @param utf8 UTF-8 encoded string.
+ * @return std::wstring UTF-16 (wide character) string.
+ */
+std::wstring utf8_to_wide(const std::string &utf8);
+
+/**
+ * Convert UTF-8 string to UTF-16 (wide character) string.
+ *
+ * @param utf8 Pointer to UTF-8 encoded string.
+ * @param utf8_length Length of UTF-8 string in bytes.
+ * @return std::wstring UTF-16 (wide character) string.
+ */
+std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length);
+
+/**
+ * Convert UTF-16 (wide character) string to UTF-8 string.
+ *
+ * @param utf16 UTF-16 encoded (wide character) string.
+ * @return std::string UTF-8 encoded string.
+ */
+std::string wide_to_utf8(const std::wstring &utf16);
+
+/**
+ * Convert UTF-16 (wide character) string to UTF-8 string.
+ *
+ * @param utf16 Pointer to UTF-16 encoded (wide character) string.
+ * @param utf16_length Length of UTF-16 string in bytes.
+ * @return std::string UTF-8 encoded string.
+ */
+std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length);
+#endif  // _WIN32
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

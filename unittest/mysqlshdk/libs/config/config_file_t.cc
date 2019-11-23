@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <Windows.h>
 #endif
 
@@ -29,6 +29,7 @@
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
@@ -408,14 +409,16 @@ TEST_F(ConfigFileTest, test_write) {
     cfg.read(cfg_path);
     EXPECT_THROW(cfg.write(no_write_perm_cfg_path), std::runtime_error);
 
-#ifdef WIN32
+#ifdef _WIN32
     // NOTE: On Windows, read-only attribute (previously set) must be removed
     // before deleting the file, otherwise an Access is denied error is
     // issued.
-    auto dwAttrs = GetFileAttributes(no_write_perm_cfg_path.c_str());
+    const auto wide_no_write_perm_cfg_path =
+        shcore::utf8_to_wide(no_write_perm_cfg_path);
+    auto attributes = GetFileAttributesW(wide_no_write_perm_cfg_path.c_str());
     // Remove (reset) read-only attribute from the file
-    SetFileAttributes(no_write_perm_cfg_path.c_str(),
-                      dwAttrs & ~FILE_ATTRIBUTE_READONLY);
+    SetFileAttributesW(wide_no_write_perm_cfg_path.c_str(),
+                       attributes & ~FILE_ATTRIBUTE_READONLY);
 #endif
     // Delete test file at the end.
     shcore::delete_file(no_write_perm_cfg_path, true);

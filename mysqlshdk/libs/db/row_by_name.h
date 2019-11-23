@@ -47,7 +47,7 @@ class Field_names {
   Field_names() {}
 
   inline void add(const std::string &name) {
-    uint32_t idx = m_fields.size();
+    uint32_t idx = static_cast<uint32_t>(m_fields.size());
     m_fields[name] = idx;
   }
 

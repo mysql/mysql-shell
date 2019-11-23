@@ -152,7 +152,7 @@ class Tokenizer {
   const Token &peek_token();
   void unget_token();
   void inc_pos_token();
-  int get_token_pos() { return _pos; }
+  int get_token_pos() { return static_cast<int>(_pos); }
   const Token &consume_any_token();
   void assert_tok_position();
   bool tokens_available();

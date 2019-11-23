@@ -35,7 +35,7 @@
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <AccCtrl.h>
 #include <AclAPI.h>
 #include <Lmcons.h>
@@ -66,6 +66,19 @@
 #endif
 
 namespace shcore {
+namespace {
+#ifdef _WIN32
+std::string get_error(DWORD error_code) {
+  return "SystemError: " + last_error_to_string(error_code) +
+         str_format(" (code %lu)", error_code);
+}
+#else
+std::string get_error(int error_code) {
+  return errno_to_string(error_code) + str_format(" (errno %d)", error_code);
+}
+#endif
+}  // namespace
+
 /*
  * Returns the config path
  * (~/.mysqlsh in Unix or %AppData%\MySQL\mysqlsh in Windows).
@@ -73,58 +86,54 @@ namespace shcore {
  * (specially for tests)
  */
 std::string get_user_config_path() {
-  std::string path_separator;
-  std::string path;
-  std::vector<std::string> to_append;
-
   // Check if there's an override of the config directory
   // This is needed required for unit-tests
   const char *usr_config_path = getenv("MYSQLSH_USER_CONFIG_HOME");
   if (usr_config_path) {
-    path.assign(usr_config_path);
+    return std::string(usr_config_path);
+  }
+
+  std::string path;
+  std::vector<std::string> to_append;
+
+#ifdef _WIN32
+  wchar_t szPath[MAX_PATH + 1] = {};
+  HRESULT hr;
+
+  if (SUCCEEDED(hr = SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, szPath))) {
+    path = shcore::wide_to_utf8(szPath, wcslen(szPath));
   } else {
-#ifdef WIN32
-    path_separator = "\\";
-    char szPath[MAX_PATH];
-    HRESULT hr;
+    _com_error err(hr);
+    throw std::runtime_error(
+        str_format("Error when gathering the APPDATA folder path: %s",
+                   err.ErrorMessage()));
+  }
 
-    if (SUCCEEDED(hr =
-                      SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath))) {
-      path.assign(szPath);
-    } else {
-      _com_error err(hr);
-      throw std::runtime_error(
-          str_format("Error when gathering the APPDATA folder path: %s",
-                     err.ErrorMessage()));
-    }
-
-    to_append.push_back("MySQL");
-    to_append.push_back("mysqlsh");
+  to_append.push_back("MySQL");
+  to_append.push_back("mysqlsh");
 #else
-    path_separator = "/";
-    char *cpath = std::getenv("HOME");
+  char *cpath = std::getenv("HOME");
 
-    if (cpath != NULL) {
-      if (access(cpath, X_OK) != 0)
-        throw std::runtime_error(str_format(
-            "Home folder '%s' does not exist or is not accessible", cpath));
-      path.assign(cpath);
-    }
+  if (cpath != NULL) {
+    if (access(cpath, X_OK) != 0)
+      throw std::runtime_error(str_format(
+          "Home folder '%s' does not exist or is not accessible", cpath));
+    path.assign(cpath);
+  }
 
-    to_append.push_back(".mysqlsh");
+  to_append.push_back(".mysqlsh");
 #endif
 
-    // Up to know the path must exist since it was retrieved from OS standard
-    // means we need to guarantee the rest of the path exists
-    if (!path.empty()) {
-      for (size_t index = 0; index < to_append.size(); index++) {
-        path += path_separator + to_append[index];
-        ensure_dir_exists(path);
-      }
-
-      path += path_separator;
+  // Up to know the path must exist since it was retrieved from OS standard
+  // means we need to guarantee the rest of the path exists
+  if (!path.empty()) {
+    for (const auto &directory_name : to_append) {
+      path += shcore::path::path_separator + directory_name;
+      ensure_dir_exists(path);
     }
+    path += shcore::path::path_separator;
   }
+
   return path;
 }
 
@@ -133,19 +142,17 @@ std::string get_user_config_path() {
  * %ProgramData%\MySQL\mysqlsh in Windows).
  */
 std::string get_global_config_path() {
-  std::string path_separator;
   std::string path;
   std::vector<std::string> to_append;
 
-#ifdef WIN32
-  path_separator = "\\";
-  char szPath[MAX_PATH];
+#ifdef _WIN32
+  wchar_t szPath[MAX_PATH + 1] = {};
   HRESULT hr;
 
   if (SUCCEEDED(
-          hr = SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
-    path.assign(szPath);
-  else {
+          hr = SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath))) {
+    path = shcore::wide_to_utf8(szPath, wcslen(szPath));
+  } else {
     _com_error err(hr);
     throw std::runtime_error(
         str_format("Error when gathering the PROGRAMDATA folder path: %s",
@@ -155,7 +162,6 @@ std::string get_global_config_path() {
   to_append.push_back("MySQL");
   to_append.push_back("mysqlsh");
 #else
-  path_separator = "/";
   path = "/etc/mysql/mysqlsh";
 #endif
 
@@ -163,11 +169,11 @@ std::string get_global_config_path() {
   // means we need to guarantee the rest of the path exists
   if (!path.empty()) {
     for (size_t index = 0; index < to_append.size(); index++) {
-      path += path_separator + to_append[index];
+      path += shcore::path::path_separator + to_append[index];
       ensure_dir_exists(path);
     }
 
-    path += path_separator;
+    path += shcore::path::path_separator;
   }
 
   return path;
@@ -176,21 +182,29 @@ std::string get_global_config_path() {
 std::string get_binary_path() {
   std::string exe_path;
 
-  // TODO: warning should be printed with log_warning when available
-#ifdef WIN32
-  HMODULE hModule = GetModuleHandleA(NULL);
+  // todo(.): warning should be printed with log_warning when available
+#ifdef _WIN32
+  HMODULE hModule = GetModuleHandleW(NULL);
   if (hModule) {
-    char path[MAX_PATH]{'\0'};
-    if (GetModuleFileNameA(hModule, path, MAX_PATH)) {
-      exe_path.assign(path);
-    } else
-      throw std::runtime_error(str_format(
-          "get_binary_folder: GetModuleFileNameA failed with error %s\n",
-          GetLastError()));
-  } else
+    // todo(kg): check last error from GetModuleFileNameW and if to is equal to
+    // ERROR_INSUFFICIENT_BUFFER, then grow buffer, and retry. As temporary
+    // solution we use 4k (> PATH_MAX) buffer and hope it fits.
+    wchar_t path[4096] = {'\0'};
+    const auto path_size = GetModuleFileNameW(hModule, path, 4096);
+    const auto last_error = GetLastError();
+    if (path_size == 0 || last_error == ERROR_INSUFFICIENT_BUFFER) {
+      throw std::runtime_error(
+          "get_binary_folder: GetModuleFileName failed with error " +
+          get_error(last_error) + "\n");
+    } else {
+      // on success path_size does not include terminated null character
+      exe_path = shcore::wide_to_utf8(path, path_size);
+    }
+  } else {
     throw std::runtime_error(
-        str_format("get_binary_folder: GetModuleHandleA failed with error %s\n",
-                   GetLastError()));
+        "get_binary_folder: GetModuleHandle failed with error " +
+        get_last_error() + "\n");
+  }
 #else
 #ifdef __APPLE__
   char path[PATH_MAX]{'\0'};
@@ -200,14 +214,16 @@ std::string get_binary_path() {
     // _NSGetExecutablePath may return tricky constructs on paths
     // like symbolic links or things like i.e /path/to/./mysqlsh
     // we need to normalize that
-    if (realpath(path, real_path))
+    if (realpath(path, real_path)) {
       exe_path.assign(real_path);
-    else
+    } else {
       throw std::runtime_error(str_format(
           "get_binary_folder: Readlink failed with error %d\n", errno));
-  } else
+    }
+  } else {
     throw std::runtime_error(
         "get_binary_folder: _NSGetExecutablePath failed.\n");
+  }
 
 #else
 #ifdef __sun
@@ -228,9 +244,10 @@ std::string get_binary_path() {
   if (-1 != len) {
     path[len] = '\0';
     exe_path.assign(path);
-  } else
+  } else {
     throw std::runtime_error(str_format(
         "get_binary_folder: Readlink failed with error %d\n", errno));
+  }
 #endif
 #endif
 #endif
@@ -240,21 +257,14 @@ std::string get_binary_path() {
 }
 
 std::string get_binary_folder() {
-  std::string path_separator;
-
-  // TODO: warning should be printed with log_warning when available
-#ifdef WIN32
-  path_separator = "\\";
-#else
-  path_separator = "/";
-#endif
-
+  // todo(.): warning should be printed with log_warning when available
   std::string ret_val;
   std::string exe_path = get_binary_path();
 
   // If the exe path was found now we check if it can be considered the standard
   // installation by checking the parent folder is "bin"
   if (!exe_path.empty()) {
+    const std::string path_separator{shcore::path::path_separator};
     std::vector<std::string> tokens;
     tokens = split_string(exe_path, path_separator, true);
     tokens.erase(tokens.end() - 1);
@@ -266,8 +276,8 @@ std::string get_binary_folder() {
 }
 
 std::string get_share_folder() {
-  std::string path;
-  path = shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh");
+  std::string path =
+      shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh");
   if (!shcore::path::exists(path))
     throw std::runtime_error(
         path + ": share folder not found, shell installation likely invalid");
@@ -325,26 +335,26 @@ std::string get_mysqlx_home_path() {
  * doesn't (false);
  */
 bool path_exists(const std::string &path) {
-#ifdef WIN32
-  DWORD dwAttrib = GetFileAttributesA(path.c_str());
-
-  if (dwAttrib != INVALID_FILE_ATTRIBUTES)
-    return true;
-  else
-    return false;
+#ifdef _WIN32
+  const auto wide_path = utf8_to_wide(path);
+  return GetFileAttributesW(wide_path.c_str()) != INVALID_FILE_ATTRIBUTES;
 #else
-  if (::access(path.c_str(), F_OK) != -1)
-    return true;
-  else
-    return false;
+  return ::access(path.c_str(), F_OK) != -1;
 #endif
 }
 
+#ifdef _WIN32
+bool is_file(const char *path, const size_t path_length) {
+  const auto wide_path = utf8_to_wide(path, path_length);
+  DWORD attributes = GetFileAttributesW(wide_path.c_str());
+  return attributes != INVALID_FILE_ATTRIBUTES &&
+         !(attributes & FILE_ATTRIBUTE_DIRECTORY);
+}
+#endif
+
 bool is_file(const char *path) {
 #ifdef _WIN32
-  DWORD dwAttrib = GetFileAttributesA(path);
-  return dwAttrib != INVALID_FILE_ATTRIBUTES &&
-         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+  return is_file(path, strlen(path));
 #else
   struct stat st;
   if (::stat(path, &st) < 0) return false;
@@ -352,7 +362,13 @@ bool is_file(const char *path) {
 #endif
 }
 
-bool is_file(const std::string &path) { return is_file(path.c_str()); }
+bool is_file(const std::string &path) {
+#ifdef _WIN32
+  return is_file(path.c_str(), path.size());
+#else
+  return is_file(path.c_str());
+#endif
+}
 
 bool is_fifo(const char *path) {
 #ifdef _WIN32
@@ -396,11 +412,12 @@ size_t file_size(const std::string &path) { return file_size(path.c_str()); }
  * Returns true when the specified path is a folder
  */
 bool is_folder(const std::string &path) {
-#ifdef WIN32
-  DWORD dwAttrib = GetFileAttributesA(path.c_str());
+#ifdef _WIN32
+  const auto wide_path = utf8_to_wide(path);
+  DWORD attributes = GetFileAttributesW(wide_path.c_str());
 
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-          (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+  return (attributes != INVALID_FILE_ATTRIBUTES &&
+          (attributes & FILE_ATTRIBUTE_DIRECTORY));
 #else
   struct stat stbuf;
   if (::stat(path.c_str(), &stbuf) < 0) return false;
@@ -413,18 +430,19 @@ bool is_folder(const std::string &path) {
  * If there is an error, an exception is thrown.
  */
 void ensure_dir_exists(const std::string &path) {
-  const char *dir_path = path.c_str();
-#ifdef WIN32
-  DWORD dwAttrib = GetFileAttributesA(dir_path);
+#ifdef _WIN32
+  const auto wide_path = utf8_to_wide(path);
+  DWORD attributes = GetFileAttributesW(wide_path.c_str());
 
-  if (dwAttrib != INVALID_FILE_ATTRIBUTES)
+  if (attributes != INVALID_FILE_ATTRIBUTES) {
     return;
-  else if (!CreateDirectoryA(dir_path, NULL)) {
+  } else if (!CreateDirectoryW(wide_path.c_str(), NULL)) {
     throw std::runtime_error(
-        str_format("Error when creating directory %s with error: %s", dir_path,
-                   shcore::get_last_error().c_str()));
+        str_format("Error when creating directory %s with error: %s",
+                   path.c_str(), shcore::get_last_error().c_str()));
   }
 #else
+  const char *dir_path = path.c_str();
   DIR *dir = opendir(dir_path);
   if (dir) {
     /* Directory exists. */
@@ -449,21 +467,29 @@ void ensure_dir_exists(const std::string &path) {
 void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive) {
   assert(!path.empty());
   for (;;) {
-#ifdef WIN32
-    if (_mkdir(path.c_str()) == 0 || errno == EEXIST) {
+#ifdef _WIN32
+    const auto wide_path = utf8_to_wide(path);
+    if (CreateDirectoryW(wide_path.c_str(), nullptr) != 0 ||
+        GetLastError() == ERROR_ALREADY_EXISTS) {
       break;
+    }
+    if (GetLastError() == ERROR_PATH_NOT_FOUND && recursive) {
+      create_directory(path::dirname(path), recursive);
+    } else {
+      throw std::runtime_error(
+          str_format("Could not create directory %s", path.c_str()));
     }
 #else
     if (mkdir(path.c_str(), 0700) == 0 || errno == EEXIST) {
       break;
     }
-#endif
     if (errno == ENOENT && recursive) {
       create_directory(path::dirname(path), recursive);
     } else {
       throw std::runtime_error(str_format("Could not create directory %s: %s",
                                           path.c_str(), strerror(errno)));
     }
+#endif
   }
 }
 
@@ -483,13 +509,15 @@ std::vector<std::string> listdir(const std::string &path) {
 bool iterdir(const std::string &path,
              const std::function<bool(const std::string &)> &fun) {
   bool stopped = false;
-#ifdef WIN32
-  WIN32_FIND_DATA ffd;
+#ifdef _WIN32
+  WIN32_FIND_DATAW ffd;
   HANDLE hFind = INVALID_HANDLE_VALUE;
 
+  auto wide_path = utf8_to_wide(path);
+
   // Add wildcard to search for all contents in path.
-  std::string search_path = path + "\\*";
-  hFind = FindFirstFile(search_path.c_str(), &ffd);
+  const std::wstring search_path = wide_path + L"\\*";
+  hFind = FindFirstFileW(search_path.c_str(), &ffd);
   if (hFind == INVALID_HANDLE_VALUE)
     throw std::runtime_error(
         str_format("%s: %s", path.c_str(), shcore::get_last_error().c_str()));
@@ -497,15 +525,16 @@ bool iterdir(const std::string &path,
   // Remove all elements in directory (recursively)
   do {
     // Skip directories "." and ".."
-    if (!strcmp(ffd.cFileName, ".") || !strcmp(ffd.cFileName, "..")) {
+    if (!wcscmp(ffd.cFileName, L".") || !wcscmp(ffd.cFileName, L"..")) {
       continue;
     }
 
-    if (!fun(ffd.cFileName)) {
+    const auto file_name = shcore::wide_to_utf8(ffd.cFileName);
+    if (!fun(file_name)) {
       stopped = true;
       break;
     }
-  } while (FindNextFile(hFind, &ffd) != 0);
+  } while (FindNextFileW(hFind, &ffd) != 0);
   FindClose(hFind);
 #else
   DIR *dir = opendir(path.c_str());
@@ -538,23 +567,22 @@ bool iterdir(const std::string &path,
  */
 void remove_directory(const std::string &path, bool recursive) {
   const char *dir_path = path.c_str();
-#ifdef WIN32
+#ifdef _WIN32
+  const auto wide_path = utf8_to_wide(path);
   if (recursive) {
-    DWORD dwAttrib = GetFileAttributesA(dir_path);
-    if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
-      throw std::runtime_error(str_format("Unable to remove directory %s: %s",
-                                          dir_path,
-                                          shcore::get_last_error().c_str()));
-    } else if (!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-      throw std::runtime_error(
-          str_format("Not a directory, unable to remove %s.", dir_path));
+    DWORD attributes = GetFileAttributesW(wide_path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+      throw std::runtime_error("Unable to remove directory " + path + ": " +
+                               get_last_error());
+    } else if (!(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+      throw std::runtime_error("Not a directory, unable to remove " + path);
     } else {
-      WIN32_FIND_DATA ffd;
+      WIN32_FIND_DATAW ffd;
       HANDLE hFind = INVALID_HANDLE_VALUE;
 
       // Add wildcard to search for all contents in path.
-      std::string search_path = path + "\\*";
-      hFind = FindFirstFile(search_path.c_str(), &ffd);
+      const std::wstring search_path = wide_path + L"\\*";
+      hFind = FindFirstFileW(search_path.c_str(), &ffd);
       if (hFind == INVALID_HANDLE_VALUE)
         throw std::runtime_error(
             str_format("Unable to remove directory %s. Error searching for "
@@ -564,31 +592,33 @@ void remove_directory(const std::string &path, bool recursive) {
       // Remove all elements in directory (recursively)
       do {
         // Skip directories "." and ".."
-        if (!strcmp(ffd.cFileName, ".") || !strcmp(ffd.cFileName, "..")) {
+        if (!wcscmp(ffd.cFileName, L".") || !wcscmp(ffd.cFileName, L"..")) {
           continue;
         }
 
         // Use the full path to the dir element.
-        std::string dir_elem = path + "\\" + ffd.cFileName;
+        std::string dir_elem =
+            path + "\\" + shcore::wide_to_utf8(ffd.cFileName);
 
         if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
           // It is a directory then do a recursive call to remove it.
           remove_directory(dir_elem);
         } else {
           // It is a file, remove it.
-          int res = DeleteFile(dir_elem.c_str());
+          const auto delete_file_path = wide_path + L"\\" + ffd.cFileName;
+          int res = DeleteFileW(delete_file_path.c_str());
           if (!res) {
             throw std::runtime_error(str_format(
                 "Unable to remove directory %s. Error removing file %s: %s",
                 dir_path, dir_elem.c_str(), shcore::get_last_error().c_str()));
           }
         }
-      } while (FindNextFile(hFind, &ffd) != 0);
+      } while (FindNextFileW(hFind, &ffd) != 0);
       FindClose(hFind);
     }
   }
   // The directory is now empty and can be removed.
-  int res = RemoveDirectory(dir_path);
+  int res = RemoveDirectoryW(wide_path.c_str());
   if (!res) {
     throw std::runtime_error(str_format("Error removing directory %s: %s",
                                         dir_path,
@@ -656,13 +686,12 @@ void remove_directory(const std::string &path, bool recursive) {
  * Windows or errno in Unix/OSX).
  */
 std::string get_last_error() {
-#ifdef WIN32
+#ifdef _WIN32
   DWORD dwCode = GetLastError();
-  return "SystemError: " + last_error_to_string(dwCode) +
-         str_format(" (code %lu)", dwCode);
+  return get_error(dwCode);
 #else
   int errnum = errno;
-  return errno_to_string(errnum) + str_format(" (errno %d)", errnum);
+  return get_error(errnum);
 #endif
 }
 
@@ -707,16 +736,15 @@ std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
  */
 void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet) {
   if (quiet && !path_exists(filename)) return;
-#ifdef WIN32
-  if (!DeleteFile(filename.c_str()))
-    throw std::runtime_error(
-        str_format("Error when deleting file  %s exists: %s", filename.c_str(),
-                   shcore::get_last_error().c_str()));
+#ifdef _WIN32
+  const auto wide_filename = utf8_to_wide(filename);
+  if (!DeleteFileW(wide_filename.c_str()))
+    throw std::runtime_error("Cannot delete file \"" + filename + "\". " +
+                             get_last_error());
 #else
   if (remove(filename.c_str()))
-    throw std::runtime_error(
-        str_format("Error when deleting file  %s exists: %s", filename.c_str(),
-                   shcore::get_last_error().c_str()));
+    throw std::runtime_error("Cannot delete file \"" + filename + "\". " +
+                             get_last_error());
 #endif
 }
 
@@ -724,25 +752,22 @@ void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet) {
  * Returns the HOME path (~ in Unix or %AppData%\ in Windows).
  */
 std::string get_home_dir() {
-  std::string path_separator;
   std::string path;
   std::vector<std::string> to_append;
 
-#ifdef WIN32
-  path_separator = "\\";
-  char szPath[MAX_PATH];
+#ifdef _WIN32
+  wchar_t szPath[MAX_PATH + 1] = {};
   HRESULT hr;
 
-  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, szPath)))
-    path.assign(szPath);
-  else {
+  if (SUCCEEDED(hr = SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, szPath))) {
+    path = shcore::wide_to_utf8(szPath, wcslen(szPath));
+  } else {
     _com_error err(hr);
     throw std::runtime_error(
         str_format("Error when gathering the PROFILE folder path: %s",
                    err.ErrorMessage()));
   }
 #else
-  path_separator = "/";
   char *cpath = std::getenv("HOME");
 
   if (cpath != NULL) path.assign(cpath);
@@ -752,11 +777,11 @@ std::string get_home_dir() {
   // means we need to guarantee the rest of the path exists
   if (!path.empty()) {
     for (size_t index = 0; index < to_append.size(); index++) {
-      path += path_separator + to_append[index];
+      path += shcore::path::path_separator + to_append[index];
       ensure_dir_exists(path);
     }
 
-    path += path_separator;
+    path += shcore::path::path_separator;
   }
 
   return path;
@@ -768,7 +793,13 @@ bool create_file(const std::string &name, const std::string &content,
   if (binary_mode) {
     open_mode_flags |= std::ofstream::binary;
   }
+#ifdef _WIN32
+  // msvc c++ lib has non-standard ofstream constructor wchar_t overload
+  const auto file_name = utf8_to_wide(name);
+  std::ofstream file(file_name, open_mode_flags);
+#else
   std::ofstream file(name, open_mode_flags);
+#endif
 
   if (file.is_open()) {
     file << content;
@@ -842,7 +873,7 @@ void copy_dir(const std::string &from, const std::string &to) {
         copy_dir(path::join_path(from, name), path::join_path(to, name));
       else
         copy_file(path::join_path(from, name), path::join_path(to, name));
-    } catch (const std::runtime_error &e) {
+    } catch (const std::runtime_error &) {
       if (errno != ENOENT) throw;
     }
     return true;
@@ -863,7 +894,12 @@ void check_file_writable_or_throw(const std::string &filename) {
 
   if (is_file(filename)) {
     // Use openmode 'out' to open the file for writing
+#ifdef _WIN32
+    const auto wide_filename = utf8_to_wide(filename);
+    ofs.open(wide_filename, std::ofstream::out | std::ofstream::app);
+#else
     ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
+#endif
     std::string error = shcore::errno_to_string(errno);
     // If it could open the file, it's writable
     if (ofs.is_open()) {
@@ -873,7 +909,12 @@ void check_file_writable_or_throw(const std::string &filename) {
     }
   } else {
     // Use openmode 'out' to open the file for writing
+#ifdef _WIN32
+    const auto wide_filename = utf8_to_wide(filename);
+    ofs.open(wide_filename, std::ofstream::out | std::ofstream::app);
+#else
     ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
+#endif
     std::string error = shcore::errno_to_string(errno);
     // If it could open the file, it's writable
     if (ofs.is_open()) {
@@ -898,10 +939,13 @@ int SHCORE_PUBLIC make_file_readonly(const std::string &path) {
   unsigned int ro = S_IRUSR | S_IRGRP | S_IROTH;
   return chmod(path.c_str(), ro);
 #else
-  auto dwAttrs = GetFileAttributes(path.c_str());
+  const auto wide_path = utf8_to_wide(path);
+  auto attributes = GetFileAttributesW(wide_path.c_str());
   // set permissions on configuration file to read only
-  if (SetFileAttributes(path.c_str(), dwAttrs | FILE_ATTRIBUTE_READONLY))
+  if (SetFileAttributesW(wide_path.c_str(),
+                         attributes | FILE_ATTRIBUTE_READONLY)) {
     return 0;
+  }
   return -1;
 #endif
 }
@@ -936,13 +980,17 @@ int SHCORE_PUBLIC ch_mod(const std::string &path, int mode) {
 #ifndef _WIN32
   return chmod(path.c_str(), mode);
 #else
-  auto dwAttrs = GetFileAttributes(path.c_str());
+  const auto wide_path = utf8_to_wide(path);
+  const auto attributes = GetFileAttributesW(wide_path.c_str());
   // If user write permission is off, sets the file read only
   // otherwise, cleans the file read only
   int user_write = (2 << 6) & mode;
-  dwAttrs = user_write ? dwAttrs & ~FILE_ATTRIBUTE_READONLY
-                       : dwAttrs | FILE_ATTRIBUTE_READONLY;
-  if (!SetFileAttributes(path.c_str(), dwAttrs)) return -1;
+  const DWORD new_attributes = user_write
+                                   ? attributes & ~FILE_ATTRIBUTE_READONLY
+                                   : attributes | FILE_ATTRIBUTE_READONLY;
+  if (!SetFileAttributesW(wide_path.c_str(), new_attributes)) {
+    return -1;
+  }
   return 0;
 #endif
 }
@@ -968,14 +1016,12 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
   PSID pSystemSID = NULL, pAdminSID = NULL;
   SID_IDENTIFIER_AUTHORITY SIDAuthNT = SECURITY_NT_AUTHORITY;
   PACL pNewDACL = NULL;
-  EXPLICIT_ACCESS ea[3];
+  EXPLICIT_ACCESSW ea[3];
 
   if (!path.empty()) {
     DWORD inheritance = NO_INHERITANCE;
     if (shcore::is_folder(path))
       inheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
-
-    LPSTR target_path = const_cast<char *>(path.c_str());
 
     // Create a SIDs for the BUILTIN\Administrators group
     // and for the SYSTEM
@@ -993,7 +1039,7 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
       ea[0].grfInheritance = inheritance;
       ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
       ea[0].Trustee.TrusteeType = TRUSTEE_IS_GROUP;
-      ea[0].Trustee.ptstrName = (LPTSTR)pAdminSID;
+      ea[0].Trustee.ptstrName = (LPWSTR)pAdminSID;
 
       // Sets full access to system user
       ea[1].grfAccessPermissions = user_full_control;
@@ -1001,12 +1047,17 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
       ea[1].grfInheritance = inheritance;
       ea[1].Trustee.TrusteeForm = TRUSTEE_IS_SID;
       ea[1].Trustee.TrusteeType = TRUSTEE_IS_COMPUTER;
-      ea[1].Trustee.ptstrName = (LPTSTR)pSystemSID;
+      ea[1].Trustee.ptstrName = (LPWSTR)pSystemSID;
 
       // Sets full access to current user
-      char username[UNLEN + 1];
+      wchar_t username[UNLEN + 1] = {};
       DWORD username_len = UNLEN + 1;
-      GetUserNameA(username, &username_len);
+      const auto get_username_retval = GetUserNameW(username, &username_len);
+      if (get_username_retval == 0) {
+        throw std::runtime_error(
+            "Cannot obtain user name while setting permissions to \"" + path +
+            "\". " + get_last_error());
+      }
       ea[2].grfAccessPermissions = user_full_control;
       ea[2].grfAccessMode = SET_ACCESS;
       ea[2].grfInheritance = inheritance;
@@ -1014,11 +1065,14 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
       ea[2].Trustee.TrusteeType = TRUSTEE_IS_USER;
       ea[2].Trustee.ptstrName = username;
 
+      const auto wide_target_path = shcore::utf8_to_wide(path);
+      const auto target_path = wide_target_path.c_str();
+
       // Create a new ACL with defined ACEs
-      if (ERROR_SUCCESS == SetEntriesInAclA(3, ea, nullptr, &pNewDACL)) {
+      if (ERROR_SUCCESS == SetEntriesInAclW(3, ea, nullptr, &pNewDACL)) {
         // Sets the new ACL as the object's DACL.
-        dwRes = SetNamedSecurityInfoA(
-            target_path, SE_FILE_OBJECT,
+        dwRes = SetNamedSecurityInfoW(
+            (LPWSTR)target_path, SE_FILE_OBJECT,
             DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
             NULL, NULL, pNewDACL, NULL);
         if (ERROR_SUCCESS == dwRes) {
@@ -1038,47 +1092,57 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
 
 std::string get_absolute_path(const std::string &base_dir,
                               const std::string &file_path) {
-  bool is_absolute;
-  std::string abolute_path;
-#ifdef WIN32
-  is_absolute = !PathIsRelative(file_path.c_str());
+#ifdef _WIN32
+  const bool is_absolute = !PathIsRelativeW(utf8_to_wide(file_path).c_str());
 #else
-  std::string path_sep = "/";
-  is_absolute = str_beginswith(file_path, path_sep);
+  const std::string path_sep{"/"};
+  const bool is_absolute = str_beginswith(file_path, path_sep);
 #endif
   if (is_absolute) {
-    abolute_path = file_path;
-  } else {
-    std::string path = shcore::path::join_path(base_dir, file_path);
-#ifdef WIN32
-    char out_path[MAX_PATH];
-    // NOTE: GetFullPathName does not verify if the path exists.
-    if (GetFullPathName(path.c_str(), MAX_PATH, out_path, NULL) == 0) {
-      throw std::runtime_error(
-          str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                     shcore::get_last_error().c_str()));
-    } else {
-      // Expand the resulting path (if needed) and validate access.
-      if (GetLongPathName(out_path, out_path, MAX_PATH) == 0) {
-        throw std::runtime_error(
-            str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                       shcore::get_last_error().c_str()));
-      } else {
-        abolute_path = std::string(out_path);
-      }
-    }
-#else
-    char *out_path = realpath(path.c_str(), nullptr);
-    if (out_path) {
-      abolute_path = std::string(out_path);
-      free(out_path);
-    } else {
-      throw std::runtime_error(
-          str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                     shcore::get_last_error().c_str()));
-    }
-#endif
+    return file_path;
   }
+
+  std::string abolute_path;
+
+  const std::string path = shcore::path::join_path(base_dir, file_path);
+#ifdef _WIN32
+  const auto wide_path = utf8_to_wide(path);
+  // NOTE: GetFullPathName does not verify if the path exists.
+  const auto full_path_length =
+      GetFullPathNameW(wide_path.c_str(), 0, nullptr, nullptr);
+  if (full_path_length == 0) {
+    throw std::runtime_error(
+        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                   shcore::get_last_error().c_str()));
+  }
+  std::wstring full_path(full_path_length, '\0');
+  GetFullPathNameW(wide_path.c_str(), full_path.size(), &full_path[0], nullptr);
+  full_path.pop_back();  // remove terminating null character
+
+  const auto long_path_name_length =
+      GetLongPathNameW(full_path.c_str(), nullptr, 0);
+  std::wstring long_path(long_path_name_length, '\0');
+  // Expand the resulting path (if needed) and validate access.
+  if (GetLongPathNameW(full_path.c_str(), &long_path[0], long_path.size()) ==
+      0) {
+    throw std::runtime_error(
+        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                   shcore::get_last_error().c_str()));
+  } else {
+    long_path.pop_back();  // remove terminaing null character
+    abolute_path = shcore::wide_to_utf8(long_path);
+  }
+#else
+  char *out_path = realpath(path.c_str(), nullptr);
+  if (out_path) {
+    abolute_path = std::string(out_path);
+    free(out_path);
+  } else {
+    throw std::runtime_error(
+        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                   shcore::get_last_error().c_str()));
+  }
+#endif
   return abolute_path;
 }
 

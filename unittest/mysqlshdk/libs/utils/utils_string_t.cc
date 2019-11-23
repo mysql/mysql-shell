@@ -32,7 +32,7 @@
 
 namespace shcore {
 
-TEST(UtilsString, strip) {
+TEST(utils_string, strip) {
   EXPECT_EQ("", str_strip(""));
   EXPECT_EQ("", str_strip(" \r\n\t"));
   EXPECT_EQ("x", str_strip("   x\t"));
@@ -58,7 +58,7 @@ TEST(UtilsString, strip) {
   EXPECT_EQ("\r\r\rxxx", str_rstrip("\r\r\rxxx"));
 }
 
-TEST(UtilsString, format) {
+TEST(utils_string, format) {
   EXPECT_EQ("1", str_format("%i", 1));
   EXPECT_EQ("!", str_format("%c", '!'));
   EXPECT_EQ("1\n2", str_format("%i\n%u", 1, 2));
@@ -126,7 +126,7 @@ TEST(UtilsString, format) {
           "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
 }
 
-TEST(UtilsString, upperlower) {
+TEST(utils_string, upperlower) {
   EXPECT_EQ("", str_lower(""));
   EXPECT_EQ("abab", str_lower("ABAB"));
   EXPECT_EQ("abab", str_lower("AbaB"));
@@ -137,7 +137,7 @@ TEST(UtilsString, upperlower) {
   EXPECT_EQ("ABAB", str_upper("abAb"));
 }
 
-TEST(UtilsString, caseeq) {
+TEST(utils_string, caseeq) {
   EXPECT_TRUE(str_caseeq("a", "a"));
   EXPECT_TRUE(str_caseeq("", ""));
   EXPECT_FALSE(str_caseeq("a", "b"));
@@ -152,7 +152,7 @@ TEST(UtilsString, caseeq) {
   EXPECT_FALSE(str_caseeq("b", "Ab"));
 }
 
-TEST(UtilsString, casecmp) {
+TEST(utils_string, casecmp) {
   EXPECT_EQ(0, str_casecmp("a", "a"));
   EXPECT_EQ(0, str_casecmp("", ""));
   EXPECT_EQ(-1, str_casecmp("a", "b"));
@@ -167,7 +167,7 @@ TEST(UtilsString, casecmp) {
   EXPECT_EQ(1, str_casecmp("b", "Ab"));
 }
 
-TEST(UtilsString, beginswith) {
+TEST(utils_string, beginswith) {
   EXPECT_TRUE(str_beginswith("", ""));
   EXPECT_TRUE(str_beginswith("a", ""));
   EXPECT_TRUE(str_beginswith("a", "a"));
@@ -193,7 +193,7 @@ TEST(UtilsString, beginswith) {
   EXPECT_FALSE(str_beginswith(std::string("a"), std::string("ab")));
 }
 
-TEST(UtilsString, endswith) {
+TEST(utils_string, endswith) {
   EXPECT_TRUE(str_endswith("", ""));
   EXPECT_TRUE(str_endswith("a", ""));
   EXPECT_TRUE(str_endswith("a", "a"));
@@ -222,7 +222,7 @@ TEST(UtilsString, endswith) {
   EXPECT_FALSE(str_endswith(std::string("a"), std::string("ab")));
 }
 
-TEST(UtilsString, partition) {
+TEST(utils_string, partition) {
   std::string left, right;
 
   std::tie(left, right) = str_partition("", "");
@@ -257,7 +257,7 @@ TEST(UtilsString, partition) {
   EXPECT_EQ("ab", right);
 }
 
-TEST(UtilsString, partition_after) {
+TEST(utils_string, partition_after) {
   std::string left, right;
 
   std::tie(left, right) = str_partition_after("", "");
@@ -292,7 +292,7 @@ TEST(UtilsString, partition_after) {
   EXPECT_EQ("ab", right);
 }
 
-TEST(UtilsString, join) {
+TEST(utils_string, join) {
   EXPECT_EQ("", str_join(std::vector<std::string>{}, ""));
   EXPECT_EQ("", str_join(std::vector<std::string>{}, ","));
   EXPECT_EQ("a", str_join(std::vector<std::string>{"a"}, ","));
@@ -313,7 +313,7 @@ TEST(UtilsString, join) {
   EXPECT_EQ("a,b", str_join(s.begin(), s.end(), ","));
 }
 
-TEST(UtilsString, join_f) {
+TEST(utils_string, join_f) {
   struct Info {
     std::string s;
   };
@@ -325,7 +325,7 @@ TEST(UtilsString, join_f) {
   EXPECT_EQ("foo,bar,baz", str_join(l, ",", [](const Info &i) { return i.s; }));
 }
 
-TEST(UtilsString, replace) {
+TEST(utils_string, replace) {
   EXPECT_EQ("", str_replace("", "", ""));
 
   EXPECT_EQ("", str_replace("", "fo", ""));
@@ -370,7 +370,7 @@ TEST(UtilsString, replace) {
       MAKE_BITS(strvalue).to_string(), \
       bits_to_string(MAKE_BITS(strvalue).to_ullong(), sizeof(strvalue) - 1));
 
-TEST(UtilsString, bits_to_string) {
+TEST(utils_string, bits_to_string) {
   // preliminary tests
   ASSERT_EQ(0, MAKE_BITS("0").to_ullong());
   ASSERT_EQ(0, MAKE_BITS("0000").to_ullong());
@@ -402,7 +402,7 @@ TEST(UtilsString, bits_to_string) {
   EXPECT_EQ(MAKE_BITS(strvalue).to_ullong(), string_to_bits(strvalue).first); \
   EXPECT_EQ(sizeof(strvalue) - 1, string_to_bits(strvalue).second)
 
-TEST(UtilsString, string_to_bits) {
+TEST(utils_string, string_to_bits) {
   TEST_BIT("0");
   TEST_BIT("1");
   TEST_BIT("000");
@@ -420,7 +420,7 @@ TEST(UtilsString, string_to_bits) {
   TEST_BIT("1111000011110000111100001111000011110000111100001111000011110000");
 }
 
-TEST(UtilsString, split) {
+TEST(utils_string, split) {
   {
     const auto s = str_split("one/two/three/", "/");
     const std::vector<std::string> expect = {"one", "two", "three", ""};
@@ -463,7 +463,7 @@ TEST(UtilsString, split) {
   }
 }
 
-TEST(UtilsString, ljust) {
+TEST(utils_string, ljust) {
   EXPECT_EQ("        ", str_ljust("", 8));
   EXPECT_EQ("x       ", str_ljust("x", 8));
   EXPECT_EQ("xxxy    ", str_ljust("xxxy", 8));
@@ -476,7 +476,7 @@ TEST(UtilsString, ljust) {
   EXPECT_EQ("xxxy....", str_ljust("xxxy", 8, '.'));
 }
 
-TEST(UtilsString, rjust) {
+TEST(utils_string, rjust) {
   EXPECT_EQ("        ", str_rjust("", 8));
   EXPECT_EQ("       x", str_rjust("x", 8));
   EXPECT_EQ("    xxxy", str_rjust("xxxy", 8));
@@ -489,7 +489,7 @@ TEST(UtilsString, rjust) {
   EXPECT_EQ("....xxxy", str_rjust("xxxy", 8, '.'));
 }
 
-TEST(UtilsString, str_break_into_lines) {
+TEST(utils_string, str_break_into_lines) {
   const char *text1 = "1234 678 910 1234 1234 12345\t1111111111111111111";
   auto res = str_break_into_lines(text1, 14);
   ASSERT_EQ(4, res.size());
@@ -522,7 +522,7 @@ TEST(UtilsString, str_break_into_lines) {
   EXPECT_EQ("", res[2]);
 }
 
-TEST(UtilsString, quote_string) {
+TEST(utils_string, quote_string) {
   EXPECT_EQ("\"\"", quote_string("", '"'));
   EXPECT_EQ("''", quote_string("", '\''));
   EXPECT_EQ("\"\\\"\\\"\"", quote_string("\"\"", '"'));
@@ -542,7 +542,7 @@ TEST(UtilsString, quote_string) {
   EXPECT_EQ("'some \\\\\" string\"'", quote_string("some \\\" string\"", '\''));
 }
 
-TEST(UtilsString, unquote_string) {
+TEST(utils_string, unquote_string) {
   for (const auto quote : {'\'', '"'}) {
     for (const auto s :
          {"", "\"\"", "''", "\"string\"", "'string'", "some \\ string",
@@ -553,7 +553,7 @@ TEST(UtilsString, unquote_string) {
   }
 }
 
-TEST(UtilsString, str_span) {
+TEST(utils_string, str_span) {
   EXPECT_EQ(std::string::npos, str_span("", ""));
   EXPECT_EQ(0, str_span("", "1"));
   EXPECT_EQ(0, str_span("1", ""));
@@ -565,7 +565,7 @@ TEST(UtilsString, str_span) {
   EXPECT_EQ(2, str_span("abbd", "abcd"));
 }
 
-TEST(UtilsString, str_subvars) {
+TEST(utils_string, str_subvars) {
   EXPECT_EQ("", str_subvars(
                     "", [](const std::string &) { return ""; }, "$", ""));
   EXPECT_EQ("", str_subvars(
@@ -594,5 +594,77 @@ TEST(UtilsString, str_subvars) {
   EXPECT_EQ("blable", str_subvars("${bla}${ble}",
                                   [](const std::string &v) { return v; }));
 }
+
+#ifdef _WIN32
+TEST(utils_string, wide_to_utf8) {
+  {
+    const std::wstring x{L"abcdef ghijk"};
+    const std::string x_utf8_expected{"abcdef ghijk"};
+    const auto x_utf8 = wide_to_utf8(x);
+    EXPECT_EQ(x_utf8_expected, x_utf8);
+    EXPECT_EQ(x, utf8_to_wide(x_utf8));
+  }
+  {
+    const std::wstring x{
+        L"za"
+        L"\x017c"
+        L"\x00f3"
+        L"\x0142"
+        L"\x0107"
+        L" g\x0119\x015b"
+        L"l\x0105 ja\x017a\x0144"};
+    const std::string x_utf8_expected{"zażółć gęślą jaźń"};
+    const std::string x_utf8_as_bytes{
+        "\x7a\x61\xc5\xbc\xc3\xb3\xc5\x82\xc4\x87\x20\x67\xc4\x99\xc5\x9b\x6c"
+        "\xc4\x85\x20\x6a\x61\xc5\xba\xc5\x84"};
+    EXPECT_EQ(x_utf8_expected, x_utf8_as_bytes);
+    const auto x_utf8 = wide_to_utf8(x);
+    EXPECT_EQ(x_utf8_expected, x_utf8);
+    EXPECT_EQ(x, utf8_to_wide(x_utf8));
+  }
+  {
+    const std::wstring x{L"\x4eca\x65e5\x306f"};
+    const std::string x_utf8_expected{"今日は"};
+    const std::string x_utf8_as_bytes{"\xe4\xbb\x8a\xe6\x97\xa5\xe3\x81\xaf"};
+    EXPECT_EQ(x_utf8_expected, x_utf8_as_bytes);
+    const auto x_utf8 = wide_to_utf8(x);
+    EXPECT_EQ(x_utf8_expected, x_utf8);
+    EXPECT_EQ(x, utf8_to_wide(x_utf8));
+  }
+}
+
+TEST(utils_string, utf8_to_wide) {
+  {
+    const std::string x{"abcdef ghijk"};
+    const std::wstring x_wide_expected{L"abcdef ghijk"};
+    const auto x_wide = utf8_to_wide(x);
+    EXPECT_EQ(x_wide_expected, x_wide);
+    EXPECT_EQ(x, wide_to_utf8(x_wide));
+  }
+  {
+    const std::string x{"zażółć gęślą jaźń"};
+    const std::wstring x_wide_expected{
+        L"za"
+        L"\x017c"
+        L"\x00f3"
+        L"\x0142"
+        L"\x0107"
+        L" g\x0119\x015b"
+        L"l\x0105 ja\x017a\x0144"};
+    const auto x_wide = utf8_to_wide(x);
+    EXPECT_EQ(x_wide_expected, x_wide);
+    EXPECT_EQ(x, wide_to_utf8(x_wide));
+  }
+  {
+    const std::string x{"今日は"};  // \u4eca\u65e5\u306f
+    const std::string x_utf8_as_bytes{"\xe4\xbb\x8a\xe6\x97\xa5\xe3\x81\xaf"};
+    EXPECT_EQ(x, x_utf8_as_bytes);
+    const std::wstring x_wide_expected{L"\x4eca\x65e5\x306f"};
+    const auto x_wide = utf8_to_wide(x);
+    EXPECT_EQ(x_wide_expected, x_wide);
+    EXPECT_EQ(x, wide_to_utf8(x_wide));
+  }
+}
+#endif
 
 }  // namespace shcore

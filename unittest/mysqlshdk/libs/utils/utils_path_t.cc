@@ -429,6 +429,19 @@ TEST(utils_path, is_absolute) {
   EXPECT_FALSE(is_absolute("../folders\\files"));
   EXPECT_FALSE(is_absolute("..\\folders\\files"));
   EXPECT_FALSE(is_absolute("X:Documents\\"));
+
+  // non-ascii support
+  EXPECT_TRUE(is_absolute("//pąth/tÓ/śhąre"));
+  EXPECT_TRUE(is_absolute("\\Prógrąm Filęs\\"));
+  EXPECT_TRUE(is_absolute("C:\\Doćuments\\"));
+  EXPECT_TRUE(is_absolute("F:/filęŚ/"));
+
+  EXPECT_FALSE(is_absolute("fOldęrs\\filęś"));
+  EXPECT_FALSE(is_absolute("./fólders\\filęś"));
+  EXPECT_FALSE(is_absolute(".\\foldęrs\\filęs"));
+  EXPECT_FALSE(is_absolute("../fólderś\\fiłęs"));
+  EXPECT_FALSE(is_absolute("..\\foldęrs\\fiłes"));
+  EXPECT_FALSE(is_absolute("X:Dócumęnts\\"));
 #else   // !_WIN32
   EXPECT_TRUE(is_absolute("//path/to/file"));
   EXPECT_TRUE(is_absolute("/path/to/file"));
@@ -436,6 +449,14 @@ TEST(utils_path, is_absolute) {
 
   EXPECT_FALSE(is_absolute("./folders/files"));
   EXPECT_FALSE(is_absolute("../folders/files"));
+
+  // non-ascii support
+  EXPECT_TRUE(is_absolute("//pąth/to/filę"));
+  EXPECT_TRUE(is_absolute("/pąth/tó/file"));
+  EXPECT_TRUE(is_absolute("~/dąta"));
+
+  EXPECT_FALSE(is_absolute("./fólders/fiłęs"));
+  EXPECT_FALSE(is_absolute("../foldęrs/fiłęs"));
 #endif  // !_WIN32
 }
 

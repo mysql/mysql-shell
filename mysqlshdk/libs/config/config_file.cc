@@ -656,7 +656,12 @@ void Config_file::read_recursive_aux(const std::string &cnf_path,
         cnf_path.c_str());
     return;  // exit function without doing anything.
   }
+#ifdef _WIN32
+  const auto wide_cnf_path = shcore::utf8_to_wide(cnf_path);
+  std::ifstream input_file(wide_cnf_path);
+#else
   std::ifstream input_file(cnf_path);
+#endif
   if (!input_file.good()) {
     throw std::runtime_error("Cannot open file: " + cnf_path + ".");
   }

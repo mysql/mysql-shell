@@ -47,6 +47,9 @@ std::string SHCORE_PUBLIC get_mp_path();
  *         false if path is not a regular file.
  */
 bool SHCORE_PUBLIC is_file(const char *path);
+#ifdef _WIN32
+bool SHCORE_PUBLIC is_file(const char *path, const size_t path_length);
+#endif
 bool SHCORE_PUBLIC is_file(const std::string &path);
 
 /**

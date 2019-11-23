@@ -39,6 +39,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
 
@@ -311,7 +312,12 @@ void Logger::setup_instance(const char *filename, bool use_stderr,
 Logger::Logger(const char *filename, bool use_stderr) {
   if (filename != nullptr) {
     m_log_file_name = filename;
+#ifdef _WIN32
+    const auto wide_filename = shcore::utf8_to_wide(filename);
+    m_log_file.open(wide_filename, std::ios_base::app);
+#else
     m_log_file.open(filename, std::ios_base::app);
+#endif
     if (m_log_file.fail())
       throw std::logic_error(
           std::string("Error in Logger::Logger when opening file '") +

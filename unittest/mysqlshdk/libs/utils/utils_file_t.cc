@@ -29,28 +29,40 @@
 namespace shcore {
 namespace test {
 
-class Utils_file_test : public ::testing::Test {
+class utils_file : public ::testing::Test {
  protected:
   static void SetUpTestCase() {
-    s_test_folder = path::join_path(getenv("TMPDIR"), "utils_file_test");
+    s_test_folder = path::join_path(getenv("TMPDIR"), "test_utils_file");
   }
 
   void SetUp() override { create_directory(s_test_folder); }
 
-  void TearDown() override { remove_directory(s_test_folder, true); }
+  void TearDown() override { remove_directory(s_test_folder, false); }
 
   static std::string s_test_folder;
 };
 
-std::string Utils_file_test::s_test_folder;
+std::string utils_file::s_test_folder;
 
-TEST_F(Utils_file_test, exists) {
+TEST_F(utils_file, exists) {
   {
     const auto directory = path::join_path(s_test_folder, "1");
     create_directory(directory);
     EXPECT_TRUE(path_exists(directory));
     EXPECT_TRUE(is_folder(directory));
     EXPECT_FALSE(is_file(directory));
+    EXPECT_NO_THROW(remove_directory(directory, false));
+    ASSERT_FALSE(path_exists(directory));
+  }
+
+  {
+    const auto directory = s_test_folder + "\\zażółć_gęślą_jaźń";
+    create_directory(directory);
+    EXPECT_TRUE(path_exists(directory));
+    EXPECT_TRUE(is_folder(directory));
+    EXPECT_FALSE(is_file(directory));
+    EXPECT_NO_THROW(remove_directory(directory, false));
+    ASSERT_FALSE(path_exists(directory));
   }
 
   {
@@ -59,6 +71,30 @@ TEST_F(Utils_file_test, exists) {
     EXPECT_TRUE(path_exists(file));
     EXPECT_FALSE(is_folder(file));
     EXPECT_TRUE(is_file(file));
+    EXPECT_NO_THROW(delete_file(file, false));
+    EXPECT_FALSE(path_exists(file));
+  }
+
+  {
+    const auto file = path::join_path(s_test_folder, "zażółć_gęślą_jaźń.txt");
+    EXPECT_TRUE(
+        create_file(file, "Pchnąć w tę łódź jeża lub ośm skrzyń fig", true));
+    EXPECT_TRUE(path_exists(file));
+    EXPECT_FALSE(is_folder(file));
+    EXPECT_TRUE(is_file(file));
+    EXPECT_NO_THROW(delete_file(file, false));
+    EXPECT_FALSE(path_exists(file));
+  }
+
+  {
+    const auto file =
+        path::join_path(s_test_folder, "ZAŻÓŁĆ_GĘŚLĄ_JAŹŃ_CAPITAL.txt");
+    EXPECT_TRUE(create_file(file, "Pchnąć w tę łódź jeża lub ośm skrzyń fig"));
+    EXPECT_TRUE(path_exists(file));
+    EXPECT_FALSE(is_folder(file));
+    EXPECT_TRUE(is_file(file));
+    EXPECT_NO_THROW(delete_file(file, false));
+    EXPECT_FALSE(path_exists(file));
   }
 
   {
@@ -69,13 +105,26 @@ TEST_F(Utils_file_test, exists) {
   }
 }
 
-TEST_F(Utils_file_test, create_directory) {
-  const auto dir = path::join_path(s_test_folder, "foo");
+TEST_F(utils_file, create_directory) {
+  {
+    const auto dir = path::join_path(s_test_folder, "foo");
+    ASSERT_FALSE(path_exists(dir));
+    EXPECT_NO_THROW(create_directory(path::join_path(dir, "bar/baz"), true));
+    ASSERT_TRUE(path_exists(dir));
+    EXPECT_NO_THROW(remove_directory(dir, true));
+    ASSERT_FALSE(path_exists(dir));
+  }
 
-  ASSERT_FALSE(path_exists(dir));
-  EXPECT_NO_THROW(create_directory(path::join_path(dir, "bar/baz"), true));
-  EXPECT_NO_THROW(remove_directory(dir, true));
-  ASSERT_FALSE(path_exists(dir));
+  {
+    const auto dir = path::join_path(s_test_folder, "Zażółć");
+    ASSERT_FALSE(path_exists(dir));
+    EXPECT_NO_THROW(create_directory(
+        path::join_path(dir, "gęślą/jaźń/ZAŻÓŁĆ/ÓŚM/SKRZYŃ/x/y/z/a/b/c"),
+        true));
+    ASSERT_TRUE(path_exists(dir));
+    EXPECT_NO_THROW(remove_directory(dir, true));
+    ASSERT_FALSE(path_exists(dir));
+  }
 }
 
 }  // namespace test

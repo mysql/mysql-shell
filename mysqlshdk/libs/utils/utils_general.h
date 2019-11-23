@@ -144,50 +144,6 @@ const char *SHCORE_PUBLIC get_long_version();
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code);
 
-// We inline these functions to avoid trouble with memory and DLL boundaries
-inline std::string win_w_to_a_string(const std::wstring &wstr, int wstrl) {
-  std::string str;
-
-  // No ceonversion needed at all
-  if (!wstr.empty()) {
-    // Calculates the required output buffer size
-    // Since -1 is used as input length, the null termination character will be
-    // included on the length calculation
-    int r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &wstr[0], -1,
-                                nullptr, 0, nullptr, nullptr);
-
-    if (r > 0) {
-      str = std::string(r, 0);
-      // Copies the buffer, since -1 is passed as input buffer length this
-      // includes the null termination character
-      r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &wstr[0], -1,
-                              &str[0], r, nullptr, nullptr);
-    }
-  }
-
-  return str;
-}
-
-inline std::wstring win_a_to_w_string(const std::string &str) {
-  std::wstring wstr;
-
-  // No conversion needed
-  if (!str.empty()) {
-    // Calculates the required output buffer size
-    // Since -1 is used as input length, the null termination character will be
-    // included on the length calculation
-    int r = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, &str[0], -1,
-                                nullptr, 0);
-
-    if (r > 0) {
-      wstr = std::wstring(r, 0);
-      r = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, &str[0], -1,
-                              &wstr[0], r);
-    }
-  }
-  return wstr;
-}
-
 class Sigint_event final {
  public:
   ~Sigint_event();

@@ -305,13 +305,13 @@ void update_connection_data(
 }
 
 std::string get_system_user() {
-  std::string ret_val;
+  std::string ret_val{"UNKNOWN_USER"};
 
-#ifdef WIN32
-  char username[UNLEN + 1];
+#ifdef _WIN32
+  wchar_t username[UNLEN + 1] = {};
   DWORD username_len = UNLEN + 1;
-  if (GetUserName(username, &username_len)) {
-    ret_val.assign(username);
+  if (GetUserNameW(username, &username_len) != 0) {
+    ret_val = shcore::wide_to_utf8(username, username_len - 1);
   }
 #else
   if (geteuid() == 0) {
@@ -346,8 +346,6 @@ std::string get_system_user() {
 #elif HAVE_CUSERID
     char username[L_cuserid];
     if (cuserid(username)) ret_val.assign(username);
-#else
-    ret_val = "UNKNOWN_USER";
 #endif
   }
 #endif
@@ -803,7 +801,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
 
         try_quoting = !quoted;
       }
-    } catch (const std::runtime_error &e) {
+    } catch (const std::runtime_error &) {
       // In case of error parsing, tries quoting
       try_quoting = auto_quote_hosts;
     }

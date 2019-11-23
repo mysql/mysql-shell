@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,30 +28,31 @@
 #include <Shellapi.h>
 #endif
 #include <cassert>
+#include <memory>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
 
 #ifdef WIN32
 static void check_argv(const char **argv, const std::string &cmd) {
-  std::wstring wstr =
-      shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
-  int nargs;
-  LPWSTR *parsed_argv = CommandLineToArgvW(&wstr[0], &nargs);
+  const std::wstring wstr = shcore::utf8_to_wide(cmd);
+  int nargs = 0;
+  std::unique_ptr<LPWSTR[], decltype(&LocalFree)> parsed_argv(
+      CommandLineToArgvW(&wstr[0], &nargs), LocalFree);
 
   ASSERT_NE(nullptr, parsed_argv);
 
-  int i;
+  int i = 0;
   for (i = 0; i < nargs; i++) {
     ASSERT_NE(nullptr, argv[i]);
-    std::string actual = shcore::win_w_to_a_string(parsed_argv[i], 0);
+    const std::string actual = shcore::wide_to_utf8(parsed_argv[i]);
     EXPECT_STREQ(argv[i], actual.c_str());
   }
   // both should be null
   EXPECT_EQ(nullptr, parsed_argv[i]);
   EXPECT_EQ(nullptr, argv[i]);
-  LocalFree(parsed_argv);
 }
 #else
 // no-op outside windows

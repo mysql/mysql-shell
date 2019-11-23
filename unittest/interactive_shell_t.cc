@@ -2844,4 +2844,145 @@ four
   wipe_all();
 }
 
+#if defined(HAVE_V8) && (defined(HAVE_PYTHON) && defined(IS_PY3K))
+TEST_F(Interactive_shell_test, file_operations) {
+  // BUG#30538516 METHODS WHICH DEAL WITH FILESYSTEM DO NOT PROPERLY HANDLE
+  // NON-ASCII CHARACTERS
+
+  const auto tempdir = shcore::path::tmpdir();
+
+  // Create non-ascii files using python
+  execute("\\py");
+  execute("import os");
+  execute("os.getcwd()");
+  execute("tempdir = \"\"\"" + shcore::str_replace(tempdir, "\\", "\\\\") +
+          "\"\"\"");
+  execute("print(tempdir)");
+  wipe_all();
+  execute("os.mkdir(os.path.join(tempdir, 'zażółć_gęślą_jaźń'))");
+  execute("os.makedirs(os.path.join(tempdir, 'zażółć/gęślą/jaźń'))");
+  // clang-format off
+  execute(
+      "for f in ('zażółć_gęślą_jaźń', 'zażółć/gęślą/jaźń','zażółć/gęślą', 'zażółć', '.'):\n"
+      "  with open(os.path.join(tempdir, f, 'test.txt'), 'w', encoding='utf-8') as fh:\n"
+      "    fh.write('# mysqlsh file operations test\\n')\n"
+      "  with open(os.path.join(tempdir, f, 'café.txt'), 'w', encoding='utf-8') as fh:\n"
+      "    fh.write('# mysqlsh file operations test\\ncafé arabica\\n')\n");
+  // clang-format on
+
+  // Check in javascript mode if we can access them
+  execute("\\js");
+  execute("const tempdir = '" + shcore::str_replace(tempdir, "\\", "\\\\") +
+          "'");
+  execute("println(tempdir)");
+  wipe_all();
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć_gęślą_jaźń/test.txt'))");
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/jaźń/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './test.txt'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć_gęślą_jaźń/café.txt'))");
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/jaźń/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './café.txt'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć_gęślą_jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć/gęślą/jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć/gęślą'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // cleanup using shcore (functions family that javascipt's os.path is using)
+  shcore::remove_directory(shcore::path::join_path(tempdir, "./zażółć"), true);
+  shcore::remove_directory(
+      shcore::path::join_path(tempdir, "./zażółć_gęślą_jaźń"), true);
+  shcore::delete_file(shcore::path::join_path(tempdir, "./test.txt"));
+  shcore::delete_file(shcore::path::join_path(tempdir, "./café.txt"));
+  execute("os.path.isfile(os.path.join(tempdir, './test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './café.txt'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć_gęślą_jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć'))");
+  EXPECT_EQ("false\nfalse\nfalse\nfalse\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // Create non-ascii files using javascript
+  shcore::create_directory(
+      shcore::path::join_path(tempdir, "zażółć_gęślą_jaźń"));
+  shcore::create_directory(
+      shcore::path::join_path(tempdir, "zażółć/gęślą/jaźń"), true);
+  for (const std::string &f : {"zażółć_gęślą_jaźń", "zażółć/gęślą/jaźń",
+                               "zażółć/gęślą", "zażółć", ""}) {
+    shcore::create_file(shcore::path::join_path(tempdir, f, "test.txt"),
+                        "# mysqlsh file operations test\n");
+    shcore::create_file(shcore::path::join_path(tempdir, f, "café.txt"),
+                        "# mysqlsh file operations test\ncafé arabica\n");
+  }
+
+  // Check in python mode if we can access them
+  execute("\\py");
+  wipe_all();
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć_gęślą_jaźń/test.txt'))");
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/jaźń/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './test.txt'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć_gęślą_jaźń/café.txt'))");
+  execute(
+      "os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/jaźń/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/gęślą/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './zażółć/café.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './café.txt'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć_gęślą_jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć/gęślą/jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć/gęślą'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć'))");
+  EXPECT_EQ("true\ntrue\ntrue\ntrue\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // cleanup using python
+  execute(
+      "for f in ('zażółć_gęślą_jaźń', 'zażółć/gęślą/jaźń', 'zażółć/gęślą', "
+      "'zażółć'):\n"
+      "  os.remove(os.path.join(tempdir, f, 'test.txt'))\n"
+      "  os.remove(os.path.join(tempdir, f, 'café.txt'))\n"
+      "  os.rmdir(os.path.join(tempdir, f))\n");
+  execute("os.remove(os.path.join(tempdir, 'test.txt'))");
+  execute("os.remove(os.path.join(tempdir, 'café.txt'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć_gęślą_jaźń'))");
+  execute("os.path.isdir(os.path.join(tempdir, './zażółć'))");
+  execute("os.path.isfile(os.path.join(tempdir, './test.txt'))");
+  execute("os.path.isfile(os.path.join(tempdir, './café.txt'))");
+  EXPECT_EQ("false\nfalse\nfalse\nfalse\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+#endif
+
 }  // namespace mysqlsh

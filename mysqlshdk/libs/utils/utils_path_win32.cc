@@ -230,16 +230,17 @@ split_extension(const std::string &path) {
 
 std::string normalize(const std::string &path) {
   const auto norm = shcore::str_replace(path, "/", "\\");
+  const auto wide_norm = shcore::utf8_to_wide(norm);
   // get length (including the terminating null character)
-  const auto length = GetFullPathName(norm.c_str(), 0, nullptr, nullptr);
+  const auto length = GetFullPathNameW(wide_norm.c_str(), 0, nullptr, nullptr);
   // include space for a terminating null character
-  std::string result(length, 'x');
+  std::wstring result(length, 'x');
   // get the data
-  GetFullPathName(norm.c_str(), result.length(), &result[0], nullptr);
+  GetFullPathNameW(wide_norm.c_str(), result.length(), &result[0], nullptr);
   // remove the terminating null character
   result.pop_back();
 
-  return result;
+  return shcore::wide_to_utf8(result);
 }
 
 std::string SHCORE_PUBLIC dirname(const std::string &path) {
@@ -267,20 +268,21 @@ std::string SHCORE_PUBLIC basename(const std::string &path) {
 }
 
 bool exists(const std::string &filename) {
-  DWORD dwAttrib = GetFileAttributesA(filename.c_str());
-  return dwAttrib != INVALID_FILE_ATTRIBUTES;
+  const auto wide_filename = shcore::utf8_to_wide(filename);
+  DWORD attributes = GetFileAttributesW(wide_filename.c_str());
+  return attributes != INVALID_FILE_ATTRIBUTES;
 }
 
 std::string SHCORE_PUBLIC tmpdir() {
-  TCHAR buffer[MAX_PATH + 1] = {0};
-  const auto length = array_size(buffer);
-
-  if (GetTempPath(length, buffer) == 0) {
+  WCHAR buffer[MAX_PATH + 1] = {0};
+  const auto buffer_length = array_size(buffer);
+  const auto path_length = GetTempPathW(buffer_length, buffer);
+  if (path_length == 0) {
     throw std::runtime_error("Unable to obtain the temporary directory: " +
                              last_error_to_string(GetLastError()));
   }
 
-  return buffer;
+  return shcore::wide_to_utf8(buffer, path_length);
 }
 
 bool SHCORE_PUBLIC is_absolute(const std::string &path) {
@@ -300,15 +302,15 @@ bool SHCORE_PUBLIC is_absolute(const std::string &path) {
 
 std::string SHCORE_PUBLIC getcwd() {
   // get length (including the terminating null character)
-  const auto length = GetCurrentDirectory(0, nullptr);
+  const auto length = GetCurrentDirectoryW(0, nullptr);
   // include space for a terminating null character
-  std::string result(length, 'x');
+  std::wstring result(length, 'x');
   // get the data
-  GetCurrentDirectory(result.length(), &result[0]);
+  GetCurrentDirectoryW(result.length(), &result[0]);
   // remove the terminating null character
   result.pop_back();
 
-  return result;
+  return shcore::wide_to_utf8(result);
 }
 
 }  // namespace path
