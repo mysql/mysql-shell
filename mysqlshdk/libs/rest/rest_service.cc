@@ -272,7 +272,7 @@ class Rest_service::Impl {
                        request_body.c_str());
     } else {
       // no body, remove post data (if present)
-      curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE, -1L);
+      curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE, 0L);
       curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, nullptr);
     }
   }
