@@ -81,6 +81,45 @@ using V8_args = v8::FunctionCallbackInfo<v8::Value>;
 
 std::unique_ptr<v8::Platform> g_platform;
 
+#ifdef ENABLE_V8_TRACING
+
+std::ofstream g_trace_file;
+
+std::unique_ptr<v8::platform::tracing::TracingController> initialize_tracing() {
+  g_trace_file.open(
+      shcore::path::join_path(shcore::get_user_config_path(), "v8-trace.json"));
+
+  auto controller =
+      std::make_unique<v8::platform::tracing::TracingController>();
+  controller->Initialize(
+      v8::platform::tracing::TraceBuffer::CreateTraceBufferRingBuffer(
+          v8::platform::tracing::TraceBuffer::kRingBufferChunks,
+          v8::platform::tracing::TraceWriter::CreateJSONTraceWriter(
+              g_trace_file)));
+
+  auto tracing_config =
+      v8::platform::tracing::TraceConfig::CreateDefaultTraceConfig();
+  tracing_config->AddIncludedCategory("disabled-by-default-v8.runtime_stats");
+  tracing_config->AddIncludedCategory("disabled-by-default-v8.gc_stats");
+  tracing_config->SetTraceRecordMode(
+      v8::platform::tracing::TraceRecordMode::RECORD_CONTINUOUSLY);
+  controller->StartTracing(tracing_config);
+
+  return controller;
+}
+
+void finalize_tracing() { g_trace_file.close(); }
+
+#else  // !ENABLE_V8_TRACING
+
+std::unique_ptr<v8::platform::tracing::TracingController> initialize_tracing() {
+  return {};
+}
+
+void finalize_tracing() {}
+
+#endif  // !ENABLE_V8_TRACING
+
 void print_exception(const std::string &text) {
   mysqlsh::current_console()->print_diag(text);
 }
@@ -117,7 +156,9 @@ class Current_script {
  */
 void SHCORE_PUBLIC JScript_context_init() {
   if (!g_platform) {
-    g_platform = v8::platform::NewDefaultPlatform();
+    g_platform = v8::platform::NewDefaultPlatform(
+        0, v8::platform::IdleTaskSupport::kDisabled,
+        v8::platform::InProcessStackDumping::kDisabled, initialize_tracing());
     v8::V8::InitializePlatform(g_platform.get());
     v8::V8::Initialize();
   }
@@ -128,6 +169,8 @@ void SHCORE_PUBLIC JScript_context_fini() {
     v8::V8::Dispose();
     v8::V8::ShutdownPlatform();
     g_platform.reset(nullptr);
+
+    finalize_tracing();
   }
 }
 
@@ -1145,6 +1188,10 @@ std::pair<Value, bool> JScript_context::execute_interactive(
         console->print_diag("Error executing script");
     } else {
       try {
+        // force GC on each execution in order to wipe the native objects and
+        // release the resources (i.e. open connections)
+        isolate()->LowMemoryNotification();
+
         return {convert(result.ToLocalChecked()), false};
       } catch (const std::exception &exc) {
         // we used to let the exception bubble up, but somehow, exceptions
