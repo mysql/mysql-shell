@@ -620,16 +620,16 @@ socket option.
 
 When using a URI, the socket path must be URL encoded as follows:
 
-@li user@/path%2Fto%2Fsocket.sock
-@li user@./path%2Fto%2Fsocket.sock
-@li user@../path%2Fto%2Fsocket.sock
+@li user@@/path%2Fto%2Fsocket.sock
+@li user@@./path%2Fto%2Fsocket.sock
+@li user@@../path%2Fto%2Fsocket.sock
 
 It is possible to skip the URL encoding by enclosing the socket path in
 parenthesis:
 
-@li user@(/path/to/socket.sock)
-@li user@(./path/to/socket.sock)
-@li user@(../path/to/socket.sock)
+@li user@@(/path/to/socket.sock)
+@li user@@(./path/to/socket.sock)
+@li user@@(../path/to/socket.sock)
 
 <b>Windows Named Pipe Connections</b>
 
@@ -645,8 +645,8 @@ When using a URI, if the named pipe has invalid characters for a URL, they must
 be URL encoded. URL encoding can be skipped by enclosing the pipe name in
 parenthesis:
 
-@li user@\\\\.\\named.pipe
-@li user@(\\\\.\\named.pipe)
+@li user@@\\\\.\\named.pipe
+@li user@@(\\\\.\\named.pipe)
 
 Named pipe connections are only supported on the MySQL protocol.
 

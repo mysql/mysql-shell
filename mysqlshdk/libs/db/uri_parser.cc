@@ -160,9 +160,11 @@ void Uri_parser::parse_target() {
   if (_chunks.find(URI_TARGET) != _chunks.end()) {
     size_t start = _chunks[URI_TARGET].first;
     const size_t end = _chunks[URI_TARGET].second;
-#ifndef _WIN32
-    if (input_contains(".", start) || input_contains("/", start) ||
-        input_contains("(.", start) || input_contains("(/", start)) {
+
+    if (input_contains(".", start) && start == end) {
+      _data->set_host(".");
+    } else if (input_contains(".", start) || input_contains("/", start) ||
+               input_contains("(.", start) || input_contains("(/", start)) {
       auto offset = start;
       {
         // When it starts with / the symbol is skipped and rest is parsed
@@ -184,9 +186,9 @@ void Uri_parser::parse_target() {
             "Unexpected data [" +
             get_input_chunk({offset, _chunks[URI_TARGET].second}) +
             "] at position " + std::to_string(offset));
-#else   // _WIN32
-    // Windows pipe
-    if (input_contains("\\\\.\\", start) || input_contains("(\\\\.\\", start)) {
+    } else if (input_contains("\\\\.\\", start) ||
+               input_contains("(\\\\.\\", start)) {
+      // Windows pipe
       bool unencoded_pipe = false;
 
       if (_input[start] == '\\') {
@@ -215,15 +217,6 @@ void Uri_parser::parse_target() {
             "Unexpected data [" +
             get_input_chunk({offset, _chunks[URI_TARGET].second}) +
             "] at position " + std::to_string(offset));
-    } else if (input_contains(".", start)) {
-      if (start == end) {
-        _data->set_host(".");
-      } else {
-        throw std::invalid_argument(
-            "Unexpected character [.] found at position " +
-            std::to_string(start));
-      }
-#endif  // _WIN32
     } else {
       parse_host();
     }
@@ -673,13 +666,14 @@ std::string Uri_parser::parse_unencoded_value(
     const std::string &finalizers) {
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
-#ifdef _WIN32
+  // We allow for backslashes in unencoded values in order to make file paths
+  // easier to type on all the platforms.
+  // Note that this is not explicitly allowed by MY-300/MY-305.
+  // Note also that '\' and '/' can be used interchangeably on Windows, while on
+  // Linux only '/' is treated as a path separator, '\' is a character which can
+  // be a part of a file/directory name.
   _tokenizer.set_complex_token("unreserved",
-                               std::string(UNRESERVED).append("\\:"));
-#else
-  _tokenizer.set_complex_token("unreserved",
-                               std::string(UNRESERVED).append("/"));
-#endif
+                               std::string(UNRESERVED).append("\\"));
   _tokenizer.set_complex_token("delims", DELIMITERS);
 
   if (!finalizers.empty()) _tokenizer.set_final_token_group("end", finalizers);
@@ -808,15 +802,17 @@ Connection_options Uri_parser::parse(const std::string &input,
   //    but if the target is a socket it may also start with / so we need to
   //    find the right / defining a path component
   // Looks for the last / on the unassigned range
-  // first_char points to the beggining of the target definition
+  // first_char points to the beginning of the target definition
   // so if / is on the first position it is not the path but the socket
   // definition
   position = input.rfind("/", last_char);
-  bool has_path = false;
+
   if (position != std::string::npos && position > first_char) {
+    bool has_path = false;
+
     // If the / is found at the second position, it could also be a socket
-    // definintion in the form of: (/path/to/socket)
-    // So we nede to ensure the found / is after the closing ) in this case
+    // definition in the form of: (/path/to/socket)
+    // So we need to ensure the found / is after the closing ) in this case
     if (input_contains("(/", first_char) || input_contains("(.", first_char) ||
         input_contains("(\\\\.\\", first_char)) {
       size_t closing = input.find(")", first_char);

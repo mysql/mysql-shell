@@ -628,16 +628,6 @@ TEST(Uri_parser, parse_host_ipv6) {
 }
 
 TEST(Uri_parser, parse_socket) {
-#ifndef _WIN32
-  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/schema", "mysqlx",
-               "user", "password", NO_HOST, NO_PORT, "/path/to/socket",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
-  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/", "mysqlx", "user",
-               "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
-  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket", "mysqlx", "user",
-               "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
   validate_uri("mysqlx://user:password@/socket/schema", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "/socket", "schema", HAS_PASSWORD,
                HAS_NO_PORT, Transport_type::Socket);
@@ -653,6 +643,17 @@ TEST(Uri_parser, parse_socket) {
   validate_uri("mysqlx://user:password@a/", "mysqlx", "user", "password", "a",
                NO_PORT, NO_SOCK, NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
                Transport_type::Tcp);
+
+  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/schema", "mysqlx",
+               "user", "password", NO_HOST, NO_PORT, "/path/to/socket",
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/", "mysqlx", "user",
+               "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+  validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket", "mysqlx", "user",
+               "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+
   validate_uri("mysqlx://user:password@(/path/to/mysql.sock)/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path/to/mysql.sock",
                "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
@@ -662,6 +663,17 @@ TEST(Uri_parser, parse_socket) {
   validate_uri("mysqlx://user:password@(/path/to/mysql.sock)", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "/path/to/mysql.sock", NO_SCHEMA,
                HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+
+  validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)/schema",
+               "mysqlx", "user", "password", NO_HOST, NO_PORT,
+               "/path\\to\\mysql.sock", "schema", HAS_PASSWORD, HAS_NO_PORT,
+               Transport_type::Socket);
+  validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)/", "mysqlx",
+               "user", "password", NO_HOST, NO_PORT, "/path\\to\\mysql.sock",
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+  validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)", "mysqlx",
+               "user", "password", NO_HOST, NO_PORT, "/path\\to\\mysql.sock",
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
 
   validate_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "./path/to/socket",
@@ -710,71 +722,9 @@ TEST(Uri_parser, parse_socket) {
                    "Illegal character [/] found at position 24");
   validate_bad_uri("mysqlx://user:password@../path/to/socket/schema",
                    "Illegal character [/] found at position 25");
-#else   // _WIN32
-  validate_bad_uri("mysqlx://user:password@/path%2Fto%2Fsocket/schema",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@/path%2Fto%2Fsocket/",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@/path%2Fto%2Fsocket",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@/socket/schema",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@/socket/",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@/socket",
-                   "Illegal character [/] found at position 23");
-  validate_uri("mysqlx://user:password@a/schema", "mysqlx", "user", "password",
-               "a", NO_PORT, NO_SOCK, "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Tcp);
-  validate_uri("mysqlx://user:password@a/", "mysqlx", "user", "password", "a",
-               NO_PORT, NO_SOCK, NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Tcp);
-  validate_bad_uri("mysqlx://user:password@(/path/to/mysql.sock)/schema",
-                   "Illegal character [/] found at position 24");
-  validate_bad_uri("mysqlx://user:password@(/path/to/mysql.sock)/",
-                   "Illegal character [/] found at position 24");
-  validate_bad_uri("mysqlx://user:password@(/path/to/mysql.sock)",
-                   "Illegal character [/] found at position 24");
-
-  validate_bad_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket/schema",
-                   "Unexpected character [.] found at position 23");
-  validate_bad_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket/",
-                   "Unexpected character [.] found at position 23");
-  validate_bad_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket",
-                   "Unexpected character [.] found at position 23");
-
-  validate_bad_uri("mysqlx://user:password@(./path/to/socket)/schema",
-                   "Illegal character [/] found at position 25");
-  validate_bad_uri("mysqlx://user:password@(./path/to/socket)/",
-                   "Illegal character [/] found at position 25");
-  validate_bad_uri("mysqlx://user:password@(./path/to/socket)",
-                   "Illegal character [/] found at position 25");
-
-  validate_bad_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket/schema",
-                   "Unexpected character [.] found at position 23");
-  validate_bad_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket/",
-                   "Unexpected character [.] found at position 23");
-  validate_bad_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket",
-                   "Unexpected character [.] found at position 23");
-
-  validate_bad_uri("mysqlx://user:password@(../path/to/socket)/schema",
-                   "Illegal character [/] found at position 26");
-  validate_bad_uri("mysqlx://user:password@(../path/to/socket)/",
-                   "Illegal character [/] found at position 26");
-  validate_bad_uri("mysqlx://user:password@(../path/to/socket)",
-                   "Illegal character [/] found at position 26");
-
-  validate_bad_uri("mysqlx://user:password@/path/to/socket/schema",
-                   "Illegal character [/] found at position 23");
-  validate_bad_uri("mysqlx://user:password@./path/to/socket/schema",
-                   "Unexpected character [.] found at position 23");
-  validate_bad_uri("mysqlx://user:password@../path/to/socket/schema",
-                   "Unexpected character [.] found at position 23");
-#endif  // _WIN32
 }
 
 TEST(Uri_parser, parse_pipe) {
-#ifdef _WIN32
   validate_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
@@ -799,6 +749,19 @@ TEST(Uri_parser, parse_pipe) {
   validate_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
+               Transport_type::Pipe);
+
+  validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket/schema",
+               "mysql", "user", "password", NO_HOST, NO_PORT,
+               "d:/path/to/socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
+               Transport_type::Pipe);
+  validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket/",
+               "mysql", "user", "password", NO_HOST, NO_PORT,
+               "d:/path/to/socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
+               Transport_type::Pipe);
+  validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket",
+               "mysql", "user", "password", NO_HOST, NO_PORT,
+               "d:/path/to/socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
                Transport_type::Pipe);
 
   validate_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)/schema",
@@ -832,57 +795,13 @@ TEST(Uri_parser, parse_pipe) {
 
   validate_bad_uri("mysqlx://user:password@(\\\\.\\d:/path/to/socket)",
                    "Pipe can only be used with Classic session");
-
-  validate_bad_uri("mysql://user:password@\\\\.\\",
-                   "Named pipe cannot be empty.");
-  validate_bad_uri("mysql://user:password@(\\\\.\\)",
-                   "Named pipe cannot be empty.");
-#else   // !_WIN32
-  validate_bad_uri(
-      "mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket/schema",
-      "Illegal character [\\] found at position 22");
-  validate_bad_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket/",
-                   "Illegal character [\\] found at position 22");
-  validate_bad_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket",
-                   "Illegal character [\\] found at position 22");
-
-  validate_bad_uri(
-      "mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)/schema",
-      "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)/",
-                   "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)",
-                   "Illegal character [\\] found at position 23");
-
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)/schema",
-                   "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)/",
-                   "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)",
-                   "Illegal character [\\] found at position 23");
-
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)/schema",
-                   "Illegal character [\\] found at position 23");
-  validate_bad_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)/",
-                   "Illegal character [\\] found at position 23");
   validate_bad_uri("mysql://user:password@\\(\\\\.\\d:\\path\\to\\socket)",
                    "Illegal character [\\] found at position 22");
 
-  validate_bad_uri(
-      "mysql://user:password@\\\\.\\d:%5Cpath%5Cto%5Csocket/schema",
-      "Illegal character [\\] found at position 22");
-  validate_bad_uri(
-      "mysql://user:password@\\\\.\\d%3A\\path%5Cto%5Csocket/schema",
-      "Illegal character [\\] found at position 22");
-
-  validate_bad_uri("mysqlx://user:password@(\\\\.\\d:/path/to/socket)",
-                   "Illegal character [\\] found at position 24");
-
   validate_bad_uri("mysql://user:password@\\\\.\\",
-                   "Illegal character [\\] found at position 22");
+                   "Named pipe cannot be empty.");
   validate_bad_uri("mysql://user:password@(\\\\.\\)",
-                   "Illegal character [\\] found at position 23");
-#endif  // !_WIN32
+                   "Named pipe cannot be empty.");
 }
 
 TEST(Uri_parser, parse_path) {
