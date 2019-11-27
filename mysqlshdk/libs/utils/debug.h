@@ -29,7 +29,9 @@
 #include <map>
 #include <set>
 #include <string>
-#include "my_dbug.h"
+
+#include <my_dbug.h>
+
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -257,5 +259,23 @@ class AutoDebugTrace {
   } while (0)
 
 #endif
+
+#if !defined(DBUG_OFF)
+
+// workaround for BUG30071277
+
+#undef DBUG_LOG
+
+#define DBUG_LOG(keyword, v)                 \
+  do {                                       \
+    _db_pargs_(__LINE__, keyword);           \
+    if (_db_enabled_()) {                    \
+      std::ostringstream sout;               \
+      sout << v;                             \
+      _db_doprnt_("%s", sout.str().c_str()); \
+    }                                        \
+  } while (0)
+
+#endif  // !DBUG_OFF
 
 #endif  // MYSQLSHDK_LIBS_UTILS_DEBUG_H_

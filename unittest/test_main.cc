@@ -35,7 +35,6 @@
 #include <fstream>
 #include <iostream>
 
-#include "my_dbug.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"

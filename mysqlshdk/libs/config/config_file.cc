@@ -27,8 +27,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "my_dbug.h"
-
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

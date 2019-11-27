@@ -29,8 +29,8 @@
 #include <iostream>
 #include <limits>
 
-#include "my_dbug.h"
 #include "mysqlshdk/libs/db/uri_common.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"

@@ -28,7 +28,6 @@
 #include <string>
 #include <utility>
 
-#include "my_dbug.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/debug.h"

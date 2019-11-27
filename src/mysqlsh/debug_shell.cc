@@ -22,9 +22,9 @@
  */
 
 #include "modules/util/upgrade_check.h"
-#include "my_dbug.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_process.h"
 #include "unittest/test_utils/mod_testutils.h"
 #include "unittest/test_utils/test_net_utilities.h"
