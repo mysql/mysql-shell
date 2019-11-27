@@ -116,7 +116,9 @@ TEST(utils_general, split_account) {
       {"ic@192.168.%", "ic", "192.168.%"},  // Regression test for BUG#25528695
       {"foo@192.168.1.%", "foo", "192.168.1.%"},
       {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
-      {"root@foo-bar.com", "root", "foo-bar.com"}};
+      {"root@foo-bar.com", "root", "foo-bar.com"},
+      {"root@aa1-bbbb-ccc33.corp.example.com", "root",
+       "aa1-bbbb-ccc33.corp.example.com"}};
   for (auto &t : good_cases_auto_quote) {
     a.clear();
     b.clear();

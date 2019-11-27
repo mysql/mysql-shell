@@ -482,7 +482,7 @@ shcore::Value Util::check_for_server_upgrade(
 
     std::string user;
     std::string host;
-    shcore::split_account(row->get_string(0), &user, &host);
+    shcore::split_account(row->get_string(0), &user, &host, true);
     if (user != "skip-grants user" && host != "skip-grants host") {
       mysqlshdk::mysql::Instance instance(session);
       auto res = instance.get_user_privileges(user, host)->validate({"all"});
