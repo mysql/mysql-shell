@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,21 +50,15 @@ class Table : public DatabaseObject,
               public std::enable_shared_from_this<Table> {
  public:
 #if DOXYGEN_JS
-  TableInsert insert();
-  TableInsert insert(List columns);
-  TableInsert insert(String col1, String col2, ...);
-  TableSelect select();
-  TableSelect select(List columns);
+  TableInsert insert(...);
+  TableSelect select(...);
   TableUpdate update();
   TableDelete delete ();
   Bool isView();
   Integer count();
 #elif DOXYGEN_PY
-  TableInsert insert();
-  TableInsert insert(list columns);
-  TableInsert insert(str col1, str col2, ...);
-  TableSelect select();
-  TableSelect select(list columns);
+  TableInsert insert(...);
+  TableSelect select(...);
   TableUpdate update();
   TableDelete delete ();
   bool is_view();

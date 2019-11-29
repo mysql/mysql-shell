@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,9 +62,10 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify arrayAppend(String docPath, Value value);
   CollectionModify arrayInsert(String docPath, Value value);
   CollectionModify arrayDelete(String docPath);
-  CollectionModify sort(List sortExprStr);
+  CollectionModify sort(List sortCriteria);
+  CollectionModify sort(String sortCriterion[, String sortCriterion, ...]);
   CollectionModify limit(Integer numberOfRows);
-  CollectionFind bind(String name, Value value);
+  CollectionModify bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
   CollectionModify modify(str searchCondition);
@@ -76,9 +77,10 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify array_append(str docPath, Value value);
   CollectionModify array_insert(str docPath, Value value);
   CollectionModify array_delete(str docPath);
-  CollectionModify sort(list sortExprStr);
+  CollectionModify sort(list sortCriteria);
+  CollectionModify sort(str sortCriterion[, str sortCriterion, ...]);
   CollectionModify limit(int numberOfRows);
-  CollectionFind bind(str name, Value value);
+  CollectionModify bind(str name, Value value);
   Result execute();
 #endif
   std::string class_name() const override { return "CollectionModify"; }
@@ -102,7 +104,9 @@ class CollectionModify : public Collection_crud_definition,
   void set_prepared_stmt() override;
   void update_limits() override { set_limits_on_message(&message_); }
   shcore::Value this_object() override;
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
   shcore::Value execute();
+#endif
   friend class Collection;
   Mysqlx::Crud::Update message_;
   CollectionModify &set_filter(const std::string &filter);

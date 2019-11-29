@@ -94,7 +94,7 @@ crud = collection.find().fields()
 crud = collection.find().fields(5)
 crud = collection.find().fields([])
 crud = collection.find().fields(['name as alias', 5])
-crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'));
+crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'))
 crud = collection.find().fields('name as alias', 5)
 
 #@# CollectionFind: Error conditions on group_by
@@ -208,7 +208,7 @@ for index in range(7):
 
 records = collection.find().sort(['name desc']).execute().fetch_all()
 for index in range(7):
-	print('Find Desc', index, ':', records[index].name, '\n')
+  print('Find Desc', index, ':', records[index].name, '\n')
 //! [CollectionFind: Sorting]
 
 #@ Collection.Find Limit and Offset
@@ -217,8 +217,8 @@ records = collection.find().limit(4).execute().fetch_all()
 print('Limit-Offset 0 :', len(records), '\n')
 
 for index in range(8):
-	records = collection.find().limit(4).offset(index + 1).execute().fetch_all()
-	print('Limit-Offset', index + 1, ':', len(records), '\n')
+  records = collection.find().limit(4).offset(index + 1).execute().fetch_all()
+  print('Limit-Offset', index + 1, ':', len(records), '\n')
 //! [CollectionFind: Limit and Offset]
 
 #@ Collection.Find Parameter Binding
@@ -230,24 +230,24 @@ print('Find Binding Name:', records[0].name, '\n')
 
 #@ Collection.Find Field Selection Using Field List
 //! [CollectionFind: Field Selection List]
-result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
-record = result.fetch_one();
+result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute()
+record = result.fetch_one()
 print("First Name: %s\n" % record.FirstName)
 print("Age: %s\n" % record.Age)
 //! [CollectionFind: Field Selection List]
 
 #@ Collection.Find Field Selection Using Field Parameters
 //! [CollectionFind: Field Selection Parameters]
-result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
-record = result.fetch_one();
+result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute()
+record = result.fetch_one()
 print("First Name: %s\n" % record.FirstName)
 print("Age: %s\n" % record.Age)
 //! [CollectionFind: Field Selection Parameters]
 
 #@ Collection.Find Field Selection Using Projection Expression
 //! [CollectionFind: Field Selection Projection]
-result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
-record = result.fetch_one();
+result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute()
+record = result.fetch_one()
 print("First Name: %s\n" % record.FirstName)
 print("In Three Years: %s\n" % record.InThreeYears)
 //! [CollectionFind: Field Selection Projection]

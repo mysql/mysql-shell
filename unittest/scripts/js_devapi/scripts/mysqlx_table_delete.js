@@ -91,27 +91,33 @@ crud = table.delete().where('name = :data and age > :years').bind('years', 5).ex
 // ---------------------------------------
 
 //@ TableDelete: delete under condition
+//! [TableDelete: delete under condition]
 var result = table.delete().where('age = 15').execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
+//! [TableDelete: delete under condition]
 
 //@ TableDelete: delete with binding
+//! [TableDelete: delete with binding]
 var result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
+//! [TableDelete: delete with binding]
 
 //@ TableDelete: full delete with a view object
 var view = schema.getTable('view1');
+//! [TableDelete: full delete]
 var result = view.delete().execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 // Deletion is of course reflected on the target table
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
+//! [TableDelete: full delete]
 
 //@ TableDelete: with limit 0
 var result = table.insert({ name: 'adam', age: 15, gender: 'male' }).execute();
@@ -124,11 +130,13 @@ var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: with limit 1
+//! [TableDelete: with limit]
 var result = table.delete().limit(2).execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
+//! [TableDelete: with limit]
 
 //@ TableDelete: with limit 2
 var result = table.delete().limit(2).execute();

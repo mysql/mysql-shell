@@ -58,6 +58,15 @@ collfind.help('group_by')
 #@ global help for group_by[USE:collfind.group_by]
 \help CollectionFind.group_by
 
+#@ collfind.having
+collfind.help('having')
+
+#@ global ? for having [USE: collfind.having]
+\? CollectionFind.having
+
+#@ global help for having [USE: collfind.having]
+\help CollectionFind.having
+
 #@ collfind.help
 collfind.help('help')
 
@@ -93,6 +102,24 @@ collfind.help('lock_shared')
 
 #@ global help for lock_shared[USE:collfind.lock_shared]
 \help CollectionFind.lock_shared
+
+#@ collfind.offset
+collfind.help('offset')
+
+#@ global ? for offset [USE: collfind.offset]
+\? CollectionFind.offset
+
+#@ global help for offset [USE: collfind.offset]
+\help CollectionFind.offset
+
+#@ collfind.skip
+collfind.help('skip')
+
+#@ global ? for skip [USE: collfind.skip]
+\? CollectionFind.skip
+
+#@ global help for skip [USE: collfind.skip]
+\help CollectionFind.skip
 
 #@ collfind.sort
 collfind.help('sort')

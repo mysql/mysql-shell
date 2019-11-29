@@ -30,9 +30,11 @@
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
-using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
-using namespace shcore;
+namespace mysqlsh {
+namespace mysqlx {
+
+using shcore::Value;
+using std::placeholders::_1;
 
 REGISTER_HELP_CLASS(TableSelect, mysqlx);
 REGISTER_HELP(TABLESELECT_BRIEF, "Operation to retrieve rows from a table.");
@@ -103,15 +105,15 @@ REGISTER_HELP_FUNCTION(select, TableSelect);
 REGISTER_HELP(TABLESELECT_SELECT_BRIEF,
               "Defines the columns to be retrieved from the table.");
 REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE, "()");
-REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE1, "(colDefArray)");
-REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE2, "(colDef, colDef, ...)");
+REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE1, "(columnList)");
+REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE2, "(column[, column, ...])");
 REGISTER_HELP(TABLESELECT_SELECT_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_SELECT_DETAIL,
               "Defines the columns that will be retrieved from the Table.");
 REGISTER_HELP(TABLESELECT_SELECT_DETAIL1,
               "To define the column list either use a list object containing "
-              "the column definition or pass each column definition on a "
-              "separate parameter");
+              "the column definitions or pass each column definition on a "
+              "separate parameter.");
 REGISTER_HELP(TABLESELECT_SELECT_DETAIL2,
               "If the function is called without specifying any column "
               "definition, all the columns in the table will be retrieved.");
@@ -120,52 +122,85 @@ REGISTER_HELP(TABLESELECT_SELECT_DETAIL2,
  *
  * $(TABLESELECT_SELECT_RETURNS)
  *
- * $(TABLESELECT_SELECT_DETAIL)
+ * Calling select() will cause all the columns in the table to be retrieved.
  *
- * $(TABLESELECT_SELECT_DETAIL1)
- *
- * $(TABLESELECT_SELECT_DETAIL2)
+ * To retrieve only certain columns use either
+ */
+#if DOXYGEN_JS
+/**
+ * select(List columns)
+ */
+#elif DOXYGEN_PY
+/**
+ * select(list columns)
+ */
+#endif
+/**
+ * and provide a list object containing the column definitions, or
+ */
+#if DOXYGEN_JS
+/**
+ * <a class="el" href="#a78f8b24db2361b186719b91388009f5b">
+ * select(String column[, String column, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * <a class="el" href="#aa849eccd5688219073236d38245e7698">
+ * select(str column[, str column, ...])</a>
+ */
+#endif
+/**
+ * and pass each column definition as a separate parameter.
  *
  * #### Method Chaining
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - where(String searchCriteria)
- * - groupBy(List searchExprStr)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - where(String expression)
+ * - groupBy(List columns),
+ *   <a class="el" href="#a2df20faa5d0e47adf17a464f5ec9b92a">
+ *   groupBy(String column[, String column, ...])</a>
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#adad6f1d629ef8aeac713ff3020d572c3">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - where(str expression)
+ * - group_by(list columns),
+ *   <a class="el" href="#a27c40212c7f332a8b2deea8dedad5c65">
+ *   group_by(str column[, str column, ...])</a>
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a6488316465ce1e87dc37cc68b0cd7309">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-TableSelect TableSelect::select(List searchExprStr) {}
+TableSelect TableSelect::select() {}
+TableSelect TableSelect::select(List columns) {}
+TableSelect TableSelect::select(String column[, String column, ...]) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::select(list searchExprStr) {}
+TableSelect TableSelect::select() {}
+TableSelect TableSelect::select(list columns) {}
+TableSelect TableSelect::select(str column[, str column, ...]) {}
 #endif
+//@}
 shcore::Value TableSelect::select(const shcore::Argument_list &args) {
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
@@ -201,12 +236,12 @@ REGISTER_HELP(TABLESELECT_WHERE_BRIEF,
               "Sets the search condition to filter the records to be retrieved "
               "from the Table.");
 REGISTER_HELP(TABLESELECT_WHERE_PARAM,
-              "@param expression Optional condition to filter the records to "
-              "be retrieved.");
+              "@param expression A condition to filter the records to be "
+              "retrieved.");
 REGISTER_HELP(TABLESELECT_WHERE_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_WHERE_DETAIL,
               "If used, only those rows satisfying the <b>expression</b> will "
-              "be retrieved");
+              "be retrieved.");
 REGISTER_HELP(TABLESELECT_WHERE_DETAIL1,
               "The <b>expression</b> supports parameter binding.");
 
@@ -219,51 +254,68 @@ REGISTER_HELP(TABLESELECT_WHERE_DETAIL1,
  *
  * $(TABLESELECT_WHERE_DETAIL)
  *
- * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
  *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - select(List columns)
+ */
+#if DOXYGEN_JS
+/**
+ * - select(), select(List columns),
+ *   <a class="el" href="#a78f8b24db2361b186719b91388009f5b">
+ *   select(String column[, String column, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - select(), select(list columns),
+ *   <a class="el" href="#aa849eccd5688219073236d38245e7698">
+ *   select(str column[, str column, ...])</a>
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - groupBy(List searchExprStr)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - groupBy(List columns),
+ *   <a class="el" href="#a2df20faa5d0e47adf17a464f5ec9b92a">
+ *   groupBy(String column[, String column, ...])</a>
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#adad6f1d629ef8aeac713ff3020d572c3">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - group_by(list columns),
+ *   <a class="el" href="#a27c40212c7f332a8b2deea8dedad5c65">
+ *   group_by(str column[, str column, ...])</a>
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a6488316465ce1e87dc37cc68b0cd7309">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableSelect TableSelect::where(String expression) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::where(str expression) {}
 #endif
+//@}
 shcore::Value TableSelect::where(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("where").c_str());
 
@@ -282,59 +334,74 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(groupBy, TableSelect);
 REGISTER_HELP(TABLESELECT_GROUPBY_BRIEF,
               "Sets a grouping criteria for the retrieved rows.");
-REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE, "(searchExprStrList)");
-REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE1,
-              "(searchExprStr, searchExprStr, ...)");
+REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE, "(columnList)");
+REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE1, "(column[, column, ...])");
 REGISTER_HELP(TABLESELECT_GROUPBY_RETURNS, "@returns This TableSelect object.");
 /**
  * $(TABLESELECT_GROUPBY_BRIEF)
  *
  * $(TABLESELECT_GROUPBY_RETURNS)
  *
- *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- * - select(List projectedSearchExprStr)
- * - where(String searchCondition)
+ */
+#if DOXYGEN_JS
+/**
+ * - select(), select(List columns),
+ *   <a class="el" href="#a78f8b24db2361b186719b91388009f5b">
+ *   select(String column[, String column, ...])</a>
+ * - where(String expression)
+ */
+#elif DOXYGEN_PY
+/**
+ * - select(), select(list columns),
+ *   <a class="el" href="#aa849eccd5688219073236d38245e7698">
+ *   select(str column[, str column, ...])</a>
+ * - where(str expression)
+ */
+#endif
+/**
  *
  * After this function invocation the following functions can be invoked:
- *
- * - having(String searchCondition)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - having(String condition)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#adad6f1d629ef8aeac713ff3020d572c3">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - having(str condition)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a6488316465ce1e87dc37cc68b0cd7309">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-TableSelect TableSelect::groupBy(List searchExprStr) {}
+TableSelect TableSelect::groupBy(List columns) {}
+TableSelect TableSelect::groupBy(String column[, String column, ...]) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::group_by(list searchExprStr) {}
+TableSelect TableSelect::group_by(list columns) {}
+TableSelect TableSelect::group_by(str column[, str column, ...]) {}
 #endif
+//@}
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("groupBy").c_str());
 
@@ -371,6 +438,8 @@ REGISTER_HELP(TABLESELECT_HAVING_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_HAVING_DETAIL,
               "If used the TableSelect operation will only consider the "
               "records matching the established criteria.");
+REGISTER_HELP(TABLESELECT_HAVING_DETAIL1,
+              "The <b>condition</b> supports parameter binding.");
 /**
  * $(TABLESELECT_HAVING_BRIEF)
  *
@@ -380,50 +449,62 @@ REGISTER_HELP(TABLESELECT_HAVING_DETAIL,
  *
  * $(TABLESELECT_HAVING_DETAIL)
  *
- * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ * The <b>condition</b> supports \a [Parameter Binding](param_binding.html).
  *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - groupBy(List searchExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - groupBy(List columns),
+ *   <a class="el" href="#a2df20faa5d0e47adf17a464f5ec9b92a">
+ *   groupBy(String column[, String column, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - group_by(list columns),
+ *   <a class="el" href="#a27c40212c7f332a8b2deea8dedad5c65">
+ *   group_by(str column[, str column, ...])</a>
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#adad6f1d629ef8aeac713ff3020d572c3">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a6488316465ce1e87dc37cc68b0cd7309">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableSelect TableSelect::having(String condition) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::having(str condition) {}
 #endif
+//@}
 shcore::Value TableSelect::having(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("having").c_str());
 
@@ -443,20 +524,18 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(orderBy, TableSelect);
 REGISTER_HELP(TABLESELECT_ORDERBY_BRIEF,
               "Sets the order in which the records will be retrieved.");
-REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE,
+REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE, "(sortCriteriaList)");
+REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE1,
               "(sortCriterion[, sortCriterion, ...])");
-REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE1, "(sortCriteria)");
 REGISTER_HELP(TABLESELECT_ORDERBY_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL,
-              "If used the records will be sorted with the defined criteria.");
+              "If used, the TableSelect operation will return the records "
+              "sorted with the defined criteria.");
 REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL1,
-              "The elements of <b>sortExprStr</b> list are strings defining "
-              "the column name on which the sorting will be based.");
-REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL2,
-              "The format is as follows: columnIdentifier [ ASC | DESC ]");
-REGISTER_HELP(
-    TABLESELECT_ORDERBY_DETAIL3,
-    "If no order criteria is specified, ascending will be used by default.");
+              "Every defined sort criterion follows the format:");
+REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL2, "name [ ASC | DESC ]");
+REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL3,
+              "ASC is used by default if the sort order is not specified.");
 /**
  * $(TABLESELECT_ORDERBY_BRIEF)
  *
@@ -473,47 +552,65 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - select(List projectedSearchExprStr)
- * - where(String searchCondition)
- * - groupBy(List searchExprStr)
- * - having(String searchCondition)
+ */
+#if DOXYGEN_JS
+/**
+ * - select(), select(List columns),
+ *   <a class="el" href="#a78f8b24db2361b186719b91388009f5b">
+ *   select(String column[, String column, ...])</a>
+ * - where(String expression)
+ * - groupBy(List columns),
+ *   <a class="el" href="#a2df20faa5d0e47adf17a464f5ec9b92a">
+ *   groupBy(String column[, String column, ...])</a>
+ * - having(String condition)
+ */
+#elif DOXYGEN_PY
+/**
+ * - select(), select(list columns),
+ *   <a class="el" href="#aa849eccd5688219073236d38245e7698">
+ *   select(str column[, str column, ...])</a>
+ * - where(str expression)
+ * - group_by(list columns),
+ *   <a class="el" href="#a27c40212c7f332a8b2deea8dedad5c65">
+ *   group_by(str column[, str column, ...])</a>
+ * - having(str condition)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfRows)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - limit(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-TableSelect TableSelect::orderBy(List sortExprStr) {}
+TableSelect TableSelect::orderBy(List sortCriteria) {}
+TableSelect TableSelect::orderBy(
+    String sortCriterion[, String sortCriterion, ...]) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::order_by(list sortExprStr) {}
+TableSelect TableSelect::order_by(list sortCriteria) {}
+TableSelect TableSelect::order_by(str sortCriterion[, str sortCriterion, ...]) {
+}
 #endif
+//@}
 shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("orderBy").c_str());
 
@@ -564,50 +661,69 @@ REGISTER_HELP(TABLESELECT_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - select(List projectedSearchExprStr)
- * - where(String searchCondition)
- * - groupBy(List searchExprStr)
- * - having(String searchCondition)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - select(), select(List columns),
+ *   <a class="el" href="#a78f8b24db2361b186719b91388009f5b">
+ *   select(String column[, String column, ...])</a>
+ * - where(String expression)
+ * - groupBy(List columns),
+ *   <a class="el" href="#a2df20faa5d0e47adf17a464f5ec9b92a">
+ *   groupBy(String column[, String column, ...])</a>
+ * - having(String condition)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#adad6f1d629ef8aeac713ff3020d572c3">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - select(), select(list columns),
+ *   <a class="el" href="#aa849eccd5688219073236d38245e7698">
+ *   select(str column[, str column, ...])</a>
+ * - where(str expression)
+ * - group_by(list columns),
+ *   <a class="el" href="#a27c40212c7f332a8b2deea8dedad5c65">
+ *   group_by(str column[, str column, ...])</a>
+ * - having(str condition)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a6488316465ce1e87dc37cc68b0cd7309">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ */
+#endif
+/**
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - offset(Integer limitOffset)
  */
 #if DOXYGEN_JS
 /**
+ * - offset(Integer numberOfRows)
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - offset(int numberOfRows)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableSelect TableSelect::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::limit(int numberOfRows) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(offset, TableSelect);
 REGISTER_HELP(TABLESELECT_OFFSET_BRIEF,
@@ -616,8 +732,7 @@ REGISTER_HELP(TABLESELECT_OFFSET_BRIEF,
 REGISTER_HELP(TABLESELECT_OFFSET_PARAM,
               "@param numberOfRows The number of rows to skip before start "
               "including them on the RowResult.");
-REGISTER_HELP(TABLESELECT_OFFSET_RETURNS,
-              "@returns This CollectionFind object.");
+REGISTER_HELP(TABLESELECT_OFFSET_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_OFFSET_DETAIL,
               "If used, the first <b>numberOfRows</b> records will not be "
               "included on the result.");
@@ -633,42 +748,45 @@ REGISTER_HELP(TABLESELECT_OFFSET_DETAIL,
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfRows)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfRows)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
  */
 #if DOXYGEN_JS
 /**
  * - lockShared(String lockContention)
+ * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
- */
-#endif
-/**
- */
-#if DOXYGEN_JS
-/**
- * - lockExclusive(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableSelect TableSelect::offset(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::offset(int numberOfRows) {}
 #endif
+//@}
 
 void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
   std::string lock_contention;
@@ -753,58 +871,73 @@ REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
- * $(TABLESELECT_LOCK_SHARED_BRIEF)
+ * $(TABLESELECT_LOCKSHARED_BRIEF)
  *
- * $(TABLESELECT_LOCK_SHARED_PARAM)
+ * $(TABLESELECT_LOCKSHARED_PARAM)
  *
- * $(TABLESELECT_LOCK_SHARED_RETURNS)
+ * $(TABLESELECT_LOCKSHARED_RETURNS)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL)
+ * $(TABLESELECT_LOCKSHARED_DETAIL)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL1)
+ * $(TABLESELECT_LOCKSHARED_DETAIL1)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL2)
+ * $(TABLESELECT_LOCKSHARED_DETAIL2)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL3)
- * $(TABLESELECT_LOCK_SHARED_DETAIL4)
- * $(TABLESELECT_LOCK_SHARED_DETAIL5)
- * $(TABLESELECT_LOCK_SHARED_DETAIL6)
+ * $(TABLESELECT_LOCKSHARED_DETAIL3)
+ * $(TABLESELECT_LOCKSHARED_DETAIL4)
+ * $(TABLESELECT_LOCKSHARED_DETAIL5)
+ * $(TABLESELECT_LOCKSHARED_DETAIL6)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL7)
- * $(TABLESELECT_LOCK_SHARED_DETAIL8)
- * $(TABLESELECT_LOCK_SHARED_DETAIL9)
- * $(TABLESELECT_LOCK_SHARED_DETAIL10)
+ * $(TABLESELECT_LOCKSHARED_DETAIL7)
+ * $(TABLESELECT_LOCKSHARED_DETAIL8)
+ * $(TABLESELECT_LOCKSHARED_DETAIL9)
+ * $(TABLESELECT_LOCKSHARED_DETAIL10)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL11)
+ * $(TABLESELECT_LOCKSHARED_DETAIL11)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL12)
+ * $(TABLESELECT_LOCKSHARED_DETAIL12)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL13)
+ * $(TABLESELECT_LOCKSHARED_DETAIL13)
  *
- * $(TABLESELECT_LOCK_SHARED_DETAIL14)
+ * $(TABLESELECT_LOCKSHARED_DETAIL14)
  *
  * #### Method Chaining
  *
- * This function can be invoked at any time before bind or execute are called.
+ * This function can be invoked at any time before bind() or execute() are
+ * called.
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
- * If lockExclusive() is called, it will override the lock type to be used on
- * on the selected documents.
+ * If
+ */
+#if DOXYGEN_JS
+/**
+ * lockExclusive()
+ */
+#elif DOXYGEN_PY
+/**
+ * lock_exclusive()
+ */
+#endif
+/**
+ * is called, it will override the lock type to be used on the selected
+ * documents.
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -886,58 +1019,73 @@ REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
- * $(TABLESELECT_LOCK_EXCLUSIVE_BRIEF)
+ * $(TABLESELECT_LOCKEXCLUSIVE_BRIEF)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_PARAM)
+ * $(TABLESELECT_LOCKEXCLUSIVE_PARAM)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_RETURNS)
+ * $(TABLESELECT_LOCKEXCLUSIVE_RETURNS)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL1)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL1)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL2)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL4)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL5)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL6)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL3)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL4)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL5)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL6)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL7)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL8)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL9)
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL10)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL7)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL8)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL9)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL10)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL11)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL11)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL12)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL12)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL13)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL13)
  *
- * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL14)
  *
  * #### Method Chaining
  *
- * This function can be invoked at any time before bind or execute are called.
+ * This function can be invoked at any time before bind() or execute() are
+ * called.
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockShared(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
- * If lockShared() is called, it will override the lock type to be used on
- * on the selected documents.
+ * If
+ */
+#if DOXYGEN_JS
+/**
+ * lockShared()
+ */
+#elif DOXYGEN_PY
+/**
+ * lock_shared()
+ */
+#endif
+/**
+ * is called, it will override the lock type to be used on the selected
+ * documents.
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -972,13 +1120,15 @@ REGISTER_HELP(TABLESELECT_BIND_PARAM,
 REGISTER_HELP(TABLESELECT_BIND_PARAM1,
               "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(TABLESELECT_BIND_RETURNS, "@returns This TableSelect object.");
-REGISTER_HELP(TABLESELECT_BIND_DETAIL, "${TABLESELECT_BIND_BRIEF}");
+REGISTER_HELP(
+    TABLESELECT_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
 REGISTER_HELP(TABLESELECT_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
 REGISTER_HELP(TABLESELECT_BIND_DETAIL2,
               "This function must be called once for each used placeholder or "
-              "an error will be raised when the execute method is called.");
+              "an error will be raised when the execute() method is called.");
 
 /**
  * $(TABLESELECT_BIND_BRIEF)
@@ -988,32 +1138,39 @@ REGISTER_HELP(TABLESELECT_BIND_DETAIL2,
  *
  * $(TABLESELECT_BIND_RETURNS)
  *
+ * $(TABLESELECT_BIND_DETAIL)
+ *
  * $(TABLESELECT_BIND_DETAIL1)
  *
  * $(TABLESELECT_BIND_DETAIL2)
  *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
- *
- * An error will be raised if the placeholder indicated by name does not exist.
- *
- * This function must be called once for each used placeholder or an error will
- * be
- * raised when the execute method is called.
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableSelect TableSelect::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::bind(str name, Value value) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(execute, TableSelect);
 REGISTER_HELP(TABLESELECT_EXECUTE_BRIEF,
@@ -1029,26 +1186,54 @@ REGISTER_HELP(TABLESELECT_EXECUTE_RETURNS,
  * #### Method Chaining
  *
  * This function can be invoked after any other function on this class.
+ *
+ * ### Examples
  */
+//@{
 #if DOXYGEN_JS
 /**
+ * #### Fetching all the records
+ * \snippet mysqlx_table_select.js Table.Select All
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_table_select.js"
- * \skip //@ Table.Select All
- * \until print('Select Binding Name:', records[0].my_name, '\n');
+ * #### Fetching records matching specified criteria
+ * \snippet mysqlx_table_select.js Table.Select Filtering
+ *
+ * #### Selecting which columns to fetch
+ * \snippet mysqlx_table_select.js Table.Select Field Selection
+ *
+ * #### Sorting the results
+ * \snippet mysqlx_table_select.js Table.Select Sorting
+ *
+ * #### Setting limit and offset
+ * \snippet mysqlx_table_select.js Table.Select Limit and Offset
+ *
+ * #### Using parameter binding
+ * \snippet mysqlx_table_select.js Table.Select Parameter Binding
  */
 RowResult TableSelect::execute() {}
 #elif DOXYGEN_PY
 /**
+ * #### Fetching all the records
+ * \snippet mysqlx_table_select.py Table.Select All
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_table_select.py"
- * \skip #@ Table.Select All
- * \until print 'Select Binding Name:', records[0].name, '\n'
+ * #### Fetching records matching specified criteria
+ * \snippet mysqlx_table_select.py Table.Select Filtering
+ *
+ * #### Selecting which columns to fetch
+ * \snippet mysqlx_table_select.py Table.Select Field Selection
+ *
+ * #### Sorting the results
+ * \snippet mysqlx_table_select.py Table.Select Sorting
+ *
+ * #### Setting limit and offset
+ * \snippet mysqlx_table_select.py Table.Select Limit and Offset
+ *
+ * #### Using parameter binding
+ * \snippet mysqlx_table_select.py Table.Select Parameter Binding
  */
 RowResult TableSelect::execute() {}
 #endif
+//@}
 shcore::Value TableSelect::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlx::RowResult> result;
   args.ensure_count(0, get_function_name("execute").c_str());
@@ -1074,3 +1259,6 @@ void TableSelect::set_prepared_stmt() {
   update_limits();
   *m_prep_stmt.mutable_stmt()->mutable_find() = message_;
 }
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

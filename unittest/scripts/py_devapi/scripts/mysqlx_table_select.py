@@ -141,10 +141,13 @@ crud = table.select().where('name = :data and age > :years').bind('years', 5).ex
 records
 
 #@ Table.Select All
+#! [Table.Select All]
 records = table.select().execute().fetch_all()
 print("All:", len(records), "\n")
+#! [Table.Select All]
 
 #@ Table.Select Filtering
+#! [Table.Select Filtering]
 records = table.select().where('gender = "male"').execute().fetch_all()
 print("Males:", len(records), "\n")
 
@@ -168,62 +171,57 @@ print("Names With A:", len(records), "\n")
 
 records = table.select().where('NOT (age = 14)').execute().fetch_all()
 print("Not 14 Years:", len(records), "\n")
+#! [Table.Select Filtering]
 
 #@ Table.Select Field Selection
+#! [Table.Select Field Selection]
 result = table.select(['name','age']).execute()
 record = result.fetch_one()
-all_members = dir(record)
-
-# Remove the python built in members
-columns = []
-for member in all_members:
-  if not member.startswith('__'):
-    columns.append(member)
-
+columns = dir(record)
+print(columns)
 # In python, members are returned in alphabetic order
-# We print the requested members here (get_length and getField are members too)
+# We print the requested columns here (get_length and get_field are members too)
 print('1-Metadata Length:', len(columns), '\n')
 print('1-Metadata Field:', columns[5], '\n')
 print('1-Metadata Field:', columns[0], '\n')
 
 result = table.select(['age']).execute()
 record = result.fetch_one()
-
-all_members = dir(record)
-
-# Remove the python built in members
-columns = []
-for member in all_members:
-  if not member.startswith('__'):
-    columns.append(member)
-
+columns = dir(record)
 # In python, members are returned in alphabetic order
-# We print the requested members here (get_length and getField are members too)
+# We print the requested columns here (get_length and get_field are members too)
 print('2-Metadata Length:', len(columns), '\n')
 print('2-Metadata Field:', columns[0], '\n')
+#! [Table.Select Field Selection]
 
 #@ Table.Select Sorting
+#! [Table.Select Sorting]
 records = table.select().order_by(['name']).execute().fetch_all()
 for index in range(7):
-	print('Select Asc', index, ':', records[index].name, '\n')
+    print('Select Asc', index, ':', records[index].name, '\n')
 
 records = table.select().order_by(['name desc']).execute().fetch_all()
 for index in range(7):
-	print('Select Desc', index, ':', records[index].name, '\n')
+    print('Select Desc', index, ':', records[index].name, '\n')
+#! [Table.Select Sorting]
 
 #@ Table.Select Limit and Offset
+#! [Table.Select Limit and Offset]
 records = table.select().limit(4).execute().fetch_all()
 print('Limit-Offset 0 :', len(records), '\n')
 
 for index in range(7):
-	records = table.select().limit(4).offset(index + 1).execute().fetch_all()
-	print('Limit-Offset', index + 1, ':', len(records), '\n')
+    records = table.select().limit(4).offset(index + 1).execute().fetch_all()
+    print('Limit-Offset', index + 1, ':', len(records), '\n')
+#! [Table.Select Limit and Offset]
 
 #@ Table.Select Parameter Binding through a View
 view = schema.get_table('view1');
+#! [Table.Select Parameter Binding]
 records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetch_all()
 print('Select Binding Length:', len(records), '\n')
 print('Select Binding Name:', records[0].my_name, '\n')
+#! [Table.Select Parameter Binding]
 
 #@ Table.Select Basic vertical output
 shell.options.resultFormat = "vertical"

@@ -64,14 +64,17 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
 }
 
 REGISTER_HELP_FUNCTION(add, CollectionAdd);
-REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
+REGISTER_HELP(COLLECTIONADD_ADD_BRIEF,
+              "Stores documents to be added into a collection.");
 REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE, "(documentList)");
 REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE1, "(document[, document, ...])");
 REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE2, "(mysqlx.expr(...))");
 REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@returns This CollectionAdd object.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL,
               "This function receives one or more document definitions to be "
-              "added into a collection.");
+              "added into a collection. The documents are cached in an "
+              "internal list and are added to the collection when the "
+              "execute() method is called.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL1,
               "A document definition may be provided in two ways:");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL2,
@@ -113,11 +116,6 @@ REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE1_DESC,
 /**
  * $(COLLECTIONADD_ADD_BRIEF)
  *
- * #### Parameters
- *
- * @li \b document The definition of a document to be added.
- * @li \b documents A list of documents to be added.
- *
  * $(COLLECTIONADD_ADD_RETURNS)
  *
  * $(COLLECTIONADD_ADD_DETAIL)
@@ -139,8 +137,10 @@ REGISTER_HELP(COLLECTIONADD_ADD_EXAMPLE1_DESC,
  *
  * This method can be called many times, every time it is called the received
  * document(s) will be cached into an internal list.
- * The actual addition into the collection will occur only when the execute
+ * The actual addition into the collection will occur only when the execute()
  * method is called.
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -262,9 +262,21 @@ REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURNS, "@returns A Result object.");
  * #### Method Chaining
  *
  * This function can be invoked once after:
- *
- * - add(DocDefinition document[, DocDefinition document, ...])
- *
+ */
+#if DOXYGEN_JS
+/**
+ * - <a class="el" href="#a228e4c21eeb42ffafd2c02f58892323e">
+ *   add(DocDefinition document[, DocDefinition document, ...])</a>,
+ *   add(List documents)
+ */
+#elif DOXYGEN_PY
+/**
+ * - <a class="el" href="#a228e4c21eeb42ffafd2c02f58892323e">
+ *   add(DocDefinition document[, DocDefinition document, ...])</a>,
+ *   add(list documents)
+ */
+#endif
+/**
  * ### Examples
  */
 //@{

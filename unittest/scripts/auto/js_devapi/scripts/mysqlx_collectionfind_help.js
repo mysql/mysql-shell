@@ -71,6 +71,12 @@ crud.help('lockShared');
 //@ Help on lockShared, \? [USE:Help on lockShared]
 \? CollectionFind.lockShared
 
+//@ Help on offset
+crud.help('offset');
+
+//@ Help on offset, \? [USE:Help on offset]
+\? CollectionFind.offset
+
 //@ Help on skip
 crud.help('skip');
 

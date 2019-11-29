@@ -28,7 +28,7 @@ FUNCTIONS
       orderBy(...)
             Sets the order in which the records will be deleted.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be deleted from
             the Table.
 
@@ -47,7 +47,7 @@ RETURNS
       This TableDelete object.
 
 DESCRIPTION
-      Binds a value to a specific placeholder used on this operation.
+      Binds the given value to the placeholder with the specified name.
 
       An error will be raised if the placeholder indicated by name does not
       exist.
@@ -106,22 +106,21 @@ NAME
       orderBy - Sets the order in which the records will be deleted.
 
 SYNTAX
-      <TableDelete>.orderBy(sortCriteria)
+      <TableDelete>.orderBy(sortCriteriaList)
       <TableDelete>.orderBy(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This TableDelete object.
 
 DESCRIPTION
-      If used the records will be deleted in the order established by the sort
-      criteria.
+      If used, the TableDelete operation will delete the records in the order
+      established by the sort criteria.
 
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based.
+      Every defined sort criterion follows the format:
 
-      The format is as follows: columnIdentifier [ ASC | DESC ]
+      name [ ASC | DESC ]
 
-      If no order criteria is specified, ASC will be used by default.
+      ASC is used by default if the sort order is not specified.
 
 //@<OUT> Help on where
 NAME
@@ -129,10 +128,10 @@ NAME
               from the Table.
 
 SYNTAX
-      <TableDelete>.where([expression])
+      <TableDelete>.where(expression)
 
 WHERE
-      expression: Condition to filter the records to be deleted.
+      expression: A condition to filter the records to be deleted.
 
 RETURNS
       This TableDelete object.

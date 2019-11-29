@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,26 +51,31 @@ class TableSelect : public Table_crud_definition,
                     public std::enable_shared_from_this<TableSelect> {
  public:
 #if DOXYGEN_JS
-  TableSelect select(List searchExprStr);
+  TableSelect select();
+  TableSelect select(List columns);
+  TableSelect select(String column[, String column, ...]);
   TableSelect where(String expression);
-  TableSelect groupBy(List searchExprStr);
+  TableSelect groupBy(List columns);
+  TableSelect groupBy(String column[, String column, ...]);
   TableSelect having(String condition);
-  TableSelect orderBy(List sortExprStr);
+  TableSelect orderBy(List sortCriteria);
+  TableSelect orderBy(String sortCriterion[, String sortCriterion, ...]);
   TableSelect limit(Integer numberOfRows);
   TableSelect offset(Integer numberOfRows);
   TableSelect lockShared(String lockContention);
   TableSelect lockExclusive(String lockContention);
-  /**
-   * $(TABLESELECT_BIND_BRIEF)
-   */
   TableSelect bind(String name, Value value);
   RowResult execute();
 #elif DOXYGEN_PY
-  TableSelect select(list searchExprStr);
+  TableSelect select();
+  TableSelect select(list columns);
+  TableSelect select(str column[, str column, ...]);
   TableSelect where(str expression);
-  TableSelect group_by(list searchExprStr);
+  TableSelect group_by(list columns);
+  TableSelect group_by(str column[, str column, ...]);
   TableSelect having(str condition);
-  TableSelect order_by(list sortExprStr);
+  TableSelect order_by(list sortCriteria);
+  TableSelect order_by(str sortCriterion[, str sortCriterion, ...]);
   TableSelect limit(int numberOfRows);
   TableSelect offset(int numberOfRows);
   TableSelect lock_shared(str lockContention);

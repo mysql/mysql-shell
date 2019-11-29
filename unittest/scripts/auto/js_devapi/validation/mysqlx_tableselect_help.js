@@ -48,7 +48,7 @@ FUNCTIONS
       select(...)
             Defines the columns to be retrieved from the table.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be retrieved
             from the Table.
 
@@ -67,13 +67,13 @@ RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      Binds a value to a specific placeholder used on this operation.
+      Binds the given value to the placeholder with the specified name.
 
       An error will be raised if the placeholder indicated by name does not
       exist.
 
       This function must be called once for each used placeholder or an error
-      will be raised when the execute method is called.
+      will be raised when the execute() method is called.
 
 //@<OUT> Help on execute
 NAME
@@ -91,8 +91,8 @@ NAME
       groupBy - Sets a grouping criteria for the retrieved rows.
 
 SYNTAX
-      <TableSelect>.groupBy(searchExprStrList)
-      <TableSelect>.groupBy(searchExprStr, searchExprStr, ...)
+      <TableSelect>.groupBy(columnList)
+      <TableSelect>.groupBy(column[, column, ...])
 
 RETURNS
       This TableSelect object.
@@ -114,6 +114,8 @@ RETURNS
 DESCRIPTION
       If used the TableSelect operation will only consider the records matching
       the established criteria.
+
+      The condition supports parameter binding.
 
 //@<OUT> Help on help
 NAME
@@ -262,7 +264,7 @@ WHERE
                     the RowResult.
 
 RETURNS
-      This CollectionFind object.
+      This TableSelect object.
 
 DESCRIPTION
       If used, the first numberOfRows records will not be included on the
@@ -273,21 +275,21 @@ NAME
       orderBy - Sets the order in which the records will be retrieved.
 
 SYNTAX
+      <TableSelect>.orderBy(sortCriteriaList)
       <TableSelect>.orderBy(sortCriterion[, sortCriterion, ...])
-      <TableSelect>.orderBy(sortCriteria)
 
 RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      If used the records will be sorted with the defined criteria.
+      If used, the TableSelect operation will return the records sorted with
+      the defined criteria.
 
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based.
+      Every defined sort criterion follows the format:
 
-      The format is as follows: columnIdentifier [ ASC | DESC ]
+      name [ ASC | DESC ]
 
-      If no order criteria is specified, ascending will be used by default.
+      ASC is used by default if the sort order is not specified.
 
 //@<OUT> Help on select
 NAME
@@ -295,8 +297,8 @@ NAME
 
 SYNTAX
       <TableSelect>.select()
-      <TableSelect>.select(colDefArray)
-      <TableSelect>.select(colDef, colDef, ...)
+      <TableSelect>.select(columnList)
+      <TableSelect>.select(column[, column, ...])
 
 RETURNS
       This TableSelect object.
@@ -305,7 +307,7 @@ DESCRIPTION
       Defines the columns that will be retrieved from the Table.
 
       To define the column list either use a list object containing the column
-      definition or pass each column definition on a separate parameter
+      definitions or pass each column definition on a separate parameter.
 
       If the function is called without specifying any column definition, all
       the columns in the table will be retrieved.
@@ -316,15 +318,15 @@ NAME
               from the Table.
 
 SYNTAX
-      <TableSelect>.where([expression])
+      <TableSelect>.where(expression)
 
 WHERE
-      expression: Condition to filter the records to be retrieved.
+      expression: A condition to filter the records to be retrieved.
 
 RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      If used, only those rows satisfying the expression will be retrieved
+      If used, only those rows satisfying the expression will be retrieved.
 
       The expression supports parameter binding.

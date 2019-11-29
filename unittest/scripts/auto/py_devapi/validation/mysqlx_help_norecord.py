@@ -388,7 +388,7 @@ PROPERTIES
 
 FUNCTIONS
       add(...)
-            Inserts one or more documents into a collection.
+            Creates a document addition handler.
 
       add_or_replace_one(id, doc)
             Replaces or adds a document in a collection.
@@ -406,8 +406,7 @@ FUNCTIONS
             Verifies if this object exists in the database.
 
       find([searchCondition])
-            Retrieves documents from a collection, matching a specified
-            criteria.
+            Creates a handler which can be used to find documents.
 
       get_name()
             Returns the name of this database object.
@@ -447,7 +446,7 @@ DESCRIPTION
 
 FUNCTIONS
       add(...)
-            Adds documents into a collection.
+            Stores documents to be added into a collection.
 
       execute()
             Executes the add operation, the documents are added to the target
@@ -503,12 +502,16 @@ FUNCTIONS
             Instructs the server to acquire shared row locks in documents
             matched by this find operation.
 
+      offset(quantity)
+            Sets number of documents to skip on the resultset when a limit has
+            been defined.
+
       skip(numberOfDocs)
             Sets number of documents to skip on the resultset when a limit has
             been defined.
 
             ATTENTION: This function will be removed in a future release, use
-                       the offset function instead.
+                       the offset() function instead.
 
       sort(...)
             Sets the sorting criteria to be used on the DocResult.
@@ -532,13 +535,13 @@ FUNCTIONS
             documents of a collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the unset function instead.
+                       the unset() function instead.
 
       array_insert(docPath, value)
             Inserts a value into a specific position in an array attribute in
             documents of a collection.
 
-      bind(name:, value:)
+      bind(name, value)
             Binds a value to a specific placeholder used on this
             CollectionModify object.
 
@@ -558,7 +561,7 @@ FUNCTIONS
             collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the patch function instead.
+                       the patch() function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated
@@ -1161,7 +1164,7 @@ FUNCTIONS
       order_by(...)
             Sets the order in which the records will be deleted.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be deleted from
             the Table.
 
@@ -1233,7 +1236,7 @@ FUNCTIONS
       select(...)
             Defines the columns to be retrieved from the table.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be retrieved
             from the Table.
 
@@ -1267,6 +1270,6 @@ FUNCTIONS
       update()
             Initializes the update operation.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be updated.
 

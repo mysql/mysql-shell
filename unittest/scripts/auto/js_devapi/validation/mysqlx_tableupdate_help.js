@@ -31,7 +31,7 @@ FUNCTIONS
       update()
             Initializes the update operation.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be updated.
 
 //@<OUT> Help on bind
@@ -49,7 +49,7 @@ RETURNS
       This TableUpdate object.
 
 DESCRIPTION
-      Binds a value to a specific placeholder used on this operation.
+      Binds the given value to the placeholder with the specified name.
 
       An error will be raised if the placeholder indicated by name does not
       exist.
@@ -93,27 +93,28 @@ RETURNS
 DESCRIPTION
       If used, the operation will update only numberOfRows rows.
 
+      This function can be called every time the statement is executed.
+
 //@<OUT> Help on orderBy
 NAME
       orderBy - Sets the order in which the records will be updated.
 
 SYNTAX
-      <TableUpdate>.orderBy(sortCriteria)
+      <TableUpdate>.orderBy(sortCriteriaList)
       <TableUpdate>.orderBy(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This TableUpdate object.
 
 DESCRIPTION
-      If used the records will be updated in the order established by the sort
-      criteria.
+      If used, the TableUpdate operation will update the records in the order
+      established by the sort criteria.
 
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based.
+      Every defined sort criterion follows the format:
 
-      The format is as follows: columnIdentifier [ ASC | DESC ]
+      name [ ASC | DESC ]
 
-      If no order criteria is specified, ASC will be used by default.
+      ASC is used by default if the sort order is not specified.
 
 //@<OUT> Help on set
 NAME
@@ -130,18 +131,23 @@ RETURNS
       This TableUpdate object.
 
 DESCRIPTION
-      Adds an operation into the update handler to update a column value in on
-      the records that were included on the selection filter and limit.
+      Adds an operation into the update handler to update a column value in the
+      records that were included on the selection filter and limit.
+
+      Using Expressions As Values
+
+      If a mysqlx.expr(...) object is defined as a value, it will be evaluated
+      in the server, the resulting value will be set at the indicated column.
 
 //@<OUT> Help on where
 NAME
       where - Sets the search condition to filter the records to be updated.
 
 SYNTAX
-      <TableUpdate>.where([expression])
+      <TableUpdate>.where(expression)
 
 WHERE
-      expression: Condition to filter the records to be updated.
+      expression: A condition to filter the records to be updated.
 
 RETURNS
       This TableUpdate object.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,8 @@ class TableUpdate : public Table_crud_definition,
   TableUpdate update();
   TableUpdate set(String attribute, Value value);
   TableUpdate where(String expression);
-  TableUpdate orderBy(List sortExprStr);
+  TableUpdate orderBy(List sortCriteria);
+  TableUpdate orderBy(String sortCriterion[, String sortCriterion, ...]);
   TableUpdate limit(Integer numberOfRows);
   TableUpdate bind(String name, Value value);
   Result execute();
@@ -62,7 +63,8 @@ class TableUpdate : public Table_crud_definition,
   TableUpdate update();
   TableUpdate set(str attribute, Value value);
   TableUpdate where(str expression);
-  TableUpdate order_by(list sortExprStr);
+  TableUpdate order_by(list sortCriteria);
+  TableUpdate order_by(str sortCriterion[, str sortCriterion, ...]);
   TableUpdate limit(int numberOfRows);
   TableUpdate bind(str name, Value value);
   Result execute();

@@ -150,6 +150,17 @@
 |Unset Affected Rows: 1|
 |name|
 
+//@ CollectionModify: Patch Execution
+|Patch Affected Rows: 1|
+
+|Brian's last_name: white|
+|Brian's age: 14|
+|Brian's alias: bw|
+|Brian's first girlfriend: lois|
+|Brian's second girlfriend: jane|
+
+//@ CollectionModify: unset for merge
+|Unset Affected Rows: 1|
 
 //@ CollectionModify: Merge Execution
 |Merge Affected Rows: 1|

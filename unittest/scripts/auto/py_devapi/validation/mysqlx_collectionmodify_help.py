@@ -20,13 +20,13 @@ FUNCTIONS
             documents of a collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the unset function instead.
+                       the unset() function instead.
 
       array_insert(docPath, value)
             Inserts a value into a specific position in an array attribute in
             documents of a collection.
 
-      bind(name:, value:)
+      bind(name, value)
             Binds a value to a specific placeholder used on this
             CollectionModify object.
 
@@ -46,7 +46,7 @@ FUNCTIONS
             collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the patch function instead.
+                       the patch() function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated
@@ -107,10 +107,10 @@ DESCRIPTION
       limit.
 
       The attribute deletion will be done on the collection's documents once
-      the execute method is called.
+      the execute() method is called.
 
       ATTENTION: This function will be removed in a future release, use the
-                 unset function instead.
+                 unset() function instead.
 
 #@<OUT> collfind.array_insert
 NAME
@@ -134,7 +134,7 @@ DESCRIPTION
       limit.
 
       The insertion of the value will be done on the collection's documents
-      once the execute method is called.
+      once the execute() method is called.
 
 #@<OUT> collfind.help
 NAME
@@ -166,10 +166,10 @@ DESCRIPTION
       the collection's documents.
 
       The attribute addition will be done on the collection's documents once
-      the execute method is called.
+      the execute() method is called.
 
       ATTENTION: This function will be removed in a future release, use the
-                 patch function instead.
+                 patch() function instead.
 
 #@<OUT> collfind.modify
 NAME
@@ -233,7 +233,7 @@ DESCRIPTION
         they will be evaluated at the server side.
 
       The patch operations will be done on the collection's documents once the
-      execute method is called.
+      execute() method is called.
 
 #@<OUT> collfind.set
 NAME
@@ -285,7 +285,7 @@ RETURNS
 
 DESCRIPTION
       The attribute removal will be done on the collection's documents once the
-      execute method is called.
+      execute() method is called.
 
       For each attribute on the attributes list, adds an operation into the
       modify handler

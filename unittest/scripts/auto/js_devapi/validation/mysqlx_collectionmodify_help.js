@@ -20,13 +20,13 @@ FUNCTIONS
             documents of a collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the unset function instead.
+                       the unset() function instead.
 
       arrayInsert(docPath, value)
             Inserts a value into a specific position in an array attribute in
             documents of a collection.
 
-      bind(name:, value:)
+      bind(name, value)
             Binds a value to a specific placeholder used on this
             CollectionModify object.
 
@@ -46,7 +46,7 @@ FUNCTIONS
             collection.
 
             ATTENTION: This function will be removed in a future release, use
-                       the patch function instead.
+                       the patch() function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated
@@ -107,10 +107,10 @@ DESCRIPTION
       limit.
 
       The attribute deletion will be done on the collection's documents once
-      the execute method is called.
+      the execute() method is called.
 
       ATTENTION: This function will be removed in a future release, use the
-                 unset function instead.
+                 unset() function instead.
 
 //@<OUT> Help on arrayInsert
 NAME
@@ -134,7 +134,7 @@ DESCRIPTION
       limit.
 
       The insertion of the value will be done on the collection's documents
-      once the execute method is called.
+      once the execute() method is called.
 
 //@<OUT> Help on bind
 NAME
@@ -142,14 +142,23 @@ NAME
              CollectionModify object.
 
 SYNTAX
-      <CollectionModify>.bind(name:, value:)
+      <CollectionModify>.bind(name, value)
 
 WHERE
-      name:: The name of the placeholder to which the value will be bound.
-      value:: The value to be bound on the placeholder.
+      name: The name of the placeholder to which the value will be bound.
+      value: The value to be bound on the placeholder.
 
 RETURNS
       This CollectionModify object.
+
+DESCRIPTION
+      Binds the given value to the placeholder with the specified name.
+
+      An error will be raised if the placeholder indicated by name does not
+      exist.
+
+      This function must be called once for each used placeholder or an error
+      will be raised when the execute() method is called.
 
 //@<OUT> Help on execute
 NAME
@@ -211,10 +220,10 @@ DESCRIPTION
       the collection's documents.
 
       The attribute addition will be done on the collection's documents once
-      the execute method is called.
+      the execute() method is called.
 
       ATTENTION: This function will be removed in a future release, use the
-                 patch function instead.
+                 patch() function instead.
 
 //@<OUT> Help on modify
 NAME
@@ -278,7 +287,7 @@ DESCRIPTION
         they will be evaluated at the server side.
 
       The patch operations will be done on the collection's documents once the
-      execute method is called.
+      execute() method is called.
 
 //@<OUT> Help on set
 NAME
@@ -317,19 +326,18 @@ NAME
              the handler should be done.
 
 SYNTAX
-      <CollectionModify>.sort(sortDataList)
-      <CollectionModify>.sort(sortData[, sortData, ...])
+      <CollectionModify>.sort(sortCriteriaList)
+      <CollectionModify>.sort(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This CollectionModify object.
 
 DESCRIPTION
-      The elements of sortExprStr list are usually strings defining the
-      attribute name on which the collection sorting will be based. Each
-      criterion could be followed by asc or desc to indicate ascending
+      Every defined sort criterion follows the format:
 
-      or descending order respectively. If no order is specified, ascending
-      will be used by default.
+      name [ ASC | DESC ]
+
+      ASC is used by default if the sort order is not specified.
 
       This method is usually used in combination with limit to fix the amount
       of documents to be updated.
@@ -353,7 +361,7 @@ RETURNS
 
 DESCRIPTION
       The attribute removal will be done on the collection's documents once the
-      execute method is called.
+      execute() method is called.
 
       For each attribute on the attributes list, adds an operation into the
       modify handler

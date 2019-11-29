@@ -173,16 +173,20 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 # ---------------------------------------
 
 #@# CollectionModify: Set Execution
+#! [CollectionModify: Set Execution]
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute()
 print('Set Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: Set Execution]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
 print(dir(doc))
 
 #@# CollectionModify: Set Execution Binding Array
+#! [CollectionModify: Set Binding Array]
 result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer', 'dance', 'reading']).execute()
 print('Set Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: Set Binding Array]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
@@ -192,20 +196,42 @@ print(doc.hobbies[1])
 print(doc.hobbies[2])
 
 #@ CollectionModify: Simple Unset Execution
+#! [CollectionModify: Simple Unset Execution]
 result = collection.modify('name = "brian"').unset('last_name').execute()
 print('Unset Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: Simple Unset Execution]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
 print(dir(doc))
 
 #@ CollectionModify: List Unset Execution
+#! [CollectionModify: List Unset Execution]
 result = collection.modify('name = "brian"').unset(['alias', 'age']).execute()
 print('Unset Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: List Unset Execution]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
 print(dir(doc))
+
+#@ CollectionModify: Patch Execution {VER(>=8.0.4)}
+#! [CollectionModify: Patch Execution]
+result = collection.modify('name = "brian"').patch({'last_name': 'white', 'age': 14, 'alias': 'bw', 'girlfriends': ['lois', 'jane'] }).execute()
+print('Patch Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: Patch Execution]
+
+result = collection.find('name = "brian"').execute()
+doc = result.fetch_one()
+print("Brian's last_name:", doc.last_name, '\n')
+print("Brian's age:", doc.age, '\n')
+print("Brian's alias:", doc.alias, '\n')
+print("Brian's first girlfriend:", doc.girlfriends[0], '\n')
+print("Brian's second girlfriend:", doc.girlfriends[1], '\n')
+
+#@ CollectionModify: unset for merge {VER(>=8.0.4)}
+result = collection.modify('name = "brian"').unset(['last_name', 'age', 'alias', 'girlfriends']).execute()
+print('Unset Affected Rows:', result.affected_items_count, '\n')
 
 #@ CollectionModify: Merge Execution
 result = collection.modify('name = "brian"').merge({'last_name':'black', "age":15, 'alias':'bri', 'girlfriends':['martha', 'karen']}).execute()
@@ -220,8 +246,10 @@ print("Brian's first girlfriend:",  doc.girlfriends[0], '\n')
 print("Brian's second girlfriend:",  doc.girlfriends[1], '\n')
 
 #@ CollectionModify: array_append Execution
+#! [CollectionModify: array_append Execution]
 result = collection.modify('name = "brian"').array_append('girlfriends','cloe').execute()
 print('Array Append Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: array_append Execution]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
@@ -229,8 +257,10 @@ print("Brian's girlfriends:", len(doc.girlfriends))
 print("Brian's last:", doc.girlfriends[2])
 
 #@ CollectionModify: array_insert Execution
+#! [CollectionModify: array_insert Execution]
 result = collection.modify('name = "brian"').array_insert('girlfriends[1]','samantha').execute()
 print('Array Insert Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: array_insert Execution]
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetch_one()
@@ -247,8 +277,10 @@ print("Brian's girlfriends:", len(doc.girlfriends), '\n')
 print("Brian's third:", doc.girlfriends[2], '\n')
 
 #@ CollectionModify: sorting and limit Execution
+#! [CollectionModify: sorting and limit]
 result = collection.modify('age = 15').set('sample', 'in_limit').sort(['name']).limit(2).execute()
 print('Affected Rows:', result.affected_items_count, '\n')
+#! [CollectionModify: sorting and limit]
 
 result = collection.find('age = 15').sort(['name']).execute()
 

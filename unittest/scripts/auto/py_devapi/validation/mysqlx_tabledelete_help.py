@@ -28,7 +28,7 @@ FUNCTIONS
       order_by(...)
             Sets the order in which the records will be deleted.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be deleted from
             the Table.
 
@@ -68,27 +68,28 @@ RETURNS
 DESCRIPTION
       If used, the operation will delete only numberOfRows rows.
 
+      This function can be called every time the statement is executed.
+
 #@<OUT> tabledelete.order_by
 NAME
       order_by - Sets the order in which the records will be deleted.
 
 SYNTAX
-      <TableDelete>.order_by(sortCriteria)
+      <TableDelete>.order_by(sortCriteriaList)
       <TableDelete>.order_by(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This TableDelete object.
 
 DESCRIPTION
-      If used the records will be deleted in the order established by the sort
-      criteria.
+      If used, the TableDelete operation will delete the records in the order
+      established by the sort criteria.
 
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based.
+      Every defined sort criterion follows the format:
 
-      The format is as follows: columnIdentifier [ ASC | DESC ]
+      name [ ASC | DESC ]
 
-      If no order criteria is specified, ASC will be used by default.
+      ASC is used by default if the sort order is not specified.
 
 #@<OUT> tabledelete.where
 NAME
@@ -96,10 +97,10 @@ NAME
               from the Table.
 
 SYNTAX
-      <TableDelete>.where([expression])
+      <TableDelete>.where(expression)
 
 WHERE
-      expression: Condition to filter the records to be deleted.
+      expression: A condition to filter the records to be deleted.
 
 RETURNS
       This TableDelete object.

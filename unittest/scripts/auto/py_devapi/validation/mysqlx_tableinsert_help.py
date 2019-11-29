@@ -63,9 +63,9 @@ DESCRIPTION
       the values must match the defined column names in order and data type.
 
       If a JSON document was used, the operation is ready to be completed and
-      it will insert the associated value into the corresponding column.
+      it will insert the associated values into the corresponding columns.
 
-      If no columns are defined, insertion will suceed if the provided values
+      If no columns are defined, insertion will succeed if the provided values
       match the database columns in number and data types.
 
 #@<OUT> tableinsert.values
@@ -81,13 +81,13 @@ RETURNS
 DESCRIPTION
       Each parameter represents the value for a column in the target table.
 
-      If the columns were defined on the insert function, the number of values
-      on this function must match the number of defined columns.
+      If the columns were defined on the insert() function, the number of
+      values on this function must match the number of defined columns.
 
       If no column was defined, the number of parameters must match the number
       of columns on the target Table.
 
-      This function is not available when the insert is called passing a JSON
+      This function is not available when the insert() is called passing a JSON
       object with columns and values.
 
       Using Expressions As Values

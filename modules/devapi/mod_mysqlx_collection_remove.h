@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,17 +54,17 @@ class CollectionRemove : public Collection_crud_definition,
  public:
 #if DOXYGEN_JS
   CollectionRemove remove(String searchCondition);
-  CollectionRemove sort(List sortExpr);
-  CollectionRemove sort(String sortExpr[, String sortExpr, ...]);
+  CollectionRemove sort(List sortCriteria);
+  CollectionRemove sort(String sortCriterion[, String sortCriterion, ...]);
   CollectionRemove limit(Integer numberOfRows);
-  CollectionFind bind(String name, Value value);
+  CollectionRemove bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
   CollectionRemove remove(str searchCondition);
-  CollectionRemove sort(list sortExpr);
-  CollectionRemove sort(str sortExpr[, str sortExpr, ...]);
+  CollectionRemove sort(list sortCriteria);
+  CollectionRemove sort(str sortCriterion[, str sortCriterion, ...]);
   CollectionRemove limit(int numberOfRows);
-  CollectionFind bind(str name, Value value);
+  CollectionRemove bind(str name, Value value);
   Result execute();
 #endif
   std::string class_name() const override { return "CollectionRemove"; }
@@ -79,7 +79,9 @@ class CollectionRemove : public Collection_crud_definition,
   void set_prepared_stmt() override;
   void update_limits() override { set_limits_on_message(&message_); }
   shcore::Value this_object() override;
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
   shcore::Value execute();
+#endif
 
   friend class Collection;
   CollectionRemove &set_filter(const std::string &filter);

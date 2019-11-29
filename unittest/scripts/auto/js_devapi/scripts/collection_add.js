@@ -107,18 +107,18 @@ print("Affected Rows Chained:", result.affectedItemsCount, "\n");
 //! [CollectionAdd: Chained Calls]
 
 //! [CollectionAdd: Using an Expression]
-var result = collection.add(mysqlx.expr('{"name": "my fifth", "passed": "document", "count": 1}')).execute()
-print("Affected Rows Single Expression:", result.affectedItemsCount, "\n")
+var result = collection.add(mysqlx.expr('{"name": "my fifth", "passed": "document", "count": 1}')).execute();
+print("Affected Rows Single Expression:", result.affectedItemsCount, "\n");
 //! [CollectionAdd: Using an Expression]
 
 //! [CollectionAdd: Document List]
-var result = collection.add([{ "name": 'my sexth', "passed": 'again', "count": 5 }, mysqlx.expr('{"name": "my senevth", "passed": "yep again", "count": 5}')]).execute()
-print("Affected Rows Mixed List:", result.affectedItemsCount, "\n")
+var result = collection.add([{ "name": 'my sexth', "passed": 'again', "count": 5 }, mysqlx.expr('{"name": "my senevth", "passed": "yep again", "count": 5}')]).execute();
+print("Affected Rows Mixed List:", result.affectedItemsCount, "\n");
 //! [CollectionAdd: Document List]
 
 //! [CollectionAdd: Multiple Parameters]
-var result = collection.add({ "name": 'my eigth', "passed": 'yep', "count": 6 }, mysqlx.expr('{"name": "my nineth", "passed": "yep again", "count": 6}')).execute()
-print("Affected Rows Multiple Params:", result.affectedItemsCount, "\n")
+var result = collection.add({ "name": 'my eigth', "passed": 'yep', "count": 6 }, mysqlx.expr('{"name": "my nineth", "passed": "yep again", "count": 6}')).execute();
+print("Affected Rows Multiple Params:", result.affectedItemsCount, "\n");
 //! [CollectionAdd: Multiple Parameters]
 
 

@@ -32,10 +32,14 @@
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
-using namespace std::placeholders;
-using namespace shcore;
 namespace mysqlsh {
 namespace mysqlx {
+
+using shcore::Value;
+using shcore::Value_type::Array;
+using shcore::Value_type::Object;
+using shcore::Value_type::String;
+using std::placeholders::_1;
 
 REGISTER_HELP_CLASS(CollectionFind, mysqlx);
 REGISTER_HELP(COLLECTIONFIND_BRIEF,
@@ -141,43 +145,46 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
  * #### Method Chaining
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - fields(List projectedSearchExprStr)
  */
 #if DOXYGEN_JS
 /**
- * - groupBy(List searchExprStr)
- */
-#elif DOXYGEN_PY
-/**
- * - group_by(List searchExprStr)
- */
-#endif
-/**
- * - sort(List sortExprStr)
+ * - <a class="el" href="#a0d0dd25a9363cf6b36488d59f04b2779">
+ *   fields(String fieldDefinition[, String fieldDefinition, ...])</a>,
+ *   fields(List fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - groupBy(List fields),
+ *   <a class="el" href="#aa65a6ad3cb37449bad458987a01b5096">
+ *   groupBy(String field[, String field, ...])</a>
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a25e4456caaed9eeb2de8ccd0e80ccfd6">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfDocs)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - <a class="el" href="#a614b3c397fcc907bb5c2d64585bab14d">
+ *   fields(str fieldDefinition[, str fieldDefinition, ...])</a>,
+ *   fields(list fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - group_by(list fields),
+ *   <a class="el" href="#a8b59f8185792775291a0a2b8681e56a4">
+ *   group_by(str field[, str field, ...])</a>
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#aa46071b42a72cd56d48af09dd4253778">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -268,45 +275,51 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
  * #### Method Chaining
  *
  * This function can be invoked only once after:
+ */
+#if DOXYGEN_JS
+/**
  * - find(String searchCondition)
+ */
+#elif DOXYGEN_PY
+/**
+ * - find(str searchCondition)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
- * - groupBy(List searchExprStr)
- */
-#elif DOXYGEN_PY
-/**
- * - group_by(List searchExprStr)
- */
-#endif
-/**
- * - sort(List sortExprStr)
+ * - groupBy(List fields),
+ *   <a class="el" href="#aa65a6ad3cb37449bad458987a01b5096">
+ *   groupBy(String field[, String field, ...])</a>
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a25e4456caaed9eeb2de8ccd0e80ccfd6">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfDocs)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - group_by(list fields),
+ *   <a class="el" href="#a8b59f8185792775291a0a2b8681e56a4">
+ *   group_by(str field[, str field, ...])</a>
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#aa46071b42a72cd56d48af09dd4253778">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -399,47 +412,64 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
  *
  * #### Method Chaining
  *
- * This function can be only once invoked after:
+ * This function can be invoked only once after:
+ */
+#if DOXYGEN_JS
+/**
  * - find(String searchCondition)
- * - fields(List projectedSearchExprStr)
+ * - <a class="el" href="#a0d0dd25a9363cf6b36488d59f04b2779">
+ *   fields(String fieldDefinition[, String fieldDefinition, ...])</a>,
+ *   fields(List fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ */
+#elif DOXYGEN_PY
+/**
+ * - find(str searchCondition)
+ * - <a class="el" href="#a614b3c397fcc907bb5c2d64585bab14d">
+ *   fields(str fieldDefinition[, str fieldDefinition, ...])</a>,
+ *   fields(list fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ */
+#endif
+/**
  *
  * After this function invocation the following functions can be invoked:
- *
- * - having(String searchCondition)
- * - sort(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - having(String condition)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a25e4456caaed9eeb2de8ccd0e80ccfd6">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfDocs)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - having(str condition)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#aa46071b42a72cd56d48af09dd4253778">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::groupBy(List groupCriteria) {}
-CollectionFind CollectionFind::groupBy(
-    String groupCriteria[, String groupCriteria, ...]) {}
+CollectionFind CollectionFind::groupBy(List fields) {}
+CollectionFind CollectionFind::groupBy(String field[, String field, ...]) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::group_by(list groupCriteria) {}
-CollectionFind CollectionFind::group_by(
-    str groupCriteria[, str groupCriteria, ...]) {}
+CollectionFind CollectionFind::group_by(list fields) {}
+CollectionFind CollectionFind::group_by(str field[, str field, ...]) {}
 #endif
 //@}
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
@@ -492,45 +522,49 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
  */
 #if DOXYGEN_JS
 /**
- * - groupBy(List searchExprStr)
+ * - groupBy(List fields),
+ *   <a class="el" href="#aa65a6ad3cb37449bad458987a01b5096">
+ *   groupBy(String field[, String field, ...])</a>
  */
 #elif DOXYGEN_PY
 /**
- * - group_by(List searchExprStr)
+ * - group_by(list fields),
+ *   <a class="el" href="#a8b59f8185792775291a0a2b8681e56a4">
+ *   group_by(str field[, str field, ...])</a>
  */
 #endif
 /**
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - sort(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a25e4456caaed9eeb2de8ccd0e80ccfd6">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfDocs)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#aa46071b42a72cd56d48af09dd4253778">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -559,27 +593,22 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(sort, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_SORT_BRIEF,
               "Sets the sorting criteria to be used on the DocResult.");
-REGISTER_HELP(
-    COLLECTIONFIND_SORT_PARAM,
-    "@param sortCriteria The sort criteria for the returned documents.");
 REGISTER_HELP(COLLECTIONFIND_SORT_SIGNATURE, "(sortCriteriaList)");
 REGISTER_HELP(COLLECTIONFIND_SORT_SIGNATURE1,
-              "(sortCriteria[, sortCriteria, ...])");
+              "(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(COLLECTIONFIND_SORT_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL,
-              "If used the CollectionFind operation will return the records "
+              "If used, the CollectionFind operation will return the records "
               "sorted with the defined criteria.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL1,
-              "Every defined sort criterion follows the next format:");
+              "Every defined sort criterion follows the format:");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL2, "name [ ASC | DESC ]");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
               "ASC is used by default if the sort order is not specified.");
 
 /**
  * $(COLLECTIONFIND_SORT_BRIEF)
- *
- * $(COLLECTIONFIND_SORT_PARAM)
  *
  * $(COLLECTIONFIND_SORT_RETURNS)
  *
@@ -594,57 +623,65 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - find(String searchCondition)
- * - fields(List projectedSearchExprStr)
  */
 #if DOXYGEN_JS
 /**
- * - groupBy(List searchExprStr)
+ * - find(String searchCondition)
+ * - <a class="el" href="#a0d0dd25a9363cf6b36488d59f04b2779">
+ *   fields(String fieldDefinition[, String fieldDefinition, ...])</a>,
+ *   fields(List fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - groupBy(List fields),
+ *   <a class="el" href="#aa65a6ad3cb37449bad458987a01b5096">
+ *   groupBy(String field[, String field, ...])</a>
+ * - having(String condition)
  */
 #elif DOXYGEN_PY
 /**
- * - group_by(List searchExprStr)
+ * - find(str searchCondition)
+ * - <a class="el" href="#a614b3c397fcc907bb5c2d64585bab14d">
+ *   fields(str fieldDefinition[, str fieldDefinition, ...])</a>,
+ *   fields(list fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - group_by(list fields),
+ *   <a class="el" href="#a8b59f8185792775291a0a2b8681e56a4">
+ *   group_by(str field[, str field, ...])</a>
+ * - having(str condition)
  */
 #endif
 /**
- * - having(String searchCondition)
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfDocs)
- */
-#if DOXYGEN_JS
-/**
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - limit(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::sort(List sortCriteria) {}
 CollectionFind CollectionFind::sort(
-    String sortCriteria[, String sortCriteria, ...]) {}
+    String sortCriterion[, String sortCriterion, ...]) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::sort(list sortCriteria) {}
-CollectionFind CollectionFind::sort(str sortCriteria[, str sortCriteria, ...]) {
-}
+CollectionFind CollectionFind::sort(
+    str sortCriterion[, str sortCriterion, ...]) {}
 #endif
 //@}
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
@@ -696,50 +733,63 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - find(String searchCondition)
- * - fields(List projectedSearchExprStr)
  */
 #if DOXYGEN_JS
 /**
- * - groupBy(List searchExprStr)
+ * - find(String searchCondition)
+ * - <a class="el" href="#a0d0dd25a9363cf6b36488d59f04b2779">
+ *   fields(String fieldDefinition[, String fieldDefinition, ...])</a>,
+ *   fields(List fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - groupBy(List fields),
+ *   <a class="el" href="#aa65a6ad3cb37449bad458987a01b5096">
+ *   groupBy(String field[, String field, ...])</a>
+ * - having(String condition)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a25e4456caaed9eeb2de8ccd0e80ccfd6">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  */
 #elif DOXYGEN_PY
 /**
- * - group_by(List searchExprStr)
+ * - find(str searchCondition)
+ * - <a class="el" href="#a614b3c397fcc907bb5c2d64585bab14d">
+ *   fields(str fieldDefinition[, str fieldDefinition, ...])</a>,
+ *   fields(list fieldDefinition),
+ *   fields(DocExpression fieldDefinition)
+ * - group_by(list fields),
+ *   <a class="el" href="#a8b59f8185792775291a0a2b8681e56a4">
+ *   group_by(str field[, str field, ...])</a>
+ * - having(str condition)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#aa46071b42a72cd56d48af09dd4253778">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
  */
 #endif
 /**
- * - having(String searchCondition)
- * - sort(List sortExprStr)
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - offset(Integer limitOffset)
  */
 #if DOXYGEN_JS
 /**
+ * - offset(Integer numberOfDocs)
  * - lockShared(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
+ * - offset(int numberOfDocs)
+ * - lock_shared(str lockContention)
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -760,12 +810,12 @@ REGISTER_HELP(
 REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL,
-              "If used, the first <b>numberOfDocs</b>' records will not be "
+              "If used, the first <b>numberOfDocs</b> records will not be "
               "included on the result.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL1, "${COLLECTIONFIND_SKIP_DEPRECATED}");
 REGISTER_HELP(COLLECTIONFIND_SKIP_DEPRECATED,
               "@attention This function will be removed in a future release, "
-              "use the <b>offset</b> function instead.");
+              "use the <b>offset()</b> function instead.");
 
 /**
  * $(COLLECTIONFIND_SKIP_BRIEF)
@@ -776,36 +826,42 @@ REGISTER_HELP(COLLECTIONFIND_SKIP_DEPRECATED,
  *
  * $(COLLECTIONFIND_SKIP_DETAIL)
  *
+ * $(COLLECTIONFIND_SKIP_DETAIL1)
+ *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfDocs)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfDocs)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockShared(String lockContention)
+ * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
- * - lockExclusive(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -815,6 +871,7 @@ CollectionFind CollectionFind::skip(int numberOfDocs) {}
 #endif
 //@}
 
+REGISTER_HELP_FUNCTION(offset, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_OFFSET_BRIEF,
               "Sets number of documents to skip on the resultset when a limit "
               "has been defined.");
@@ -841,33 +898,37 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - limit(Integer numberOfDocs)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfDocs)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockShared(String lockContention)
+ * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
- */
-#endif
-#if DOXYGEN_JS
-/**
- * - lockExclusive(String lockContention)
- */
-#elif DOXYGEN_PY
-/**
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -988,29 +1049,45 @@ REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL14,
  *
  * $(COLLECTIONFIND_LOCKSHARED_DETAIL13)
  *
- * $(COLLECTIONFIND_LOCKSHARED_DETAIL14) *
+ * $(COLLECTIONFIND_LOCKSHARED_DETAIL14)
+ *
  * #### Method Chaining
  *
- * This function can be invoked at any time before bind or execute are called.
+ * This function can be invoked at any time before bind() or execute() are
+ * called.
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockExclusive(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
- * If lockExclusive() is called, it will override the lock type to be used on
- * on the selected documents.
+ * If
+ */
+#if DOXYGEN_JS
+/**
+ * lockExclusive()
+ */
+#elif DOXYGEN_PY
+/**
+ * lock_exclusive()
+ */
+#endif
+/**
+ * is called, it will override the lock type to be used on the selected
+ * documents.
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -1124,26 +1201,41 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL14,
  *
  * #### Method Chaining
  *
- * This function can be invoked at any time before bind or execute are called.
+ * This function can be invoked at any time before bind() or execute() are
+ * called.
  *
  * After this function invocation, the following functions can be invoked:
- *
  */
 #if DOXYGEN_JS
 /**
  * - lockShared(String lockContention)
+ * - bind(String name, Value value)
  */
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
+ * - bind(str name, Value value)
  */
 #endif
 /**
- * - bind(String name, Value value)
  * - execute()
  *
- * If lockShared() is called, it will override the lock type to be used on
- * on the selected documents.
+ * If
+ */
+#if DOXYGEN_JS
+/**
+ * lockShared()
+ */
+#elif DOXYGEN_PY
+/**
+ * lock_shared()
+ */
+#endif
+/**
+ * is called, it will override the lock type to be used on the selected
+ * documents.
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -1182,16 +1274,15 @@ REGISTER_HELP(COLLECTIONFIND_BIND_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_BIND_SYNTAX,
               "bind(placeHolder, value)[.bind(...)]");
-REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL,
-              "Binds a value to a specific placeholder used on this "
-              "CollectionFind object.");
+REGISTER_HELP(
+    COLLECTIONFIND_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2,
               "This function must be called once for each used placeholder or "
-              "an error will be "
-              "raised when the execute method is called.");
+              "an error will be raised when the execute() method is called.");
 
 /**
  * $(COLLECTIONFIND_BIND_BRIEF)
@@ -1209,12 +1300,23 @@ REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2,
  *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
@@ -1325,6 +1427,7 @@ void CollectionFind::set_prepared_stmt() {
   *m_prep_stmt.mutable_stmt()->mutable_find() = message_;
 }
 
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 std::unique_ptr<DocResult> CollectionFind::execute() {
   std::unique_ptr<DocResult> result;
 
@@ -1336,5 +1439,7 @@ std::unique_ptr<DocResult> CollectionFind::execute() {
 
   return result;
 }
+#endif
+
 }  // namespace mysqlx
 }  // namespace mysqlsh

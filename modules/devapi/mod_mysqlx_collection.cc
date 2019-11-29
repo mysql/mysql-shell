@@ -35,10 +35,12 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/utils_help.h"
 
-using namespace std::placeholders;
 namespace mysqlsh {
 namespace mysqlx {
-using namespace shcore;
+
+using shcore::Argument_list;
+using shcore::Value;
+using std::placeholders::_1;
 
 REGISTER_HELP_SUB_CLASS(Collection, mysqlx, DatabaseObject);
 REGISTER_HELP(COLLECTION_BRIEF,
@@ -86,9 +88,8 @@ void Collection::init() {
 Collection::~Collection() {}
 
 REGISTER_HELP_FUNCTION(add, Collection);
-REGISTER_HELP(COLLECTION_ADD_BRIEF,
-              "Inserts one or more documents into a collection.");
-REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
+REGISTER_HELP(COLLECTION_ADD_BRIEF, "Creates a document addition handler.");
+REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.execute");
 
 /**
  * $(COLLECTION_ADD_BRIEF)
@@ -98,7 +99,7 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
  * <code>
  *   <table border = "0">
  *     <tr><td>Collection</td><td>.add(...)</td></tr>
- *     <tr><td></td><td>execute()</td></tr>
+ *     <tr><td></td><td>.execute()</td></tr>
  *   </table>
  * </code>
  *
@@ -129,17 +130,12 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
  *
  * $(COLLECTIONADD_EXECUTE_BRIEF)
  *
+ * \sa CollectionAdd
+ *
  * ### Examples
  */
 #if DOXYGEN_JS
 /**
- * \snippet collection_add.js CollectionAdd: Chained Calls
- *
- * $(COLLECTIONADD_ADD_DETAIL9)
- *
- * $(COLLECTIONADD_ADD_DETAIL10)
- * \snippet collection_add.js CollectionAdd: Using an Expression
- *
  * #### Using a Document List
  * Adding document using an existing document list
  * \snippet collection_add.js CollectionAdd: Document List
@@ -148,18 +144,19 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
  * Adding document using a separate parameter for each document on a single call
  * to add(...)
  * \snippet collection_add.js CollectionAdd: Multiple Parameters
- */
-CollectionAdd Collection::add(...) {}
-#elif DOXYGEN_PY
-/**
+ *
+ * #### Chaining Addition
  * Adding documents using chained calls to add(...)
- * \snippet collection_add.py CollectionAdd: Chained Calls
+ * \snippet collection_add.js CollectionAdd: Chained Calls
  *
  * $(COLLECTIONADD_ADD_DETAIL9)
  *
  * $(COLLECTIONADD_ADD_DETAIL10)
- * \snippet collection_add.py CollectionAdd: Using an Expression
- *
+ * \snippet collection_add.js CollectionAdd: Using an Expression
+ */
+CollectionAdd Collection::add(...) {}
+#elif DOXYGEN_PY
+/**
  * #### Using a Document List
  * Adding document using an existing document list
  * \snippet collection_add.py CollectionAdd: Document List
@@ -168,6 +165,15 @@ CollectionAdd Collection::add(...) {}
  * Adding document using a separate parameter for each document on a single call
  * to add(...)
  * \snippet collection_add.py CollectionAdd: Multiple Parameters
+ *
+ * #### Chaining Addition
+ * Adding documents using chained calls to add(...)
+ * \snippet collection_add.py CollectionAdd: Chained Calls
+ *
+ * $(COLLECTIONADD_ADD_DETAIL9)
+ *
+ * $(COLLECTIONADD_ADD_DETAIL10)
+ * \snippet collection_add.py CollectionAdd: Using an Expression
  */
 CollectionAdd Collection::add(...) {}
 #endif
@@ -181,9 +187,9 @@ shcore::Value Collection::add_(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(modify, Collection);
 REGISTER_HELP(COLLECTION_MODIFY_BRIEF, "Creates a collection update handler.");
 REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
-              "CollectionModify.modify.[set].[unset].[merge].[patch]."
-              "[<<<arrayInsert>>>].[<<<arrayAppend>>>].[<<<arrayDelete>>>]."
-              "[sort].[limit].[bind].[execute]");
+              "CollectionModify.modify.[set].[unset].[patch]."
+              "[<<<arrayInsert>>>].[<<<arrayAppend>>>].[sort].[limit].[bind]."
+              "execute");
 
 /**
  * $(COLLECTION_MODIFY_BRIEF)
@@ -195,27 +201,24 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *     <tr><td>Collection</td><td>.modify(searchCondition)</td></tr>
  *     <tr><td></td><td>[.set(attribute, value)]</td></tr>
  *     <tr><td></td><td>[.unset(...)]</td></tr>
- *     <tr><td></td><td>[.merge(document)]</td></tr>
  *     <tr><td></td><td>[.patch(document)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
  *     <tr><td></td><td>[.arrayInsert(docPath, value)]</td></tr>
  *     <tr><td></td><td>[.arrayAppend(docPath, value)]</td></tr>
- *     <tr><td></td><td>[.arrayDelete(docPath)]</td></tr>
  */
 #elif DOXYGEN_PY
 /**
  *     <tr><td></td><td>[.array_insert(docPath, value)]</td></tr>
  *     <tr><td></td><td>[.array_append(docPath, value)]</td></tr>
- *     <tr><td></td><td>[.array_delete(docPath)]</td></tr>
  */
 #endif
 /**
  *     <tr><td></td><td>[.sort(...)]</td></tr>
  *     <tr><td></td><td>[.limit(numberOfDocs)]</td></tr>
  *     <tr><td></td><td>[.bind(name, value)]</td></tr>
- *     <tr><td></td><td>[.execute()]</td></tr>
+ *     <tr><td></td><td>.execute()</td></tr>
  *   </table>
  * </code>
  *
@@ -235,7 +238,7 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  * $(COLLECTIONMODIFY_SET_DETAIL1)
  * $(COLLECTIONMODIFY_SET_DETAIL2)
  *
- * $(COLLECTIONMODIFY_SET_DETAIL3)
+ * ##### $(COLLECTIONMODIFY_SET_DETAIL3)
  *
  * $(COLLECTIONMODIFY_SET_DETAIL4)
  *
@@ -263,14 +266,6 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * $(COLLECTIONMODIFY_UNSET_DETAIL)
  *
- * #### .merge(document)
- *
- * $(COLLECTIONMODIFY_MERGE_DETAIL)
- *
- * $(COLLECTIONMODIFY_MERGE_DETAIL1)
- *
- * $(COLLECTIONMODIFY_MERGE_DETAIL2)
- *
  * #### .patch(document)
  *
  * $(COLLECTIONMODIFY_PATCH_BRIEF)
@@ -290,21 +285,35 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * $(COLLECTIONMODIFY_PATCH_DETAIL9)
  *
+ */
+#if DOXYGEN_JS
+/**
  * #### .arrayInsert(docPath, value)
+ */
+#elif DOXYGEN_PY
+/**
+ * #### .array_insert(docPath, value)
+ */
+#endif
+/**
  *
  * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
  *
  * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
  *
+ */
+#if DOXYGEN_JS
+/**
  * #### .arrayAppend(docPath, value)
+ */
+#elif DOXYGEN_PY
+/**
+ * #### .array_append(docPath, value)
+ */
+#endif
+/**
  *
  * $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
- *
- * #### .arrayDelete(docPath)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
  *
  * #### .sort(...)
  *
@@ -314,9 +323,12 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  * @li sort$(COLLECTIONMODIFY_SORT_SIGNATURE1)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL)
+ *
  * $(COLLECTIONMODIFY_SORT_DETAIL1)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL2)
+ *
+ * $(COLLECTIONMODIFY_SORT_DETAIL3)
  *
  * #### .limit(numberOfDocs)
  *
@@ -324,29 +336,71 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * #### .bind(name, value)
  *
- * $(COLLECTIONMODIFY_BIND_BRIEF)
+ * $(COLLECTIONMODIFY_BIND_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_BIND_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_BIND_DETAIL2)
  *
  * #### .execute()
  *
  * $(COLLECTIONMODIFY_EXECUTE_BRIEF)
+ *
+ * \sa CollectionModify
+ *
+ * ### Examples
  */
 #if DOXYGEN_JS
 /**
+ * #### Modify multiple attributes
+ * \snippet mysqlx_collection_modify.js CollectionModify: Set Execution
  *
- * #### Examples
- * \dontinclude "mysqlx_collection_modify.js"
- * \skip //@# CollectionModify: Set Execution
- * \until //@ CollectionModify: sorting and limit Execution - 4
- * \until print(dir(doc));
+ * #### Modify an attribute with an array value
+ * \snippet mysqlx_collection_modify.js CollectionModify: Set Binding Array
+ *
+ * #### Unset an attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: Simple Unset Execution
+ *
+ * #### Unset multiple attributes using an array
+ * \snippet mysqlx_collection_modify.js CollectionModify: List Unset Execution
+ *
+ * #### Patch multiple attributes
+ * \snippet mysqlx_collection_modify.js CollectionModify: Patch Execution
+ *
+ * #### Append to an array attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: arrayAppend Execution
+ *
+ * #### Insert into an array attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: arrayInsert Execution
+ *
+ * #### Sorting and setting a limit
+ * \snippet mysqlx_collection_modify.js CollectionModify: sorting and limit
  */
 #elif DOXYGEN_PY
 /**
+ * #### Modify multiple attributes
+ * \snippet mysqlx_collection_modify.py CollectionModify: Set Execution
  *
- * #### Examples
- * \dontinclude "mysqlx_collection_modify.py"
- * \skip #@# CollectionModify: Set Execution
- * \until #@ CollectionModify: sorting and limit Execution - 4
- * \until print dir(doc)
+ * #### Modify an attribute with an array value
+ * \snippet mysqlx_collection_modify.py CollectionModify: Set Binding Array
+ *
+ * #### Unset an attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: Simple Unset Execution
+ *
+ * #### Unset multiple attributes using an array
+ * \snippet mysqlx_collection_modify.py CollectionModify: List Unset Execution
+ *
+ * #### Patch multiple attributes
+ * \snippet mysqlx_collection_modify.py CollectionModify: Patch Execution
+ *
+ * #### Append to an array attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: array_append Execution
+ *
+ * #### Insert into an array attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: array_insert Execution
+ *
+ * #### Sorting and setting a limit
+ * \snippet mysqlx_collection_modify.py CollectionModify: sorting and limit
  */
 #endif
 #if DOXYGEN_JS
@@ -365,7 +419,7 @@ std::shared_ptr<CollectionModify> Collection::modify_(
 REGISTER_HELP_FUNCTION(remove, Collection);
 REGISTER_HELP(COLLECTION_REMOVE_BRIEF, "Creates a document deletion handler.");
 REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
-              "CollectionRemove.remove.[sort].[limit].[bind].[execute]");
+              "CollectionRemove.remove.[sort].[limit].[bind].execute");
 
 /**
  * $(COLLECTION_REMOVE_BRIEF)
@@ -378,7 +432,7 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *     <tr><td></td><td>[.sort(...)]</td></tr>
  *     <tr><td></td><td>[.limit(numberOfDocs)]</td></tr>
  *     <tr><td></td><td>[.bind(name, value)]</td></tr>
- *     <tr><td></td><td>[.execute()]</td></tr>
+ *     <tr><td></td><td>.execute()</td></tr>
  *   </table>
  * </code>
  *
@@ -405,6 +459,8 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *
  * $(COLLECTIONREMOVE_SORT_DETAIL2)
  *
+ * $(COLLECTIONREMOVE_SORT_DETAIL3)
+ *
  * #### .limit(numberOfDocs)
  *
  * $(COLLECTIONREMOVE_LIMIT_BRIEF)
@@ -417,13 +473,15 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *
  * $(COLLECTIONREMOVE_BIND_DETAIL1)
  *
+ * $(COLLECTIONREMOVE_BIND_DETAIL2)
+ *
  * #### .execute()
  *
  * $(COLLECTIONREMOVE_EXECUTE_BRIEF)
  *
  * \sa CollectionRemove
  *
- * #### Examples
+ * ### Examples
  */
 #if DOXYGEN_JS
 /**
@@ -469,13 +527,12 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(find, Collection);
-REGISTER_HELP(
-    COLLECTION_FIND_BRIEF,
-    "Retrieves documents from a collection, matching a specified criteria.");
+REGISTER_HELP(COLLECTION_FIND_BRIEF,
+              "Creates a handler which can be used to find documents.");
 REGISTER_HELP(COLLECTION_FIND_CHAINED,
               "CollectionFind.find.[fields].[<<<groupBy>>>->[having]].[sort]."
-              "[limit->[skip]].[<<<lockShared>>>].[<<<lockExclusive>>>].[bind]."
-              "[execute]");
+              "[limit->[offset]].[<<<lockShared>>>].[<<<lockExclusive>>>]."
+              "[bind].execute");
 
 /**
  * $(COLLECTION_FIND_BRIEF)
@@ -489,21 +546,25 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  */
 #if DOXYGEN_JS
 /**
- * <tr><td></td><td>[.groupBy(...)[.having(condition)]]</td></tr>*/
+ * <tr><td></td><td>[.groupBy(...)[.having(condition)]]</td></tr>
+ */
 #elif DOXYGEN_PY
 /**
- * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>*/
+ * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>
+ */
 #endif
 /**
  *     <tr><td></td><td>[.sort(...)]</td></tr>
- *     <tr><td></td><td>[.limit(numberOfDocs)[.skip(numberOfDocs)]]</td></tr>
+ *     <tr><td></td><td>[.limit(numberOfDocs)[.offset(quantity)]]</td></tr>
  */
 #if DOXYGEN_JS
 /**
- * <tr><td></td><td>[.lockShared([lockContention])|.lockExclusive([lockContention])]</td></tr>*/
+ * <tr><td></td><td>[.lockShared([lockContention])|.lockExclusive([lockContention])]</td></tr>
+ */
 #elif DOXYGEN_PY
 /**
- * <tr><td></td><td>[.lock_shared(lockContention)|.lock_exclusive(lockContention)]</td></tr>*/
+ * <tr><td></td><td>[.lock_shared(lockContention)|.lock_exclusive(lockContention)]</td></tr>
+ */
 #endif
 /**
  *     <tr><td></td><td>[.bind(name, value)]</td></tr>
@@ -521,9 +582,9 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  *
  * ##### Overloads
  *
- * @li $(COLLECTIONFIND_FIELDS_SIGNATURE)
- * @li $(COLLECTIONFIND_FIELDS_SIGNATURE1)
- * @li $(COLLECTIONFIND_FIELDS_SIGNATURE2)
+ * @li fields$(COLLECTIONFIND_FIELDS_SIGNATURE)
+ * @li fields$(COLLECTIONFIND_FIELDS_SIGNATURE1)
+ * @li fields$(COLLECTIONFIND_FIELDS_SIGNATURE2)
  *
  * $(COLLECTIONFIND_FIELDS_DETAIL)
  *
@@ -534,9 +595,7 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  * $(COLLECTIONFIND_FIELDS_DETAIL3)
  * $(COLLECTIONFIND_FIELDS_DETAIL4)
  * $(COLLECTIONFIND_FIELDS_DETAIL5)
- *
  */
-
 #if DOXYGEN_JS
 /**
  *
@@ -558,8 +617,8 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  * @li group_by$(COLLECTIONFIND_GROUPBY_SIGNATURE1)
  */
 #endif
-
 /**
+ *
  * $(COLLECTIONFIND_GROUPBY_DETAIL)
  *
  * #### .having(condition)
@@ -585,25 +644,22 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  *
  * $(COLLECTIONFIND_LIMIT_DETAIL)
  *
- * #### .skip(numberOfDocs)
+ * #### .offset(quantity)
  *
- * $(COLLECTIONFIND_SKIP_DETAIL)
+ * $(COLLECTIONFIND_OFFSET_DETAIL)
+ *
  */
-
 #if DOXYGEN_JS
 /**
- *
  * #### .lockShared([lockContention])
- *
  */
 #elif DOXYGEN_PY
 /**
- *
  * #### .lock_shared([lockContention])
- *
  */
 #endif
 /**
+ *
  * $(COLLECTIONFIND_LOCKSHARED_DETAIL)
  *
  * $(COLLECTIONFIND_LOCKSHARED_DETAIL1)
@@ -627,21 +683,17 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  * $(COLLECTIONFIND_LOCKSHARED_DETAIL13)
  *
  * $(COLLECTIONFIND_LOCKSHARED_DETAIL14)
+ *
  */
 #if DOXYGEN_JS
 /**
- *
  * #### .lockExclusive([lockContention])
- *
  */
 #elif DOXYGEN_PY
 /**
- *
  * #### .lock_exclusive([lockContention])
- *
  */
 #endif
-
 /**
  *
  * $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL)
@@ -679,6 +731,8 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  * #### .execute()
  *
  * $(COLLECTIONFIND_EXECUTE_BRIEF)
+ *
+ * \sa CollectionFind
  *
  * ### Examples
  */

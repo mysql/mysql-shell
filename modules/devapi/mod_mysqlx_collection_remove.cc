@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,11 +31,11 @@
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
-using std::placeholders::_1;
-using namespace shcore;
-
 namespace mysqlsh {
 namespace mysqlx {
+
+using shcore::Value;
+using std::placeholders::_1;
 
 // Documentation of CollectionRemove class
 REGISTER_HELP_CLASS(CollectionRemove, mysqlx);
@@ -117,7 +117,7 @@ REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL4,
 
 REGISTER_HELP(
     COLLECTIONREMOVE_REMOVE_DETAIL5,
-    "The actual deletion of the documents will occur only when the execute "
+    "The actual deletion of the documents will occur only when the execute() "
     "method is called.");
 
 /**
@@ -142,10 +142,25 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - sort(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a63a0fc78136e8465253f81b16ab6d2bb">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#a4bcce795b4a78d999cfb00284512bc03">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
@@ -165,7 +180,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
 
   if (collection) {
     try {
-      std::string search_condition = str_strip(args.string_at(0));
+      std::string search_condition = shcore::str_strip(args.string_at(0));
 
       if (search_condition.empty())
         throw shcore::Exception::argument_error("Requires a search condition.");
@@ -193,25 +208,17 @@ CollectionRemove &CollectionRemove::set_filter(const std::string &filter) {
 REGISTER_HELP_FUNCTION(sort, CollectionRemove);
 REGISTER_HELP(COLLECTIONREMOVE_SORT_BRIEF,
               "Sets the order in which the deletion should be done.");
-REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE, "(sortExprList)");
-REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE1, "(sortExpr[, sortExpr, ...])");
-// REGISTER_HELP(
-//    COLLECTIONREMOVE_SORT_PARAM,
-//    "@param sortExpr: A list of expression strings defining a sort "
-//    "criteria, "
-//    "the deletion will be done following the order defined by this
-//    criteria.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE, "(sortCriteriaList)");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE1,
+              "(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURNS,
               "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL,
-              "The elements of sortExprStr list are strings defining the "
-              "column name on which "
-              "the sorting will be based in the form of 'columnIdentifier "
-              "[ ASC | DESC ]'.");
-REGISTER_HELP(
-    COLLECTIONREMOVE_SORT_DETAIL1,
-    "If no order criteria is specified, ascending will be used by default.");
+              "Every defined sort criterion follows the format:");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL1, "name [ ASC | DESC ]");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2,
+              "ASC is used by default if the sort order is not specified.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL3,
               "This method is usually used in combination with limit to fix "
               "the amount of documents to be deleted.");
 
@@ -226,26 +233,50 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2,
  *
  * $(COLLECTIONREMOVE_SORT_DETAIL2)
  *
+ * $(COLLECTIONREMOVE_SORT_DETAIL3)
+ *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - remove(String searchCondition)
+ */
+#elif DOXYGEN_PY
+/**
+ * - remove(str searchCondition)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
+ *
+ * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
-CollectionRemove CollectionRemove::sort(List sortExpr) {}
+CollectionRemove CollectionRemove::sort(List sortCriteria) {}
 CollectionRemove CollectionRemove::sort(
-    String sortExpr[, String sortExpr, ...]) {}
+    String sortCriterion[, String sortCriterion, ...]) {}
 #elif DOXYGEN_PY
-CollectionRemove CollectionRemove::sort(list sortExpr) {}
-CollectionRemove CollectionRemove::sort(str sortExpr[, str sortExpr, ...]) {}
+CollectionRemove CollectionRemove::sort(list sortCriteria) {}
+CollectionRemove CollectionRemove::sort(
+    str sortCriterion[, str sortCriterion, ...]) {}
 #endif
 //@}
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
@@ -297,15 +328,38 @@ REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - remove(String searchCondition)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a63a0fc78136e8465253f81b16ab6d2bb">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - remove(str searchCondition)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#a4bcce795b4a78d999cfb00284512bc03">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ */
+#endif
+/**
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
@@ -330,12 +384,15 @@ REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM1,
               "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_RETURNS,
               "@returns This CollectionRemove object.");
-REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL,
+REGISTER_HELP(
+    COLLECTIONREMOVE_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
-REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1,
+REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL2,
               "This function must be called once for each used placeholder or "
-              "an error will be raised when the execute method is called.");
+              "an error will be raised when the execute() method is called.");
 
 /**
  * $(COLLECTIONREMOVE_BIND_BRIEF)
@@ -349,22 +406,33 @@ REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1,
  *
  * $(COLLECTIONREMOVE_BIND_DETAIL1)
  *
+ * $(COLLECTIONREMOVE_BIND_DETAIL2)
+ *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionRemove::bind(String name, Value value) {}
+CollectionRemove CollectionRemove::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionRemove::bind(str name, Value value) {}
+CollectionRemove CollectionRemove::bind(str name, Value value) {}
 #endif
 //@}
 
@@ -385,28 +453,40 @@ REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_RETURNS,
  * #### Method Chaining
  *
  * This function can be invoked after any other function on this class.
+ *
+ * ### Examples
  */
 //@{
 #if DOXYGEN_JS
 /**
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_collection_remove.js"
- * \skip //@ CollectionRemove: remove under condition
- * \until print('Records Left:', docs.length, '\n');
- * \until print('Records Left:', docs.length, '\n');
- * \until print('Records Left:', docs.length, '\n');
+ * #### Remove under condition
+ *
+ * \snippet mysqlx_collection_remove.js CollectionRemove: remove under condition
+ *
+ * #### Remove with binding
+ *
+ * \snippet mysqlx_collection_remove.js CollectionRemove: remove with binding
+ *
+ * #### Full remove
+ *
+ * \snippet mysqlx_collection_remove.js CollectionRemove: full remove
  */
 Result CollectionRemove::execute() {}
 #elif DOXYGEN_PY
 /**
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_collection_remove.py"
- * \skip #@ CollectionRemove: remove under condition
- * \until print 'Records Left:', len(docs), '\n'
- * \until print 'Records Left:', len(docs), '\n'
- * \until print 'Records Left:', len(docs), '\n'
+ * #### Remove under condition
+ *
+ * \snippet mysqlx_collection_remove.py CollectionRemove: remove under condition
+ *
+ * #### Remove with binding
+ *
+ * \snippet mysqlx_collection_remove.py CollectionRemove: remove with binding
+ *
+ * #### Full remove
+ *
+ * \snippet mysqlx_collection_remove.py CollectionRemove: full remove
  */
 Result CollectionRemove::execute() {}
 #endif
@@ -431,6 +511,7 @@ void CollectionRemove::set_prepared_stmt() {
   *m_prep_stmt.mutable_stmt()->mutable_delete_() = message_;
 }
 
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 shcore::Value CollectionRemove::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
 
@@ -442,5 +523,7 @@ shcore::Value CollectionRemove::execute() {
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
+#endif
+
 }  // namespace mysqlx
 }  // namespace mysqlsh

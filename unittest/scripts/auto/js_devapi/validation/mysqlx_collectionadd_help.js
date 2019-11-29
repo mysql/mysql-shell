@@ -12,7 +12,7 @@ DESCRIPTION
 
 FUNCTIONS
       add(...)
-            Adds documents into a collection.
+            Stores documents to be added into a collection.
 
       execute()
             Executes the add operation, the documents are added to the target
@@ -23,7 +23,7 @@ FUNCTIONS
 
 //@<OUT> Help on add
 NAME
-      add - Adds documents into a collection.
+      add - Stores documents to be added into a collection.
 
 SYNTAX
       <CollectionAdd>.add(documentList)
@@ -35,7 +35,8 @@ RETURNS
 
 DESCRIPTION
       This function receives one or more document definitions to be added into
-      a collection.
+      a collection. The documents are cached in an internal list and are added
+      to the collection when the execute() method is called.
 
       A document definition may be provided in two ways:
 

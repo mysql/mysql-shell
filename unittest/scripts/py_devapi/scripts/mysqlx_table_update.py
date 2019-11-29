@@ -104,22 +104,27 @@ crud = table.update().set('age', 17).where('name = :data and age > :years').bind
 # Table.Modify Unit Testing: Execution
 # ---------------------------------------
 #@# TableUpdate: simple test
+#! [TableUpdate: simple test]
 result = result = table.update().set('name', 'aline').where('age = 13').execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
 result = table.select().where('name = "aline"').execute()
 record = result.fetch_one()
 print("Updated Record:", record.name, record.age)
+#! [TableUpdate: simple test]
 
 #@ TableUpdate: test using expression
+#! [TableUpdate: expression]
 result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
 result = table.select().where('age = 23').execute()
 record = result.fetch_one()
 print("Updated Record:", record.name, record.age)
+#! [TableUpdate: expression]
 
 #@ TableUpdate: test using limits
+#! [TableUpdate: limits]
 result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
@@ -128,15 +133,18 @@ print('With 16 Years:', len(records), '\n')
 
 records = table.select().where('age = 15').execute().fetch_all()
 print('With 15 Years:', len(records), '\n')
+#! [TableUpdate: limits]
 
 #@ TableUpdate: test full update with view object
 view = schema.get_table('view1')
+#! [TableUpdate: view]
 result = view.update().set('my_gender', 'female').execute()
 print('Updated Females:', result.affected_items_count, '\n')
 
 # Result gets reflected on the target table
-records = table.select().where('gender = \"female\"').execute().fetch_all()
+records = table.select().where('gender = "female"').execute().fetch_all()
 print('All Females:', len(records), '\n')
+#! [TableUpdate: view]
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

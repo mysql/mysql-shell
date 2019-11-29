@@ -29,9 +29,14 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 
-using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
-using namespace shcore;
+namespace mysqlsh {
+namespace mysqlx {
+
+using shcore::Value;
+using shcore::Value_type::Array;
+using shcore::Value_type::Map;
+using shcore::Value_type::String;
+using std::placeholders::_1;
 
 REGISTER_HELP_CLASS(TableInsert, mysqlx);
 REGISTER_HELP(TABLEINSERT_BRIEF, "Operation to insert data into a table.");
@@ -57,14 +62,20 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
   add_method("values", std::bind(&TableInsert::values, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::insert, F::values);
+  register_dynamic_function(F::insert, F::values,
+                            F::insertFields | F::insertFieldsAndValues);
+  register_dynamic_function(F::insertFields, F::values,
+                            F::insert | F::insertFieldsAndValues);
+  register_dynamic_function(F::insertFieldsAndValues,
+                            F::execute | F::__shell_hook__,
+                            F::insert | F::insertFields);
   register_dynamic_function(F::values, F::execute | F::__shell_hook__,
                             K_DISABLE_NONE, K_ALLOW_REUSE);
-  register_dynamic_function(F::insertFieldsAndValues,
-                            F::execute | F::__shell_hook__, F::values);
 
   // Initial function update
-  update_functions(F::insert);
+  enable_function(F::insert);
+  enable_function(F::insertFields);
+  enable_function(F::insertFieldsAndValues);
 }
 
 REGISTER_HELP_FUNCTION(insert, TableInsert);
@@ -98,48 +109,28 @@ REGISTER_HELP(TABLEINSERT_INSERT_DETAIL6,
               "order and data type.");
 REGISTER_HELP(TABLEINSERT_INSERT_DETAIL7,
               "If a JSON document was used, the operation is ready to be "
-              "completed and it will insert the associated value into the "
-              "corresponding column.");
+              "completed and it will insert the associated values into the "
+              "corresponding columns.");
 REGISTER_HELP(TABLEINSERT_INSERT_DETAIL8,
-              "If no columns are defined, insertion will suceed if the "
+              "If no columns are defined, insertion will succeed if the "
               "provided values match the database columns in number and data "
               "types.");
-#if DOXYGEN_CPP
+//@{
 /**
  * $(TABLEINSERT_INSERT_BRIEF)
  *
- * $(TABLEINSERT_INSERT_BRIEF)
- * \param args contains the initialization data, possible values include:
- * \li An array of strings identifying the columns to be inserted. Sinsequent
- * calls to values must contain a value for each column defined here.
- * \li If no column information is set at all, it is the database who will
- * validate if the provided values can be inserted or not.
- * \return This TableInsert object.
+ * $(TABLEINSERT_INSERT_RETURNS)
  *
- * This function is called automatically when Table.insert() is called.
+ * Initializes the insertion operation, the arguments provided for the
+ * <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ * values(Value value[, Value value, ...])</a> method must match the database
+ * columns in number and data types.
  *
  * #### Method Chaining
  *
- * After this function invocation, the following functions can be invoked:
- *
- * - values(Value value1, Value value2, ...)
- * - execute().
- *
- * \sa Usage examples at execute().
- */
-#else
-/**
- * Initializes the record insertion handler.
- * \return This TableInsert object.
- *
- * This function is called automatically when Table.insert() is called.
- *
- * #### Method Chaining
- *
- * After this function invocation, the following functions can be invoked:
- *
- * - values(Value value1, Value value2, ...)
- * - execute().
+ * After this function invocation, the following function can be invoked:
+ * - <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ *   values(Value value[, Value value, ...])</a>
  *
  * \sa Usage examples at execute().
  */
@@ -150,18 +141,20 @@ TableInsert TableInsert::insert() {}
 #endif
 
 /**
- * Initializes the record insertion handler with the received column list.
- * \return This TableInsert object.
+ * $(TABLEINSERT_INSERT_BRIEF)
  *
- * This function is called automatically when Table.insert(List columns) is
- * called.
+ * $(TABLEINSERT_INSERT_RETURNS)
+ *
+ * Initializes the insertion operation, the arguments provided for the
+ * <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ * values(Value value[, Value value, ...])</a> method must match the specified
+ * column names in order and data type.
  *
  * #### Method Chaining
  *
- * After this function invocation, the following functions can be invoked:
- *
- * - values(Value value1, Value value2, ...)
- * - execute().
+ * After this function invocation, the following function can be invoked:
+ * - <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ *   values(Value value[, Value value, ...])</a>
  *
  * \sa Usage examples at execute().
  */
@@ -172,50 +165,64 @@ TableInsert TableInsert::insert(list columns) {}
 #endif
 
 /**
- * Initializes the record insertion handler with the received column list.
- * \param col1 The first column name.
- * \param col2 The second column name.
- * \return This TableInsert object.
+ * $(TABLEINSERT_INSERT_BRIEF)
  *
- * This function is called automatically when Table.insert(String col1, String
- * col2, ...) is called.
+ * $(TABLEINSERT_INSERT_RETURNS)
  *
- * A string parameter should be specified for each column to be included on the
- * insertion process.
+ * Initializes the insertion operation, the arguments provided for the
+ * <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ * values(Value value[, Value value, ...])</a> method must match the specified
+ * column names in order and data type.
  *
  * #### Method Chaining
  *
- * After this function invocation, the following functions can be invoked:
- *
- * - values(Value value1, Value value2, ...)
- * - execute().
+ * After this function invocation, the following function can be invoked:
+ * - <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ *   values(Value value[, Value value, ...])</a>
  *
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableInsert TableInsert::insert(String col1, String col2, ...) {}
+TableInsert TableInsert::insert(String column[, String column, ...]) {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::insert(str col1, str col2, ...) {}
+TableInsert TableInsert::insert(str column[, str column, ...]) {}
 #endif
+
+/**
+ * $(TABLEINSERT_INSERT_BRIEF)
+ *
+ * $(TABLEINSERT_INSERT_RETURNS)
+ *
+ * Initializes the insertion operation, it is ready to be completed and it will
+ * insert the associated values into the corresponding columns.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following function can be invoked:
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
+#if DOXYGEN_JS
+TableInsert TableInsert::insert(JSON columns) {}
+#elif DOXYGEN_PY
+TableInsert TableInsert::insert(JSON columns) {}
 #endif
+//@}
 shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
-  std::string path;
+  Allowed_function_mask version = F::insert;
 
   if (table) {
     try {
       if (args.size()) {
-        shcore::Value::Map_type_ref sh_columns_and_values;
-        REGISTER_HELP(TABLEINSERT_VALUES_RETURNS,
-                      "@returns This TableInsert object.");
-
         std::vector<std::string> columns;
 
         // An array with the fields was received as parameter
         if (args.size() == 1) {
           if (args[0].type == Array || args[0].type == String) {
-            path = "Fields";
+            version = F::insertFields;
 
             parse_string_list(args, columns);
 
@@ -224,7 +231,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
           }
           // A map with fields and values was received as parameter
           else if (args[0].type == Map) {
-            path = "FieldsAndValues";
+            version = F::insertFieldsAndValues;
 
             Mysqlx::Crud::Insert_TypedRow *row = message_.mutable_row()->Add();
             for (auto &iter : *args[0].as_map()) {
@@ -237,7 +244,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
                 "strings or a map with fields and values");
           }
         } else {
-          path = "Fields";
+          version = F::insertFields;
 
           parse_string_list(args, columns);
           for (auto &column : columns)
@@ -249,13 +256,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   }
 
   // Updates the exposed functions
-  if (path == "") {
-    update_functions(F::insert);
-  } else if (path == "Fields") {
-    update_functions(F::insertFields);
-  } else if (path == "FieldsAndValues") {
-    update_functions(F::insertFieldsAndValues);
-  }
+  update_functions(version);
   reset_prepared_statement();
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -270,15 +271,15 @@ REGISTER_HELP(
     TABLEINSERT_VALUES_DETAIL,
     "Each parameter represents the value for a column in the target table.");
 REGISTER_HELP(TABLEINSERT_VALUES_DETAIL1,
-              "If the columns were defined on the <b>insert</b> function, the "
-              "number of values on this function must match the number of "
+              "If the columns were defined on the <b>insert()</b> function, "
+              "the number of values on this function must match the number of "
               "defined columns.");
 REGISTER_HELP(TABLEINSERT_VALUES_DETAIL2,
               "If no column was defined, the number of parameters must match "
               "the number of columns on the target Table.");
 REGISTER_HELP(TABLEINSERT_VALUES_DETAIL3,
-              "This function is not available when the <b>insert</b> is called "
-              "passing a JSON object with columns and values.");
+              "This function is not available when the <b>insert()</b> is "
+              "called passing a JSON object with columns and values.");
 REGISTER_HELP(TABLEINSERT_VALUES_DETAIL4, "<b>Using Expressions As Values</b>");
 REGISTER_HELP(TABLEINSERT_VALUES_DETAIL5,
               "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
@@ -298,29 +299,44 @@ REGISTER_HELP(TABLEINSERT_VALUES_DETAIL5,
  *
  * $(TABLEINSERT_VALUES_DETAIL3)
  *
- * #### Using Expressions for Values
+ * #### $(TABLEINSERT_VALUES_DETAIL4)
  *
  * $(TABLEINSERT_VALUES_DETAIL5)
  *
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- * - insert()
- * - insert(List columns)
- * - insert(String col1, String col2, ...)
- * - values(Value value1, Value value2, ...)
+ */
+#if DOXYGEN_JS
+/**
+ * - insert(), insert(List columns),
+ *   <a class="el" href="#a3416c6f25e2319d2768d80f5404a8037">
+ *   insert(String column[, String column, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - insert(), insert(list columns),
+ *   <a class="el" href="#a2854685f29742e5f6befcaac2c2c4efb">
+ *   insert(str column[, str column, ...])</a>
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
  *
+ * - <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ *   values(Value value[, Value value, ...])</a>
  * - execute().
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-TableInsert TableInsert::values(Value value1, Value value2, ...) {}
+TableInsert TableInsert::values(Value value[, Value value, ...]) {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::values(Value value1, Value value2, ...) {}
+TableInsert TableInsert::values(Value value[, Value value, ...]) {}
 #endif
+//@}
 shcore::Value TableInsert::values(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("values").c_str());
@@ -353,27 +369,45 @@ REGISTER_HELP(TABLEINSERT_EXECUTE_RETURNS,
  * #### Method Chaining
  *
  * This function can be invoked after:
- * - values(Value value1, Value value2, ...)
+ * - insert(JSON columns)
+ * - <a class="el" href="#acb20e534fca628e0fad6c0d719dc2c6d">
+ *   values(Value value[, Value value, ...])</a>
+ *
+ * ### Examples
  */
+//@{
 #if DOXYGEN_JS
 /**
+ * #### Inserting values without specifying the column names
+ * \snippet mysqlx_table_insert.js TableInsert: insert()
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_table_insert.js"
- * \skip //@ Table.insert execution
- * \until print("Affected Rows Document:", result.affectedItemCount, "\n");
+ * #### The column names given as a list of strings
+ * \snippet mysqlx_table_insert.js TableInsert: insert(list)
+ *
+ * #### The column names given as a sequence of strings
+ * \snippet mysqlx_table_insert.js TableInsert: insert(str...)
+ *
+ * #### The column names and corresponding values given as a JSON document
+ * \snippet mysqlx_table_insert.js TableInsert: insert(JSON)
  */
 Result TableInsert::execute() {}
 #elif DOXYGEN_PY
 /**
+ * #### Inserting values without specifying the column names
+ * \snippet mysqlx_table_insert.py TableInsert: insert()
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_table_insert.py"
- * \skip #@ Table.insert execution
- * \until print "Affected Rows Document:", result.affected_item_count, "\n"
+ * #### The column names given as a list of strings
+ * \snippet mysqlx_table_insert.py TableInsert: insert(list)
+ *
+ * #### The column names given as a sequence of strings
+ * \snippet mysqlx_table_insert.py TableInsert: insert(str...)
+ *
+ * #### The column names and corresponding values given as a JSON document
+ * \snippet mysqlx_table_insert.py TableInsert: insert(JSON)
  */
 Result TableInsert::execute() {}
 #endif
+//@}
 shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
@@ -389,3 +423,6 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

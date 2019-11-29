@@ -48,7 +48,7 @@ FUNCTIONS
       select(...)
             Defines the columns to be retrieved from the table.
 
-      where([expression])
+      where(expression)
             Sets the search condition to filter the records to be retrieved
             from the Table.
 
@@ -67,13 +67,13 @@ RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      Binds a value to a specific placeholder used on this operation.
+      Binds the given value to the placeholder with the specified name.
 
       An error will be raised if the placeholder indicated by name does not
       exist.
 
       This function must be called once for each used placeholder or an error
-      will be raised when the execute method is called.
+      will be raised when the execute() method is called.
 
 #@<OUT> tableselect.execute
 NAME
@@ -91,8 +91,8 @@ NAME
       group_by - Sets a grouping criteria for the retrieved rows.
 
 SYNTAX
-      <TableSelect>.group_by(searchExprStrList)
-      <TableSelect>.group_by(searchExprStr, searchExprStr, ...)
+      <TableSelect>.group_by(columnList)
+      <TableSelect>.group_by(column[, column, ...])
 
 RETURNS
       This TableSelect object.
@@ -236,21 +236,21 @@ NAME
       order_by - Sets the order in which the records will be retrieved.
 
 SYNTAX
+      <TableSelect>.order_by(sortCriteriaList)
       <TableSelect>.order_by(sortCriterion[, sortCriterion, ...])
-      <TableSelect>.order_by(sortCriteria)
 
 RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      If used the records will be sorted with the defined criteria.
+      If used, the TableSelect operation will return the records sorted with
+      the defined criteria.
 
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based.
+      Every defined sort criterion follows the format:
 
-      The format is as follows: columnIdentifier [ ASC | DESC ]
+      name [ ASC | DESC ]
 
-      If no order criteria is specified, ascending will be used by default.
+      ASC is used by default if the sort order is not specified.
 
 #@<OUT> tableselect.where
 NAME
@@ -258,15 +258,15 @@ NAME
               from the Table.
 
 SYNTAX
-      <TableSelect>.where([expression])
+      <TableSelect>.where(expression)
 
 WHERE
-      expression: Condition to filter the records to be retrieved.
+      expression: A condition to filter the records to be retrieved.
 
 RETURNS
       This TableSelect object.
 
 DESCRIPTION
-      If used, only those rows satisfying the expression will be retrieved
+      If used, only those rows satisfying the expression will be retrieved.
 
       The expression supports parameter binding.

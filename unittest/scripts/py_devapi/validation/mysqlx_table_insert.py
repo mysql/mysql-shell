@@ -22,6 +22,18 @@
 |All expected functions are available|
 |No additional functions are available|
 
+#@ TableInsert: valid operations after insert with multiple fields
+|All expected functions are available|
+|No additional functions are available|
+
+#@ TableInsert: valid operations after insert with multiple fields and values
+|All expected functions are available|
+|No additional functions are available|
+
+#@ TableInsert: valid operations after insert with multiple fields and values 2
+|All expected functions are available|
+|No additional functions are available|
+
 #@ TableInsert: valid operations after insert with fields and values
 |All expected functions are available|
 |No additional functions are available|

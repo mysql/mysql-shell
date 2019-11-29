@@ -43,6 +43,18 @@ validate_crud_functions(crud, ['values', 'execute'])
 crud = crud.values('alma', 23, 'female')
 validate_crud_functions(crud, ['values', 'execute'])
 
+#@ TableInsert: valid operations after insert with multiple fields
+crud = table.insert('name', 'age', 'gender')
+validate_crud_functions(crud, ['values'])
+
+#@ TableInsert: valid operations after insert with multiple fields and values
+crud = crud.values('john', 25, 'male')
+validate_crud_functions(crud, ['values', 'execute'])
+
+#@ TableInsert: valid operations after insert with multiple fields and values 2
+crud = crud.values('alma', 23, 'female')
+validate_crud_functions(crud, ['values', 'execute'])
+
 #@ TableInsert: valid operations after insert with fields and values
 crud = table.insert({"name":'john', "age":25, "gender":'male'})
 validate_crud_functions(crud, ['execute'])
@@ -71,20 +83,28 @@ crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').exec
 # ---------------------------------------
 
 #@ Table.insert execution
+#! [TableInsert: insert()]
 result = table.insert().values('jack', 17, 'male').execute()
 print("Affected Rows No Columns:", result.affected_items_count, "\n")
+#! [TableInsert: insert()]
 
+#! [TableInsert: insert(list)]
 result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute()
 print("Affected Rows Columns:", result.affected_items_count, "\n")
+#! [TableInsert: insert(list)]
 
+#! [TableInsert: insert(str...)]
 insert = table.insert('name', 'age', 'gender')
 crud = insert.values('clark', 22,'male')
 crud = insert.values('mary', 13,'female')
 result = insert.execute()
 print("Affected Rows Multiple Values:", result.affected_items_count, "\n")
+#! [TableInsert: insert(str...)]
 
+#! [TableInsert: insert(JSON)]
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
 print("Affected Rows Document:", result.affected_items_count, "\n")
+#! [TableInsert: insert(JSON)]
 
 #@ Table.insert execution on a View
 view = schema.get_table('view1')

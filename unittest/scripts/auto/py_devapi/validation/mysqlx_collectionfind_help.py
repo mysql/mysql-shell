@@ -48,12 +48,16 @@ FUNCTIONS
             Instructs the server to acquire shared row locks in documents
             matched by this find operation.
 
+      offset(quantity)
+            Sets number of documents to skip on the resultset when a limit has
+            been defined.
+
       skip(numberOfDocs)
             Sets number of documents to skip on the resultset when a limit has
             been defined.
 
             ATTENTION: This function will be removed in a future release, use
-                       the offset function instead.
+                       the offset() function instead.
 
       sort(...)
             Sets the sorting criteria to be used on the DocResult.
@@ -74,14 +78,13 @@ RETURNS
       This CollectionFind object.
 
 DESCRIPTION
-      Binds a value to a specific placeholder used on this CollectionFind
-      object.
+      Binds the given value to the placeholder with the specified name.
 
       An error will be raised if the placeholder indicated by name does not
       exist.
 
       This function must be called once for each used placeholder or an error
-      will be raised when the execute method is called.
+      will be raised when the execute() method is called.
 
 #@<OUT> collfind.execute
 NAME
@@ -159,6 +162,25 @@ RETURNS
 
 DESCRIPTION
       Sets a grouping criteria for the resultset.
+
+#@<OUT> collfind.having
+NAME
+      having - Sets a condition for records to be considered in aggregate
+               function operations.
+
+SYNTAX
+      <CollectionFind>.having(condition)
+
+WHERE
+      condition: A condition on the aggregate functions used on the grouping
+                 criteria.
+
+RETURNS
+      This CollectionFind object.
+
+DESCRIPTION
+      Sets a condition for records to be considered in aggregate function
+      operations.
 
 #@<OUT> collfind.help
 NAME
@@ -293,25 +315,62 @@ DESCRIPTION
 
       This operation only makes sense within a transaction.
 
+#@<OUT> collfind.offset
+NAME
+      offset - Sets number of documents to skip on the resultset when a limit
+               has been defined.
+
+SYNTAX
+      <CollectionFind>.offset(quantity)
+
+WHERE
+      quantity: The number of documents to skip before start including them on
+                the DocResult.
+
+RETURNS
+      This CollectionFind object.
+
+DESCRIPTION
+      If used, the first quantity records will not be included on the result.
+
+#@<OUT> collfind.skip
+NAME
+      skip - Sets number of documents to skip on the resultset when a limit has
+             been defined.
+
+SYNTAX
+      <CollectionFind>.skip(numberOfDocs)
+
+WHERE
+      numberOfDocs: The number of documents to skip before start including them
+                    on the DocResult.
+
+RETURNS
+      This CollectionFind object.
+
+DESCRIPTION
+      If used, the first numberOfDocs records will not be included on the
+      result.
+
+      ATTENTION: This function will be removed in a future release, use the
+                 offset() function instead.
+
 #@<OUT> collfind.sort
 NAME
       sort - Sets the sorting criteria to be used on the DocResult.
 
 SYNTAX
       <CollectionFind>.sort(sortCriteriaList)
-      <CollectionFind>.sort(sortCriteria[, sortCriteria, ...])
-
-WHERE
-      sortCriteria: The sort criteria for the returned documents.
+      <CollectionFind>.sort(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This CollectionFind object.
 
 DESCRIPTION
-      If used the CollectionFind operation will return the records sorted with
+      If used, the CollectionFind operation will return the records sorted with
       the defined criteria.
 
-      Every defined sort criterion follows the next format:
+      Every defined sort criterion follows the format:
 
       name [ ASC | DESC ]
 

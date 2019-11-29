@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,31 +76,54 @@ shcore::Value TableDelete::this_object() {
 REGISTER_HELP_FUNCTION(delete, TableDelete);
 REGISTER_HELP(TABLEDELETE_DELETE_BRIEF, "Initializes the deletion operation.");
 REGISTER_HELP(TABLEDELETE_DELETE_RETURNS, "@returns This TableDelete object.");
+REGISTER_HELP(
+    TABLEDELETE_DELETE_DETAIL,
+    "This function is called automatically when Table.delete() is called.");
+REGISTER_HELP(TABLEDELETE_DELETE_DETAIL1,
+              "The actual deletion of the records will occur only when the "
+              "execute() method is called.");
 /**
- * Initializes this record deletion handler.
- * \return This TableDelete object.
+ * $(TABLEDELETE_DELETE_BRIEF)
  *
- * This function is called automatically when Table.delete() is called.
+ * $(TABLEDELETE_DELETE_RETURNS)
  *
- * The actual deletion of the records will occur only when the execute method is
- * called.
+ * $(TABLEDELETE_DELETE_DETAIL)
+ *
+ * $(TABLEDELETE_DELETE_DETAIL1)
  *
  * #### Method Chaining
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - where(String searchCriteria)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - where(String expression)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ab82faffbf73dff990eec0c00beebb337">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
- * - execute().
+ */
+#elif DOXYGEN_PY
+/**
+ * - where(str expression)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#afff2c95e892cbb197b350e94750803cf">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableDelete TableDelete::delete () {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::delete () {}
 #endif
+//@}
 shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("delete").c_str());
@@ -123,9 +146,9 @@ REGISTER_HELP_FUNCTION(where, TableDelete);
 REGISTER_HELP(TABLEDELETE_WHERE_BRIEF,
               "Sets the search condition to filter the records to be deleted "
               "from the Table.");
-REGISTER_HELP(TABLEDELETE_WHERE_PARAM,
-              "@param expression Optional condition to filter the records to "
-              "be deleted.");
+REGISTER_HELP(
+    TABLEDELETE_WHERE_PARAM,
+    "@param expression A condition to filter the records to be deleted.");
 REGISTER_HELP(TABLEDELETE_WHERE_RETURNS, "@returns This TableDelete object.");
 REGISTER_HELP(TABLEDELETE_WHERE_DETAIL,
               "If used, only those rows satisfying the <b>expression</b> will "
@@ -142,7 +165,7 @@ REGISTER_HELP(TABLEDELETE_WHERE_DETAIL1,
  *
  * $(TABLEDELETE_WHERE_DETAIL)
  *
- * $(TABLEDELETE_WHERE_DETAIL1)
+ * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
  *
  * #### Method Chaining
  *
@@ -151,19 +174,36 @@ REGISTER_HELP(TABLEDELETE_WHERE_DETAIL1,
  * - delete()
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ab82faffbf73dff990eec0c00beebb337">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#afff2c95e892cbb197b350e94750803cf">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableDelete TableDelete::where(String expression) {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::where(str expression) {}
 #endif
+//@}
 shcore::Value TableDelete::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("where").c_str());
@@ -188,21 +228,18 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(orderBy, TableDelete);
 REGISTER_HELP(TABLEDELETE_ORDERBY_BRIEF,
               "Sets the order in which the records will be deleted.");
-REGISTER_HELP(TABLEDELETE_ORDERBY_SIGNATURE, "(sortCriteria)");
+REGISTER_HELP(TABLEDELETE_ORDERBY_SIGNATURE, "(sortCriteriaList)");
 REGISTER_HELP(TABLEDELETE_ORDERBY_SIGNATURE1,
               "(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(TABLEDELETE_ORDERBY_RETURNS, "@returns This TableDelete object.");
 REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL,
-              "If used the records will be deleted in the order established by "
-              "the sort criteria.");
+              "If used, the TableDelete operation will delete the records "
+              "in the order established by the sort criteria.");
 REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL1,
-              "The elements of <b>sortExprStr</b> list are strings defining "
-              "the column name on which the sorting will be based.");
-REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL2,
-              "The format is as follows: columnIdentifier [ ASC | DESC ]");
-REGISTER_HELP(
-    TABLEDELETE_ORDERBY_DETAIL3,
-    "If no order criteria is specified, ASC will be used by default.");
+              "Every defined sort criterion follows the format:");
+REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL2, "name [ ASC | DESC ]");
+REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL3,
+              "ASC is used by default if the sort order is not specified.");
 /**
  * $(TABLEDELETE_ORDERBY_BRIEF)
  *
@@ -221,20 +258,47 @@ REGISTER_HELP(
  * This function can be invoked only once after:
  *
  * - delete()
- * - where(String searchCondition)
- *
- * After this function invocation, the following functions can be invoked:
- *
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- * - execute()
- *
  */
 #if DOXYGEN_JS
-TableDelete TableDelete::orderBy(List sortExprStr) {}
+/**
+ * - where(String expression)
+ */
 #elif DOXYGEN_PY
-TableDelete TableDelete::order_by(list sortExprStr) {}
+/**
+ * - where(str expression)
+ */
 #endif
+/**
+ *
+ * After this function invocation, the following functions can be invoked:
+ */
+#if DOXYGEN_JS
+/**
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
+//@{
+#if DOXYGEN_JS
+TableDelete TableDelete::orderBy(List sortCriteria) {}
+TableDelete TableDelete::orderBy(
+    String sortCriterion[, String sortCriterion, ...]) {}
+#elif DOXYGEN_PY
+TableDelete TableDelete::order_by(list sortCriteria) {}
+TableDelete TableDelete::order_by(str sortCriterion[, str sortCriterion, ...]) {
+}
+#endif
+//@}
 shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("orderBy").c_str());
 
@@ -284,23 +348,49 @@ REGISTER_HELP(TABLEDELETE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * This function can be invoked only once after:
  *
  * - delete()
- * - where(String searchCondition)
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - where(String expression)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ab82faffbf73dff990eec0c00beebb337">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - where(str expression)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#afff2c95e892cbb197b350e94750803cf">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ */
+#endif
+/**
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableDelete TableDelete::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::limit(int numberOfRows) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(bind, TableDelete);
 REGISTER_HELP(
@@ -312,7 +402,9 @@ REGISTER_HELP(TABLEDELETE_BIND_PARAM,
 REGISTER_HELP(TABLEDELETE_BIND_PARAM1,
               "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(TABLEDELETE_BIND_RETURNS, "@returns This TableDelete object.");
-REGISTER_HELP(TABLEDELETE_BIND_DETAIL, "${TABLEDELETE_BIND_BRIEF}");
+REGISTER_HELP(
+    TABLEDELETE_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
 REGISTER_HELP(TABLEDELETE_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
@@ -336,26 +428,31 @@ REGISTER_HELP(TABLEDELETE_BIND_DETAIL2,
  *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
- *
- * An error will be raised if the placeholder indicated by name does not exist.
- *
- * This function must be called once for each used placeholder or an error will
- * be
- * raised when the execute method is called.
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableDelete TableDelete::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::bind(str name, Value value) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(execute, TableDelete);
 REGISTER_HELP(TABLEDELETE_EXECUTE_BRIEF,
@@ -369,28 +466,42 @@ REGISTER_HELP(TABLEDELETE_EXECUTE_RETURNS, "@returns A Result object.");
  * #### Method Chaining
  *
  * This function can be invoked after any other function on this class.
+ *
+ * ### Examples
  */
+//@{
 #if DOXYGEN_JS
 /**
+ * #### Deleting records with a condition
+ * \snippet mysqlx_table_delete.js TableDelete: delete under condition
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_table_delete.js"
- * \skip //@ TableDelete: delete under condition
- * \until //@ TableDelete: with limit 3
- * \until print('Records Left:', records.length, '\n');
+ * #### Deleting records with a condition and parameter binding
+ * \snippet mysqlx_table_delete.js TableDelete: delete with binding
+ *
+ * #### Deleting all records using a view
+ * \snippet mysqlx_table_delete.js TableDelete: full delete
+ *
+ * #### Deleting records with a limit
+ * \snippet mysqlx_table_delete.js TableDelete: with limit
  */
 Result TableDelete::execute() {}
 #elif DOXYGEN_PY
 /**
+ * #### Deleting records with a condition
+ * \snippet mysqlx_table_delete.py TableDelete: delete under condition
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_table_delete.py"
- * \skip #@ TableDelete: delete under condition
- * \until #@ TableDelete: with limit 3
- * \until print 'Records Left:', len(records), '\n'
+ * #### Deleting records with a condition and parameter binding
+ * \snippet mysqlx_table_delete.py TableDelete: delete with binding
+ *
+ * #### Deleting all records using a view
+ * \snippet mysqlx_table_delete.py TableDelete: full delete
+ *
+ * #### Deleting records with a limit
+ * \snippet mysqlx_table_delete.py TableDelete: with limit
  */
 Result TableDelete::execute() {}
 #endif
+//@}
 shcore::Value TableDelete::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());

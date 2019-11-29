@@ -92,20 +92,25 @@ crud = table.delete().where('name = :data and age > :years').bind('years', 5).ex
 # ---------------------------------------
 
 #@ TableDelete: delete under condition
+#! [TableDelete: delete under condition]
 result = table.delete().where('age = 15').execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
 records = table.select().execute().fetch_all()
 print('Records Left:', len(records), '\n')
+#! [TableDelete: delete under condition]
 
 #@ TableDelete: delete with binding
+#! [TableDelete: delete with binding]
 result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
 records = table.select().execute().fetch_all()
 print('Records Left:', len(records), '\n')
+#! [TableDelete: delete with binding]
 
 #@ TableDelete: full delete with a view object
+#! [TableDelete: full delete]
 view = schema.get_table('view1')
 result = view.delete().execute()
 print('Affected Rows:', result.affected_items_count, '\n')
@@ -113,6 +118,7 @@ print('Affected Rows:', result.affected_items_count, '\n')
 # Deletion is of course reflected on the target table
 records = table.select().execute().fetch_all()
 print('Records Left:', len(records), '\n')
+#! [TableDelete: full delete]
 
 #@ TableDelete: with limit 0
 result = table.insert({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -125,11 +131,13 @@ records = table.select().execute().fetch_all()
 print('Records Left:', len(records), '\n')
 
 #@ TableDelete: with limit 1
+#! [TableDelete: with limit]
 result = table.delete().limit(2).execute()
 print('Affected Rows:', result.affected_items_count, '\n')
 
 records = table.select().execute().fetch_all()
 print('Records Left:', len(records), '\n')
+#! [TableDelete: with limit]
 
 #@ TableDelete: with limit 2
 result = table.delete().limit(2).execute()

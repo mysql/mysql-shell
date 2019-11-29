@@ -94,16 +94,27 @@ REGISTER_HELP(TABLEUPDATE_UPDATE_RETURNS, "@returns This TableUpdate object.");
  * #### Method Chaining
  *
  * After this function invocation, the following function can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ */
+#endif
+/**
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableUpdate TableUpdate::update() {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::update() {}
 #endif
+//@}
 shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("update").c_str());
@@ -133,10 +144,10 @@ REGISTER_HELP(
 REGISTER_HELP(TABLEUPDATE_SET_RETURNS, "@returns This TableUpdate object.");
 REGISTER_HELP(TABLEUPDATE_SET_DETAIL,
               "Adds an operation into the update handler to update a column "
-              "value in on the records that were included on the selection "
-              "filter and limit.");
-REGISTER_HELP(TABLEINSERT_SET_DETAIL1, "<b>Using Expressions As Values</b>");
-REGISTER_HELP(TABLEINSERT_SET_DETAIL2,
+              "value in the records that were included on the selection filter "
+              "and limit.");
+REGISTER_HELP(TABLEUPDATE_SET_DETAIL1, "<b>Using Expressions As Values</b>");
+REGISTER_HELP(TABLEUPDATE_SET_DETAIL2,
               "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
               "will be evaluated in the server, the resulting value will be "
               "set at the indicated column.");
@@ -150,7 +161,7 @@ REGISTER_HELP(TABLEINSERT_SET_DETAIL2,
  *
  * $(TABLEUPDATE_SET_DETAIL)
  *
- * #### Using Expressions for Values
+ * #### $(TABLEUPDATE_SET_DETAIL1)
  *
  * $(TABLEUPDATE_SET_DETAIL2)
  *
@@ -161,23 +172,53 @@ REGISTER_HELP(TABLEINSERT_SET_DETAIL2,
  *
  * This function can be invoked multiple times after:
  * - update()
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - where(String searchCriteria)
- * - orderBy(List sortExprStr)
+ * - where(String expression)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ae5e292f1f1bc3b75f2a03e81a4e238ea">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - where(str expression)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a37542347a7a0810fd201e261e70f99a8">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableUpdate TableUpdate::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::set(str attribute, Value value) {}
 #endif
+//@}
 shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(2, get_function_name("set").c_str());
@@ -229,9 +270,9 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(where, TableUpdate);
 REGISTER_HELP(TABLEUPDATE_WHERE_BRIEF,
               "Sets the search condition to filter the records to be updated.");
-REGISTER_HELP(TABLEUPDATE_WHERE_PARAM,
-              "@param expression Optional condition to filter the records to "
-              "be updated.");
+REGISTER_HELP(
+    TABLEUPDATE_WHERE_PARAM,
+    "@param expression A condition to filter the records to be updated.");
 REGISTER_HELP(TABLEUPDATE_WHERE_RETURNS, "@returns This TableUpdate object.");
 REGISTER_HELP(TABLEUPDATE_WHERE_DETAIL,
               "If used, only those rows satisfying the <b>expression</b> will "
@@ -247,28 +288,54 @@ REGISTER_HELP(TABLEUPDATE_WHERE_DETAIL1,
  *
  * $(TABLEUPDATE_WHERE_DETAIL)
  *
- * The expression supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
  *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - orderBy(List sortExprStr)
+ */
+#if DOXYGEN_JS
+/**
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ae5e292f1f1bc3b75f2a03e81a4e238ea">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a37542347a7a0810fd201e261e70f99a8">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableUpdate TableUpdate::where(String expression) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::where(str expression) {}
 #endif
+//@}
 shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("where").c_str());
@@ -289,21 +356,18 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
 REGISTER_HELP_FUNCTION(orderBy, TableUpdate);
 REGISTER_HELP(TABLEUPDATE_ORDERBY_BRIEF,
               "Sets the order in which the records will be updated.");
-REGISTER_HELP(TABLEUPDATE_ORDERBY_SIGNATURE, "(sortCriteria)");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_SIGNATURE, "(sortCriteriaList)");
 REGISTER_HELP(TABLEUPDATE_ORDERBY_SIGNATURE1,
               "(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(TABLEUPDATE_ORDERBY_RETURNS, "@returns This TableUpdate object.");
 REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL,
-              "If used the records will be updated in the order established by "
-              "the sort criteria.");
+              "If used, the TableUpdate operation will update the records "
+              "in the order established by the sort criteria.");
 REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL1,
-              "The elements of <b>sortExprStr</b> list are strings defining "
-              "the column name on which the sorting will be based.");
-REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL2,
-              "The format is as follows: columnIdentifier [ ASC | DESC ]");
-REGISTER_HELP(
-    TABLEUPDATE_ORDERBY_DETAIL3,
-    "If no order criteria is specified, ASC will be used by default.");
+              "Every defined sort criterion follows the format:");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL2, "name [ ASC | DESC ]");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL3,
+              "ASC is used by default if the sort order is not specified.");
 /**
  * $(TABLEUPDATE_ORDERBY_BRIEF)
  *
@@ -320,21 +384,49 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
- * - set(String attribute, Value value)
- * - where(String searchCondition)
- *
- * After this function invocation, the following functions can be invoked:
- *
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- * - execute()
  */
 #if DOXYGEN_JS
-TableUpdate TableUpdate::orderBy(List sortExprStr) {}
+/**
+ * - set(String attribute, Value value)
+ * - where(String expression)
+ */
 #elif DOXYGEN_PY
-TableUpdate TableUpdate::order_by(list sortExprStr) {}
+/**
+ * - set(str attribute, Value value)
+ * - where(str expression)
+ */
 #endif
+/**
+ *
+ * After this function invocation, the following functions can be invoked:
+ */
+#if DOXYGEN_JS
+/**
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
+//@{
+#if DOXYGEN_JS
+TableUpdate TableUpdate::orderBy(List sortCriteria) {}
+TableUpdate TableUpdate::orderBy(
+    String sortCriterion[, String sortCriterion, ...]) {}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::order_by(list sortCriteria) {}
+TableUpdate TableUpdate::order_by(str sortCriterion[, str sortCriterion, ...]) {
+}
+#endif
+//@}
 shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("orderBy").c_str());
 
@@ -381,25 +473,51 @@ REGISTER_HELP(TABLEUPDATE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - where(String searchCondition)
- * - orderBy(List sortExprStr)
+ * - where(String expression)
+ * - orderBy(List sortCriteria),
+ *   <a class="el" href="#ae5e292f1f1bc3b75f2a03e81a4e238ea">
+ *   orderBy(String sortCriterion[, String sortCriterion, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - where(str expression)
+ * - order_by(list sortCriteria),
+ *   <a class="el" href="#a37542347a7a0810fd201e261e70f99a8">
+ *   order_by(str sortCriterion[, str sortCriterion, ...])</a>
+ */
+#endif
+/**
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableUpdate TableUpdate::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::limit(int numberOfRows) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(bind, TableUpdate);
 REGISTER_HELP(
@@ -411,7 +529,9 @@ REGISTER_HELP(TABLEUPDATE_BIND_PARAM,
 REGISTER_HELP(TABLEUPDATE_BIND_PARAM1,
               "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(TABLEUPDATE_BIND_RETURNS, "@returns This TableUpdate object.");
-REGISTER_HELP(TABLEUPDATE_BIND_DETAIL, "${TABLEUPDATE_BIND_BRIEF}");
+REGISTER_HELP(
+    TABLEUPDATE_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
 REGISTER_HELP(TABLEUPDATE_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
@@ -427,7 +547,7 @@ REGISTER_HELP(TABLEUPDATE_BIND_DETAIL2,
  *
  * $(TABLEUPDATE_BIND_RETURNS)
  *
- * $(TABLEUPDATE_BIND_BRIEF)
+ * $(TABLEUPDATE_BIND_DETAIL)
  *
  * $(TABLEUPDATE_BIND_DETAIL1)
  *
@@ -435,26 +555,31 @@ REGISTER_HELP(TABLEUPDATE_BIND_DETAIL2,
  *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
- *
- * An error will be raised if the placeholder indicated by name does not exist.
- *
- * This function must be called once for each used placeholder or an error will
- * be
- * raised when the execute method is called.
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 TableUpdate TableUpdate::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::bind(str name, Value value) {}
 #endif
+//@}
 
 REGISTER_HELP_FUNCTION(execute, TableUpdate);
 REGISTER_HELP(TABLEUPDATE_EXECUTE_BRIEF,
@@ -469,26 +594,42 @@ REGISTER_HELP(TABLEUPDATE_EXECUTE_RETURNS, "@returns A Result object.");
  *
  * This function can be invoked after any other function on this class except
  * update().
+ *
+ * ### Examples
  */
+//@{
 #if DOXYGEN_JS
 /**
+ * #### Updating a single field in a record
+ * \snippet mysqlx_table_update.js TableUpdate: simple test
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_table_update.js"
- * \skip //@# TableUpdate: simple test
- * \until print('All Females:', records.length, '\n');
+ * #### Updating a single field using expressions
+ * \snippet mysqlx_table_update.js TableUpdate: expression
+ *
+ * #### Updating a single field using expressions and parameter binding
+ * \snippet mysqlx_table_update.js TableUpdate: limits
+ *
+ * #### Updating a view
+ * \snippet mysqlx_table_update.js TableUpdate: view
  */
 Result TableUpdate::execute() {}
 #elif DOXYGEN_PY
 /**
+ * #### Updating a single field in a record
+ * \snippet mysqlx_table_update.py TableUpdate: simple test
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_table_update.py"
- * \skip #@# TableUpdate: simple test
- * \until print 'All Females:', len(records), '\n'
+ * #### Updating a single field using expressions
+ * \snippet mysqlx_table_update.py TableUpdate: expression
+ *
+ * #### Updating a single field using expressions and parameter binding
+ * \snippet mysqlx_table_update.py TableUpdate: limits
+ *
+ * #### Updating a view
+ * \snippet mysqlx_table_update.py TableUpdate: view
  */
 Result TableUpdate::execute() {}
 #endif
+//@}
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());

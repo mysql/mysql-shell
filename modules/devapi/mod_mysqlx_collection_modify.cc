@@ -34,9 +34,12 @@
 #include <vector>
 #include "scripting/common.h"
 
-using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
-using namespace shcore;
+namespace mysqlsh {
+namespace mysqlx {
+
+using shcore::Value;
+using shcore::Value_type::Array;
+using std::placeholders::_1;
 
 // Documentation of CollectionModify class
 REGISTER_HELP_CLASS(CollectionModify, mysqlx);
@@ -181,31 +184,46 @@ REGISTER_HELP(
  * is called.
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * \sa Usage examples at execute().
- * \sa Collection
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::modify(String searchCondition) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::modify(str searchCondition) {}
 #endif
+//@}
 std::shared_ptr<CollectionModify> CollectionModify::modify(
     const std::string &condition) {
   std::shared_ptr<Collection> collection(
       std::static_pointer_cast<Collection>(_owner));
 
   if (collection) {
-    auto search_condition = str_strip(condition);
+    auto search_condition = shcore::str_strip(condition);
     if (search_condition.empty())
       throw shcore::Exception::argument_error("Requires a search condition.");
 
@@ -287,44 +305,82 @@ REGISTER_HELP(
  * Binding](param_binding.html).
  *
  * The attribute addition will be done on the collection's documents once the
- * execute method is called.
+ * execute() method is called.
  *
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::set(str attribute, Value value) {}
 #endif
+//@}
 std::shared_ptr<CollectionModify> CollectionModify::set(
     const std::string &attribute, shcore::Value value) {
   set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, attribute, value);
@@ -352,14 +408,14 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURNS,
               "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL,
               "The attribute removal will be done on the collection's "
-              "documents once the execute method is called.");
+              "documents once the execute() method is called.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL1,
               "For each attribute on the attributes list, adds an operation "
               "into the modify handler");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
               "to remove the attribute on the documents that were included on "
               "the selection filter and limit.");
-
+//@{
 /**
  * $(COLLECTIONMODIFY_UNSET_BRIEF)
  *
@@ -372,42 +428,76 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
-//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::unset(
     String attribute[, String attribute, ...]) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::unset(str attribute[, str attribute, ...]) {}
 #endif
-//@}
 
 /**
  * $(COLLECTIONMODIFY_UNSET_BRIEF)
@@ -424,31 +514,67 @@ CollectionModify CollectionModify::unset(str attribute[, str attribute, ...]) {}
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
@@ -457,7 +583,7 @@ CollectionModify CollectionModify::unset(List attributes) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::unset(list attributes) {}
 #endif
-
+//@}
 shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("unset").c_str());
@@ -477,8 +603,8 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
           set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
                         index->get_string(), shcore::Value());
         } else {
-          throw shcore::Exception::type_error(
-              str_format("Element #%d is expected to be a string", int_index));
+          throw shcore::Exception::type_error(shcore::str_format(
+              "Element #%d is expected to be a string", int_index));
         }
       }
 
@@ -492,13 +618,14 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
           std::string error;
 
           if (args.size() == 1)
-            error = str_format(
+            error = shcore::str_format(
                 "Argument #%u is expected to be either string or list of "
                 "strings",
                 static_cast<uint32_t>(index + 1));
           else
-            error = str_format("Argument #%u is expected to be a string",
-                               static_cast<uint32_t>(index + 1));
+            error =
+                shcore::str_format("Argument #%u is expected to be a string",
+                                   static_cast<uint32_t>(index + 1));
 
           throw shcore::Exception::type_error(error);
         }
@@ -532,12 +659,12 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL,
               "exist on the collection's documents.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
               "The attribute addition will be done on the collection's "
-              "documents once the execute method is called.");
+              "documents once the execute() method is called.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2,
               "${COLLECTIONMODIFY_MERGE_DEPRECATED}");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DEPRECATED,
               "@attention This function will be removed in a future release, "
-              "use the <b>patch</b> function instead.");
+              "use the <b>patch()</b> function instead.");
 
 /**
  * $(COLLECTIONMODIFY_MERGE_BRIEF)
@@ -555,39 +682,81 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DEPRECATED,
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::merge(Document document) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::merge(Document document) {}
 #endif
+//@}
 shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("merge").c_str());
@@ -653,7 +822,7 @@ REGISTER_HELP(
 REGISTER_HELP(
     COLLECTIONMODIFY_PATCH_DETAIL9,
     "The patch operations will be done on the collection's documents once the "
-    "execute method is called.");
+    "execute() method is called.");
 /**
  * $(COLLECTIONMODIFY_PATCH_BRIEF)
  *
@@ -679,39 +848,77 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::patch(Document document) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::patch(Document document) {}
 #endif
+//@}
 shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("patch").c_str());
@@ -747,7 +954,7 @@ REGISTER_HELP(
     "selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
               "The insertion of the value will be done on the collection's "
-              "documents once the execute method is called.");
+              "documents once the execute() method is called.");
 
 /**
  * $(COLLECTIONMODIFY_ARRAYINSERT_BRIEF)
@@ -764,39 +971,77 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayInsert(String docPath, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_insert(str docPath, Value value) {}
 #endif
+//@}
 std::shared_ptr<CollectionModify> CollectionModify::array_insert(
     const std::string &doc_path, shcore::Value value) {
   set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT, doc_path, value,
@@ -841,42 +1086,77 @@ REGISTER_HELP(
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- *
- * The attribute addition will be done on the collection's documents once the
- * execute method is called.
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayAppend(String docPath, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_append(str docPath, Value value) {}
 #endif
+//@}
 std::shared_ptr<CollectionModify> CollectionModify::array_append(
     const std::string &doc_path, shcore::Value value) {
   set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND, doc_path, value);
@@ -905,12 +1185,12 @@ REGISTER_HELP(
     "selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
               "The attribute deletion will be done on the collection's "
-              "documents once the execute method is called.");
+              "documents once the execute() method is called.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL2,
               "${COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED}");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED,
               "@attention This function will be removed in a future release, "
-              "use the <b>unset</b> function instead.");
+              "use the <b>unset()</b> function instead.");
 /**
  * $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
  *
@@ -927,39 +1207,81 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED,
  * #### Method Chaining
  *
  * This function can be invoked multiple times after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - modify(String searchCondition)
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
  * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - modify(str searchCondition)
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - array_delete(str docPath)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
  * - arrayDelete(String docPath)
- * - sort(List sortExprStr)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - array_delete(str docPath)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayDelete(String docPath) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_delete(str docPath) {}
 #endif
+//@}
 std::shared_ptr<CollectionModify> CollectionModify::array_delete(
     const std::string &doc_path) {
   log_warning("'%s' is deprecated, use '%s' instead.",
@@ -981,63 +1303,89 @@ REGISTER_HELP_FUNCTION(sort, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_SORT_BRIEF,
               "Sets the document order in which the update operations added to "
               "the handler should be done.");
-REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE, "(sortDataList)");
-REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE1, "(sortData[, sortData, ...])");
-// REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM,
-//              "@param sortExprStr: A list of expression strings defining a "
-//              "collection sort criteria.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE, "(sortCriteriaList)");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE1,
+              "(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURNS,
               "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL,
-              "The elements of sortExprStr list are usually strings defining "
-              "the attribute name on which the collection sorting will be "
-              "based. Each criterion could be followed by asc or desc to "
-              "indicate ascending");
-REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1,
-              "or descending order respectively. If no order is specified, "
-              "ascending will be used by default.");
+              "Every defined sort criterion follows the format:");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1, "name [ ASC | DESC ]");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2,
+              "ASC is used by default if the sort order is not specified.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL3,
               "This method is usually used in combination with limit to fix "
               "the amount of documents to be updated.");
 
 /**
  * $(COLLECTIONMODIFY_SORT_BRIEF)
  *
- * $(COLLECTIONMODIFY_SORT_PARAM)
- *
  * $(COLLECTIONMODIFY_SORT_RETURNS)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL)
+ *
  * $(COLLECTIONMODIFY_SORT_DETAIL1)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL2)
  *
+ * $(COLLECTIONMODIFY_SORT_DETAIL3)
+ *
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ */
+#endif
+/**
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - limit(int numberOfRows)
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-CollectionModify CollectionModify::sort(List sortExprStr) {}
+CollectionModify CollectionModify::sort(List sortCriteria) {}
+CollectionModify CollectionModify::sort(
+    String sortCriterion[, String sortCriterion, ...]) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::sort(list sortExprStr) {}
+CollectionModify CollectionModify::sort(list sortCriteria) {}
+CollectionModify CollectionModify::sort(
+    str sortCriterion[, str sortCriterion, ...]) {}
 #endif
+//@}
 shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("sort").c_str());
 
@@ -1088,31 +1436,61 @@ REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
  * #### Method Chaining
  *
  * This function can be invoked only once after:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
+ * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
+ *   unset(String attribute[, String attribute, ...])</a>,
+ *   unset(List attributes)
  * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
+ * - sort(List sortCriteria),
+ *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
+ *   sort(String sortCriterion[, String sortCriterion, ...])</a>
+ */
+#elif DOXYGEN_PY
+/**
+ * - set(str attribute, Value value)
+ * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
+ *   unset(str attribute[, str attribute, ...])</a>,
+ *   unset(list attributes)
+ * - patch(Document document)
+ * - array_append(str docPath, Value value)
+ * - array_insert(str docPath, Value value)
+ * - sort(list sortCriteria),
+ *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
+ *   sort(str sortCriterion[, str sortCriterion, ...])</a>
+ */
+#endif
+/**
  *
  * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
- *
- * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
+ * - execute()
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::limit(int numberOfDocs) {}
 #endif
+//@}
 
 // Documentation of bind function
 REGISTER_HELP_FUNCTION(bind, CollectionModify);
@@ -1120,12 +1498,21 @@ REGISTER_HELP(COLLECTIONMODIFY_BIND_BRIEF,
               "Binds a value to a specific placeholder used on this "
               "CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM,
-              "@param name: The name of the placeholder to which the value "
+              "@param name The name of the placeholder to which the value "
               "will be bound.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM1,
-              "@param value: The value to be bound on the placeholder.");
+              "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURNS,
               "@returns This CollectionModify object.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_BIND_DETAIL,
+    "Binds the given value to the placeholder with the specified name.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_DETAIL1,
+              "An error will be raised if the placeholder indicated by name "
+              "does not exist.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_DETAIL2,
+              "This function must be called once for each used placeholder or "
+              "an error will be raised when the execute() method is called.");
 
 /**
  * $(COLLECTIONMODIFY_BIND_BRIEF)
@@ -1136,28 +1523,39 @@ REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURNS,
  *
  * $(COLLECTIONMODIFY_BIND_RETURNS)
  *
+ * $(COLLECTIONMODIFY_BIND_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_BIND_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_BIND_DETAIL2)
+ *
  * #### Method Chaining
  *
- * This function can be invoked multiple times right before calling execute:
+ * This function can be invoked multiple times right before calling execute().
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
  * - bind(String name, Value value)
+ */
+#elif DOXYGEN_PY
+/**
+ * - bind(str name, Value value)
+ */
+#endif
+/**
  * - execute()
- *
- * An error will be raised if the placeholder indicated by name does not exist.
- *
- * This function must be called once for each used placeholder or an error will
- * be
- * raised when the execute method is called.
  *
  * \sa Usage examples at execute().
  */
+//@{
 #if DOXYGEN_JS
-CollectionFind CollectionModify::bind(String name, Value value) {}
+CollectionModify CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionModify::bind(str name, Value value) {}
+CollectionModify CollectionModify::bind(str name, Value value) {}
 #endif
+//@}
 
 // Documentation of execute function
 REGISTER_HELP_FUNCTION(execute, CollectionModify);
@@ -1179,28 +1577,66 @@ REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_RETURNS,
  * modify().
  *
  * The update operation will be executed in the order they were added.
+ *
+ * ### Examples
  */
+//@{
 #if DOXYGEN_JS
 /**
+ * #### Modify multiple attributes
+ * \snippet mysqlx_collection_modify.js CollectionModify: Set Execution
  *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
- * \skip //@# CollectionModify: Set Execution
- * \until //@ CollectionModify: sorting and limit Execution - 4
- * \until print(dir(doc));
+ * #### Modify an attribute with an array value
+ * \snippet mysqlx_collection_modify.js CollectionModify: Set Binding Array
+ *
+ * #### Unset an attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: Simple Unset Execution
+ *
+ * #### Unset multiple attributes using an array
+ * \snippet mysqlx_collection_modify.js CollectionModify: List Unset Execution
+ *
+ * #### Patch multiple attributes
+ * \snippet mysqlx_collection_modify.js CollectionModify: Patch Execution
+ *
+ * #### Append to an array attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: arrayAppend Execution
+ *
+ * #### Insert into an array attribute
+ * \snippet mysqlx_collection_modify.js CollectionModify: arrayInsert Execution
+ *
+ * #### Sorting and setting a limit
+ * \snippet mysqlx_collection_modify.js CollectionModify: sorting and limit
  */
 Result CollectionModify::execute() {}
 #elif DOXYGEN_PY
 /**
+ * #### Modify multiple attributes
+ * \snippet mysqlx_collection_modify.py CollectionModify: Set Execution
  *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
- * \skip #@# CollectionModify: Set Execution
- * \until #@ CollectionModify: sorting and limit Execution - 4
- * \until print dir(doc)
+ * #### Modify an attribute with an array value
+ * \snippet mysqlx_collection_modify.py CollectionModify: Set Binding Array
+ *
+ * #### Unset an attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: Simple Unset Execution
+ *
+ * #### Unset multiple attributes using an array
+ * \snippet mysqlx_collection_modify.py CollectionModify: List Unset Execution
+ *
+ * #### Patch multiple attributes
+ * \snippet mysqlx_collection_modify.py CollectionModify: Patch Execution
+ *
+ * #### Append to an array attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: array_append Execution
+ *
+ * #### Insert into an array attribute
+ * \snippet mysqlx_collection_modify.py CollectionModify: array_insert Execution
+ *
+ * #### Sorting and setting a limit
+ * \snippet mysqlx_collection_modify.py CollectionModify: sorting and limit
  */
 Result CollectionModify::execute() {}
 #endif
+//@}
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("execute").c_str());
   shcore::Value ret_val;
@@ -1221,6 +1657,7 @@ void CollectionModify::set_prepared_stmt() {
   *m_prep_stmt.mutable_stmt()->mutable_update() = message_;
 }
 
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 shcore::Value CollectionModify::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
 
@@ -1232,3 +1669,7 @@ shcore::Value CollectionModify::execute() {
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
+#endif
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

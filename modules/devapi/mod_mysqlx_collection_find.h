@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,11 +61,11 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind fields(String fieldDefinition[, String fieldDefinition, ...]);
   CollectionFind fields(List fieldDefinition);
   CollectionFind fields(DocExpression fieldDefinition);
-  CollectionFind groupBy(List groupCriteria);
-  CollectionFind groupBy(String groupCriteria[, String groupCriteria, ...]);
+  CollectionFind groupBy(List fields);
+  CollectionFind groupBy(String field[, String field, ...]);
   CollectionFind having(String condition);
   CollectionFind sort(List sortCriteria);
-  CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
+  CollectionFind sort(String sortCriterion[, String sortCriterion, ...]);
   CollectionFind limit(Integer numberOfDocs);
   CollectionFind skip(Integer numberOfDocs);
   CollectionFind offset(Integer numberOfDocs);
@@ -78,11 +78,11 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind fields(str fieldDefinition[, str fieldDefinition, ...]);
   CollectionFind fields(list fieldDefinition);
   CollectionFind fields(DocExpression fieldDefinition);
-  CollectionFind group_by(list groupCriteria);
-  CollectionFind group_by(str groupCriteria[, str groupCriteria, ...]);
+  CollectionFind group_by(list fields);
+  CollectionFind group_by(str field[, str field, ...]);
   CollectionFind having(str condition);
   CollectionFind sort(list sortCriteria);
-  CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
+  CollectionFind sort(str sortCriterion[, str sortCriterion, ...]);
   CollectionFind limit(int numberOfDocs);
   CollectionFind skip(int numberOfDocs);
   CollectionFind offset(int numberOfDocs);
@@ -101,7 +101,9 @@ class CollectionFind : public Collection_crud_definition,
 
   shcore::Value execute(const shcore::Argument_list &args) override;
   CollectionFind &set_filter(const std::string &filter);
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
   std::unique_ptr<DocResult> execute();
+#endif
 
  private:
   Mysqlx::Crud::Find message_;

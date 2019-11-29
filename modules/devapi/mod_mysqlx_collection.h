@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,8 +58,8 @@ class Collection : public DatabaseObject,
 #if DOXYGEN_JS
   CollectionAdd add(...);
   CollectionFind find(...);
-  CollectionRemove remove(String searchCondition);
   CollectionModify modify(String searchCondition);
+  CollectionRemove remove(String searchCondition);
   Result createIndex(String name, JSON indexDefinition);
   Undefined dropIndex(String name);
   Result replaceOne(String id, Document doc);
@@ -70,8 +70,8 @@ class Collection : public DatabaseObject,
 #elif DOXYGEN_PY
   CollectionAdd add(...);
   CollectionFind find(...);
-  CollectionRemove remove(str search_condition);
   CollectionModify modify(str search_condition);
+  CollectionRemove remove(str search_condition);
   Result create_index(str name, JSON indexDefinition);
   None drop_index(str name);
   Result replace_one(str id, document doc);

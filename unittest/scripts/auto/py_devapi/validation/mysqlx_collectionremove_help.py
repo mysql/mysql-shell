@@ -48,11 +48,13 @@ RETURNS
       This CollectionRemove object.
 
 DESCRIPTION
+      Binds the given value to the placeholder with the specified name.
+
       An error will be raised if the placeholder indicated by name does not
       exist.
 
       This function must be called once for each used placeholder or an error
-      will be raised when the execute method is called.
+      will be raised when the execute() method is called.
 
 #@<OUT> collremove.execute
 NAME
@@ -93,6 +95,8 @@ DESCRIPTION
       This method is usually used in combination with sort to fix the amount of
       documents to be deleted.
 
+      This function can be called every time the statement is executed.
+
 #@<OUT> collremove.remove
 NAME
       remove - Sets the search condition to filter the documents to be deleted
@@ -121,7 +125,7 @@ DESCRIPTION
       This function is called automatically when
       Collection.remove(searchCondition) is called.
 
-      The actual deletion of the documents will occur only when the execute
+      The actual deletion of the documents will occur only when the execute()
       method is called.
 
 #@<OUT> collremove.sort
@@ -129,18 +133,18 @@ NAME
       sort - Sets the order in which the deletion should be done.
 
 SYNTAX
-      <CollectionRemove>.sort(sortExprList)
-      <CollectionRemove>.sort(sortExpr[, sortExpr, ...])
+      <CollectionRemove>.sort(sortCriteriaList)
+      <CollectionRemove>.sort(sortCriterion[, sortCriterion, ...])
 
 RETURNS
       This CollectionRemove object.
 
 DESCRIPTION
-      The elements of sortExprStr list are strings defining the column name on
-      which the sorting will be based in the form of 'columnIdentifier [ ASC |
-      DESC ]'.
+      Every defined sort criterion follows the format:
 
-      If no order criteria is specified, ascending will be used by default.
+      name [ ASC | DESC ]
+
+      ASC is used by default if the sort order is not specified.
 
       This method is usually used in combination with limit to fix the amount
       of documents to be deleted.

@@ -136,10 +136,13 @@ crud = table.select().where('name = :data and age > :years').bind('years', 5).ex
 // Table.Select Unit Testing: Execution
 // ---------------------------------------
 //@ Table.Select All
+//! [Table.Select All]
 var records = table.select().execute().fetchAll();
 print("All:", records.length, "\n");
+//! [Table.Select All]
 
 //@ Table.Select Filtering
+//! [Table.Select Filtering]
 var records = table.select().where('gender = "male"').execute().fetchAll();
 print("Males:", records.length, "\n");
 
@@ -163,8 +166,10 @@ print("Names With A:", records.length, "\n");
 
 var records = table.select().where('NOT (age = 14)').execute().fetchAll();
 print("Not 14 Years:", records.length, "\n");
+//! [Table.Select Filtering]
 
 //@ Table.Select Field Selection
+//! [Table.Select Field Selection]
 var result = table.select(['name', 'age']).execute();
 var record = result.fetchOne();
 var columns = dir(record)
@@ -178,8 +183,10 @@ var record = result.fetchOne();
 var columns = dir(record)
 print('2-Metadata Length:', columns.length, '\n');
 print('2-Metadata Field:', columns[1], '\n');
+//! [Table.Select Field Selection]
 
 //@ Table.Select Sorting
+//! [Table.Select Sorting]
 var records = table.select().orderBy(['name']).execute().fetchAll();
 for (index = 0; index < 7; index++) {
   print('Select Asc', index, ':', records[index].name, '\n');
@@ -189,8 +196,10 @@ var records = table.select().orderBy(['name desc']).execute().fetchAll();
 for (index = 0; index < 7; index++) {
   print('Select Desc', index, ':', records[index].name, '\n');
 }
+//! [Table.Select Sorting]
 
 //@ Table.Select Limit and Offset
+//! [Table.Select Limit and Offset]
 var records = table.select().limit(4).execute().fetchAll();
 print('Limit-Offset 0 :', records.length, '\n');
 
@@ -198,12 +207,15 @@ for (index = 1; index < 8; index++) {
   var records = table.select().limit(4).offset(index).execute().fetchAll();
   print('Limit-Offset', index, ':', records.length, '\n');
 }
+//! [Table.Select Limit and Offset]
 
 //@ Table.Select Parameter Binding through a View
 var view = schema.getTable('view1');
+//! [Table.Select Parameter Binding]
 var records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll();
 print('Select Binding Length:', records.length, '\n');
 print('Select Binding Name:', records[0].my_name, '\n');
+//! [Table.Select Parameter Binding]
 
 //@ Table.Select Basic vertical output
 shell.options.resultFormat = "vertical"

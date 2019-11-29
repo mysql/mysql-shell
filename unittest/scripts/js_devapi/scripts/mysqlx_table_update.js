@@ -101,22 +101,27 @@ crud = table.update().set('age', 17).where('name = :data and age > :years').bind
 var record;
 
 //@# TableUpdate: simple test
+//! [TableUpdate: simple test]
 var result = table.update().set('name', 'aline').where('age = 13').execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var result = table.select().where('name = "aline"').execute();
 record = result.fetchOne();
 print("Updated Record:", record.name, record.age);
+//! [TableUpdate: simple test]
 
 //@ TableUpdate: test using expression
+//! [TableUpdate: expression]
 var result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var result = table.select().where('age = 23').execute();
 record = result.fetchOne();
 print("Updated Record:", record.name, record.age);
+//! [TableUpdate: expression]
 
 //@ TableUpdate: test using limits
+//! [TableUpdate: limits]
 var result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute();
 print('Affected Rows:', result.affectedItemsCount, '\n');
 
@@ -125,15 +130,18 @@ print('With 16 Years:', records.length, '\n');
 
 var records = table.select().where('age = 15').execute().fetchAll();
 print('With 15 Years:', records.length, '\n');
+//! [TableUpdate: limits]
 
 //@ TableUpdate: test full update with view object
 var view = schema.getTable('view1');
+//! [TableUpdate: view]
 var result = view.update().set('my_gender', 'female').execute();
 print('Updated Females:', result.affectedItemsCount, '\n');
 
 // Result gets reflected on the target table
-var records = table.select().where('gender = \"female\"').execute().fetchAll();
+var records = table.select().where('gender = "female"').execute().fetchAll();
 print('All Females:', records.length, '\n');
+//! [TableUpdate: view]
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

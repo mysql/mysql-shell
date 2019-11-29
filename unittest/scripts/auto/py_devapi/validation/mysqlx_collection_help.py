@@ -28,7 +28,7 @@ PROPERTIES
 
 FUNCTIONS
       add(...)
-            Inserts one or more documents into a collection.
+            Creates a document addition handler.
 
       add_or_replace_one(id, doc)
             Replaces or adds a document in a collection.
@@ -46,8 +46,7 @@ FUNCTIONS
             Verifies if this object exists in the database.
 
       find([searchCondition])
-            Retrieves documents from a collection, matching a specified
-            criteria.
+            Creates a handler which can be used to find documents.
 
       get_name()
             Returns the name of this database object.
@@ -78,11 +77,11 @@ FUNCTIONS
 
 #@<OUT> coll.add
 NAME
-      add - Inserts one or more documents into a collection.
+      add - Creates a document addition handler.
 
 SYNTAX
       Collection.add(...)
-                [.execute()]
+                .execute()
 
       add(...)
             This function has the following overloads:
@@ -92,7 +91,8 @@ SYNTAX
             - add(mysqlx.expr(...))
 
             This function receives one or more document definitions to be added
-            into a collection.
+            into a collection. The documents are cached in an internal list and
+            are added to the collection when the execute() method is called.
 
             A document definition may be provided in two ways:
 
@@ -249,19 +249,18 @@ RETURNS
 
 #@<OUT> coll.find
 NAME
-      find - Retrieves documents from a collection, matching a specified
-             criteria.
+      find - Creates a handler which can be used to find documents.
 
 SYNTAX
       Collection.find([searchCondition])
                 [.fields(...)]
                 [.group_by(...)[.having(condition)]]
                 [.sort(...)]
-                [.limit(numberOfDocs)[.skip(numberOfDocs)]]
+                [.limit(numberOfDocs)[.offset(quantity)]]
                 [.lock_shared([lockContention])]
                 [.lock_exclusive([lockContention])]
                 [.bind(name, value)]
-                [.execute()]
+                .execute()
 
       find([searchCondition])
             Sets the search condition to identify the Documents to be retrieved
@@ -308,12 +307,12 @@ SYNTAX
             This function has the following overloads:
 
             - sort(sortCriteriaList)
-            - sort(sortCriteria[, sortCriteria, ...])
+            - sort(sortCriterion[, sortCriterion, ...])
 
-            If used the CollectionFind operation will return the records sorted
-            with the defined criteria.
+            If used, the CollectionFind operation will return the records
+            sorted with the defined criteria.
 
-            Every defined sort criterion follows the next format:
+            Every defined sort criterion follows the format:
 
             name [ ASC | DESC ]
 
@@ -324,12 +323,9 @@ SYNTAX
 
             This function can be called every time the statement is executed.
 
-      skip(numberOfDocs)
-            If used, the first numberOfDocs' records will not be included on
-            the result.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the offset function instead.
+      offset(quantity)
+            If used, the first quantity records will not be included on the
+            result.
 
       lock_shared([lockContention])
             When this function is called, the selected documents will be locked
@@ -409,14 +405,13 @@ SYNTAX
             This operation only makes sense within a transaction.
 
       bind(name, value)
-            Binds a value to a specific placeholder used on this CollectionFind
-            object.
+            Binds the given value to the placeholder with the specified name.
 
             An error will be raised if the placeholder indicated by name does
             not exist.
 
             This function must be called once for each used placeholder or an
-            error will be raised when the execute method is called.
+            error will be raised when the execute() method is called.
 
       execute()
             Executes the find operation with all the configured options.
@@ -494,15 +489,13 @@ SYNTAX
       Collection.modify(searchCondition)
                 [.set(attribute, value)]
                 [.unset(...)]
-                [.merge(document)]
                 [.patch(document)]
                 [.array_insert(docPath, value)]
                 [.array_append(docPath, value)]
-                [.array_delete(docPath)]
                 [.sort(...)]
                 [.limit(numberOfDocs)]
-                [.bind(name:, value:)]
-                [.execute()]
+                [.bind(name, value)]
+                .execute()
 
       modify(searchCondition)
             Creates a handler to update documents in the collection.
@@ -537,24 +530,13 @@ SYNTAX
             - unset(attribute[, attribute, ...])
 
             The attribute removal will be done on the collection's documents
-            once the execute method is called.
+            once the execute() method is called.
 
             For each attribute on the attributes list, adds an operation into
             the modify handler
 
             to remove the attribute on the documents that were included on the
             selection filter and limit.
-
-      merge(document)
-            This function adds an operation to add into the documents of a
-            collection, all the attributes defined in document that do not
-            exist on the collection's documents.
-
-            The attribute addition will be done on the collection's documents
-            once the execute method is called.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the patch function instead.
 
       patch(document)
             This function adds an operation to update the documents of a
@@ -583,7 +565,7 @@ SYNTAX
               used they will be evaluated at the server side.
 
             The patch operations will be done on the collection's documents
-            once the execute method is called.
+            once the execute() method is called.
 
       array_insert(docPath, value)
             Adds an operation into the modify handler to insert a value into an
@@ -591,36 +573,24 @@ SYNTAX
             selection filter and limit.
 
             The insertion of the value will be done on the collection's
-            documents once the execute method is called.
+            documents once the execute() method is called.
 
       array_append(docPath, value)
             Adds an operation into the modify handler to append a value into an
             array attribute on the documents that were included on the
             selection filter and limit.
 
-      array_delete(docPath)
-            Adds an operation into the modify handler to delete a value from an
-            array attribute on the documents that were included on the
-            selection filter and limit.
-
-            The attribute deletion will be done on the collection's documents
-            once the execute method is called.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the unset function instead.
-
       sort(...)
             This function has the following overloads:
 
-            - sort(sortDataList)
-            - sort(sortData[, sortData, ...])
+            - sort(sortCriteriaList)
+            - sort(sortCriterion[, sortCriterion, ...])
 
-            The elements of sortExprStr list are usually strings defining the
-            attribute name on which the collection sorting will be based. Each
-            criterion could be followed by asc or desc to indicate ascending
+            Every defined sort criterion follows the format:
 
-            or descending order respectively. If no order is specified,
-            ascending will be used by default.
+            name [ ASC | DESC ]
+
+            ASC is used by default if the sort order is not specified.
 
             This method is usually used in combination with limit to fix the
             amount of documents to be updated.
@@ -631,9 +601,14 @@ SYNTAX
 
             This function can be called every time the statement is executed.
 
-      bind(name:, value:)
-            Binds a value to a specific placeholder used on this
-            CollectionModify object.
+      bind(name, value)
+            Binds the given value to the placeholder with the specified name.
+
+            An error will be raised if the placeholder indicated by name does
+            not exist.
+
+            This function must be called once for each used placeholder or an
+            error will be raised when the execute() method is called.
 
       execute()
             Executes the update operations added to the handler with the
@@ -655,7 +630,7 @@ SYNTAX
                 [.sort(...)]
                 [.limit(numberOfDocs)]
                 [.bind(name, value)]
-                [.execute()]
+                .execute()
 
       remove(searchCondition)
             Creates a handler for the deletion of documents on the collection.
@@ -672,20 +647,19 @@ SYNTAX
             Collection.remove(searchCondition) is called.
 
             The actual deletion of the documents will occur only when the
-            execute method is called.
+            execute() method is called.
 
       sort(...)
             This function has the following overloads:
 
-            - sort(sortExprList)
-            - sort(sortExpr[, sortExpr, ...])
+            - sort(sortCriteriaList)
+            - sort(sortCriterion[, sortCriterion, ...])
 
-            The elements of sortExprStr list are strings defining the column
-            name on which the sorting will be based in the form of
-            'columnIdentifier [ ASC | DESC ]'.
+            Every defined sort criterion follows the format:
 
-            If no order criteria is specified, ascending will be used by
-            default.
+            name [ ASC | DESC ]
+
+            ASC is used by default if the sort order is not specified.
 
             This method is usually used in combination with limit to fix the
             amount of documents to be deleted.
@@ -697,11 +671,13 @@ SYNTAX
             This function can be called every time the statement is executed.
 
       bind(name, value)
+            Binds the given value to the placeholder with the specified name.
+
             An error will be raised if the placeholder indicated by name does
             not exist.
 
             This function must be called once for each used placeholder or an
-            error will be raised when the execute method is called.
+            error will be raised when the execute() method is called.
 
       execute()
             Executes the document deletion with the configured filter and
@@ -767,4 +743,3 @@ NAME
 
 SYNTAX
       <Collection>.session
-

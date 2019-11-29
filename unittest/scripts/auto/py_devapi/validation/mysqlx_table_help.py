@@ -68,26 +68,30 @@ NAME
 
 SYNTAX
       Table.delete()
-           [.where([expression])]
+           [.where(expression)]
            [.order_by(...)]
            [.limit(numberOfRows)]
            [.bind(name, value)]
-           [.execute()]
+           .execute()
 
 DESCRIPTION
       This function creates a TableDelete object which is a record deletion
       handler.
 
       The TableDelete class has several functions that allow specifying what
-      should be deleted and how, if a searchCondition was specified, it will be
-      set on the handler.
+      should be deleted and how.
 
-      The deletion is done when the execute function is called on the handler.
+      The deletion is done when the execute() function is called on the
+      handler.
 
       delete()
-            Initializes the deletion operation.
+            This function is called automatically when Table.delete() is
+            called.
 
-      where([expression])
+            The actual deletion of the records will occur only when the
+            execute() method is called.
+
+      where(expression)
             If used, only those rows satisfying the expression will be deleted
 
             The expression supports parameter binding.
@@ -95,18 +99,17 @@ DESCRIPTION
       order_by(...)
             This function has the following overloads:
 
-            - order_by(sortCriteria)
+            - order_by(sortCriteriaList)
             - order_by(sortCriterion[, sortCriterion, ...])
 
-            If used the records will be deleted in the order established by the
-            sort criteria.
+            If used, the TableDelete operation will delete the records in the
+            order established by the sort criteria.
 
-            The elements of sortExprStr list are strings defining the column
-            name on which the sorting will be based.
+            Every defined sort criterion follows the format:
 
-            The format is as follows: columnIdentifier [ ASC | DESC ]
+            name [ ASC | DESC ]
 
-            If no order criteria is specified, ASC will be used by default.
+            ASC is used by default if the sort order is not specified.
 
       limit(numberOfRows)
             If used, the operation will delete only numberOfRows rows.
@@ -114,7 +117,7 @@ DESCRIPTION
             This function can be called every time the statement is executed.
 
       bind(name, value)
-            Binds a value to a specific placeholder used on this operation.
+            Binds the given value to the placeholder with the specified name.
 
             An error will be raised if the placeholder indicated by name does
             not exist.
@@ -194,13 +197,13 @@ NAME
 SYNTAX
       Table.insert(...)
            [.values(value[, value, ...])]
-           [.execute()]
+           .execute()
 
 DESCRIPTION
-      The TableInsert class has other functions that allow specifying the way
+      The TableInsert class has several functions that allow specifying the way
       the insertion occurs.
 
-      The insertion is done when the execute method is called on the handler.
+      The insertion is done when the execute() method is called on the handler.
 
       insert(...)
             This function has the following overloads:
@@ -229,24 +232,24 @@ DESCRIPTION
             and data type.
 
             If a JSON document was used, the operation is ready to be completed
-            and it will insert the associated value into the corresponding
-            column.
+            and it will insert the associated values into the corresponding
+            columns.
 
-            If no columns are defined, insertion will suceed if the provided
+            If no columns are defined, insertion will succeed if the provided
             values match the database columns in number and data types.
 
       values(value[, value, ...])
             Each parameter represents the value for a column in the target
             table.
 
-            If the columns were defined on the insert function, the number of
+            If the columns were defined on the insert() function, the number of
             values on this function must match the number of defined columns.
 
             If no column was defined, the number of parameters must match the
             number of columns on the target Table.
 
-            This function is not available when the insert is called passing a
-            JSON object with columns and values.
+            This function is not available when the insert() is called passing
+            a JSON object with columns and values.
 
             Using Expressions As Values
 
@@ -289,27 +292,26 @@ NAME
 
 SYNTAX
       Table.select(...)
-           [.where([expression])]
+           [.where(expression)]
            [.group_by(...)[.having(condition)]]
            [.order_by(...)]
            [.limit(numberOfRows)[.offset(numberOfRows)]]
            [.lock_shared([lockContention])]
            [.lock_exclusive([lockContention])]
            [.bind(name, value)]
-           [.execute()]
+           .execute()
 
 DESCRIPTION
       This function creates a TableSelect object which is a record selection
       handler.
 
-      This handler will retrieve all the columns for each included record.
+      This handler will retrieve the selected columns for each included record.
 
       The TableSelect class has several functions that allow specifying what
-      records should be retrieved from the table, if a searchCondition was
-      specified, it will be set on the handler.
+      records should be retrieved from the table.
 
-      The selection will be returned when the execute function is called on the
-      handler.
+      The selection will be returned when the execute() function is called on
+      the handler.
 
       This handler will retrieve only the columns specified on the columns list
       for each included record.
@@ -321,29 +323,29 @@ DESCRIPTION
             This function has the following overloads:
 
             - select()
-            - select(colDefArray)
-            - select(colDef, colDef, ...)
+            - select(columnList)
+            - select(column[, column, ...])
 
             Defines the columns that will be retrieved from the Table.
 
             To define the column list either use a list object containing the
-            column definition or pass each column definition on a separate
-            parameter
+            column definitions or pass each column definition on a separate
+            parameter.
 
             If the function is called without specifying any column definition,
             all the columns in the table will be retrieved.
 
-      where([expression])
+      where(expression)
             If used, only those rows satisfying the expression will be
-            retrieved
+            retrieved.
 
             The expression supports parameter binding.
 
       group_by(...)
             This function has the following overloads:
 
-            - group_by(searchExprStrList)
-            - group_by(searchExprStr, searchExprStr, ...)
+            - group_by(columnList)
+            - group_by(column[, column, ...])
 
             Sets a grouping criteria for the retrieved rows.
 
@@ -351,21 +353,22 @@ DESCRIPTION
             If used the TableSelect operation will only consider the records
             matching the established criteria.
 
+            The condition supports parameter binding.
+
       order_by(...)
             This function has the following overloads:
 
+            - order_by(sortCriteriaList)
             - order_by(sortCriterion[, sortCriterion, ...])
-            - order_by(sortCriteria)
 
-            If used the records will be sorted with the defined criteria.
+            If used, the TableSelect operation will return the records sorted
+            with the defined criteria.
 
-            The elements of sortExprStr list are strings defining the column
-            name on which the sorting will be based.
+            Every defined sort criterion follows the format:
 
-            The format is as follows: columnIdentifier [ ASC | DESC ]
+            name [ ASC | DESC ]
 
-            If no order criteria is specified, ascending will be used by
-            default.
+            ASC is used by default if the sort order is not specified.
 
       limit(numberOfRows)
             If used, the operation will return at most numberOfRows rows.
@@ -452,13 +455,13 @@ DESCRIPTION
             This operation only makes sense within a transaction.
 
       bind(name, value)
-            Binds a value to a specific placeholder used on this operation.
+            Binds the given value to the placeholder with the specified name.
 
             An error will be raised if the placeholder indicated by name does
             not exist.
 
             This function must be called once for each used placeholder or an
-            error will be raised when the execute method is called.
+            error will be raised when the execute() method is called.
 
       execute()
             Executes the select operation with all the configured options.
@@ -477,31 +480,36 @@ NAME
 SYNTAX
       Table.update()
            .set(attribute, value)
-           [.where([expression])]
+           [.where(expression)]
            [.order_by(...)]
            [.limit(numberOfRows)]
            [.bind(name, value)]
-           [.execute()]
+           .execute()
 
 DESCRIPTION
       This function creates a TableUpdate object which is a record update
       handler.
 
       The TableUpdate class has several functions that allow specifying the way
-      the update occurs, if a searchCondition was specified, it will be set on
-      the handler.
+      the update occurs.
 
-      The update is done when the execute function is called on the handler.
+      The update is done when the execute() function is called on the handler.
 
       update()
             Initializes the update operation.
 
       set(attribute, value)
             Adds an operation into the update handler to update a column value
-            in on the records that were included on the selection filter and
+            in the records that were included on the selection filter and
             limit.
 
-      where([expression])
+            Using Expressions As Values
+
+            If a mysqlx.expr(...) object is defined as a value, it will be
+            evaluated in the server, the resulting value will be set at the
+            indicated column.
+
+      where(expression)
             If used, only those rows satisfying the expression will be updated
 
             The expression supports parameter binding.
@@ -509,18 +517,17 @@ DESCRIPTION
       order_by(...)
             This function has the following overloads:
 
-            - order_by(sortCriteria)
+            - order_by(sortCriteriaList)
             - order_by(sortCriterion[, sortCriterion, ...])
 
-            If used the records will be updated in the order established by the
-            sort criteria.
+            If used, the TableUpdate operation will update the records in the
+            order established by the sort criteria.
 
-            The elements of sortExprStr list are strings defining the column
-            name on which the sorting will be based.
+            Every defined sort criterion follows the format:
 
-            The format is as follows: columnIdentifier [ ASC | DESC ]
+            name [ ASC | DESC ]
 
-            If no order criteria is specified, ASC will be used by default.
+            ASC is used by default if the sort order is not specified.
 
       limit(numberOfRows)
             If used, the operation will update only numberOfRows rows.
@@ -528,7 +535,7 @@ DESCRIPTION
             This function can be called every time the statement is executed.
 
       bind(name, value)
-            Binds a value to a specific placeholder used on this operation.
+            Binds the given value to the placeholder with the specified name.
 
             An error will be raised if the placeholder indicated by name does
             not exist.

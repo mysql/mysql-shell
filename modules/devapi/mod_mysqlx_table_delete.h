@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,14 +57,16 @@ class TableDelete : public Table_crud_definition,
 #if DOXYGEN_JS
   TableDelete delete ();
   TableDelete where(String expression);
-  TableDelete orderBy(List sortExprStr);
+  TableDelete orderBy(List sortCriteria);
+  TableDelete orderBy(String sortCriterion[, String sortCriterion, ...]);
   TableDelete limit(Integer numberOfRows);
   TableDelete bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
   TableDelete delete ();
   TableDelete where(str expression);
-  TableDelete order_by(list sortExprStr);
+  TableDelete order_by(list sortCriteria);
+  TableDelete order_by(str sortCriterion[, str sortCriterion, ...]);
   TableDelete limit(int numberOfRows);
   TableDelete bind(str name, Value value);
   Result execute();

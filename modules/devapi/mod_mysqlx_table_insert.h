@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,14 +45,16 @@ class TableInsert : public Table_crud_definition,
 #if DOXYGEN_JS
   TableInsert insert();
   TableInsert insert(List columns);
-  TableInsert insert(String col1, String col2, ...);
-  TableInsert values(Value value, Value value, ...);
+  TableInsert insert(String column[, String column, ...]);
+  TableInsert insert(JSON columns);
+  TableInsert values(Value value[, Value value, ...]);
   Result execute();
 #elif DOXYGEN_PY
   TableInsert insert();
   TableInsert insert(list columns);
-  TableInsert insert(str col1, str col2, ...);
-  TableInsert values(Value value, Value value, ...);
+  TableInsert insert(str column[, str column, ...]);
+  TableInsert insert(JSON columns);
+  TableInsert values(Value value[, Value value, ...]);
   Result execute();
 #endif
   explicit TableInsert(std::shared_ptr<Table> owner);
