@@ -83,7 +83,8 @@ c = dba.createCluster("mycluster");
 
 var gtid_executed = session.runSql("SELECT @@global.gtid_executed").fetchOne()[0];
 
-testutil.dbugSet("+d,dba_abort_join_group");
+testutil.clearTraps();
+testutil.setTrap("mysql", ["sql regex start group_replication"], {msg: "debug"});
 
 //@ bogus recoveryMethod (should fail)
 c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"foobar"});
@@ -417,7 +418,7 @@ mark_clone_disabled(false);
 // the clone plugin on the seed if installed.
 
 // Disable debug
-testutil.dbugSet("");
+testutil.clearTraps();
 
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 session3 = mysql.getSession(__sandbox_uri3);
@@ -447,7 +448,7 @@ c.addInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 c.removeInstance(__sandbox_uri2);
 
 // Re-enable debug
-testutil.dbugSet("+d,dba_abort_join_group");
+testutil.setTrap("mysql", ["sql regex start group_replication"], {msg: "debug"});
 
 session.close();
 c.disconnect();
@@ -573,10 +574,11 @@ mark_clone_disabled(false);
 
 
 //@ Cleanup
+testutil.clearTraps();
+
 session.close();
 session1.close();
 session2.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
-testutil.dbugSet("");

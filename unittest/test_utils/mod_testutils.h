@@ -93,7 +93,9 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined sslCreateCA(String name);
   Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
                            String clientcn);
-
+  Undefined setTrap(String type, Array conditions, Dictionary options);
+  None clearTraps(String type);
+  None resetTraps(String type);
   // Undefined slowify(Integer port, Boolean start);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
@@ -138,6 +140,9 @@ class Testutils : public mysqlsh::Extensible_object {
   None setenv(str var, str value);
   None ssl_create_ca(str name);
   None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
+  None set_trap(str type, list conditions, dict options);
+  None clear_traps(str type);
+  None reset_traps(str type);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -249,6 +254,11 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void dprint(const std::string &s);
 
+  void set_trap(const std::string &type, const shcore::Array_t &conditions,
+                const shcore::Dictionary_t &options);
+  void reset_traps(const std::string &type);
+  void clear_traps(const std::string &type);
+
   void bp(bool flag);
 
   void ssl_create_ca(const std::string &name);
@@ -262,10 +272,12 @@ class Testutils : public mysqlsh::Extensible_object {
   // set_current_test_case(::testing::Test);
   int call_mysqlsh(const shcore::Array_t &args,
                    const std::string &std_input = std::string{},
-                   const shcore::Array_t &env = nullptr);
+                   const shcore::Array_t &env = nullptr,
+                   const std::string &executable_path = "");
   int call_mysqlsh_c(const std::vector<std::string> &args,
                      const std::string &std_input = "",
-                     const std::vector<std::string> &env = {});
+                     const std::vector<std::string> &env = {},
+                     const std::string &executable_path = "");
 
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail

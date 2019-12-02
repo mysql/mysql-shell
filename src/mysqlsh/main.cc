@@ -602,7 +602,13 @@ static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 #endif
 
   if (!shell->options().dbug_options.empty()) {
-    DBUG_SET_INITIAL(shell->options().dbug_options.c_str());
+    const auto &opts = shell->options().dbug_options;
+    if (opts[0] == '{' || opts[0] == '[') {
+      // testutil.injectFault() style handled in debug_shell.cc
+    } else {
+      // dbug style
+      DBUG_SET_INITIAL(opts.c_str());
+    }
   }
 }
 

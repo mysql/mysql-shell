@@ -32,12 +32,35 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
 namespace replay {
+
+FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
+  if (args.get_int("abort", 0)) {
+    abort();
+  }
+  if (args.get_int("code", -1) < 0) {
+    throw std::logic_error(args.get_string("msg"));
+  }
+  // the recorder will store db::Errors in the trace, so
+  // we don't need to throw them here
+});
+
+FI_DEFINE(mysqlx, [](const mysqlshdk::utils::FI::Args &args) {
+  if (args.get_int("abort", 0)) {
+    abort();
+  }
+  if (args.get_int("code", -1) < 0) {
+    throw std::logic_error(args.get_string("msg"));
+  }
+  // the recorder will store db::Errors in the trace, so
+  // we don't need to throw them here
+});
 
 extern Query_hook g_replay_query_hook;
 extern Result_row_hook g_replay_row_hook;
@@ -170,6 +193,12 @@ void Replayer_mysql::connect(const mysqlshdk::db::Connection_options &data_) {
 std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
                                                 bool) {
   std::string sql = _impl->do_query(std::string(sql_, length));
+
+  FI_TRIGGER_TRAP(
+      mysql, mysqlshdk::utils::FI::Trigger_options(
+                 {{"sql", std::string(sql_, length)},
+                  {"uri", _impl->get_connection_options().uri_endpoint()}}));
+
   if (g_replay_row_hook)
     return _impl->trace().expected_result(
         std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,
@@ -247,6 +276,7 @@ void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options &data_) {
 std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
                                                  size_t length, bool) {
   std::string sql = _impl->do_query(std::string(sql_, length));
+
   if (g_replay_row_hook)
     return _impl->trace().expected_result_x(
         std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,

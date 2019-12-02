@@ -28,6 +28,7 @@
 
 #include <mysql_version.h>
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -38,6 +39,18 @@ typedef unsigned int uint;
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
+
+FI_DEFINE(mysql, ([](const mysqlshdk::utils::FI::Args &args) {
+            if (args.get_int("abort", 0)) {
+              abort();
+            }
+            if (args.get_int("code", -1) < 0) {
+              throw std::logic_error(args.get_string("msg"));
+            }
+            throw mysqlshdk::db::Error(args.get_string("msg"),
+                                       args.get_int("code"));
+          }));
+
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {
   auto exception = mysqlshdk::db::Error(
@@ -314,6 +327,10 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
   }
 
   DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << std::string(sql, len));
+
+  FI_TRIGGER_TRAP(mysql, mysqlshdk::utils::FI::Trigger_options(
+                             {{"sql", std::string(sql, len)},
+                              {"uri", _connection_options.uri_endpoint()}}));
 
   if (mysql_real_query(_mysql, sql, len) != 0) {
     auto err =

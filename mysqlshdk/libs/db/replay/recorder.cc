@@ -80,24 +80,23 @@ void Recorder_mysql::connect(const mysqlshdk::db::Connection_options &data) {
 
 std::shared_ptr<IResult> Recorder_mysql::querys(const char *sql, size_t length,
                                                 bool) {
+  // todo - add synchronization points for error.log on every query
+  // assuming that error log contents change when a query is executed
+  // if (set_log_save_point) set_log_save_point(_port);
+  if (on_recorder_query_replace_hook) {
+    _trace->serialize_query(
+        on_recorder_query_replace_hook(std::string(sql, length)));
+  } else {
+    _trace->serialize_query(std::string(sql, length));
+  }
+
   try {
-    // todo - add synchronization points for error.log on every query
-    // assuming that error log contents change when a query is executed
-    // if (set_log_save_point) set_log_save_point(_port);
-
-    if (on_recorder_query_replace_hook) {
-      _trace->serialize_query(
-          on_recorder_query_replace_hook(std::string(sql, length)));
-    } else {
-      _trace->serialize_query(std::string(sql, length));
-    }
-
     // Always buffer to make row serialization easier
     std::shared_ptr<IResult> result(super::querys(sql, length, true));
     _trace->serialize_result(result, on_recorder_result_value_replace_hook);
     std::dynamic_pointer_cast<mysql::Result>(result)->rewind();
     return result;
-  } catch (db::Error &e) {
+  } catch (const db::Error &e) {
     _trace->serialize_error(e);
     throw;
   }

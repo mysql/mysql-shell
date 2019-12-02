@@ -56,6 +56,10 @@ set(utils_SOURCE
     ssl_keygen.cc
 )
 
+IF(CMAKE_BUILD_TYPE STREQUAL Debug)
+  LIST(APPEND utils_SOURCE fault_injection.cc)
+ENDIF()
+
 # platform dependent implementations
 IF(UNIX)
     LIST(APPEND utils_SOURCE utils_path_unix.cc)

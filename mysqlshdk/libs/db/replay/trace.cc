@@ -477,6 +477,8 @@ void Trace::expect_request(rapidjson::Value *doc, const char *subtype,
                              subtype, _trace_path.c_str(), to_json(doc).c_str())
               .c_str());
   }
+
+  _last_request = to_json(doc);
 }
 
 mysqlshdk::db::Connection_options Trace::expected_connect() {
@@ -525,8 +527,9 @@ void Trace::expected_status() {
   next(&obj);
 
   if (strcmp(obj["type"].GetString(), "response") != 0)
-    throw sequence_error(
-        "Expected response in session trace, but got something else");
+    throw sequence_error(shcore::str_format(
+        "Expected OK response in session trace, but got something else: %s",
+        to_json(&obj).c_str()));
 
   const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "OK") == 0) {
@@ -541,8 +544,9 @@ void Trace::expected_connect_status(
   next(&obj);
 
   if (strcmp(obj["type"].GetString(), "response") != 0)
-    throw sequence_error(
-        "Expected response in session trace, but got something else");
+    throw sequence_error(shcore::str_format(
+        "Expected CONNECT_OK in session trace, but got something else: %s",
+        to_json(&obj).c_str()));
 
   const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "CONNECT_OK") == 0) {
@@ -659,9 +663,11 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
   rapidjson::Value obj;
   next(&obj);
 
-  if (strcmp(obj["type"].GetString(), "response") != 0)
-    throw sequence_error(
-        "Expected response in session trace, but got something else");
+  if (strcmp(obj["type"].GetString(), "response") != 0) {
+    throw sequence_error(shcore::str_format(
+        "Expected RESULT for %s in session trace, but got something else: %s",
+        _last_request.c_str(), to_json(&obj).c_str()));
+  }
 
   const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "RESULT") == 0) {
@@ -698,8 +704,9 @@ std::shared_ptr<Result_mysqlx> Trace::expected_result_x(
   next(&obj);
 
   if (strcmp(obj["type"].GetString(), "response") != 0)
-    throw sequence_error(
-        "Expected response in session trace, but got something else");
+    throw sequence_error(shcore::str_format(
+        "Expected RESULT in session trace, but got something else: %s",
+        to_json(&obj).c_str()));
 
   const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "RESULT") == 0) {

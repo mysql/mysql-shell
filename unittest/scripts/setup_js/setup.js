@@ -400,6 +400,7 @@ function EXPECT_THROWS(func, etext) {
     func();
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
+    testutil.dprint("Expected exception: " + JSON.stringify(err));
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
@@ -410,6 +411,7 @@ function EXPECT_NO_THROWS(func, context) {
   try {
     func();
   } catch (err) {
+    testutil.dprint("Unexpected exception: " + JSON.stringify(err));
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + err.message + "</red>");
   }
 }

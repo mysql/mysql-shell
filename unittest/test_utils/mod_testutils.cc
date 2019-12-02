@@ -62,6 +62,7 @@
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -167,7 +168,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
 
-  expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp");
+  expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp",
+         "?execPath");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
@@ -190,6 +192,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("enableExtensible", &Testutils::enable_extensible);
   expose("dbugSet", &Testutils::dbug_set, "dbug");
   expose("dprint", &Testutils::dprint, "s");
+  expose("setTrap", &Testutils::set_trap, "type", "?conditions", "?options");
+  expose("resetTraps", &Testutils::reset_traps, "?type");
+  expose("clearTraps", &Testutils::clear_traps, "?type");
   expose("getUserConfigPath", &Testutils::get_user_config_path);
   expose("setenv", &Testutils::setenv, "variable", "?value");
   // expose("slowify", &Testutils::slowify, "port", "start");
@@ -237,6 +242,89 @@ void Testutils::bp(bool flag) {
   // testutil.bp(true);
   // code where bp should be enabled
   g_bp = flag;
+}
+
+/** Sets up a debug trap with the given conditions and action.
+ *
+ * @param type type of trap
+ * @param condition array of conditions to match for the trap to be triggered
+ * @param options options for the trap
+ *
+ * ## The following conditions are supported:
+ * opt == str
+ * opt regex pattern
+ * opt > int
+ * ++match_counter == int
+ * ++match_counter > int
+ *
+ * opt is one of the condition options defined by the trap, described below.
+ * Conditions are evaluated in the order they appear. Evaluation stops if
+ * a condition is false.
+ *
+ * ++match_counter is a counter that increments every time it's evaluated.
+ *
+ * ## The following types of debug traps are supported:
+ *
+ * ### mysql, mysqlx
+ * Traps that stop execution when a SQL stmt is executed in a classic or X
+ * protocol session.
+ *
+ * #### Condition options:
+ * sql - the sql statement about to be executed
+ * uri - uri_endpoint() of the target server
+ *
+ * #### Trap options:
+ * abort:int - if present and != 0, it will abort() on match, optional
+ * code:int - MySQL error code to be reported, optional
+ * msg:string - MySQL error msg to be reported, required unless abort:1
+ *
+ * If only msg is given, a std::logic_error will be thrown with the given msg,
+ * instead of a db::Error.
+ */
+void Testutils::set_trap(const std::string &type,
+                         const shcore::Array_t &conditions,
+                         const shcore::Dictionary_t &options) {
+#ifdef DBUG_OFF
+  (void)type;
+  (void)conditions;
+  (void)options;
+  throw std::logic_error("set_trap() not available in DBUG_OFF builds");
+#else
+  mysqlshdk::utils::FI::Conditions conds;
+
+  if (conditions) {
+    for (const auto &cond : *conditions) {
+      conds.add(cond.as_string());
+    }
+  }
+
+  mysqlshdk::utils::FI::Trap_options opts;
+  if (options) {
+    for (const auto &opt : *options) {
+      opts[opt.first] = opt.second.descr();
+    }
+  }
+
+  mysqlshdk::utils::FI::set_trap(type, conds, opts);
+#endif
+}
+
+void Testutils::clear_traps(const std::string &type) {
+#ifdef DBUG_OFF
+  (void)type;
+  throw std::logic_error("clear_traps() not available in DBUG_OFF builds");
+#else
+  mysqlshdk::utils::FI::clear_traps(type);
+#endif
+}
+
+void Testutils::reset_traps(const std::string &type) {
+#ifdef DBUG_OFF
+  (void)type;
+  throw std::logic_error("reset_traps() not available in DBUG_OFF builds");
+#else
+  mysqlshdk::utils::FI::reset_traps(type);
+#endif
 }
 
 void Testutils::enable_extensible() {
@@ -2954,27 +3042,39 @@ void setup_recorder_environment() {
 
 int Testutils::call_mysqlsh(const shcore::Array_t &args,
                             const std::string &std_input,
-                            const shcore::Array_t &env) {
+                            const shcore::Array_t &env,
+                            const std::string &executable_path) {
   return call_mysqlsh_c(
       shcore::Value(args).to_string_vector(), std_input,
-      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{});
+      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{},
+      executable_path);
 }
 
 int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
                               const std::string &std_input,
-                              const std::vector<std::string> &env) {
+                              const std::vector<std::string> &env,
+                              const std::string &executable_path) {
   std::vector<const char *> full_argv;
-  std::string path;
+  std::string mysqlsh_found_path;
 
   setup_recorder_environment();
 
-  if (mysqlshdk::db::replay::g_replay_mode !=
-      mysqlshdk::db::replay::Mode::Direct) {
-    // use mysqlshrec unless in direct mode
-    path = shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
-    full_argv.push_back(path.c_str());
+  if (executable_path == "mysqlshrec") {
+    mysqlsh_found_path =
+        shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
+    full_argv.push_back(mysqlsh_found_path.c_str());
+  } else if (executable_path.empty()) {
+    if (mysqlshdk::db::replay::g_replay_mode !=
+        mysqlshdk::db::replay::Mode::Direct) {
+      // use mysqlshrec unless in direct mode
+      mysqlsh_found_path =
+          shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
+      full_argv.push_back(mysqlsh_found_path.c_str());
+    } else {
+      full_argv.push_back(_mysqlsh_path.c_str());
+    }
   } else {
-    full_argv.push_back(_mysqlsh_path.c_str());
+    full_argv.push_back(executable_path.c_str());
   }
   assert(strlen(full_argv.front()) > 0);
 

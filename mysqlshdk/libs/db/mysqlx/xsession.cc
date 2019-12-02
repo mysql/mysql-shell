@@ -31,6 +31,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -40,6 +41,16 @@
 namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
+
+FI_DEFINE(mysqlx, [](const mysqlshdk::utils::FI::Args &args) {
+  if (args.get_int("abort", 0)) {
+    abort();
+  }
+  if (args.get_int("code", -1) < 0) {
+    throw std::logic_error(args.get_string("msg"));
+  }
+  throw mysqlshdk::db::Error(args.get_string("msg"), args.get_int("code"));
+});
 
 namespace {
 template <typename Message_type>
@@ -526,6 +537,11 @@ std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("query");
   before_query();
+
+  FI_TRIGGER_TRAP(mysqlx, mysqlshdk::utils::FI::Trigger_options(
+                              {{"sql", std::string(sql, len)},
+                               {"uri", _connection_options.uri_endpoint()}}));
+
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult;
   {
@@ -556,6 +572,11 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("execute_stmt");
   before_query();
+
+  FI_TRIGGER_TRAP(mysqlx, mysqlshdk::utils::FI::Trigger_options(
+                              {{"sql", stmt},
+                               {"uri", _connection_options.uri_endpoint()}}));
+
   xcl::XError error;
   if (ns.empty() || ns == "sql")
     DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt);

@@ -179,6 +179,8 @@ class Trace {
   rapidjson::SizeType _index;
   std::string _trace_path;
   bool _got_error = false;
+
+  std::string _last_request;
 };
 
 bool is_set_as_string(Type type);

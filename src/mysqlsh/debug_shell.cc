@@ -259,6 +259,31 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
         mysqlshdk::db::replay::current_recording_dir());
   shell->set_global_object("testutil", testutil);
 
+  const auto &opts = shell->options().dbug_options;
+  if (!opts.empty()) {
+    auto set_one_trap = [testutil](const shcore::Dictionary_t &fispec) {
+      std::string type = fispec->get_string("on");
+      shcore::Array_t conds =
+          fispec->has_key("if") ? fispec->get_array("if") : nullptr;
+
+      if (fispec->has_key("if")) fispec->erase("if");
+      fispec->erase("on");
+
+      testutil->set_trap(type, conds, fispec);
+    };
+
+    if (opts[0] == '{') {
+      // {on:type,if:[conditions],opts}
+      set_one_trap(shcore::Value::parse(opts).as_map());
+    } else if (opts[0] == '[') {
+      // [{on:type,if:[conditions],opts},...]
+      shcore::Array_t fispecs = shcore::Value::parse(opts).as_array();
+      for (const shcore::Value &v : *fispecs) {
+        set_one_trap(v.as_map());
+      }
+    }
+  }
+
   std::shared_ptr<Devutil> devutil(new Devutil(shell->shell_context().get()));
   shell->set_global_object("devutil", devutil);
 }

@@ -200,9 +200,10 @@ inline std::string str_partition_after_inpl(std::string *s,
  * @param input The string to be split
  * @param separator_chars String containing characters wherein the input string
  *   is split on any of the characters
- * @param maxsplit max number of parts to break into or -1 for no limit
+ * @param maxsplit max number of times to split or -1 for no limit
  * @param compress Boolean value which when true ensures consecutive separators
- * do not generate new elements in the split
+ * do not generate new elements in the split, but they're still counted towards
+ * maxsplit.
  *
  * @returns vector of splitted strings
  */
@@ -241,9 +242,10 @@ inline std::vector<std::string> str_split(
  *   is false, the splitting is interrupted.
  * @param separator_chars String containing characters wherein the input string
  *   is split on any of the characters
- * @param maxsplit max number of parts to break into or -1 for no limit
+ * @param maxsplit max number of times to split or -1 for no limit
  * @param compress Boolean value which when true ensures consecutive separators
- *   do not generate new elements in the split
+ *   do not generate new elements in the split, but they're still counted
+ * towards maxsplit.
  *
  * @returns false if f returns false, true otherwise
  */

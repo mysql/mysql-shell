@@ -1139,8 +1139,6 @@ shcore::Value Add_instance::execute() {
     handle_clone_plugin_state(enable_clone);
   }
 
-  DBUG_EXECUTE_IF("dba_abort_join_group", { throw std::logic_error("debug"); });
-
   // Handle the replication user creation.
   bool owns_repl_user = handle_replication_user();
 
