@@ -56,7 +56,7 @@ inline bool set_secs(shcore::Dictionary_t dict, const std::string &prop,
     if (row.is_null(field)) {
       (*dict)[prop] = shcore::Value::Null();
     } else {
-      (*dict)[prop] = shcore::Value(row.get_uint(field) / 1000000.0);
+      (*dict)[prop] = shcore::Value(row.get_int(field) / 1000000.0);
     }
     return true;
   }
