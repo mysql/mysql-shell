@@ -8,15 +8,15 @@
 ||
 
 //@ remove instance not in MD but reachable when there's just 1 (should fail)
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster.
 
 //@ Adding instance
 ||
 
 //@ remove instance not in MD but reachable when there are 2 (should fail)
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster.
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 ||
@@ -336,6 +336,20 @@ false
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
+//@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
+ERROR: Unable to connect to instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
+The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+
+//@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
+Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+
+//@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
+ERROR: Unable to connect to instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
+The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+
+//@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
+Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
 
@@ -367,9 +381,19 @@ start a new session to the Metadata Storage R/W instance.
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
-//@ remove instance not in MD and unreachable (should fail)
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the ReplicaSet
+//@<OUT> remove instance not in MD and unreachable, interactive true (should fail)
+ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'. Please verify connection credentials and make sure the instance is available.
+The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+
+//@<ERR> remove instance not in MD and unreachable, interactive true (should fail)
+Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+
+//@<OUT> remove instance not in MD and unreachable, interactive false (should fail)
+ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'. Please verify connection credentials and make sure the instance is available.
+The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+
+//@<ERR> remove instance not in MD and unreachable, interactive false (should fail)
+Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {
@@ -402,6 +426,18 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully remov
 
 //@ Restart instance on port3 again.
 ||
+
+//@<OUT> remove reachable instance but not MD, interactive false (should fail)
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it does not belong to the cluster (not found in the metadata). If you really want to remove this instance because it is still using Group Replication then it must be stopped manually.
+
+//@<ERR> remove reachable instance but not MD, interactive false (should fail)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster. (RuntimeError)
+
+//@<OUT> remove reachable instance but not MD, interactive true (should fail)
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it does not belong to the cluster (not found in the metadata). If you really want to remove this instance because it is still using Group Replication then it must be stopped manually.
+
+//@<ERR> remove reachable instance but not MD, interactive true (should fail)
+Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster. (RuntimeError)
 
 //@ Connect to instance2 (removed unreachable)
 ||

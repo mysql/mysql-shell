@@ -56,6 +56,7 @@ shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
 
 cluster.rejoinInstance(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ status
 cluster.status();

@@ -58,9 +58,9 @@ Remove_instance::Remove_instance(
 Remove_instance::~Remove_instance() { delete m_target_instance; }
 
 Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
-    const std::string &address) {
-  // Check if the instance exists on the ReplicaSet
-  log_debug("Checking if the instance %s belongs to the replicaset",
+    const std::string &address, bool skip_error) {
+  // Check if the instance exists on the cluster
+  log_debug("Checking if the instance %s belongs to the cluster",
             address.c_str());
 
   bool is_instance_on_md;
@@ -76,7 +76,7 @@ Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
     is_instance_on_md = false;
   }
 
-  if (!is_instance_on_md) {
+  if (!is_instance_on_md && !skip_error) {
     mysqlsh::current_console()->print_error(
         "The instance '" + address +
         "' cannot be removed because it does not belong "
@@ -85,9 +85,8 @@ Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
         "it is still using Group Replication then it must "
         "be stopped manually.");
 
-    std::string err_msg = "The instance '" + address +
-                          "' does not belong to the ReplicaSet: '" +
-                          m_replicaset.get_name() + "'.";
+    std::string err_msg =
+        "The instance '" + address + "' does not belong to the cluster.";
     throw shcore::Exception::runtime_error(err_msg);
   }
   return instance_def;
@@ -138,6 +137,24 @@ void Remove_instance::undo_remove_instance_metadata(
 
 void Remove_instance::find_failure_cause(const std::exception &err,
                                          const Instance_metadata &md) {
+  auto console = mysqlsh::current_console();
+
+  // Immediately issue error if no metadata was found (no valid instance Id).
+  if (md.id == 0) {
+    console->print_error(
+        "Unable to connect to instance '" + m_instance_address +
+        "'. Please verify connection credentials and make sure the "
+        "instance is available.");
+    console->print_info(
+        "The instance is unreachable and was not found in the metadata. The "
+        "exact address of the instance as recorded in the metadata must be "
+        "used in cases where the target is unreachable.");
+
+    // Set force to false to ignore it (no prompt, always issue this error).
+    m_force = false;
+    throw shcore::Exception::runtime_error(err.what());
+  }
+
   // Check the state of the instance (from the cluster perspective) to assess
   // the possible cause of the failure.
   std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
@@ -152,8 +169,6 @@ void Remove_instance::find_failure_cause(const std::exception &err,
     state = mysqlshdk::gr::Member_state::MISSING;
   else
     state = it->state;
-
-  auto console = mysqlsh::current_console();
 
   // Print and throw a different error depending if the instance state is known
   // and expected to be unreachable.
@@ -308,8 +323,11 @@ void Remove_instance::prepare() {
     // Before anything, check if the instance actually belongs to the
     // cluster, since it wouldn't make sense to ask about removing a
     // bogus instance from the metadata.
+    // NOTE: But do not issue an error if not found in the MD since it can be
+    //       misleading, an alternative valid host/IP (not in MD) might have
+    //       been used. Thus, let find_failure_cause() handle it.
     Instance_metadata metadata(
-        ensure_instance_belong_to_replicaset(m_address_in_metadata));
+        ensure_instance_belong_to_replicaset(m_address_in_metadata, true));
 
     // Find error cause to print more information about before prompt in
     // interactive mode.

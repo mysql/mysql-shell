@@ -104,7 +104,7 @@ class Remove_instance : public Command_interface {
    * removed.
    */
   Instance_metadata ensure_instance_belong_to_replicaset(
-      const std::string &address);
+      const std::string &address, bool skip_error = false);
 
   /**
    * Verify if it is the last instance in the replicaset, otherwise it cannot

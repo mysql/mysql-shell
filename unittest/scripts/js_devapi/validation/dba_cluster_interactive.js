@@ -202,13 +202,13 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ Cluster: removeInstance errors
-||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.removeInstance: Argument auth-method is expected to be a string
-||Cluster.removeInstance: The instance 'localhost:33060' does not belong to the ReplicaSet: 'default'.
-||Cluster.removeInstance: The instance 'localhost' does not belong to the ReplicaSet: 'default'
+//@<ERR> Cluster: removeInstance errors
+Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
+Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
+Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+Cluster.removeInstance: Argument auth-method is expected to be a string (TypeError)
+Cluster.removeInstance: {{Protocol mismatch; server version =|Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
+Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
 
 //@ Cluster: removeInstance
 ||

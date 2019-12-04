@@ -249,6 +249,14 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 //@<OUT> Cluster status after instance on port2 is stopped
 cluster.status();
 
+//@ Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
+// BUG#30580393: error focusing on instance not being reachable (in MD but registered with a different host).
+cluster.removeInstance('root:root@'+hostname_ip+':' + __mysql_sandbox_port2);
+
+//@ Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
+// BUG#30580393: error focusing on instance not being reachable, wrong credentials (in MD but registered with a different host).
+cluster.removeInstance('root:wrong@'+hostname_ip+':' + __mysql_sandbox_port2);
+
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
 cluster.removeInstance('root:root@'+hostname+':' + __mysql_sandbox_port2, {interactive: false});
@@ -280,8 +288,12 @@ cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
 // WL#11862 - FR4_5
 cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
 
-//@ remove instance not in MD and unreachable (should fail)
+//@ remove instance not in MD and unreachable, interactive true (should fail)
+// BUG#30580393: error focusing on instance not being reachable (since it could be in MD with a different host).
 cluster.removeInstance(__hostname_uri3, {interactive:true});
+
+//@ remove instance not in MD and unreachable, interactive false (should fail)
+// BUG#30580393: error focusing on instance not being reachable (since it could be in MD with a different host).
 cluster.removeInstance(__hostname_uri3, {interactive:false});
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
@@ -297,6 +309,15 @@ testutil.startSandbox(__mysql_sandbox_port2);
 
 //@ Restart instance on port3 again.
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitSandboxAlive(__mysql_sandbox_port3);
+
+//@ remove reachable instance but not MD, interactive false (should fail)
+// BUG#30580393: only issue error indicating that instance does not belong to replicaset when reachable.
+cluster.removeInstance(__hostname_uri3, {interactive:false});
+
+//@ remove reachable instance but not MD, interactive true (should fail)
+// BUG#30580393: only issue error indicating that instance does not belong to replicaset when reachable.
+cluster.removeInstance(__hostname_uri3, {interactive:true});
 
 //@ Connect to instance2 (removed unreachable)
 // WL#11862 - FR5_3

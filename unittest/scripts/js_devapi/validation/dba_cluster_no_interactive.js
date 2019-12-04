@@ -86,14 +86,14 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ Cluster: removeInstance errors
-||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.removeInstance: Invalid values in connection options: fakeOption
-||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'.
-||Cluster.removeInstance: The instance 'localhost' does not belong to the ReplicaSet: 'default'.
-||Cluster.removeInstance: The instance 'localhost' does not belong to the ReplicaSet: 'default'.
+//@<ERR> Cluster: removeInstance errors
+Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
+Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
+Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+Cluster.removeInstance: Invalid values in connection options: fakeOption (ArgumentError)
+Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
+Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
+Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
 
 //@ Cluster: removeInstance read only
 ||
