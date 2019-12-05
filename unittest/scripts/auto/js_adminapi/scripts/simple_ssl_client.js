@@ -1,6 +1,6 @@
 // Plain positive test case for SSL client certificates
 
-// Includes test for 
+// Includes test for
 
 //@<> Setup
 
@@ -98,7 +98,7 @@ cluster.options();
 // TODO these 2 lines shouldn't be needed, but without them the addInstance
 // fails with Cluster.addInstance: This function is not available through a session to a read only instance (RuntimeError)
 // everything should be fixed to always work through the PRIMARY
-shell.connect(ssl_sandbox_uri1); 
+shell.connect(ssl_sandbox_uri1);
 cluster = dba.getCluster();
 // <--
 
@@ -140,6 +140,6 @@ cluster.rescan();
 cluster.dissolve();
 
 //@<> Cleanup
-dba.deleteSandboxInstance(__mysql_sandbox_port1);
-dba.deleteSandboxInstance(__mysql_sandbox_port2);
-dba.deleteSandboxInstance(__mysql_sandbox_port3);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
