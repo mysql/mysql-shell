@@ -1637,7 +1637,8 @@ GRReplicaSet::get_instances_with_state() const {
 }
 
 std::unique_ptr<mysqlshdk::config::Config> GRReplicaSet::create_config_object(
-    std::vector<std::string> ignored_instances, bool skip_invalid_state) const {
+    std::vector<std::string> ignored_instances, bool skip_invalid_state,
+    bool persist_only) const {
   auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   auto console = mysqlsh::current_console();
@@ -1689,16 +1690,25 @@ std::unique_ptr<mysqlshdk::config::Config> GRReplicaSet::create_config_object(
           instance->is_set_persist_supported();
       mysqlshdk::mysql::Var_qualifier set_type =
           mysqlshdk::mysql::Var_qualifier::GLOBAL;
+      bool skip = false;
       if (!support_set_persist.is_null() && *support_set_persist) {
-        set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
+        if (persist_only)
+          set_type = mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY;
+        else
+          set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
+      } else {
+        // If we want persist_only but it's not supported, we skip it since it
+        // can't help us
+        if (persist_only) skip = true;
       }
 
       // Add configuration handler for server.
-      cfg->add_handler(
-          instance_def.first.endpoint,
-          std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-              std::make_unique<mysqlshdk::config::Config_server_handler>(
-                  instance, set_type)));
+      if (!skip)
+        cfg->add_handler(
+            instance_def.first.endpoint,
+            std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                std::make_unique<mysqlshdk::config::Config_server_handler>(
+                    instance, set_type)));
 
       // Print a warning if SET PERSIST is not supported, for users to execute
       // dba.configureLocalInstance().

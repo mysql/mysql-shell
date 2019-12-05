@@ -32,7 +32,6 @@ dba.createCluster('testCluster', {adoptFromGR: true});
 var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@ Adding instance to cluster
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

@@ -133,6 +133,7 @@ class Create_cluster : public Command_interface {
                       mysqlshdk::mysql::IInstance *target,
                       std::string *out_username = nullptr);
   void reset_recovery_all(Cluster_impl *cluster);
+  void persist_sro_all(Cluster_impl *cluster);
 
   /**
    * This method validates the use of IPv6 addresses on the localAddress of the

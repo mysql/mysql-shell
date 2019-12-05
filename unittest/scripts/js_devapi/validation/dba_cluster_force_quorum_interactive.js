@@ -122,14 +122,14 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

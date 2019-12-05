@@ -485,6 +485,12 @@ void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
                       mysqlshdk::config::Config *config) {
   assert(config);
 
+  // Persist super_read_only=1 (but don't set it dynamically) so that the server
+  // starts with it enabled in case it restarts. To avoid any possible races, we
+  // must make sure the instance is never in the metadata unless sro=1 is
+  // persisted (except in 5.7).
+  config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
+
   mysqlshdk::utils::nullable<bool> single_primary_mode;
   if (!multi_primary.is_null()) single_primary_mode = !*multi_primary;
 
@@ -554,6 +560,11 @@ void join_replicaset(
     mysqlshdk::config::Config *config) {
   // An non-null Config is expected.
   assert(config);
+
+  // Persist super_read_only=1 so that the server starts with it enabled
+  // in case it restarts. To avoid any possible races, we must make sure the
+  // instance is never in the metadata unless sro=1 is persisted
+  config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
 
   std::string gr_group_name;
   bool single_primary_mode;

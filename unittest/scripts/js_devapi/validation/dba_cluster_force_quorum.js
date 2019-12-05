@@ -127,14 +127,14 @@ WARNING: Cluster has no quorum and cannot process write transactions: Group has 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"

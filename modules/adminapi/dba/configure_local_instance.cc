@@ -98,6 +98,7 @@ void Configure_local_instance::prepare() {
 
     console->println("The instance '" + m_target_instance->descr() +
                      "' belongs to an InnoDB cluster.");
+
     if (m_target_instance->get_version() >=
         mysqlshdk::utils::Version(8, 0, 5)) {
       console->print_info(
@@ -131,13 +132,13 @@ void Configure_local_instance::prepare() {
  */
 shcore::Value Configure_local_instance::execute() {
   shcore::Value ret_val;
+  auto console = mysqlsh::current_console();
 
   // Execute the configure local instance operation
   if (m_instance_type == GRInstanceType::InnoDBCluster) {
     if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
       return {};
-    auto console = mysqlsh::current_console();
-    console->println("Persisting the cluster settings...");
+    console->print_info("Persisting the cluster settings...");
 
     // Print warning if no group_seed value is empty (not set).
     if ((*m_cfg->get_string("group_replication_group_seeds")).empty()) {
@@ -154,14 +155,18 @@ shcore::Value Configure_local_instance::execute() {
           "the option file.");
     }
 
+    // make sure super_read_only=1 is persisted to disk
+    m_cfg->set_for_handler("super_read_only",
+                           mysqlshdk::utils::nullable<bool>(true),
+                           mysqlshdk::config::k_dft_cfg_file_handler);
+
     mysqlsh::dba::persist_gr_configurations(*m_target_instance, m_cfg.get());
 
-    mysqlsh::current_console()->print_info(
-        "The instance '" + m_target_instance->descr() +
-        "' was configured for use in an InnoDB cluster.");
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' was configured for use in an InnoDB cluster.");
 
-    console->println();
-    console->println(
+    console->print_info();
+    console->print_info(
         "The instance cluster settings were successfully persisted.");
 
     return shcore::Value();

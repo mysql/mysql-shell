@@ -125,7 +125,7 @@ class GRReplicaSet {
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       std::vector<std::string> ignored_instances = {},
-      bool skip_invalid_state = false) const;
+      bool skip_invalid_state = false, bool persist_only = false) const;
 
   void execute_in_members(
       const std::vector<mysqlshdk::gr::Member_state> &states,

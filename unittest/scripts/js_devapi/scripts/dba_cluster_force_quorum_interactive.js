@@ -3,6 +3,8 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 var clusterSession = session;
@@ -42,6 +44,7 @@ s3.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s3.close();
 
 //@ Kill instance 2
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
@@ -49,6 +52,7 @@ testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@ Kill instance 3
+dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port3)});
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable

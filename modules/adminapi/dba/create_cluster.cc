@@ -438,6 +438,17 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
   }
 }
 
+void Create_cluster::persist_sro_all(Cluster_impl *cluster) {
+  log_info("Persisting super_read_only=1 across the cluster...");
+
+  auto config =
+      cluster->get_default_replicaset()->create_config_object({}, false, true);
+
+  config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
+
+  config->apply();
+}
+
 void Create_cluster::validate_local_address_ip_compatibility() const {
   // local_address must have some value
   assert(!m_gr_opts.local_address.is_null() &&
@@ -545,6 +556,8 @@ shcore::Value Create_cluster::execute() {
 
       // Reset recovery channel in all instances to use our own account
       reset_recovery_all(cluster_impl.get());
+
+      persist_sro_all(cluster_impl.get());
     } else {
       // Check if instance address already belong to replicaset (metadata).
       // TODO(alfredo) - this check seems redundant?
