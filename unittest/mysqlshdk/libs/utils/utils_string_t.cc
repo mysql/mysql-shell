@@ -677,4 +677,122 @@ TEST(utils_string, utf8_to_wide) {
 }
 #endif
 
+namespace {
+
+constexpr char operator"" _c(unsigned long long n) {
+  return static_cast<char>(n);
+}
+
+}  // namespace
+
+TEST(utils_string, is_valid_utf8) {
+  EXPECT_TRUE(is_valid_utf8(""));
+  EXPECT_TRUE(is_valid_utf8(std::string("\x00", 1)));
+  EXPECT_TRUE(is_valid_utf8("\x01"));
+  EXPECT_TRUE(is_valid_utf8("$"));
+  EXPECT_TRUE(is_valid_utf8("¢"));
+  EXPECT_TRUE(is_valid_utf8("€"));
+  EXPECT_TRUE(is_valid_utf8("𐍈"));
+  EXPECT_TRUE(is_valid_utf8("$¢€𐍈"));
+  EXPECT_TRUE(is_valid_utf8("𐍈€¢$"));
+
+  // invalid character
+  EXPECT_FALSE(is_valid_utf8("\xFF"));
+  // invalid character after a null byte character
+  EXPECT_FALSE(is_valid_utf8(std::string("\x00\xFF", 2)));
+
+  // invalid multi-byte sequences
+  EXPECT_FALSE(is_valid_utf8({0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000000_c, 0b11000000_c}));
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b11000000_c, 0b11000000_c, 0b11000000_c}));
+
+  // too short sequences
+  // ¢ - missing one byte
+  EXPECT_FALSE(is_valid_utf8("\xC2"));
+  // € - missing one byte
+  EXPECT_FALSE(is_valid_utf8("\xE2\x82"));
+  // € - missing two bytes
+  EXPECT_FALSE(is_valid_utf8("\xE2"));
+  // 𐍈 - missing one byte
+  EXPECT_FALSE(is_valid_utf8("\xF0\x90\x8D"));
+  // 𐍈 - missing two bytes
+  EXPECT_FALSE(is_valid_utf8("\xF0\x90"));
+  // 𐍈 - missing three bytes
+  EXPECT_FALSE(is_valid_utf8("\xF0"));
+
+  // overlong encoding
+  // $ - 2 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11000000_c, 0b10100100_c}));
+  // $ - 3 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000000_c, 0b10100100_c}));
+  // $ - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000000_c, 0b10100100_c}));
+  // ¢ - 3 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000010_c, 0b10100010_c}));
+  // ¢ - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10100010_c}));
+  // € - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000010_c, 0b10000010_c, 0b10101100_c}));
+  // U+7F
+  EXPECT_TRUE(is_valid_utf8({0b01111111_c}));
+  // U+7F - 2 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11000001_c, 0b10111111_c}));
+  // U+7F - 3 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000001_c, 0b10111111_c}));
+  // U+7F - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000001_c, 0b10111111_c}));
+  // U+80
+  EXPECT_TRUE(is_valid_utf8({0b11000010_c, 0b10000000_c}));
+  // U+80 - 3 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000010_c, 0b10000000_c}));
+  // U+80 - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10000000_c}));
+  // U+07FF
+  EXPECT_TRUE(is_valid_utf8({0b11011111_c, 0b10111111_c}));
+  // U+07FF - 3 bytes
+  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10011111_c, 0b10111111_c}));
+  // U+07FF - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10011111_c, 0b10111111_c}));
+  // U+0800
+  EXPECT_TRUE(is_valid_utf8({0b11100000_c, 0b10100000_c, 0b10000000_c}));
+  // U+0800 - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10100000_c, 0b10000000_c}));
+  // U+FFFF
+  EXPECT_TRUE(is_valid_utf8({0b11101111_c, 0b10111111_c, 0b10111111_c}));
+  // U+FFFF - 4 bytes
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110000_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
+  // U+10000
+  EXPECT_TRUE(
+      is_valid_utf8({0b11110000_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
+
+  // UTF-16 surrogate halves
+  EXPECT_TRUE(is_valid_utf8("\xED\x9F\xBF"));   // U+D7FF
+  EXPECT_FALSE(is_valid_utf8("\xED\xA0\x80"));  // U+D800
+  EXPECT_FALSE(is_valid_utf8("\xED\xAB\x9A"));  // U+DADA
+  EXPECT_FALSE(is_valid_utf8("\xED\xBF\xBF"));  // U+DFFF
+  EXPECT_TRUE(is_valid_utf8("\xEE\x80\x80"));   // U+E000
+
+  // valid range
+  // U+10FFFF
+  EXPECT_TRUE(
+      is_valid_utf8({0b11110100_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
+  // U+110000
+  EXPECT_FALSE(
+      is_valid_utf8({0b11110100_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
+}
+
 }  // namespace shcore

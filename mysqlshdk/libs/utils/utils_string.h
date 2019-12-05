@@ -471,6 +471,16 @@ std::string wide_to_utf8(const std::wstring &utf16);
  */
 std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length);
 #endif  // _WIN32
+
+/**
+ * Checks if the given string contains only valid UTF-8 code points.
+ *
+ * @param s String to be checked.
+ *
+ * @returns true if the given string is a valid UTF-8 string
+ */
+bool is_valid_utf8(const std::string &s);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

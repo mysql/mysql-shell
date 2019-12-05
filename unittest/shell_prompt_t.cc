@@ -1348,6 +1348,31 @@ TEST_F(Shell_prompt_exe, bug28314383_py) {
 }
 #endif  // HAVE_PYTHON
 
+TEST_F(Shell_prompt_exe, bug30406283) {
+  const std::string prompt_file = "invalid-utf8.json";
+  const auto expect_prompt =
+#ifdef HAVE_V8
+      "mysql-js> "
+#else
+      "mysql-py> "
+#endif
+      "1";
+
+  shcore::setenv("MYSQLSH_PROMPT_THEME", prompt_file);
+  shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
+  shcore::create_file(prompt_file, "{'prompt':{'text': '\xFF '}}");
+
+  EXPECT_EQ(0, execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr}));
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Error loading prompt theme '" + prompt_file +
+                                "': File contains invalid UTF-8 sequence.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expect_prompt);
+
+  shcore::unsetenv("MYSQLSH_PROMPT_THEME");
+  shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
+  shcore::delete_file(prompt_file);
+}
+
 #undef EXPECT_PROMPT
 
 }  // namespace mysqlsh

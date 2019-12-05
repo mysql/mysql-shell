@@ -456,9 +456,15 @@ void Command_line_shell::load_prompt_theme(const std::string &path) {
     if (f.good()) {
       std::stringstream buffer;
       buffer << f.rdbuf();
+
       try {
-        shcore::Value theme(shcore::Value::parse(buffer.str().c_str()));
-        _prompt.set_theme(theme);
+        const auto data = buffer.str();
+
+        if (!shcore::is_valid_utf8(data)) {
+          throw std::invalid_argument("File contains invalid UTF-8 sequence.");
+        }
+
+        _prompt.set_theme(shcore::Value::parse(data));
       } catch (const std::exception &e) {
         log_warning("Error loading prompt theme '%s': %s", path.c_str(),
                     e.what());

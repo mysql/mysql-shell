@@ -367,4 +367,60 @@ std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length) {
 }
 #endif
 
+bool is_valid_utf8(const std::string &s) {
+  auto c = reinterpret_cast<const unsigned char *>(s.c_str());
+  const auto end = c + s.length();
+  uint32_t cp = 0;
+  size_t bytes = 0;
+
+  while (c < end) {
+    if (0x00 == (*c & 0x80)) {
+      // 0xxxxxxx, U+0000 - U+007F
+      bytes = 1;
+      cp = *c & 0x7F;
+    } else if (0xC0 == (*c & 0xE0)) {
+      // 110xxxxx, U+0080 - U+07FF
+      bytes = 2;
+      cp = *c & 0x1F;
+    } else if (0xE0 == (*c & 0xF0)) {
+      // 1110xxxx, U+0800 - U+FFFF
+      bytes = 3;
+      cp = *c & 0x0F;
+    } else if (0xF0 == (*c & 0xF8)) {
+      // 11110xxx, U+10000 - U+10FFFF
+      bytes = 4;
+      cp = *c & 0x07;
+    } else {
+      return false;
+    }
+
+    // advance one byte
+    ++c;
+
+    for (size_t b = 1; b < bytes; ++b) {
+      // each byte should be: 10xxxxxx
+      if (0x80 != (*c & 0xC0)) {
+        return false;
+      }
+
+      cp = (cp << 6) | (*c & 0x3F);
+
+      // advance one byte
+      ++c;
+    }
+
+    // invalid code points
+    if ((cp <= 0x7F && 1 != bytes) ||  // overlong encoding
+        (cp >= 0x80 && cp <= 0x07FF && 2 != bytes) ||
+        (cp >= 0x0800 && cp <= 0xFFFF && 3 != bytes) ||
+        (cp >= 0x10000 && cp <= 0x10FFFF && 4 != bytes) ||
+        (cp >= 0xD800 && cp <= 0xDFFF) ||  // UTF-16 surrogate halves
+        cp > 0x10FFFF) {                   // not encodable by UTF-16
+      return false;
+    }
+  }
+
+  return true;
+}
+
 }  // namespace shcore
