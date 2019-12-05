@@ -22,7 +22,7 @@ Cluster.setPrimaryInstance: There is no quorum to perform the operation (Runtime
 //@<ERR> WL#12052: Error when executing setPrimaryInstance on a multi-primary cluster {VER(>=8.0.13)}
 Cluster.setPrimaryInstance: Operation not allowed: The cluster is in Multi-Primary mode. (RuntimeError)
 
-//@ WL#12052: Re-create the cluster {VER(>=8.0.13)}
+//@ Re-create the cluster {VER(>=8.0.13)}
 ||
 
 //@<OUT> WL#12052: Set new primary {VER(>=8.0.13)}
@@ -84,5 +84,5 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ WL#12052: Finalization
+//@ Finalization
 ||

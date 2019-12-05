@@ -39,7 +39,7 @@ namespace dba {
 
 class Remove_instance : public Command_interface {
  public:
-  Remove_instance(mysqlshdk::db::Connection_options instance_cnx_opts,
+  Remove_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
                   const bool interactive,
                   mysqlshdk::utils::nullable<bool> force,
                   const GRReplicaSet &replicaset);
@@ -97,14 +97,11 @@ class Remove_instance : public Command_interface {
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance_protocol_upgrade;
   std::string m_address_in_metadata;
   bool m_upgrade_gr_protocol_version = false;
+  bool m_skip_sync = false;
   mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;
 
-  /**
-   * Verify if the instance belongs to the replicaset, otherwise it cannot be
-   * removed.
-   */
-  Instance_metadata ensure_instance_belong_to_replicaset(
-      const std::string &address, bool skip_error = false);
+  void validate_metadata_for_address(const std::string &address);
+  Instance_metadata lookup_metadata_for_uuid(const std::string &uuid);
 
   /**
    * Verify if it is the last instance in the replicaset, otherwise it cannot
@@ -141,23 +138,10 @@ class Remove_instance : public Command_interface {
   void undo_remove_instance_metadata(const Instance_metadata &instance_def);
 
   /**
-   * Auxiliar function used to determine the possible cause of the operation
-   * or connection failure, print a user-friendly message to the console, and
-   * throw a more appropriate exception.
-   *
-   * @param err Initial exception that captures the failure that occurred.
-   * @param md Metadata record for the instance being removed.
-   * @throw the appropriate shcore::Exception after validating the possible
-   * cause of the failure.
-   */
-  void find_failure_cause(const std::exception &err,
-                          const Instance_metadata &md);
-
-  /**
    * Auxiliar method to prompt the to use the 'force' option if the instance is
    * not available.
    */
-  void prompt_to_force_remove();
+  bool prompt_to_force_remove();
 
   /**
    * Auxiliar method to verify if an upgrade of the protocol will be required

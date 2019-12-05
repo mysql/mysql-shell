@@ -137,8 +137,8 @@
 ||
 
 //@<OUT> BUG28056944 remove instance with wrong password and force = true.
-ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
-NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+NOTE: MySQL Error 1045 (28000): Access denied for user 'root'@'[[*]]' (using password: YES)
+NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please

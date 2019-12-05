@@ -8,15 +8,15 @@
 ||
 
 //@ remove instance not in MD but reachable when there's just 1 (should fail)
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster
+||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@ Adding instance
 ||
 
 //@ remove instance not in MD but reachable when there are 2 (should fail)
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster
+||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 ||
@@ -60,13 +60,10 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> Remove instance failure due to wrong credentials
-ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
-
 //@ Remove instance failure due to wrong credentials
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
 // 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
-||Cluster.removeInstance: Access denied for user 'foo'
+||Cluster.removeInstance: Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
 
 //@<OUT> Cluster status after remove failed
 {
@@ -337,27 +334,33 @@ false
 }
 
 //@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
-ERROR: Unable to connect to instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
-The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname_ip>>>' ([[*]])
+ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
-Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
 
 //@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
-ERROR: Unable to connect to instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'. Please verify connection credentials and make sure the instance is available.
-The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname_ip>>>' ([[*]])
+ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
-Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
 
-//@ Error removing stopped instance on port2 (no prompt if interactive is false)
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
+//@<> Error removing stopped instance on port2 (no prompt if interactive is false)
+|WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])|
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
+||Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
-//@ Error removing stopped instance on port2 (no prompt if force is used)
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
+//@<> Error removing stopped instance on port2 (no prompt if force is used)
+|WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])|
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
+||Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
-//@ Error removing stopped instance on port2
-|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
+//@<> Error removing stopped instance on port2
+|WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])|
+|ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
+||Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
 //@ Remove stopped instance on port2 with force option
 ||
@@ -366,13 +369,16 @@ Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
 false
 
 //@<OUT> Remove unreachable instance (interactive: false, force: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.
+To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false, force: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
+Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: false, force: true) - success
-NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+NOTE: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
@@ -382,18 +388,18 @@ start a new session to the Metadata Storage R/W instance.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
 
 //@<OUT> remove instance not in MD and unreachable, interactive true (should fail)
-ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'. Please verify connection credentials and make sure the instance is available.
-The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive true (should fail)
-Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@<OUT> remove instance not in MD and unreachable, interactive false (should fail)
-ERROR: Unable to connect to instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'. Please verify connection credentials and make sure the instance is available.
-The instance is unreachable and was not found in the metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive false (should fail)
-Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {
@@ -428,16 +434,16 @@ Cluster.removeInstance: Can't connect to MySQL server on [[*]] (RuntimeError)
 ||
 
 //@<OUT> remove reachable instance but not MD, interactive false (should fail)
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it does not belong to the cluster (not found in the metadata). If you really want to remove this instance because it is still using Group Replication then it must be stopped manually.
+ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> does not belong to the cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive false (should fail)
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster. (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@<OUT> remove reachable instance but not MD, interactive true (should fail)
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it does not belong to the cluster (not found in the metadata). If you really want to remove this instance because it is still using Group Replication then it must be stopped manually.
+ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> does not belong to the cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive true (should fail)
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster. (RuntimeError)
+Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
 
 //@ Connect to instance2 (removed unreachable)
 ||
@@ -464,31 +470,37 @@ true
 ||
 
 //@<OUT> Remove unreachable instance (interactive: true, force: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
+To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: true, force: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
+Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: false) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then please use <Cluster>.removeInstance() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.
+To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
+Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer NO) - error
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
+To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Remove unreachable instance (interactive: true, answer NO) - error
-Cluster.removeInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is '(MISSING)' (RuntimeError)
+Cluster.removeInstance: Can't connect to MySQL server on '<<<hostname>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer YES) - success
-ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to remove it again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the Cluster Metadata.
+WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
+To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
-NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
-
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
@@ -497,7 +509,8 @@ start a new session to the Metadata Storage R/W instance.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> Remove unreachable instance (interactive: true, force: true) - success
-NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not rejoin the cluster if brought back online.
+NOTE: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])
+NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
@@ -540,13 +553,13 @@ Cluster.removeInstance: Timeout reached waiting for cluster transactions to be a
 ||
 
 //@<OUT> Remove instance with replication error (force: true) - success
+NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state ERROR
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
 NOTE: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Skipping its removal.
-WARNING: An error occurred when trying to catch up with cluster transactions and the instance might have been left in an inconsistent state that will lead to errors if it is reused.
-
+NOTE: Transaction sync was skipped
 Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+localhost+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.\n":""\>>>

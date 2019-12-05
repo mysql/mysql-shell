@@ -93,6 +93,7 @@ Cluster.removeInstance(1,2,3);
 Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", "auth-method":56});
 Cluster.removeInstance({host: "localhost", port:33060});
+// note: validation takes into account the possibility of an unexpected server running on default ports
 Cluster.removeInstance("localhost");
 
 //@ Cluster: removeInstance

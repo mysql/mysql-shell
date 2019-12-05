@@ -12,17 +12,17 @@ function get_all_users() {
 // mysql.slave_master_info results in dropping ALL users from mysql.user on the
 // remaining instances of the cluster.
 
-//@<> BUG#29617572: Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 
-//@<> BUG#29617572: Create cluster
+//@<> Create cluster
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 var all_users_instance1 = get_all_users();
 
-//@<> BUG#29617572: Add instance to the cluster
+//@<> Add instance to the cluster
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -31,13 +31,154 @@ session.close();
 shell.connect(__sandbox_uri2);
 session.runSql('STOP GROUP_REPLICATION');
 session.runSql('RESET SLAVE ALL');
+
 c.removeInstance(__sandbox_uri2, {force:true});
+
+session1 = mysql.getSession(__sandbox_uri1);
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
 //@<> BUG#29617572: Verify that no extra users were removed from instance 1
 session.close();
 shell.connect(__sandbox_uri1);
 EXPECT_EQ(all_users_instance1, get_all_users());
-session.close();
+
+// ------------------------
+
+//@ removeInstance() while instance is up through hostname (same as in MD and report_host)
+c = dba.getCluster();
+c.addInstance(__sandbox_uri2);
+
+c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while instance is up through hostname_ip
+c.addInstance(__sandbox_uri2);
+
+c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2);
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while instance is up through localhost
+c.addInstance(__sandbox_uri2);
+
+c.removeInstance("localhost:"+__mysql_sandbox_port2);
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+// ------------------------
+
+// Note:
+// "wrong address" = address that can reach the instance but is not what's in the metadata
+// "correct address" = the address that the instance is known by in the metadata
+
+//@ removeInstance() while the instance is down - no force and wrong address (should fail)
+// covers Bug #30625424	REMOVEINSTANCE() FORCE:TRUE SAYS INSTANCE REMOVED, BUT NOT REALLY
+c.addInstance(__sandbox_uri2);
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE,(MISSING)");
+
+c.removeInstance(__sandbox_uri2);
+
+//@ removeInstance() while the instance is down - force and wrong address (should fail)
+c.removeInstance(__sandbox_uri2, {force:1});
+EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while the instance is down - no force and correct address (should fail)
+c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while the instance is down - force and correct address
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@<> bring back the stopped instance for the remaining tests
+testutil.startSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+// abort start_on_boot from the previous test if still active
+session2.runSql("STOP GROUP_REPLICATION");
+
+// ------------------------
+
+//@ removeInstance() while the instance is up but OFFLINE - no force and wrong address (should fail)
+// covers Bug #30625424	REMOVEINSTANCE() FORCE:TRUE SAYS INSTANCE REMOVED, BUT NOT REALLY (should fail)
+c.addInstance(__sandbox_uri2);
+session2.runSql("STOP GROUP_REPLICATION");
+
+c.removeInstance(__sandbox_uri2);
+EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while the instance is up but OFFLINE - no force and correct address (should fail)
+c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while the instance is up but OFFLINE - force and wrong address
+c.removeInstance(__sandbox_uri2, {force:1});
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() while the instance is up but OFFLINE - force and correct address
+c.addInstance(__sandbox_uri2);
+session2.runSql("STOP GROUP_REPLICATION");
+
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});
+EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
+
+//@ removeInstance() - OFFLINE, no force, interactive
+c.addInstance(__sandbox_uri2);
+session2.runSql("STOP GROUP_REPLICATION");
+
+// prompt whether to remove without sync should appear
+testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1});
+
+//@ removeInstance() - OFFLINE, force:false, interactive
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:false});
+
+//@ removeInstance() - OFFLINE, force:true, interactive
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:true});
+
+// ------------------------
+
+// Check removeInstance() with values that don't match what's in the MD
+
+// Bug #30501628	REMOVEINSTANCE, SETPRIMARY ETC SHOULD WORK WITH ANY FORM OF ADDRESS
+// NOTE: this test must come last before sandbox destruction because it changes the sandbox configs
+//@<> add instance back for next test
+c.addInstance(__sandbox_uri2);
+
+//@<> change instance address stored in the MD so that it doesn't match report_host
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+
+shell.dumpRows(session1.runSql("SELECT * FROM mysql_innodb_cluster_metadata.instances"));
+
+session1.runSql("UPDATE mysql_innodb_cluster_metadata.instances"+
+          " SET instance_name=concat(?,':',substring_index(instance_name, ':', -1)), "+
+          " address=concat(?,':',substring_index(address, ':', -1)), "+
+          " addresses=JSON_SET(addresses,"+
+          " '$.mysqlX', concat(?,':',substring_index(addresses->>'$.mysqlX', ':', -1)),"+
+          " '$.grLocal', concat(?,':',substring_index(addresses->>'$.grLocal', ':', -1)),"+
+          " '$.mysqlClassic', concat(?,':',substring_index(addresses->>'$.mysqlClassic', ':', -1)))", 
+          [hostname_ip, hostname_ip, hostname_ip, hostname_ip, hostname_ip]);
+shell.dumpRows(session1.runSql("SELECT * FROM mysql_innodb_cluster_metadata.instances"));
+
+// now, MD has hostname_ip but report_host is hostname
+shell.dumpRows(session2.runSql("SELECT @@report_host"));
+
+c.status();
+
+//@ removeInstance() using hostname - hostname is not in MD, but uuid is
+c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+
+// add back for next test
+c.addInstance(__sandbox_uri2);
+
+//@ removeInstance() using localhost - localhost is not in MD, but uuid is
+c.removeInstance("localhost:"+__mysql_sandbox_port2);
+
+// add back for next test
+c.addInstance(__sandbox_uri2);
+
+//@ removeInstance() using hostname_ip - MD has hostname_ip (and UUID), although report_host is different
+c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2);
 
 //@<> Finalization
 session.close();

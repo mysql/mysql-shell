@@ -74,7 +74,7 @@ var cluster = scene.cluster
 //@ WL#12052: Error when executing setPrimaryInstance on a multi-primary cluster {VER(>=8.0.13)}
 cluster.setPrimaryInstance(__sandbox_uri2);
 
-//@ WL#12052: Re-create the cluster {VER(>=8.0.13)}
+//@ Re-create the cluster {VER(>=8.0.13)}
 scene.destroy();
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
 var cluster = scene.cluster
@@ -88,9 +88,29 @@ cluster.setPrimaryInstance(__sandbox_uri2);
 //@<OUT> WL#12052: Set new primary 2 {VER(>=8.0.13)}
 cluster.setPrimaryInstance(__sandbox_uri3);
 
+//@<> set new primary through hostname {VER(>=8.0.13)}
+cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
+
+//@<> set new primary through localhost {VER(>=8.0.13)}
+cluster.setPrimaryInstance("localhost:"+__mysql_sandbox_port1);
+
+//@<> set new primary through hostname_ip {VER(>=8.0.13)}
+cluster.setPrimaryInstance(hostname_ip+":"+__mysql_sandbox_port3);
+
 //@<OUT> WL#12052: Cluster status after setting a new primary {VER(>=8.0.13)}
 cluster.status()
 
-//@ WL#12052: Finalization
+//@<> setPrimary using localhost {VER(>=8.0.13)}
+// covers Bug #30501628	REMOVEINSTANCE, SETPRIMARY ETC SHOULD WORK WITH ANY FORM OF ADDRESS
+
+cluster.setPrimaryInstance("localhost:"+__mysql_sandbox_port2);
+
+//@<> setPrimary using hostname_ip {VER(>=8.0.13)}
+cluster.setPrimaryInstance(hostname_ip+":"+__mysql_sandbox_port3);
+
+//@<> setPrimary using hostname {VER(>=8.0.13)}
+cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
+
+//@ Finalization
 scene.destroy();
 

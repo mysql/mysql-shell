@@ -65,7 +65,6 @@ cluster.status();
 
 //@<> Remove instance failure due to wrong credentials
 // WL#11862 - FR1_2, FR2_2
-testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
 cluster.removeInstance({Host: hostname, PORT: __mysql_sandbox_port2, User: "foo", PassWord: "bar"});
 
 //@<OUT> Cluster status after remove failed

@@ -188,8 +188,8 @@ Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
 Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string (ArgumentError)
-Cluster.removeInstance: {{Protocol mismatch; server version =|Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
-Cluster.removeInstance: {{Access denied for user|Can't connect to MySQL server on}} [[*]] (RuntimeError)
+Cluster.removeInstance: Metadata for instance localhost:33060 not found [[*]]
+Cluster.removeInstance: {{Access denied for user [[*]]|Can't connect to MySQL server on [[*]]}}
 
 //@ Cluster: removeInstance
 ||
