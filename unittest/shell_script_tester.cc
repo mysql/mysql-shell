@@ -1355,7 +1355,7 @@ void Shell_script_tester::execute_script(const std::string &path,
                 FAIL();
               }
             } else {
-              output_handler.whipe_debug_log();
+              output_handler.wipe_debug_log();
             }
           }
         } else {
@@ -1405,7 +1405,7 @@ void Shell_script_tester::execute_script(const std::string &path,
             FAIL();
           }
         } else {
-          output_handler.whipe_debug_log();
+          output_handler.wipe_debug_log();
         }
       }
     }

@@ -19,6 +19,7 @@
    along with this program; if not, write to the Free Software Foundation, Inc.,
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
+#include <chrono>
 #include <fstream>
 #include <list>
 #include <map>
@@ -144,7 +145,7 @@ class Shell_test_output_handler {
   void debug_print(const std::string &line);
   void debug_print_header(const std::string &line);
   void flush_debug_log();
-  void whipe_debug_log() { full_output.clear(); }
+  void wipe_debug_log() { full_output.clear(); }
 
   bool debug;
 
@@ -317,7 +318,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     return _opts;
   }
 
-  unsigned int m_start_time = 0;
+  std::chrono::time_point<std::chrono::steady_clock> m_start_time =
+      std::chrono::steady_clock::now();
 
   friend class mysqlsh::Test_debugger;
 };

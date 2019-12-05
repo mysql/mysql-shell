@@ -19,7 +19,8 @@
    along with this program; if not, write to the Free Software Foundation, Inc.,
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "test_utils.h"
+#include "unittest/test_utils.h"
+#include <cinttypes>
 #include <memory>
 #include <random>
 #include <string>
@@ -322,7 +323,7 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
 void Shell_test_output_handler::debug_print(const std::string &line) {
   if (debug || g_test_trace_scripts) std::cout << line << std::endl;
 
-  full_output << line.c_str() << std::endl;
+  full_output << line << '\n';
 }
 
 void Shell_test_output_handler::debug_print_header(const std::string &line) {
@@ -330,9 +331,9 @@ void Shell_test_output_handler::debug_print_header(const std::string &line) {
 
   std::string splitter(line.length(), '-');
 
-  full_output << splitter.c_str() << std::endl;
-  full_output << line.c_str() << std::endl;
-  full_output << splitter.c_str() << std::endl;
+  full_output << splitter << '\n';
+  full_output << line << '\n';
+  full_output << splitter << '\n';
 }
 
 void Shell_test_output_handler::flush_debug_log() {
@@ -377,7 +378,7 @@ std::string Shell_core_test_wrapper::get_options_file_name(const char *name) {
 void Shell_core_test_wrapper::SetUp() {
   Shell_base_test::SetUp();
 
-  m_start_time = static_cast<unsigned int>(time(NULL));
+  m_start_time = std::chrono::steady_clock::now();
 
   output_handler.debug_print_header(context_identifier());
 
@@ -474,38 +475,39 @@ void Shell_core_test_wrapper::reset_replayable_shell(
 }
 
 void Shell_core_test_wrapper::execute(int location, const std::string &code) {
-  std::string _code(code);
-
-  unsigned int elapsed = static_cast<unsigned int>(time(NULL)) - m_start_time;
-
   if (g_profile_test_scripts) {
-    std::string executed_input =
-        makeblue(shcore::str_format("[%2u:%02u] %4d> %s", elapsed / 60,
-                                    elapsed % 60, location, _code.c_str()));
-    output_handler.debug_print(executed_input);
+    const auto now = std::chrono::steady_clock::now();
+    const auto elapsed = now - m_start_time;
+    const auto m = std::chrono::duration_cast<std::chrono::minutes>(elapsed);
+    const auto s = std::chrono::duration_cast<std::chrono::seconds>(
+        elapsed % std::chrono::minutes(1));
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        elapsed % std::chrono::seconds(1));
+
+    std::string executed_input = shcore::str_format(
+        "[%2dm%02d.%03ds] %4d> ", static_cast<int>(m.count()),
+        static_cast<int>(s.count()), static_cast<int>(ms.count()), location);
+    executed_input += code;
+    output_handler.debug_print(makeblue(executed_input));
   } else {
-    std::string executed_input =
-        makeblue(shcore::str_format("%4d> %s", location, _code.c_str()));
-    output_handler.debug_print(executed_input);
+    std::string executed_input = shcore::str_format("%4d> ", location);
+    executed_input += code;
+    output_handler.debug_print(makeblue(executed_input));
   }
 
-  _interactive_shell->process_line(_code);
+  _interactive_shell->process_line(code);
 }
 
 void Shell_core_test_wrapper::execute(const std::string &code) {
-  std::string _code(code);
-
-  std::string executed_input = makeblue("----> " + _code);
+  std::string executed_input = makeblue("----> " + code);
   output_handler.debug_print(executed_input);
 
-  _interactive_shell->process_line(_code);
+  _interactive_shell->process_line(code);
 }
 
 void Shell_core_test_wrapper::execute_internal(const std::string &code) {
-  std::string _code(code);
-
   output_handler.set_internal(true);
-  _interactive_shell->process_line(_code);
+  _interactive_shell->process_line(code);
   output_handler.set_internal(false);
 }
 
