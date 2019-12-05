@@ -774,6 +774,8 @@ var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 //@<> canonical IPv6 addresses are supported on addInstance WL#12758 {VER(>= 8.0.14)}
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+// Bug #30548843 Validate that IPv6 values stored on metadata for mysqlx are valid
+print_metadata_instance_addresses(session);
 
 //@<> Cleanup canonical IPv6 addresses supported WL#12758 {VER(>= 8.0.14)}
 session.close();

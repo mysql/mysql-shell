@@ -30,6 +30,14 @@ function gtid_contains_server_uuid(session) {
     return gtids.search(uuid) >= 0;
 }
 
+function print_metadata_instance_addresses(session) {
+    var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll();
+    for (var i = 0; i < res.length; i++) {
+        print(res[i][4] + " = " + res[i][7] + "\n");
+    }
+    print("\n");
+}
+
 // WL#12011: AdminAPI: Refactor dba.createCluster()
 //@ WL#12011: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
@@ -765,6 +773,8 @@ shell.connect(__sandbox_uri1);
 
 //@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 c = dba.createCluster("cluster");
+// Bug #30548843 Validate that IPv6 value stored on metadata for mysqlx is valid
+print_metadata_instance_addresses(session);
 
 //@<> Cleanup canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 session.close();

@@ -74,6 +74,9 @@ std::string Instance::get_canonical_hostname() const {
     auto row = result->fetch_one();
     m_hostname = row->get_as_string(0);
   }
+  if (mysqlshdk::utils::Net::is_ipv6(m_hostname)) {
+    m_hostname = "[" + m_hostname + "]";
+  }
   return m_hostname;
 }
 
@@ -99,10 +102,9 @@ std::string Instance::get_canonical_address() const {
     m_port = row->get_int(1);
   }
   if (mysqlshdk::utils::Net::is_ipv6(m_hostname)) {
-    return "[" + m_hostname + "]:" + std::to_string(m_port);
-  } else {
-    return m_hostname + ":" + std::to_string(m_port);
+    m_hostname = "[" + m_hostname + "]";
   }
+  return m_hostname + ":" + std::to_string(m_port);
 }
 
 const std::string &Instance::get_uuid() const {
