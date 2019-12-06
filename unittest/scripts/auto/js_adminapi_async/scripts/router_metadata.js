@@ -1,19 +1,17 @@
 //@ {VER(>=8.0.11)}
 
 //@<> Setup
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_ip});
 
 shell.connect(__sandbox_uri1);
-rs = dba.createReplicaSet("rset");
+rs = dba.createReplicaSet("rset", {gtidSetIsComplete:true});
+rs.addInstance(__sandbox2);
 
 // Tests assuming MD Schema 2.0.0
 // ------------------------------
 
 //@<> MD2 - Prepare metadata 2.0
-
-session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET mysql_server_uuid = @@server_uuid");
-session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET instance_name = ?", ["127.0.0.1:"+__mysql_sandbox_port1]);
-
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
 
 //@ MD2 - listRouters() - empty
@@ -56,5 +54,20 @@ EXPECT_THROWS(function(){rs.removeRouterMetadata("routerhost1");}, "ReplicaSet.r
 //@ MD2 - listRouters() after removed routers
 rs.listRouters();
 
+// BUG#30594844 : remove_router_metadata() gets primary wrong  --- BEGIN ---
+//@<> Connect to SECONDARY and get replicaset.
+rs.status();
+shell.connect(__sandbox_uri2);
+rs2 = dba.getReplicaSet();
+
+//@ removeRouterMetadata should succeed with current session on SECONDARY (redirected to PRIMARY).
+rs2.removeRouterMetadata("routerhost2");
+
+//@ Verify router data was removed (routerhost2).
+rs.listRouters();
+
+// BUG#30594844 : remove_router_metadata() gets primary wrong  --- END ---
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

@@ -915,12 +915,27 @@ String ReplicaSet::removeRouterMetadata(RouterDef routerDef) {}
 str ReplicaSet::remove_router_metadata(RouterDef routerDef) {}
 #endif
 void ReplicaSet::remove_router_metadata(const std::string &router_def) {
-  // Throw an error if the cluster has already been dissolved
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("ReplicaSet.removeRouterMetadata",
                                m_impl->get_target_server());
+
+  // Initialized Instance pool with the metadata from the current session.
+  auto metadata =
+      std::make_shared<MetadataStorage>(m_impl->get_target_server());
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+  ipool->set_metadata(metadata);
+
+  // Acquire the primary to update the metadata on it.
+  m_impl->acquire_primary();
+  auto finally =
+      shcore::on_leave_scope([this]() { m_impl->release_primary(); });
 
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +

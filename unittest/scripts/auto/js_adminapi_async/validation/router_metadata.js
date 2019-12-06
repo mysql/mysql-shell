@@ -277,3 +277,42 @@ ReplicaSet.removeRouterMetadata: Invalid router instance '127.0.0.1' (ArgumentEr
         }
     }
 }
+
+//@ removeRouterMetadata should succeed with current session on SECONDARY (redirected to PRIMARY).
+||
+
+//@<OUT> Verify router data was removed (routerhost2).
+{
+    "replicaSetName": "rset",
+    "routers": {
+        "routerhost1::r3": {
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "version": "8.0.19"
+        },
+        "routerhost1::system": {
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": 6481,
+            "roXPort": 6483,
+            "rwPort": 6480,
+            "rwXPort": 6482,
+            "upgradeRequired": true,
+            "version": "8.0.18"
+        },
+        "routerhost2::foobar": {
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
+            "version": "8.0.18"
+        }
+    }
+}

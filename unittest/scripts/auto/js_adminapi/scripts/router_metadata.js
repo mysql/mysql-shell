@@ -1,21 +1,17 @@
 
 //@<> Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
 shell.connect(__sandbox_uri1);
-dba.createCluster("cluster");
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+cluster.addInstance(__sandbox_uri2);
 
 
 // Tests assuming MD Schema 2.0.0
 // ------------------------------
 
 //@<> MD2 - Prepare metadata 2.0
-
-var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
-session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.group_replication_group_name', ?)", [group_name]);
-session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET mysql_server_uuid = @@server_uuid");
-session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET instance_name = ?", ["127.0.0.1:"+__mysql_sandbox_port1]);
-
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
 
 cluster = dba.getCluster();
@@ -60,11 +56,30 @@ EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1");}, "Cluster
 //@ MD2 - listRouters() after removed routers
 cluster.listRouters();
 
+// BUG#30594844 : remove_router_metadata() gets primary wrong  --- BEGIN ---
+//@<> Connect to SECONDARY and get replicaset.
+shell.connect(__sandbox_uri2);
+cluster2 = dba.getCluster();
+
+//@ removeRouterMetadata should succeed with current session on SECONDARY (redirected to PRIMARY).
+cluster2.removeRouterMetadata("routerhost2");
+
+//@ Verify router data was removed (routerhost2).
+cluster.listRouters();
+
+//@<> remove secondary from cluster.
+// NOTE: removed because direct updates to MD are done in the following testes
+//       assuming there is only one instance in the cluster.
+cluster.removeInstance(__sandbox_uri2);
+
+// BUG#30594844 : remove_router_metadata() gets primary wrong  --- END ---
+
 
 // Tests assuming MD Schema 1.0.1
 // ------------------------------
 
 //@<> MD1 - Reset MD schema
+shell.connect(__sandbox_uri1);
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
 
@@ -137,3 +152,4 @@ cluster.removeRouterMetadata("");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
