@@ -203,6 +203,7 @@ TEST(utils_net, is_ipv6) {
   EXPECT_TRUE(Net::is_ipv6("3ffe:2a00:100:7031::1"));
   EXPECT_TRUE(Net::is_ipv6("1080::8:800:200C:417A"));
   EXPECT_TRUE(Net::is_ipv6("::192.9.5.5"));
+  EXPECT_TRUE(Net::is_ipv6("::1"));
 
 // TODO(someone): For some reason this address is not resolved as IPv6 in
 // Solaris, failed finding out the reason, will let it as a TODO for further
@@ -224,6 +225,11 @@ TEST(utils_net, is_ipv6) {
   EXPECT_FALSE(Net::is_ipv6("127.0.0.1"));
   EXPECT_FALSE(Net::is_ipv6("FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:"));
   EXPECT_FALSE(Net::is_ipv6("FEDC:BA98:7654:3210:GEDC:BA98:7654:3210"));
+
+  EXPECT_FALSE(Net::is_ipv6("[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]"));
+  EXPECT_FALSE(Net::is_ipv6("[3ffe:2a00:100:7031::1]"));
+  EXPECT_FALSE(Net::is_ipv6("[::192.9.5.5]"));
+  EXPECT_FALSE(Net::is_ipv6("[::1]"));
 }
 
 TEST(utils_net, is_loopback) {

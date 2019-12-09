@@ -314,7 +314,9 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
         last_was_colon = true;
       } else if (_tokenizer.cur_token_type_is("unreserved") ||
                  _tokenizer.cur_token_type_is("pct-encoded") ||
-                 _tokenizer.cur_token_type_is("zone-delimiter")) {
+                 _tokenizer.cur_token_type_is("zone-delimiter") ||
+                 _tokenizer.cur_token_type_is("[") ||
+                 _tokenizer.cur_token_type_is(".")) {
         // these tokens are not allowed at the beginning of the address
         throw_unexpected_data();
       } else {

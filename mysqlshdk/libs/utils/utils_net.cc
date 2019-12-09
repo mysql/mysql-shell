@@ -350,6 +350,12 @@ bool Net::is_ipv4(const std::string &host) {
 }
 
 bool Net::is_ipv6(const std::string &host) {
+  if (host.empty() || '[' == host[0]) {
+    // on Windows `[IPv6]` host string is considered an IPv6 address, we do this
+    // test on all platforms to speed up things a bit
+    return false;
+  }
+
   // Handling of the zone ID by getaddrinfo() varies on different platforms:
   // numeric values are always accepted, some of them require the zone ID to
   // match the name of one of the network interfaces, while others accept

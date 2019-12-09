@@ -496,6 +496,26 @@ TEST(Uri_parser, parse_host_ipv6) {
   validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7]:8]:2540/testing",
                    "Invalid IPv6: the number of segments does not match the "
                    "specification");
+  validate_bad_uri("mysqlx://user:sample@[[1:2:3:4:5:6:7:8]]:2540/testing",
+                   "Unexpected data [[] found at position 22");
+  validate_bad_uri("mysqlx://user:sample@[.1:2:3:4:5:6:7:8]:2540/testing",
+                   "Unexpected data [.] found at position 22");
+  validate_bad_uri("mysqlx://user:sample@[1[:2:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 23 but found type [ ([)");
+  validate_bad_uri("mysqlx://user:sample@[1.:2:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 23 but found type . (.)");
+  validate_bad_uri("mysqlx://user:sample@[1:[2:3:4:5:6:7:8]:2540/testing",
+                   "Unexpected data [[] found at position 24");
+  validate_bad_uri("mysqlx://user:sample@[1:.2:3:4:5:6:7:8]:2540/testing",
+                   "Unexpected data [.] found at position 24");
+  validate_bad_uri("mysqlx://user:sample@[1:2[2:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 25 but found type [ ([)");
+  validate_bad_uri("mysqlx://user:sample@[1:2.2:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 25 but found type . (.)");
+  validate_bad_uri("mysqlx://user:sample@[1:2[:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 25 but found type [ ([)");
+  validate_bad_uri("mysqlx://user:sample@[1:2.:3:4:5:6:7:8]:2540/testing",
+                   "Expected token type : at position 25 but found type . (.)");
 
   // zone ID
   validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25enp0s3]",
