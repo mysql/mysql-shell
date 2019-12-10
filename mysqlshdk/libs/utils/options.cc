@@ -60,7 +60,7 @@ std::string to_string(Source s) {
 Generic_option::Generic_option(const std::string &name_,
                                const char *environment_variable_,
                                std::vector<std::string> &&command_line_names_,
-                               const char *help_)
+                               const std::string &help_)
     : name(name_),
       environment_variable(environment_variable_),
       command_line_names(std::move(command_line_names_)),
@@ -98,7 +98,7 @@ std::vector<std::string> Generic_option::get_cmdline_names() {
 std::vector<std::string> Generic_option::get_cmdline_help(
     std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
-  if (command_line_names.empty() || help == nullptr) return result;
+  if (command_line_names.empty() || help.empty()) return result;
 
   for (const auto &n : command_line_names)
     if (n.length() >= options_width)
@@ -119,7 +119,7 @@ std::vector<std::string> Generic_option::get_cmdline_help(
   result.push_back(line);
 
   std::size_t help_filled = 1;
-  if (std::strlen(help) <= help_width) {
+  if (help.length() <= help_width) {
     result[0] += help;
   } else {
     std::vector<std::string> help_lines =
@@ -132,15 +132,32 @@ std::vector<std::string> Generic_option::get_cmdline_help(
     help_filled = help_lines.size();
   }
 
-  for (; help_filled < result.size(); help_filled++)
-    result[help_filled] += "see above";
+  if (help_filled < result.size()) {
+    assert(command_line_names.size() > 1);
+    std::string reference_name =
+        command_line_names.size() > 2 &&
+                !shcore::str_beginswith(command_line_names[0], "--") &&
+                result[0].find(command_line_names[1]) != std::string::npos
+            ? command_line_names[1]
+            : command_line_names[0];
+
+    for (size_t i = 0; i < reference_name.size(); ++i)
+      if (reference_name[i] != '-' && !std::isalpha(reference_name[i])) {
+        reference_name = reference_name.substr(0, i);
+        break;
+      }
+
+    std::string msg = "Same as " + reference_name + ".";
+    for (; help_filled < result.size(); help_filled++)
+      result[help_filled] += msg;
+  }
 
   return result;
 }
 
 Proxy_option::Proxy_option(const char *environment_variable_,
                            std::vector<std::string> &&command_line_names_,
-                           const char *help_, Handler handler_,
+                           const std::string &help_, Handler handler_,
                            const std::string &name_)
     : Generic_option(name_, environment_variable_,
                      std::move(command_line_names_), help_),
@@ -474,10 +491,10 @@ std::string Options::get_named_help(const std::string &filter,
   for (const auto &it : named_options) {
     if (!filter.empty() && it.first.find(filter) == std::string::npos) continue;
     opts::Generic_option *opt = it.second;
-    const char *help = opt->get_help();
+    auto help = opt->get_help();
     std::string first_column(first_column_width, ' ');
     first_column.replace(padding, opt->get_name().length(), opt->get_name());
-    if (std::strlen(help) <= second_column_width) {
+    if (help.length() <= second_column_width) {
       res.append(first_column + help + "\n");
     } else {
       std::string final = textui::format_markup_text(

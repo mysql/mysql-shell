@@ -458,8 +458,7 @@ class Shell_reports::Report_options : public shcore::Options {
       help.brief = "Display this help and exit.";
       help.short_name = "h";
 
-      add_startup_options()(&m_show_help, false, help.command_line_names(),
-                            nullptr);
+      add_startup_options()(&m_show_help, false, help.command_line_names(), "");
 
       m_command_line_options.emplace_back(std::move(help));
     }
@@ -471,7 +470,7 @@ class Shell_reports::Report_options : public shcore::Options {
       vertical.short_name = "E";
 
       add_startup_options()(&m_vertical, false, vertical.command_line_names(),
-                            nullptr);
+                            "");
 
       m_command_line_options.emplace_back(std::move(vertical));
     }
@@ -482,7 +481,7 @@ class Shell_reports::Report_options : public shcore::Options {
 
       // register the option
       add_startup_options()(
-          o->command_line_names(), nullptr,
+          o->command_line_names(), "",
           [&o, &p, this](const std::string &, const char *new_value) {
             // convert to the expected type
             shcore::Value value;

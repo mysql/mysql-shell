@@ -48,7 +48,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 want to read the data from stdin. Requires a
                                 default schema on the connection options.
   -D, --schema=<name>           Schema to use.
-  --database=<name>             see above
+  --database=<name>             Same as --schema.
   --recreate-schema             Drop and recreate the specified schema. Schema
                                 will be deleted if it exists!
   --mx, --mysqlx                Uses connection data to create an X protocol
@@ -71,7 +71,7 @@ Usage: mysqlsh [OPTIONS] [URI]
   --sqlx                        Start in SQL mode using an X protocol session.
   --js, --javascript            Start in JavaScript mode.
   --py, --python                Start in Python mode.
-  --json[=<format>]             Produce output in JSON format, allowed values:
+  --json[=<format>]             Produce output in JSON format. Allowed values:
                                 raw, pretty, and off. If no format is specified
                                 pretty format is produced.
   --table                       Produce output in table format (default for
@@ -82,29 +82,29 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 force that format when running in interactive
                                 mode.
   -E, --vertical                Print the output of a query (rows) vertically.
-  --result-format=<value>       Determines format of results. Valid values:
+  --result-format=<value>       Determines format of results. Allowed values:
                                 [table, tabbed, vertical, json, ndjson,
                                 json/raw, json/array, json/pretty].
   --get-server-public-key       Request public key from the server required for
                                 RSA key pair-based password exchange. Use when
                                 connecting to MySQL 8.0 servers with classic
-                                MySQL sessions with SSL mode DISABLED.
+                                sessions with SSL mode DISABLED.
   --server-public-key-path=<p>  The path name to a file containing a
                                 client-side copy of the public key required by
                                 the server for RSA key pair-based password
                                 exchange. Use when connecting to MySQL 8.0
-                                servers with classic MySQL sessions with SSL
-                                mode DISABLED.
+                                servers with classic sessions with SSL mode
+                                DISABLED.
   -i, --interactive[=full]      To use in batch mode. It forces emulation of
                                 interactive mode processing. Each line on the
                                 batch is processed as if it were in interactive
                                 mode.
-  --force                       To use in SQL batch mode, forces processing to
+  --force                       In SQL batch mode, forces processing to
                                 continue if an error is found.
-  --log-level=<value>           The log level value must be an integer between
-                                1 and 8 or any of [none, internal, error,
-                                warning, info, debug, debug2, debug3]
-                                respectively.
+  --log-level=<value>           Set logging level. The log level value must be
+                                an integer between 1 and 8 or any of [none,
+                                internal, error, warning, info, debug, debug2,
+                                debug3] respectively.
   --dba-log-sql[={0|1|2}]       Log SQL statements executed by AdminAPI
                                 operations: 0 - logging disabled; 1 - log
                                 statements other than SELECT and SHOW; 2 - log
@@ -114,7 +114,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 error, warning and informational messages; 2,
                                 3, 4 - include higher levels of debug messages.
                                 If level is not given, 1 is assumed.
-  --passwords-from-stdin        Read passwords from stdin instead of the tty.
+  --passwords-from-stdin        Read passwords from stdin instead of the
+                                console.
   --show-warnings={true|false}  Automatically display SQL warnings on SQL mode
                                 if available.
   --column-type-info            Display column type information in SQL mode.
@@ -155,11 +156,11 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 revocation lists in PEM format.
   --ssl-crlpath=<dir_name>      The path to the directory that contains
                                 certificate revocation-list files in PEM format.
-  --ssl-mode=<mode>             SSL mode to use, allowed values:
+  --ssl-mode=<mode>             SSL mode to use. Allowed values:
                                 DISABLED,PREFERRED, REQUIRED, VERIFY_CA,
                                 VERIFY_IDENTITY.
-  --tls-version=<version>       TLS version to use, permitted values are:
-                                TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.
+  --tls-version=<version>       TLS version to use. Allowed values: TLSv1,
+                                TLSv1.1, TLSv1.2, TLSv1.3.
   --tls-ciphersuites=<name>     TLS v1.3 cipher to use.
   --auth-method=<method>        Authentication method to use. In case of
                                 classic session, this is the name of the

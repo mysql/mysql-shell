@@ -264,7 +264,7 @@ Shell_options::Shell_options(int argc, char **argv,
 #endif
     )
     (&storage.wrap_json, "off", cmdline("--json[=<format>]"),
-        "Produce output in JSON format, allowed values: raw, pretty, and off. "
+        "Produce output in JSON format. Allowed values: raw, pretty, and off. "
         "If no format is specified pretty format is produced.",
         [](const std::string &val, Source) {
           if (val == "off") return "off";
@@ -301,7 +301,7 @@ Shell_options::Shell_options(int argc, char **argv,
         })
     (&storage.result_format, "table", SHCORE_RESULT_FORMAT,
         cmdline("--result-format=<value>"),
-        "Determines format of results. Valid values:"
+        "Determines format of results. Allowed values:"
         " [" RESULTSET_DUMPER_FORMATS "].",
         [](const std::string &val, Source) {
           if (!Resultset_dumper_base::is_valid_format(val))
@@ -320,16 +320,14 @@ Shell_options::Shell_options(int argc, char **argv,
 
   add_startup_options()
     (cmdline("--get-server-public-key"), "Request public key from the server "
-        "required for RSA key pair-based password exchange. Use when "
-        "connecting to MySQL 8.0 servers with classic MySQL sessions with SSL "
-        "mode DISABLED.",
+        "required for RSA key pair-based password exchange. Use when connecting"
+        " to MySQL 8.0 servers with classic sessions with SSL mode DISABLED.",
         assign_value(&storage.get_server_public_key, true))
     (&storage.server_public_key_path, "",
         cmdline("--server-public-key-path=<p>"), "The path name to a file "
         "containing a client-side copy of the public key required by the "
         "server for RSA key pair-based password exchange. Use when connecting "
-        "to MySQL 8.0 servers with classic MySQL sessions with SSL mode "
-        "DISABLED.")
+        "to MySQL 8.0 servers with classic sessions with SSL mode DISABLED.")
     (cmdline("-i", "--interactive[=full]"),
       "To use in batch mode. "
       "It forces emulation of interactive mode processing. Each "
@@ -354,10 +352,11 @@ Shell_options::Shell_options(int argc, char **argv,
       "Invalid underlying type of shcore::Logger::LOG_LEVEL enum");
   add_named_options()
     (&storage.force, false, SHCORE_BATCH_CONTINUE_ON_ERROR, cmdline("--force"),
-        "To use in SQL batch mode, forces processing to "
-        "continue if an error is found.", shcore::opts::Read_only<bool>())
+        "In SQL batch mode, forces processing to continue if an error "
+        "is found.", shcore::opts::Read_only<bool>())
     (reinterpret_cast<int*>(&storage.log_level),
         shcore::Logger::LOG_INFO, "logLevel", cmdline("--log-level=<value>"),
+        std::string("Set logging level. ") +
         shcore::Logger::get_level_range_info(),
         [this](const std::string &val, Source) {
           const char* value = val.c_str();
@@ -375,12 +374,12 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.verbose_level, 0, SHCORE_VERBOSE,
         cmdline("--verbose[={0|1|2|3|4}]"),
         "Enable diagnostic message output to the console: 0 - display no "
-        "messages; 1 - display error, warning and informational messages; 2, 3, "
-        "4 - include higher levels of debug messages. If level is not given, 1 "
-        "is assumed.", shcore::opts::Range<int>(0, 4))
+        "messages; 1 - display error, warning and informational messages; 2, 3,"
+        " 4 - include higher levels of debug messages. If level is not given, 1"
+        " is assumed.", shcore::opts::Range<int>(0, 4))
     (&storage.passwords_from_stdin, false, "passwordsFromStdin",
         cmdline("--passwords-from-stdin"),
-        "Read passwords from stdin instead of the tty.")
+        "Read passwords from stdin instead of the console.")
     (&storage.show_warnings, true, SHCORE_SHOW_WARNINGS,
         cmdline("--show-warnings={true|false}"),
         "Automatically display SQL warnings on SQL mode if available.")
@@ -478,12 +477,11 @@ Shell_options::Shell_options(int argc, char **argv,
         "The path to the directory that contains certificate revocation-list "
         "files in PEM format.",
         std::bind(&Ssl_options::set_crlpath, &storage.ssl_options, _2))
-    (cmdline("--ssl-mode=<mode>"), "SSL mode to use, allowed values: DISABLED,"
+    (cmdline("--ssl-mode=<mode>"), "SSL mode to use. Allowed values: DISABLED,"
         "PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
         std::bind(&Shell_options::set_ssl_mode, this, _1, _2))
     (cmdline("--tls-version=<version>"),
-        "TLS version to use, permitted values are: "
-        "TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.",
+        "TLS version to use. Allowed values: TLSv1, TLSv1.1, TLSv1.2, TLSv1.3.",
         std::bind(&Ssl_options::set_tls_version, &storage.ssl_options, _2))
     (cmdline("--tls-ciphersuites=<name>"), "TLS v1.3 cipher to use.",
         std::bind(&Ssl_options::set_tls_ciphersuites, &storage.ssl_options, _2))

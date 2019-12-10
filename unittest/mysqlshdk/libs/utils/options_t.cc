@@ -406,6 +406,22 @@ TEST_F(Options_test, access_from_code) {
   EXPECT_EQ(named_options.size(), get_options_description().size());
 }
 
+TEST_F(Options_test, cmdline_help) {
+  opts::Proxy_option opt1(
+      nullptr, {"-D", "--schema=<name>", "--database=<name>"}, "Short help");
+
+  auto help = opt1.get_cmdline_help(30, 48);
+  EXPECT_EQ(2, help.size());
+  EXPECT_EQ("Short help", help[0].substr(30));
+  EXPECT_EQ("Same as --schema.", help[1].substr(30));
+
+  help = opt1.get_cmdline_help(19, 48);
+  EXPECT_EQ(3, help.size());
+  EXPECT_EQ("Short help", help[0].substr(19));
+  EXPECT_EQ("Same as -D.", help[1].substr(19));
+  EXPECT_EQ("Same as -D.", help[2].substr(19));
+}
+
 using Options_iterator = Options::Iterator;
 
 TEST(Options_iterator_t, short_option) {

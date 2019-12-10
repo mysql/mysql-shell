@@ -63,7 +63,7 @@ class Generic_option {
  public:
   Generic_option(const std::string &name, const char *environment_variable,
                  std::vector<std::string> &&command_line_names,
-                 const char *help);
+                 const std::string &help);
 
   virtual ~Generic_option() {}
 
@@ -97,7 +97,7 @@ class Generic_option {
 
   Source get_source() const { return source; }
 
-  const char *get_help() const { return help; }
+  const std::string &get_help() const { return help; }
 
   virtual void set(const std::string &new_value, Source source) = 0;
 
@@ -108,7 +108,7 @@ class Generic_option {
   std::vector<std::string> command_line_names;
   bool value_optional = true;
   bool no_cmdline_value = true;
-  const char *help;
+  const std::string help;
 };
 
 template <class T>
@@ -122,7 +122,7 @@ class Concrete_option : public Generic_option {
   Concrete_option(T *landing_spot_, T default_value_, const std::string &name_,
                   const char *environment_variable_,
                   std::vector<std::string> &&command_line_names_,
-                  const char *help_, Validator validator_,
+                  const std::string &help_, Validator validator_,
                   Serializer serializer_ = nullptr)
       : Generic_option(
             name_, environment_variable_,
@@ -199,8 +199,9 @@ class Proxy_option : public Generic_option {
       std::function<void(const std::string &optname, const char *new_value)>;
 
   Proxy_option(const char *environment_variable,
-               std::vector<std::string> &&command_line_names, const char *help,
-               Handler handler = nullptr, const std::string &name = "");
+               std::vector<std::string> &&command_line_names,
+               const std::string &help, Handler handler = nullptr,
+               const std::string &name = "");
 
   void set(const std::string &new_value, Source source) override;
 
@@ -302,7 +303,7 @@ class Options {
     template <class T, class S>
     Add_named_option_helper &operator()(
         T *landing_spot, S &&default_value, const std::string &optname,
-        const char *help,
+        const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
@@ -314,7 +315,7 @@ class Options {
     template <class T, class S>
     Add_named_option_helper &operator()(
         T *landing_spot, S &&default_value, const std::string &optname,
-        std::vector<std::string> &&command_line_names, const char *help,
+        std::vector<std::string> &&command_line_names, const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
@@ -328,7 +329,7 @@ class Options {
     Add_named_option_helper &operator()(
         T *landing_spot, S &&default_value, const std::string &optname,
         const char *envname, std::vector<std::string> &&command_line_names,
-        const char *help,
+        const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
@@ -348,7 +349,7 @@ class Options {
     template <class T, class S>
     Add_startup_option_helper &operator()(
         T *landing_spot, S &&default_value,
-        std::vector<std::string> &&command_line_names, const char *help,
+        std::vector<std::string> &&command_line_names, const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>()) {
       return (*this)(landing_spot, std::forward<S>(default_value), nullptr,
@@ -358,7 +359,7 @@ class Options {
     template <class T, class S>
     Add_startup_option_helper &operator()(
         T *landing_spot, S &&default_value, const char *envname,
-        std::vector<std::string> &&command_line_names, const char *help,
+        std::vector<std::string> &&command_line_names, const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>()) {
       parent.add_option(new opts::Concrete_option<T>(
@@ -370,7 +371,7 @@ class Options {
     // Proxy options - custom cmdline handle/just help definition.
     Add_startup_option_helper &operator()(
         std::vector<std::string> &&command_line_names,
-        const char *help,  // full help text
+        const std::string &help,  // full help text
         opts::Proxy_option::Handler handler = nullptr,
         const std::string &name = "") {
       parent.add_option(new opts::Proxy_option(
@@ -382,7 +383,7 @@ class Options {
     Add_startup_option_helper &operator()(
         std::vector<std::string> &&command_line_names,
         opts::Proxy_option::Handler handler = nullptr) {
-      return (*this)(std::move(command_line_names), nullptr, handler);
+      return (*this)(std::move(command_line_names), "", handler);
     }
 
     Options &parent;

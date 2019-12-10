@@ -2,8 +2,8 @@
  autocomplete.nameCache  Enable database name caching for autocompletion.
 
 //@<OUT> batchContinueOnError option help text
- batchContinueOnError  To use in SQL batch mode, forces processing to continue
-                       if an error is found.
+ batchContinueOnError  In SQL batch mode, forces processing to continue if an
+                       error is found.
 
 //@<OUT> defaultCompress option help text
  defaultCompress  Enable compression in client/server protocol by default in
@@ -30,9 +30,9 @@
  interactive  Enables interactive mode
 
 //@<OUT> logLevel option help text
- logLevel  The log level value must be an integer between 1 and 8 or any of
-           [none, internal, error, warning, info, debug, debug2, debug3]
-           respectively.
+ logLevel  Set logging level. The log level value must be an integer between 1
+           and 8 or any of [none, internal, error, warning, info, debug,
+           debug2, debug3] respectively.
 
 //@<OUT> outputFormat option help text
  outputFormat  outputFormat option has been deprecated, please use resultFormat
@@ -40,11 +40,11 @@
                output in JSON instead.
 
 //@<OUT> resultFormat option help text
- resultFormat  Determines format of results. Valid values: [table, tabbed,
+ resultFormat  Determines format of results. Allowed values: [table, tabbed,
                vertical, json, ndjson, json/raw, json/array, json/pretty].
 
 //@<OUT> passwordsFromStdin option help text
- passwordsFromStdin  Read passwords from stdin instead of the tty.
+ passwordsFromStdin  Read passwords from stdin instead of the console.
 
 //@<OUT> sandboxDir option help text
  sandboxDir  Default sandbox directory
