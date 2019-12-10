@@ -251,6 +251,25 @@ rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clon
 rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
 session1.runSql("unlock tables");
 
+//@<> BUG#30632029: preparation
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+
+// We must verify if the slave is stopped and the channels reset
+//@<> BUG#30632029: add instance using clone and a secondary as donor
+var bug_30632029 = [
+    "STOP SLAVE FOR CHANNEL ''",
+    "RESET SLAVE ALL FOR CHANNEL ''"
+];
+
+\option dba.logSql = 2
+WIPE_SHELL_LOG();
+
+rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+
+EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
+EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
+
 //@<> Cleanup.
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

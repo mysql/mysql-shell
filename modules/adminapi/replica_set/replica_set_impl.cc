@@ -689,6 +689,20 @@ void Replica_set_impl::add_instance(
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
       refresh_target_connections(target_instance.get());
+
+      // Clone will copy all tables, including the replication settings stored
+      // in mysql.slave_master_info. MySQL will start replication by default if
+      // the replication setting are not empty, so in a fast system or if
+      // --skip-slave-start is not enabled replication will start and the slave
+      // threads will be up-and-running before we issue the new CHANGE MASTER.
+      // This will result in an error: MySQL Error 3081 (HY000): (...) This
+      // operation cannot be performed with running replication threads; run
+      // STOP SLAVE FOR CHANNEL '' first (BUG#30632029)
+      //
+      // To avoid this situation, we must stop the slave and reset the
+      // replication channels.
+      stop_channel(target_instance.get(), "", dry_run);
+      reset_channel(target_instance.get(), true, dry_run);
     }
     // Update the global topology first, which means setting replication
     // channel to the primary in the master replica, so we can know if that
@@ -875,6 +889,20 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
       refresh_target_connections(target_instance.get());
+
+      // Clone will copy all tables, including the replication settings stored
+      // in mysql.slave_master_info. MySQL will start replication by default if
+      // the replication setting are not empty, so in a fast system or if
+      // --skip-slave-start is not enabled replication will start and the slave
+      // threads will be up-and-running before we issue the new CHANGE MASTER.
+      // This will result in an error: MySQL Error 3081 (HY000): (...) This
+      // operation cannot be performed with running replication threads; run
+      // STOP SLAVE FOR CHANNEL '' first (BUG#30632029)
+      //
+      // To avoid this situation, we must stop the slave and reset the
+      // replication channels.
+      stop_channel(target_instance.get(), "", dry_run);
+      reset_channel(target_instance.get(), true, dry_run);
     }
 
     if (!dry_run) {
