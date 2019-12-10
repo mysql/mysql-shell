@@ -698,7 +698,7 @@ void run_script_classic(const std::vector<std::string> &sql) {
  * The URI is created reading MYSQL_URI and the corresponding MYSQL_PORT or
  * MYSQLX_PORT environment variables.
  *
- * I MYSQL_URI is not defined, it will use 'root@localhost'.
+ * If MYSQL_URI is not defined, it will use 'root@localhost'.
  */
 std::string shell_test_server_uri(int proto) {
   const char *uri = "root@localhost";

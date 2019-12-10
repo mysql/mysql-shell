@@ -109,8 +109,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // TS_CV#5 shell.options["history.sql.ignorePattern"]=string skip string from
   // history.
 
+  const auto &server_uri = shell_test_server_uri();
   char *args[] = {const_cast<char *>("ut"),
-                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+                  const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(2, args, _options_file));
   shell._history.set_limit(100);
@@ -653,8 +654,9 @@ TEST_F(Shell_history, check_history_source_js) {
   // WL#10446 says \source shall no add entries to the history
   // Only history entry shall the \source itself
 
+  const auto &server_uri = shell_test_server_uri();
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
-                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+                  const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(3, args, _options_file));
   shell._history.set_limit(10);
@@ -684,8 +686,9 @@ TEST_F(Shell_history, check_history_source_py) {
   // WL#10446 says \source shall no add entries to the history
   // Only history entry shall the \source itself
 
+  const auto &server_uri = shell_test_server_uri();
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
-                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+                  const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(3, args, _options_file));
   shell._history.set_limit(10);

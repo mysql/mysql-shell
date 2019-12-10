@@ -43,10 +43,6 @@ namespace shcore {
 class SHCORE_PUBLIC Cpp_property_name {
  public:
   explicit Cpp_property_name(const std::string &name, bool constant = false);
-  Cpp_property_name(const Cpp_property_name &other) {
-    _name[0] = other._name[0];
-    _name[1] = other._name[1];
-  }
   std::string name(const NamingStyle &style) const;
   std::string base_name() const;
 

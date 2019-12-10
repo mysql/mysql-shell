@@ -48,11 +48,9 @@
 #else
 #define UNUSED_VARIABLE(x) x
 #endif
-#endif  // MYSQLSHDK_LIBS_UTILS_COMPILER_H_
 
-#if defined(__APPLE__)
-#define FALLTHROUGH
-#elif __has_cpp_attribute(fallthrough)
+#if __has_cpp_attribute(fallthrough) && \
+    (!defined(__clang__) || __cplusplus >= 201703L)
 #define FALLTHROUGH [[fallthrough]]
 #elif __has_cpp_attribute(clang::fallthrough)
 #define FALLTHROUGH [[clang::fallthrough]]
@@ -61,3 +59,5 @@
 #else
 #define FALLTHROUGH
 #endif
+
+#endif  // MYSQLSHDK_LIBS_UTILS_COMPILER_H_

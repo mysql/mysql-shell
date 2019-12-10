@@ -34,6 +34,7 @@
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/array_result.h"
+#include "mysqlshdk/libs/utils/compiler.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
