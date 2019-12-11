@@ -75,15 +75,56 @@ class Rest_service_test : public ::testing::Test {
       s_test_server->set_create_process_group();
 #endif  // _WIN32
       s_test_server->start();
-      // wait till server is ready - some test servers are really slow...
-      shcore::sleep_ms(2000);
 
       s_test_server_address = "https://127.0.0.1:" + port_number;
 
-      if (s_test_server->check()) {
+      static constexpr uint32_t sleep_time = 100;   // 100ms
+      static constexpr uint32_t wait_time = 10000;  // 10s
+      uint32_t current_time = 0;
+      bool server_ready = false;
+      Rest_service rest{s_test_server_address, false};
+      const auto debug = getenv("TEST_DEBUG") != nullptr;
+
+      while (!server_ready && current_time < wait_time) {
+        shcore::sleep_ms(sleep_time);
+        current_time += sleep_time;
+
+        if (s_test_server->check()) {
+          // process is not running, exit immediately
+          break;
+        }
+
+        try {
+          const auto response = rest.head("/ping");
+
+          if (debug) {
+            std::cerr << "HTTPS server replied with: "
+                      << Response::status_code(response.status)
+                      << ", waiting time: " << current_time << "ms"
+                      << std::endl;
+          }
+
+          server_ready = response.status == Response::Status_code::OK;
+        } catch (const std::exception &e) {
+          std::cerr << "HTTPS server not ready after " << current_time << "ms";
+
+          if (debug) {
+            std::cerr << ": " << e.what() << std::endl;
+            std::cerr << "Output so far:" << std::endl;
+            std::cerr << s_test_server->read_all();
+          }
+
+          std::cerr << std::endl;
+        }
+      }
+
+      if (!server_ready) {
         // server is not running, find out what went wrong
         std::cerr << "HTTPS server failed to start:\n"
                   << s_test_server->read_all() << std::endl;
+        // kill the process (if it's there), all test cases will fail with
+        // appropriate message
+        TearDownTestCase();
       } else {
         std::cerr << "HTTPS server is running: " << s_test_server_address
                   << std::endl;

@@ -26,8 +26,10 @@ from __future__ import print_function
 
 try:
     from http.server import BaseHTTPRequestHandler, HTTPServer
+    from socketserver import ThreadingMixIn
 except:
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+    from SocketServer import ThreadingMixIn
 
 import base64
 import json
@@ -56,7 +58,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         }
 
         try:
-            return BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+            BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
         except Exception as e:
             self.log_message(traceback.format_exc())
 
@@ -170,6 +172,9 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             headers[k.lower()] = v
         return headers
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
 def usage():
     print('Usage:')
     print('')
@@ -178,7 +183,7 @@ def usage():
 
 
 def test_server(port):
-    server = HTTPServer(('127.0.0.1', port), TestRequestHandler)
+    server = ThreadedHTTPServer(('127.0.0.1', port), TestRequestHandler)
     ssl_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ssl')
     server.socket = ssl.wrap_socket(
         server.socket,
@@ -187,6 +192,7 @@ def test_server(port):
         server_side=True)
 
     print('HTTPS test server running on 127.0.0.1:%d' % port)
+    sys.stdout.flush()
 
     try:
         server.serve_forever()
@@ -195,6 +201,7 @@ def test_server(port):
 
     server.server_close()
     print('HTTPS test server stopped')
+    sys.stdout.flush()
 
 
 def main(args):
