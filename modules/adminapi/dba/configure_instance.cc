@@ -478,10 +478,7 @@ void Configure_instance::prepare() {
 
   // Establish a session to the target instance if not already established
   if (!m_target_instance) {
-    std::shared_ptr<mysqlshdk::db::ISession> session;
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = std::make_shared<Instance>(session);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     m_local_target =
         !m_target_instance->get_connection_options().has_host() ||
@@ -654,7 +651,7 @@ shcore::Value Configure_instance::execute() {
         m_target_instance->query("RESTART");
         console->print_note("MySQL server at " + m_target_instance->descr() +
                             " was restarted.");
-      } catch (const mysqlshdk::db::Error &err) {
+      } catch (const shcore::Error &err) {
         log_error("Error executing RESTART: %s", err.format().c_str());
         console->print_error("Remote restart of MySQL server failed: " +
                              err.format());

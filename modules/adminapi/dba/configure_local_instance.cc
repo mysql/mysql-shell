@@ -61,10 +61,7 @@ Configure_local_instance::~Configure_local_instance() {}
 void Configure_local_instance::prepare() {
   // Establish a session to the target instance
   {
-    std::shared_ptr<mysqlshdk::db::ISession> session;
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = std::make_shared<Instance>(session);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     m_local_target =
         !m_target_instance->get_connection_options().has_host() ||

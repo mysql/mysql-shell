@@ -99,14 +99,11 @@ void Set_primary_instance::prepare() {
 
   std::string address_in_md;
   try {
-    std::shared_ptr<mysqlshdk::db::ISession> session =
-        mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    mysqlsh::dba::Instance target_instance(session);
+    auto target_instance = Instance::connect(m_instance_cnx_opts);
 
-    m_target_uuid = target_instance.get_uuid();
-    address_in_md = target_instance.get_canonical_address();
-  } catch (const mysqlshdk::db::Error &e) {
+    m_target_uuid = target_instance->get_uuid();
+    address_in_md = target_instance->get_canonical_address();
+  } catch (const shcore::Error &e) {
     log_debug("Failed query target instance '%s': %s",
               target_instance_address.c_str(), e.format().c_str());
   }

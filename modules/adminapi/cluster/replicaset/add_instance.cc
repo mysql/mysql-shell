@@ -87,8 +87,8 @@ Add_instance::Add_instance(
 }
 
 Add_instance::Add_instance(
-    mysqlsh::dba::Instance *target_instance, const GRReplicaSet &replicaset,
-    const Group_replication_options &gr_options,
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const GRReplicaSet &replicaset, const Group_replication_options &gr_options,
     const Clone_options &clone_options,
     const mysqlshdk::utils::nullable<std::string> &instance_label,
     bool interactive, int wait_recovery, const std::string &replication_user,
@@ -122,11 +122,7 @@ Add_instance::Add_instance(
     m_progress_style = Recovery_progress_style::PROGRESSBAR;
 }
 
-Add_instance::~Add_instance() {
-  if (!m_reuse_session_for_target_instance) {
-    delete m_target_instance;
-  }
-}
+Add_instance::~Add_instance() {}
 
 void Add_instance::ensure_instance_check_installed_schema_version() const {
   // Get the lowest server version of the online members of the cluster.
@@ -345,9 +341,8 @@ void Add_instance::refresh_target_connections() {
   {
     try {
       m_target_instance->query("SELECT 1");
-    } catch (const mysqlshdk::db::Error &err) {
-      auto e = shcore::Exception::mysql_error_with_code_and_state(
-          err.what(), err.code(), err.sqlstate());
+    } catch (const shcore::Error &err) {
+      auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
 
       if (CR_SERVER_LOST == e.code()) {
         log_debug(
@@ -356,6 +351,7 @@ void Add_instance::refresh_target_connections() {
             e.format().c_str());
 
         m_target_instance->get_session()->connect(m_instance_cnx_opts);
+        m_target_instance->prepare_session();
       } else {
         throw;
       }
@@ -366,9 +362,8 @@ void Add_instance::refresh_target_connections() {
           ->get_metadata_storage()
           ->get_md_server()
           ->query("SELECT 1");
-    } catch (const mysqlshdk::db::Error &err) {
-      auto e = shcore::Exception::mysql_error_with_code_and_state(
-          err.what(), err.code(), err.sqlstate());
+    } catch (const shcore::Error &err) {
+      auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
 
       if (CR_SERVER_LOST == e.code()) {
         log_debug(
@@ -376,12 +371,11 @@ void Add_instance::refresh_target_connections() {
             "connection.",
             e.format().c_str());
 
-        auto md_session = m_replicaset.get_cluster()
-                              ->get_metadata_storage()
-                              ->get_md_server()
-                              ->get_session();
+        auto md_server =
+            m_replicaset.get_cluster()->get_metadata_storage()->get_md_server();
 
-        md_session->connect(md_session->get_connection_options());
+        md_server->get_session()->connect(md_server->get_connection_options());
+        md_server->prepare_session();
       } else {
         throw;
       }
@@ -418,9 +412,8 @@ void Add_instance::prepare() {
         m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
     }
 
-    std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
-        m_instance_cnx_opts, current_shell_options()->get().wizards)};
-    m_target_instance = new Instance(session);
+    m_target_instance = Instance::connect(
+        m_instance_cnx_opts, current_shell_options()->get().wizards);
   }
 
   //  Override connection option if no password was initially provided.
@@ -431,18 +424,16 @@ void Add_instance::prepare() {
   // Connect to the peer instance.
   if (!m_seed_instance) {
     mysqlshdk::db::Connection_options peer(m_replicaset.pick_seed_instance());
-    std::shared_ptr<mysqlshdk::db::ISession> peer_session;
     if (peer.uri_endpoint() != m_replicaset.get_cluster()
                                    ->get_target_instance()
                                    ->get_connection_options()
                                    .uri_endpoint()) {
-      peer_session =
-          establish_mysql_session(peer, current_shell_options()->get().wizards);
+      m_peer_instance =
+          Instance::connect(peer, current_shell_options()->get().wizards);
       m_use_cluster_session_for_peer = false;
     } else {
-      peer_session = m_replicaset.get_cluster()->get_group_session();
+      m_peer_instance = m_replicaset.get_cluster()->get_target_instance();
     }
-    m_peer_instance = std::make_unique<mysqlsh::dba::Instance>(peer_session);
   }
 
   // Validate the GR options.
@@ -511,13 +502,10 @@ void Add_instance::prepare() {
       replicaset.execute_in_members(
           {mysqlshdk::gr::Member_state::ONLINE},
           target->get_connection_options(), {},
-          [&recoverable,
-           &target](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-            mysqlsh::dba::Instance instance(session);
-
+          [&recoverable, &target](const std::shared_ptr<Instance> &instance) {
             // Get the gtid state in regards to the cluster_session
             mysqlshdk::mysql::Replica_gtid_state state =
-                mysqlshdk::mysql::check_replica_gtid_state(instance, *target,
+                mysqlshdk::mysql::check_replica_gtid_state(*instance, *target,
                                                            nullptr, nullptr);
 
             if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
@@ -536,7 +524,7 @@ void Add_instance::prepare() {
 
     m_clone_opts.recovery_method = mysqlsh::dba::validate_instance_recovery(
         Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
-        donor_instance.get(), m_target_instance, check_recoverable,
+        donor_instance.get(), m_target_instance.get(), check_recoverable,
         *m_clone_opts.recovery_method,
         m_replicaset.get_cluster()->get_gtid_set_is_complete(), m_interactive,
         m_clone_disabled);
@@ -606,8 +594,9 @@ void Add_instance::prepare() {
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
   if (!m_seed_instance) {
-    m_replicaset.query_group_wide_option_values(
-        m_target_instance, &m_gr_opts.consistency, &m_gr_opts.expel_timeout);
+    m_replicaset.query_group_wide_option_values(m_target_instance.get(),
+                                                &m_gr_opts.consistency,
+                                                &m_gr_opts.expel_timeout);
   }
 
   // Check instance configuration and state, like dba.checkInstance
@@ -616,7 +605,7 @@ void Add_instance::prepare() {
   //               reboot cluster (WL#11561), i.e. always execute check, not
   //               supposed to use Add_instance operation anymore.
   if (!m_skip_instance_check) {
-    ensure_gr_instance_configuration_valid(m_target_instance);
+    ensure_gr_instance_configuration_valid(m_target_instance.get());
   }
 
   // TODO(nelson) - skip_instance_check is only true when this is called from
@@ -631,7 +620,7 @@ void Add_instance::prepare() {
 
   // Set the internal configuration object: read/write configs from the server.
   m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler);
+      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 }
 
 void Add_instance::handle_gr_protocol_version() {
@@ -670,8 +659,8 @@ bool Add_instance::handle_replication_user() {
   // skip_rpl_user was not set to true.
   // NOTE: User always created at the seed instance.
   if (!m_skip_rpl_user && m_rpl_user.empty()) {
-    auto user_creds =
-        m_replicaset.get_cluster()->create_replication_user(m_target_instance);
+    auto user_creds = m_replicaset.get_cluster()->create_replication_user(
+        m_target_instance.get());
     m_rpl_user = user_creds.user;
     m_rpl_pwd = user_creds.password.get_safe();
 
@@ -1021,7 +1010,7 @@ void Add_instance::finish() {
                                       m_restore_clone_threshold);
       }
     }
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     log_info(
         "Could not restore value of group_replication_clone_threshold: %s. "
         "Not "

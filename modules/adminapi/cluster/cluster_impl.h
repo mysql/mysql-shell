@@ -232,10 +232,10 @@ class Cluster_impl {
    * @param instance_address String with the address <host>:<port> of the
    *                         instance to connect to.
    *
-   * @returns unique_ptr to the Instance if it is reachable.
+   * @returns shared_ptr to the Instance if it is reachable.
    * @throws Exception if the instance is not reachable.
    */
-  std::unique_ptr<Instance> get_session_to_cluster_instance(
+  std::shared_ptr<Instance> get_session_to_cluster_instance(
       const std::string &instance_address) const;
 
   /**

@@ -107,11 +107,11 @@ class GRReplicaSet {
    * @param exclude_uuid optional string with the UUID of an instance to
    *        exclude. By default, "" (empty) meaning that no instance will be
    *        excluded.
-   * @return unique pointer with an Instance object for the first online
+   * @return shared pointer with an Instance object for the first online
    *         instance found, or a nullptr if no instance is available (not
    *         reachable).
    */
-  std::unique_ptr<mysqlsh::dba::Instance> get_online_instance(
+  std::shared_ptr<mysqlsh::dba::Instance> get_online_instance(
       const std::string &exclude_uuid = "") const;
 
   std::vector<Instance_metadata> get_instances() const;
@@ -131,8 +131,8 @@ class GRReplicaSet {
       const std::vector<mysqlshdk::gr::Member_state> &states,
       const mysqlshdk::db::Connection_options &cnx_opt,
       const std::vector<std::string> &ignore_instances_vector,
-      std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
-          functor,
+      const std::function<bool(const std::shared_ptr<Instance> &instance)>
+          &functor,
       bool ignore_network_conn_errors = true) const;
 
   static char const *kTopologySinglePrimary;
@@ -194,8 +194,7 @@ class GRReplicaSet {
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
   std::string get_cluster_group_seeds(
-      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session =
-          nullptr) const;
+      const std::shared_ptr<Instance> &target_instance = nullptr) const;
 
   void query_group_wide_option_values(
       mysqlshdk::mysql::IInstance *target_instance,

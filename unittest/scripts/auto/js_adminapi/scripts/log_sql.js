@@ -9,8 +9,7 @@ var check_instance_sql = [
     "SELECT `major`, `minor`, `patch` FROM `mysql_innodb_cluster_metadata`.`schema_version`",
     "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE =",
     "show GLOBAL variables where `variable_name` in ('server_id')",
-    "show GLOBAL variables where `variable_name` in ('gtid_mode')",
-    "SET *"
+    "show GLOBAL variables where `variable_name` in ('gtid_mode')"
 ];
 
 var configure_instance_sql = [
@@ -163,7 +162,6 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[3]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[4]);
 
 //@<> WL#13294: configure instance (dba.logSql = 0).
 WIPE_SHELL_LOG();
@@ -387,7 +385,6 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[3]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[4]);
 
 //@<> WL#13294: configure instance (dba.logSql = 1).
 WIPE_SHELL_LOG();
@@ -612,7 +609,6 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(check_instance_sql[3]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_sql[4]);
 
 //@<> WL#13294: configure instance (dba.logSql = 2).
 WIPE_SHELL_LOG();

@@ -98,7 +98,7 @@ class Dissolve : public Command_interface {
   const bool m_interactive;
   mysqlshdk::utils::nullable<bool> m_force;
   Cluster_impl *m_cluster = nullptr;
-  std::vector<std::unique_ptr<mysqlsh::dba::Instance>> m_available_instances;
+  std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_available_instances;
   std::vector<std::string> m_skipped_instances;
   std::vector<std::string> m_sync_error_instances;
   std::string m_primary_uuid;

@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk_export.h"
@@ -382,12 +383,14 @@ inline Array_t make_array() {
   return Value::Array_type_ref(new Value::Array_type());
 }
 
-class SHCORE_PUBLIC Exception : public std::exception {
+class SHCORE_PUBLIC Exception : public shcore::Error {
   std::shared_ptr<Value::Map_type> _error;
 
  public:
-  explicit Exception(const std::shared_ptr<Value::Map_type> e);
+  Exception(const std::string &message, int code,
+            const std::shared_ptr<Value::Map_type> &e);
   Exception(const std::string &message, int code);
+  Exception(const std::string &type, const std::string &message, int code);
 
   virtual ~Exception() noexcept {}
 
@@ -428,15 +431,11 @@ class SHCORE_PUBLIC Exception : public std::exception {
   bool is_mysqlsh() const;
   bool is_parser() const;
 
-  virtual const char *what() const noexcept;
-
   const char *type() const noexcept;
-
-  int code() const noexcept;
 
   std::shared_ptr<Value::Map_type> error() const { return _error; }
 
-  std::string format() const;
+  std::string format() const override;
 };
 
 class SHCORE_PUBLIC Argument_list {

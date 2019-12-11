@@ -39,8 +39,45 @@
 namespace mysqlsh {
 namespace dba {
 
+// default SQL_MODE as of 8.0.19
+static constexpr const char *k_default_sql_mode =
+    "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
+    "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION";
+
+std::shared_ptr<Instance> Instance::connect_raw(
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
+  return std::make_shared<Instance>(establish_mysql_session(opts, interactive));
+}
+
+std::shared_ptr<Instance> Instance::connect(
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
+  auto instance =
+      std::make_shared<Instance>(establish_mysql_session(opts, interactive));
+
+  instance->prepare_session();
+
+  return instance;
+}
+
+void Instance::prepare_session() {
+  // prepare the session to be used by the AdminAPI
+
+  // change autocommit to the default value, which we assume throughout the
+  // code, but can be changed globally by the user
+  // Bug#30202883 and Bug#30324461 are caused by the lack of this
+  set_sysvar("autocommit", static_cast<int64_t>(1),
+             mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  // change sql_mode to the default value, in case the user has some
+  // non-standard and incompatible setting
+  set_sysvar("sql_mode", std::string(k_default_sql_mode),
+             mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  // Note: group_replication_consistency should be changed here
+}
+
 Instance::Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session)
-    : mysqlshdk::mysql::Instance(session) {}
+    : mysqlshdk::mysql::Instance(session), m_retain_count(-1) {}
 
 Instance::Instance(Instance_pool *owner,
                    const std::shared_ptr<mysqlshdk::db::ISession> &session)
@@ -49,22 +86,24 @@ Instance::Instance(Instance_pool *owner,
 void Instance::retain() {
   DBUG_TRACE;
 
-  m_retain_count++;
+  if (m_retain_count > -1) m_retain_count++;
 }
 
 void Instance::release() {
   DBUG_TRACE;
 
-  if (m_retain_count <= 1) {
-    if (m_pool) {
-      refresh();  // clear cached values
+  if (m_retain_count > -1) {
+    if (m_retain_count <= 1) {
+      if (m_pool) {
+        refresh();  // clear cached values
 
-      m_pool->return_instance(this);
+        m_pool->return_instance(this);
+      } else {
+        get_session()->close();
+      }
     } else {
-      get_session()->close();
+      m_retain_count--;
     }
-  } else {
-    m_retain_count--;
   }
 }
 
@@ -104,7 +143,7 @@ void Instance::log_sql(const std::string &sql) const {
   }
 }
 
-void Instance::log_sql_error(const mysqlshdk::db::Error &e) const {
+void Instance::log_sql_error(const shcore::Error &e) const {
   if (current_shell_options()->get().dba_log_sql > 0) {
     log_info("%s: -> %s", descr().c_str(), e.format().c_str());
   }
@@ -115,7 +154,7 @@ std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
   log_sql(sql);
   try {
     return mysqlshdk::mysql::Instance::query(sql, buffered);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     log_sql_error(e);
     throw;
   }
@@ -125,7 +164,7 @@ void Instance::execute(const std::string &sql) const {
   log_sql(sql);
   try {
     mysqlshdk::mysql::Instance::execute(sql);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     log_sql_error(e);
     throw;
   }
@@ -290,13 +329,16 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
 
   try {
     auto session = establish_mysql_session(opts, m_allow_password_prompt);
-    return add_leased_instance(std::make_shared<Instance>(this, session));
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        opts.uri_endpoint() + ": " + e.what(), e.code(), e.sqlstate());
+    auto instance =
+        add_leased_instance(std::make_shared<Instance>(this, session));
+    instance->prepare_session();
+    return instance;
   } catch (const shcore::Exception &e) {
     // Include the uri endpoint in the error message if another
     // shcore::Exception is issued (e.g., ER_ACCESS_DENIED_ERROR).
+    throw shcore::Exception::mysql_error_with_code(
+        opts.uri_endpoint() + ": " + e.what(), e.code());
+  } catch (const shcore::Error &e) {
     throw shcore::Exception::mysql_error_with_code(
         opts.uri_endpoint() + ": " + e.what(), e.code());
   }
@@ -513,7 +555,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_secondary(
       try {
         instance = connect_unchecked_uuid(i.uuid);
         num_reachable++;
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         log_warning("%s: %s", i.endpoint.c_str(), e.format().c_str());
         if (e.code() > CR_ERROR_LAST) {
           num_reachable++;
@@ -526,7 +568,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_secondary(
       try {
         check_group_member(*instance, false, nullptr, nullptr, &single_primary,
                            &is_primary);
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         instance->release();
         log_warning("%s: %s", i.endpoint.c_str(), e.what());
         continue;
@@ -566,7 +608,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
       try {
         instance = connect_unchecked_uuid(i.uuid);
         num_reachable++;
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         log_warning("%s: %s", i.endpoint.c_str(), e.format().c_str());
         if (e.code() > CR_ERROR_LAST) {
           num_reachable++;
@@ -576,7 +618,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
 
       try {
         check_group_member(*instance, true);
-      } catch (shcore::Exception &e) {
+      } catch (const shcore::Exception &e) {
         instance->release();
         log_warning("%s: %s", i.endpoint.c_str(), e.what());
         continue;
@@ -648,7 +690,7 @@ std::shared_ptr<Instance> Instance_pool::try_connect_primary_through_member(
     instance->release();
 
     return {};
-  } catch (mysqlshdk::db::Error &err) {
+  } catch (const shcore::Error &err) {
     // ignore any DB connect errors that could be due to lack of availability
     if (err.code() >= CR_MIN_ERROR && err.code() <= CR_MAX_ERROR) {
       return {};
@@ -671,7 +713,7 @@ std::shared_ptr<Instance> Instance_pool::connect_cluster_member_of(
     try {
       check_group_member(*instance, false, nullptr, &group_name);
       return instance;
-    } catch (shcore::Exception &e) {
+    } catch (const shcore::Exception &e) {
       log_warning("%s: %s", instance->descr().c_str(), e.what());
     }
     return connect_group_member(group_name);

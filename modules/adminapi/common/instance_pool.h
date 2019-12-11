@@ -45,10 +45,25 @@ class MetadataStorage;
 class Instance_pool;
 class Instance : public mysqlshdk::mysql::Instance {
  public:
+  // Simplified interface for creating Instances when a pool is not available
+
+  // Session is prepared for executing non-trivial queries, like sql_mode
+  // and autocommit being set to default values.
+  static std::shared_ptr<Instance> connect(
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
+
+  // Non-prepared version
+  static std::shared_ptr<Instance> connect_raw(
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
+
+ public:
   Instance() {}
 
+  // Wrap a session object. release() will not be effective.
   explicit Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
+  // Wrap a session for the pool. The session will be released back to the pool
+  // or closed when Instance is released
   Instance(Instance_pool *owner,
            const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
@@ -75,13 +90,16 @@ class Instance : public mysqlshdk::mysql::Instance {
 
   void execute(const std::string &sql) const override;
 
+ public:
+  void prepare_session();
+
  private:
   friend class Instance_pool;
   int m_retain_count = 1;
   Instance_pool *m_pool = nullptr;
 
   void log_sql(const std::string &sql) const;
-  void log_sql_error(const mysqlshdk::db::Error &e) const;
+  void log_sql_error(const shcore::Error &e) const;
 };
 
 struct Scoped_instance {

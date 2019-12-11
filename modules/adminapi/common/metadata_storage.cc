@@ -308,7 +308,7 @@ bool MetadataStorage::check_instance_type(
               m_md_server->descr().c_str(),
               m_real_md_version.get_full().c_str());
         }
-      } catch (shcore::Exception &error) {
+      } catch (const shcore::Exception &error) {
         log_debug("Error querying metadata: %s: version %s: %i %s",
                   m_md_server->descr().c_str(),
                   m_real_md_version.get_full().c_str(), error.code(),
@@ -346,7 +346,7 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
 
   try {
     ret_val = m_md_server->query(sql);
-  } catch (mysqlshdk::db::Error &err) {
+  } catch (const shcore::Error &err) {
     log_warning("While querying metadata: %s", err.format().c_str());
     if (CR_SERVER_GONE_ERROR == err.code()) {
       log_debug("The Metadata server is inaccessible");
@@ -363,8 +363,7 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
       std::string err_msg = "Failed to execute query on Metadata server " +
                             m_md_server->descr() + ": ";
       err_msg.append(err.what());
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          err_msg, err.code(), err.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(err_msg, err.code());
     }
   }
 
@@ -1150,7 +1149,7 @@ Cluster_id MetadataStorage::create_async_cluster_record(
         " JSON_OBJECT('adopted', ?))",
         cluster_id, cluster->cluster_name(), cluster->get_description(), "ar",
         cluster->get_topology_type(), adopted);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     if (e.code() == ER_DUP_ENTRY) {
       log_info("Duplicate cluster entry for %s: %s",
                cluster->get_name().c_str(), e.format().c_str());
@@ -1158,8 +1157,7 @@ Cluster_id MetadataStorage::create_async_cluster_record(
                                               cluster->get_name() +
                                               "' already exists.");
     } else {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 

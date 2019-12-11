@@ -78,7 +78,7 @@ class Check_instance_state : public Command_interface {
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_target_instance_address;
   std::string m_address_in_metadata;
-  std::unique_ptr<mysqlsh::dba::Instance> m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_clone_available = false;
 
   void ensure_target_instance_reachable();

@@ -54,14 +54,11 @@ Check_instance_state::~Check_instance_state() {}
  */
 void Check_instance_state::ensure_target_instance_reachable() {
   log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
-  std::shared_ptr<mysqlshdk::db::ISession> session;
 
   auto console = mysqlsh::current_console();
 
   try {
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = std::make_unique<mysqlsh::dba::Instance>(session);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -173,14 +170,11 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   m_replicaset.execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE},
       m_target_instance->get_connection_options(), {},
-      [&all_purged,
-       this](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlsh::dba::Instance instance(session);
-
+      [&all_purged, this](const std::shared_ptr<Instance> &instance) {
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state gtid_state =
             mysqlshdk::mysql::check_replica_gtid_state(
-                instance, *m_target_instance, nullptr, nullptr);
+                *instance, *m_target_instance, nullptr, nullptr);
 
         if (gtid_state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
           all_purged = true;

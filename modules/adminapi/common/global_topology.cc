@@ -301,7 +301,7 @@ void Server::scan(mysqlsh::dba::Instance *conn,
       log_info("%s has %zi instances replicating from it",
                instance.label.c_str(), instance.unmanaged_replicas.size());
     }
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     current_console()->print_error(conn->descr() +
                                    ": could not query instance: " + e.format());
     instance.connect_errno = e.code();
@@ -613,7 +613,7 @@ void Server_global_topology::check_server(Instance_id id, bool /*deep*/) {
     // Load state of the member
     try {
       load_instance_state(&member, minstance.get());
-    } catch (mysqlshdk::db::Error &e) {
+    } catch (shcore::Error &e) {
       log_error("Error querying from %s: %s", member.label.c_str(),
                 e.format().c_str());
       member.connect_errno = e.code();

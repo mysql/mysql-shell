@@ -226,7 +226,7 @@ void Base_cluster_impl::drop_replication_user(
            m_primary_master->descr().c_str());
   try {
     m_primary_master->drop_user(user, "%", true);
-  } catch (mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "%s: Error dropping account %s@%s: %s",

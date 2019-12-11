@@ -86,7 +86,7 @@ class Set_instance_option : public Command_interface {
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_target_instance_address;
   std::string m_address_in_metadata;
-  std::unique_ptr<mysqlsh::dba::Instance> m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
   const std::string &m_option;

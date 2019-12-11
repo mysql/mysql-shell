@@ -50,7 +50,7 @@ class Add_instance : public Command_interface {
                const std::string &replication_password = "",
                bool rebooting = false);
 
-  Add_instance(mysqlsh::dba::Instance *target_instance,
+  Add_instance(const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
                const GRReplicaSet &replicaset,
                const Group_replication_options &gr_options,
                const Clone_options &clone_options,
@@ -132,10 +132,10 @@ class Add_instance : public Command_interface {
   bool m_rebooting;
 
   std::string m_instance_address;
-  mysqlsh::dba::Instance *m_target_instance = nullptr;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_reuse_session_for_target_instance = false;
   std::string m_address_in_metadata;
-  std::unique_ptr<mysqlsh::dba::Instance> m_peer_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_peer_instance;
   bool m_use_cluster_session_for_peer = true;
 
   // Configuration object (to read and set instance configurations).

@@ -1832,16 +1832,12 @@ std::string get_report_host_address(
   log_debug("Connecting to instance '%s' to determine report host.",
             instance_address.c_str());
   try {
-    std::shared_ptr<mysqlshdk::db::ISession> session =
-        mysqlshdk::db::mysql::Session::create();
-    session->connect(target_cnx_opts);
-    mysqlsh::dba::Instance target_instance(session);
+    auto target_instance = mysqlsh::dba::Instance::connect_raw(target_cnx_opts);
     log_debug("Successfully connected to instance");
 
     // Get the instance report host value.
-    md_address = target_instance.get_canonical_address();
+    md_address = target_instance->get_canonical_address();
 
-    session->close();
     log_debug("Closed connection to the instance '%s'.",
               instance_address.c_str());
   } catch (const std::exception &err) {
@@ -2179,9 +2175,8 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
   try {
     channel = mysqlshdk::mysql::wait_replication_done_connecting(instance,
                                                                  channel_name);
-  } catch (mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+  } catch (shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
   log_debug("%s", mysqlshdk::mysql::format_status(channel, true).c_str());
 

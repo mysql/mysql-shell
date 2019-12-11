@@ -484,10 +484,10 @@ Value Cpp_object_bridge::call_function(
   } else {
     try {
       return func->invoke(args);
-    } catch (shcore::Exception &e) {
-      auto error = e.error();
-      (*error)["message"] = shcore::Value(scope + ": " + e.what());
-      throw;
+    } catch (const shcore::Exception &e) {
+      throw shcore::Exception(e.type(), scope + ": " + e.what(), e.code());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception(scope + ": " + e.what(), e.code());
     } catch (const std::runtime_error &e) {
       throw shcore::Exception::runtime_error(scope + ": " + e.what());
     } catch (const std::logic_error &e) {
@@ -810,7 +810,7 @@ Value Cpp_function::invoke(const Argument_list &args) {
   // types should have been caught earlier, in the bridges
   try {
     return _func(args);
-  } catch (shcore::Exception &e) {
+  } catch (const shcore::Exception &e) {
     // shcore::Exception can be thrown by bridges
     throw;
   } catch (const std::invalid_argument &e) {

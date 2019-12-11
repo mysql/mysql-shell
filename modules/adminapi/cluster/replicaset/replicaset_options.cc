@@ -57,22 +57,21 @@ void Replicaset_options::prepare() {
  * m_member_connect_errors
  */
 void Replicaset_options::connect_to_members() {
-  auto group_session = m_replicaset.get_cluster()->get_group_session();
+  auto group_server = m_replicaset.get_cluster()->get_target_instance();
 
   mysqlshdk::db::Connection_options group_session_copts(
-      group_session->get_connection_options());
+      group_server->get_connection_options());
 
   for (const auto &inst : m_instances) {
     mysqlshdk::db::Connection_options opts(inst.endpoint);
     if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
-      m_member_sessions[inst.endpoint] = group_session;
+      m_member_sessions[inst.endpoint] = group_server;
     } else {
       opts.set_login_options_from(group_session_copts);
 
       try {
-        m_member_sessions[inst.endpoint] =
-            mysqlshdk::db::mysql::open_session(opts);
-      } catch (const mysqlshdk::db::Error &e) {
+        m_member_sessions[inst.endpoint] = Instance::connect(opts);
+      } catch (const shcore::Error &e) {
         m_member_connect_errors[inst.endpoint] = e.format();
       }
     }
@@ -222,14 +221,14 @@ shcore::Dictionary_t Replicaset_options::collect_replicaset_options() {
   for (const auto &inst : m_instances) {
     shcore::Dictionary_t option = shcore::make_dict();
 
-    mysqlsh::dba::Instance instance(m_member_sessions[inst.endpoint]);
+    auto instance(m_member_sessions[inst.endpoint]);
 
-    if (!instance.get_session()) {
+    if (!instance) {
       (*option)["shellConnectError"] =
           shcore::Value(m_member_connect_errors[inst.endpoint]);
       (*tmp)[inst.label] = shcore::Value(option);
     } else {
-      (*tmp)[inst.label] = shcore::Value(get_instance_options(instance));
+      (*tmp)[inst.label] = shcore::Value(get_instance_options(*instance));
     }
   }
 

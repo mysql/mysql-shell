@@ -118,13 +118,11 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     instance_conn_opt.set_login_options_from(group_conn_opt);
     instance_conn_opt.set_ssl_connection_options_from(
         group_conn_opt.get_ssl_options());
-    auto session = mysqlshdk::db::mysql::Session::create();
     bool is_rejoining = false;
     try {
-      session->connect(instance_conn_opt);
-      is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(
-          mysqlsh::dba::Instance(session));
-      session->close();
+      auto instance = Instance::connect_raw(instance_conn_opt);
+      is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
+
     } catch (const std::exception &e) {
       // if you cant connect to the instance then we assume it really is offline
       // or unreachable and it is not auto-rejoining

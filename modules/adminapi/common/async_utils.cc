@@ -48,8 +48,7 @@ void wait_pending_master_transactions(const std::string &master_gtid_set,
                               SHERR_DBA_GTID_SYNC_TIMEOUT);
     }
   } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 }  // namespace
@@ -193,7 +192,7 @@ Global_locks::~Global_locks() {
   if (m_master) {
     try {
       m_master->execute("UNLOCK TABLES");
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       log_warning("%s: UNLOCK TABLES failed: %s", m_master->descr().c_str(),
                   e.format().c_str());
     }
@@ -202,7 +201,7 @@ Global_locks::~Global_locks() {
   for (const auto &inst : m_slaves) {
     try {
       inst->execute("UNLOCK TABLES");
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       log_warning("%s: UNLOCK TABLES failed: %s", inst->descr().c_str(),
                   e.format().c_str());
     }

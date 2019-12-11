@@ -532,7 +532,7 @@ void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
   try {
     log_debug("Starting Group Replication to bootstrap group...");
     mysqlshdk::gr::start_group_replication(instance, true);
-  } catch (const mysqlshdk::db::Error &err) {
+  } catch (const shcore::Error &err) {
     auto console = mysqlsh::current_console();
     console->print_error(
         "Unable to start Group Replication for instance '" + instance.descr() +
@@ -634,7 +634,7 @@ void join_replicaset(
   try {
     log_debug("Starting Group Replication to join group...");
     mysqlshdk::gr::start_group_replication(instance, false);
-  } catch (const mysqlshdk::db::Error &err) {
+  } catch (const shcore::Error &err) {
     auto console = mysqlsh::current_console();
     console->print_error(
         "Unable to start Group Replication for instance '" + instance.descr() +

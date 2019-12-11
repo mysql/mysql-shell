@@ -55,7 +55,7 @@ Remove_instance::Remove_instance(
   m_address_in_metadata = m_instance_address;
 }
 
-Remove_instance::~Remove_instance() { delete m_target_instance; }
+Remove_instance::~Remove_instance() {}
 
 Instance_metadata Remove_instance::ensure_instance_belong_to_replicaset(
     const std::string &address, bool skip_error) {
@@ -251,8 +251,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
           "Replication protocol upgrade.");
     }
   } else {
-    m_target_instance_protocol_upgrade =
-        std::make_unique<Instance>(group_instance->get_session());
+    m_target_instance_protocol_upgrade = group_instance;
   }
 
   try {
@@ -304,7 +303,7 @@ void Remove_instance::prepare() {
   }
 
   // Make sure the target instance is not set if an connection error occurs.
-  m_target_instance = nullptr;
+  m_target_instance.reset();
 
   // Try to establish a connection to the target instance, although it might
   // fail if the instance is OFFLINE.
@@ -312,9 +311,7 @@ void Remove_instance::prepare() {
   //       instance is available.
   log_debug("Connecting to instance '%s'", m_instance_address.c_str());
   try {
-    auto session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlsh::dba::Instance(session);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
     log_debug("Successfully connected to instance");
   } catch (const std::exception &err) {
     log_warning("Failed to connect to %s: %s",
@@ -395,7 +392,7 @@ shcore::Value Remove_instance::execute() {
     // to ensure the that user removal is also propagated to the target
     // instance to remove (if ONLINE), but before metadata removal, since
     // we need account info stored there.
-    m_replicaset.get_cluster()->drop_replication_user(m_target_instance);
+    m_replicaset.get_cluster()->drop_replication_user(m_target_instance.get());
   }
 
   // JOB: Remove instance from the MD (metadata).

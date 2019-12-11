@@ -112,12 +112,9 @@ void Set_instance_option::ensure_instance_belong_to_replicaset() {
 
 void Set_instance_option::ensure_target_member_online() {
   log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
-  std::shared_ptr<mysqlshdk::db::ISession> session;
 
   try {
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = std::make_unique<mysqlsh::dba::Instance>(session);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();

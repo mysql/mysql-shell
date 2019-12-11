@@ -235,9 +235,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const std::shared_ptr<MetadataStorage> &metadata,
       const std::shared_ptr<Instance> &target_server);
 
-  static std::shared_ptr<mysqlshdk::db::ISession> get_session(
-      const mysqlshdk::db::Connection_options &args);
-
  protected:
   shcore::IShell_core *_shell_core;
 

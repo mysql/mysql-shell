@@ -66,7 +66,7 @@ class Check_instance : public Command_interface {
  private:
   const mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::string m_mycnf_path;
-  mysqlsh::dba::Instance *m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_is_valid = false;
   mysqlshdk::utils::nullable<bool> m_can_set_persist;
   shcore::Value m_ret_val;

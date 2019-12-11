@@ -88,8 +88,7 @@ class Replicaset_status : public Command_interface {
   mysqlshdk::utils::nullable<uint64_t> m_extended;
 
   std::vector<Instance_metadata> m_instances;
-  std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
-      m_member_sessions;
+  std::map<std::string, std::shared_ptr<Instance>> m_member_sessions;
   std::map<std::string, std::string> m_member_connect_errors;
 
   bool m_no_quorum = false;

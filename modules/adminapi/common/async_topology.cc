@@ -48,9 +48,8 @@ void start_channel(mysqlshdk::mysql::IInstance *instance,
   if (!dry_run) {
     try {
       mysqlshdk::mysql::start_replication(instance, channel_name);
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 }
@@ -63,9 +62,8 @@ void reset_channel(mysqlshdk::mysql::IInstance *instance,
   if (!dry_run) {
     try {
       mysqlshdk::mysql::reset_slave(instance, channel_name, reset_credentials);
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 }
@@ -95,22 +93,20 @@ void setup_slave(mysqlshdk::mysql::IInstance *master,
             repl_options.repl_credentials.get_safe(),
             repl_options.master_connect_retry, repl_options.master_retry_count,
             repl_options.master_delay);
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       console->print_error(
           shcore::str_format("Error setting up async replication channel: %s",
                              e.format().c_str()));
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
 
     log_info("Starting replication at %s ...", instance->descr().c_str());
     try {
       if (!dry_run) mysqlshdk::mysql::start_replication(instance, channel_name);
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       console->print_error(shcore::str_format(
           "Error starting async replication channel: %s", e.format().c_str()));
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   } catch (const std::exception &e) {
     log_error("%s", e.what());
@@ -137,23 +133,21 @@ void change_master_instance(mysqlshdk::mysql::IInstance *slave,
       mysqlshdk::mysql::change_master_host_port(
           slave, new_master->get_canonical_hostname(),
           new_master->get_canonical_port(), channel_name);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     console->print_error(
         shcore::str_format("%s: Error setting up async replication channel: %s",
                            slave->descr().c_str(), e.format().c_str()));
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 
   log_info("Starting replication at %s ...", slave->descr().c_str());
   try {
     if (!dry_run) mysqlshdk::mysql::start_replication(slave, channel_name);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     console->print_error(
         shcore::str_format("%s: Error starting async replication channel: %s",
                            slave->descr().c_str(), e.format().c_str()));
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 }  // namespace
@@ -164,9 +158,8 @@ void fence_instance(mysqlshdk::mysql::IInstance *instance) {
   try {
     instance->set_sysvar("SUPER_READ_ONLY", true,
                          mysqlshdk::mysql::Var_qualifier::PERSIST);
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 
@@ -177,9 +170,8 @@ void unfence_instance(mysqlshdk::mysql::IInstance *instance) {
     // Set SUPER_READ_ONLY=1 will also set READ_ONLY
     instance->set_sysvar("READ_ONLY", false,
                          mysqlshdk::mysql::Var_qualifier::PERSIST);
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 
@@ -341,9 +333,8 @@ void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
               instance->descr(),
           SHERR_DBA_GTID_SYNC_TIMEOUT);
     }
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 
@@ -436,9 +427,8 @@ void stop_channel(mysqlshdk::mysql::IInstance *instance,
                 " because there are unexpected open temporary tables.",
             SHERR_DBA_REPLICATION_INVALID);
       }
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 }

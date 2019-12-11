@@ -119,22 +119,21 @@ void Replicaset_status::prepare() {
 }
 
 void Replicaset_status::connect_to_members() {
-  auto group_session = m_cluster->get_group_session();
+  auto group_server = m_cluster->get_target_instance();
 
   mysqlshdk::db::Connection_options group_session_copts(
-      group_session->get_connection_options());
+      group_server->get_connection_options());
 
   for (const auto &inst : m_instances) {
     mysqlshdk::db::Connection_options opts(inst.endpoint);
     if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
-      m_member_sessions[inst.endpoint] = group_session;
+      m_member_sessions[inst.endpoint] = group_server;
     } else {
       opts.set_login_options_from(group_session_copts);
 
       try {
-        m_member_sessions[inst.endpoint] =
-            mysqlshdk::db::mysql::open_session(opts);
-      } catch (const mysqlshdk::db::Error &e) {
+        m_member_sessions[inst.endpoint] = Instance::connect(opts);
+      } catch (const shcore::Error &e) {
         m_member_connect_errors[inst.endpoint] = e.format();
       }
     }
@@ -757,31 +756,31 @@ shcore::Dictionary_t Replicaset_status::get_topology(
     shcore::Dictionary_t member = shcore::make_dict();
     mysqlshdk::gr::Member minfo(get_member(inst.uuid));
 
-    mysqlsh::dba::Instance instance(m_member_sessions[inst.endpoint]);
+    auto instance(m_member_sessions[inst.endpoint]);
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;
     bool auto_rejoin = false;
 
-    if (instance.get_session()) {
+    if (instance) {
       // Get super_read_only value of each instance to set the mode accurately.
-      super_read_only = instance.get_sysvar_bool("super_read_only");
+      super_read_only = instance->get_sysvar_bool("super_read_only");
 
       // Check if auto-rejoin is running.
-      auto_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
+      auto_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
 
       if (!m_extended.is_null()) {
         if (*m_extended >= 1) {
-          fence_sysvars = instance.get_fence_sysvars();
+          fence_sysvars = instance->get_fence_sysvars();
         }
 
         if (*m_extended >= 3) {
           collect_local_status(
-              member, instance,
+              member, *instance,
               minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
         } else {
           if (minfo.state == mysqlshdk::gr::Member_state::ONLINE)
-            collect_basic_local_status(member, instance);
+            collect_basic_local_status(member, *instance);
         }
 
         if (minfo.state == mysqlshdk::gr::Member_state::RECOVERING) {
@@ -790,10 +789,10 @@ shcore::Dictionary_t Replicaset_status::get_topology(
           // Get the join timestamp from the Metadata
           shcore::Value join_time;
           m_cluster->get_metadata_storage()->query_instance_attribute(
-              instance.get_uuid(), k_instance_attribute_join_time, &join_time);
+              instance->get_uuid(), k_instance_attribute_join_time, &join_time);
 
           std::tie(status, info) = recovery_status(
-              instance,
+              *instance,
               join_time.type == shcore::String ? join_time.as_string() : "");
           if (!status.empty()) {
             (*member)["recoveryStatusText"] = shcore::Value(status);
@@ -892,7 +891,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   (*ret)["status"] = shcore::Value(tmp->get_string("status"));
 
   bool has_primary = false;
-  std::shared_ptr<mysqlshdk::db::ISession> primary_session;
+  std::shared_ptr<Instance> primary_instance;
   {
     if (single_primary) {
       // In single primary mode we need to add the "primary" field
@@ -904,7 +903,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
             auto s = m_member_sessions.find(primary->endpoint);
             if (s != m_member_sessions.end()) {
               has_primary = true;
-              primary_session = s->second;
+              primary_instance = s->second;
             }
             (*ret)["primary"] = shcore::Value(primary->endpoint);
           }
@@ -913,9 +912,8 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
       }
     }
   }
-  mysqlsh::dba::Instance primary_instance(primary_session);
-  (*ret)["topology"] = shcore::Value(
-      get_topology(member_info, has_primary ? &primary_instance : nullptr));
+  (*ret)["topology"] = shcore::Value(get_topology(
+      member_info, has_primary ? primary_instance.get() : nullptr));
 
   return ret;
 }

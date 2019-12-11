@@ -83,7 +83,7 @@ class Reset_recovery_accounts_password : public Command_interface {
  private:
   const bool m_interactive;
   mysqlshdk::utils::nullable<bool> m_force;
-  std::vector<std::unique_ptr<mysqlsh::dba::Instance>> m_online_instances;
+  std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_online_instances;
   std::vector<std::string> m_skipped_instances;
   const Cluster_impl &m_cluster;
 

@@ -53,7 +53,7 @@ Check_instance::Check_instance(
       m_mycnf_path(verify_mycnf_path),
       m_silent(silent) {}
 
-Check_instance::~Check_instance() { delete m_target_instance; }
+Check_instance::~Check_instance() {}
 
 void Check_instance::check_instance_address() {
   // Sanity check for the instance address
@@ -148,7 +148,7 @@ bool Check_instance::check_configuration() {
   bool config_file_change;
   bool dynamic_sysvar_change;
   if (!checks::validate_configuration(
-           m_target_instance, m_mycnf_path, m_cfg.get(),
+           m_target_instance.get(), m_mycnf_path, m_cfg.get(),
            Cluster_type::GROUP_REPLICATION, m_can_set_persist, &restart,
            &config_file_change, &dynamic_sysvar_change, &m_ret_val)
            .empty()) {
@@ -176,12 +176,7 @@ void Check_instance::prepare() {
   auto console = mysqlsh::current_console();
 
   // Establish a session to the target instance
-  {
-    std::shared_ptr<mysqlshdk::db::ISession> session;
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    m_target_instance = new mysqlsh::dba::Instance(session);
-  }
+  m_target_instance = Instance::connect(m_instance_cnx_opts);
 
   std::string target = m_target_instance->descr();
 
@@ -282,12 +277,7 @@ void Check_instance::rollback() {
   // nothing to rollback
 }
 
-void Check_instance::finish() {
-  // Close the instance session at the end if available.
-  if (m_target_instance) {
-    m_target_instance->close_session();
-  }
-}
+void Check_instance::finish() {}
 
 void Check_instance::prepare_config_object() {
   bool use_cfg_handler = false;
@@ -299,7 +289,8 @@ void Check_instance::prepare_config_object() {
   // Add server configuration handler depending on SET PERSIST support.
   // NOTE: Add server handler first to set it has the default handler.
   m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance, mysqlshdk::config::k_dft_cfg_server_handler, true);
+      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler,
+      true);
 
   // Add configuration handle to update option file (if provided) and not to
   // be skipped

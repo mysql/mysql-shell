@@ -167,10 +167,8 @@ void Clone_options::check_option_values(
           replicaset->get_cluster()
               ->get_target_instance()
               ->get_connection_options(),
-          {}, [&trg](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-            mysqlsh::dba::Instance instance(session);
-
-            validate_clone_supported(instance.get_version(),
+          {}, [&trg](const std::shared_ptr<Instance> &instance) {
+            validate_clone_supported(instance->get_version(),
                                      std::string(kRecoveryMethod) + "=clone",
                                      trg, true);
 

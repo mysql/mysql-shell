@@ -46,9 +46,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
   timeout *= 2;
   while (timeout > 0) {
     try {
-      auto session = mysqlshdk::db::mysql::Session::create();
-      session->connect(instance_def);
-      out_instance = std::make_shared<mysqlsh::dba::Instance>(session);
+      out_instance = Instance::connect(instance_def);
 
       if (progress_style != Recovery_progress_style::NOWAIT &&
           progress_style != Recovery_progress_style::NOINFO) {
@@ -57,7 +55,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
 
       log_info("%s has started", out_instance->get_canonical_address().c_str());
       return out_instance;
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       log_debug2("While waiting for server to start: %s", e.format().c_str());
 
       if (e.code() == ER_SERVER_SHUTDOWN ||

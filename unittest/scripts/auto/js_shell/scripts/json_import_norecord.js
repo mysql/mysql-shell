@@ -453,7 +453,7 @@ EXPECT_THROWS(
 var rc = testutil.callMysqlsh([
   xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
   'blubb_table_view'
-]);
+], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 
 EXPECT_EQ(1, rc);
 EXPECT_STDOUT_CONTAINS(

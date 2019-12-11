@@ -61,9 +61,9 @@ GRInstanceType::Type get_gr_instance_type(
                   instance.descr().c_str());
       }
     }
-  } catch (const mysqlshdk::db::Error &error) {
-    auto e = shcore::Exception::mysql_error_with_code_and_state(
-        error.what(), error.code(), error.sqlstate());
+  } catch (const shcore::Error &error) {
+    auto e =
+        shcore::Exception::mysql_error_with_code(error.what(), error.code());
 
     log_info("Error querying GR member state: %s: %i %s",
              instance.descr().c_str(), error.code(), error.what());
@@ -73,8 +73,8 @@ GRInstanceType::Type get_gr_instance_type(
     if (e.code() == ER_TABLEACCESS_DENIED_ERROR) {
       ret_val = GRInstanceType::Unknown;
     } else if (error.code() != ER_NO_SUCH_TABLE) {  // Tables doesn't exists
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(error.what(),
+                                                     error.code());
     }
   }
 
@@ -98,15 +98,15 @@ GRInstanceType::Type get_gr_instance_type(
                     instance.descr().c_str());
         }
       }
-    } catch (const mysqlshdk::db::Error &error) {
+    } catch (const shcore::Error &error) {
       log_debug("Error querying metadata: %s: %i %s", instance.descr().c_str(),
                 error.code(), error.what());
 
       // Ignore error table does not exist (error 1146) for 5.7 or database
       // does not exist (error 1049) for 8.0, when metadata is not available.
       if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
-        throw shcore::Exception::mysql_error_with_code_and_state(
-            error.what(), error.code(), error.sqlstate());
+        throw shcore::Exception::mysql_error_with_code(error.what(),
+                                                       error.code());
     }
   } else {
     // This is a standalone instance, check if it has metadata schema.
@@ -259,7 +259,7 @@ std::vector<std::string> get_peer_seeds(
       }
       row = result->fetch_one();
     }
-  } catch (const mysqlshdk::db::Error &error) {
+  } catch (const shcore::Error &error) {
     log_warning("Unable to retrieve group seeds for instance '%s': %s",
                 instance_host.c_str(), error.what());
   }

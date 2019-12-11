@@ -256,9 +256,8 @@ void create_clone_recovery_user_nobinlog(
           {std::make_tuple("CLONE_ADMIN, EXECUTE", "*.*", false),
            std::make_tuple("SELECT", "performance_schema.*", false)},
           *donor_account.password);
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 }
@@ -272,7 +271,7 @@ void drop_clone_recovery_user_nobinlog(
   try {
     mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
     target_instance->drop_user(account.user, "%", true);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "%s: Error dropping account %s@%%.", target_instance->descr().c_str(),
@@ -2161,7 +2160,7 @@ void Replica_set_impl::handle_clone(
           try {
             mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
                                        *ar_options.repl_credentials);
-          } catch (const mysqlshdk::db::Error &err) {
+          } catch (const shcore::Error &err) {
             // Clone canceled
             if (err.code() == ER_QUERY_INTERRUPTED) {
               log_info("Clone canceled: %s", err.format().c_str());
@@ -2231,9 +2230,8 @@ void Replica_set_impl::handle_clone(
 
       // Thrown the exception cancel_sync up
       throw cancel_sync();
-    } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
 }
@@ -2271,7 +2269,7 @@ void Replica_set_impl::refresh_target_connections(
 
   try {
     recipient->query("SELECT 1");
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     if (mysqlshdk::db::is_mysql_client_error(e.code())) {
       log_debug(
           "Target instance connection lost: %s. Re-establishing a "
@@ -2286,7 +2284,7 @@ void Replica_set_impl::refresh_target_connections(
 
   try {
     m_metadata_storage->get_md_server()->query("SELECT 1");
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const shcore::Error &e) {
     if (mysqlshdk::db::is_mysql_client_error(e.code())) {
       log_debug(
           "Metadata connection lost: %s. Re-establishing a "

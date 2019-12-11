@@ -405,13 +405,11 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
 
   cluster->get_default_replicaset()->execute_in_members(
       {}, cluster->get_target_instance()->get_connection_options(), {},
-      [&](const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlsh::dba::Instance target(session);
-
-        old_users.insert(mysqlshdk::gr::get_recovery_user(target));
+      [&](const std::shared_ptr<Instance> &target) {
+        old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
 
         std::string new_user;
-        setup_recovery(cluster, &target, &new_user);
+        setup_recovery(cluster, target.get(), &new_user);
         new_users.insert(new_user);
         return true;
       });

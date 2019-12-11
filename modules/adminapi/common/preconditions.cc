@@ -559,9 +559,9 @@ GRInstanceType::Type get_instance_type(const MetadataStorage &metadata) {
     has_metadata = check_metadata(metadata, &md_version, &cluster_type);
 
     gr_active = check_group_replication_active(target_server);
-  } catch (const mysqlshdk::db::Error &error) {
-    auto e = shcore::Exception::mysql_error_with_code_and_state(
-        error.what(), error.code(), error.sqlstate());
+  } catch (const shcore::Error &error) {
+    auto e =
+        shcore::Exception::mysql_error_with_code(error.what(), error.code());
 
     log_warning("Error querying GR member state: %s: %i %s",
                 target_server->descr().c_str(), error.code(), error.what());
@@ -573,8 +573,8 @@ GRInstanceType::Type get_instance_type(const MetadataStorage &metadata) {
           "Unable to detect target instance state. Please check account "
           "privileges.");
     } else {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
+      throw shcore::Exception::mysql_error_with_code(error.what(),
+                                                     error.code());
     }
   }
 
@@ -678,7 +678,7 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata) {
         if (metadata.check_all_members_online()) {
           state.quorum |= ReplicationQuorum::States::All_online;
         }
-      } catch (const mysqlshdk::db::Error &e) {
+      } catch (const shcore::Error &e) {
         log_error(
             "Error while verifying all members in InnoDB Cluster are ONLINE: "
             "%s",

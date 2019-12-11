@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
+#include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -52,23 +53,18 @@ inline bool is_mysql_server_error(int code) {
   return !is_mysql_client_error(code) && code > 0 && code < 50000;
 }
 
-class Error : public std::runtime_error {
+class Error : public shcore::Error {
  public:
   Error(const char *what, int code) : Error(what, code, nullptr) {}
 
-  Error(const std::string &what, int code)
-      : std::runtime_error(what), code_(code) {}
+  Error(const std::string &what, int code) : shcore::Error(what, code) {}
 
   Error(const char *what, int code, const char *sqlstate)
-      : std::runtime_error(what),
-        code_(code),
-        sqlstate_(sqlstate ? sqlstate : "") {}
-
-  int code() const { return code_; }
+      : shcore::Error(what, code), sqlstate_(sqlstate ? sqlstate : "") {}
 
   const char *sqlstate() const { return sqlstate_.c_str(); }
 
-  std::string format() const {
+  std::string format() const override {
     if (sqlstate_.empty())
       return "MySQL Error " + std::to_string(code()) + ": " + what();
     else
@@ -77,7 +73,6 @@ class Error : public std::runtime_error {
   }
 
  private:
-  int code_ = 0;
   std::string sqlstate_;
 };
 

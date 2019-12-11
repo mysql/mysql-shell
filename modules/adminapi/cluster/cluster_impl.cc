@@ -411,10 +411,8 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
        mysqlshdk::gr::Member_state::RECOVERING},
       get_target_instance()->get_connection_options(),
       {cluster_instance_address},
-      [&lowest_version](
-          const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-        mysqlsh::dba::Instance instance(session);
-        mysqlshdk::utils::Version version = instance.get_version();
+      [&lowest_version](const std::shared_ptr<Instance> &instance) {
+        mysqlshdk::utils::Version version = instance->get_version();
         if (version < lowest_version) {
           lowest_version = version;
         }
@@ -450,25 +448,10 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   // Check if clone is available on ALL cluster members, to avoid a failing SQL
   // query because BACKUP_ADMIN is not supported
   bool clone_available_all_members = false;
-  {
-    get_default_replicaset()->execute_in_members(
-        {mysqlshdk::gr::Member_state::ONLINE,
-         mysqlshdk::gr::Member_state::RECOVERING},
-        get_target_instance()->get_connection_options(), {},
-        [&clone_available_all_members](
-            const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-          mysqlsh::dba::Instance instance(session);
-          mysqlshdk::utils::Version version = instance.get_version();
-          if (version >=
-              mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
-            clone_available_all_members = true;
-          } else {
-            clone_available_all_members = false;
-          }
 
-          return clone_available_all_members;
-        });
-  }
+  mysqlshdk::utils::Version lowest_version = get_lowest_instance_version();
+  if (lowest_version >= mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
+    clone_available_all_members = true;
 
   // Check if clone is supported on the target instance
   bool clone_available_on_target =
@@ -592,8 +575,7 @@ mysqlshdk::mysql::IInstance *Cluster_impl::ensure_updatable(bool reset) {
     log_info("Connecting to %s...", primary_url.c_str());
     copts.set_login_options_from(m_primary_master->get_connection_options());
 
-    auto session = establish_session(copts, false);
-    m_primary_master = std::make_shared<Instance>(session);
+    m_primary_master = Instance::connect(copts);
 
     _metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
   }
@@ -643,7 +625,7 @@ Cluster_impl::get_replication_user(
   return std::make_tuple(recovery_user, recovery_user_hosts, from_metadata);
 }
 
-std::unique_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
+std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
     const std::string &instance_address) const {
   // Set login credentials to connect to instance.
   // use the host and port from the instance address
@@ -654,14 +636,12 @@ std::unique_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
       get_target_instance()->get_connection_options();
   instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
 
-  std::shared_ptr<mysqlshdk::db::ISession> session;
   log_debug("Connecting to instance '%s'", instance_address.c_str());
   try {
     // Try to connect to instance
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(instance_cnx_opts);
+    auto instance = Instance::connect(instance_cnx_opts);
     log_debug("Successfully connected to instance");
-    return std::make_unique<mysqlsh::dba::Instance>(session);
+    return instance;
   } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
     throw;
@@ -721,7 +701,7 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
 
       // Close the instance's session
       instance->get_session()->close();
-    } catch (const mysqlshdk::db::Error &err) {
+    } catch (const shcore::Error &err) {
       auto console = mysqlsh::current_console();
 
       std::string op = enable_clone ? "enable" : "disable";

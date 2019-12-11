@@ -79,8 +79,7 @@ class Replicaset_options : public Command_interface {
   mysqlshdk::utils::nullable<bool> m_all;
 
   std::vector<Instance_metadata> m_instances;
-  std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
-      m_member_sessions;
+  std::map<std::string, std::shared_ptr<Instance>> m_member_sessions;
   std::map<std::string, std::string> m_member_connect_errors;
 
   void connect_to_members();

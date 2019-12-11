@@ -474,7 +474,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         return create_session(copy);
       } catch (const mysqlshdk::db::Error &e) {
         if (e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+          throw shcore::Exception::mysql_error_with_code_and_state(
+              e.what(), e.code(), e.sqlstate());
         } else {
           copy.clear_password();
           shcore::Credential_manager::get().remove_password(copy);
@@ -512,7 +513,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         return session;
       } catch (const mysqlshdk::db::Error &e) {
         if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+          throw shcore::Exception::mysql_error_with_code_and_state(
+              e.what(), e.code(), e.sqlstate());
         } else {
           copy.clear_password();
           current_console()->print_error(e.format());

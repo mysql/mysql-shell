@@ -134,7 +134,7 @@ std::string format_throughput_items(const std::string &item_name_singular,
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds) {
   char buffer[64] = {};
-  double ratio = bytes / seconds;
+  double ratio = seconds >= 1 ? bytes / seconds : 1;
   std::string unit;
   double scaled_items;
   std::tie(unit, scaled_items) = scale_value(ratio);

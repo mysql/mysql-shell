@@ -40,10 +40,9 @@
     std::string operation(op);                                                \
     try {                                                                     \
       throw;                                                                  \
-    } catch (shcore::Exception & exc) {                                       \
-      auto error = exc.error();                                               \
-      (*error)["message"] = shcore::Value(operation + ": " + exc.what());     \
-      throw;                                                                  \
+    } catch (const shcore::Exception &exc) {                                  \
+      throw shcore::Exception(exc.type(), operation + ": " + exc.what(),      \
+                              exc.code());                                    \
     } catch (mysqlshdk::db::Error & exc) {                                    \
       throw shcore::Exception::mysql_error_with_code(exc.what(), exc.code()); \
     } catch (std::runtime_error & exc) {                                      \

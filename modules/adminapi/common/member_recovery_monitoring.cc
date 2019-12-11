@@ -172,7 +172,7 @@ void do_monitor_gr_recovery_status(
               status.error + " (" + std::to_string(status.error_n) + ")");
           console->print_info("A fallback method will be used.");
         }
-      } catch (const mysqlshdk::db::Error &e) {
+      } catch (const shcore::Error &e) {
         if (e.code() != ER_BAD_TABLE_ERROR) {
           log_debug("Error querying clone status: %s", e.format().c_str());
         }
@@ -265,7 +265,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
           return rm;
         }
         reconnect = false;
-      } catch (const mysqlshdk::db::Error &err) {
+      } catch (const shcore::Error &err) {
         log_warning("During recovery start check: %s", err.what());
         if (mysqlshdk::db::is_mysql_client_error(err.code()) ||
             err.code() == ER_SERVER_SHUTDOWN) {
@@ -324,7 +324,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
           break;
         }
         reconnect = false;
-      } catch (const mysqlshdk::db::Error &err) {
+      } catch (const shcore::Error &err) {
         log_warning("Error during clone start check: %s", err.format().c_str());
 
         if (mysqlshdk::db::is_mysql_client_error(err.code()) ||
@@ -450,7 +450,7 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
                             status.source);
         first = false;
       }
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const shcore::Error &e) {
       if (e.code() == ER_SERVER_SHUTDOWN) {
         // From the very same moment the instance starts the shutdown, aborting
         // the process with ctrl-c must be disabled
@@ -579,7 +579,7 @@ void monitor_post_clone_gr_recovery_status(
                                       startup_timeout_sec, 0);
         break;
       }
-    } catch (const mysqlshdk::db::Error &err) {
+    } catch (const shcore::Error &err) {
       log_warning("During post-clone recovery start check: %s", err.what());
       throw;
     }
@@ -614,21 +614,19 @@ void monitor_gr_recovery_status(
     mysqlshdk::gr::Group_member_recovery_status method =
         wait_recovery_start(instance_def, begin_time, startup_timeout_sec);
 
-    auto session = mysqlshdk::db::mysql::Session::create();
-    session->connect(instance_def);
-    mysqlsh::dba::Instance instance(session);
+    auto instance = mysqlsh::dba::Instance::connect(instance_def);
 
-    do_monitor_gr_recovery_status(&instance, method, begin_time, progress_style,
-                                  startup_timeout_sec, restart_timeout_sec);
+    do_monitor_gr_recovery_status(instance.get(), method, begin_time,
+                                  progress_style, startup_timeout_sec,
+                                  restart_timeout_sec);
   } catch (const stop_monitoring &) {
     console->print_info();
     console->print_note(
         "Monitoring of the recovery process was canceled. The recovery itself "
         "will continue executing in background. Use <Cluster>.status() to "
         "check progress.");
-  } catch (const mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 

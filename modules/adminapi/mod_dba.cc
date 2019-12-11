@@ -648,9 +648,7 @@ std::shared_ptr<Instance> Dba::connect_to_target_member() const {
       coptions.set_scheme("mysql");
     }
 
-    auto member_session = mysqlshdk::db::mysql::Session::create();
-    member_session->connect(coptions);
-    return std::make_shared<Instance>(member_session);
+    return Instance::connect(coptions, false);
   }
 
   return {};
@@ -701,11 +699,7 @@ void Dba::connect_to_target_group(
         log_info("Opening session to primary of InnoDB cluster at %s...",
                  coptions.as_uri().c_str());
 
-        std::shared_ptr<mysqlshdk::db::mysql::Session> session;
-        session = mysqlshdk::db::mysql::Session::create();
-        session->connect(coptions);
-
-        auto instance = std::make_shared<Instance>(session);
+        auto instance = Instance::connect(coptions);
         mysqlshdk::gr::Member_state state =
             mysqlshdk::gr::get_member_state(*instance);
 
@@ -1243,9 +1237,8 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
     } else {
       throw;
     }
-  } catch (const mysqlshdk::db::Error &dberr) {
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        dberr.what(), dberr.code(), dberr.sqlstate());
+  } catch (const shcore::Error &dberr) {
+    throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());
   }
 
   // Create the cluster
@@ -1477,8 +1470,7 @@ shcore::Value Dba::check_instance_configuration(
     if (instance_def.has_data()) {
       validate_connection_options(instance_def);
 
-      instance = std::make_shared<Instance>(
-          establish_mysql_session(instance_def, interactive));
+      instance = Instance::connect(instance_def, interactive);
     } else {
       instance = connect_to_target_member();
     }
@@ -1702,9 +1694,8 @@ shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
     } else {
       throw;
     }
-  } catch (const mysqlshdk::db::Error &dberr) {
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        dberr.what(), dberr.code(), dberr.sqlstate());
+  } catch (const shcore::Error &dberr) {
+    throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());
   }
 
   Instance_pool::Auth_options auth_opts;
@@ -1980,13 +1971,11 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
       mysqlshdk::db::Connection_options instance_def(uri);
       instance_def.set_password(*password);
 
-      auto session = get_session(instance_def);
-      assert(session);
-      Instance instance(session);
+      std::shared_ptr<Instance> instance = Instance::connect(instance_def);
 
       log_info("Creating root@%s account for sandbox %i", remote_root.c_str(),
                port);
-      instance.execute("SET sql_log_bin = 0");
+      instance->execute("SET sql_log_bin = 0");
       {
         std::string pwd;
         if (instance_def.has_password()) pwd = instance_def.get_password();
@@ -1995,18 +1984,16 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
             "CREATE USER root@? IDENTIFIED BY /*((*/ ? /*))*/", 0);
         create_user << remote_root << pwd;
         create_user.done();
-        instance.execute(create_user);
+        instance->execute(create_user);
       }
       {
         shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
                                 0);
         grant << remote_root;
         grant.done();
-        instance.execute(grant);
+        instance->execute(grant);
       }
-      instance.execute("SET sql_log_bin = 1");
-
-      instance.close_session();
+      instance->execute("SET sql_log_bin = 1");
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
@@ -2327,8 +2314,7 @@ void Dba::do_configure_instance(
   if (instance_def.has_data()) {
     validate_connection_options(instance_def);
 
-    instance = std::make_shared<Instance>(
-        establish_mysql_session(instance_def, interactive));
+    instance = Instance::connect(instance_def, interactive);
   } else {
     instance = connect_to_target_member();
   }
@@ -2349,6 +2335,9 @@ void Dba::do_configure_instance(
     Connection_options coptions = instance->get_connection_options();
 
     // Close the session
+    // TODO(alfredo) - instead of opening a session just for the preconditions
+    // and then closing it right away, the instance obj should be given to the
+    // configure objects
     instance->close_session();
 
     // Call the API
@@ -2606,17 +2595,6 @@ void Dba::configure_replica_set_instance(
     const shcore::Dictionary_t &options) {
   return do_configure_instance(instance_def, options, false,
                                Cluster_type::ASYNC_REPLICATION);
-}
-
-std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
-    const mysqlshdk::db::Connection_options &args) {
-  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
-
-  ret_val = mysqlshdk::db::mysql::Session::create();
-
-  ret_val->connect(args);
-
-  return ret_val;
 }
 
 namespace {
@@ -3080,7 +3058,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // replication user credentials left empty.
       try {
         // Create the add_instance command and execute it.
-        Add_instance op_add_instance(target_instance.get(), *default_replicaset,
+        Add_instance op_add_instance(target_instance, *default_replicaset,
                                      gr_options, clone_options, {}, interactive,
                                      0, "", "", true);
 
@@ -3226,8 +3204,7 @@ Dba::get_replicaset_instances_status(
       log_info(
           "Opening a new session to the instance to determine its status: %s",
           instance_address.c_str());
-      auto session = get_session(connection_options);
-      session->close();
+      Instance::connect_raw(connection_options);
     } catch (const std::exception &e) {
       conn_status = e.what();
       log_warning("Could not open connection to %s: %s.",
@@ -3344,23 +3321,21 @@ void Dba::validate_instances_status_reboot_cluster(
         shcore::get_connection_options(instance_address, false);
     connection_options.set_login_options_from(member_connection_options);
 
-    std::shared_ptr<mysqlshdk::db::ISession> session;
+    std::shared_ptr<Instance> instance;
     try {
       log_info("Opening a new session to the instance: %s",
                instance_address.c_str());
-      session = get_session(connection_options);
+      instance = Instance::connect(connection_options);
     } catch (const std::exception &e) {
       throw shcore::Exception::runtime_error("Could not open connection to " +
                                              instance_address + "");
     }
 
     log_info("Checking state of instance '%s'", instance_address.c_str());
-    Instance instance(session);
     validate_instance_belongs_to_cluster(
-        instance, "",
+        *instance, "",
         get_member_name("forceQuorumUsingPartitionOf",
                         shcore::current_naming_style()));
-    instance.close_session();
   }
 }
 
@@ -3377,7 +3352,6 @@ void Dba::validate_instances_gtid_reboot_cluster(
     std::shared_ptr<Cluster> cluster,
     const shcore::Value::Map_type_ref &options,
     const mysqlshdk::mysql::IInstance &target_instance) {
-  std::shared_ptr<mysqlshdk::db::ISession> session;
   auto console = current_console();
 
   // get the current session information
@@ -3408,11 +3382,13 @@ void Dba::validate_instances_gtid_reboot_cluster(
         shcore::get_connection_options(inst.endpoint, false);
     connection_options.set_login_options_from(current_session_options);
 
+    std::shared_ptr<Instance> instance;
+
     // Connect to the instance to obtain the GLOBAL.GTID_EXECUTED
     try {
       log_info("Opening a new session to the instance for gtid validations %s",
                inst.endpoint.c_str());
-      session = get_session(connection_options);
+      instance = Instance::connect(connection_options);
     } catch (const std::exception &e) {
       log_warning("Could not open a connection to %s: %s",
                   inst.endpoint.c_str(), e.what());
@@ -3421,8 +3397,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     Instance_gtid_info info;
     info.server = inst.endpoint;
-    info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(
-        mysqlsh::dba::Instance(session));
+    info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(*instance);
     instance_gtids.push_back(info);
   }
 

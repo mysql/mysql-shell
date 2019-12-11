@@ -93,8 +93,8 @@ class Remove_instance : public Command_interface {
   const GRReplicaSet &m_replicaset;
 
   std::string m_instance_address;
-  mysqlsh::dba::Instance *m_target_instance = nullptr;
-  std::unique_ptr<mysqlsh::dba::Instance> m_target_instance_protocol_upgrade;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance_protocol_upgrade;
   std::string m_address_in_metadata;
   bool m_upgrade_gr_protocol_version = false;
   mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;

@@ -104,13 +104,8 @@ void Topology_configuration_command::connect_all_members() {
 
     // Establish a session to the instance
     try {
-      std::shared_ptr<mysqlshdk::db::ISession> session;
-      session = mysqlshdk::db::mysql::Session::create();
-      session->connect(instance_cnx_opts);
-
       // Add the instance to instances internal list
-      m_cluster_instances.emplace_back(
-          std::make_unique<mysqlsh::dba::Instance>(session));
+      m_cluster_instances.emplace_back(Instance::connect(instance_cnx_opts));
     } catch (const std::exception &err) {
       log_debug("Failed to connect to instance: %s", err.what());
 

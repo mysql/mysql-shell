@@ -58,19 +58,16 @@ void Switch_to_single_primary_mode::prepare() {
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());
 
-    std::shared_ptr<mysqlshdk::db::ISession> session =
-        mysqlshdk::db::mysql::Session::create();
-    session->connect(m_instance_cnx_opts);
-    mysqlsh::dba::Instance target_instance(session);
-
     log_debug("Verifying connection options.");
 
     validate_connection_options(m_instance_cnx_opts);
 
-    m_target_uuid = target_instance.get_uuid();
+    auto target_instance = mysqlsh::dba::Instance::connect(m_instance_cnx_opts);
+
+    m_target_uuid = target_instance->get_uuid();
 
     ensure_target_instance_belongs_to_replicaset(
-        target_instance_address, target_instance.get_canonical_address());
+        target_instance_address, target_instance->get_canonical_address());
   }
 }
 

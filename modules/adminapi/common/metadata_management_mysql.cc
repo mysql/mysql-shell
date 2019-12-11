@@ -72,7 +72,7 @@ Version get_version(const std::shared_ptr<Instance> &group_server,
     auto row = result->fetch_one_or_throw();
 
     return Version(row->get_int(0), row->get_int(1), row->get_int(2));
-  } catch (const mysqlshdk::db::Error &error) {
+  } catch (const shcore::Error &error) {
     if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
       throw std::runtime_error(
           "Unable to detect Metadata version. Please check account "
@@ -220,7 +220,6 @@ Stage compute_failed_upgrade_stage(
 Stage detect_failed_stage(const std::shared_ptr<Instance> &group_server) {
   mysqlshdk::utils::nullable<Stage> saved_stage;
   bool backup_exists = schema_exists(group_server, kMetadataSchemaBackupName);
-  ;
   auto schema_version = get_version(group_server);
 
   if (backup_exists) {
@@ -231,7 +230,7 @@ Stage detect_failed_stage(const std::shared_ptr<Instance> &group_server) {
 
       saved_stage = to_stage(row->get_string(0));
       backup_exists = true;
-    } catch (const mysqlshdk::db::Error &error) {
+    } catch (const shcore::Error &error) {
       if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
         throw std::runtime_error(
             "Unable to detect Metadata upgrade state. Please check account "

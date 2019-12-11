@@ -54,15 +54,11 @@ class Dba_common_test : public tests::Admin_api_test {
   virtual void TearDown() { Admin_api_test::TearDown(); }
 
  protected:
-  static std::shared_ptr<mysqlshdk::db::ISession> create_session(
+  static std::shared_ptr<mysqlsh::dba::Instance> create_session(
       int port, std::string user = "root") {
-    auto session = mysqlshdk::db::mysql::Session::create();
-
     auto connection_options = shcore::get_connection_options(
         user + ":root@localhost:" + std::to_string(port), false);
-    session->connect(connection_options);
-
-    return session;
+    return mysqlsh::dba::Instance::connect(connection_options);
   }
   std::shared_ptr<mysqlshdk::db::ISession> create_base_session(int port) {
     auto session = mysqlshdk::db::mysql::Session::create();
@@ -79,12 +75,11 @@ class Dba_common_test : public tests::Admin_api_test {
   }
 
   void disable_ssl_on_instance(int port, const std::string &unsecure_user) {
-    auto session = create_session(port);
-    mysqlsh::dba::Instance instance(session);
-    instance.query("create user " + unsecure_user +
-                   "@'%' identified with "
-                   "mysql_native_password by /*((*/ 'root' /*))*/");
-    instance.close_session();
+    auto instance = create_session(port);
+
+    instance->query("create user " + unsecure_user +
+                    "@'%' identified with "
+                    "mysql_native_password by /*((*/ 'root' /*))*/");
 
     testutil->stop_sandbox(port);
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
@@ -96,15 +91,14 @@ class Dba_common_test : public tests::Admin_api_test {
 
 TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
-  auto session = create_session(_mysql_sandbox_ports[0]);
-  Instance instance(session);
+  auto instance = create_session(_mysql_sandbox_ports[0]);
 
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // enabled     ""            ON
-  instance.set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
+  instance->set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -118,7 +112,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   //----------- ------------- ------------------------
   // enabled     "AUTO"        ON
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "AUTO");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "AUTO");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -133,7 +127,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "REQUIRED"   ON
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(instance, "REQUIRED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "REQUIRED");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -147,7 +141,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   //----------- ------------- ------------------------
   // enabled     "DISABLED"    ON
   try {
-    mysqlsh::dba::resolve_cluster_ssl_mode(instance, "DISABLED");
+    mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "DISABLED");
     SCOPED_TRACE(
         "Unexpected success at require_secure_transport=ON, "
         "memberSslMode=DISABLED");
@@ -155,7 +149,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The instance '" + instance.descr() +
+        "The instance '" + instance->descr() +
             "' requires "
             "secure connections, to create the cluster either turn off "
             "require_secure_transport or use the memberSslMode option "
@@ -166,9 +160,10 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // enabled     ""            OFF
-  instance.set_sysvar("require_secure_transport", false, Var_qualifier::GLOBAL);
+  instance->set_sysvar("require_secure_transport", false,
+                       Var_qualifier::GLOBAL);
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -182,7 +177,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   //----------- ------------- ------------------------
   // enabled     "AUTO"       OFF
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "AUTO");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "AUTO");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -197,7 +192,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "REQUIRED"   OFF
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(instance, "REQUIRED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "REQUIRED");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -212,7 +207,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "DISABLED"    OFF
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(instance, "DISABLED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "DISABLED");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -222,7 +217,6 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
     ADD_FAILURE();
   }
 
-  session->close();
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
@@ -230,21 +224,19 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   disable_ssl_on_instance(_mysql_sandbox_ports[0], "unsecure");
 
-  auto session = create_session(_mysql_sandbox_ports[0], "unsecure");
-
-  Instance instance(session);
+  auto instance = create_session(_mysql_sandbox_ports[0], "unsecure");
 
   // InstanceSSL memberSslMode
   //----------- -------------
   // disabled    "REQUIRED"
   try {
-    mysqlsh::dba::resolve_cluster_ssl_mode(instance, "REQUIRED");
+    mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "REQUIRED");
     SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_007");
     ADD_FAILURE();
 
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
-    MY_EXPECT_OUTPUT_CONTAINS("The instance '" + instance.descr() +
+    MY_EXPECT_OUTPUT_CONTAINS("The instance '" + instance->descr() +
                                   "' does not "
                                   "have SSL enabled, to create the cluster "
                                   "either use an instance with SSL "
@@ -258,7 +250,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   //----------- -------------
   // disabled    ""
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -270,7 +262,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   //----------- -------------
   // disabled    "AUTO"
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(instance, "AUTO");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "AUTO");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -284,7 +276,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(instance, "DISABLED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(*instance, "DISABLED");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -292,7 +284,6 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
     ADD_FAILURE();
   }
 
-  session->close();
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
@@ -319,16 +310,14 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   execute("c.disconnect()");
   execute("session.close()");
 
-  auto peer_session = create_session(_mysql_sandbox_ports[0]);
-  auto instance_session = create_session(_mysql_sandbox_ports[1]);
-  mysqlshdk::mysql::Instance instance(instance_session);
-  mysqlshdk::mysql::Instance peer(peer_session);
+  auto peer = create_session(_mysql_sandbox_ports[0]);
+  auto instance = create_session(_mysql_sandbox_ports[1]);
 
   // Cluster SSL memberSslMode
   //----------- -------------
   // REQUIRED    ""
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "");
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -340,7 +329,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   //----------- ------------- ------------
   // REQUIRED    AUTO          enabled
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "AUTO");
+    auto mode =
+        mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "AUTO");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -355,7 +345,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    REQUIRED      enabled
   try {
     auto mode =
-        mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "REQUIRED");
+        mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "REQUIRED");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -369,7 +359,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   //----------- -------------
   // REQUIRED    DISABLED
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "DISABLED");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "DISABLED");
     SCOPED_TRACE("Unexpected success at memberSslMode='REQUIRED'");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -377,7 +367,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
     MY_EXPECT_OUTPUT_CONTAINS(
         "The cluster has SSL (encryption) enabled. "
         "To add the instance '" +
-            instance.descr() +
+            instance->descr() +
             "' to the "
             "cluster either disable SSL on the cluster, remove the "
             "memberSslMode "
@@ -385,22 +375,20 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
         error);
   }
 
-  instance_session->close();
   disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
-  instance_session = create_session(_mysql_sandbox_ports[1], "unsecure");
-  instance = mysqlshdk::mysql::Instance(instance_session);
+  instance = create_session(_mysql_sandbox_ports[1], "unsecure");
 
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
   // REQUIRED    AUTO          disabled
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "AUTO");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "AUTO");
     SCOPED_TRACE("Unexpected success at instance with no SSL");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "Instance '" + instance.descr() +
+        "Instance '" + instance->descr() +
             "' does "
             "not support SSL and cannot join a cluster with SSL (encryption) "
             "enabled. Enable SSL support on the instance and try again, "
@@ -413,13 +401,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   //----------- ------------- ------------
   // REQUIRED    REQUIRED      disabled
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "REQUIRED");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "REQUIRED");
     SCOPED_TRACE("Unexpected success at instance with no SSL");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "Instance '" + instance.descr() +
+        "Instance '" + instance->descr() +
             "' does "
             "not support SSL and cannot join a cluster with SSL (encryption) "
             "enabled. Enable SSL support on the instance and try again, "
@@ -428,8 +416,6 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
         error);
   }
 
-  peer_session->close();
-  instance_session->close();
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
@@ -457,16 +443,14 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   execute("c.disconnect()");
   execute("session.close()");
 
-  auto peer_session = create_session(_mysql_sandbox_ports[0]);
-  auto instance_session = create_session(_mysql_sandbox_ports[1]);
-  mysqlshdk::mysql::Instance instance(instance_session);
-  mysqlshdk::mysql::Instance peer(peer_session);
+  auto peer = create_session(_mysql_sandbox_ports[0]);
+  auto instance = create_session(_mysql_sandbox_ports[1]);
 
   // Cluster SSL memberSslMode
   //----------- -------------
   // DISABLED    REQUIRED
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "REQUIRED");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "REQUIRED");
     SCOPED_TRACE("Unexpected success using memberSslMode=REQUIRED");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -474,7 +458,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
     MY_EXPECT_OUTPUT_CONTAINS(
         "The cluster has SSL (encryption) disabled. "
         "To add the instance '" +
-            instance.descr() +
+            instance->descr() +
             "' to the "
             "cluster either enable SSL on the cluster, remove the "
             "memberSslMode "
@@ -486,7 +470,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   //----------- ------------- ------------------------
   // DISABLED    ""            OFF
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "");
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "");
     EXPECT_STREQ("DISABLED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -498,7 +482,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   //----------- ------------- ------------------------
   // DISABLED    AUTO          OFF
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "AUTO");
+    auto mode =
+        mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "AUTO");
     EXPECT_STREQ("DISABLED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -506,13 +491,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
     ADD_FAILURE();
   }
 
-  instance.set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
+  instance->set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
 
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // DISABLED    ""            ON
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "");
     SCOPED_TRACE(
         "Unexpected success at instance with require_secure_transport"
         "=ON and memberSslMode=''");
@@ -520,7 +505,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The instance '" + instance.descr() +
+        "The instance '" + instance->descr() +
             "' "
             "is configured to require a secure transport but the cluster has "
             "SSL "
@@ -534,7 +519,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   //----------- ------------- ------------------------
   // DISABLED    AUTO          ON
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance, peer, "AUTO");
+    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, "AUTO");
     SCOPED_TRACE(
         "Unexpected success at instance with require_secure_transport"
         "=ON and memberSslMode=AUTO");
@@ -542,7 +527,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The instance '" + instance.descr() +
+        "The instance '" + instance->descr() +
             "' "
             "is configured to require a secure transport but the cluster has "
             "SSL "
@@ -552,12 +537,9 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
         error);
   }
 
-  instance_session->close();
   disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
-  instance_session = create_session(_mysql_sandbox_ports[1], "unsecure");
+  instance = create_session(_mysql_sandbox_ports[1], "unsecure");
 
-  peer_session->close();
-  instance_session->close();
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
@@ -752,16 +734,14 @@ class Dba_common_cluster_functions : public Dba_common_test {
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
 TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
+  auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     auto newly_discovered_instances_list(get_newly_discovered_instances(
-        mysqlshdk::mysql::Instance(md_session), metadata,
-        _replicaset->get_cluster()->get_id()));
+        *md_instance, metadata, _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(newly_discovered_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -769,24 +749,20 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
     SCOPED_TRACE("Unexpected failure at get_instances_md");
     ADD_FAILURE();
   }
-
-  md_session->close();
 }
 
 // If the information on the Metadata and the GR group
 // P_S info is the same get_unavailable_instances()
 // should return an empty list
 TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
+  auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     auto unavailable_instances_list(get_unavailable_instances(
-        mysqlshdk::mysql::Instance(md_session), metadata,
-        _replicaset->get_cluster()->get_id()));
+        *md_instance, metadata, _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -794,17 +770,14 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
     SCOPED_TRACE("Unexpected failure at get_unavailable_instances_001");
     ADD_FAILURE();
   }
-
-  md_session->close();
 }
 
 TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   // There are missing instances and the instance we are checking belongs to
   // the metadata list but does not belong to the GR list.
 
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
-  auto instance_session = create_session(_mysql_sandbox_ports[2]);
+  auto md_instance = create_session(_mysql_sandbox_ports[0]);
+  auto instance = create_session(_mysql_sandbox_ports[2]);
 
   auto cluster_id = _replicaset->get_cluster()->get_id();
 
@@ -831,8 +804,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata,
-        _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _replicaset->get_cluster()->get_id()));
 
     EXPECT_TRUE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -841,22 +813,18 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
     ADD_FAILURE();
   }
 
-  md_session->query(
+  md_instance->query(
       "delete from mysql_innodb_cluster_metadata.instances "
       " where mysql_server_uuid = '" +
       uuid_3 + "'");
-
-  md_session->close();
-  instance_session->close();
 }
 
 TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   // There are missing instances and the instance we are checking belongs
   // to neither the metadata nor GR lists.
 
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
-  auto instance_session = create_session(_mysql_sandbox_ports[2]);
+  auto md_instance = create_session(_mysql_sandbox_ports[0]);
+  auto instance = create_session(_mysql_sandbox_ports[2]);
 
   auto cluster_id = _replicaset->get_cluster()->get_id();
 
@@ -883,8 +851,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata,
-        _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _replicaset->get_cluster()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -893,29 +860,24 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
     ADD_FAILURE();
   }
 
-  md_session->query(
+  md_instance->query(
       "delete from mysql_innodb_cluster_metadata.instances "
       " where mysql_server_uuid = '11111111-2222-3333-4444-"
       "555555555555'");
-
-  md_session->close();
-  instance_session->close();
 }
 
 TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
   // There are no missing instances and the instance we are checking belongs
   // to both the metadata and GR lists.
-  auto md_session = create_session(_mysql_sandbox_ports[0]);
-  auto md_instance = std::make_shared<mysqlsh::dba::Instance>(md_session);
-  auto instance_session = create_session(_mysql_sandbox_ports[1]);
+  auto md_instance = create_session(_mysql_sandbox_ports[0]);
+  auto instance = create_session(_mysql_sandbox_ports[1]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        mysqlshdk::mysql::Instance(instance_session), metadata,
-        _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _replicaset->get_cluster()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -923,9 +885,6 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
     SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_03");
     ADD_FAILURE();
   }
-
-  md_session->close();
-  instance_session->close();
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {

@@ -303,8 +303,8 @@ static const char *k_base_channel_query = R"*(SELECT
         s.LAST_HEARTBEAT_TIMESTAMP
       )) as time_since_last_message,
     IF(s.LAST_QUEUED_TRANSACTION='' OR s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,
-      "IDLE",
-      "APPLYING") as applier_busy_state,
+      'IDLE',
+      'APPLYING') as applier_busy_state,
     IF(s.LAST_QUEUED_TRANSACTION='' OR s.LAST_QUEUED_TRANSACTION=latest_w.LAST_APPLIED_TRANSACTION,
       NULL,
       TIMEDIFF(latest_w.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP,

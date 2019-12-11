@@ -105,18 +105,28 @@ void skip_whitespace(const char **pc) {
 
 // --
 
-Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {}
+Exception::Exception(const std::string &message, int code,
+                     const std::shared_ptr<Value::Map_type> &e)
+    : shcore::Error(message, code), _error(e) {}
 
-Exception::Exception(const std::string &message, int code) {
+Exception::Exception(const std::string &message, int code)
+    : shcore::Error(message, code) {
   _error = shcore::make_dict("type", Value("MYSQLSH"), "message",
                              Value(message), "code", Value(code));
+}
+
+Exception::Exception(const std::string &type, const std::string &message,
+                     int code)
+    : shcore::Error(message, code) {
+  _error = shcore::make_dict("type", Value(type), "message", Value(message),
+                             "code", Value(code));
 }
 
 Exception Exception::argument_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -124,7 +134,7 @@ Exception Exception::attrib_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -132,7 +142,7 @@ Exception Exception::type_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -140,7 +150,7 @@ Exception Exception::value_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -148,7 +158,7 @@ Exception Exception::logic_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -156,7 +166,7 @@ Exception Exception::runtime_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -164,7 +174,7 @@ Exception Exception::scripting_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -172,7 +182,7 @@ Exception Exception::metadata_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("MetadataError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, -1, error);
   return e;
 }
 
@@ -182,7 +192,7 @@ Exception Exception::error_with_code(const std::string &type,
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
-  Exception e(error);
+  Exception e(message, code, error);
   return e;
 }
 
@@ -194,7 +204,7 @@ Exception Exception::error_with_code_and_state(const std::string &type,
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
   if (sqlstate && *sqlstate) (*error)["state"] = Value(std::string(sqlstate));
-  Exception e(error);
+  Exception e(message, code, error);
   return e;
 }
 
@@ -202,7 +212,7 @@ Exception Exception::parser_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
-  Exception e(error);
+  Exception e(message, 0, error);
   return e;
 }
 
@@ -211,27 +221,10 @@ void Exception::set_file_context(const std::string &file, size_t line) {
   if (line > 0) (*_error)["line"] = Value(static_cast<uint64_t>(line));
 }
 
-const char *Exception::what() const noexcept {
-  if ((*_error)["message"].type == String)
-    return (*_error)["message"].value.s->c_str();
-  return "?";
-}
-
 const char *Exception::type() const noexcept {
   if ((*_error)["type"].type == String)
     return (*_error)["type"].value.s->c_str();
   return "Exception";
-}
-
-int Exception::code() const noexcept {
-  if ((*_error).find("code") != (*_error).end()) {
-    try {
-      return static_cast<int>((*_error)["code"].as_int());
-    } catch (...) {
-      return 0;  // as it's not int
-    }
-  }
-  return 0;
 }
 
 bool Exception::is_argument() const {
@@ -258,16 +251,16 @@ std::string Exception::format() const {
   std::string error_message;
 
   std::string type = _error->get_string("type", "");
-  std::string message = _error->get_string("message", "");
-  int64_t code = _error->get_int("code", -1);
+  std::string message = what();
   std::string state = _error->get_string("state", "");
   std::string error_location = _error->get_string("location", "");
 
   if (!message.empty()) {
     if (!type.empty()) error_message += type;
 
-    if (code != -1 && !is_mysqlsh()) {  // don't show shell error codes for now
-      error_message += " " + std::to_string(code);
+    if (code() != -1 &&
+        !is_mysqlsh()) {  // don't show shell error codes for now
+      error_message += " " + std::to_string(code());
       if (!state.empty()) error_message += " (" + state + ")";
     }
 

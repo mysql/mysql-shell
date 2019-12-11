@@ -828,9 +828,8 @@ int main(int argc, char **argv) {
         } catch (const shcore::Shell_cli_operation::Mapping_error &e) {
           mysqlsh::current_console()->print_error(e.what());
           ret_val = 10;
-        } catch (const shcore::Exception &e) {
-          mysqlsh::current_console()->print_value(shcore::Value(e.error()),
-                                                  "error");
+        } catch (const shcore::Error &e) {
+          mysqlsh::current_console()->print_error(e.what());
           ret_val = 1;
         } catch (const std::exception &e) {
           mysqlsh::current_console()->print_error(e.what());
