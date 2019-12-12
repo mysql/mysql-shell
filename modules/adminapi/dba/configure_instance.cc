@@ -173,14 +173,8 @@ bool Configure_instance::check_config_path_for_update() {
         if (!prompt_output_path) return false;
       }
     }
-    if (prompt_output_path) {
-      // update the value for the output_cnf_path on the config_file_handler
-      // since it has changed.
-      auto file_cfg_handler =
-          dynamic_cast<mysqlshdk::config::Config_file_handler *>(
-              m_cfg->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
-      file_cfg_handler->set_output_config_path(m_output_mycnf_path);
-    }
+    // NOTE: The output_cnf_path is properly updated by the caller on the
+    // config_file_handler (nothing else needed here).
   }
   return true;
 }

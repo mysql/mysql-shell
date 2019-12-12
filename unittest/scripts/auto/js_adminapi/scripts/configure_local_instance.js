@@ -191,5 +191,26 @@ dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.dbugSet("");
 
+//@<> (BUG#30657204) Deploy raw sandbox (not detected as sandbox) {VER(< 8.0.0) && __dbug_off == 0}
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", { report_host: hostname });
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+var bug_mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+testutil.makeFileReadOnly(bug_mycnf_path);
+// Override the get_default_config_paths function behavior to return empty list of config_paths.
+testutil.dbugSet("+d,override_mycnf_default_path");
+
+shell.connect(__sandbox_uri1);
+
+//@ (BUG#30657204) configure local instance should succeed {VER(< 8.0.0) && __dbug_off == 0}
+testutil.expectPrompt("Please specify the path to the MySQL configuration file: ", bug_mycnf_path);
+testutil.expectPrompt("Output path for updated configuration file:", bug_mycnf_path+"2");
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+dba.configureInstance(null, {clusterAdmin:"admin", clusterAdminPassword:"", interactive: true});
+
+//@<> Cleanup (BUG#30657204) clean-up {VER(< 8.0.0) && __dbug_off == 0}
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.dbugSet("");
+
+
 // DO NOT add tests which do not require __dbug_off to be 0 above this line
 // DO NOT add any tests below this line

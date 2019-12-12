@@ -360,3 +360,37 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 //@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 ||
+
+//@<OUT> (BUG#30657204) configure local instance should succeed {VER(< 8.0.0) && __dbug_off == 0}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+Assuming full account name 'admin'@'%' for admin
+
+NOTE: Some configuration options need to be fixed:
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
+| log_bin                          | <not set>     | <no value>     | Update the config file                           |
+| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
+| log_slave_updates                | OFF           | ON             | Update the config file and restart the server    |
+| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server    |
+| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server    |
+| server_id                        | 0             | <unique ID>    | Update the config file and restart the server    |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
+
+Detecting the configuration file...
+Default file not found at the standard locations.
+Please specify the path to the MySQL configuration file: WARNING: mycnfPath is not writable: <<<bug_mycnf_path>>>: Permission denied
+The required configuration changes may be written to a different file, which you can copy over to its proper location.
+Output path for updated configuration file: Do you want to perform the required configuration changes? [y/n]:
+Cluster admin user 'admin'@'%' created.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster but you must copy <<<bug_mycnf_path>>>2 to the MySQL option file path.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
