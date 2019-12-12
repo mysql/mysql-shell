@@ -265,6 +265,15 @@ Number of recovery user before addInstance(): 1
 //@<ERR> BUG#25503159: add instance fail (using an invalid localaddress).
 Cluster.addInstance: Group Replication failed to start: [[*]]
 
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.16)}
+|WARNING: Clone process appears to have finished and tried to restart the MySQL server, but it has not yet started back up.|
+|Please make sure the MySQL server at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is restarted and call <Cluster>.rescan() to complete the process.|
+||Cluster.addInstance: Timeout waiting for server to restart (MYSQLSH 51156)
+
+//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.16)}
+|Adding instance to the cluster metadata...|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster metadata.|
+
 //@ canonical IPv6 addresses are supported on addInstance WL#12758 {VER(>= 8.0.14)}
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
 |[::1]:<<<__mysql_sandbox_port2>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port2>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port2>>>"}|
@@ -285,3 +294,4 @@ Cluster.addInstance: Group Replication failed to start: [[*]]
 
 //@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
 ||Cluster.addInstance: Instance does not support the following groupSeed values :'[::1]:<<<__mysql_sandbox_gr_port2>>>, [fe80::7e36:f49a:63c8:8ad6]:<<<__mysql_sandbox_gr_port1>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+

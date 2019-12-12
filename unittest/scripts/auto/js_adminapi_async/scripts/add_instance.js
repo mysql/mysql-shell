@@ -520,6 +520,18 @@ rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor
 
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
+WIPE_SHELL_LOG();
+
+// TODO(miguel):
+// BUG#30657911: <REPLICASET>.ADDINSTANCE() USING CLONE SEGFAULTS WHEN RESTART IS NOT AVAILABLE
+//<> BUG#30657911: preparation
+//rs.removeInstance(__sandbox3);
+// BUG#30657911: add instance using clone and simulating a restart timeout
+//testutil.dbugSet("+d,dba_abort_monitor_clone_recovery_wait_restart");
+//rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone"});
+//testutil.dbugSet("");
+// BUG#30657911: retry adding instance without using a recoveryMethod
+//rs.addInstance(__sandbox3, {interactive:true});
 
 // Rollback
 //--------------------------------

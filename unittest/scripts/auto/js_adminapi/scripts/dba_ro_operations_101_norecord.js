@@ -1,3 +1,5 @@
+//@ {!real_host_is_loopback}
+
 //@<> INCLUDE metadata_schema_utils.inc
 
 //@ Initialization

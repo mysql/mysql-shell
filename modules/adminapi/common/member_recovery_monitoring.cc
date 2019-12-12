@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -498,8 +499,16 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     ignore_cancel = true;
 
     // Wait for the server to start again
-    new_instance = wait_server_startup(instance->get_connection_options(),
-                                       restart_timeout_sec, progress_style);
+    try {
+      new_instance = wait_server_startup(instance->get_connection_options(),
+                                         restart_timeout_sec, progress_style);
+    } catch (const shcore::Exception &e) {
+      if (e.code() == SHERR_DBA_SERVER_RESTART_TIMEOUT) {
+        throw restart_timeout();
+      } else {
+        throw;
+      }
+    }
 
     console->print_info("* " + instance->get_canonical_address() +
                         " has restarted, waiting for clone to finish...");

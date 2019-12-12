@@ -869,6 +869,19 @@ shcore::Value Add_instance::execute() {
             "Error while waiting for recovery of the added instance: " +
             e.format());
       }
+    } catch (const restart_timeout &) {
+      console->print_warning(
+          "Clone process appears to have finished and tried to restart the "
+          "MySQL server, but it has not yet started back up.");
+
+      console->print_info();
+      console->print_info("Please make sure the MySQL server at '" +
+                          m_target_instance->descr() +
+                          "' is restarted and call "
+                          "<Cluster>.rescan() to complete the process.");
+
+      throw shcore::Exception("Timeout waiting for server to restart",
+                              SHERR_DBA_SERVER_RESTART_TIMEOUT);
     }
 
     // When clone is used, the target instance will restart and all

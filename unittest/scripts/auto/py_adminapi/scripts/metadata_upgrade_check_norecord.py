@@ -1,3 +1,5 @@
+#@ {not real_host_is_loopback}
+
 import os
 import filecmp
 

@@ -38,6 +38,7 @@ constexpr const int k_recovery_status_poll_interval_ms = 1000;
 constexpr const int k_clone_status_poll_interval_ms = 500;
 
 class stop_monitoring {};
+class restart_timeout {};
 
 mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
     const mysqlshdk::db::Connection_options &instance_def,

@@ -759,6 +759,25 @@ c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
 var num_recovery_users_after = number_of_gr_recovery_accounts(session);
 EXPECT_EQ(num_recovery_users, num_recovery_users_after);
 
+// BUG#30281908: MYSQL SHELL CRASHED WHILE ADDING A INSTANCE TO INNODB CLUSTER
+// This bug was caused by a segmentation fault in the post-clone restart handling
+// that did not cover the timeout waiting for the instance to start after clone restarts it.
+// To test it, we change the sandbox configuration file to introduce a bogus setting which will
+// cause the failure of the instance restart, simulating then a timeout.
+
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.16)}
+testutil.changeSandboxConf(__mysql_sandbox_port2, "foo", "bar");
+c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"clone"});
+
+//@<> BUG#30281908: restart the instance manually {VER(>= 8.0.16)}
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "foo");
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.16)}
+testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
+c.rescan({interactive:true});
+
 //@<> BUG#25503159: clean-up.
 c.disconnect();
 session.close();
