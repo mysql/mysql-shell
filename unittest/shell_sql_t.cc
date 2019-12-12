@@ -46,9 +46,9 @@ namespace sql_shell_tests {
 class Environment {
  public:
   Environment() : m_console(&output_handler.deleg) {
-    shell_core.reset(new Shell_core(&m_console));
+    shell_core = std::make_shared<Shell_core>();
 
-    shell_sql.reset(new Shell_sql(shell_core.get()));
+    shell_sql = std::make_shared<Shell_sql>(shell_core.get());
   }
 
   ~Environment() {}

@@ -51,16 +51,18 @@ namespace {
 void print_diag(const std::string &s) { current_console()->print_diag(s); }
 
 void println(const std::string &s) { current_console()->println(s); }
+
+void print(const std::string &s) { current_console()->print(s); }
+
+void print_value(const shcore::Value &value, const std::string &s) {
+  current_console()->print_value(value, s);
+}
+
 }  // namespace
 
-Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
-                       shcore::Interpreter_delegate *custom_delegate)
+Base_shell::Base_shell(const std::shared_ptr<Shell_options> &cmdline_options)
     : m_shell_options{cmdline_options},
-      _deferred_output(new std::string()),
-      m_console_handler{
-          std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
-  m_console_handler.get()->set_verbose(options().verbose_level);
-
+      _deferred_output(std::make_unique<std::string>()) {
   shcore::Interrupts::setup();
 
   std::string log_path =
@@ -71,13 +73,16 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 
   _input_mode = shcore::Input_state::Ok;
 
-  _shell.reset(new shcore::Shell_core(m_console_handler.get().get()));
-  _completer_object_registry.reset(new shcore::completer::Object_registry());
+  _shell = std::make_shared<shcore::Shell_core>();
+  _completer_object_registry =
+      std::make_shared<shcore::completer::Object_registry>();
 }
 
 Base_shell::~Base_shell() {}
 
 void Base_shell::finish_init() {
+  current_console()->set_verbose(options().verbose_level);
+
   shcore::IShell_core::Mode initial_mode = options().initial_mode;
   if (initial_mode == shcore::IShell_core::Mode::None) {
 #ifdef HAVE_V8
@@ -432,7 +437,7 @@ void Base_shell::process_line(const std::string &line) {
         to_history = _shell->get_handled_input();
       }
     } catch (shcore::Exception &exc) {
-      m_console_handler.get()->print_value(shcore::Value(exc.error()), "error");
+      print_value(shcore::Value(exc.error()), "error");
       to_history = _input_buffer;
     } catch (const std::exception &exc) {
       std::string error(exc.what());
@@ -494,7 +499,7 @@ void Base_shell::print_result(const shcore::Value &result) {
           result.type != shcore::Map)
         tag = "value";
 
-      m_console_handler.get()->print_value(result, tag);
+      print_value(result, tag);
     }
   }
 }
@@ -552,7 +557,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
   // If interactive is set, it means that the shell was started with the option
   // to Emulate interactive mode while processing the stream
   if (!force_batch && options().interactive) {
-    if (options().full_interactive) m_console_handler.get()->print(prompt());
+    if (options().full_interactive) print(prompt());
 
     bool comment_first_js_line =
         _shell->interactive_mode() == shcore::IShell_core::Mode::JavaScript;
@@ -574,7 +579,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
 
       process_line(line);
 
-      if (options().full_interactive) m_console_handler.get()->print(prompt());
+      if (options().full_interactive) print(prompt());
     }
 
     // Being interactive, we do not care about the return value

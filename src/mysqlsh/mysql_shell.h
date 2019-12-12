@@ -42,7 +42,7 @@ class Os;
 
 class Mysql_shell : public mysqlsh::Base_shell {
  public:
-  Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
+  Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
               shcore::Interpreter_delegate *custom_delegate);
   ~Mysql_shell();
 
@@ -121,6 +121,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   void process_sql_result(const std::shared_ptr<mysqlshdk::db::IResult> &result,
                           const shcore::Sql_result_info &info) override;
 
+  Scoped_console m_console_handler;
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;

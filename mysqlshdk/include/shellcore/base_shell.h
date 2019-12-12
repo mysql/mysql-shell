@@ -41,8 +41,7 @@
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {
  public:
-  Base_shell(std::shared_ptr<Shell_options> cmdline_options,
-             shcore::Interpreter_delegate *custom_delegate);
+  explicit Base_shell(const std::shared_ptr<Shell_options> &cmdline_options);
 
   virtual ~Base_shell();
 
@@ -109,7 +108,6 @@ class SHCORE_PUBLIC Base_shell {
 
   Scoped_shell_options m_shell_options;
   std::unique_ptr<std::string> _deferred_output;
-  Scoped_console m_console_handler;
   std::shared_ptr<shcore::Shell_core> _shell;
   std::map<std::string, std::string> _prompt_variables;
   shcore::Input_state _input_mode;

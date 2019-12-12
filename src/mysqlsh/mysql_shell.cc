@@ -161,6 +161,8 @@ void print_warning(const std::string &s) {
 }
 
 void println(const std::string &s) { current_console()->println(s); }
+
+void print(const std::string &s) { current_console()->print(s); }
 }  // namespace
 
 class Shell_command_provider : public shcore::completer::Provider {
@@ -471,9 +473,11 @@ REGISTER_HELP(CMD_WATCH_EXAMPLE2_DESC,
               "As above, but screen is not cleared, results are displayed one "
               "after another.");
 
-Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
+Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
-    : mysqlsh::Base_shell(cmdline_options, custom_delegate) {
+    : mysqlsh::Base_shell(cmdline_options),
+      m_console_handler{
+          std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
@@ -656,7 +660,7 @@ void Mysql_shell::load_files(const File_list &file_list,
     auto msg = shcore::str_format(
         "Found errors loading %s, for more details look at the log at: %s",
         context.c_str(), shcore::Logger::singleton()->logfile_name().c_str());
-    current_console()->print_warning(msg);
+    print_warning(msg);
   }
 }
 
@@ -737,7 +741,7 @@ bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
               "Found multiple plugin initialization files for plugin "
               "'%s' at %s, ignoring plugin.",
               name.c_str(), plugin_dir.c_str());
-          current_console()->print_warning(msg);
+          print_warning(msg);
         } else if (is_js) {
           ret_val = true;
 #ifdef HAVE_V8
@@ -1761,10 +1765,8 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
       if (co.has_schema()) co.clear_schema();
       co.set_schema(_last_active_schema);
     }
-    if (!force)
-      m_console_handler.get()->print("The global session got disconnected..\n");
-    m_console_handler.get()->print("Attempting to reconnect to '" +
-                                   co.as_uri() + "'..");
+    if (!force) print("The global session got disconnected..\n");
+    print("Attempting to reconnect to '" + co.as_uri() + "'..");
 
     shcore::sleep_ms(500);
     int attempts = 6;
@@ -1775,20 +1777,18 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
       } catch (const shcore::Exception &e) {
         if (co.has_schema() &&
             strstr(e.what(), "Unknown database") != nullptr) {
-          m_console_handler.get()->println();
-          m_console_handler.get()->print_warning(
-              "Unable to reconnect to default schema '" + co.get_schema() +
-              "'");
+          println("");
+          print_warning("Unable to reconnect to default schema '" +
+                        co.get_schema() + "'");
           co.clear_schema();
           request_prompt_variables_update();
-          m_console_handler.get()->print(
-              "Ignoring schema, attempting to reconnect to '" + co.as_uri() +
-              "'..");
+          print("Ignoring schema, attempting to reconnect to '" + co.as_uri() +
+                "'..");
         }
         ret_val = false;
       }
       if (!ret_val) {
-        m_console_handler.get()->print("..");
+        print("..");
         attempts--;
         if (attempts > 0) {
           // Try again
@@ -1798,10 +1798,9 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     }
 
     if (ret_val)
-      m_console_handler.get()->print(
-          "\nThe global session was successfully reconnected.\n");
+      print("\nThe global session was successfully reconnected.\n");
     else
-      m_console_handler.get()->print(
+      print(
           "\nThe global session could not be reconnected automatically.\n"
           "Please use '\\reconnect' instead to manually reconnect.\n");
   }

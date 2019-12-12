@@ -60,10 +60,7 @@ REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
               "Displays information about the <b>\\connect</b> command.");
 namespace shcore {
 
-Shell_core::Shell_core(mysqlsh::IConsole *console)
-    : IShell_core(), m_console(console) {
-  assert(m_console);
-
+Shell_core::Shell_core() : IShell_core() {
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();

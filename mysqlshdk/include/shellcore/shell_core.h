@@ -151,7 +151,7 @@ class SHCORE_PUBLIC Shell_language {
 
 class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
  public:
-  Shell_core(mysqlsh::IConsole *console);
+  Shell_core();
   virtual ~Shell_core();
 
   Mode interactive_mode() const override { return _mode; }
@@ -224,7 +224,6 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   void init_py();
 
  private:
-  mysqlsh::IConsole *m_console;
   void init_sql();
   void init_js();
   void init_mode(Mode mode);
