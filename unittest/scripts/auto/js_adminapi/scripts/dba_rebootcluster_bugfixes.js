@@ -68,7 +68,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 //@ BUG29265869 - connect to instance.
 shell.connect(__sandbox_uri1);
 
-//@ BUG29265869 - Reboot cluster from complete outage.
+//@ BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown.
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 
 // Waiting for the instances to become online
@@ -147,6 +147,73 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 
 //@ BUG#29305551: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@<> BUG30501978 create cluster and add some data to it
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster("test", {gtidSetIsComplete: true});
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+
+//@<> BUG30501978 - Persist GR settings for 5.7. {VER(<8.0.0)}
+var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
+
+//@<> BUG30501978 Reset gr_start_on_boot on all instances and kill all cluster members
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+
+// kill all cluster members
+shell.connect(__sandbox_uri1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
+c.disconnect();
+session.close();
+testutil.killSandbox(__mysql_sandbox_port1);
+
+// start members again
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port1);
+
+//@<> BUG30501978 - Insert errant transactions on instance 2
+var session1 = mysql.getSession(__sandbox_uri1);
+var session2 = mysql.getSession(__sandbox_uri2);
+EXPECT_EQ(session1.runSql("SELECT @@GLOBAL.gtid_executed"), session2.runSql("SELECT @@GLOBAL.gtid_executed"));
+
+// disable sro
+session2.runSql("SET GLOBAL super_read_only=0");
+session2.runSql("CREATE DATABASE ERRANTDB2");
+// GTIds do not match
+EXPECT_NE(session1.runSql("SELECT @@GLOBAL.gtid_executed"), session2.runSql("SELECT @@GLOBAL.gtid_executed"));
+
+//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
+shell.connect(__sandbox_uri1);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
+// Insert transactions so that neither instance contains all of the gtids of the other
+session1.runSql("SET GLOBAL super_read_only=0");
+session1.runSql("CREATE DATABASE ERRANTDB1");
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
+session1.runSql("FLUSH BINARY LOGS");
+session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+session2.runSql("RESET MASTER");
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@<> BUG30501978: Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

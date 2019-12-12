@@ -121,14 +121,9 @@ class Add_instance : public Command_interface {
   std::string m_rpl_user;
   std::string m_rpl_pwd;
 
-  // TODO(pjesus): remove 'm_seed_instance' and 'm_skip_instance_check' for
-  //               refactor of reboot cluster (WL#11561), since
-  //               mysqlsh::dba::start_replicaset() should be used directly
-  //               instead of the Add_instance operation.
-  //               Same for m_rebooting
-  bool m_seed_instance;
-  bool m_skip_instance_check;
-  bool m_skip_rpl_user;
+  // TODO(pjesus): remove 'm_rebooting' for refactor of reboot cluster
+  //               (WL#11561), since mysqlsh::dba::start_replicaset() should be
+  //               used directly instead of the Add_instance operation.
   bool m_rebooting;
 
   std::string m_instance_address;

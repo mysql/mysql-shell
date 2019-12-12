@@ -68,9 +68,6 @@ Add_instance::Add_instance(
       m_interactive(interactive),
       m_rpl_user(replication_user),
       m_rpl_pwd(replication_password),
-      m_seed_instance(rebooting),
-      m_skip_instance_check(rebooting),
-      m_skip_rpl_user(rebooting),
       m_rebooting(rebooting) {
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
@@ -100,9 +97,6 @@ Add_instance::Add_instance(
       m_interactive(interactive),
       m_rpl_user(replication_user),
       m_rpl_pwd(replication_password),
-      m_seed_instance(rebooting),
-      m_skip_instance_check(rebooting),
-      m_skip_rpl_user(rebooting),
       m_rebooting(rebooting) {
   assert(target_instance);
   m_reuse_session_for_target_instance = true;
@@ -422,7 +416,7 @@ void Add_instance::prepare() {
   }
 
   // Connect to the peer instance.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     mysqlshdk::db::Connection_options peer(m_replicaset.pick_seed_instance());
     if (peer.uri_endpoint() != m_replicaset.get_cluster()
                                    ->get_target_instance()
@@ -475,16 +469,14 @@ void Add_instance::prepare() {
   // Check if clone is supported
   m_clone_supported = mysqlshdk::mysql::is_clone_available(*m_target_instance);
 
-  if (!m_seed_instance) {
-    // Check instance version compatibility with cluster.
-    ensure_instance_check_installed_schema_version();
-  }
-
-  // Resolve the SSL Mode to use to configure the instance.
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
+    // Check instance version compatibility with cluster.
+    ensure_instance_check_installed_schema_version();
+
+    // Resolve the SSL Mode to use to configure the instance.
     resolve_ssl_mode();
   }
 
@@ -492,8 +484,9 @@ void Add_instance::prepare() {
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
       *m_target_instance, m_replicaset.get_cluster()->get_target_instance());
 
-  // Check GTID consistency and whether clone is needed
-  {
+  // Check GTID consistency and whether clone is needed (not needed in
+  // rebootCluster)
+  if (!m_rebooting) {
     auto replicaset = this->m_replicaset;
     auto check_recoverable = [replicaset](mysqlshdk::mysql::IInstance *target) {
       // Check if the GTIDs were purged from the whole cluster
@@ -533,10 +526,10 @@ void Add_instance::prepare() {
   // Verify if the instance is running asynchronous (master-slave)
   // replication NOTE: Only verify if this is being called from a
   // addInstance() and not a createCluster() command.
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     auto console = mysqlsh::current_console();
 
     log_debug(
@@ -557,10 +550,10 @@ void Add_instance::prepare() {
     }
   }
 
-  // TODO(alfredo) - skip_instance_check is only true when this is called from
+  // TODO(alfredo) - m_rebooting is only true when this is called from
   // rebootCluster. Once rebootCluster is rewritten to not use addInstance,
-  // this check can be removed along with all these extra flags
-  if (!m_skip_instance_check) {
+  // this check can be removed
+  if (!m_rebooting) {
     // Check instance server UUID (must be unique among the cluster members).
     m_replicaset.validate_server_uuid(*m_target_instance);
 
@@ -590,31 +583,21 @@ void Add_instance::prepare() {
 
   // If this is not seed instance, then we should try to read the
   // failoverConsistency and expelTimeout values from a a cluster member.
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     m_replicaset.query_group_wide_option_values(m_target_instance.get(),
                                                 &m_gr_opts.consistency,
                                                 &m_gr_opts.expel_timeout);
-  }
 
-  // Check instance configuration and state, like dba.checkInstance
-  // But don't do it if it was already done by the caller
-  // TODO(pjesus): remove the 'if (!m_skip_instance_check)' for refactor of
-  //               reboot cluster (WL#11561), i.e. always execute check, not
-  //               supposed to use Add_instance operation anymore.
-  if (!m_skip_instance_check) {
+    // Check instance configuration and state, like dba.checkInstance
+    // But don't do it if it was already done by the caller
     ensure_gr_instance_configuration_valid(m_target_instance.get());
-  }
 
-  // TODO(nelson) - skip_instance_check is only true when this is called from
-  // rebootCluster. Once rebootCluster is rewritten to not use addInstance,
-  // this check can be removed along with all these extra flags
-  if (!m_skip_instance_check) {
-    // Validate that the local_address value we want to use as well as the local
-    // address values in use on the cluster are compatible with the version of
-    // the instance being added to the cluster.
+    // Validate that the local_address value we want to use as well as the
+    // local address values in use on the cluster are compatible with the
+    // version of the instance being added to the cluster.
     validate_local_address_ip_compatibility();
   }
 
@@ -656,9 +639,9 @@ void Add_instance::handle_gr_protocol_version() {
 
 bool Add_instance::handle_replication_user() {
   // Creates the replication user ONLY if not already given and if
-  // skip_rpl_user was not set to true.
+  // rebooting was not set to true.
   // NOTE: User always created at the seed instance.
-  if (!m_skip_rpl_user && m_rpl_user.empty()) {
+  if (!m_rebooting && m_rpl_user.empty()) {
     auto user_creds = m_replicaset.get_cluster()->create_replication_user(
         m_target_instance.get());
     m_rpl_user = user_creds.user;
@@ -725,10 +708,10 @@ void Add_instance::log_used_gr_options() {
 shcore::Value Add_instance::execute() {
   auto console = mysqlsh::current_console();
 
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     std::string msg =
         "A new instance will be added to the InnoDB cluster. Depending on the "
         "amount of data on the cluster this might take from a few seconds to "
@@ -742,10 +725,10 @@ shcore::Value Add_instance::execute() {
   // Common informative logging
   log_used_gr_options();
 
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     console->print_info("Adding instance to the cluster...");
     console->println();
   }
@@ -756,10 +739,10 @@ shcore::Value Add_instance::execute() {
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
   // Handle GR protocol version.
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     handle_gr_protocol_version();
   }
 
@@ -769,7 +752,8 @@ shcore::Value Add_instance::execute() {
           m_replicaset.get_cluster()->get_id());
 
   // Clone handling
-  if (m_clone_supported) {
+
+  if (!m_rebooting && m_clone_supported) {
     bool enable_clone = !m_clone_disabled;
 
     // Force clone if requested
@@ -808,10 +792,10 @@ shcore::Value Add_instance::execute() {
   std::string join_begin_time =
       m_target_instance->queryf_one_string(0, "", "SELECT NOW(6)");
 
-  // TODO(pjesus): remove the 'if (m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), mysqlsh::dba::start_replicaset() should
   //               be used directly instead of the Add_instance operation.
-  if (m_seed_instance) {
+  if (m_rebooting) {
     if (!m_gr_opts.group_name.is_null() && !m_gr_opts.group_name->empty()) {
       log_info("Using Group Replication group name: %s",
                m_gr_opts.group_name->c_str());
@@ -984,10 +968,10 @@ shcore::Value Add_instance::execute() {
 
   log_debug("Instance add finished");
 
-  // TODO(pjesus): remove the 'if (!m_seed_instance)' for refactor of reboot
+  // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
-  if (!m_seed_instance) {
+  if (!m_rebooting) {
     console->print_info("The instance '" + m_instance_address +
                         "' was successfully added to the cluster.");
     console->println();

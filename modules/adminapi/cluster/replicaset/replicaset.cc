@@ -1546,6 +1546,18 @@ void GRReplicaSet::rejoin_instances(
         log_warning("%s", msg.c_str());
         rejoin_instance(&connection_options, shcore::Value::Map_type_ref());
       } catch (const shcore::Error &e) {
+        auto console = mysqlsh::current_console();
+        // TODO(miguel) Once WL#13535 is implemented and rejoin supports clone,
+        // simplify the following note by telling the user to use
+        // rejoinInstance. E.g: “%s’ could not be automatically rejoined. Please
+        // use cluster.rejoinInstance() to manually re-add it.”
+        console->print_note(shcore::str_format(
+            "Unable to rejoin instance '%s' to the cluster but the "
+            "<Dba>.<<<rebootClusterFromCompleteOutage>>>() operation will "
+            "continue. The instance must be either cloned or fully "
+            "re-provisioned before it can be re-added to the cluster.",
+            instance.c_str()));
+        console->print_info();
         log_error("Failed to rejoin instance: %s", e.what());
       }
     }
