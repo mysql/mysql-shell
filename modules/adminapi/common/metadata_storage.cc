@@ -90,11 +90,11 @@ const char *get_router_query(const mysqlshdk::utils::Version &md_version) {
 static constexpr const char *k_select_cluster_metadata =
     R"*(SELECT * FROM (
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, CAST(NULL as CHAR(32)) as group_name, async_topology_type
+      description, NULL as group_name, async_topology_type
 FROM mysql_innodb_cluster_metadata.v2_ar_clusters
 UNION ALL
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, group_name, CAST(NULL as CHAR(32)) as async_topology_type
+      description, group_name, NULL as async_topology_type
 FROM mysql_innodb_cluster_metadata.v2_gr_clusters
 ) as c)*";
 

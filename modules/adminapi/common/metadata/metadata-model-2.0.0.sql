@@ -41,8 +41,10 @@
   corresponding major version of the metadata, e.g. 'v2_clusters'.
 */
 
-CREATE DATABASE IF NOT EXISTS mysql_innodb_cluster_metadata;
+CREATE DATABASE IF NOT EXISTS mysql_innodb_cluster_metadata DEFAULT CHARACTER SET utf8mb4;
 USE mysql_innodb_cluster_metadata;
+
+SET names utf8mb4;
 
 --  Metadata Schema Version
 --  -----------------------
@@ -455,7 +457,7 @@ CREATE SQL SECURITY INVOKER VIEW v2_this_instance AS
           c.cluster_type
   FROM v2_instances i
   JOIN clusters c ON i.cluster_id = c.cluster_id
-  WHERE i.mysql_server_uuid = (SELECT variable_value
+  WHERE i.mysql_server_uuid = (SELECT convert(variable_value using ascii)
       FROM performance_schema.global_variables
       WHERE variable_name = 'server_uuid');
 

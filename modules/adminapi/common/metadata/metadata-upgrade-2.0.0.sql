@@ -70,6 +70,9 @@ DROP TABLE clusters;
 DROP TABLE instances;
 DROP TABLE routers;
 
+ALTER SCHEMA mysql_innodb_cluster_metadata DEFAULT CHARACTER SET utf8mb4;
+
+SET NAMES utf8mb4;
 
 -- Deploy: METADATA_MODEL_2_0_0
 
