@@ -105,47 +105,60 @@ void Base_shell::finish_init() {
 void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   std::string extension;
 
-  if (mode == shcore::Shell_core::Mode::JavaScript)
-    extension.append(".js");
-  else if (mode == shcore::Shell_core::Mode::Python)
-    extension.append(".py");
-  else
-    return;
+  switch (mode) {
+    case shcore::Shell_core::Mode::JavaScript:
+      extension.append(".js");
+      break;
 
-  std::vector<std::string> scripts_paths;
+    case shcore::Shell_core::Mode::Python:
+      extension.append(".py");
+      break;
 
-  std::string user_file = "";
+    case shcore::Shell_core::Mode::None:
+    case shcore::Shell_core::Mode::SQL:
+      return;
+  }
 
   try {
-    // Checks existence of global startup script
-    std::string path = shcore::get_global_config_path();
-    path.append("shellrc");
-    path.append(extension);
-    if (shcore::is_file(path)) scripts_paths.push_back(path);
+    std::vector<std::string> script_paths;
+    const auto startup_script = "mysqlshrc" + extension;
 
-    // Checks existence of startup script at MYSQLSH_HOME
-    // Or the binary location if not a standard installation
-    path = shcore::get_mysqlx_home_path();
-    if (!path.empty()) {
-      path.append("/share/mysqlsh/mysqlshrc");
-    } else {
-      path = shcore::get_binary_folder();
-      path.append("/mysqlshrc");
+    {
+      // Checks existence of global startup script
+      auto path = shcore::path::join_path(shcore::get_global_config_path(),
+                                          startup_script);
+      if (shcore::is_file(path)) script_paths.emplace_back(std::move(path));
     }
-    path.append(extension);
-    if (shcore::is_file(path)) scripts_paths.push_back(path);
 
-    // Checks existence of user startup script
-    path = shcore::get_user_config_path();
-    path.append("mysqlshrc");
-    path.append(extension);
-    if (shcore::is_file(path)) scripts_paths.push_back(path);
+    {
+      // Checks existence of startup script at MYSQLSH_HOME
+      // Or the binary location if not a standard installation
+      const auto home = shcore::get_mysqlx_home_path();
+      std::string path;
 
-    for (std::vector<std::string>::iterator i = scripts_paths.begin();
-         i != scripts_paths.end(); ++i) {
-      std::ifstream stream(*i);
-      if (stream && stream.peek() != std::ifstream::traits_type::eof())
-        process_file(*i, {*i});
+      if (!home.empty()) {
+        path =
+            shcore::path::join_path(home, "share", "mysqlsh", startup_script);
+      } else {
+        path = shcore::path::join_path(shcore::get_binary_folder(),
+                                       startup_script);
+      }
+
+      if (shcore::is_file(path)) script_paths.emplace_back(std::move(path));
+    }
+
+    {
+      // Checks existence of user startup script
+      auto path = shcore::path::join_path(shcore::get_user_config_path(),
+                                          startup_script);
+      if (shcore::is_file(path)) script_paths.emplace_back(std::move(path));
+    }
+
+    for (const auto &script : script_paths) {
+      std::ifstream stream(script);
+      if (stream && stream.peek() != std::ifstream::traits_type::eof()) {
+        process_file(script, {script});
+      }
     }
   } catch (const std::exception &e) {
     std::string error(e.what());
