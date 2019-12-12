@@ -857,7 +857,7 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) {
     }
 
     if (current_shell_options()->get().wizards) {
-      auto state = get_cluster_check_info(group_server);
+      auto state = get_cluster_check_info(*metadata);
       if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
         console->println(
             "WARNING: You are connected to an instance in state '" +

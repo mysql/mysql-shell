@@ -111,8 +111,7 @@ void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 void check_preconditions(const std::string &function_name,
                          const Cluster_check_info &info);
 
-Cluster_check_info get_cluster_check_info(
-    const std::shared_ptr<Instance> &group_server);
+Cluster_check_info get_cluster_check_info(const MetadataStorage &group_server);
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,

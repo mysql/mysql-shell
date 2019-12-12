@@ -89,7 +89,9 @@ const States kIncompatibleOrUpgrading = States(State::UPGRADING)
 
 metadata::State check_installed_schema_version(
     const std::shared_ptr<Instance> &group_server,
-    mysqlshdk::utils::Version *out_installed = nullptr);
+    mysqlshdk::utils::Version *out_installed,
+    mysqlshdk::utils::Version *out_real_md_version,
+    std::string *out_version_schema);
 
 // Metadata schema version supported by "this" version of the shell.
 mysqlshdk::utils::Version current_version();
@@ -98,12 +100,6 @@ mysqlshdk::utils::Version current_version();
 mysqlshdk::utils::Version installed_version(
     const std::shared_ptr<Instance> &group_server,
     const std::string &schema_name = kMetadataSchemaName);
-
-// This function will retrieve the metadata version and name of the metadata
-// schema that can be queried no matter an upgrade is in progress
-bool find_reliable_metadata_info(const std::shared_ptr<Instance> &group_server,
-                                 mysqlshdk::utils::Version *version,
-                                 std::string *schema_name);
 
 void install(const std::shared_ptr<Instance> &group_server);
 

@@ -498,41 +498,14 @@ Version installed_version(const std::shared_ptr<Instance> &group_server,
   return ret_val;
 }
 
-bool find_reliable_metadata_info(const std::shared_ptr<Instance> &group_server,
-                                 mysqlshdk::utils::Version *version,
-                                 std::string *schema_name) {
-  upgrade::Stage stage = upgrade::detect_failed_stage(group_server);
-
-  Version tmp_version = kNotInstalled;
-  std::string target_schema = kMetadataSchemaName;
-  switch (stage) {
-    case upgrade::Stage::OK:
-    case upgrade::Stage::NONE:
-      tmp_version = installed_version(group_server, kMetadataSchemaName);
-      break;
-    case upgrade::Stage::SETTING_UPGRADE_VERSION:
-    case upgrade::Stage::UPGRADING:
-      tmp_version = installed_version(group_server, kMetadataSchemaBackupName);
-      target_schema = kMetadataSchemaBackupName;
-      break;
-    case upgrade::Stage::DONE:
-    case upgrade::Stage::CLEANUP:
-      tmp_version = Version(k_metadata_schema_version);
-      break;
-  }
-
-  if (tmp_version != kNotInstalled) {
-    if (version) *version = tmp_version;
-    if (schema_name) *schema_name = target_schema;
-    return true;
-  }
-  return false;
-}
-
 State check_installed_schema_version(
     const std::shared_ptr<Instance> &group_server,
-    mysqlshdk::utils::Version *out_installed) {
+    mysqlshdk::utils::Version *out_installed,
+    mysqlshdk::utils::Version *out_real_md_version,
+    std::string *out_version_schema) {
   mysqlshdk::utils::Version installed = kNotInstalled;
+  mysqlshdk::utils::Version real_md_version = kNotInstalled;
+  std::string version_schema = kMetadataSchemaName;
   State state = State::NONEXISTING;
 
   if (schema_exists(group_server, kMetadataSchemaName) ||
@@ -543,7 +516,8 @@ State check_installed_schema_version(
       case upgrade::Stage::OK:
       case upgrade::Stage::NONE: {
         auto current = current_version();
-        installed = installed_version(group_server, kMetadataSchemaName);
+        installed = installed_version(group_server, version_schema);
+        real_md_version = installed;
 
         if (installed == current) {
           state = State::EQUAL;
@@ -574,8 +548,8 @@ State check_installed_schema_version(
       }
       case upgrade::Stage::SETTING_UPGRADE_VERSION:
       case upgrade::Stage::UPGRADING:
-      case upgrade::Stage::DONE:
-      case upgrade::Stage::CLEANUP:
+        version_schema = kMetadataSchemaBackupName;
+        real_md_version = installed_version(group_server, version_schema);
         installed = kUpgradingVersion;
         if (upgrade::get_lock(group_server)) {
           upgrade::release_lock(group_server);
@@ -584,11 +558,22 @@ State check_installed_schema_version(
           state = State::UPGRADING;
         }
         break;
+      case upgrade::Stage::DONE:
+      case upgrade::Stage::CLEANUP:
+        installed = installed_version(group_server, version_schema);
+        real_md_version = Version(k_metadata_schema_version);
+
+        // Sinc ethe upgrade was not completed this is handled as a failed
+        // upgrade
+        state = State::FAILED_UPGRADE;
+        break;
     }
   }
 
   // Returns the installed version if requested
   if (out_installed) *out_installed = installed;
+  if (out_real_md_version) *out_real_md_version = real_md_version;
+  if (out_version_schema) *out_version_schema = version_schema;
 
   return state;
 }
@@ -836,7 +821,8 @@ void upgrade_or_restore_schema(const std::shared_ptr<Instance> &group_server,
     {  // We need to what will be the final version in order print the right
        // message
       Version final_version;
-      find_reliable_metadata_info(group_server, &final_version, nullptr);
+      check_installed_schema_version(group_server, nullptr, &final_version,
+                                     nullptr);
 
       std::string action = dry_run ? "can" : "will";
       if (stage == upgrade::Stage::CLEANUP || stage == upgrade::Stage::DONE) {

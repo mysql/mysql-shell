@@ -131,7 +131,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                            const mysqlshdk::utils::Version &md_version,
                            Cluster_type *out_type) const;
 
-  bool check_all_members_online();
+  bool check_all_members_online() const;
 
   virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted);
 
@@ -221,7 +221,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   std::vector<Instance_metadata> get_all_instances(Cluster_id cluster_id = "");
 
-  Instance_metadata get_instance_by_uuid(const std::string &uuid);
+  Instance_metadata get_instance_by_uuid(const std::string &uuid) const;
 
   Instance_metadata get_instance_by_address(
       const std::string &instance_address);
@@ -281,26 +281,49 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
     m_md_state = mysqlsh::dba::metadata::State::NONEXISTING;
   }
 
+  /**
+   * This function returns the current installed version of the MD schema
+   */
+  mysqlshdk::utils::Version installed_version() const {
+    check_version();
+    return m_md_version;
+  }
+
+  /**
+   * This function returns the version of the MD schema that contains the
+   * reliable information, could be MD schema or MD schema backup.
+   */
+  mysqlshdk::utils::Version real_version() const {
+    check_version();
+    return m_real_md_version;
+  }
+
+  std::string version_schema() const {
+    check_version();
+    return m_md_version_schema;
+  }
+
+  mysqlsh::dba::metadata::State state() const {
+    check_version();
+    return m_md_state;
+  }
+
  private:
   uint32_t inc_view_failover_counter(uint32_t view_id) const;
   void begin_acl_change_record(const Cluster_id &cluster_id,
                                const char *operation, uint32_t *out_aclvid,
                                uint32_t *last_aclvid);
 
- private:
   class Transaction;
   friend class Transaction;
 
   std::shared_ptr<Instance> m_md_server;
   bool m_owns_md_server;
   mutable mysqlshdk::utils::Version m_md_version;
+  mutable mysqlshdk::utils::Version m_real_md_version;
+  mutable std::string m_md_version_schema;
   mutable mysqlsh::dba::metadata::State m_md_state =
       mysqlsh::dba::metadata::State::NONEXISTING;
-
-  mysqlshdk::utils::Version version() const {
-    check_version();
-    return m_md_version;
-  }
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql) const;
@@ -317,10 +340,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Instance_metadata unserialize_instance(
       const mysqlshdk::db::Row_ref_by_name &row,
-      mysqlshdk::utils::Version *mdver_in = nullptr);
-
-  bool find_reliable_metadata_info(mysqlshdk::utils::Version *version,
-                                   std::string *schema_name) const;
+      mysqlshdk::utils::Version *mdver_in = nullptr) const;
 };
 }  // namespace dba
 }  // namespace mysqlsh

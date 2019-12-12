@@ -217,7 +217,7 @@ bool MetadataStorage::check_version(
       m_md_state == mysqlsh::dba::metadata::State::FAILED_UPGRADE ||
       m_md_state == mysqlsh::dba::metadata::State::UPGRADING) {
     m_md_state = mysqlsh::dba::metadata::check_installed_schema_version(
-        m_md_server, &m_md_version);
+        m_md_server, &m_md_version, &m_real_md_version, &m_md_version_schema);
   }
 
   if (m_md_version != mysqlsh::dba::metadata::kNotInstalled) {
@@ -232,17 +232,14 @@ bool MetadataStorage::check_instance_type(
     const std::string & /*uuid*/,
     const mysqlshdk::utils::Version & /*md_version*/,
     Cluster_type *out_type) const {
-  mysqlshdk::utils::Version mdver;
-  std::string schema;
-
-  if (find_reliable_metadata_info(&mdver, &schema)) {
-    if (mdver.get_major() == 1) {
+  if (real_version() != metadata::kNotInstalled) {
+    if (m_real_md_version.get_major() == 1) {
       try {
         auto query = shcore::sqlstring(
             "select count(*) from !.instances where "
             "mysql_server_uuid = @@server_uuid",
             0);
-        query << schema;
+        query << m_md_version_schema;
         query.done();
 
         auto result = execute_sql(query);
@@ -252,27 +249,30 @@ bool MetadataStorage::check_instance_type(
             log_debug(
                 "Instance type check: %s: Cluster metadata record found "
                 "(metadata %s)",
-                m_md_server->descr().c_str(), mdver.get_full().c_str());
+                m_md_server->descr().c_str(),
+                m_real_md_version.get_full().c_str());
             *out_type = Cluster_type::GROUP_REPLICATION;
             return true;
           } else {
             log_debug(
                 "Instance type check: %s: Metadata record not found (metadata "
                 "%s)",
-                m_md_server->descr().c_str(), mdver.get_full().c_str());
+                m_md_server->descr().c_str(),
+                m_real_md_version.get_full().c_str());
           }
         }
       } catch (const shcore::Exception &error) {
         log_debug("Error querying metadata: %s: version %s: %i %s",
-                  m_md_server->descr().c_str(), mdver.get_full().c_str(),
-                  error.code(), error.what());
+                  m_md_server->descr().c_str(),
+                  m_real_md_version.get_full().c_str(), error.code(),
+                  error.what());
         throw;
       }
     } else {
       try {
         auto query =
             shcore::sqlstring("select cluster_type from !.v2_this_instance", 0);
-        query << schema;
+        query << m_md_version_schema;
         query.done();
 
         auto result = execute_sql(query);
@@ -284,14 +284,16 @@ bool MetadataStorage::check_instance_type(
             log_debug(
                 "Instance type check: %s: ReplicaSet metadata record found "
                 "(metadata %s)",
-                m_md_server->descr().c_str(), mdver.get_full().c_str());
+                m_md_server->descr().c_str(),
+                m_real_md_version.get_full().c_str());
             *out_type = Cluster_type::ASYNC_REPLICATION;
             return true;
           } else if (type == "gr") {
             log_debug(
                 "Instance type check: %s: Cluster metadata record found "
                 "(metadata %s)",
-                m_md_server->descr().c_str(), mdver.get_full().c_str());
+                m_md_server->descr().c_str(),
+                m_real_md_version.get_full().c_str());
             *out_type = Cluster_type::GROUP_REPLICATION;
             return true;
           } else {
@@ -303,12 +305,14 @@ bool MetadataStorage::check_instance_type(
           log_debug(
               "Instance type check: %s: Metadata record not found (metadata "
               "%s)",
-              m_md_server->descr().c_str(), mdver.get_full().c_str());
+              m_md_server->descr().c_str(),
+              m_real_md_version.get_full().c_str());
         }
       } catch (shcore::Exception &error) {
         log_debug("Error querying metadata: %s: version %s: %i %s",
-                  m_md_server->descr().c_str(), mdver.get_full().c_str(),
-                  error.code(), error.what());
+                  m_md_server->descr().c_str(),
+                  m_real_md_version.get_full().c_str(), error.code(),
+                  error.what());
         throw;
       }
     }
@@ -316,19 +320,17 @@ bool MetadataStorage::check_instance_type(
   return false;
 }
 
-bool MetadataStorage::check_all_members_online() {
+bool MetadataStorage::check_all_members_online() const {
   // If the number of members that belong to the same replicaset in the
   // instances table is the same as the number of ONLINE members in
   // replication_group_members then ALL the members in the cluster are
   // ONLINE
-  mysqlshdk::utils::Version mdver;
-  std::string schema;
   bool ret_val = false;
-  if (find_reliable_metadata_info(&mdver, &schema)) {
-    auto query_base = get_all_online_check_query(mdver);
+  if (real_version() != metadata::kNotInstalled) {
+    auto query_base = get_all_online_check_query(m_real_md_version);
 
-    auto result =
-        m_md_server->queryf(query_base, schema.c_str(), schema.c_str());
+    auto result = m_md_server->queryf(query_base, m_md_version_schema.c_str(),
+                                      m_md_version_schema.c_str());
 
     const mysqlshdk::db::IRow *row = result->fetch_one();
 
@@ -400,7 +402,8 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
 bool MetadataStorage::get_cluster(const Cluster_id &cluster_id,
                                   Cluster_metadata *out_cluster) {
   auto result = execute_sqlf(
-      get_cluster_query(version()) + " WHERE c.cluster_id = ?", cluster_id);
+      get_cluster_query(real_version()) + " WHERE c.cluster_id = ?",
+      cluster_id);
   if (auto row = result->fetch_one_named()) {
     *out_cluster = unserialize_cluster_metadata(row, m_md_version);
     return true;
@@ -460,19 +463,18 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
 std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
   std::vector<Cluster_metadata> l;
 
-  mysqlshdk::utils::Version mdver;
-  std::string schema;
-  if (find_reliable_metadata_info(&mdver, &schema)) {
-    std::string query(get_cluster_query(mdver));
+  if (real_version() != metadata::kNotInstalled) {
+    std::string query(get_cluster_query(m_real_md_version));
 
     // If a different schema is provided, uses it
-    if (schema != metadata::kMetadataSchemaName)
-      query = shcore::str_replace(query, metadata::kMetadataSchemaName, schema);
+    if (m_md_version_schema != metadata::kMetadataSchemaName)
+      query = shcore::str_replace(query, metadata::kMetadataSchemaName,
+                                  m_md_version_schema);
 
     auto result = execute_sqlf(query);
 
     while (auto row = result->fetch_one_named()) {
-      l.push_back(unserialize_cluster_metadata(row, mdver));
+      l.push_back(unserialize_cluster_metadata(row, m_real_md_version));
     }
   }
 
@@ -483,7 +485,7 @@ bool MetadataStorage::get_cluster_for_server_uuid(
     const std::string &server_uuid, Cluster_metadata *out_cluster) {
   std::shared_ptr<mysqlshdk::db::IResult> result;
 
-  std::string query = get_cluster_query(version());
+  std::string query = get_cluster_query(real_version());
 
   std::string instances_table("v2_instances");
   std::string target_table("c");
@@ -521,7 +523,8 @@ bool MetadataStorage::get_cluster_for_cluster_name(
   }
 
   auto result = execute_sqlf(
-      get_cluster_query(version()) + " WHERE c.cluster_name = ?", cluster_name);
+      get_cluster_query(real_version()) + " WHERE c.cluster_name = ?",
+      cluster_name);
   if (auto row = result->fetch_one_named()) {
     *out_cluster = unserialize_cluster_metadata(row, m_md_version);
     return true;
@@ -924,7 +927,7 @@ void MetadataStorage::set_instance_label(const Cluster_id &cluster_id,
 
 Instance_metadata MetadataStorage::unserialize_instance(
     const mysqlshdk::db::Row_ref_by_name &row,
-    mysqlshdk::utils::Version *mdver_in) {
+    mysqlshdk::utils::Version *mdver_in) const {
   Instance_metadata instance;
 
   // If no input version is provided it will use the version attribute on this
@@ -965,9 +968,9 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_members(
   std::string alias = "i";
   if (m_md_version.get_major() == 1) alias = "r";
 
-  auto result =
-      execute_sqlf(get_instance_query(version()) + " WHERE !.cluster_id = ?",
-                   alias, cluster_id);
+  auto result = execute_sqlf(
+      get_instance_query(real_version()) + " WHERE !.cluster_id = ?", alias,
+      cluster_id);
 
   if (out_view_id) *out_view_id = 0;
 
@@ -983,21 +986,20 @@ std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     Cluster_id cluster_id) {
   std::vector<Instance_metadata> ret_val;
 
-  mysqlshdk::utils::Version mdver;
-  std::string schema;
-  if (find_reliable_metadata_info(&mdver, &schema)) {
-    std::string query(get_instance_query(mdver));
+  if (real_version() != metadata::kNotInstalled) {
+    std::string query(get_instance_query(m_real_md_version));
 
     // If a different schema is provided, uses it
-    if (schema != metadata::kMetadataSchemaName)
-      query = shcore::str_replace(query, metadata::kMetadataSchemaName, schema);
+    if (m_md_version_schema != metadata::kMetadataSchemaName)
+      query = shcore::str_replace(query, metadata::kMetadataSchemaName,
+                                  m_md_version_schema);
 
     std::shared_ptr<mysqlshdk::db::IResult> result;
 
     if (cluster_id.empty()) {
       result = execute_sql(query);
     } else {
-      if (mdver.get_major() == 1) {
+      if (m_real_md_version.get_major() == 1) {
         result = execute_sqlf(query + " WHERE r.cluster_id = ?",
                               std::atoi(cluster_id.c_str()));
       } else {
@@ -1006,7 +1008,7 @@ std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     }
 
     while (auto row = result->fetch_one_named()) {
-      ret_val.push_back(unserialize_instance(row, &mdver));
+      ret_val.push_back(unserialize_instance(row, &m_real_md_version));
     }
   }
 
@@ -1037,9 +1039,10 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_instances(
 }
 
 Instance_metadata MetadataStorage::get_instance_by_uuid(
-    const std::string &uuid) {
+    const std::string &uuid) const {
   auto result = execute_sqlf(
-      get_instance_query(version()) + " WHERE i.mysql_server_uuid = ?", uuid);
+      get_instance_query(real_version()) + " WHERE i.mysql_server_uuid = ?",
+      uuid);
 
   if (auto row = result->fetch_one_named()) {
     return unserialize_instance(row);
@@ -1051,7 +1054,7 @@ Instance_metadata MetadataStorage::get_instance_by_uuid(
 
 Instance_metadata MetadataStorage::get_instance_by_address(
     const std::string &instance_address) {
-  auto md_version = version();
+  auto md_version = real_version();
   auto query(get_instance_query(md_version));
 
   if (md_version.get_major() == 1)
@@ -1558,7 +1561,7 @@ void MetadataStorage::record_async_primary_forced_switch(
 std::vector<Router_metadata> MetadataStorage::get_routers(
     const Cluster_id &cluster_id) {
   std::vector<Router_metadata> ret_val;
-  std::string query(get_router_query(version()));
+  std::string query(get_router_query(real_version()));
 
   std::shared_ptr<mysqlshdk::db::IResult> result;
 
@@ -1597,7 +1600,7 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.
-  if (version().get_major() == 1) {
+  if (real_version().get_major() == 1) {
     auto result = execute_sqlf(
         "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
         " JOIN mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id"
@@ -1635,23 +1638,6 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
       return false;
     }
   }
-}
-
-bool MetadataStorage::find_reliable_metadata_info(
-    mysqlshdk::utils::Version *version, std::string *schema_name) const {
-  bool ret_val = false;
-  try {
-    ret_val = metadata::find_reliable_metadata_info(m_md_server, version,
-                                                    schema_name);
-  } catch (const mysqlshdk::db::Error &err) {
-    std::string err_msg = "Failed to execute query on Metadata server " +
-                          m_md_server->descr() + ": ";
-    err_msg.append(err.what());
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        err_msg, err.code(), err.sqlstate());
-  }
-
-  return ret_val;
 }
 
 }  // namespace dba

@@ -500,12 +500,11 @@ void validate_gr_session(
         "starting up");
 }
 
-bool check_metadata(const std::shared_ptr<Instance> &target_server,
+bool check_metadata(const MetadataStorage &metadata,
                     mysqlshdk::utils::Version *out_version,
                     Cluster_type *out_type) {
-  MetadataStorage metadata(target_server);
-
   if (metadata.check_version(out_version)) {
+    auto target_server = metadata.get_md_server();
     log_debug("Instance type check: %s: Metadata version %s found",
               target_server->descr().c_str(), out_version->get_full().c_str());
 
@@ -549,15 +548,15 @@ bool check_group_replication_active(
   return ret_val;
 }
 
-GRInstanceType::Type get_instance_type(
-    const std::shared_ptr<Instance> &target_server) {
+GRInstanceType::Type get_instance_type(const MetadataStorage &metadata) {
   mysqlshdk::utils::Version md_version;
   Cluster_type cluster_type;
   bool has_metadata = false;
   bool gr_active;
+  auto target_server = metadata.get_md_server();
 
   try {
-    has_metadata = check_metadata(target_server, &md_version, &cluster_type);
+    has_metadata = check_metadata(metadata, &md_version, &cluster_type);
 
     gr_active = check_group_replication_active(target_server);
   } catch (const mysqlshdk::db::Error &error) {
@@ -643,16 +642,16 @@ std::string describe(State state) {
 }
 }  // namespace ManagedInstance
 
-Cluster_check_info get_cluster_check_info(
-    const std::shared_ptr<Instance> &group_server) {
-  validate_session(group_server->get_session());
+Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata) {
+  validate_session(metadata.get_md_server()->get_session());
 
   Cluster_check_info state;
+  auto group_server = metadata.get_md_server();
 
   // Retrieves the instance configuration type from the perspective of the
   // active session
   try {
-    state.source_type = get_instance_type(group_server);
+    state.source_type = get_instance_type(metadata);
   } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
       throw;
@@ -676,8 +675,6 @@ Cluster_check_info get_cluster_check_info(
     if (state.source_type == GRInstanceType::InnoDBCluster &&
         state.quorum == ReplicationQuorum::States::Normal) {
       try {
-        MetadataStorage metadata(group_server);
-
         if (metadata.check_all_members_online()) {
           state.quorum |= ReplicationQuorum::States::All_online;
         }
@@ -690,7 +687,6 @@ Cluster_check_info get_cluster_check_info(
       }
     }
   } else if (state.source_type == GRInstanceType::AsyncReplicaSet) {
-    MetadataStorage metadata(group_server);
     auto instance = metadata.get_instance_by_uuid(group_server->get_uuid());
     if (instance.primary_master)
       state.source_state = ManagedInstance::OnlineRW;
@@ -861,11 +857,8 @@ void check_preconditions(const std::string &function_name,
  * Every function requiring specific action handling should have it registered
  * on the AdminAPI_function_availability.
  */
-void check_metadata_preconditions(
-    const std::string &function_name,
-    const std::shared_ptr<Instance> &group_server) {
-  mysqlshdk::utils::Version installed;
-
+void check_metadata_preconditions(const std::string &function_name,
+                                  const MetadataStorage &metadata) {
   // It is assumed that if metadata is Compatible, there should be no
   // restrictions on any function
   assert(AdminAPI_function_availability.find(function_name) !=
@@ -875,8 +868,7 @@ void check_metadata_preconditions(
 
   // Metadata validation is done only on the functions that require it
   if (!availability.metadata_validations.empty()) {
-    MDS compatibility =
-        metadata::check_installed_schema_version(group_server, &installed);
+    MDS compatibility = metadata.state();
 
     if (compatibility != MDS::EQUAL) {
       for (const auto &validation : availability.metadata_validations) {
@@ -888,7 +880,7 @@ void check_metadata_preconditions(
           // existing precondition checks.
           if (!msg.empty()) {
             auto pre_formatted = shcore::str_format(
-                msg.c_str(), installed.get_base().c_str(),
+                msg.c_str(), metadata.installed_version().get_base().c_str(),
                 mysqlsh::dba::metadata::current_version().get_base().c_str());
 
             auto console = mysqlsh::current_console();
@@ -922,10 +914,12 @@ Cluster_check_info check_function_preconditions(
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation.");
 
-  // Performs metadata state validations before anything else
-  check_metadata_preconditions(function_name, group_server);
+  MetadataStorage metadata(group_server);
 
-  Cluster_check_info info = get_cluster_check_info(group_server);
+  // Performs metadata state validations before anything else
+  check_metadata_preconditions(function_name, metadata);
+
+  Cluster_check_info info = get_cluster_check_info(metadata);
 
   check_preconditions(function_name, info);
 

@@ -116,13 +116,16 @@ for (index in tests) {
     load_metadata_version(M, m, p, true);
 
     var other_session;
-    if (tests[index][3] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session = mysql.getSession(__sandbox_uri1);
         // The upgrading state requires that a backup of the MD exists, otherwise is
         // considered failed upgrade
         other_session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata_bkp");
         other_session.runSql("CREATE SQL SECURITY INVOKER VIEW mysql_innodb_cluster_metadata_bkp.backup_stage (stage) AS SELECT 'UPGRADING'");
-        other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)");
+        other_session.runSql("CREATE VIEW mysql_innodb_cluster_metadata_bkp.schema_version (major, minor, patch) AS SELECT 1, 0, 1");
+        if (tests[index][3] == "UPGRADING_ERROR") {
+            other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)");
+        }
     }
 
     print_debug(tests[index]);
@@ -138,7 +141,7 @@ for (index in tests) {
         }, tests[index][3]);
     }
 
-    if (tests[index][3] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata_bkp")
         other_session.close();
     }
@@ -177,13 +180,16 @@ for (index in tests) {
     load_metadata_version(M, m, p, false, gr_group_name);
 
     var other_session;
-    if (tests[index][3] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session = mysql.getSession(__sandbox_uri1);
         // The upgrading state requires that a backup of the MD exists, otherwise is
         // considered failed upgrade
         other_session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata_bkp")
         other_session.runSql("CREATE SQL SECURITY INVOKER VIEW mysql_innodb_cluster_metadata_bkp.backup_stage (stage) AS SELECT 'UPGRADING'");
-        other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
+        other_session.runSql("CREATE VIEW mysql_innodb_cluster_metadata_bkp.schema_version (major, minor, patch) AS SELECT 1, 0, 1");
+        if (tests[index][3] == "UPGRADING_ERROR") {
+            other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
+        }
     }
 
     if (tests[index][3].endsWith("ERROR")) {
@@ -194,7 +200,7 @@ for (index in tests) {
         call_and_validate(function() {var c = dba.getCluster('sample')}, tests[index][3]);
     }
 
-    if (tests[index][4] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata_bkp")
         other_session.close();
     }
@@ -255,11 +261,14 @@ for (index in tests) {
     testutil.wipeAllOutput();
 
     var other_session;
-    if (tests[index][3] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session = mysql.getSession(__sandbox_uri1);
         other_session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata_bkp");
         other_session.runSql("CREATE SQL SECURITY INVOKER VIEW mysql_innodb_cluster_metadata_bkp.backup_stage (stage) AS SELECT 'UPGRADING'");
-        other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
+        other_session.runSql("CREATE VIEW mysql_innodb_cluster_metadata_bkp.schema_version (major, minor, patch) AS SELECT 1, 0, 1");
+        if (tests[index][3] == "UPGRADING_ERROR") {
+            other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
+        }
     }
 
     var ro_tests = [
@@ -370,7 +379,7 @@ for (index in tests) {
     // And also, recreates the cluster for the next round of tests
     // When no failure was expected
     print_debug("Upgrading: " + upgrading_version)
-    if (tests[index][3] == "UPGRADING_ERROR") {
+    if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
         other_session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata_bkp");
         other_session.close();
     } else if (tests[index][3] == "") {

@@ -86,6 +86,9 @@ class Metadata_management_test : public Shell_core_test_wrapper {
         "CREATE SQL SECURITY INVOKER VIEW "
         "mysql_innodb_cluster_metadata_bkp.backup_stage (stage) AS SELECT "
         "'UPGRADING'");
+    m_instance->execute(
+        "CREATE VIEW mysql_innodb_cluster_metadata_bkp.schema_version (major, "
+        "minor, patch) AS SELECT 1, 0, 1");
   }
 
   void set_metadata_version(int major, int minor, int patch,
@@ -122,10 +125,12 @@ TEST_F(Metadata_management_test, installed_version) {
 TEST_F(Metadata_management_test, check_installed_schema_version) {
   auto current_version = mysqlsh::dba::metadata::current_version();
   mysqlshdk::utils::Version installed;
+  mysqlshdk::utils::Version real_md_version;
+  std::string md_version_schema;
 
   // No metadata schema
   auto compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::NONEXISTING);
   EXPECT_EQ(mysqlsh::dba::metadata::kNotInstalled, installed);
 
@@ -133,7 +138,7 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
   // after dropping the original metadata schema, is handled as a failed upgrade
   create_metadata_schema_backup();
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
   EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
 
@@ -142,13 +147,13 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
   create_metadata_schema();
   set_metadata_version(1, 0, 1);
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
   EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
   drop_metadata_schema_backup();
 
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
 
   EXPECT_TRUE(mysqlsh::dba::metadata::kIncompatible.is_set(compatibility));
 
@@ -157,7 +162,7 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
   // it is handled as a failed upgrade
   set_metadata_version(0, 0, 0);
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
   EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
 
@@ -166,7 +171,7 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
   create_metadata_schema_backup();
   set_metadata_version(0, 0, 0);
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::FAILED_UPGRADE);
   EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
 
@@ -177,7 +182,7 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
       "SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', "
       "1)");
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
-      m_instance, &installed);
+      m_instance, &installed, &real_md_version, &md_version_schema);
   EXPECT_EQ(compatibility, MDS::UPGRADING);
   EXPECT_EQ(mysqlsh::dba::metadata::kUpgradingVersion, installed);
   other_session->close();
@@ -209,8 +214,9 @@ TEST_F(Metadata_management_test, check_installed_schema_version) {
 
   for (const auto &check : compatibility_checks) {
     set_metadata_version(check.major, check.minor, check.patch);
-    auto state =
-        mysqlsh::dba::metadata::check_installed_schema_version(m_instance);
+    Version version;
+    auto state = mysqlsh::dba::metadata::check_installed_schema_version(
+        m_instance, &version, &real_md_version, &md_version_schema);
     auto text = shcore::str_format("Major: %d, Minor: %d, Patch: %d",
                                    check.major, check.minor, check.patch);
     SCOPED_TRACE(text.c_str());
