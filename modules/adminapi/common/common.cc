@@ -364,6 +364,19 @@ std::set<std::string> global_privileges_for_server_version(
   return privs;
 }
 
+const std::map<std::string, std::set<std::string>> k_router_schema_grants{
+    {"mysql_innodb_cluster_metadata", {"SELECT", "EXECUTE"}},
+};
+
+const std::map<std::string, std::map<std::string, std::set<std::string>>>
+    k_router_table_grants{{"performance_schema",
+                           {{"replication_group_members", {"SELECT"}},
+                            {"replication_group_member_stats", {"SELECT"}},
+                            {"global_variables", {"SELECT"}}}},
+                          {"mysql_innodb_cluster_metadata",
+                           {{"routers", {"INSERT", "UPDATE", "DELETE"}},
+                            {"v2_routers", {"INSERT", "UPDATE", "DELETE"}}}}};
+
 }  // namespace
 
 /** Check that the provided account has privileges to manage a cluster.
@@ -442,10 +455,15 @@ namespace {
 
 std::string create_grant(const std::string &username,
                          const std::set<std::string> &privileges,
+                         bool with_grant_option,
                          const std::string &schema = "*",
                          const std::string &object = "*") {
-  return "GRANT " + shcore::str_join(privileges, ", ") + " ON " + schema + "." +
-         object + " TO " + username + " WITH GRANT OPTION";
+  std::string grant = "GRANT " + shcore::str_join(privileges, ", ") + " ON " +
+                      schema + "." + object + " TO " + username;
+
+  if (with_grant_option) grant += " WITH GRANT OPTION";
+
+  return grant;
 }
 
 std::vector<std::string> create_grants(
@@ -456,22 +474,56 @@ std::vector<std::string> create_grants(
   // global privileges
   const auto global_privileges =
       global_privileges_for_server_version(instance_version);
-  grants.emplace_back(create_grant(username, global_privileges));
+  grants.emplace_back(create_grant(username, global_privileges, true));
 
   // privileges for schemas
   for (const auto &schema : k_schema_grants)
-    grants.emplace_back(create_grant(username, schema.second, schema.first));
+    grants.emplace_back(
+        create_grant(username, schema.second, true, schema.first));
 
   // privileges for tables
   for (const auto &schema : k_table_grants)
     for (const auto &table : schema.second)
-      grants.emplace_back(
-          create_grant(username, table.second, schema.first, table.first));
+      grants.emplace_back(create_grant(username, table.second, true,
+                                       schema.first, table.first));
 
   return grants;
 }
 
 }  // namespace
+
+std::vector<std::string> create_router_grants(
+    const std::string &username,
+    const mysqlshdk::utils::Version &metadata_version) {
+  std::vector<std::string> grants;
+
+  // privileges for schemas
+  // No need to remove schemas that might not exist on older metadata versions
+  // because MySQL enables you to grant priavileges on databases that do not
+  // exist. See https://dev.mysql.com/doc/refman/en/grant.html
+  for (const auto &schema : k_router_schema_grants)
+    grants.emplace_back(
+        create_grant(username, schema.second, false, schema.first));
+
+  // The same would apply non existing table if we were granting the
+  // CREATE privilege which we are not, so we must remove the non existing
+  // tables on older metadata version from the list of tables
+  std::map<std::string, std::map<std::string, std::set<std::string>>>
+      router_table_grants = k_router_table_grants;
+  // For old metadata versions, there is no v2_routers table, so drop it
+  // from table_grants
+  if (metadata_version <= mysqlshdk::utils::Version(1, 0, 1)) {
+    router_table_grants["mysql_innodb_cluster_metadata"].erase("v2_routers");
+  }
+
+  // privileges for tables
+  for (const auto &schema : router_table_grants)
+    for (const auto &table : schema.second)
+      grants.emplace_back(create_grant(username, table.second, false,
+                                       schema.first, table.first));
+
+  return grants;
+}
 
 void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &username,

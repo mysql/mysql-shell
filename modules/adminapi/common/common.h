@@ -454,6 +454,10 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
 void execute_script(const std::shared_ptr<Instance> &group_server,
                     const std::string &script, const std::string &context);
 
+std::vector<std::string> create_router_grants(
+    const std::string &username,
+    const mysqlshdk::utils::Version &metadata_version);
+
 }  // namespace dba
 }  // namespace mysqlsh
 

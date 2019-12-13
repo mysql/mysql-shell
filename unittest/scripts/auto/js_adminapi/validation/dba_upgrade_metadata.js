@@ -31,7 +31,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 NOTE: No automatically created Router accounts were found.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 An upgrade of all cluster router instances is required. All router installations should be updated first before doing the actual metadata upgrade.
 
@@ -53,7 +60,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 NOTE: No automatically created Router accounts were found.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
 Creating backup of the metadata schema...
@@ -75,7 +89,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 NOTE: No automatically created Router accounts were found.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
 Creating backup of the metadata schema...
@@ -95,7 +116,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 NOTE: No automatically created Router accounts were found.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 An upgrade of all cluster router instances is required. All router installations should be updated first before doing the actual metadata upgrade.
 
@@ -138,7 +166,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 Updating Router accounts...
 NOTE: 2 Router accounts have been updated.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 An upgrade of all cluster router instances is required. All router installations should be updated first before doing the actual metadata upgrade.
 
@@ -177,7 +212,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 Updating Router accounts...
 NOTE: 2 Router accounts have been updated.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 An upgrade of all cluster router instances is required. All router installations should be updated first before doing the actual metadata upgrade.
 
@@ -220,7 +262,14 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 Updating Router accounts...
 NOTE: 3 Router accounts have been updated.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated according to the new metadata version's requirements. Please read about the requirements in the documentation.
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, the set of account privileges must be updated for them to match the following grants:
+
+GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO <user>@<host>
+GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.v2_routers TO <user>@<host>
+GRANT SELECT ON performance_schema.global_variables TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_member_stats TO <user>@<host>
+GRANT SELECT ON performance_schema.replication_group_members TO <user>@<host>
 
 An upgrade of all cluster router instances is required. All router installations should be updated first before doing the actual metadata upgrade.
 

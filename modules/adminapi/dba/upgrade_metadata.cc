@@ -458,9 +458,13 @@ void Upgrade_metadata::upgrade_router_users() {
 
   console->print_warning(
       "If MySQL Routers have been bootstrapped using custom accounts, the set "
-      "of account privileges must be updated according to the new metadata "
-      "version's requirements. Please read about the requirements in the "
-      "documentation.\n");
+      "of account privileges must be updated for them to match the following "
+      "grants:\n");
+  console->print_info(
+      shcore::str_join(
+          create_router_grants("<user>@<host>", metadata::current_version()),
+          "\n") +
+      "\n");
 }
 
 /*
