@@ -1,3 +1,4 @@
+//@ {__os_type != 'windows'}
 // Plain cluster test, using non-TCP connections
 
 //@<> Setup
