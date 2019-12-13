@@ -578,9 +578,25 @@ State check_installed_schema_version(
 }
 
 void install(const std::shared_ptr<Instance> &group_server) {
-  execute_script(group_server,
-                 k_metadata_schema_scripts.at(k_metadata_schema_version),
-                 "While installing metadata schema:");
+  try {
+    execute_script(group_server,
+                   k_metadata_schema_scripts.at(k_metadata_schema_version),
+                   "While installing metadata schema:");
+
+    // The MD script sets the default DB to the MD schema
+    // People who filter out the MD schema for replication purposes will filter
+    // out everything that executes while the MD schema is the default.
+    // Since we don't want certain operations that happen *after* this to also
+    // be filtered out, we reset the default DB to something else.
+    // Bug#30609075 is something caused by that.
+    group_server->execute("USE mysql");
+  } catch (...) {
+    try {
+      group_server->execute("USE mysql");
+    } catch (...) {
+    }
+    throw;
+  }
 }
 
 void uninstall(const std::shared_ptr<Instance> &group_server) {
@@ -650,8 +666,8 @@ std::vector<const upgrade::Step *> get_upgrade_path(
  * The Stage enum value for NULL persisted stages is detected implicitly by
  * combining with schema_version.
  */
-void upgrade_schema(const std::shared_ptr<Instance> &group_server,
-                    bool dry_run) {
+void do_upgrade_schema(const std::shared_ptr<Instance> &group_server,
+                       bool dry_run) {
   Version installed_ver = installed_version(group_server, kMetadataSchemaName);
   Version last_ver = current_version();
 
@@ -795,6 +811,22 @@ void upgrade_schema(const std::shared_ptr<Instance> &group_server,
             "Upgrade process failed, metadata was not modified.");
       }
     }
+  }
+}
+
+void upgrade_schema(const std::shared_ptr<Instance> &group_server,
+                    bool dry_run) {
+  try {
+    do_upgrade_schema(group_server, dry_run);
+
+    // See explanation for this in install()
+    group_server->execute("USE mysql");
+  } catch (...) {
+    try {
+      group_server->execute("USE mysql");
+    } catch (...) {
+    }
+    throw;
   }
 }
 
