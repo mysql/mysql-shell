@@ -118,6 +118,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",
                     "variable": "group_replication_consistency"
@@ -155,6 +160,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",
                     "variable": "group_replication_consistency"
@@ -191,6 +201,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",
@@ -260,6 +275,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",
                     "variable": "group_replication_consistency"
@@ -297,6 +317,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",
                     "variable": "group_replication_consistency"
@@ -333,6 +358,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "BEFORE_ON_PRIMARY_FAILOVER",

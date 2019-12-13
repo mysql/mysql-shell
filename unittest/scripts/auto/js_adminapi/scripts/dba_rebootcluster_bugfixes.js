@@ -6,6 +6,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+var auto_rejoin_tries = 2;
 var expel_timeout = 1;
 var exit_state = "ABORT_SERVER";
 var consistency = "BEFORE_ON_PRIMARY_FAILOVER";
@@ -21,7 +22,7 @@ var uri2 = hostname + ":" + __mysql_sandbox_port2;
 
 //@ BUG29265869 - Create cluster with custom GR settings. {VER(>=8.0.16)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name, gtidSetIsComplete: true});
+var c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name, autoRejoinTries: auto_rejoin_tries, gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Create cluster with custom GR settings for 5.7. {VER(<8.0.0)}
@@ -30,7 +31,7 @@ var c = dba.createCluster("test", {localAddress: local_address1, ipWhitelist: ip
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Add instance with custom GR settings. {VER(>=8.0.16)}
-c.addInstance(__sandbox_uri2, {exitStateAction: exit_state, localAddress: local_address2, ipWhitelist: ip_white_list80, memberWeight: member_weight2});
+c.addInstance(__sandbox_uri2, {exitStateAction: exit_state, localAddress: local_address2, ipWhitelist: ip_white_list80, memberWeight: member_weight2,  autoRejoinTries: auto_rejoin_tries});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ BUG29265869 - Add instance with custom GR settings for 5.7. {VER(<8.0.0)}

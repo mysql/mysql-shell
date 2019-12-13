@@ -205,6 +205,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": [[*]],
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency", 
                     "value": [[*]], 
                     "variable": "group_replication_consistency"
@@ -241,6 +246,11 @@
                 }
             ], 
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": [[*]],
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency", 
                     "value": [[*]], 

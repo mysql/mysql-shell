@@ -435,6 +435,13 @@ one server failure.
         ],
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+?{VER(>=8.0.16)}
+                {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+?{}
                 {
                     "option": "consistency",
                     "value": "EVENTUAL",
@@ -497,6 +504,11 @@ one server failure.
         ],
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": null,
@@ -562,6 +574,11 @@ one server failure.
         ],
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "EVENTUAL",

@@ -33,6 +33,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "EVENTUAL",
                     "variable": "group_replication_consistency"
@@ -70,6 +75,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "EVENTUAL",
                     "variable": "group_replication_consistency"
@@ -106,6 +116,11 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "EVENTUAL",
@@ -169,6 +184,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": null,
                     "variable": "group_replication_consistency"
@@ -206,6 +226,11 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": null,
                     "variable": "group_replication_consistency"
@@ -242,6 +267,11 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": null,
@@ -328,6 +358,7 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "option": "autoRejoinTries",
                     "value": "0",
                     "variable": "group_replication_autorejoin_tries"
                 },
@@ -573,6 +604,7 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "option": "autoRejoinTries",
                     "value": "0",
                     "variable": "group_replication_autorejoin_tries"
                 },
@@ -818,6 +850,7 @@
                     "variable": "group_replication_auto_increment_increment"
                 },
                 {
+                    "option": "autoRejoinTries",
                     "value": "0",
                     "variable": "group_replication_autorejoin_tries"
                 },
@@ -1577,6 +1610,11 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": null,
                     "variable": "group_replication_consistency"
@@ -1644,6 +1682,11 @@
         ],
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "0",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "EVENTUAL",

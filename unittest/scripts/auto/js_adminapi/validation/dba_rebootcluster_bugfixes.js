@@ -39,6 +39,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "<<<consistency>>>",
                     "variable": "group_replication_consistency"
@@ -75,6 +80,11 @@
                 }
             ],
             "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "<<<consistency>>>",
@@ -138,6 +148,11 @@
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": null,
                     "variable": "group_replication_consistency"
@@ -174,6 +189,11 @@
                 }
             ],
             "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": null,
@@ -256,6 +276,11 @@ ONLINE
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": "<<<consistency>>>",
                     "variable": "group_replication_consistency"
@@ -292,6 +317,11 @@ ONLINE
                 }
             ],
             "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": "<<<consistency>>>",
@@ -355,6 +385,11 @@ ONLINE
         "topology": {
             "<<<uri1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
                     "option": "consistency",
                     "value": null,
                     "variable": "group_replication_consistency"
@@ -391,6 +426,11 @@ ONLINE
                 }
             ],
             "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
                 {
                     "option": "consistency",
                     "value": null,

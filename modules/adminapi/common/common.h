@@ -115,10 +115,14 @@ const std::map<std::string, std::string> k_global_options{
  * <sysvar, name>
  */
 const std::map<std::string, std::string> k_instance_options{
-    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
-    {kIpWhitelist, kGrIpWhitelist},         {kLocalAddress, kGrLocalAddress},
-    {kMemberWeight, kGrMemberWeight},       {kExpelTimeout, kGrExpelTimeout},
-    {kConsistency, kGrConsistency}};
+    {kExitStateAction, kGrExitStateAction},
+    {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},
+    {kLocalAddress, kGrLocalAddress},
+    {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},
+    {kConsistency, kGrConsistency},
+    {kAutoRejoinTries, kGrAutoRejoinTries}};
 
 /**
  * Map of the supported global ReplicaSet configuration options in the
