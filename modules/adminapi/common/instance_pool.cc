@@ -73,7 +73,24 @@ void Instance::prepare_session() {
   set_sysvar("sql_mode", std::string(k_default_sql_mode),
              mysqlshdk::mysql::Var_qualifier::SESSION);
 
-  // Note: group_replication_consistency should be changed here
+  // Handle the consistency levels != "EVENTUAL" and
+  // "BEFORE_ON_PRIMARY_FAILOVER" on the target instance session:
+  //
+  // Any query executed on a member that is still RECOVERING and has a
+  // consistency level of BEFORE, AFTER or BEFORE_AND_AFTER will result in an
+  // error. As documented: "You can only use the consistency levels BEFORE,
+  // AFTER and BEFORE_AND_AFTER on ONLINE members, attempting to use them on
+  // members in other states causes a session error." For that reason, we must
+  // set the target instance consistency level to EVENTUAL on those cases to
+  // avoid the error for any query executed using that session.
+  //
+  // This handling must be done to all AdminAPI sessions to ensure that
+  // concurrent command calls do not results in errors due to higher consistency
+  // levels (BUG#30394258, BUG#30401048)
+  if (get_version() >= mysqlshdk::utils::Version("8.0.14")) {
+    set_sysvar("group_replication_consistency", std::string("EVENTUAL"),
+               mysqlshdk::mysql::Var_qualifier::SESSION);
+  }
 }
 
 Instance::Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session)

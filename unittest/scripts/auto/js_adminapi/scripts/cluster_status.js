@@ -108,5 +108,29 @@ cluster.status({queryMembers:true});
 //@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (false).
 cluster.status({queryMembers:false});
 
+// BUG#30401048: ERROR VERIFYING METADATA VERSION
+// Regression test to ensure that when a consistency level of "BEFORE", "AFTER" or
+// "BEFORE_AND_AFTER" was set in the cluster any other AdminAPI call can be executed
+// concurrently
+
+//@<> BUG#30401048: Add instance 1 back to the cluster and change the consistency level to "BEFORE_AND_AFTER" {VER(>=8.0.14)}
+cluster.setOption("consistency", "BEFORE_AND_AFTER");
+cluster.addInstance(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+//@<> BUG#30401048: Keep instance 1 in RECOVERING state {VER(>=8.0.14)}
+session.close();
+shell.connect(__sandbox_uri1);
+session.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("STOP GROUP_REPLICATION");
+session.runSql("START GROUP_REPLICATION");
+testutil.waitMemberState(__mysql_sandbox_port1, "RECOVERING");
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<> BUG#30401048: get the cluster from a different instance and run status() {VER(>=8.0.14)}
+var cluster = dba.getCluster();
+cluster.status();
+
 //@<> Finalization
 scene.destroy();

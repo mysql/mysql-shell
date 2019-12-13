@@ -457,6 +457,7 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 //@ WL#12067: Initialization {VER(>=8.0.14)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 
@@ -475,6 +476,16 @@ EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group
 //@<> WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
 EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port1, "group_replication_consistency", "PERSISTED"));
 EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group_replication_consistency", "PERSISTED"));
+
+// BUG#30394258: CLUSTER.ADD_INSTANCE: THE OPTION GROUP_REPLICATION_CONSISTENCY CANNOT BE USED
+// Regression test to ensure that when a consistency level of "BEFORE", "AFTER" or
+// "BEFORE_AND_AFTER" was set in the cluster any instance will be successfully added
+
+//@<> BUG#30394258: prepare {VER(>=8.0.14)}
+ c.setOption("consistency", "BEFORE");
+
+//@<> BUG#30394258: add instance to the cluster {VER(>=8.0.14)}
+c.addInstance(__sandbox_uri3);
 
 //@ WL#12067: Dissolve cluster 1{VER(>=8.0.14)}
 c.dissolve({force: true});
@@ -497,6 +508,7 @@ EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(__mysql_sandbox_port2, "group
 //@ WL#12067: Finalization {VER(>=8.0.14)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 
 // WL#12050 AdminAPI: Define the timeout for evicting previously active cluster members
 //
