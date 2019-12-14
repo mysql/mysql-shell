@@ -211,6 +211,9 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1)
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
+
 rs.status();
 
 //@<> Cleanup

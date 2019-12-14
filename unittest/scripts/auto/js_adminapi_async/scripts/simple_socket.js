@@ -1,4 +1,4 @@
-//@ {VER(>=8.0.11)}
+//@ {VER(>=8.0.11) && __os_type != 'windows'}
 
 // Plain replicaset setup using non-TCP connections
 

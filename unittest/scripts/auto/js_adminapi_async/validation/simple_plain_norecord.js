@@ -166,33 +166,8 @@ WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
         "primary": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
         "status": "UNAVAILABLE", 
         "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.", 
-        "topology": {
-            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }, 
-            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }, 
+
+//@<OUT> forcePrimaryInstance (prepare)
             "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
                 "connectError": "127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])", 
@@ -203,8 +178,6 @@ WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
             }
         }, 
         "type": "ASYNC"
-    }
-}
 
 //@<OUT> forcePrimaryInstance
 * Connecting to replicaset instances
@@ -219,7 +192,7 @@ WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
 * Checking status of last known PRIMARY
 NOTE: 127.0.0.1:<<<__mysql_sandbox_port3>>> is UNREACHABLE
 * Checking status of promoted instance
-NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status ONLINE
+NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status [[*]]
 * Checking transaction set status
 * Promoting 127.0.0.1:<<<__mysql_sandbox_port1>>> to a PRIMARY...
 
@@ -338,6 +311,8 @@ ReplicaSet object successfully created for <<<__address1>>>.
 Use rs.addInstance() to add more asynchronously replicated instances to this replicaset and rs.status() to check its status.
 
 <ReplicaSet:adopted>
+true
+true
 {
     "replicaSet": {
         "name": "adopted", 
