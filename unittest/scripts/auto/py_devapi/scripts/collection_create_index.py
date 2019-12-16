@@ -1,4 +1,6 @@
 #@ {VER(>=8.0.11)}
+import sys
+
 shell.connect(__uripwd);
 session.drop_schema('my_schema');
 schema = session.create_schema('my_schema');

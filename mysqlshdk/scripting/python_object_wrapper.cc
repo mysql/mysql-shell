@@ -204,6 +204,11 @@ static PyTypeObject PyShMethodObjectType = {
     ,
     0  // tp_finalize
 #endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
+#endif
 };
 
 static PyObject *wrap_method(const std::shared_ptr<Cpp_object_bridge> &object,
@@ -634,6 +639,11 @@ static PyTypeObject PyShObjObjectType = {
     ,
     0  // tp_finalize
 #endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
+#endif
 };
 
 static PyTypeObject PyShObjIndexedObjectType = {
@@ -724,6 +734,11 @@ static PyTypeObject PyShObjIndexedObjectType = {
 #if PY_VERSION_HEX >= 0x03040000
     ,
     0  // tp_finalize
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
 #endif
 };
 

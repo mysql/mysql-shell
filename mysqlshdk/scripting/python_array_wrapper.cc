@@ -364,6 +364,11 @@ static PyTypeObject PyShListObjectType = {
     ,
     0  // tp_finalize
 #endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
+#endif
 };
 
 void Python_context::init_shell_list_type() {

@@ -417,7 +417,21 @@ static PyTypeObject Key_iterator_type = {
     PyObject_SelfIter,                   /* tp_iter */
     (iternextfunc)Key_iterator_next_key, /* tp_iternext */
     0,                                   /* tp_methods */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+#if PY_VERSION_HEX >= 0x02060000
+    ,
+    0  // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+    ,
+    0  // tp_finalize
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
+#endif
+};
 
 static PyObject *dict_iter(PyShDictObject *self) {
   Key_iterator *iterator = PyObject_New(Key_iterator, &Key_iterator_type);
@@ -536,6 +550,11 @@ static PyTypeObject PyShDictObjectType = {
 #if PY_VERSION_HEX >= 0x03040000
     ,
     0  // tp_finalize
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+    ,
+    0,  // tp_vectorcall
+    0   // tp_print
 #endif
 };
 

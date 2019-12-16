@@ -968,7 +968,7 @@ Create Table: CREATE TABLE `my_coll` (
 #@ Create an index with the name of an index that already exists. (WL10858-FR5_2)
 ||MySQL Error (1061): Duplicate key name 'myIndex'
 
-#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3)
+#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:2] < (3, 8)}
 ||coll.create_index('myIndex', {'fields': [{'field' = '$.myField', type = 'TEXT(10)'}]})
 ||                                                  ^
 ||SyntaxError: invalid syntax
@@ -978,6 +978,13 @@ Create Table: CREATE TABLE `my_coll` (
 ||coll.create_index('myIndex', {'fields': [{'field': '$.myField', 'type': 'TEXT(10)'}})
 ||                                                                                   ^
 ||SyntaxError: invalid syntax
+
+#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:2] >= (3, 8)}
+||coll.create_index('myIndex', {'fields': [{'field' = '$.myField', type = 'TEXT(10)'}]})
+||                                                  ^
+||SyntaxError: invalid syntax
+||SyntaxError: closing parenthesis ']' does not match opening parenthesis '{'
+||SyntaxError: closing parenthesis '}' does not match opening parenthesis '['
 
 #@ Create an index where its definition is a JSON document but its structure is not valid. (WL10858-FR5_4)
 ||MySQL Error (5015): Invalid number of arguments, expected value for 'fields[0].field'

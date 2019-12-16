@@ -198,18 +198,18 @@ PyObject *py_run_string_interactive(const char *str, PyObject *globals,
     if (nullptr != mod) {
       // modification -> begin
       // make sure changing the kind is safe
-      // both types have the same size
-      static_assert(sizeof(mod->v.Module) == sizeof(mod->v.Interactive),
-                    "Different sizes");
+      // Module is a superset of Interactive
+      static_assert(sizeof(mod->v.Module) >= sizeof(mod->v.Interactive),
+                    "Interactive is bigger than Module");
       // Interactive type contains only body (it is a pointer, padding should
       // not be a problem)
       static_assert(
           sizeof(mod->v.Interactive) == sizeof(mod->v.Interactive.body),
-          "Different sizes");
+          "Interactive contains more than a body");
       // Module and Interactive types both have the same body type
       static_assert(std::is_same<decltype(mod->v.Module.body),
                                  decltype(mod->v.Interactive.body)>::value,
-                    "Different types");
+                    "Module and Interactive have different body types");
       mod->kind = Interactive_kind;
       // modification -> end
 
