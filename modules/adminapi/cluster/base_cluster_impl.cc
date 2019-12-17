@@ -32,10 +32,12 @@
 
 #include "modules/adminapi/cluster/cluster_options.h"
 #include "modules/adminapi/cluster/cluster_set_option.h"
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -309,5 +311,94 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
 
   return shcore::Value(dict);
 }
+
+/**
+ * Helper method that has common code for setup_router_account and
+ * setup_admin_account methods
+ * @param user the user part of the account
+ * @param host The host part of the account
+ * @param interactive the value of the interactive flag
+ * @param update the value of the update flag
+ * @param dry_run the value of the dry_run flag
+ * @param password the password for the account
+ * @param type The type of account to create, Admin or Router
+ */
+void Base_cluster_impl::setup_account_common(
+    const std::string &username, const std::string &host, bool interactive,
+    bool update, bool dry_run,
+    const mysqlshdk::utils::nullable<std::string> &password,
+    const Setup_account_type &type) {
+  // NOTE: GR by design guarantees that the primary instance is always the one
+  // with the lowest instance version. A similar (although not explicit)
+  // guarantee exists on Semi-sync replication, replication from newer master to
+  // older slaves might not be possible but is generally not supported. See:
+  // https://dev.mysql.com/doc/refman/en/replication-compatibility.html
+  //
+  // By using the primary instance to validate
+  // the list of privileges / build the list of grants to be given to the
+  // new/existing user we are sure that privileges that appeared in recent
+  // versions (like REPLICATION_APPLIER) are only checked/granted in case all
+  // cluster members support it. This ensures that there is no issue when the
+  // DDL statements are replicated throughout the cluster since they won't
+  // contain unsupported grants.
+
+  // The pool is initialized with the metadata using the current session
+  auto metadata = std::make_shared<MetadataStorage>(get_target_server());
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+  ipool->set_metadata(metadata);
+
+  const auto primary_instance = acquire_primary();
+  auto finally_primary =
+      shcore::on_leave_scope([this]() { release_primary(); });
+
+  // get the metadata version to build an accurate list of grants
+  mysqlshdk::utils::Version metadata_version;
+  if (!metadata->check_version(&metadata_version)) {
+    throw std::logic_error("Internal error, metadata not found.");
+  }
+
+  {
+    std::vector<std::string> grant_list;
+    // get list of grants
+    switch (type) {
+      case Setup_account_type::ROUTER:
+        grant_list = create_router_grants(shcore::make_account(username, host),
+                                          metadata_version);
+        break;
+      case Setup_account_type::ADMIN:
+        grant_list = create_admin_grants(shcore::make_account(username, host),
+                                         primary_instance->get_version());
+        break;
+    }
+
+    Setup_account op_setup(username, host, interactive, update, dry_run,
+                           password, grant_list, *primary_instance);
+    // Always execute finish when leaving "try catch".
+    auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
+    // Prepare the setup_router_account execution
+    op_setup.prepare();
+    // Execute the setup_router_account command.
+    op_setup.execute();
+  }
+}
+
+void Base_cluster_impl::setup_admin_account(
+    const std::string &username, const std::string &host, bool interactive,
+    bool update, bool dry_run,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  setup_account_common(username, host, interactive, update, dry_run, password,
+                       Setup_account_type::ADMIN);
+}
+
+void Base_cluster_impl::setup_router_account(
+    const std::string &username, const std::string &host, bool interactive,
+    bool update, bool dry_run,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  setup_account_common(username, host, interactive, update, dry_run, password,
+                       Setup_account_type::ROUTER);
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

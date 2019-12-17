@@ -116,8 +116,9 @@ struct SHCORE_PUBLIC Style {
     uint8_t color_256 = 0;
     uint8_t color_rgb[3] = {0, 0, 0};
 
-    Color() = default;
+    Color() {}
 
+    Color(const Color &c) = default;
     Color(uint8_t c16, uint8_t c256, const uint8_t rgb[3])
         : color_16(c16), color_256(c256) {
       color_rgb[0] = rgb[0];

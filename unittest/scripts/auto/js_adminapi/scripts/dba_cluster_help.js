@@ -113,6 +113,24 @@ cluster.help("setOption")
 //@ SetOption, \? [USE:SetOption]
 \? setOption
 
+//@ setupAdminAccount
+cluster.help("setupAdminAccount")
+
+//@ setupAdminAccount. \? [USE:setupAdminAccount]
+\? cluster.setupAdminAccount
+
+//@ setupAdminAccount. \help [USE:setupAdminAccount]
+\help cluster.setupAdminAccount
+
+//@ setupRouterAccount
+cluster.help("setupRouterAccount")
+
+//@ setupRouterAccount. \? [USE:setupRouterAccount]
+\? cluster.setupRouterAccount
+
+//@ setupRouterAccount. \help [USE:setupRouterAccount]
+\help cluster.setupRouterAccount
+
 //@ Rescan
 cluster.help("rescan")
 

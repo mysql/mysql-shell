@@ -116,6 +116,16 @@ class Base_cluster_impl {
 
   virtual shcore::Value list_routers(bool only_upgrade_required);
 
+  virtual void setup_admin_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password);
+
+  virtual void setup_router_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password);
+
   virtual std::list<Scoped_instance> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
       std::list<Instance_metadata> *out_unreachable) = 0;
@@ -150,6 +160,14 @@ class Base_cluster_impl {
   std::shared_ptr<MetadataStorage> m_metadata_storage;
 
   mysqlshdk::mysql::Auth_options m_admin_credentials;
+
+  enum class Setup_account_type { ADMIN, ROUTER };
+
+  void setup_account_common(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password,
+      const Setup_account_type &type);
 
   void target_server_invalidated();
 

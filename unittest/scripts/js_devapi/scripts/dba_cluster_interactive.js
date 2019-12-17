@@ -50,7 +50,9 @@ validateMembers(Cluster, [
   'setPrimaryInstance',
   'options',
   'setOption',
-  'setInstanceOption'
+  'setInstanceOption',
+  'setupAdminAccount',
+  'setupRouterAccount'
 ])
 
 //@ Cluster: addInstance errors

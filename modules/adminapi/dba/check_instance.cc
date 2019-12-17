@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"

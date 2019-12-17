@@ -2516,5 +2516,23 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
   return r;
 }
 
+void Replica_set_impl::setup_admin_account(
+    const std::string &username, const std::string &host, bool interactive,
+    bool update, bool dry_run,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  check_preconditions("setupAdminAccount");
+  Base_cluster_impl::setup_admin_account(username, host, interactive, update,
+                                         dry_run, password);
+}
+
+void Replica_set_impl::setup_router_account(
+    const std::string &username, const std::string &host, bool interactive,
+    bool update, bool dry_run,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  check_preconditions("setupRouterAccount");
+  Base_cluster_impl::setup_router_account(username, host, interactive, update,
+                                          dry_run, password);
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

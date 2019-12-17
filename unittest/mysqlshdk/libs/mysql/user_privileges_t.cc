@@ -358,16 +358,13 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
                                                 "TRIGGER",
                                                 "UPDATE",
                                                 "APPLICATION_PASSWORD_ADMIN",
-                                                "BACKUP_ADMIN",
                                                 "BINLOG_ADMIN",
                                                 "BINLOG_ENCRYPTION_ADMIN",
-                                                "CLONE_ADMIN",
                                                 "CONNECTION_ADMIN",
                                                 "ENCRYPTION_KEY_ADMIN",
                                                 "GROUP_REPLICATION_ADMIN",
                                                 "INNODB_REDO_LOG_ARCHIVE",
                                                 "PERSIST_RO_VARIABLES_ADMIN",
-                                                "REPLICATION_APPLIER",
                                                 "REPLICATION_SLAVE_ADMIN",
                                                 "RESOURCE_GROUP_ADMIN",
                                                 "RESOURCE_GROUP_USER",
@@ -378,6 +375,13 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
                                                 "SYSTEM_VARIABLES_ADMIN",
                                                 "TABLE_ENCRYPTION_ADMIN",
                                                 "XA_RECOVER_ADMIN"};
+  // Note: This list doesn't include BACKUP_ADMIN, CLONE_ADMIN or
+  // REPLICATION_APPLIER because we are simulating a 8.0.0 server when we mock
+  // the get_server_version() call Instead of updating the server version on the
+  // mock, we decided to leave it as is, since on user_privileges.cc the list
+  // starts with all privileges and we drop the ones that are not supported by a
+  // given server_version. So, by using mocking an 8.0 server we are testing if
+  // the privileges are indeed being dropped from the list of ALL privileges.
 
   test({"ALL"}, false);
   // User with SELECT,INSERT,UPDATE on test_db.*.

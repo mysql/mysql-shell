@@ -250,12 +250,7 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
 std::pair<int, int> find_cluster_admin_accounts(
     const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
     std::vector<std::string> *out_hosts);
-bool validate_cluster_admin_user_privileges(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
-    const std::string &admin_host, std::string *validation_error);
-void create_cluster_admin_user(const mysqlshdk::mysql::IInstance &instance,
-                               const std::string &username,
-                               const std::string &password);
+
 std::string SHCORE_PUBLIC
 resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                          const std::string &member_ssl_mode);
@@ -286,14 +281,7 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
 
 // AdminAPI interactive handling specific methods
 std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance);
-std::string prompt_new_account_password();
 int prompt_menu(const std::vector<std::string> &options, int defopt);
-bool check_admin_account_access_restrictions(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host, bool interactive);
-bool prompt_create_usable_admin_account(const std::string &user,
-                                        const std::string &host,
-                                        std::string *out_create_account);
 bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                             bool throw_on_error = false);
 void dump_table(const std::vector<std::string> &column_names,

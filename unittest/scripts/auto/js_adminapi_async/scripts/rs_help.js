@@ -74,6 +74,21 @@ rs.help("setPrimaryInstance");
 //@ Set Primary Instance \? [USE:Set Primary Instance]
 \? ReplicaSet.setPrimaryInstance
 
+//@ setupAdminAccount
+rs.help("setupAdminAccount")
+
+//@ setupAdminAccount. \? [USE:setupAdminAccount]
+\? ReplicaSet.setupAdminAccount
+
+//@ setupAdminAccount. \help [USE:setupAdminAccount]
+\help ReplicaSet.setupAdminAccount
+
+//@ setupRouterAccount
+rs.help("setupRouterAccount")
+
+//@ setupRouterAccount. \? [USE:setupRouterAccount]
+\? ReplicaSet.setupRouterAccount
+
 //@ Status
 rs.help("status");
 

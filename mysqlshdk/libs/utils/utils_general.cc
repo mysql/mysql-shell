@@ -839,7 +839,12 @@ void split_account(const std::string &account, std::string *out_user,
       pos = span_quotable_string_literal(account, 0, out_user);
     } else {
       pos = account.rfind('@');
-      if (pos == 0) throw std::runtime_error("Empty user name: " + account);
+      if (pos == 0) throw std::runtime_error("User name must not be empty.");
+      // dont allow @ on the username unless it is quoted
+      if (account.rfind('@', pos - 1) != std::string::npos) {
+        throw std::runtime_error("Invalid user name: " +
+                                 account.substr(0, pos));
+      }
       if (out_user != nullptr) out_user->assign(account, 0, pos);
     }
   }

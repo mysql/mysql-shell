@@ -42,6 +42,12 @@ FUNCTIONS
       setPrimaryInstance(instance, options)
             Performs a safe PRIMARY switchover, promoting the given instance.
 
+      setupAdminAccount(user, options)
+            Create or upgrade an InnoDB ReplicaSet admin account.
+
+      setupRouterAccount(user, options)
+            Create or upgrade a MySQL account to use with MySQL Router.
+
       status([options])
             Describe the status of the replicaset.
 
@@ -432,6 +438,137 @@ DESCRIPTION
         performed can be viewed by enabling verbose output in the shell.
       - timeout: integer value with the maximum number of seconds to wait until
         the instance being promoted catches up to the current PRIMARY.
+
+//@<OUT> setupAdminAccount
+NAME
+      setupAdminAccount - Create or upgrade an InnoDB ReplicaSet admin account.
+
+SYNTAX
+      <ReplicaSet>.setupAdminAccount(user, options)
+
+WHERE
+      user: Name of the InnoDB ReplicaSet administrator account.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function creates/upgrades a MySQL user account with the necessary
+      privileges to administer an InnoDB ReplicaSet.
+
+      This function also allows a user to upgrade an existing admin account
+      with the necessary privileges before a dba.upgradeMetadata() call.
+
+      The mandatory argument user is the name of the MySQL account we want to
+      create or upgrade to be used as Administrator account. The accepted
+      format is username[@host] where the host part is optional and if not
+      provided defaults to '%'.
+
+      The options dictionary may contain the following attributes:
+
+      - password: The password for the InnoDB ReplicaSet administrator account.
+      - dryRun: boolean value used to enable a dry run of the account setup
+        process. Default value is False.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+      - update: boolean value that must be enabled to allow updating the
+        privileges and/or password of existing accounts. Default value is
+        False.
+
+      If the user account does not exist, the password is mandatory.
+
+      If the user account exists, the update option must be enabled.
+
+      If dryRun is used, the function will display information about the
+      permissions to be granted to `user` account without actually creating
+      and/or performing any changes on it.
+
+      The interactive option can be used to explicitly enable or disable the
+      interactive prompts that help the user through the account setup process.
+
+      The update option must be enabled to allow updating an existing account's
+      privileges and/or password.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - The user account name does not exist on the ReplicaSet and update is
+        True.
+      - The user account name does not exist on the ReplicaSet and no password
+        was provided.
+      - The user account name exists on the ReplicaSet and update is False.
+      - The account used to grant the privileges to the admin user doesn't have
+        the necessary privileges.
+
+//@<OUT> setupRouterAccount
+NAME
+      setupRouterAccount - Create or upgrade a MySQL account to use with MySQL
+                           Router.
+
+SYNTAX
+      <ReplicaSet>.setupRouterAccount(user, options)
+
+WHERE
+      user: Name of the account to create/upgrade for MySQL Router.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function creates/upgrades a MySQL user account with the necessary
+      privileges to be used by MySQL Router.
+
+      This function also allows a user to upgrade existing MySQL router
+      accounts with the necessary privileges after a dba.upgradeMetadata()
+      call.
+
+      The mandatory argument user is the name of the MySQL account we want to
+      create or upgrade to be used by MySQL Router. The accepted format is
+      username[@host] where the host part is optional and if not provided
+      defaults to '%'.
+
+      The options dictionary may contain the following attributes:
+
+      - password: The password for the MySQL Router account.
+      - dryRun: boolean value used to enable a dry run of the account setup
+        process. Default value is False.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+      - update: boolean value that must be enabled to allow updating the
+        privileges and/or password of existing accounts. Default value is
+        False.
+
+      If the user account does not exist, the password is mandatory.
+
+      If the user account exists, the update option must be enabled.
+
+      If dryRun is used, the function will display information about the
+      permissions to be granted to `user` account without actually creating
+      and/or performing any changes on it.
+
+      The interactive option can be used to explicitly enable or disable the
+      interactive prompts that help the user through the account setup process.
+
+      The update option must be enabled to allow updating an existing account's
+      privileges and/or password.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - The user account name does not exist on the ReplicaSet and update is
+        True.
+      - The user account name does not exist on the ReplicaSet and no password
+        was provided.
+      - The user account name exists on the ReplicaSet and update is False.
+      - The account used to grant the privileges to the router user doesn't
+        have the necessary privileges.
+
 
 //@<OUT> Status
 NAME

@@ -109,6 +109,16 @@ class Replica_set_impl : public Base_cluster_impl {
 
   shcore::Value list_routers(bool only_upgrade_required) override;
 
+  void setup_admin_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password) override;
+
+  void setup_router_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password) override;
+
   std::list<Scoped_instance> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
       std::list<Instance_metadata> *out_unreachable) override;

@@ -28,6 +28,7 @@
 #include <iterator>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -576,6 +577,20 @@ void User_privileges::set_all_privileges(
     if (instance.get_plugin_status("version_tokens").is_null()) {
       m_all_privileges.erase("VERSION_TOKEN_ADMIN");
     }
+
+    // REPLICATION APPLIER privilege was introduced on MySQL 8.0.18
+    if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 18))
+      m_all_privileges.erase("REPLICATION_APPLIER");
+
+    // BACKUP_ADMIN privilege was introduced on MySQL 8.0.17
+    if (instance.get_version() <
+        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
+      m_all_privileges.erase("BACKUP_ADMIN");
+
+    // CLONE_ADMIN privilege was introduced on MySQL 8.0.17
+    if (instance.get_version() <
+        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
+      m_all_privileges.erase("CLONE_ADMIN");
 
     // Remove individual privileges dependent on engines, which are only listed
     // if the engine is available.

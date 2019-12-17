@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/mod_dba_replica_set.h"
 
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -97,6 +98,10 @@ void ReplicaSet::init() {
   expose("listRouters", &ReplicaSet::list_routers, "?options");
   expose("removeRouterMetadata", &ReplicaSet::remove_router_metadata,
          "routerDef");
+  expose("setupAdminAccount", &ReplicaSet::setup_admin_account, "user",
+         "?options");
+  expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
+         "?options");
 
   // TODO(alfredo):
   // - dissolve()
@@ -759,20 +764,20 @@ instances, otherwise the operation will fail. If a target instance is not given
 (or is null), the most up-to-date instance will be automatically selected and
 promoted.
 
-After a forced failover, the old PRIMARY will be considered invalid by 
+After a forced failover, the old PRIMARY will be considered invalid by
 the new PRIMARY and can no longer be part of the replicaset. If the instance
 is still usable, it must be removed from the replicaset and re-added as a
-new instance. If there were any SECONDARY instances that could not be 
+new instance. If there were any SECONDARY instances that could not be
 switched to the new PRIMARY during the failover, they will also be considered
 invalid.
 
-@attention a forced failover is a potentially destructive action and should 
+@attention a forced failover is a potentially destructive action and should
 only be used as a last resort measure.
 
 Data loss is possible after a failover, because the old PRIMARY may
 have had transactions that were not yet replicated to the SECONDARY being
-promoted. Moreover, if the instance that was presumed to have failed is still 
-able to process updates, for example because the network where it is located 
+promoted. Moreover, if the instance that was presumed to have failed is still
+able to process updates, for example because the network where it is located
 is still functioning but unreachable from the shell, it will continue diverging
 from the promoted clusters.
 Recovering or re-conciliating diverged transaction sets requires
@@ -943,6 +948,191 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router_def + "'");
   }
+}
+
+REGISTER_HELP_FUNCTION(setupAdminAccount, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPADMINACCOUNT, R"*(
+Create or upgrade an InnoDB ReplicaSet admin account.
+
+@param user Name of the InnoDB ReplicaSet administrator account.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to administer an InnoDB ReplicaSet.
+
+This function also allows a user to upgrade an existing admin account
+with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used as Administrator account. The accepted format is
+username[@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the InnoDB ReplicaSet administrator account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+@li update: boolean value that must be enabled to allow updating the privileges
+and/or password of existing accounts. Default value is False.
+
+If the user account does not exist, the password is mandatory.
+
+If the user account exists, the update option must be enabled.
+
+If dryRun is used, the function will display information about the permissions
+to be granted to `user` account without actually creating and/or performing any
+changes on it.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through the account setup process.
+
+The update option must be enabled to allow updating an existing account's
+privileges and/or password.
+
+@throw RuntimeError in the following scenarios:
+@li The user account name does not exist on the ReplicaSet and update is True.
+@li The user account name does not exist on the ReplicaSet and no password was
+provided.
+@li The user account name exists on the ReplicaSet and update is False.
+@li The account used to grant the privileges to the admin user doesn't have the
+necessary privileges.
+)*");
+
+/**
+ * $(REPLICASET_SETUPADMINACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::setupAdminAccount(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+None ReplicaSet::setup_admin_account(str name, dict options) {}
+#endif
+
+void ReplicaSet::setup_admin_account(const std::string &name,
+                                     const shcore::Dictionary_t &options) {
+  // Throw an error if the replicaset is invalid
+  assert_valid("setupAdminAccount");
+
+  // set default values for dictionary options
+  bool dry_run = false;
+  bool interactive = current_shell_options()->get().wizards;
+  bool update = false;
+  mysqlshdk::utils::nullable<std::string> password;
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(name);
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("dryRun", &dry_run)
+        .optional("interactive", &interactive)
+        .optional("update", &update)
+        .optional("password", &password)
+        .end();
+  }
+
+  m_impl->setup_admin_account(username, host, interactive, update, dry_run,
+                              password);
+}
+
+REGISTER_HELP_FUNCTION(setupRouterAccount, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPROUTERACCOUNT, R"*(
+Create or upgrade a MySQL account to use with MySQL Router.
+
+@param user Name of the account to create/upgrade for MySQL Router.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to be used by MySQL Router.
+
+This function also allows a user to upgrade existing MySQL router accounts
+with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used by MySQL Router. The accepted format is
+username[@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the MySQL Router account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+@li update: boolean value that must be enabled to allow updating the privileges
+and/or password of existing accounts. Default value is False.
+
+If the user account does not exist, the password is mandatory.
+
+If the user account exists, the update option must be enabled.
+
+If dryRun is used, the function will display information about the permissions
+to be granted to `user` account without actually creating and/or performing any
+changes on it.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through the account setup process.
+
+The update option must be enabled to allow updating an existing account's
+privileges and/or password.
+
+@throw RuntimeError in the following scenarios:
+@li The user account name does not exist on the ReplicaSet and update is True.
+@li The user account name does not exist on the ReplicaSet and no password was
+provided.
+@li The user account name exists on the ReplicaSet and update is False.
+@li The account used to grant the privileges to the router user doesn't have the
+necessary privileges.
+)*");
+
+/**
+ * $(REPLICASET_SETUPROUTERACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::setupRouterAccount(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+None ReplicaSet::setup_router_account(str name, dict options) {}
+#endif
+void ReplicaSet::setup_router_account(const std::string &name,
+                                      const shcore::Dictionary_t &options) {
+  // Throw an error if the replicaset is invalid
+  assert_valid("setupRouterAccount");
+
+  // set default values for dictionary options
+  bool dry_run = false;
+  bool interactive = current_shell_options()->get().wizards;
+  bool update = false;
+  mysqlshdk::utils::nullable<std::string> password;
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(name);
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("dryRun", &dry_run)
+        .optional("interactive", &interactive)
+        .optional("update", &update)
+        .optional("password", &password)
+        .end();
+  }
+
+  m_impl->setup_router_account(username, host, interactive, update, dry_run,
+                               password);
 }
 
 }  // namespace dba

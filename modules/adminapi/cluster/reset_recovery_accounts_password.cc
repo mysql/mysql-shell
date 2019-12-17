@@ -40,8 +40,8 @@ bool Reset_recovery_accounts_password::prompt_to_force_reset() const {
   auto console = mysqlsh::current_console();
   console->println();
   bool result = console->confirm(
-                    "Do you want to continue anyway (the recovery password for "
-                    "the instance will not be reset)?",
+                    "Do you want to continue anyway (the recovery "
+                    "password for the instance will not be reset)?",
                     Prompt_answer::NO) == Prompt_answer::YES;
   console->println();
   return result;

@@ -122,6 +122,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
   void remove_router_metadata(const std::string &router_def);
 
+  void setup_admin_account(const std::string &name,
+                           const shcore::Dictionary_t &options);
+
+  void setup_router_account(const std::string &name,
+                            const shcore::Dictionary_t &options);
+
  protected:
   void init();
 

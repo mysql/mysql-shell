@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -107,6 +108,10 @@ void Cluster::init() {
   expose("resetRecoveryAccountsPassword",
          &Cluster::reset_recovery_accounts_password, "?options");
   expose("checkInstanceState", &Cluster::check_instance_state, "instanceDef");
+  expose("setupAdminAccount", &Cluster::setup_admin_account, "user",
+         "?options");
+  expose("setupRouterAccount", &Cluster::setup_router_account, "user",
+         "?options");
   expose("rescan", &Cluster::rescan, "?options");
   expose("forceQuorumUsingPartitionOf",
          &Cluster::force_quorum_using_partition_of, "instanceDef", "?password");
@@ -1514,6 +1519,191 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router_def + "'");
   }
+}
+
+REGISTER_HELP_FUNCTION(setupAdminAccount, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPADMINACCOUNT, R"*(
+Create or upgrade an InnoDB Cluster admin account.
+
+@param user Name of the InnoDB cluster administrator account.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to administer an InnoDB cluster.
+
+This function also allows a user to upgrade an existing admin account
+with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used as Administrator account. The accepted format is
+username[@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the InnoDB cluster administrator account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+@li update: boolean value that must be enabled to allow updating the privileges
+and/or password of existing accounts. Default value is False.
+
+If the user account does not exist, the password is mandatory.
+
+If the user account exists, the update option must be enabled.
+
+If dryRun is used, the function will display information about the permissions
+to be granted to `user` account without actually creating and/or performing any
+changes on it.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through the account setup process.
+
+The update option must be enabled to allow updating an existing account's
+privileges and/or password.
+
+@throw RuntimeError in the following scenarios:
+@li The user account name does not exist on the Cluster and update is True.
+@li The user account name does not exist on the Cluster and no password was
+provided.
+@li The user account name exists on the Cluster and update is False.
+@li The account used to grant the privileges to the admin user doesn't have the
+necessary privileges.
+)*");
+
+/**
+ * $(CLUSTER_SETUPADMINACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setupAdminAccount(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+None Cluster::setup_admin_account(str name, dict options) {}
+#endif
+
+void Cluster::setup_admin_account(const std::string &name,
+                                  const shcore::Dictionary_t &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("setupAdminAccount");
+
+  // set default values for dictionary options
+  bool dry_run = false;
+  bool interactive = current_shell_options()->get().wizards;
+  bool update = false;
+  mysqlshdk::utils::nullable<std::string> password;
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(name);
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("dryRun", &dry_run)
+        .optional("interactive", &interactive)
+        .optional("update", &update)
+        .optional("password", &password)
+        .end();
+  }
+
+  m_impl->setup_admin_account(username, host, interactive, update, dry_run,
+                              password);
+}
+
+REGISTER_HELP_FUNCTION(setupRouterAccount, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPROUTERACCOUNT, R"*(
+Create or upgrade a MySQL account to use with MySQL Router.
+
+@param user Name of the account to create/upgrade for MySQL Router.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to be used by MySQL Router.
+
+This function also allows a user to upgrade existing MySQL router accounts
+with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used by MySQL Router. The accepted format is
+username[@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the MySQL Router account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li interactive: boolean value used to disable/enable the wizards in the
+command execution, i.e. prompts and confirmations will be provided or not
+according to the value set. The default value is equal to MySQL Shell wizard
+mode.
+@li update: boolean value that must be enabled to allow updating the privileges
+and/or password of existing accounts. Default value is False.
+
+If the user account does not exist, the password is mandatory.
+
+If the user account exists, the update option must be enabled.
+
+If dryRun is used, the function will display information about the permissions
+to be granted to `user` account without actually creating and/or performing any
+changes on it.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through the account setup process.
+
+The update option must be enabled to allow updating an existing account's
+privileges and/or password.
+
+@throw RuntimeError in the following scenarios:
+@li The user account name does not exist on the Cluster and update is True.
+@li The user account name does not exist on the Cluster and no password was
+provided.
+@li The user account name exists on the Cluster and update is False.
+@li The account used to grant the privileges to the router user doesn't have the
+necessary privileges.
+)*");
+
+/**
+ * $(CLUSTER_SETUPROUTERACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setupRouterAccount(String name, Dictionary options) {}
+#elif DOXYGEN_PY
+None Cluster::setup_router_account(str name, dict options) {}
+#endif
+void Cluster::setup_router_account(const std::string &name,
+                                   const shcore::Dictionary_t &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("setupRouterAccount");
+
+  // set default values for dictionary options
+  bool dry_run = false;
+  bool interactive = current_shell_options()->get().wizards;
+  bool update = false;
+  mysqlshdk::utils::nullable<std::string> password;
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(name);
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("dryRun", &dry_run)
+        .optional("interactive", &interactive)
+        .optional("update", &update)
+        .optional("password", &password)
+        .end();
+  }
+
+  m_impl->setup_router_account(username, host, interactive, update, dry_run,
+                               password);
 }
 
 }  // namespace dba

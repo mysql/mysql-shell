@@ -141,6 +141,24 @@ c.help('set_option')
 #@ global help for set_option[USE:cluster.set_option]
 \help cluster.set_option
 
+#@ cluster.setup_admin_account
+c.help('setup_admin_account')
+
+#@ global ? for setup_admin_account[USE:cluster.setup_admin_account]
+\? cluster.setup_admin_account
+
+#@ global help for setup_admin_account[USE:cluster.setup_admin_account]
+\help cluster.setup_admin_account
+
+#@ cluster.setup_router_account
+c.help('setup_router_account')
+
+#@ global ? for setup_router_account[USE:cluster.setup_router_account]
+\? cluster.setup_router_account
+
+#@ global help for setup_router_account[USE:cluster.setup_router_account]
+\help cluster.setup_router_account
+
 #@ cluster.rescan
 c.help('rescan')
 

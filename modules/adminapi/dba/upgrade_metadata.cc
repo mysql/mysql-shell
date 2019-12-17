@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/router.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -457,14 +458,10 @@ void Upgrade_metadata::upgrade_router_users() {
   }
 
   console->print_warning(
-      "If MySQL Routers have been bootstrapped using custom accounts, the set "
-      "of account privileges must be updated for them to match the following "
-      "grants:\n");
-  console->print_info(
-      shcore::str_join(
-          create_router_grants("<user>@<host>", metadata::current_version()),
-          "\n") +
-      "\n");
+      "If MySQL Routers have been bootstrapped using custom accounts, their "
+      "grants can not be updated during the metadata upgrade, they have to "
+      "be updated using the <<<setupRouterAccount>>> function. \nFor "
+      "additional information use: \\? <<<setupRouterAccount>>>\n");
 }
 
 /*

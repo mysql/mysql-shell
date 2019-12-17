@@ -173,6 +173,16 @@ class Cluster_impl {
 
   std::shared_ptr<Instance> m_primary_master;
 
+  // TODO(.) Remove Setup_account_type enum and setup_account_common method once
+  // this class extends base_cluster_impl and uses instance pool
+  enum class Setup_account_type { ADMIN, ROUTER };
+
+  void setup_account_common(
+      const std::string &user_name, const std::string &hostname,
+      bool interactive, bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password,
+      const Setup_account_type &type);
+
   // Used shell options
   void init();
 
@@ -191,6 +201,14 @@ class Cluster_impl {
                            const shcore::Value &value);
   shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(const shcore::Dictionary_t &options);
+  void setup_admin_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password);
+  void setup_router_account(
+      const std::string &username, const std::string &host, bool interactive,
+      bool update, bool dry_run,
+      const mysqlshdk::utils::nullable<std::string> &password);
 
   /**
    * Get the lowest server version of the cluster members.

@@ -65,7 +65,16 @@
 //@ Create role with missing privileges and grant to admin user {VER(>=8.0.0)}
 ||
 
-//@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.17)}
+//@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.18)}
+|ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
+|GRANT BACKUP_ADMIN, CLONE_ADMIN, CREATE USER, EXECUTE, FILE, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN ON *.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+
+//@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.17) && VER(<8.0.18)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT BACKUP_ADMIN, CLONE_ADMIN, CREATE USER, EXECUTE, FILE, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN ON *.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'admin_test'@'%' WITH GRANT OPTION;|
@@ -86,7 +95,16 @@
 //@ Connect using admin user again {VER(>=8.0.0)}
 ||
 
-//@ Check instance using session user with admin role, missing privileges {VER(>=8.0.17)}
+//@ Check instance using session user with admin role, missing privileges {VER(>=8.0.18)}
+|ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
+|GRANT BACKUP_ADMIN, CLONE_ADMIN, CREATE USER, EXECUTE, FILE, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN ON *.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+|GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
+||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+
+//@ Check instance using session user with admin role, missing privileges {VER(>=8.0.17) && VER(<8.0.18)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT BACKUP_ADMIN, CLONE_ADMIN, CREATE USER, EXECUTE, FILE, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER, SYSTEM_VARIABLES_ADMIN ON *.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'admin_test'@'%' WITH GRANT OPTION;|
@@ -103,7 +121,6 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 ||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
-
 
 //@ Drop user with role {VER(>=8.0.0)}
 ||

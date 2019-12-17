@@ -96,12 +96,12 @@ TEST(utils_general, split_account) {
       {"root@%", "root", "%"},
       {"test_user", "test_user", ""},
       {"123@bar", "123", "bar"},
-      {"@@@", "@@", ""},
-      {"@foo@@localhost", "@foo@", "localhost"},
-      {"@\"''\"foo@localhost", "@\"''\"foo", "localhost"},
+      {"'@@'@", "@@", ""},
+      {"'@foo@'@localhost", "@foo@", "localhost"},
+      {"`@\"\'\'\"foo`@localhost", "@\"''\"foo", "localhost"},
       {"skip-grants user@skip-grants host", "skip-grants user",
        "skip-grants host"},
-      {"foo@@'stuf'", "foo@", "stuf"},
+      {"'foo@'@'stuf'", "foo@", "stuf"},
       {"foo bar@localhost", "foo bar", "localhost"}};
   for (auto &t : good_cases_no_auto_quote) {
     a.clear();
@@ -131,6 +131,10 @@ TEST(utils_general, split_account) {
       "'foo",
       "'foo'bar",
       "'foo'@@bar",
+      "f@'foo@'@bar",
+      "foo@bar@baz",
+      "'foo'@bar@baz",
+      "'foo@b'ar@baz",
       "'foo@bar",
       "''foo",
       "\"foo'@bar",
@@ -154,6 +158,11 @@ TEST(utils_general, split_account) {
       "foo@ .::1lol\\t\\n\\'\"&$%",
       "`foo@bar",
       "foo@`bar",
+      "@@@",
+      "@@",
+      "@foo@@localhost",
+      "foo@@'stuf'",
+      "@\"\'\'\"foo@localhost",
   };
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);
