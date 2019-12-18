@@ -224,7 +224,9 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
 
   void kill_on_message(const std::string &msg) {
     kill_thread = std::thread([this, msg]() {
-      while (!_process) {
+      size_t cnt = 0;
+
+      while (!_process && cnt++ < 100) {
         shcore::sleep_ms(100);  // wait for process
       }
 
