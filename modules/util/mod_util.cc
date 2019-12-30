@@ -66,8 +66,11 @@ REGISTER_HELP(UTIL_BRIEF,
               "checker and JSON import.");
 
 Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
-  expose("checkForServerUpgrade", &Util::check_for_server_upgrade,
-         "?connectionData", "?options");
+  add_method(
+      "checkForServerUpgrade",
+      std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
+      "data", shcore::Map);
+
   expose("importJson", &Util::import_json, "path", "?options");
 #ifdef WITH_OCI
   shcore::ssl::init();
@@ -76,7 +79,8 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   expose("importTable", &Util::import_table, "path", "?options");
 }
 
-static std::string format_upgrade_issue(const Upgrade_issue &problem) {
+namespace {
+std::string format_upgrade_issue(const Upgrade_issue &problem) {
   std::stringstream ss;
   const char *item = "Schema";
   ss << problem.schema;
@@ -360,6 +364,124 @@ Upgrade_check_output_formatter::get_formatter(const std::string &format) {
       new Text_upgrade_checker_output());
 }
 
+void check_upgrade(const Connection_options &connection_options,
+                   const shcore::Value::Map_type_ref &options) {
+  using mysqlshdk::utils::Version;
+  Upgrade_check_options opts{Version(), Version(MYSH_VERSION), "", ""};
+  std::string output_format(
+      shcore::str_beginswith(mysqlsh::current_shell_options()->get().wrap_json,
+                             "json")
+          ? "JSON"
+          : "TEXT");
+
+  if (options) {
+    std::string target_version(MYSH_VERSION);
+    std::string password;
+    shcore::Option_unpacker(options)
+        .optional("outputFormat", &output_format)
+        .optional("targetVersion", &target_version)
+        .optional("configPath", &opts.config_path)
+        .optional("password", &password)
+        .end();
+
+    if (target_version == "8.0")
+      opts.target_version = Version(MYSH_VERSION);
+    else
+      opts.target_version = Version(target_version);
+  }
+
+  auto print = Upgrade_check_output_formatter::get_formatter(output_format);
+
+  auto session = establish_session(connection_options,
+                                   current_shell_options()->get().wizards);
+
+  auto result = session->query("select current_user();");
+  const mysqlshdk::db::IRow *row = result->fetch_one();
+  if (row == nullptr)
+    throw std::runtime_error("Unable to get information about a user");
+
+  std::string user;
+  std::string host;
+  shcore::split_account(row->get_string(0), &user, &host, true);
+  if (user != "skip-grants user" && host != "skip-grants host") {
+    mysqlshdk::mysql::Instance instance(session);
+    auto res = instance.get_user_privileges(user, host)->validate({"all"});
+    if (res.has_missing_privileges())
+      throw std::invalid_argument(
+          "The upgrade check needs to be performed by user with ALL "
+          "privileges.");
+  }
+
+  auto version_result = session->query(
+      "select @@version, @@version_comment, UPPER(@@version_compile_os);");
+  row = version_result->fetch_one();
+  if (row == nullptr) throw std::runtime_error("Unable to get server version");
+
+  opts.server_version = Version(row->get_string(0));
+  opts.server_os = row->get_string(2);
+
+  print->check_info(
+      connection_options.as_uri(mysqlshdk::db::uri::formats::only_transport()),
+      row->get_string(0) + " - " + row->get_string(1),
+      opts.target_version.get_base());
+
+  auto checklist = Upgrade_check::create_checklist(opts);
+
+  int errors = 0, warnings = 0, notices = 0;
+  const auto update_counts = [&errors, &warnings,
+                              &notices](Upgrade_issue::Level level) {
+    switch (level) {
+      case Upgrade_issue::ERROR:
+        errors++;
+        break;
+      case Upgrade_issue::WARNING:
+        warnings++;
+        break;
+      default:
+        notices++;
+        break;
+    }
+  };
+
+  for (auto &check : checklist)
+    if (check->is_runnable()) {
+      try {
+        std::vector<Upgrade_issue> issues = check->run(session, opts);
+        for (const auto &issue : issues) update_counts(issue.level);
+        print->check_results(*check, issues);
+      } catch (const Upgrade_check::Check_configuration_error &e) {
+        print->check_error(*check, e.what(), false);
+      } catch (const std::exception &e) {
+        print->check_error(*check, e.what());
+      }
+    } else {
+      update_counts(check->get_level());
+      print->manual_check(*check);
+    }
+
+  std::string summary;
+  if (errors > 0) {
+    summary = shcore::str_format(
+        "%i errors were found. Please correct these issues before upgrading "
+        "to avoid compatibility issues.",
+        errors);
+  } else if (warnings > 0) {
+    summary =
+        "No fatal errors were found that would prevent an upgrade, "
+        "but some potential issues were detected. Please ensure that the "
+        "reported issues are not significant before upgrading.";
+  } else if (notices > 0) {
+    summary =
+        "No fatal errors were found that would prevent an upgrade, "
+        "but some potential issues were detected. Please ensure that the "
+        "reported issues are not significant before upgrading.";
+  } else {
+    summary = "No known compatibility errors or issues were found.";
+  }
+  print->summarize(errors, warnings, notices, summary);
+}
+}  // namespace
+
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
               "Performs series of tests on specified MySQL server to check if "
@@ -417,139 +539,57 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6, "${TOPIC_CONNECTION_DATA}");
 #if DOXYGEN_JS
 Undefined Util::checkForServerUpgrade(ConnectionData connectionData,
                                       Dictionary options);
+Undefined Util::checkForServerUpgrade(Dictionary options);
 #elif DOXYGEN_PY
 None Util::check_for_server_upgrade(ConnectionData connectionData,
                                     dict options);
+None Util::check_for_server_upgrade(dict options);
 #endif
 
-void Util::check_for_server_upgrade(
-    const mysqlshdk::utils::nullable<mysqlshdk::db::Connection_options>
-        &connection_options_,
-    const shcore::Dictionary_t &options) {
-  auto connection_options = connection_options_;
-  bool has_co = connection_options && connection_options->has_data();
+shcore::Value Util::check_for_server_upgrade(
+    const shcore::Argument_list &args) {
+  args.ensure_count(0, 2, get_function_name("checkForServerUpgrade").c_str());
 
-  if (has_co) {
-    set_password_from_map(connection_options.operator->(), options);
-  }
+  try {
+    Connection_options connection_options;
+    std::shared_ptr<shcore::Value::Map_type> options_dictionary =
+        args.size() > 0 && args[args.size() - 1].type == shcore::Value_type::Map
+            ? args.map_at(args.size() - 1)
+            : nullptr;
 
-  const auto dev_session = _shell_core.get_dev_session();
-
-  if (!has_co && !dev_session) {
-    throw shcore::Exception::argument_error(
-        "Please connect the shell to the MySQL server to be checked or specify "
-        "the server URI as a parameter.");
-  }
-
-  const auto &co =
-      has_co ? *connection_options : dev_session->get_connection_options();
-
-  using mysqlshdk::utils::Version;
-  Upgrade_check_options opts{Version(), Version(MYSH_VERSION), "", ""};
-  std::string output_format(
-      shcore::str_beginswith(mysqlsh::current_shell_options()->get().wrap_json,
-                             "json")
-          ? "JSON"
-          : "TEXT");
-
-  if (options) {
-    output_format = options->get_string("outputFormat", output_format);
-    auto target_version = options->get_string("targetVersion", MYSH_VERSION);
-    if (target_version == "8.0")
-      opts.target_version = Version(MYSH_VERSION);
-    else
-      opts.target_version = Version(target_version);
-    opts.config_path = options->get_string("configPath", "");
-  }
-
-  auto print = Upgrade_check_output_formatter::get_formatter(output_format);
-
-  auto session = establish_session(co, current_shell_options()->get().wizards);
-
-  auto result = session->query("select current_user();");
-  const mysqlshdk::db::IRow *row = result->fetch_one();
-  if (row == nullptr)
-    throw std::runtime_error("Unable to get information about a user");
-
-  std::string user;
-  std::string host;
-  shcore::split_account(row->get_string(0), &user, &host, true);
-  if (user != "skip-grants user" && host != "skip-grants host") {
-    mysqlshdk::mysql::Instance instance(session);
-    auto res = instance.get_user_privileges(user, host)->validate({"all"});
-    if (res.has_missing_privileges())
-      throw std::invalid_argument(
-          "The upgrade check needs to be performed by user with ALL "
-          "privileges.");
-  }
-
-  auto version_result = session->query(
-      "select @@version, @@version_comment, UPPER(@@version_compile_os);");
-  row = version_result->fetch_one();
-  if (row == nullptr) throw std::runtime_error("Unable to get server version");
-
-  opts.server_version = Version(row->get_string(0));
-  opts.server_os = row->get_string(2);
-
-  print->check_info(co.as_uri(mysqlshdk::db::uri::formats::only_transport()),
-                    row->get_string(0) + " - " + row->get_string(1),
-                    opts.target_version.get_base());
-
-  auto checklist = Upgrade_check::create_checklist(opts);
-  int errors = 0, warnings = 0, notices = 0;
-
-  const auto update_counts = [&errors, &warnings,
-                              &notices](Upgrade_issue::Level level) {
-    switch (level) {
-      case Upgrade_issue::ERROR:
-        errors++;
-        break;
-      case Upgrade_issue::WARNING:
-        warnings++;
-        break;
-      default:
-        notices++;
-        break;
-    }
-  };
-
-  for (auto &check : checklist)
-    if (check->is_runnable()) {
+    if (args.size() > 0 && args[0] != shcore::Value::Null()) {
       try {
-        std::vector<Upgrade_issue> issues = check->run(session, opts);
-        for (const auto &issue : issues) update_counts(issue.level);
-        print->check_results(*check, issues);
-      } catch (const Upgrade_check::Check_configuration_error &e) {
-        print->check_error(*check, e.what(), false);
-      } catch (const std::exception &e) {
-        print->check_error(*check, e.what());
+        connection_options = mysqlsh::get_connection_options(args[0]);
+        if (args.size() > 1 && options_dictionary)
+          set_password_from_map(&connection_options, options_dictionary);
+        else
+          options_dictionary.reset();
+      } catch (const std::exception &) {
+        if (!_shell_core.get_dev_session() || !options_dictionary ||
+            args.size() == 2)
+          throw;
+        connection_options =
+            _shell_core.get_dev_session()->get_connection_options();
       }
     } else {
-      update_counts(check->get_level());
-      print->manual_check(*check);
+      if (!_shell_core.get_dev_session())
+        throw shcore::Exception::argument_error(
+            "Please connect the shell to the MySQL server to be checked or "
+            "specify the server URI as a parameter.");
+      connection_options =
+          _shell_core.get_dev_session()->get_connection_options();
     }
 
-  std::string summary;
-  if (errors > 0) {
-    summary = shcore::str_format(
-        "%i errors were found. Please correct these issues before upgrading "
-        "to avoid compatibility issues.",
-        errors);
-  } else if (warnings > 0) {
-    summary =
-        "No fatal errors were found that would prevent an upgrade, "
-        "but some potential issues were detected. Please ensure that the "
-        "reported issues are not significant before upgrading.";
-  } else if (notices > 0) {
-    summary =
-        "No fatal errors were found that would prevent an upgrade, "
-        "but some potential issues were detected. Please ensure that the "
-        "reported issues are not significant before upgrading.";
-  } else {
-    summary = "No known compatibility errors or issues were found.";
-  }
+    if (args.size() == 2 && !options_dictionary)
+      throw shcore::Exception::argument_error(
+          "Argument #2 is expected to be a map.");
 
-  print->summarize(errors, warnings, notices, summary);
+    check_upgrade(connection_options, options_dictionary);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("checkForServerUpgrade"));
+
+  return shcore::Value();
 }
 
 REGISTER_HELP_FUNCTION(importJson, util);
