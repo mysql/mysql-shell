@@ -154,11 +154,11 @@ Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster (no force option).
+ERROR: Applier error in replication channel 'group_replication_applier': Error [[*]]
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster (no force option).
-Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' (RuntimeError)
-
+Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@ Connect to instance on port2 to fix error and add new one
 ||
@@ -170,11 +170,12 @@ Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false).
+ERROR: Applier error in replication channel 'group_replication_applier': Error [[*]]
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false).
-Cluster.dissolve: Timeout reached waiting for cluster transactions to be applied on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' (RuntimeError)
+Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@ Connect to instance on port2 to fix error and add new one, one last time
 ||

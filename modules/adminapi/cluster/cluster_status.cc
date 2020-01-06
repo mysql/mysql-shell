@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,20 +78,20 @@ shcore::Value Cluster_status::execute() {
   // Gets the metadata version
   if (!m_extended.is_null() && *m_extended >= 1) {
     auto version = mysqlsh::dba::metadata::installed_version(
-        m_cluster.get_target_instance());
+        m_cluster.get_target_server());
     (*dict)["metadataVersion"] = shcore::Value(version.get_base());
   }
 
   // Iterate all replicasets and get the status for each one
 
-  std::string addr = m_cluster.get_target_instance()->get_canonical_address();
+  std::string addr = m_cluster.get_target_server()->get_canonical_address();
   (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
 
   auto md_server = m_cluster.get_metadata_storage()->get_md_server();
 
   // metadata server, if its a different one
   if (md_server &&
-      md_server->get_uuid() != m_cluster.get_target_instance()->get_uuid()) {
+      md_server->get_uuid() != m_cluster.get_target_server()->get_uuid()) {
     (*dict)["metadataServer"] =
         shcore::Value(md_server->get_canonical_address());
   }

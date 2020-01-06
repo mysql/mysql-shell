@@ -3104,11 +3104,11 @@ Dba::get_replicaset_instances_status(
       cluster->impl()->get_default_replicaset()->get_instances();
 
   auto current_session_options =
-      cluster->impl()->get_target_instance()->get_connection_options();
+      cluster->impl()->get_target_server()->get_connection_options();
 
   // Get the current session instance reported host address
   std::string active_session_md_address =
-      cluster->impl()->get_target_instance()->get_canonical_address();
+      cluster->impl()->get_target_server()->get_canonical_address();
 
   if (options) {
     // Check if the password is specified on the options and if not prompt it

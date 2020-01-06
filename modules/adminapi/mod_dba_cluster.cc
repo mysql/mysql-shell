@@ -187,7 +187,7 @@ void Cluster::assert_valid(const std::string &option_name) const {
                                              name + "' on a dissolved cluster");
     }
   }
-  if (!m_impl->get_target_instance()) {
+  if (!m_impl->get_target_server()) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use dba." +
         get_function_name("getCluster", false) +
@@ -1467,7 +1467,7 @@ shcore::Dictionary_t Cluster::list_routers(
 
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("Cluster.listRouters",
-                               m_impl->get_target_instance());
+                               m_impl->get_target_server());
 
   Unpack_options(options)
       .optional("onlyUpgradeRequired", &only_upgrade_required)
@@ -1513,7 +1513,7 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
 
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("Cluster.removeRouterMetadata",
-                               m_impl->get_target_instance());
+                               m_impl->get_target_server());
 
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +

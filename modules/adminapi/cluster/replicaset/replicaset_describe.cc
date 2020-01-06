@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,7 +80,7 @@ shcore::Dictionary_t Replicaset_describe::collect_replicaset_description() {
   (*ret)["name"] = shcore::Value(m_replicaset.get_name());
 
   // Get and set the topology mode from the Metadata
-  auto group_instance = m_cluster->get_target_instance();
+  auto group_instance = m_cluster->get_target_server();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
@@ -123,7 +123,7 @@ shcore::Value Replicaset_describe::execute() {
   //
   // If that's the case, a warning must be added to the resulting JSON object
   {
-    auto group_instance = m_cluster->get_target_instance();
+    auto group_instance = m_cluster->get_target_server();
 
     auto state = get_replication_group_state(
         *group_instance, get_gr_instance_type(*group_instance));

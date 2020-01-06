@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,7 +52,7 @@ void Switch_to_single_primary_mode::prepare() {
   //   - Ensure instance belong to replicaset;
   if (m_instance_cnx_opts.has_data()) {
     m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                                   ->get_target_instance()
+                                                   ->get_target_server()
                                                    ->get_connection_options());
 
     std::string target_instance_address = m_instance_cnx_opts.as_uri(

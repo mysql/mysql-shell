@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -169,7 +169,7 @@ shcore::Value Reset_recovery_accounts_password::execute() {
   auto console = mysqlsh::current_console();
   std::string user;
   std::vector<std::string> hosts;
-  std::string primary_rpr = m_cluster.get_target_instance()->descr();
+  std::string primary_rpr = m_cluster.get_target_server()->descr();
 
   for (const auto &instance : m_online_instances) {
     std::string instance_repr = instance->descr();
@@ -193,12 +193,9 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     for (const auto &host : hosts) {
       log_debug("Changing the password for recovery user '%s'@'%s' on '%s'",
                 user.c_str(), host.c_str(), primary_rpr.c_str());
-      m_cluster.get_target_instance()->set_user_password(user, host, password);
+      m_cluster.get_target_server()->set_user_password(user, host, password);
     }
-    // wait for the password change to be replicated to the instance
-    log_debug("Waiting for instance %s to catch up with instance '%s'",
-              instance_repr.c_str(), primary_rpr.c_str());
-    m_cluster.sync_transactions(*instance);
+
     // do a change master on the instance to user the new replication account
     log_debug("Changing '%s'\'s recovery credentials", instance_repr.c_str());
     mysqlshdk::gr::change_recovery_credentials(*instance, user, password);

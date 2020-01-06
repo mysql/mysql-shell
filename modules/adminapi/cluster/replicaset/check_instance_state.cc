@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,7 +127,7 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   shcore::Dictionary_t ret = shcore::make_dict();
 
   std::shared_ptr<Instance> cluster_instance =
-      m_replicaset.get_cluster()->get_target_instance();
+      m_replicaset.get_cluster()->get_target_server();
 
   // Check the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
@@ -289,7 +289,7 @@ void Check_instance_state::prepare() {
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
     std::shared_ptr<Instance> cluster_instance =
-        m_replicaset.get_cluster()->get_target_instance();
+        m_replicaset.get_cluster()->get_target_server();
     Connection_options cluster_cnx_opt =
         cluster_instance->get_connection_options();
 

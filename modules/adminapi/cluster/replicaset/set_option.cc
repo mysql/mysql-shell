@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,8 +37,7 @@ Set_option::Set_option(const GRReplicaSet &replicaset,
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_str(value) {
-  m_cluster_session_instance =
-      m_replicaset.get_cluster()->get_target_instance();
+  m_cluster_session_instance = m_replicaset.get_cluster()->get_target_server();
 }
 
 Set_option::Set_option(const GRReplicaSet &replicaset,
@@ -46,8 +45,7 @@ Set_option::Set_option(const GRReplicaSet &replicaset,
     : m_replicaset(std::move(replicaset)),
       m_option(option),
       m_value_int(value) {
-  m_cluster_session_instance =
-      m_replicaset.get_cluster()->get_target_instance();
+  m_cluster_session_instance = m_replicaset.get_cluster()->get_target_server();
 }
 
 Set_option::~Set_option() {}

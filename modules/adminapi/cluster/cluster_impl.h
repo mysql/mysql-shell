@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ constexpr const char k_instance_attribute_join_time[] = "joinTime";
 class MetadataStorage;
 struct Cluster_metadata;
 
-class Cluster_impl {
+class Cluster_impl : public Base_cluster_impl {
  public:
   friend class Cluster;
 
@@ -68,9 +68,6 @@ class Cluster_impl {
                const std::shared_ptr<MetadataStorage> &metadata_storage);
   virtual ~Cluster_impl();
 
-  Cluster_id get_id() const { return m_id; }
-  void set_id(const Cluster_id &id) { m_id = id; }
-
   std::shared_ptr<GRReplicaSet> get_default_replicaset() const {
     return _default_replica_set;
   }
@@ -78,33 +75,17 @@ class Cluster_impl {
   std::shared_ptr<GRReplicaSet> create_default_replicaset(
       const std::string &name, bool multi_primary);
 
-  std::string get_name() const { return m_cluster_name; }
-
-  void set_cluster_name(const std::string &name) { m_cluster_name = name; }
-  const std::string &cluster_name() const { return m_cluster_name; }
-
-  std::string get_description() const { return _description; }
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);
 
-  void set_description(const std::string &description) {
-    _description = description;
-  }
-
   const std::string &get_group_name() const { return m_group_name; }
 
-  std::string get_topology_type() const {
+  Cluster_type get_type() const override {
+    return Cluster_type::GROUP_REPLICATION;
+  }
+
+  std::string get_topology_type() const override {
     return get_default_replicaset()->get_topology_type();
-  }
-
-  bool get_gtid_set_is_complete() const;
-
-  std::shared_ptr<Instance> get_target_instance() const {
-    return m_target_server;
-  }
-
-  std::shared_ptr<mysqlshdk::db::ISession> get_group_session() const {
-    return get_target_instance()->get_session();
   }
 
   mysqlshdk::mysql::Auth_options create_replication_user(
@@ -112,9 +93,18 @@ class Cluster_impl {
 
   void drop_replication_user(mysqlshdk::mysql::IInstance *target);
 
-  void disconnect();
-
   bool contains_instance_with_address(const std::string &host_port);
+
+  std::list<Scoped_instance> connect_all_members(
+      uint32_t, bool, std::list<Instance_metadata> *) override {
+    throw std::logic_error("not implemented");
+  }
+
+  mysqlsh::dba::Instance *acquire_primary(
+      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
+      const std::string &skip_lock_uuid = "") override;
+
+  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
  public:
   // TODO(alfredo) - whoever refactors these methods, should move them to
@@ -125,7 +115,7 @@ class Cluster_impl {
   shcore::Value describe();
   shcore::Value options(const shcore::Dictionary_t &options);
   shcore::Value status(uint64_t extended);
-  shcore::Value list_routers(bool only_upgrade_required);
+  shcore::Value list_routers(bool only_upgrade_required) override;
   void remove_instance(const Connection_options &instance_def,
                        const shcore::Dictionary_t &options = {});
   void add_instance(const Connection_options &instance_def,
@@ -136,52 +126,11 @@ class Cluster_impl {
   void set_option(const std::string &option, const shcore::Value &value);
 
   Cluster_check_info check_preconditions(
-      const std::string &function_name) const;
-
-  std::shared_ptr<MetadataStorage> get_metadata_storage() const {
-    return _metadata_storage;
-  }
-
-  /*
-   * Synchronize transactions on target instance.
-   *
-   * Wait for all current cluster transactions to be applied on the specified
-   * target instance.
-   *
-   * @param target_instance instance to wait for transaction to be applied.
-   *
-   * @throw RuntimeError if the timeout is reached when waiting for
-   * transactions to be applied.
-   */
-  void sync_transactions(
-      const mysqlshdk::mysql::IInstance &target_instance) const;
-
-  mysqlshdk::mysql::IInstance *ensure_updatable(bool reset);
+      const std::string &function_name) const override;
 
  protected:
-  Cluster_id m_id;
-
-  std::string m_cluster_name;
-
   std::string m_group_name;
   std::shared_ptr<GRReplicaSet> _default_replica_set;
-  std::string _description;
-  // Session to a member of the group so we can query its status and other
-  // stuff from pfs
-  std::shared_ptr<Instance> m_target_server;
-  std::shared_ptr<MetadataStorage> _metadata_storage;
-
-  std::shared_ptr<Instance> m_primary_master;
-
-  // TODO(.) Remove Setup_account_type enum and setup_account_common method once
-  // this class extends base_cluster_impl and uses instance pool
-  enum class Setup_account_type { ADMIN, ROUTER };
-
-  void setup_account_common(
-      const std::string &user_name, const std::string &hostname,
-      bool interactive, bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password,
-      const Setup_account_type &type);
 
   // Used shell options
   void init();
@@ -204,11 +153,11 @@ class Cluster_impl {
   void setup_admin_account(
       const std::string &username, const std::string &host, bool interactive,
       bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password);
+      const mysqlshdk::utils::nullable<std::string> &password) override;
   void setup_router_account(
       const std::string &username, const std::string &host, bool interactive,
       bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password);
+      const mysqlshdk::utils::nullable<std::string> &password) override;
 
   /**
    * Get the lowest server version of the cluster members.

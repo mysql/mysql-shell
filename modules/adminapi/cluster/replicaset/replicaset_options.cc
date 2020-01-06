@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,7 @@ void Replicaset_options::prepare() {
  * m_member_connect_errors
  */
 void Replicaset_options::connect_to_members() {
-  auto group_server = m_replicaset.get_cluster()->get_target_instance();
+  auto group_server = m_replicaset.get_cluster()->get_target_server();
 
   mysqlshdk::db::Connection_options group_session_copts(
       group_server->get_connection_options());
@@ -96,7 +96,7 @@ void Replicaset_options::connect_to_members() {
 shcore::Array_t Replicaset_options::collect_global_options() {
   shcore::Array_t array = shcore::make_array();
 
-  auto group_instance = m_replicaset.get_cluster()->get_target_instance();
+  auto group_instance = m_replicaset.get_cluster()->get_target_server();
 
   for (const auto &cfg : k_global_options) {
     shcore::Dictionary_t option = shcore::make_dict();

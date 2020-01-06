@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -404,7 +404,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
   std::set<std::string> old_users;
 
   cluster->get_default_replicaset()->execute_in_members(
-      {}, cluster->get_target_instance()->get_connection_options(), {},
+      {}, cluster->get_target_server()->get_connection_options(), {},
       [&](const std::shared_ptr<Instance> &target) {
         old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
 
@@ -428,7 +428,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
       log_info("Removing old replication user '%s'", old_user.c_str());
       try {
         mysqlshdk::mysql::drop_all_accounts_for_user(
-            *cluster->get_target_instance(), old_user);
+            *cluster->get_target_server(), old_user);
       } catch (const std::exception &e) {
         console->print_warning(
             "Error dropping old recovery accounts for user " + old_user + ": " +

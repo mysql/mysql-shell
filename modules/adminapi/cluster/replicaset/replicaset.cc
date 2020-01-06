@@ -106,7 +106,7 @@ void GRReplicaSet::verify_topology_type_change() const {
   Cluster_impl *cluster(get_cluster());
 
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *cluster->get_target_instance(), nullptr);
+      *cluster->get_target_server(), nullptr);
 
   // Check if the topology type matches the real settings used by the
   // cluster instance, otherwise an error is issued.
@@ -134,7 +134,7 @@ void GRReplicaSet::validate_rejoin_gtid_consistency(
   // Get the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
-          *get_cluster()->get_target_instance(), target_instance, nullptr,
+          *get_cluster()->get_target_server(), target_instance, nullptr,
           &errant_gtid_set);
 
   if (state == mysqlshdk::mysql::Replica_gtid_state::NEW) {
@@ -243,7 +243,7 @@ void GRReplicaSet::adopt_from_gr() {
   auto console = mysqlsh::current_console();
 
   auto newly_discovered_instances_list(get_newly_discovered_instances(
-      *get_cluster()->get_target_instance(),
+      *get_cluster()->get_target_server(),
       get_cluster()->get_metadata_storage(), get_cluster()->get_id()));
 
   // Add all instances to the cluster metadata
@@ -497,7 +497,7 @@ std::string GRReplicaSet::get_cluster_group_seeds(
   // Get connection option for the metadata.
   Cluster_impl *cluster(get_cluster());
 
-  std::shared_ptr<Instance> cluster_instance = cluster->get_target_instance();
+  std::shared_ptr<Instance> cluster_instance = cluster->get_target_server();
   Connection_options cluster_cnx_opt =
       cluster_instance->get_connection_options();
 
@@ -686,7 +686,7 @@ void GRReplicaSet::rejoin_instance(
     // current target group session
 
     seed_cnx_opt.set_login_options_from(
-        cluster->get_target_instance()->get_connection_options());
+        cluster->get_target_server()->get_connection_options());
 
     // Establish a session to the seed instance
     try {
@@ -1095,7 +1095,7 @@ mysqlshdk::db::Connection_options GRReplicaSet::pick_seed_instance() const {
 
   bool single_primary;
   std::string primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *cluster->get_target_instance(), &single_primary);
+      *cluster->get_target_server(), &single_primary);
   if (single_primary) {
     if (!primary_uuid.empty()) {
       Instance_metadata info =
@@ -1104,7 +1104,7 @@ mysqlshdk::db::Connection_options GRReplicaSet::pick_seed_instance() const {
 
       mysqlshdk::db::Connection_options coptions(info.endpoint);
       mysqlshdk::db::Connection_options group_session_target(
-          cluster->get_target_instance()->get_connection_options());
+          cluster->get_target_server()->get_connection_options());
 
       coptions.set_login_options_from(group_session_target);
       coptions.set_ssl_connection_options_from(
@@ -1116,7 +1116,7 @@ mysqlshdk::db::Connection_options GRReplicaSet::pick_seed_instance() const {
         "Unable to determine a suitable peer instance to join the group");
   } else {
     // instance we're connected to should be OK if we're multi-master
-    return cluster->get_target_instance()->get_connection_options();
+    return cluster->get_target_server()->get_connection_options();
   }
 }
 
@@ -1211,7 +1211,7 @@ std::vector<Instance_metadata> GRReplicaSet::get_active_instances() const {
   std::vector<Instance_metadata> ret;
 
   std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(*m_cluster->get_target_instance()));
+      mysqlshdk::gr::get_members(*m_cluster->get_target_server()));
 
   std::vector<Instance_metadata> md(get_instances());
 
@@ -1236,7 +1236,7 @@ std::shared_ptr<mysqlsh::dba::Instance> GRReplicaSet::get_online_instance(
 
   // Get the cluster connection credentials to use to connect to instances.
   mysqlshdk::db::Connection_options cluster_cnx_opts =
-      m_cluster->get_target_instance()->get_connection_options();
+      m_cluster->get_target_server()->get_connection_options();
 
   for (const auto &instance : instances) {
     // Skip instance with the provided UUID exception (if specified).
@@ -1516,8 +1516,7 @@ void GRReplicaSet::remove_instances(
 void GRReplicaSet::rejoin_instances(
     const std::vector<std::string> &rejoin_instances,
     const shcore::Value::Map_type_ref &options) {
-  auto instance_data =
-      m_cluster->get_target_instance()->get_connection_options();
+  auto instance_data = m_cluster->get_target_server()->get_connection_options();
 
   if (!rejoin_instances.empty()) {
     // Get the user and password from the options
@@ -1580,7 +1579,7 @@ void GRReplicaSet::validate_server_uuid(
   // Get connection option for the metadata.
   Cluster_impl *cluster(get_cluster());
 
-  std::shared_ptr<Instance> cluster_instance = cluster->get_target_instance();
+  std::shared_ptr<Instance> cluster_instance = cluster->get_target_server();
   Connection_options cluster_cnx_opt =
       cluster_instance->get_connection_options();
 
@@ -1611,7 +1610,7 @@ GRReplicaSet::get_instances_with_state() const {
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>> ret;
 
   std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(*m_cluster->get_target_instance()));
+      mysqlshdk::gr::get_members(*m_cluster->get_target_server()));
 
   std::vector<Instance_metadata> md(get_instances());
 
@@ -1663,7 +1662,7 @@ std::unique_ptr<mysqlshdk::config::Config> GRReplicaSet::create_config_object(
       Connection_options instance_cnx_opts =
           shcore::get_connection_options(instance_def.first.endpoint, false);
       instance_cnx_opts.set_login_options_from(
-          get_cluster()->get_target_instance()->get_connection_options());
+          get_cluster()->get_target_server()->get_connection_options());
 
       // Try to connect to instance.
       log_debug("Connecting to instance '%s'",

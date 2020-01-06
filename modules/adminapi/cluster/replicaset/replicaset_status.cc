@@ -119,7 +119,7 @@ void Replicaset_status::prepare() {
 }
 
 void Replicaset_status::connect_to_members() {
-  auto group_server = m_cluster->get_target_instance();
+  auto group_server = m_cluster->get_target_server();
 
   mysqlshdk::db::Connection_options group_session_copts(
       group_server->get_connection_options());
@@ -229,7 +229,7 @@ const Instance_metadata *Replicaset_status::instance_with_uuid(
 
 Member_stats_map Replicaset_status::query_member_stats() {
   Member_stats_map stats;
-  auto group_instance = m_cluster->get_target_instance();
+  auto group_instance = m_cluster->get_target_server();
 
   auto member_stats = group_instance->query(
       "SELECT * FROM performance_schema.replication_group_member_stats");
@@ -840,7 +840,7 @@ shcore::Dictionary_t Replicaset_status::collect_replicaset_status() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_instance = m_cluster->get_target_instance();
+  auto group_instance = m_cluster->get_target_server();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
@@ -940,7 +940,7 @@ shcore::Value Replicaset_status::execute() {
   //
   // If that's the case, a warning must be added to the resulting JSON object
   {
-    auto group_instance = m_cluster->get_target_instance();
+    auto group_instance = m_cluster->get_target_server();
 
     auto state = get_replication_group_state(
         *group_instance, get_gr_instance_type(*group_instance));

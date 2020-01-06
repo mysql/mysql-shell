@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,7 +52,7 @@ void Set_primary_instance::ensure_single_primary_mode() {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *m_replicaset->get_cluster()->get_target_instance(), nullptr);
+      *m_replicaset->get_cluster()->get_target_server(), nullptr);
 
   // Get the topology mode from the metadata.
   mysqlshdk::gr::Topology_mode metadata_topology_mode =
@@ -90,7 +90,7 @@ void Set_primary_instance::prepare() {
   validate_connection_options(m_instance_cnx_opts);
 
   m_instance_cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                                 ->get_target_instance()
+                                                 ->get_target_server()
                                                  ->get_connection_options());
 
   // - Ensure instance belong to replicaset;

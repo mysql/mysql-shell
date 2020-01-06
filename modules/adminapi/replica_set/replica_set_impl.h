@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,6 +128,14 @@ class Replica_set_impl : public Base_cluster_impl {
       const std::string &skip_lock_uuid = "") override;
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+
+  mysqlshdk::mysql::Auth_options create_replication_user(
+      mysqlshdk::mysql::IInstance *slave, bool dry_run);
+
+  mysqlshdk::mysql::Auth_options refresh_replication_user(
+      mysqlshdk::mysql::IInstance *slave, bool dry_run);
+
+  void drop_replication_user(mysqlshdk::mysql::IInstance *slave);
 
  private:
   void create(const std::string &instance_label, bool dry_run);

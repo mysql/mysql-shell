@@ -42,8 +42,7 @@ Topology_configuration_command::Topology_configuration_command(
     GRReplicaSet *replicaset)
     : m_replicaset(replicaset) {
   assert(replicaset);
-  m_cluster_session_instance =
-      m_replicaset->get_cluster()->get_target_instance();
+  m_cluster_session_instance = m_replicaset->get_cluster()->get_target_server();
 }
 
 Topology_configuration_command::~Topology_configuration_command() {}
@@ -165,7 +164,10 @@ void Topology_configuration_command::update_topology_mode_metadata(
   // Since we're switching to single-primary mode, the active session may not
   // be to the newly elected primary, thereby we must get a session to
   // it to perform the Metadata changes
-  m_replicaset->get_cluster()->ensure_updatable(true);
+  m_replicaset->get_cluster()->acquire_primary();
+
+  shcore::Scoped_callback finally(
+      [&]() { m_replicaset->get_cluster()->release_primary(); });
 
   // Update the topology mode in the Metadata
   m_replicaset->get_cluster()

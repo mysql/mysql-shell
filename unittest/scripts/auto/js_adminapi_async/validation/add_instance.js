@@ -259,7 +259,8 @@
 ||
 
 //@# Replication conflict error (should fail)
-||ReplicaSet.addInstance: Replication applier thread error: Error 'Can't create database 'testdb'; database exists' on query. Default database: 'testdb'. Query: 'CREATE SCHEMA testdb'
+|ERROR: Applier error in replication channel '': Error 'Can't create database 'testdb'; database exists' on query. Default database: 'testdb'. Query: 'CREATE SCHEMA testdb' (1007) at [[*]]|
+||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@# instance has more GTIDs (should fail)
 |WARNING: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that|

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,6 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/router.h"
-#include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -63,11 +62,11 @@ Cluster_impl::Cluster_impl(
     const Cluster_metadata &metadata,
     const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
-    : m_id(metadata.cluster_id),
-      m_cluster_name(metadata.cluster_name),
-      m_group_name(metadata.group_name),
-      m_target_server(group_server),
-      _metadata_storage(metadata_storage) {
+    : Base_cluster_impl(metadata.cluster_name, group_server, metadata_storage) {
+  m_id = metadata.cluster_id;
+  m_description = metadata.description;
+  m_group_name = metadata.group_name;
+
   _default_replica_set =
       std::make_shared<GRReplicaSet>("default", metadata.topology_type);
 
@@ -78,20 +77,10 @@ Cluster_impl::Cluster_impl(
     const std::string &cluster_name, const std::string &group_name,
     const std::shared_ptr<Instance> &group_server,
     const std::shared_ptr<MetadataStorage> &metadata_storage)
-    : m_cluster_name(cluster_name),
-      m_group_name(group_name),
-      m_target_server(group_server),
-      _metadata_storage(metadata_storage) {}
+    : Base_cluster_impl(cluster_name, group_server, metadata_storage),
+      m_group_name(group_name) {}
 
 Cluster_impl::~Cluster_impl() {}
-
-bool Cluster_impl::get_gtid_set_is_complete() const {
-  shcore::Value flag;
-  if (get_metadata_storage()->query_cluster_attribute(
-          get_id(), k_cluster_attribute_assume_gtid_set_complete, &flag))
-    return flag.as_bool();
-  return false;
-}
 
 void Cluster_impl::add_instance(const Connection_options &instance_def,
                                 const shcore::Dictionary_t &options) {
@@ -128,7 +117,7 @@ std::shared_ptr<GRReplicaSet> Cluster_impl::create_default_replicaset(
   return _default_replica_set;
 }
 
-shcore::Value Cluster_impl::describe(void) {
+shcore::Value Cluster_impl::describe() {
   // Throw an error if the cluster has already been dissolved
 
   check_preconditions("describe");
@@ -195,70 +184,13 @@ void Cluster_impl::reset_recovery_password(
   }
 }
 
-void Cluster_impl::setup_account_common(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password,
-    const Setup_account_type &type) {
-  // NOTE: GR by design guarantees that the primary instance is always the one
-  // with the lowest instance version. A similar (although not explicit)
-  // guarantee exists on Semi-sync replication, replication from newer master to
-  // older slaves might not be possible but is generally not supported. See:
-  // https://dev.mysql.com/doc/refman/en/replication-compatibility.html
-  //
-  // By using the primary instance to validate
-  // the list of privileges / build the list of grants to be given to the
-  // new/existing user we are sure that privileges that appeared in recent
-  // versions (like REPLICATION_APPLIER) are only checked/granted in case all
-  // cluster members support it. This ensures that there is no issue when the
-  // DDL statements are replicated throughout the cluster since they won't
-  // contain unsupported grants.
-
-  // Get primary instance
-  const auto primary_instance = ensure_updatable(true);
-
-  // Create the setup_admin_account command.
-  {
-    std::vector<std::string> grant_list;
-    mysqlshdk::utils::Version metadata_version;
-
-    // get list of grants
-    switch (type) {
-      case Setup_account_type::ROUTER:
-        // get the metadata version to build an accurate list of grants
-        if (!_metadata_storage->check_version(&metadata_version)) {
-          throw std::logic_error("Internal error, metadata not found.");
-        }
-        grant_list = create_router_grants(shcore::make_account(username, host),
-                                          metadata_version);
-        break;
-      case Setup_account_type::ADMIN:
-        grant_list = create_admin_grants(shcore::make_account(username, host),
-                                         primary_instance->get_version());
-        break;
-    }
-
-    Setup_account op_setup(username, host, interactive, update, dry_run,
-                           password, grant_list, *primary_instance);
-    // Always execute finish when leaving "try catch".
-    auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
-    // Prepare the setup_admin_account execution
-    op_setup.prepare();
-    // Execute the setup_admin_account command.
-    op_setup.execute();
-  }
-}
-
 void Cluster_impl::setup_admin_account(
     const std::string &username, const std::string &host, bool interactive,
     bool update, bool dry_run,
     const mysqlshdk::utils::nullable<std::string> &password) {
   check_preconditions("setupAdminAccount");
-  // TODO(.) when Cluster_impl extends Base_cluster_impl simply call
-  // Base_cluster_impl::setup_admin_account(user, options) to replace the
-  // implementation below.
-  setup_account_common(username, host, interactive, update, dry_run, password,
-                       Setup_account_type::ADMIN);
+  Base_cluster_impl::setup_admin_account(username, host, interactive, update,
+                                         dry_run, password);
 }
 
 void Cluster_impl::setup_router_account(
@@ -266,12 +198,8 @@ void Cluster_impl::setup_router_account(
     bool update, bool dry_run,
     const mysqlshdk::utils::nullable<std::string> &password) {
   check_preconditions("setupRouterAccount");
-
-  // TODO(.) when Cluster_impl extends Base_cluster_impl simply call
-  // Base_cluster_impl::setup_router_account(user, options) to replace the
-  // implementation below.
-  setup_account_common(username, host, interactive, update, dry_run, password,
-                       Setup_account_type::ROUTER);
+  Base_cluster_impl::setup_router_account(username, host, interactive, update,
+                                          dry_run, password);
 }
 
 shcore::Value Cluster_impl::options(const shcore::Dictionary_t &options) {
@@ -314,34 +242,16 @@ void Cluster_impl::rescan(const shcore::Dictionary_t &options) {
   _default_replica_set->rescan(options);
 }
 
-void Cluster_impl::disconnect() {
-  if (m_target_server) {
-    // no preconditions check needed for just disconnecting everything
-    m_target_server->close_session();
-    m_target_server.reset();
-  }
-
-  // If _group_session is the same as the session from the metadata,
-  // then get_session would thrown an exception since the session is already
-  // closed
-  try {
-    if (_metadata_storage->get_md_server()) {
-      _metadata_storage->get_md_server()->close_session();
-    }
-  } catch (...) {
-  }
-}
-
 bool Cluster_impl::get_disable_clone_option() const {
   shcore::Value value;
-  if (_metadata_storage->query_cluster_attribute(
+  if (m_metadata_storage->query_cluster_attribute(
           get_id(), k_cluster_attribute_disable_clone, &value))
     return value.as_bool();
   return false;
 }
 
 void Cluster_impl::set_disable_clone_option(const bool disable_clone) {
-  _metadata_storage->update_cluster_attribute(
+  m_metadata_storage->update_cluster_attribute(
       get_id(), k_cluster_attribute_disable_clone,
       disable_clone ? shcore::Value::True() : shcore::Value::False());
 }
@@ -361,7 +271,7 @@ void Cluster_impl::switch_to_single_primary_mode(
   _default_replica_set->switch_to_single_primary_mode(instance_def);
 }
 
-void Cluster_impl::switch_to_multi_primary_mode(void) {
+void Cluster_impl::switch_to_multi_primary_mode() {
   check_preconditions("switchToMultiPrimaryMode");
 
   // Switch to single-primary mode
@@ -431,53 +341,28 @@ void Cluster_impl::set_instance_option(const Connection_options &instance_def,
 Cluster_check_info Cluster_impl::check_preconditions(
     const std::string &function_name) const {
   auto ret_val = check_function_preconditions("Cluster." + function_name,
-                                              get_target_instance());
+                                              get_target_server());
 
   // Makes sure the metadata state is re-loaded on each API call
-  _metadata_storage->invalidate_cached();
+  m_metadata_storage->invalidate_cached();
 
   return ret_val;
-}
-
-void Cluster_impl::sync_transactions(
-    const mysqlshdk::mysql::IInstance &target_instance) const {
-  // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
-  // the GTID of ALL transactions, otherwise only a set of transactions written
-  // to the cache in the current session might be returned.
-  std::string gtid_set = m_target_server->query("SELECT @@GLOBAL.GTID_EXECUTED")
-                             ->fetch_one()
-                             ->get_string(0);
-
-  bool sync_res = mysqlshdk::mysql::wait_for_gtid_set(
-      target_instance, gtid_set,
-      current_shell_options()->get().dba_gtid_wait_timeout);
-  if (!sync_res) {
-    std::string instance_address =
-        target_instance.get_connection_options().as_uri(
-            mysqlshdk::db::uri::formats::only_transport());
-    throw shcore::Exception::runtime_error(
-        "Timeout reached waiting for cluster transactions to be applied on "
-        "instance '" +
-        instance_address + "'");
-  }
 }
 
 mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
   // Get the server version of the current cluster instance and initialize
   // the lowest cluster session.
-  mysqlshdk::utils::Version lowest_version =
-      get_target_instance()->get_version();
+  mysqlshdk::utils::Version lowest_version = get_target_server()->get_version();
 
   // Get address of the cluster instance to skip it in the next step.
   std::string cluster_instance_address =
-      get_target_instance()->get_canonical_address();
+      get_target_server()->get_canonical_address();
 
   // Get the lowest server version from the available cluster instances.
   get_default_replicaset()->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE,
        mysqlshdk::gr::Member_state::RECOVERING},
-      get_target_instance()->get_connection_options(),
-      {cluster_instance_address},
+      get_target_server()->get_connection_options(), {cluster_instance_address},
       [&lowest_version](const std::shared_ptr<Instance> &instance) {
         mysqlshdk::utils::Version version = instance->get_version();
         if (version < lowest_version) {
@@ -493,23 +378,22 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     mysqlshdk::mysql::IInstance *target) {
   assert(target);
 
-  std::string recovery_user =
-      mysqlshdk::gr::k_group_recovery_user_prefix +
-      std::to_string(target->get_sysvar_int("server_id").get_safe());
+  std::string recovery_user = get_replication_user_name(
+      target, mysqlshdk::gr::k_group_recovery_user_prefix);
 
   log_info("Creating recovery account '%s'@'%%' for instance '%s'",
            recovery_user.c_str(), target->descr().c_str());
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
-  bool rpl_user_exists = get_target_instance()->user_exists(recovery_user, "%");
+  bool rpl_user_exists = get_target_server()->user_exists(recovery_user, "%");
   if (rpl_user_exists) {
     auto console = current_console();
-    console->print_warning(shcore::str_format(
+    console->print_note(shcore::str_format(
         "User '%s'@'%%' already existed at instance '%s'. It will be "
         "deleted and created again with a new password.",
-        recovery_user.c_str(), get_target_instance()->descr().c_str()));
-    get_target_instance()->drop_user(recovery_user, "%");
+        recovery_user.c_str(), get_target_server()->descr().c_str()));
+    get_target_server()->drop_user(recovery_user, "%");
   }
 
   // Check if clone is available on ALL cluster members, to avoid a failing SQL
@@ -529,7 +413,7 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
       clone_available_all_members && clone_available_on_target;
 
   return mysqlshdk::gr::create_recovery_user(
-      recovery_user, *get_target_instance(), {"%"}, {}, clone_available);
+      recovery_user, *get_target_server(), {"%"}, {}, clone_available);
 }
 
 void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
@@ -551,7 +435,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   if (!from_metadata) {
     log_info("Removing replication user '%s'", recovery_user.c_str());
     try {
-      mysqlshdk::mysql::drop_all_accounts_for_user(*get_target_instance(),
+      mysqlshdk::mysql::drop_all_accounts_for_user(*get_target_server(),
                                                    recovery_user);
     } catch (const std::exception &e) {
       console->print_warning("Error dropping recovery accounts for user " +
@@ -582,7 +466,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
                recovery_user.c_str(), target->descr().c_str());
 
       try {
-        get_target_instance()->drop_user(recovery_user, "%", true);
+        get_target_server()->drop_user(recovery_user, "%", true);
       } catch (const std::exception &e) {
         console->print_warning(shcore::str_format(
             "Error dropping recovery account '%s'@'%%' for instance '%s'",
@@ -607,7 +491,8 @@ bool Cluster_impl::contains_instance_with_address(
 }
 
 /*
- * Ensures the cluster object (and metadata) can perform update operations.
+ * Ensures the cluster object (and metadata) can perform update operations and
+ * returns a session to the PRIMARY.
  *
  * For a cluster to be updatable, it's necessary that:
  * - the MD object is connected to the PRIMARY of the
@@ -620,12 +505,13 @@ bool Cluster_impl::contains_instance_with_address(
  * An Instance object connected to the primary is returned. The session
  * is owned by the cluster object.
  */
-mysqlshdk::mysql::IInstance *Cluster_impl::ensure_updatable(bool reset) {
+mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
+    mysqlshdk::mysql::Lock_mode /*mode*/,
+    const std::string & /*skip_lock_uuid*/) {
   auto console = current_console();
 
-  if (!m_primary_master || reset) {
+  if (!m_primary_master) {
     m_primary_master = m_target_server;
-    // m_primary_master->retain();
   }
   std::string uuid = m_primary_master->get_uuid();
   std::string primary_uuid;
@@ -644,10 +530,15 @@ mysqlshdk::mysql::IInstance *Cluster_impl::ensure_updatable(bool reset) {
 
     m_primary_master = Instance::connect(copts);
 
-    _metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
+    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
   }
 
   return m_primary_master.get();
+}
+
+void Cluster_impl::release_primary(mysqlsh::dba::Instance *primary) {
+  (void)primary;
+  m_primary_master.reset();
 }
 
 std::tuple<std::string, std::vector<std::string>, bool>
@@ -677,7 +568,7 @@ Cluster_impl::get_replication_user(
                recovery_user.c_str());
       // old accounts were created for several hostnames
       recovery_user_hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
-          *(get_target_instance()), recovery_user);
+          *(get_target_server()), recovery_user);
     } else {
       // account not created by InnoDB cluster
       throw shcore::Exception::runtime_error(
@@ -700,7 +591,7 @@ std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
       shcore::get_connection_options(instance_address, false);
   // Use the password from the cluster session.
   Connection_options cluster_cnx_opt =
-      get_target_instance()->get_connection_options();
+      get_target_server()->get_connection_options();
   instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
 
   log_debug("Connecting to instance '%s'", instance_address.c_str());
@@ -760,7 +651,7 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
               grant << recovery_user;
               grant << host;
               grant.done();
-              get_target_instance()->execute(grant);
+              get_target_server()->execute(grant);
             }
           }
         }

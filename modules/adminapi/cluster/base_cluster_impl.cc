@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,137 +111,31 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &channel_name, int timeout) const {
-  assert(m_primary_master);
+  // NOTE: These lines can be removed once Cluster_impl starts using
+  // acquire_primary()
+  auto master = m_primary_master;
+  if (!master) master = m_target_server;
 
-  std::string gtid_set =
-      mysqlshdk::mysql::get_executed_gtid_set(*m_primary_master);
+  assert(master);
+
+  std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
 
   bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
                                          channel_name, timeout, true);
 
   if (!sync_res) {
-    throw shcore::Exception("Timeout reached waiting for transactions from " +
-                                m_primary_master->descr() +
-                                " to be applied on instance '" +
-                                target_instance.descr() + "'",
-                            SHERR_DBA_GTID_SYNC_TIMEOUT);
+    throw shcore::Exception(
+        "Timeout reached waiting for transactions from " + master->descr() +
+            " to be applied on instance '" + target_instance.descr() + "'",
+        SHERR_DBA_GTID_SYNC_TIMEOUT);
   }
 }
 
-namespace {
-std::string format_repl_user_name(mysqlshdk::mysql::IInstance *slave,
-                                  const std::string &user_prefix) {
-  return user_prefix + "_" +
-         std::to_string(*slave->get_sysvar_int("server_id"));
-}
-}  // namespace
-
-mysqlshdk::mysql::Auth_options Base_cluster_impl::create_replication_user(
-    mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix,
-    bool dry_run) {
-  assert(m_primary_master);
-
-  mysqlshdk::mysql::Auth_options creds;
-
-  creds.user = format_repl_user_name(slave, user_prefix);
-
-  try {
-    std::string repl_password;
-
-    // Create replication accounts for this instance at the master
-    // replicaset unless the user provided one.
-
-    auto console = mysqlsh::current_console();
-
-    // Accounts are created at the master replicaset regardless of who will use
-    // them, since they'll get replicated everywhere.
-
-    // drop the replication user, for all hosts
-    // we need to drop any user from any host in case a different instance was
-    // the slave earlier
-    if (dry_run)
-      log_info("Drop %s at %s (dryRun)", creds.user.c_str(),
-               m_primary_master->descr().c_str());
-    else
-      drop_replication_user(slave, user_prefix);
-
-    log_info("Creating replication user %s@%% with random password at %s%s",
-             creds.user.c_str(), m_primary_master->descr().c_str(),
-             dry_run ? " (dryRun)" : "");
-
-    // re-create replication with a new generated password
-    if (!dry_run) {
-      mysqlshdk::mysql::create_user_with_random_password(
-          *m_primary_master, creds.user, {"%"},
-          {std::make_tuple("REPLICATION SLAVE", "*.*", false)}, &repl_password);
-    }
-
-    creds.password = repl_password;
-  } catch (const std::exception &e) {
-    throw shcore::Exception::runtime_error(shcore::str_format(
-        "Error while setting up replication account: %s", e.what()));
-  }
-
-  return creds;
-}
-
-mysqlshdk::mysql::Auth_options Base_cluster_impl::refresh_replication_user(
-    mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix,
-    bool dry_run) {
-  assert(m_primary_master);
-
-  mysqlshdk::mysql::Auth_options creds;
-
-  creds.user = format_repl_user_name(slave, user_prefix);
-
-  try {
-    // Create replication accounts for this instance at the master
-    // replicaset unless the user provided one.
-
-    auto console = mysqlsh::current_console();
-
-    log_info("Resetting password for %s@%% at %s", creds.user.c_str(),
-             m_primary_master->descr().c_str());
-    // re-create replication with a new generated password
-    if (!dry_run) {
-      std::string repl_password;
-      mysqlshdk::mysql::set_random_password(*m_primary_master, creds.user,
-                                            {"%"}, &repl_password);
-      creds.password = repl_password;
-    }
-  } catch (const std::exception &e) {
-    throw shcore::Exception::runtime_error(shcore::str_format(
-        "Error while resetting password for replication account: %s",
-        e.what()));
-  }
-
-  return creds;
-}
-
-void Base_cluster_impl::drop_replication_user(
-    mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix) {
-  assert(m_primary_master);
-
-  std::string user = format_repl_user_name(slave, user_prefix);
-
-  log_info("Dropping account %s@%% at %s", user.c_str(),
-           m_primary_master->descr().c_str());
-  try {
-    m_primary_master->drop_user(user, "%", true);
-  } catch (const shcore::Error &e) {
-    auto console = current_console();
-    console->print_warning(shcore::str_format(
-        "%s: Error dropping account %s@%s: %s",
-        m_primary_master->descr().c_str(), user.c_str(),
-        slave->get_canonical_hostname().c_str(), e.format().c_str()));
-    // ignore the error and move on
-  }
-}
-
-std::string Base_cluster_impl::get_replication_user(
+std::string Base_cluster_impl::get_replication_user_name(
     mysqlshdk::mysql::IInstance *target_instance,
     const std::string &user_prefix) const {
-  return format_repl_user_name(target_instance, user_prefix);
+  return user_prefix +
+         std::to_string(*target_instance->get_sysvar_int("server_id"));
 }
 
 void Base_cluster_impl::set_target_server(

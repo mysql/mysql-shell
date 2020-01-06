@@ -399,7 +399,7 @@ void Add_instance::prepare() {
     // Get instance user information from the cluster session if missing.
     if (!m_instance_cnx_opts.has_user()) {
       Connection_options cluster_cnx_opt = m_replicaset.get_cluster()
-                                               ->get_target_instance()
+                                               ->get_target_server()
                                                ->get_connection_options();
 
       if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user())
@@ -426,14 +426,14 @@ void Add_instance::prepare() {
   if (!m_rebooting) {
     mysqlshdk::db::Connection_options peer(m_replicaset.pick_seed_instance());
     if (peer.uri_endpoint() != m_replicaset.get_cluster()
-                                   ->get_target_instance()
+                                   ->get_target_server()
                                    ->get_connection_options()
                                    .uri_endpoint()) {
       m_peer_instance =
           Instance::connect(peer, current_shell_options()->get().wizards);
       m_use_cluster_session_for_peer = false;
     } else {
-      m_peer_instance = m_replicaset.get_cluster()->get_target_instance();
+      m_peer_instance = m_replicaset.get_cluster()->get_target_server();
     }
   }
 
@@ -489,7 +489,7 @@ void Add_instance::prepare() {
 
   // Make sure the target instance does not already belong to a cluster.
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-      *m_target_instance, m_replicaset.get_cluster()->get_target_instance());
+      *m_target_instance, m_replicaset.get_cluster()->get_target_server());
 
   // Check GTID consistency and whether clone is needed (not needed in
   // rebootCluster)
@@ -520,7 +520,7 @@ void Add_instance::prepare() {
     };
 
     std::shared_ptr<Instance> donor_instance =
-        m_replicaset.get_cluster()->get_target_instance();
+        m_replicaset.get_cluster()->get_target_server();
 
     m_clone_opts.recovery_method = mysqlsh::dba::validate_instance_recovery(
         Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
@@ -665,7 +665,7 @@ bool Add_instance::handle_replication_user() {
  */
 void Add_instance::clean_replication_user() {
   if (!m_rpl_user.empty()) {
-    auto primary = m_replicaset.get_cluster()->get_target_instance();
+    auto primary = m_replicaset.get_cluster()->get_target_server();
     log_debug("Dropping recovery user '%s'@'%%' at instance '%s'.",
               m_rpl_user.c_str(), primary->descr().c_str());
     primary->drop_user(m_rpl_user, "%", true);

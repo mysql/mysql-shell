@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,7 @@ void Cluster_set_option::check_disable_clone_support() {
   log_debug("Checking of disableClone is not supported by all cluster members");
 
   // Get all cluster instances
-  auto members = mysqlshdk::gr::get_members(*m_cluster->get_target_instance());
+  auto members = mysqlshdk::gr::get_members(*m_cluster->get_target_server());
 
   size_t bad_count = 0;
 
@@ -152,7 +152,7 @@ void Cluster_set_option::prepare() {
     ensure_option_valid();
 
     // Verify user privileges to execute operation;
-    ensure_user_privileges(*m_cluster->get_target_instance());
+    ensure_user_privileges(*m_cluster->get_target_server());
   } else {
     throw shcore::Exception::argument_error("Option '" + m_option +
                                             "' not supported.");

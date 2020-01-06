@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,7 +133,7 @@ bool Remove_instance::is_protocol_upgrade_required() {
   // Get the instance server_uuid
   mysqlshdk::utils::nullable<std::string> server_uuid;
   std::shared_ptr<Instance> group_instance =
-      m_replicaset.get_cluster()->get_target_instance();
+      m_replicaset.get_cluster()->get_target_server();
 
   // Determine which instance shall be used to determine if an upgrade is
   // required and afterwards to perform the upgrade.
@@ -201,7 +201,7 @@ void Remove_instance::prepare() {
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
     std::shared_ptr<Instance> cluster_instance =
-        m_replicaset.get_cluster()->get_target_instance();
+        m_replicaset.get_cluster()->get_target_server();
     Connection_options cluster_cnx_opt =
         cluster_instance->get_connection_options();
 
@@ -453,7 +453,9 @@ shcore::Value Remove_instance::execute() {
     } else {
       try {
         // JOB: Sync transactions with the cluster.
-        m_replicaset.get_cluster()->sync_transactions(*m_target_instance);
+        m_replicaset.get_cluster()->sync_transactions(
+            *m_target_instance, mysqlshdk::gr::k_gr_applier_channel,
+            current_shell_options()->get().dba_gtid_wait_timeout);
       } catch (const std::exception &err) {
         // Skip error if force=true, otherwise revert instance remove from MD
         // and issue error.
@@ -524,7 +526,7 @@ shcore::Value Remove_instance::execute() {
       // in create_config_object() when it tries to query members from an
       // instance that's not in the group anymore.
       if (m_target_instance->get_uuid() !=
-          m_replicaset.get_cluster()->get_target_instance()->get_uuid()) {
+          m_replicaset.get_cluster()->get_target_server()->get_uuid()) {
         // FIXME: end
         // Update the replicaset members (group_seed variable) and remove the
         // replication user from the instance being removed from the primary

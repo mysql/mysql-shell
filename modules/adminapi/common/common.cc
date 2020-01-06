@@ -1551,16 +1551,22 @@ void validate_replication_channel_startup_status(
   } else {
     // channel is stopped, not good
     if (channel.receiver.last_error.code != 0) {
-      if (channel.receiver.last_error.code == ER_ACCESS_DENIED_ERROR)
-        throw shcore::Exception(
-            "Authentication error in replication channel: " +
-                mysqlshdk::mysql::to_string(channel.receiver.last_error),
-            SHERR_DBA_REPLICATION_AUTH_ERROR);
-      else
-        throw shcore::Exception(
-            "Replication receiver error: " +
-                mysqlshdk::mysql::to_string(channel.receiver.last_error),
-            SHERR_DBA_REPLICATION_CONNECT_ERROR);
+      if (channel.receiver.last_error.code == ER_ACCESS_DENIED_ERROR) {
+        current_console()->print_error(
+            "Authentication error in replication channel '" +
+            channel.channel_name +
+            "': " + mysqlshdk::mysql::to_string(channel.receiver.last_error));
+
+        throw shcore::Exception("Authentication error in replication channel",
+                                SHERR_DBA_REPLICATION_AUTH_ERROR);
+      } else {
+        current_console()->print_error(
+            "Receiver error in replication channel '" + channel.channel_name +
+            "': " + mysqlshdk::mysql::to_string(channel.receiver.last_error));
+
+        throw shcore::Exception("Error found in replication receiver thread",
+                                SHERR_DBA_REPLICATION_CONNECT_ERROR);
+      }
     }
   }
 
@@ -1570,10 +1576,13 @@ void validate_replication_channel_startup_status(
       // ok, check next
     } else {
       if (channel.coordinator.last_error.code != 0) {
-        throw shcore::Exception(
-            "Replication coordinator thread error: " +
-                mysqlshdk::mysql::to_string(channel.coordinator.last_error),
-            SHERR_DBA_REPLICATION_COORDINATOR_ERROR);
+        current_console()->print_error(
+            "Coordinator error in replication channel '" +
+            channel.channel_name + "': " +
+            mysqlshdk::mysql::to_string(channel.coordinator.last_error));
+
+        throw shcore::Exception("Error found in replication coordinator thread",
+                                SHERR_DBA_REPLICATION_COORDINATOR_ERROR);
       }
     }
   }
@@ -1585,10 +1594,12 @@ void validate_replication_channel_startup_status(
       if (out_applier_on) *out_applier_on = true;
     } else {
       if (applier.last_error.code != 0) {
-        throw shcore::Exception(
-            "Replication applier thread error: " +
-                mysqlshdk::mysql::to_string(applier.last_error),
-            SHERR_DBA_REPLICATION_APPLIER_ERROR);
+        current_console()->print_error(
+            "Applier error in replication channel '" + channel.channel_name +
+            "': " + mysqlshdk::mysql::to_string(applier.last_error));
+
+        throw shcore::Exception("Error found in replication applier thread",
+                                SHERR_DBA_REPLICATION_APPLIER_ERROR);
       }
     }
   }
@@ -1625,7 +1636,11 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
       break;
 
     default:
-      validate_replication_channel_startup_status(channel, &io_on, &sql_on);
+      try {
+        validate_replication_channel_startup_status(channel, &io_on, &sql_on);
+      } catch (const shcore::Exception &e) {
+        throw shcore::Exception(instance.descr() + ": " + e.what(), e.code());
+      }
 
       if (!io_on || !sql_on) {
         throw shcore::Exception("Replication thread not in expected state",
@@ -1666,7 +1681,8 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       time_elapsed += incremental_timeout;
 
       // check for replication errors if the sync timed out
-      // the check function will throw an exception if so
+      // the check function will throw an exception if so.
+      // both i/o and applier errors are checked
       check_replication_startup(target_instance, channel_name);
 
       // continue waiting if there were no errors

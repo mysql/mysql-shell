@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,7 +131,9 @@ void Dissolve::ensure_transactions_sync() {
   // replication errors (until now).
   for (const auto &instance : m_available_instances) {
     try {
-      m_cluster->sync_transactions(*instance);
+      m_cluster->sync_transactions(
+          *instance, mysqlshdk::gr::k_gr_applier_channel,
+          current_shell_options()->get().dba_gtid_wait_timeout);
     } catch (const std::exception &err) {
       std::string instance_address =
           (*instance).get_connection_options().as_uri(
@@ -238,7 +240,7 @@ void Dissolve::prepare() {
 
   // Get cluster session to use the same authentication credentials for all
   // cluster instances.
-  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_instance();
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
 
   // Determine the primary (if it exists), in order to be the last to be
   // removed from the cluster. Only for single primary mode.
@@ -361,7 +363,9 @@ shcore::Value Dissolve::execute() {
       try {
         // Catch-up with all cluster transaction to ensure cluster metadata is
         // removed on the instance.
-        m_cluster->sync_transactions(instance);
+        m_cluster->sync_transactions(
+            instance, mysqlshdk::gr::k_gr_applier_channel,
+            current_shell_options()->get().dba_gtid_wait_timeout);
 
         // Remove instance from list of instance with sync error in case it
         // was previously added during initial verification, since it

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,19 +101,9 @@ class Base_cluster_impl {
 
   virtual void release_primary(mysqlsh::dba::Instance *primary = nullptr) = 0;
 
-  mysqlshdk::mysql::Auth_options create_replication_user(
-      mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix,
-      bool dry_run);
-
-  mysqlshdk::mysql::Auth_options refresh_replication_user(
-      mysqlshdk::mysql::IInstance *slave, const std::string &user_prefix,
-      bool dry_run);
-
-  void drop_replication_user(mysqlshdk::mysql::IInstance *slave,
-                             const std::string &user_prefix);
-
-  std::string get_replication_user(mysqlshdk::mysql::IInstance *target_instance,
-                                   const std::string &user_prefix) const;
+  std::string get_replication_user_name(
+      mysqlshdk::mysql::IInstance *target_instance,
+      const std::string &user_prefix) const;
 
   virtual void disconnect();
 
@@ -142,7 +132,8 @@ class Base_cluster_impl {
    * channel and throw an exception if an error is detected.
    *
    * @param target_instance instance to wait for transaction to be applied.
-   * @param channel_name the name of the channel to monitor
+   * @param channel_name the name of the replication channel to monitor for I/O
+   * and SQL errors
    * @param timeout number of seconds to wait
    *
    * @throw RuntimeError if the timeout is reached when waiting for

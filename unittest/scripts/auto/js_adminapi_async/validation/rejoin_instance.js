@@ -86,7 +86,7 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 ||ReplicaSet.rejoinInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@ Try to rejoin instance with unsolved replication error (fail).
-||ReplicaSet.rejoinInstance: Replication applier thread error: Error [[*]] (MYSQLSH 51145)
+||ReplicaSet.rejoinInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@ Rejoin instance after solving replication error (succeed).
 ||

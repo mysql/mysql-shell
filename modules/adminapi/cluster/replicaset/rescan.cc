@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -108,7 +108,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     std::vector<MissingInstanceInfo> &unavailable_instances) const {
   mysqlshdk::db::Connection_options group_conn_opt =
       m_replicaset->get_cluster()
-          ->get_target_instance()
+          ->get_target_server()
           ->get_connection_options();
 
   auto console = mysqlsh::current_console();
@@ -154,7 +154,7 @@ std::vector<std::string> Rescan::detect_invalid_members(
         instance_address.c_str(), check_type);
 
     std::shared_ptr<Instance> cluster_instance =
-        m_replicaset->get_cluster()->get_target_instance();
+        m_replicaset->get_cluster()->get_target_server();
 
     if (mysqlshdk::gr::is_active_member(*cluster_instance, cnx_opt.get_host(),
                                         cnx_opt.get_port()) != is_active) {
@@ -216,7 +216,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<NewInstanceInfo> newly_discovered_instances_list =
       get_newly_discovered_instances(
-          *m_replicaset->get_cluster()->get_target_instance(),
+          *m_replicaset->get_cluster()->get_target_server(),
           m_replicaset->get_cluster()->get_metadata_storage(),
           m_replicaset->get_cluster()->get_id());
 
@@ -257,7 +257,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   std::vector<MissingInstanceInfo> unavailable_instances_list =
       get_unavailable_instances(
-          *m_replicaset->get_cluster()->get_target_instance(),
+          *m_replicaset->get_cluster()->get_target_server(),
           m_replicaset->get_cluster()->get_metadata_storage(),
           m_replicaset->get_cluster()->get_id());
 
@@ -285,7 +285,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *m_replicaset->get_cluster()->get_target_instance(), nullptr);
+      *m_replicaset->get_cluster()->get_target_server(), nullptr);
 
   // Check if the topology mode match and report needed change in the metadata.
   if (gr_primary_uuid.empty() &&
@@ -353,7 +353,7 @@ void Rescan::add_instance_to_metadata(
     // It is assumed that the same login options of the cluster can be
     // used to connect to the instance, if no login (user) was provided.
     cnx_opts.set_login_options_from(m_replicaset->get_cluster()
-                                        ->get_target_instance()
+                                        ->get_target_server()
                                         ->get_connection_options());
   }
 
@@ -569,7 +569,7 @@ shcore::Value Rescan::execute() {
   // Verify if an upgrade of the protocol is required
   if (!missing_instances.get()->empty()) {
     std::shared_ptr<Instance> cluster_instance =
-        m_replicaset->get_cluster()->get_target_instance();
+        m_replicaset->get_cluster()->get_target_server();
 
     mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
 
