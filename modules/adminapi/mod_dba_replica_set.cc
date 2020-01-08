@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -971,7 +971,7 @@ with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
 
 The mandatory argument user is the name of the MySQL account we want to create
 or upgrade to be used as Administrator account. The accepted format is
-username[@host] where the host part is optional and if not provided defaults to
+username[@@host] where the host part is optional and if not provided defaults to
 '%'.
 
 The options dictionary may contain the following attributes:
@@ -1013,12 +1013,12 @@ necessary privileges.
  * $(REPLICASET_SETUPADMINACCOUNT)
  */
 #if DOXYGEN_JS
-Undefined ReplicaSet::setupAdminAccount(String name, Dictionary options) {}
+Undefined ReplicaSet::setupAdminAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
-None ReplicaSet::setup_admin_account(str name, dict options) {}
+None ReplicaSet::setup_admin_account(str user, dict options) {}
 #endif
 
-void ReplicaSet::setup_admin_account(const std::string &name,
+void ReplicaSet::setup_admin_account(const std::string &user,
                                      const shcore::Dictionary_t &options) {
   // Throw an error if the replicaset is invalid
   assert_valid("setupAdminAccount");
@@ -1031,7 +1031,7 @@ void ReplicaSet::setup_admin_account(const std::string &name,
 
   // split user into user/host
   std::string username, host;
-  std::tie(username, host) = validate_account_name(name);
+  std::tie(username, host) = validate_account_name(user);
 
   // Get optional options.
   if (options) {
@@ -1064,7 +1064,7 @@ with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
 
 The mandatory argument user is the name of the MySQL account we want to create
 or upgrade to be used by MySQL Router. The accepted format is
-username[@host] where the host part is optional and if not provided defaults to
+username[@@host] where the host part is optional and if not provided defaults to
 '%'.
 
 The options dictionary may contain the following attributes:
@@ -1106,11 +1106,11 @@ necessary privileges.
  * $(REPLICASET_SETUPROUTERACCOUNT)
  */
 #if DOXYGEN_JS
-Undefined ReplicaSet::setupRouterAccount(String name, Dictionary options) {}
+Undefined ReplicaSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
-None ReplicaSet::setup_router_account(str name, dict options) {}
+None ReplicaSet::setup_router_account(str user, dict options) {}
 #endif
-void ReplicaSet::setup_router_account(const std::string &name,
+void ReplicaSet::setup_router_account(const std::string &user,
                                       const shcore::Dictionary_t &options) {
   // Throw an error if the replicaset is invalid
   assert_valid("setupRouterAccount");
@@ -1123,7 +1123,7 @@ void ReplicaSet::setup_router_account(const std::string &name,
 
   // split user into user/host
   std::string username, host;
-  std::tie(username, host) = validate_account_name(name);
+  std::tie(username, host) = validate_account_name(user);
 
   // Get optional options.
   if (options) {

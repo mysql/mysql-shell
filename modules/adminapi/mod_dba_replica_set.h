@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,6 +60,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined setPrimaryInstance(String instance, Dictionary options);
   Undefined forcePrimaryInstance(String instance, Dictionary options);
   Boolean removeRouterMetadata(RouterDef routerDef);
+  Undefined setupAdminAccount(String user, Dictionary options);
+  Undefined setupRouterAccount(String user, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(REPLICASET_GETNAME_BRIEF)
   None add_instance(str instance, dict options);
@@ -74,6 +76,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None set_primary_instance(str instance, dict options);
   None force_primary_instance(str instance, dict options);
   bool remove_router_metadata(RouterDef routerDef);
+  None setup_admin_account(str user, dict options);
+  None setup_router_account(str user, dict options);
 #endif
 
   explicit ReplicaSet(const std::shared_ptr<Replica_set_impl> &cluster);
@@ -122,10 +126,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
   void remove_router_metadata(const std::string &router_def);
 
-  void setup_admin_account(const std::string &name,
+  void setup_admin_account(const std::string &user,
                            const shcore::Dictionary_t &options);
 
-  void setup_router_account(const std::string &name,
+  void setup_router_account(const std::string &user,
                             const shcore::Dictionary_t &options);
 
  protected:
