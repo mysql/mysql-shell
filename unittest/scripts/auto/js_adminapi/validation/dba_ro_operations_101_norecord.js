@@ -126,7 +126,7 @@
 ?{VER(>=8.0.17)}
                     "inApplierQueueCount": [[*]], 
                     "inQueueCount": [[*]], 
-                    "lastConflictFree": "", 
+                    "lastConflictFree": [[*]],
                     "proposedCount": [[*]], 
                     "rollbackCount": [[*]], 
 ?{}

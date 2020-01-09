@@ -42,8 +42,12 @@ rs2 = dba.getReplicaSet();
 rs2.forcePrimaryInstance(__sandbox_uri2);
 rs2.status();
 
-//@ Restart invalidated member and check status from it
+//@ Restart invalidated member and check status from the current primary
 testutil.startSandbox(__mysql_sandbox_port1);
+
+rs2.status();
+
+//@ same from the invalidated primary
 shell.connect(__sandbox_uri1);
 rs = dba.getReplicaSet();
 rs.status();
@@ -87,6 +91,29 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // we need a unique server_id (default is the port#)
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip, server_id:123});
 rs2.addInstance(__sandbox_uri1);
+
+//@<> re-prepare but invalidated sb3 now
+// This covers bug#30735124, where rejoining an invalidated primary would fail if it's the last member
+rs = rebuild_rs();
+rs.setPrimaryInstance(__sandbox_uri3);
+testutil.stopSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+rs = dba.getReplicaSet();
+rs.forcePrimaryInstance(__sandbox_uri1);
+testutil.startSandbox(__mysql_sandbox_port3);
+
+//@ status should show sb1 as PRIMARY
+// before bugfix, this would show sb3 as the PRIMARY
+rs.status();
+
+//@ connect to the invalidated PRIMARY and check status from there
+shell.connect(__sandbox_uri3);
+rs3= dba.getReplicaSet();
+rs3.status();
+
+//@ rejoinInstance() the invalidated PRIMARY
+rs.rejoinInstance(__sandbox_uri3);
+rs.status();
 
 //@<> re-prepare
 rs = rebuild_rs();

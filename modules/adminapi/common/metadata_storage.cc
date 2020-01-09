@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -979,7 +979,9 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_members(
   if (out_view_id) *out_view_id = 0;
 
   while (auto row = result->fetch_one_named()) {
-    if (out_view_id) *out_view_id = row.get_uint("view_id", 0);
+    // NOTE: view_id will be NULL for invalidated members
+    if (out_view_id && *out_view_id == 0)
+      *out_view_id = row.get_uint("view_id", 0);
     members.push_back(unserialize_instance(row));
   }
 

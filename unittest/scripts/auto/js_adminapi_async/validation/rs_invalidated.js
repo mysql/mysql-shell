@@ -33,7 +33,17 @@
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
 |"status": "ONLINE"|
 
-//@# Restart invalidated member and check status from it
+//@# Restart invalidated member and check status from the current primary
+|"status": "AVAILABLE_PARTIAL",|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+|"status": "INVALIDATED"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",|
+|"status": "ONLINE"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
+|"status": "ONLINE"|
+
+//@# same from the invalidated primary
+|WARNING: MYSQLSH 51121: Target <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was invalidated in a failover: reconnecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |"status": "AVAILABLE_PARTIAL",|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
 |"status": "INVALIDATED"|
@@ -140,6 +150,29 @@
 
 //@ add back the split-brained instance after re-building it
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' has not been pre-provisioned (GTID|
+
+//@# status should show sb1 as PRIMARY
+|"primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+
+//@# connect to the invalidated PRIMARY and check status from there
+|WARNING: MYSQLSH 51121: Target <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was invalidated in a failover: reconnecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|"primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+|"status": "ONLINE"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",|
+|"status": "ONLINE"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
+|"status": "INVALIDATED"|
+
+//@# rejoinInstance() the invalidated PRIMARY
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+|"primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
+|"status": "ONLINE"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",|
+|"status": "ONLINE"|
+|"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
+|"status": "ONLINE"|
 
 //@# remove the invalidated instance while it's down (should fail)
 |ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port1>>>. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.|
