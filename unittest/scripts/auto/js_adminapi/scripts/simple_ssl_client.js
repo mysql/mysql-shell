@@ -108,8 +108,6 @@ session1.runSql("stop group_replication");
 
 testutil.killSandbox(__mysql_sandbox_port3);
 wait_member_state_from(session2, __mysql_sandbox_port3, "UNREACHABLE");
-testutil.startSandbox(__mysql_sandbox_port3);
-session3 = mysql.getSession(ssl_sandbox_uri3);
 
 shell.connect(ssl_sandbox_uri2);
 cluster = dba.getCluster();
@@ -117,6 +115,9 @@ cluster = dba.getCluster();
 cluster.forceQuorumUsingPartitionOf(ssl_sandbox_uri2);
 shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"));
 cluster.rejoinInstance(ssl_sandbox_uri1);
+
+testutil.startSandbox(__mysql_sandbox_port3);
+session3 = mysql.getSession(ssl_sandbox_uri3);
 
 //@<> forceQuorum (rejoin restarted sandbox without persisted start_on_boot) {VER(<8.0.0)}
 cluster.rejoinInstance(ssl_sandbox_uri3);

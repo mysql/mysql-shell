@@ -36,7 +36,7 @@ It can be found at <<<def_public_key_path>>>
 #@<OUT> Now start the shell using --oci
 MySQL Shell [[*]]
 
-Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, [[*]], Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
 Other names may be trademarks of their respective owners.
 
@@ -61,7 +61,7 @@ Type '\? oci' for help.
 #@<OUT> Tweak the password to make it incorrect
 MySQL Shell [[*]]
 
-Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, [[*]], Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
 Other names may be trademarks of their respective owners.
 
@@ -87,7 +87,7 @@ Type '\? oci' for help.
 #@<OUT> Tweak the password to remove it
 MySQL Shell [[*]]
 
-Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, [[*]], Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
 Other names may be trademarks of their respective owners.
 
@@ -142,7 +142,7 @@ Please ensure your *public* API key is uploaded to your OCI User Settings page.
 #@<OUT> Now start the shell using --oci=passwordless
 MySQL Shell [[*]]
 
-Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, [[*]], Oracle and/or its affiliates. All rights reserved.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
 Other names may be trademarks of their respective owners.
 

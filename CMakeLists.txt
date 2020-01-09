@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -115,9 +115,18 @@ set(CMAKE_MODULE_PATH
 )
 
 ### Configuring package year
-### This can't be automated because we require generating
-### packages to be released in January by the end of the year.
-set(PACKAGE_YEAR 2019)
+IF(NOT PACKAGE_YEAR)
+  SET(PACKAGE_YEAR "2020")
+
+  string(TIMESTAMP month_year "%Y/%m" UTC)
+  # Changes done in december will probably be released
+  # in january of year+1, so abort until someone confirms
+  # the year (e.g. either by passing -DPACKAGE_YEAR or
+  # SET(PACKAGE_YEAR ...) outside this IF())
+  IF(month_year STREQUAL "${PACKAGE_YEAR}/12")
+    MESSAGE(FATAL_ERROR "Package year is ${PACKAGE_YEAR}, please confirm correct value")
+  ENDIF()
+ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
 ###
