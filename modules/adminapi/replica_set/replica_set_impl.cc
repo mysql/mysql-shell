@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2311,8 +2311,11 @@ void Replica_set_impl::handle_clone(
 
     mysqlshdk::db::Connection_options clone_donor_opts(donor);
 
+    // we need a point in time as close as possible, but still earlier than
+    // when recovery starts to monitor the recovery phase. The timestamp
+    // resolution is timestamp(3) irrespective of platform
     std::string begin_time =
-        recipient->queryf_one_string(0, "", "SELECT NOW(6)");
+        recipient->queryf_one_string(0, "", "SELECT NOW(3)");
 
     std::exception_ptr error_ptr;
 

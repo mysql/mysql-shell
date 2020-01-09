@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -159,16 +159,9 @@ struct Clone_status {
       if (stages[i].state == k_CLONE_STATE_STARTED) return i;
     }
 
-    if (stages[0].state == k_CLONE_STATE_NONE) return -1;
+    if (stages.size() > 0 && stages[0].state == k_CLONE_STATE_NONE) return -1;
 
     return stages.size() - 1;
-  }
-
-  const Stage_info *get_stage(const std::string &stage) const {
-    for (const auto &s : stages) {
-      if (s.stage == stage) return &s;
-    }
-    return nullptr;
   }
 };
 
@@ -176,12 +169,13 @@ struct Clone_status {
  * Check clone progress at the given instance.
  *
  * @param instance being cloned (the receiver)
+ * @param start_time the timestamp right before clone has started
  *
  * This function assumes the CLONE was started by GR, which means we don't
  * have details about clone errors.
  */
 Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
-                                const std::string &start_time = "");
+                                const std::string &start_time);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

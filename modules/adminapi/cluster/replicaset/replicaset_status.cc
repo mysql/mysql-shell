@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -669,10 +669,11 @@ shcore::Value distributed_progress(
   return shcore::Value(dict);
 }
 
-shcore::Value clone_progress(const mysqlshdk::mysql::IInstance &instance) {
+shcore::Value clone_progress(const mysqlshdk::mysql::IInstance &instance,
+                             const std::string &begin_time) {
   shcore::Dictionary_t dict = shcore::make_dict();
   mysqlshdk::mysql::Clone_status status =
-      mysqlshdk::mysql::check_clone_status(instance);
+      mysqlshdk::mysql::check_clone_status(instance, begin_time);
 
   dict->set("cloneState", shcore::Value(status.state));
   dict->set("cloneStartTime", shcore::Value(status.begin_time));
@@ -713,12 +714,12 @@ std::pair<std::string, shcore::Value> recovery_status(
 
     case mysqlshdk::gr::Group_member_recovery_status::CLONE:
       status = "Cloning in progress";
-      info = clone_progress(instance);
+      info = clone_progress(instance, join_timestamp);
       break;
 
     case mysqlshdk::gr::Group_member_recovery_status::CLONE_ERROR:
       status = "Clone error";
-      info = clone_progress(instance);
+      info = clone_progress(instance, join_timestamp);
       break;
 
     case mysqlshdk::gr::Group_member_recovery_status::UNKNOWN:

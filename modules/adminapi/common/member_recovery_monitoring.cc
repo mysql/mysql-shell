@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,8 +38,8 @@ namespace mysqlsh {
 namespace dba {
 
 std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
-    mysqlsh::dba::Instance *instance, Recovery_progress_style progress_style,
-    int restart_timeout_sec);
+    mysqlsh::dba::Instance *instance, const std::string &begin_time,
+    Recovery_progress_style progress_style, int restart_timeout_sec);
 
 namespace {
 
@@ -49,10 +49,11 @@ int adjust_timeout(int timeout, int poll_interval) {
   return (timeout * poll_interval) / 1000;
 }
 
-void throw_clone_recovery_error(const mysqlshdk::mysql::IInstance &instance) {
+void throw_clone_recovery_error(const mysqlshdk::mysql::IInstance &instance,
+                                const std::string &start_time) {
   mysqlshdk::mysql::Clone_status status;
 
-  status = mysqlshdk::mysql::check_clone_status(instance);
+  status = mysqlshdk::mysql::check_clone_status(instance, start_time);
 
   assert(status.state == mysqlshdk::mysql::k_CLONE_STATE_FAILED);
 
@@ -140,10 +141,10 @@ void do_monitor_gr_recovery_status(
           80));
       console->print_info();
       if (method == mysqlshdk::gr::Group_member_recovery_status::CLONE_ERROR) {
-        throw_clone_recovery_error(*instance);
+        throw_clone_recovery_error(*instance, begin_time);
       } else if (progress_style != Recovery_progress_style::NOWAIT) {
         Scoped_instance new_instance(monitor_clone_recovery(
-            instance, progress_style, restart_timeout_sec));
+            instance, begin_time, progress_style, restart_timeout_sec));
 
         // After a clone, a distributed recovery is done by GR, but there's a
         // time gap between clone finishing and the next recovery starting.
@@ -165,7 +166,7 @@ void do_monitor_gr_recovery_status(
       // if clone recovery fails, GR can fallback to distributed recovery
       try {
         mysqlshdk::mysql::Clone_status status =
-            mysqlshdk::mysql::check_clone_status(*instance);
+            mysqlshdk::mysql::check_clone_status(*instance, begin_time);
 
         if (status.state == mysqlshdk::mysql::k_CLONE_STATE_FAILED) {
           console->print_warning(
@@ -422,12 +423,13 @@ void monitor_clone_instance(
   Scoped_instance instance(
       wait_clone_start(instance_def, begin_time, startup_timeout_sec));
 
-  monitor_clone_recovery(instance.get(), progress_style, restart_timeout_sec);
+  monitor_clone_recovery(instance.get(), begin_time, progress_style,
+                         restart_timeout_sec);
 }
 
 std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
-    mysqlsh::dba::Instance *instance, Recovery_progress_style progress_style,
-    int restart_timeout_sec) {
+    mysqlsh::dba::Instance *instance, const std::string &begin_time,
+    Recovery_progress_style progress_style, int restart_timeout_sec) {
   auto console = current_console();
   bool wait_restart = false;
   bool ignore_cancel = false;
@@ -445,7 +447,7 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     mysqlshdk::mysql::Clone_status status;
 
     try {
-      status = mysqlshdk::mysql::check_clone_status(*instance);
+      status = mysqlshdk::mysql::check_clone_status(*instance, begin_time);
       if (first) {
         console->print_note(instance->descr() + " is being cloned from " +
                             status.source);
@@ -516,7 +518,14 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
   // Wait for clone recovery to finish
   while (!stop) {
     mysqlshdk::mysql::Clone_status status;
-    status = mysqlshdk::mysql::check_clone_status(*new_instance);
+
+    // If a restart happened, use the new pointer. Otherwise, we must use the
+    // old pointer to not cause a segfault
+    if (new_instance) {
+      status = mysqlshdk::mysql::check_clone_status(*new_instance, begin_time);
+    } else {
+      status = mysqlshdk::mysql::check_clone_status(*instance, begin_time);
+    }
 
     try {
       progress.update(status);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,7 @@ void Clone_progress::on_error() {
 void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
   int current_stage = status.current_stage();
 
-  if (current_stage < 7) {
+  if (current_stage >= 0 && current_stage < 7) {
     const mysqlshdk::mysql::Clone_status::Stage_info &stage =
         status.stages[current_stage];
     log_debug2(
@@ -80,8 +80,9 @@ void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
       // data transfer
       update_transfer(status);
     } else {
-      if (m_current_stage < 4)
+      if (m_current_stage < 4) {
         update_transfer(status);  // flush end of data transfer part
+      }
 
       // restart and the rest
       update_stage(status, 4, 6);
