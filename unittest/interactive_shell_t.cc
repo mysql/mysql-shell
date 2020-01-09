@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include "utils/utils_general.h"
 
 extern mysqlshdk::utils::Version g_target_server_version;
+extern bool g_test_parallel_execution;
 
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
@@ -998,6 +999,12 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
 }
 
 TEST_F(Interactive_shell_test, python_startup_scripts) {
+  if (g_test_parallel_execution) {
+    SKIP_TEST(
+        "This test is writing to the share folder, skipping for parallel "
+        "execution.");
+  }
+
   const auto user_path =
       shcore::path::join_path(shcore::get_user_config_path(), "mysqlshrc.py");
 
@@ -1075,6 +1082,12 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
 
 #ifdef HAVE_V8
 TEST_F(Interactive_shell_test, js_startup_scripts) {
+  if (g_test_parallel_execution) {
+    SKIP_TEST(
+        "This test is writing to the share folder, skipping for parallel "
+        "execution.");
+  }
+
   const auto user_path =
       shcore::path::join_path(shcore::get_user_config_path(), "mysqlshrc.js");
 
@@ -1092,9 +1105,9 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   const auto home_path = shcore::get_mysqlx_home_path();
   const auto bin_path =
       home_path.empty()
-          ? shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrc.py")
+          ? shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrc.js")
           : shcore::path::join_path(home_path, "share", "mysqlsh",
-                                    "mysqlshrc.py");
+                                    "mysqlshrc.js");
 
   // Binary Config path is executed first
   std::string bin_backup;
