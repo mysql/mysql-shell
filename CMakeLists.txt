@@ -560,7 +560,6 @@ IF(WITH_TESTS)
   ### Unit-test support
   ###
   add_subdirectory(unittest)
-  add_subdirectory(shell-tests)
 ENDIF()
 
 ###

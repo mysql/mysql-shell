@@ -1,2 +1,0 @@
-#!../bld/mysqlsh -f
-print("Hello World");

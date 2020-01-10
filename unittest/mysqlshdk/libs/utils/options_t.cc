@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -318,6 +318,10 @@ TEST_F(Options_test, cmd_line_handling) {
   EXPECT_THROW_LIKE(handle_cmdline_options(2, argv17, false),
                     std::invalid_argument,
                     "does not accept empty string as a value");
+
+  char *argv18[] = {const_cast<char *>("ut"), const_cast<char *>("-v"), NULL};
+  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv18, false),
+                    std::invalid_argument, "unknown option -v");
 }
 
 TEST_F(Options_test, persisting) {

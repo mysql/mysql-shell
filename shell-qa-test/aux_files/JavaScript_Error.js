@@ -1,1 +1,0 @@
-var schema = session.getdatabase('sakila')

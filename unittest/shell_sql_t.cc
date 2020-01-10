@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -392,6 +392,21 @@ TEST_F(Shell_sql_test, multiple_single_double_quotes) {
   EXPECT_EQ("", query);
   EXPECT_EQ("SELECT '\\'' as a;", env.shell_sql->get_handled_input());
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
+}
+
+TEST_F(Shell_sql_test, stmt_inline_comment) {
+  // A multiline comment in the middle of a statement is
+  // not trimmed off
+  Input_state state;
+  std::string query = "SELECT 1 /* This is an inline comment */AS _one;";
+
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+
+  // SQL has not been handled yet
+  EXPECT_EQ("SELECT 1 /* This is an inline comment */AS _one;",
+            env.shell_sql->get_handled_input());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {

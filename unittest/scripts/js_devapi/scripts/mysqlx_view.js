@@ -11,6 +11,7 @@ mySession.setCurrentSchema('js_shell_test');
 
 var result;
 result = mySession.sql('create table table1 (name varchar(50))').execute();
+result = mySession.sql('insert into table1 (name) values ("John Doe")').execute();
 result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
 var view = mySession.getSchema('js_shell_test').getTable('view1');
 
@@ -26,7 +27,25 @@ print('session:', view.session);
 print('getSchema():', view.getSchema());
 print('schema:', view.schema);
 
+//@ Testing view select
+shell.dumpRows(view.select().execute(), "vertical");
+
+//@ Testing view update
+testutil.wipeAllOutput();
+view.update().set('my_name', 'John Lock').execute();
+shell.dumpRows(view.select().execute(), "vertical");
+
+//@ Testing view insert
+testutil.wipeAllOutput();
+view.insert().values('Jane Doe').execute();
+shell.dumpRows(view.select().execute(), "vertical");
+
+//@ Testing view delete
+testutil.wipeAllOutput();
+view.delete().execute();
+
 //@ Testing existence
+testutil.wipeAllOutput();
 print('Valid:', view.existsInDatabase());
 mySession.sql('drop view view1').execute();
 print('Invalid:', view.existsInDatabase());

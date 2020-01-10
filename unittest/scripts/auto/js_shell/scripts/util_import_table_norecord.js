@@ -92,7 +92,7 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Rec
 
 //@<OUT> Show world_x.cities table
 original_output_format = shell.options.resultFormat
-shell.options.resultFormat = 'tabbed'
+shell.options.resultFormat = 'table'
 session.runSql('select * from ' + target_schema + '.cities order by ID asc');
 shell.options.resultFormat = original_output_format
 

@@ -50,6 +50,99 @@ class Interactive_shell_test : public Shell_core_test_wrapper {
   }
 };
 
+// This test verifies the shell starts in the requested mode
+TEST_F(Interactive_shell_test, startup_modes) {
+  testutil->call_mysqlsh_c(
+      {_uri, "--sql", "--vertical", "-e", "show databases"});
+  MY_EXPECT_STDOUT_CONTAINS("Database: mysql");
+  wipe_all();
+
+  testutil->call_mysqlsh_c(
+      {_uri, "--js", "-e",
+       "shell.dumpRows(session.runSql('show databases'), 'vertical')"});
+  MY_EXPECT_STDOUT_CONTAINS("Database: mysql");
+  wipe_all();
+
+  testutil->call_mysqlsh_c(
+      {_uri, "--py", "-e",
+       "shell.dump_rows(session.run_sql('show databases'), 'vertical')"});
+  MY_EXPECT_STDOUT_CONTAINS("Database: mysql");
+  wipe_all();
+}
+
+TEST_F(Interactive_shell_test, test_quit_command) {
+  testutil->call_mysqlsh_c(
+      {"-ifull"}, "\\quit\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT("Testing \\quit",
+                             multiline({"mysql-js> \\quit", "Bye!"}),
+                             output_handler.std_out);
+  wipe_all();
+  testutil->call_mysqlsh_c(
+      {"-ifull"}, "\\q\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT("Testing \\q",
+                             multiline({"mysql-js> \\q", "Bye!"}),
+                             output_handler.std_out);
+  wipe_all();
+  testutil->call_mysqlsh_c(
+      {"-ifull"}, "\\exit\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT("Testing \\exit",
+                             multiline({"mysql-js> \\exit", "Bye!"}),
+                             output_handler.std_out);
+  wipe_all();
+}
+
+TEST_F(Interactive_shell_test, test_swicth_mode_commands) {
+  testutil->call_mysqlsh_c(
+      {"-ifull"}, "\\sql\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Testing \\sql",
+      multiline({"mysql-js> \\sql",
+                 "Switching to SQL mode... Commands end with ;",
+                 "mysql-sql> Bye!"}),
+      output_handler.std_out);
+  wipe_all();
+
+  testutil->call_mysqlsh_c(
+      {"-ifull"}, "\\py\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Testing \\py",
+      multiline(
+          {"mysql-js> \\py", "Switching to Python mode...", "mysql-py> Bye!"}),
+      output_handler.std_out);
+  wipe_all();
+
+  testutil->call_mysqlsh_c(
+      {"--sql", "-ifull"}, "\\js\n",
+      {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+       "/prompt_classic.json"});
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Testing \\js",
+      multiline({"mysql-sql> \\js", "Switching to JavaScript mode...",
+                 "mysql-js> Bye!"}),
+      output_handler.std_out);
+  wipe_all();
+}
+
+TEST_F(Interactive_shell_test, test_use_system_user) {
+  testutil->call_mysqlsh_c(
+      {"-i", "--host", "localhost", "--passwords-from-stdin"}, "whatever");
+  auto user = shcore::get_system_user();
+  MY_EXPECT_STDOUT_CONTAINS("Please provide the password for '" + user +
+                            "@localhost'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + user + "@localhost'");
+  wipe_all();
+}
+
 TEST_F(Interactive_shell_test, shell_get_session_BUG27809310) {
   EXPECT_NO_THROW(execute("shell.getSession()"));
 }
@@ -657,28 +750,14 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   }
 }
 
-TEST_F(Interactive_shell_test, shell_open_session) {
-  execute("shell.connect('" + _mysql_uri + "');");
-  EXPECT_TRUE(output_handler.std_err.empty());
-  wipe_all();
+TEST_F(Interactive_shell_test, shell_command_connect_no_parameters) {
+  execute("\\connect");
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  output_handler.wipe_all();
 
-#ifdef HAVE_V8
-  execute("var s = shell.openSession('" + _uri + "');");
-#else
-  execute("s = shell.open_session('" + _uri + "');");
-#endif
-  EXPECT_TRUE(output_handler.std_err.empty());
-  wipe_all();
-
-  execute("s.uri == session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("false");
-  EXPECT_TRUE(output_handler.std_err.empty());
-  wipe_all();
-
-  execute("s.close()");
-  execute("session.close()");
-  EXPECT_TRUE(output_handler.std_err.empty());
-  wipe_all();
+  execute("\\connect   ");
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
@@ -2816,7 +2895,6 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
 
   execute("\\sql");
   execute("\\connect " + _uri);
-  execute("select 1; \\source " + file_name);
 
   const auto times_in_output = [&](const char *str) {
     int i = 0;
@@ -2828,6 +2906,14 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
     return i;
   };
 
+  execute("select 1; \\source " + file_name);
+  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_TRUE(output_handler.std_err.empty());
+
+  execute("\\history clear");
+  wipe_all();
+
+  execute("select 1; \\. " + file_name);
   EXPECT_EQ(2, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
 

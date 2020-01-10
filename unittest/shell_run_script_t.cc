@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -639,6 +639,26 @@ end)";
     // no error, exit code 0
     EXPECT_EQ(0, rc);
     MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
+  }
+}
+
+TEST_F(ShellExeRunScript, file_and_file_from_stdin) {
+  static const char *good_js_output = R"(1
+2
+3
+end)";
+
+  {
+    wipe_out();
+    shcore::create_file("test_file.js", "println('file')");
+    int rc = execute({_mysqlsh, _uri.c_str(), mode.c_str(), "-i", "--file",
+                      "test_file.js", nullptr},
+                     nullptr, file.c_str());
+    // no error, exit code 0
+    EXPECT_EQ(0, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("file");
+    MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(good_js_output);
+    shcore::delete_file("test_file.js");
   }
 }
 
