@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -224,7 +224,7 @@ void GRReplicaSet::set_instance_option(const Connection_options &instance_def,
         *this, instance_def, option, value_int);
   } else {
     throw shcore::Exception::argument_error(
-        "Argument #2 is expected to be a string or an Integer.");
+        "Argument #3 is expected to be a string or an integer.");
   }
 
   // Always execute finish when leaving "try catch".

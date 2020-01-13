@@ -8,6 +8,8 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 ||Invalid number of arguments, expected 3 but got 1 (ArgumentError)
 ||Invalid number of arguments, expected 3 but got 2 (ArgumentError)
+||Argument #3 is expected to be a string or an integer. (ArgumentError)
+||Argument #3 is expected to be a string or an integer. (ArgumentError)
 ||Option 'foobar' not supported. (ArgumentError)
 ||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
 

@@ -54,6 +54,8 @@ cluster.setInstanceOption(1234, "memberWeight", 1);
 cluster.setInstanceOption({}, "memberWeight", 1);
 cluster.setInstanceOption(__sandbox_uri2);
 cluster.setInstanceOption(__sandbox_uri2, "memberWeight");
+cluster.setInstanceOption(__sandbox_uri2, "memberWeight", false);
+cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 13.37);
 cluster.setInstanceOption(__sandbox_uri2, "foobar", 1);
 cluster.setInstanceOption(null, "label", "newLabel");
 
