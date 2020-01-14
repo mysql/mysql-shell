@@ -33,7 +33,8 @@ DESCRIPTION
 
 PROPERTIES
       verbose
-            Enables verbose mode on the dba operations.
+            Controls debug message verbosity for sandbox related dba
+            operations.
 
 FUNCTIONS
       checkInstanceConfiguration(instance[, options])
@@ -100,7 +101,8 @@ FUNCTIONS
 
 //@<OUT> Verbose
 NAME
-      verbose - Enables verbose mode on the dba operations.
+      verbose - Controls debug message verbosity for sandbox related dba
+                operations.
 
 SYNTAX
       dba.verbose
@@ -204,7 +206,7 @@ RETURNS
       A descriptive text of the operation result.
 
 DESCRIPTION
-      This function auto-configures the instance for InnoDB Cluster usage.If
+      This function auto-configures the instance for InnoDB Cluster usage. If
       the target instance already belongs to an InnoDB Cluster it errors out.
 
       The instance definition is the connection data for the instance.
@@ -295,8 +297,8 @@ RETURNS
 
 DESCRIPTION
       This function reviews the instance configuration to identify if it is
-      valid for usage in group replication and cluster. An exception is thrown
-      if not.
+      valid for usage in an InnoDB cluster, making configuration changes if
+      necessary.
 
       The instance definition is the connection data for the instance.
 
@@ -848,6 +850,8 @@ DESCRIPTION
         address pattern (eg %).
       - ignoreSslError: Ignore errors when adding SSL support for the new
         instance, by default: true.
+      - mysqldOptions: List of MySQL configuration options to write to the
+        my.cnf file, as option=value strings.
 
       If the portx option is not specified, it will be automatically calculated
       as 10 times the value of the provided MySQL port.

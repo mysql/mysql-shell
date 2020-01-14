@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,10 +54,6 @@ bool check_admin_account_access_restrictions(
     const std::string &host, bool interactive);
 
 std::string prompt_new_account_password();
-
-bool prompt_create_usable_admin_account(const std::string &user,
-                                        const std::string &host,
-                                        std::string *out_create_account);
 
 std::pair<std::string, std::string> validate_account_name(
     const std::string &account);

@@ -638,6 +638,6 @@ Cluster.removeRouterMetadata: Invalid router instance '127.0.0.1' (ArgumentError
 }
 
 //@# MD1 - disconnected cluster object
-||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
 

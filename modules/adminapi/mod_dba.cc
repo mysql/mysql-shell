@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -567,7 +567,8 @@ void Dba::set_member(const std::string &prop, shcore::Value value) {
 
 REGISTER_HELP_PROPERTY(verbose, dba);
 REGISTER_HELP(DBA_VERBOSE_BRIEF,
-              "Enables verbose mode on the <b>dba</b> operations.");
+              "Controls debug message verbosity for sandbox related <b>dba</b> "
+              "operations.");
 REGISTER_HELP(DBA_VERBOSE_DETAIL,
               "The assigned value can be either boolean or integer, the result "
               "depends on the assigned value:");
@@ -1179,7 +1180,7 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
           get_function_name("createCluster") +
           ": Unable to create cluster. The instance '" + group_server->descr() +
           "' already belongs to an InnoDB cluster. Use "
-          "<Dba>." +
+          "dba." +
           get_function_name("getCluster", false) + "() to access it.";
       throw shcore::Exception::runtime_error(nice_error);
     } else if (error.find("instance belongs to that metadata") !=
@@ -1783,6 +1784,8 @@ affected by the provided options:
 pattern (eg %).
 @li ignoreSslError: Ignore errors when adding SSL support for the new instance,
 by default: true.
+@li mysqldOptions: List of MySQL configuration options to write to the my.cnf
+file, as option=value strings.
 
 If the portx option is not specified, it will be automatically calculated as 10
 times the value of the provided MySQL port.
@@ -1958,13 +1961,14 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
   if (current_shell_options()->get().wizards) {
     auto console = current_console();
 
-    console->println();
-    console->println("Instance localhost:" + std::to_string(port) +
-                     " successfully deployed and started.");
+    console->print_info();
+    console->print_info("Instance localhost:" + std::to_string(port) +
+                        " successfully deployed and started.");
 
-    console->println("Use shell.connect('root@localhost:" +
-                     std::to_string(port) + "'); to connect to the instance.");
-    console->println();
+    console->print_info(
+        "Use shell.connect('root@localhost:" + std::to_string(port) +
+        "') to connect to the instance.");
+    console->print_info();
   }
 
   return ret_val;
@@ -2330,7 +2334,7 @@ Validates and configures a local instance for MySQL InnoDB Cluster usage.
 @returns Nothing
 
 This function reviews the instance configuration to identify if it is valid for
-usage in group replication and cluster. An exception is thrown if not.
+usage in an InnoDB cluster, making configuration changes if necessary.
 
 The instance definition is the connection data for the instance.
 
@@ -2394,7 +2398,7 @@ Validates and configures an instance for MySQL InnoDB Cluster usage.
 
 @returns A descriptive text of the operation result.
 
-This function auto-configures the instance for InnoDB Cluster usage.If the
+This function auto-configures the instance for InnoDB Cluster usage. If the
 target instance already belongs to an InnoDB Cluster it errors out.
 
 The instance definition is the connection data for the instance.

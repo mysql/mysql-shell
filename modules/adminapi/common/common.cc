@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1309,7 +1309,7 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
           "version " +
           instance->get_version().get_base() +
           " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
-          "required). Please use the <Dba>.<<<configureLocalInstance>>>"
+          "required). Please use the dba.<<<configureLocalInstance>>>"
           "() command locally to persist the changes.";
       console->print_warning(warn_msg);
     } else if (*can_set_persist == false) {
@@ -1319,7 +1319,7 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
           "Instance '" + instance->descr() +
           "' will not load the persisted cluster configuration upon reboot "
           "since "
-          "'persisted-globals-load' is set to 'OFF'. Please use the <Dba>."
+          "'persisted-globals-load' is set to 'OFF'. Please use the dba."
           "<<<configureLocalInstance>>>() command locally to persist the "
           "changes "
           "or set 'persisted-globals-load' to 'ON' on the configuration file.";

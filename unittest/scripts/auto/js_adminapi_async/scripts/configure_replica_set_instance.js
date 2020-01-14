@@ -43,6 +43,23 @@ testutil.waitSandboxAlive(__mysql_sandbox_port2);
 // check again to ensure configs were applied
 dba.configureReplicaSetInstance(__sandbox_uri2);
 
+//@ configure and check admin user {VER(>8.0.0)}
+shell.connect(__sandbox_uri1);
+session.runSql("DROP USER root@'%'");
+dba.configureReplicaSetInstance(__sandbox_uri1);
+
+//@ configure and check admin user interactive {VER(>8.0.0)}
+shell.options.useWizards=1;
+testutil.expectPrompt("Please select an option [1]: ", "1");
+testutil.expectPrompt("Account Host", "%");
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
+
+EXPECT_EQ("root@localhost", session.runSql("SELECT group_concat(concat(user,'@',host)) FROM mysql.user WHERE user='root'").fetchOne()[0]);
+
+dba.configureReplicaSetInstance(__sandbox_uri1);
+
+EXPECT_EQ("root@%,root@localhost", session.runSql("SELECT group_concat(concat(user,'@',host)) FROM mysql.user WHERE user='root' ORDER BY host").fetchOne()[0]);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

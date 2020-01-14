@@ -189,7 +189,7 @@ void Cluster::assert_valid(const std::string &option_name) const {
   }
   if (!m_impl->get_target_instance()) {
     throw shcore::Exception::runtime_error(
-        "The cluster object is disconnected. Please use <Dba>." +
+        "The cluster object is disconnected. Please use dba." +
         get_function_name("getCluster", false) +
         " to obtain a fresh cluster handle.");
   }

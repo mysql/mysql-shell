@@ -50,7 +50,7 @@
 ||
 
 //@# Dba_preconditions_innodb, create_cluster_fails
-||Dba.createCluster: Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
+||Dba.createCluster: Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use dba.getCluster() to access it.
 
 //@# Dba_preconditions_innodb, drop_metadata_schema_fails
 ||Dba.dropMetadataSchema: No operation executed, use the 'force' option

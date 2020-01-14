@@ -244,8 +244,8 @@
 ||
 
 //@<OUT> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown. {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 ONLINE
 ONLINE
 
@@ -485,4 +485,4 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
 |ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
-|Unable to rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster but the <Dba>.rebootClusterFromCompleteOutage() operation will continue. The instance must be either cloned or fully re-provisioned before it can be re-added to the cluster.|
+|Unable to rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster but the dba.rebootClusterFromCompleteOutage() operation will continue. The instance must be either cloned or fully re-provisioned before it can be re-added to the cluster.|

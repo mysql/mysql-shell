@@ -65,7 +65,7 @@
 }
 
 //@# disconnect the cluster object
-||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle.
+||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle.
 
 //@ SP - getCluster() on primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|

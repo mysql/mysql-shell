@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -221,7 +221,7 @@ void Topology_configuration_command::print_replicaset_members_role_changes() {
     console->print_warning(
         "The cluster internal session is not the primary member "
         "anymore. For cluster management operations please obtain a "
-        "fresh cluster handle using <Dba>.<<<getCluster>>>().");
+        "fresh cluster handle using dba.<<<getCluster>>>().");
     console->println();
   }
 }

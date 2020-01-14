@@ -1516,7 +1516,7 @@ void GRReplicaSet::rejoin_instances(
         // use cluster.rejoinInstance() to manually re-add it.”
         console->print_note(shcore::str_format(
             "Unable to rejoin instance '%s' to the cluster but the "
-            "<Dba>.<<<rebootClusterFromCompleteOutage>>>() operation will "
+            "dba.<<<rebootClusterFromCompleteOutage>>>() operation will "
             "continue. The instance must be either cloned or fully "
             "re-provisioned before it can be re-added to the cluster.",
             instance.c_str()));
@@ -1681,7 +1681,7 @@ std::unique_ptr<mysqlshdk::config::Config> GRReplicaSet::create_config_object(
             "' cannot persist configuration since MySQL version " +
             instance->get_version().get_base() +
             " does not support the SET PERSIST command "
-            "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
+            "(MySQL version >= 8.0.11 required). Please use the dba." +
             "<<<configureLocalInstance>>>() command locally to persist the "
             "changes.");
       } else if (!*support_set_persist) {
@@ -1689,7 +1689,7 @@ std::unique_ptr<mysqlshdk::config::Config> GRReplicaSet::create_config_object(
             "Instance '" + instance_def.first.endpoint +
             "' will not load the persisted cluster configuration upon reboot "
             "since 'persisted-globals-load' is set to 'OFF'. Please use the "
-            "<Dba>.<<<configureLocalInstance>>>"
+            "dba.<<<configureLocalInstance>>>"
             "() command locally to persist the changes or set "
             "'persisted-globals-load' to 'ON' on the configuration file.");
       }

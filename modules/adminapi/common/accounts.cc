@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -458,113 +458,6 @@ bool check_admin_account_access_restrictions(
     // accept other cases by default
     return true;
   }
-}
-
-namespace {
-bool prompt_full_account(std::string *out_account) {
-  bool cancelled = false;
-  auto console = mysqlsh::current_console();
-  for (;;) {
-    std::string create_user;
-
-    if (console->prompt("Account Name: ", &create_user) &&
-        !create_user.empty()) {
-      try {
-        // normalize the account name
-        if (std::count(create_user.begin(), create_user.end(), '@') <= 1 &&
-            create_user.find(' ') == std::string::npos &&
-            create_user.find('\'') == std::string::npos &&
-            create_user.find('"') == std::string::npos &&
-            create_user.find('\\') == std::string::npos) {
-          auto p = create_user.find('@');
-          if (p == std::string::npos) {
-            create_user = shcore::make_account(create_user, "%");
-          } else {
-            create_user = shcore::make_account(create_user.substr(0, p),
-                                               create_user.substr(p + 1));
-          }
-        }
-        // validate
-        shcore::split_account(create_user, nullptr, nullptr, false);
-
-        if (out_account) *out_account = create_user;
-        break;
-      } catch (const std::runtime_error &) {
-        console->println(
-            "`" + create_user +
-            "` is not a valid account name. Must be user[@host] or "
-            "'user'[@'host']");
-      }
-    } else {
-      cancelled = true;
-      break;
-    }
-  }
-  return cancelled;
-}
-
-bool prompt_account_host(std::string *out_host) {
-  return !mysqlsh::current_console()->prompt("Account Host: ", out_host) ||
-         out_host->empty();
-}
-
-}  // namespace
-
-/*
- * Prompts options to create a valid admin account
- *
- * @param user the username
- * @param host the hostname
- * @param out_create_account the resolved account to be created
- *
- * @return a boolean value indicating whether the account has enough privileges
- * (or was resolved), or not.
- */
-bool prompt_create_usable_admin_account(const std::string &user,
-                                        const std::string & /* host */,
-                                        std::string *out_create_account) {
-  assert(out_create_account);
-  int result;
-  result = prompt_menu({"Create remotely usable account for '" + user +
-                            "' with same grants and password",
-                        "Create a new admin account for InnoDB "
-                        "cluster with minimal required grants",
-                        "Ignore and continue", "Cancel"},
-                       1);
-  bool cancelled;
-  auto console = mysqlsh::current_console();
-
-  switch (result) {
-    case 1:
-      console->println(
-          "Please provide a source address filter for the account (e.g: "
-          "192.168.% or % etc) or leave empty and press Enter to cancel.");
-      cancelled = prompt_account_host(out_create_account);
-      if (!cancelled) {
-        *out_create_account = shcore::make_account(user, *out_create_account);
-      }
-      break;
-    case 2:
-      console->println(
-          "Please provide an account name (e.g: icroot@%) "
-          "to have it created with the necessary\n"
-          "privileges or leave empty and press Enter to cancel.");
-      cancelled = prompt_full_account(out_create_account);
-      break;
-    case 3:
-      *out_create_account = "";
-      return true;
-    case 4:
-    default:
-      console->println("Canceling...");
-      return false;
-  }
-
-  if (cancelled) {
-    console->println("Canceling...");
-    return false;
-  }
-  return true;
 }
 
 /*
