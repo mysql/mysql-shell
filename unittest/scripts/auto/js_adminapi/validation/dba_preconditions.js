@@ -2,11 +2,11 @@
 ||
 
 //@# GR functions in an AR instance {VER(>=8.0.4)}
-||Dba.createCluster: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
-||Dba.getCluster: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
-||Dba.configureInstance: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
-||Dba.configureLocalInstance: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
-||Dba.rebootClusterFromCompleteOutage: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.createCluster: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.getCluster: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.configureInstance: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.configureLocalInstance: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.rebootClusterFromCompleteOutage: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 
 //@# Dba_preconditions_standalone, get_cluster_fails
 ||Dba.getCluster: This function is not available through a session to a standalone instance

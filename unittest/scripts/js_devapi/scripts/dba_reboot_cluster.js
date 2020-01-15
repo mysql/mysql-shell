@@ -46,10 +46,6 @@ var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsCompl
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
-session.close();
-// session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect(__sandbox_uri2);
-
 cluster.status();
 
 //@ Add instance 2
@@ -58,7 +54,41 @@ cluster.addInstance(__sandbox_uri2);
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+//@ reboot with GR plugin uninstalled {VER(>=8.0.0)}
+// covers Bug#30531848 RESTARTED INNODB CLUSTER NOT FINDING GR PLUGIN
+// NOTE: This works in 8.0 but not 5.7 (see bug#30768504)
+
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+
+var vars1 = session1.runSql("show variables like 'group_replication%'").fetchAll();
+var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll();
+
+session1.runSql("STOP group_replication");
+session1.runSql("set global super_read_only=0");
+session1.runSql("set sql_log_bin=0");
+session1.runSql("uninstall plugin group_replication");
+
+session2.runSql("STOP group_replication");
+session2.runSql("set global super_read_only=0");
+session2.runSql("set sql_log_bin=0");
+session2.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
+session2.runSql("uninstall plugin group_replication");
+
+shell.connect(__sandbox_uri1);
+dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
+
+session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
+
+// ensure configs after reboot are the same as before
+EXPECT_EQ(vars1, session1.runSql("show variables like 'group_replication%'").fetchAll());
+EXPECT_EQ(vars2, session2.runSql("show variables like 'group_replication%'").fetchAll());
+
 //@ Add instance 3
+session.close();
+// session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect(__sandbox_uri2);
+
 cluster.addInstance(__sandbox_uri3);
 
 // Waiting for the third added instance to become online

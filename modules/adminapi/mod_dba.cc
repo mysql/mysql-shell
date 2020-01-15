@@ -2734,20 +2734,35 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // instance.
   // 3. Ensure that the provided cluster identifier exists on the Metadata
   // Schema
-  if (interactive) {
-    if (!cluster_name) {
-      console->println(
-          "Reconfiguring the default cluster from complete outage...");
-    } else {
-      console->println(shcore::str_format(
-          "Reconfiguring the cluster '%s' from complete outage...",
-          cluster_name->c_str()));
-    }
-    console->println();
+  if (!cluster_name) {
+    console->print_info(
+        "Restoring the default cluster from complete outage...");
+  } else {
+    console->print_info(
+        shcore::str_format("Restoring the cluster '%s' from complete outage...",
+                           cluster_name->c_str()));
   }
+  console->print_info();
 
-  cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                        metadata, target_instance);
+  try {
+    cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                          metadata, target_instance);
+  } catch (const shcore::Error &e) {
+    // If the GR plugin is not installed, we can get this error.
+    // In that case, we install the GR plugin and retry.
+    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
+      log_info("%s: installing GR plugin (%s)",
+               target_instance->descr().c_str(), e.format().c_str());
+
+      mysqlshdk::gr::install_group_replication_plugin(*target_instance,
+                                                      nullptr);
+
+      cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                            metadata, target_instance);
+    } else {
+      throw;
+    }
+  }
 
   // Verify the status of the instances
   validate_instances_status_reboot_cluster(cluster, *target_instance, options);
@@ -2988,6 +3003,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
       // Execute add_instance operations.
       op_add_instance.execute();
+
+      console->print_info(target_instance->descr() + " was restored.");
     } catch (...) {
       // catch any exception that is thrown, restore super read-only-mode if
       // it was enabled and re-throw the caught exception.

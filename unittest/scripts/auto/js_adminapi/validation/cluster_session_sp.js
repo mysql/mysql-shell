@@ -131,12 +131,12 @@
 
 //@ SP - Connect with --redirect-primary while connected to the primary
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|Session type:                 Classic|
+|Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a secondary
 |Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
-|Session type:                 Classic|
+|Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a non-cluster member (error)
@@ -145,12 +145,12 @@
 
 //@ SP - Connect with --redirect-secondary while connected to the primary
 |Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
-|Session type:                 Classic|
+|Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 
 //@ SP - Connect with --redirect-secondary while connected to a secondary
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|Session type:                 Classic|
+|Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 
 //@ SP - Connect with --redirect-secondary while connected to a non-cluster member (error)
@@ -158,21 +158,21 @@
 |Metadata schema of an InnoDB cluster or ReplicaSet not found|
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member 2
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to the primary
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a secondary
 |Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a non-cluster member (error)
@@ -181,12 +181,12 @@
 
 //@ SPX - Connect with --redirect-secondary while connected to the primary
 |Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX - Connect with --redirect-secondary while connected to a secondary
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX - Connect with --redirect-secondary while connected to a non-cluster member (error)
@@ -194,21 +194,21 @@
 |Metadata schema of an InnoDB cluster or ReplicaSet not found|
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member 2
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to the primary
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a secondary
 |Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a non-cluster member (error)
@@ -217,12 +217,12 @@
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to the primary
 |Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a secondary
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
-|Session type:                 X|
+|Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a non-cluster member (error)

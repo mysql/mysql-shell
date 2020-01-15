@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -174,7 +174,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // FR2_7 : mysqlsh -u <user> -p --port=<mysqlx_port> -ma
   execute(
@@ -183,14 +183,14 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // FR2_10 : mysqlsh --uri user@host:33060/db --mysqlx
   execute({_mysqlsh, "--uri", uri_db.c_str(), "--mysqlx", "--interactive=full",
            "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to '");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // FR_EXTRA_3 : mysqlsh --uri mysql://user@host:33060/db --mysqlx
   execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
@@ -297,7 +297,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // BUG27363459: Deprecation of -mc
   execute({_mysqlsh, mysql_uri_db.c_str(), "-mc", "--interactive=full", "-e",
@@ -308,28 +308,28 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       "has been processed as --mc).");
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // FR_EXTRA_SUCCEED_2 : mysqlsh --uri mysql://user@host:3306/db --mc
   execute({_mysqlsh, mysql_uri_db.c_str(), "--mc", "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // FR_EXTRA_SUCCEED_3 : mysqlsh --uri mysqlx://user@host:33060/db -ma
   execute({_mysqlsh, uri_xscheme_db.c_str(), "-ma", "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // FR_EXTRA_SUCCEED_4 : mysqlsh --uri mysqlx://user@host:33060/db --mx
   execute({_mysqlsh, uri_xscheme_db.c_str(), "--mx", "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 }
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
@@ -754,13 +754,13 @@ TEST_F(Command_line_connection_test, auth_method) {
   execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=PLAIN",
            "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // auto: X port - valid authentication method - lowercase
   execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=plain",
            "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // auto: classic port - invalid authentication method
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
@@ -783,7 +783,7 @@ TEST_F(Command_line_connection_test, auth_method) {
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
            "--auth-method=mysql_native_password", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // mysqlx: X port - invalid authentication method
   execute({_mysqlsh, _uri.c_str(), "--interactive=full",
@@ -797,13 +797,13 @@ TEST_F(Command_line_connection_test, auth_method) {
   execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=PLAIN",
            "--mysqlx", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // mysqlx: X port - valid authentication method - lowercase
   execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=plain",
            "--mysqlx", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
   // mysqlx: classic port - invalid authentication method
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
@@ -836,7 +836,7 @@ TEST_F(Command_line_connection_test, auth_method) {
            "--auth-method=mysql_native_password", "--mysql", "-e", "\\status",
            NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // mysql: X port - invalid authentication method
   execute({_mysqlsh, _uri.c_str(), "--interactive=full",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,6 +66,7 @@ void Recorder_mysql::connect(const mysqlshdk::db::Connection_options &data) {
     if (const char *s = get_server_info()) info["server_info"] = s;
     info["server_version"] = mysql::Session::get_server_version().get_full();
     info["connection_id"] = std::to_string(get_connection_id());
+    info["protocol_info"] = std::to_string(get_protocol_info());
     _trace->serialize_connect_ok(info);
 
     if (on_recorder_connect_hook) on_recorder_connect_hook(shared_from_this());

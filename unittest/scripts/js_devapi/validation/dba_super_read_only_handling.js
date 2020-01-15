@@ -65,7 +65,7 @@ Cluster admin user 'testUser'@'%' created.
 ||
 
 //@# Reboot the cluster
-|Reconfiguring the cluster 'sample' from complete outage...|
+|Restoring the cluster 'sample' from complete outage...|
 
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.|
 |Would you like to rejoin it to the cluster? [y/N]: |

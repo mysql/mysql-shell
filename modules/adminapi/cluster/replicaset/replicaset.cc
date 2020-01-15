@@ -637,18 +637,34 @@ void GRReplicaSet::rejoin_instance(
 
     gr_options.check_option_values(instance->get_version());
 
-    if (!validate_replicaset_group_name(*instance,
-                                        get_cluster()->get_group_name())) {
-      std::string nice_error =
-          "The instance '" + instance_def.uri_endpoint() +
-          "' "
-          "may belong to a different cluster as the one registered "
-          "in the Metadata since the value of "
-          "'group_replication_group_name' does not match the one "
-          "registered in the cluster's Metadata: possible split-brain "
-          "scenario. Please remove the instance from the cluster.";
+    std::string nice_error =
+        "The instance '" + instance_def.uri_endpoint() +
+        "' may belong to a different cluster as the one registered "
+        "in the Metadata since the value of "
+        "'group_replication_group_name' does not match the one "
+        "registered in the cluster's Metadata: possible split-brain "
+        "scenario. Please remove the instance from the cluster.";
 
-      throw shcore::Exception::runtime_error(nice_error);
+    try {
+      if (!validate_replicaset_group_name(*instance,
+                                          cluster->get_group_name())) {
+        throw shcore::Exception::runtime_error(nice_error);
+      }
+    } catch (const shcore::Error &e) {
+      // If the GR plugin is not installed, we can get this error.
+      // In that case, we install the GR plugin and retry.
+      if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
+        log_info("%s: installing GR plugin (%s)",
+                 instance_def.uri_endpoint().c_str(), e.format().c_str());
+        mysqlshdk::gr::install_group_replication_plugin(*instance, nullptr);
+
+        if (!validate_replicaset_group_name(*instance,
+                                            cluster->get_group_name())) {
+          throw shcore::Exception::runtime_error(nice_error);
+        }
+      } else {
+        throw;
+      }
     }
   }
 
@@ -721,6 +737,20 @@ void GRReplicaSet::rejoin_instance(
     }
   }
 
+  {
+    // Check if instance was doing auto-rejoin and let the user know that the
+    // rejoin operation will override the auto-rejoin
+    bool is_running_rejoin =
+        mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
+    if (is_running_rejoin) {
+      console->print_info(
+          "The instance '" + instance->get_connection_options().uri_endpoint() +
+          "' is running auto-rejoin process, however the rejoinInstance has "
+          "precedence and will override that process.");
+      console->println();
+    }
+  }
+
   // Verify if the instance being added is MISSING, otherwise throw an error
   // Bug#26870329
   {
@@ -740,19 +770,7 @@ void GRReplicaSet::rejoin_instance(
       throw shcore::Exception::runtime_error(nice_error_msg);
     }
   }
-  {
-    // Check if instance was doing auto-rejoin and let the user know that the
-    // rejoin operation will override the auto-rejoin
-    bool is_running_rejoin =
-        mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
-    if (is_running_rejoin) {
-      console->print_info(
-          "The instance '" + instance->get_connection_options().uri_endpoint() +
-          "' is running auto-rejoin process, however the rejoinInstance has "
-          "precedence and will override that process.");
-      console->println();
-    }
-  }
+
   // Get the up-to-date GR group seeds values (with the GR local address from
   // all currently active instances).
   gr_options.group_seeds = get_cluster_group_seeds(instance);
@@ -1503,13 +1521,14 @@ void GRReplicaSet::rejoin_instances(
 
       // If rejoinInstance fails we don't want to stop the execution of the
       // function, but to log the error.
+      auto console = mysqlsh::current_console();
       try {
-        std::string msg =
-            "Rejoining the instance '" + instance + "' to the cluster.";
-        log_warning("%s", msg.c_str());
+        console->print_info("Rejoining '" + connection_options.uri_endpoint() +
+                            "' to the cluster.");
         rejoin_instance(connection_options, {});
       } catch (const shcore::Error &e) {
-        auto console = mysqlsh::current_console();
+        console->print_warning(connection_options.uri_endpoint() + ": " +
+                               e.format());
         // TODO(miguel) Once WL#13535 is implemented and rejoin supports clone,
         // simplify the following note by telling the user to use
         // rejoinInstance. E.g: “%s’ could not be automatically rejoined. Please
@@ -1517,9 +1536,8 @@ void GRReplicaSet::rejoin_instances(
         console->print_note(shcore::str_format(
             "Unable to rejoin instance '%s' to the cluster but the "
             "dba.<<<rebootClusterFromCompleteOutage>>>() operation will "
-            "continue. The instance must be either cloned or fully "
-            "re-provisioned before it can be re-added to the cluster.",
-            instance.c_str()));
+            "continue.",
+            connection_options.uri_endpoint().c_str()));
         console->print_info();
         log_error("Failed to rejoin instance: %s", e.what());
       }

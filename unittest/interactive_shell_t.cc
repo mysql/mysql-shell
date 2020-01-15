@@ -1727,11 +1727,6 @@ TEST_F(Interactive_shell_test, status_x) {
   std::string line;
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(std::string::npos, line.find("X"));
-
-  // ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  // EXPECT_NE(std::string::npos, line.find("Server type"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_EQ(1, sscanf(line.c_str(), "Connection Id:                %d", &dec));
@@ -1804,11 +1799,6 @@ TEST_F(Interactive_shell_test, status_classic) {
   std::string line;
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(std::string::npos, line.find("Classic"));
-
-  // ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  // EXPECT_NE(std::string::npos, line.find("Server type"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_EQ(1, sscanf(line.c_str(), "Connection Id:                %d", &dec));

@@ -428,7 +428,7 @@ function EXPECT_EQ(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual: </yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }

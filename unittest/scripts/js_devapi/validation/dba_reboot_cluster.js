@@ -27,6 +27,13 @@
 //@ Add instance 2
 ||
 
+//@<OUT> reboot with GR plugin uninstalled {VER(>=8.0.0)}
+Restoring the cluster 'dev' from complete outage...
+
+<<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
+Rejoining 'localhost:<<<__mysql_sandbox_port2>>>' to the cluster.
+<Cluster:dev>
+
 //@ Add instance 3
 ||
 

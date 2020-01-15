@@ -14,7 +14,7 @@ group_replication_start_on_boot = ON
 ||
 
 //@# FR1-TS-01 reboot cluster {VER(>=8.0.12)}
-|Reconfiguring the cluster 'C' from complete outage...|
+|Restoring the cluster 'C' from complete outage...|
 |The cluster was successfully rebooted.|
 |<Cluster:C>|
 
@@ -151,7 +151,7 @@ group_replication_start_on_boot = ON
 ||
 
 //@# FR1-TS-7 reboot cluster {VER(>=8.0.12)}
-|Reconfiguring the cluster 'ClusterName' from complete outage...|
+|Restoring the cluster 'ClusterName' from complete outage...|
 |The cluster was successfully rebooted.|
 |<Cluster:ClusterName>|
 

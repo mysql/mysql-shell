@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,6 +60,7 @@ class Replayer_mysql : public mysql::Session {
   bool is_open() const override;
 
   uint64_t get_connection_id() const override;
+  uint64_t get_protocol_info() override;
   const char *get_ssl_cipher() const override;
   const char *get_connection_info() override;
   const char *get_server_info() override;

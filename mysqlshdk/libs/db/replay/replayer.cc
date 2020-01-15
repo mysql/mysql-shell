@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -217,6 +217,12 @@ bool Replayer_mysql::is_open() const { return _impl->is_open(); }
 
 uint64_t Replayer_mysql::get_connection_id() const {
   std::string cid = _impl->get_info("connection_id");
+  if (cid.empty()) return 0;
+  return std::stoull(cid);
+}
+
+uint64_t Replayer_mysql::get_protocol_info() {
+  std::string cid = _impl->get_info("protocol_info");
   if (cid.empty()) return 0;
   return std::stoull(cid);
 }

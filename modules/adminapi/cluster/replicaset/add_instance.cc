@@ -406,8 +406,15 @@ void Add_instance::prepare() {
         m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
     }
 
-    m_target_instance = Instance::connect(
-        m_instance_cnx_opts, current_shell_options()->get().wizards);
+    try {
+      m_target_instance = Instance::connect(
+          m_instance_cnx_opts, current_shell_options()->get().wizards);
+    } catch (const shcore::Exception &e) {
+      if (e.is_mysql()) {
+        throw shcore::Exception::mysql_error_with_code(
+            m_instance_cnx_opts.uri_endpoint() + ": " + e.what(), e.code());
+      }
+    }
   }
 
   //  Override connection option if no password was initially provided.

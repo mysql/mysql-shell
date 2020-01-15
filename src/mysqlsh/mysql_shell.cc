@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1286,11 +1286,6 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
             shcore::str_format(format.c_str(), "Error Retrieving Status: ",
                                (*status)["STATUS_ERROR"].descr(true).c_str()));
       } else {
-        if (status->has_key("SESSION_TYPE"))
-          println(shcore::str_format(
-              format.c_str(),
-              "Session type: ", (*status)["SESSION_TYPE"].descr(true).c_str()));
-
         if (status->has_key("CONNECTION_ID"))
           println(shcore::str_format(
               format.c_str(), "Connection Id: ",

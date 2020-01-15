@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -850,7 +850,7 @@ void check_preconditions(const std::string &function_name,
                                 SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
 
       case GRInstanceType::AsyncReplicaSet:
-        error += " to an instance that is member of an InnoDB ReplicaSet";
+        error += " to an instance that is a member of an InnoDB ReplicaSet";
 
         throw shcore::Exception(
             error, SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET);

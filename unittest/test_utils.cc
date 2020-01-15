@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ std::vector<std::string> Shell_test_output_handler::log;
 shcore::Logger *Shell_test_output_handler::_logger;
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
-extern bool g_profile_test_scripts;
+extern int g_profile_test_scripts;
 
 Shell_test_output_handler::Shell_test_output_handler()
     : deleg(this, &Shell_test_output_handler::deleg_print,
@@ -410,6 +410,13 @@ void Shell_core_test_wrapper::SetUp() {
 }
 
 void Shell_core_test_wrapper::TearDown() {
+  if (!m_slowest_lines.empty()) {
+    std::cout << makeyellow("Slowest lines:") << "\n";
+    for (const auto &line : m_slowest_lines) {
+      std::cout << "  " << line.first << "ms " << line.second << "\n";
+    }
+  }
+
   if (testutil) {
     _interactive_shell->set_global_object("testutil", {});
     testutil.reset();
@@ -491,8 +498,10 @@ void Shell_core_test_wrapper::reset_replayable_shell(
 }
 
 void Shell_core_test_wrapper::execute(int location, const std::string &code) {
+  std::string executed_input;
+  const auto now = std::chrono::steady_clock::now();
+
   if (g_profile_test_scripts) {
-    const auto now = std::chrono::steady_clock::now();
     const auto elapsed = now - m_start_time;
     const auto m = std::chrono::duration_cast<std::chrono::minutes>(elapsed);
     const auto s = std::chrono::duration_cast<std::chrono::seconds>(
@@ -500,18 +509,48 @@ void Shell_core_test_wrapper::execute(int location, const std::string &code) {
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         elapsed % std::chrono::seconds(1));
 
-    std::string executed_input = shcore::str_format(
-        "[%2dm%02d.%03ds] %4d> ", static_cast<int>(m.count()),
-        static_cast<int>(s.count()), static_cast<int>(ms.count()), location);
+    executed_input = shcore::str_format(
+        "[%2dm%02d.%02ds] %4d> ", static_cast<int>(m.count()),
+        static_cast<int>(s.count()), static_cast<int>(ms.count()) / 10,
+        location);
+
     executed_input += code;
     output_handler.debug_print(makeblue(executed_input));
   } else {
-    std::string executed_input = shcore::str_format("%4d> ", location);
+    executed_input = shcore::str_format("%4d> ", location);
     executed_input += code;
     output_handler.debug_print(makeblue(executed_input));
   }
 
   _interactive_shell->process_line(code);
+
+  if (g_profile_test_scripts > 1) {
+    const auto elapsed = std::chrono::steady_clock::now() - now;
+
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() >
+        500) {
+      std::string time = shcore::str_format(
+          "<<< %d.%02ds",
+          static_cast<int>(
+              std::chrono::duration_cast<std::chrono::seconds>(elapsed)
+                  .count()),
+          static_cast<int>(
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  elapsed % std::chrono::seconds(1))
+                  .count()) /
+              10);
+
+      output_handler.debug_print(makeblue(time));
+
+      m_slowest_lines.push_back(
+          {std::chrono::duration_cast<std::chrono::milliseconds>(elapsed)
+               .count(),
+           executed_input});
+      m_slowest_lines.sort(
+          [](const auto &a, const auto &b) { return a.first > b.first; });
+      if (m_slowest_lines.size() > 10) m_slowest_lines.pop_back();
+    }
+  }
 }
 
 void Shell_core_test_wrapper::execute(const std::string &code) {

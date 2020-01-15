@@ -321,7 +321,7 @@ expect_error_redirect_secondary_no_session();
 //@<> use --cluster with a replicaset member, expect error
 function expect_error_cluster_with_replicaset() {
   EXPECT_STDOUT_CONTAINS('Option --cluster requires a session to a member of an InnoDB cluster.');
-  EXPECT_STDOUT_CONTAINS('This function is not available through a session to an instance that is member of an InnoDB ReplicaSet');
+  EXPECT_STDOUT_CONTAINS('This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet');
 }
 
 mysqlsh([__hostname_ip_uri1, '--cluster', '--execute', 'println(cluster.status())']);

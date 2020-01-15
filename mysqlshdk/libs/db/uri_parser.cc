@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -839,7 +839,7 @@ Connection_options Uri_parser::parse(const std::string &input,
   if (first_char <= last_char)
     _chunks[URI_TARGET] = {first_char, last_char};
   else
-    throw std::invalid_argument("Missing target server information");
+    throw std::invalid_argument("Invalid address");
 
   parse_scheme();
   parse_userinfo();

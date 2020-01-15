@@ -58,7 +58,7 @@ mysql_server_uuid: <<<uuid2>>>
 ||Dba.getReplicaSet: This function is not available through a session to an instance already in an InnoDB cluster
 
 //@# Check sb2.getCluster() with mixed metadata (should fail)
-||Dba.getCluster: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet
+||Dba.getCluster: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet
 
 //@# Check sb2.getReplicaSet() with mixed metadata
 |<ReplicaSet:myrs>|
@@ -83,7 +83,7 @@ mysql_server_uuid: <<<uuid2>>>
 |<<<cluster_id2>>>	2	mycluster	gr|
 
 //@# Check sb1.getCluster() with mixed metadata again (should fail)
-||Dba.getCluster: This function is not available through a session to an instance that is member of an InnoDB ReplicaSet (MYSQLSH 51306)
+||Dba.getCluster: This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 
 //@# Check sb1.getReplicaSet() with mixed metadata again
 |<ReplicaSet:myrs>|

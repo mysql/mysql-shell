@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -85,7 +85,7 @@ const char *g_test_home = nullptr;
 const char *g_mysqlsh_path;
 const char *g_mysqld_path_variables;
 char *g_mppath = nullptr;
-bool g_profile_test_scripts = false;
+int g_profile_test_scripts = 0;
 
 std::vector<std::pair<std::string, std::string>> g_skipped_tests;
 std::vector<std::pair<std::string, std::string>> g_skipped_chunks;
@@ -838,8 +838,11 @@ int main(int argc, char **argv) {
       tdb_step = true;
       g_test_trace_scripts = 1;
       g_test_fail_early = true;
-    } else if (strcmp(argv[index], "--profile-scripts") == 0) {
-      g_profile_test_scripts = true;
+    } else if (strcmp(argv[index], "--profile-scripts") == 0 ||
+               strcmp(argv[index], "-p") == 0) {
+      g_profile_test_scripts = 1;
+    } else if (strcmp(argv[index], "-P") == 0) {
+      g_profile_test_scripts = 2;
     } else if (strcmp(argv[index], "--show-skipped") == 0) {
       show_all_skipped = true;
     } else if (strcmp(argv[index], "--only-failures") == 0) {

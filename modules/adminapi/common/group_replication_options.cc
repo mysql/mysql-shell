@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -468,6 +468,10 @@ void Group_replication_options::read_option_values(
   if (local_address.is_null()) {
     local_address =
         instance.get_sysvar_string("group_replication_local_address");
+    // group_replication_local_address will be "" when it's not set, but we
+    // don't allow setting it to ""
+    if (!local_address.is_null() && *local_address == "")
+      local_address = nullptr;
   }
 
   mysqlshdk::utils::Version version = instance.get_version();
