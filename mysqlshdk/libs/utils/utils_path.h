@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -193,6 +193,15 @@ bool SHCORE_PUBLIC is_absolute(const std::string &path);
  * Provides path to the current working directory.
  */
 std::string SHCORE_PUBLIC getcwd();
+
+/**
+ * Return the canonical version of the pathname path.
+ * @param path the path for which we want to find out the canonical path
+ * @return the canonical path
+ * @throws std::runtime_error in case of any errors
+ */
+
+std::string SHCORE_PUBLIC get_canonical_path(const std::string &path);
 
 }  // namespace path
 }  // namespace shcore

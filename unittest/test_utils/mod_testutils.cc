@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -146,6 +146,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          &Testutils::end_snapshot_sandbox_error_log, "port");
   expose("changeSandboxConf", &Testutils::change_sandbox_conf, "port", "option",
          "value", "?section");
+  expose("upgradeSandbox", &Testutils::upgrade_sandbox, "port");
   expose("removeFromSandboxConf", &Testutils::remove_from_sandbox_conf, "port",
          "option", "?section");
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
@@ -487,6 +488,52 @@ void Testutils::enable_extensible() {
       {"Exploring the posibility to dynamically create objects fron C++"},
       "module");
 }
+
+namespace {
+/** Iterates through all the file lines calling the given function on each of
+ * them.
+ * @param file Path to the file whose lines we want to process.
+ * @param functor Function that is called on each of the file's lines
+ */
+void process_file_lines(
+    const std::string &file,
+    const std::function<std::string(const std::string &line)> &functor) {
+  std::vector<std::string> lines;
+  std::ifstream ifile(file);
+  if (!ifile.good()) {
+    throw std::runtime_error("Could not open file '" + file +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  {
+    std::string line;
+    while (std::getline(ifile, line)) {
+      lines.push_back(functor(line));
+    }
+  }
+  ifile.close();
+
+  std::ofstream ofile(file);
+
+  if (!ofile.good()) {
+    throw std::runtime_error("Could not open file '" + file +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  for (const auto &line : lines) {
+    ofile << line << '\n';
+  }
+
+  ofile.close();
+}
+
+void replace_file_text(const std::string &file, const std::string &from,
+                       const std::string &to) {
+  process_file_lines(file, [&from, &to](const std::string &line) {
+    return shcore::str_replace(line, from, to);
+  });
+}
+}  // namespace
 
 void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {
   _sandbox_snapshot_dir = dir;
@@ -1792,6 +1839,100 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
 }
 
 /**
+ * Searches $PATH for the given executable and returns its canonical path.
+ * @param exec_name The name of the executable we want to find
+ * @return the canonical path of the executable found on $PATH
+ */
+std::string Testutils::get_executable_path(const std::string &exec_name) {
+  std::string exec_path = shcore::path::search_stdpath(exec_name);
+
+  if (exec_path.empty()) {
+    throw ::std::runtime_error(shcore::str_format(
+        "Unable to find executable '%s' on PATH.", exec_name.c_str()));
+  }
+
+  // Make sure we're using canonical path;
+  return shcore::path::get_canonical_path(exec_path);
+}
+
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Upgrade the mysqld executable used by the sandbox with the one found in
+ * $PATH.
+ * @param port The port of the sandbox to upgrade.
+ *
+ * This function will replace the value of the basedir in the sandbox
+ * configuration file and update the start script.
+ *
+ */
+#if DOXYGEN_JS
+Undefined Testutils::upgradeSandbox(Integer port);
+#elif DOXYGEN_PY
+None Testutils::upgrade_sandbox(int port);
+#endif
+///@}
+void Testutils::upgrade_sandbox(int port) {
+  const std::string mysqld_path = get_executable_path("mysqld");
+  log_info("Upgrading sandbox (%d) using mysqld executable %s ...", port,
+           mysqld_path.c_str());
+#ifdef _WIN32
+  std::string start("start.bat");
+#else
+  std::string start("start.sh");
+#endif
+
+  // When replaying we don't need to do anything
+  mysqlshdk::db::replay::No_replay dont_record;
+  if (_skip_server_interaction) return;
+
+  // Change basedir to point to the basedir of the new executable
+  // Do the same MP does to find the basedir from the executable path, assuming
+  // it is inside a bin or sbin folder
+  const std::string path_sep = std::string(1, shcore::path::path_separator);
+  auto mysqld_path_vec = shcore::split_string(mysqld_path, path_sep);
+
+  auto bin_pos = std::find_if(mysqld_path_vec.rbegin(), mysqld_path_vec.rend(),
+                              [](const std::string &s) {
+                                return (shcore::str_lower(s) == "bin" ||
+                                        shcore::str_lower(s) == "sbin");
+                              });
+
+  // if no bin/sbin folder is found, throw an error
+  if (bin_pos == mysqld_path_vec.rend()) {
+    throw ::std::runtime_error("Unable to find basedir of mysqld executable " +
+                               mysqld_path);
+  }
+  const std::string basedir =
+      shcore::str_join(mysqld_path_vec.begin(), bin_pos.base() - 1, path_sep);
+
+  // Update the basedir on the config file
+  change_sandbox_conf(port, "basedir", basedir, "mysqld");
+
+  // Update the start script. We can leave the stop script since even
+  // the oldest mysqladmin versions that the shell supports are able to
+  // shutdown 5.7 or 8.0 versions of MySQL.
+  std::string sandbox_basedir =
+      shcore::path::join_path(_sandbox_dir, std::to_string(port));
+  // create lambda function to replace old mysqld executable with canonical
+  // mysqld path.
+  auto replace_func = [&mysqld_path](const std::string &line) {
+    auto found = line.find(" --defaults-file=");
+    if (found != std::string::npos) {
+      std::string line_copy{line};
+      line_copy.replace(0, found, mysqld_path);
+      return line_copy;
+    } else {
+      return line;
+    }
+  };
+  // Replace the old mysqld executable on the start script with the new
+  // mysqld_path
+  process_file_lines(shcore::path::join_path(sandbox_basedir, start),
+                     replace_func);
+}
+
+/**
  * Change sandbox server UUID.
  *
  * This function will set the server UUID of a sandbox by changing it in the
@@ -2790,38 +2931,6 @@ void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
   session->close();
 }
 
-void replace_file_text(const std::string &file, const std::string &from,
-                       const std::string &to) {
-  std::vector<std::string> lines;
-  std::ifstream ifile(file);
-  if (!ifile.good()) {
-    throw std::runtime_error("Could not open file '" + from +
-                             "': " + shcore::errno_to_string(errno));
-  }
-
-  {
-    std::string line;
-    while (std::getline(ifile, line)) {
-      lines.push_back(shcore::str_replace(line, from, to));
-    }
-  }
-
-  ifile.close();
-
-  std::ofstream ofile(file);
-
-  if (!ofile.good()) {
-    throw std::runtime_error("Could not open file '" + from +
-                             "': " + shcore::errno_to_string(errno));
-  }
-
-  for (const auto &line : lines) {
-    ofile << line << std::endl;
-  }
-
-  ofile.close();
-}
-
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                                             int port,
                                             const std::string &mysqld_path) {
@@ -3045,7 +3154,7 @@ bool Testutils::deploy_sandbox_from_boilerplate(
   std::string stop("stop.sh");
 #endif
 
-  // Replcaes the <SBPORT> token on the start and stop scripts for the real
+  // Replaces the <SBPORT> token on the start and stop scripts for the real
   // sandbox port
   replace_file_text(shcore::path::join_path(basedir, start), "<SBPORT>",
                     std::to_string(port));

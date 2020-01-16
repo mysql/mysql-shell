@@ -330,15 +330,19 @@ static std::string verify_target_server(
   } else {
     mysqlshdk::utils::Version actual_version(
         tests::Testutils::get_mysqld_version(path));
-
-    if (expected_version != actual_version) {
+    // if patch version is not used, accept any patch version as long as major
+    // and minor versions match
+    if (expected_version == actual_version ||
+        (expected_version.get_patch() == 0 &&
+         expected_version.get_major() == actual_version.get_major() &&
+         expected_version.get_minor() == actual_version.get_minor())) {
+      path_variables->push_back(variable);
+    } else {
       return shcore::str_format(
           "The environment variable %s must be defined with the path to the "
           "MySQL Server %s binary, it points to a MySQL Server %s",
           variable.c_str(), expected_version.get_base().c_str(),
           actual_version.get_base().c_str());
-    } else {
-      path_variables->push_back(variable);
     }
   }
   return "";

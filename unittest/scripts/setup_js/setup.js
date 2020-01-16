@@ -337,6 +337,12 @@ var __address2r = __mysql_host + ":" + __mysql_sandbox_port2;
 var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
 var __address4r = __mysql_host + ":" + __mysql_sandbox_port4;
 
+var CLUSTER_ADMIN = "AdminUser";
+var CLUSTER_ADMIN_PWD = "AdminUserPwd";
+var __sandbox_admin_uri1 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port1;
+var __sandbox_admin_uri2 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port2;
+var __sandbox_admin_uri3 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port3;
+
 // JSON utils
 
 // Find a key in a json object recursively

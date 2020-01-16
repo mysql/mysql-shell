@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,6 +59,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined waitSandboxAlive(Integer port);
   Undefined changeSandboxConf(Integer port, String option, String value,
                               String section);
+  Undefined upgradeSandbox(Integer port);
   Undefined removeFromSandboxConf(Integer port, String option, String section);
   String getSandboxConfPath(Integer port);
   String getSandboxLogPath(Integer port);
@@ -117,6 +118,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None restart_sandbox(int port);
   None wait_sandbox_alive(int port);
   None change_sandbox_conf(int port, str option, str value, str section);
+  None upgrade_sandbox(int port);
   None remove_from_sandbox_conf(int port, str option, str section);
   str get_sandbox_conf_path(int port);
   str get_sandbox_log_path(int port);
@@ -230,6 +232,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void change_sandbox_conf(int port, const std::string &option,
                            const std::string &value,
                            const std::string &section = "");
+  void upgrade_sandbox(int port);
   void remove_from_sandbox_conf(int port, const std::string &option,
                                 const std::string &section = "");
   std::string get_sandbox_conf_path(int port);
@@ -279,6 +282,8 @@ class Testutils : public mysqlsh::Extensible_object {
   shcore::Array_t grep_file(const std::string &path,
                             const std::string &pattern);
   std::string cat_file(const std::string &path);
+
+  std::string get_executable_path(const std::string &exec_name);
 
   void wipe_file_contents(const std::string &path);
 

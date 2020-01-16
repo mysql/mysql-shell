@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,9 @@
 
 #include "mysqlshdk/libs/utils/utils_path.h"
 
+#include <stdio.h>
+#include <tchar.h>
+#include <windows.h>
 #include <algorithm>
 #include <cstdlib>
 #include <string>
@@ -311,6 +314,25 @@ std::string SHCORE_PUBLIC getcwd() {
   result.pop_back();
 
   return shcore::wide_to_utf8(result);
+}
+
+std::string SHCORE_PUBLIC get_canonical_path(const std::string &path) {
+  // convert utf8 to wstring
+  std::wstring w_path = shcore::utf8_to_wide(path);
+  // get length (including the terminating null character)
+  auto path_length = GetFullPathNameW(w_path.c_str(), 0, nullptr, nullptr);
+  std::wstring buffer(path_length, 'x');
+  // get the path
+  path_length =
+      GetFullPathNameW(w_path.c_str(), path_length, &buffer[0], nullptr);
+  if (path_length == 0) {
+    throw std::runtime_error(shcore::str_format(
+        "Error attempting to get the canonical path for '%s': %s", path.c_str(),
+        last_error_to_string(GetLastError()).c_str()));
+  }
+  // remove the terminating null character
+  buffer.pop_back();
+  return shcore::wide_to_utf8(buffer);
 }
 
 }  // namespace path

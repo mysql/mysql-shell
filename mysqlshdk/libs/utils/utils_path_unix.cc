@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include <errno.h>
 #include <limits.h>
 #include <pwd.h>
 #include <unistd.h>
@@ -206,6 +207,19 @@ std::string SHCORE_PUBLIC getcwd() {
     throw std::runtime_error("Failed to get current working directory.");
   }
   return path;
+}
+
+std::string SHCORE_PUBLIC get_canonical_path(const std::string &path) {
+  auto *res = realpath(path.c_str(), nullptr);
+  if (res == nullptr) {
+    // handle error
+    throw std::runtime_error(shcore::str_format(
+        "Error attempting to get the canonical path for '%s': %s (%d)",
+        path.c_str(), strerror(errno), errno));
+  }
+
+  std::unique_ptr<char, decltype(&free)> deleter{res, free};
+  return std::string(res);
 }
 
 }  // namespace path
