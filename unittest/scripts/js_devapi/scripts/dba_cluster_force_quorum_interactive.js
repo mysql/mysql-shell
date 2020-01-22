@@ -1,3 +1,5 @@
+//@ {VER(>=5.7.17)}
+
 // Assumptions: smart deployment rountines available
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
@@ -5,6 +7,8 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+var cnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+var cnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 var clusterSession = session;
@@ -35,6 +39,11 @@ var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'r
 s2.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s2.close();
 
+//@ Disable group_replication_start_on_boot on second instance {VER(<8.0.11)}
+var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+s2.runSql("SET GLOBAL group_replication_start_on_boot = 0");
+s2.close();
+
 //@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.4)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 3 will
 // be still trying to join the cluster from the moment it was started again until
@@ -43,8 +52,13 @@ var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'r
 s3.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s3.close();
 
+//@ Disable group_replication_start_on_boot on third instance {VER(<8.0.11)}
+var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+s3.runSql("SET GLOBAL group_replication_start_on_boot = 0");
+s3.close();
+
 //@ Kill instance 2
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnf_path2});
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
@@ -52,7 +66,7 @@ testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@ Kill instance 3
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port3)});
+dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: cnf_path3});
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable

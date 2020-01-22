@@ -39,7 +39,13 @@ Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instanc
 //@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 ||
 
+//@ Disable group_replication_start_on_boot on second instance {VER(<8.0.11)}
+||
+
 //@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.11)}
+||
+
+//@ Disable group_replication_start_on_boot on third instance {VER(<8.0.11)}
 ||
 
 //@ Kill instance 2
@@ -193,6 +199,10 @@ WARNING: Cluster has no quorum and cannot process write transactions: Group has 
 
 //@ Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
 ||
+
+//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16)}
+CHANNEL_NAME	MEMBER_ID	MEMBER_HOST	MEMBER_PORT	MEMBER_STATE	MEMBER_ROLE	MEMBER_VERSION
+group_replication_applier	[[*]]	<<<hostname>>>	<<<__mysql_sandbox_port2>>>	ONLINE	PRIMARY	<<<__version>>>
 
 //@ Finalization
 ||

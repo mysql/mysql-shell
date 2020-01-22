@@ -1,3 +1,5 @@
+//@ {VER(>=5.7.17)}
+
 // Assumptions: smart deployment rountines available
 
 // Due to the fixes for BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE
@@ -15,6 +17,8 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+var cnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+var cnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 
@@ -48,6 +52,11 @@ var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'r
 s2.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s2.close();
 
+//@ Disable group_replication_start_on_boot on second instance {VER(<8.0.11)}
+var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+s2.runSql("SET GLOBAL group_replication_start_on_boot = 0");
+s2.close();
+
 //@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.11)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 3 will
 // be still trying to join the cluster from the moment it was started again until
@@ -56,8 +65,13 @@ var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'r
 s3.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s3.close();
 
+//@ Disable group_replication_start_on_boot on third instance {VER(<8.0.11)}
+var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+s3.runSql("SET GLOBAL group_replication_start_on_boot = 0");
+s3.close();
+
 //@ Kill instance 2
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnf_path2});
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
@@ -65,7 +79,7 @@ testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@ Kill instance 3
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port3)});
+dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: cnf_path3});
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
@@ -126,6 +140,33 @@ session.runSql('STOP group_replication');
 //@ Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
 // Regression for BUG#28064621: group_replication_force_members should be unset after forcing quorum
 session.runSql('START group_replication');
+
+//@<> dissolve cluster
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.status();
+cluster = dba.getCluster();
+cluster.dissolve();
+cluster.disconnect();
+
+// --- BEGIN --- BUG#30739252 : race condition in forcequorum
+
+//@<> BUG#30739252: create cluster, enabling auto-rejoin. {VER(>=8.0.16)}
+shell.connect(__sandbox_uri2);
+var c = dba.createCluster("c", {autoRejoinTries: 100});
+c.addInstance(__sandbox_uri3, {autoRejoinTries: 100});
+
+//@<> BUG#30739252: kill instance 3 and restart it {VER(>=8.0.16)}
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+testutil.startSandbox(__mysql_sandbox_port3);
+
+//@<> BUG#30739252: force quorum {VER(>=8.0.16)}
+c.forceQuorumUsingPartitionOf(__sandbox_uri2);
+
+//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16)}
+shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"), "tabbed");
+
+// --- END --- BUG#30739252 : race condition in forcequorum
 
 //@ Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone

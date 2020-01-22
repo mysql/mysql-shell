@@ -1366,18 +1366,15 @@ void GRReplicaSet::force_quorum_using_partition_of(
         "'");
   }
 
-  // Get the online instances of the ReplicaSet to user as group_peers
-  auto online_instances = get_active_instances();
-
-  if (online_instances.empty()) {
-    throw shcore::Exception::logic_error(
-        "No online instances are visible from the given one.");
-  }
+  // Get the all instances from MD and members visible by the target instance.
+  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
+      instances_info = get_instances_with_state();
 
   std::string group_peers;
+  int online_count = 0;
 
-  for (auto &instance : online_instances) {
-    std::string instance_host = instance.endpoint;
+  for (auto &instance : instances_info) {
+    std::string instance_host = instance.first.endpoint;
     auto target_coptions = shcore::get_connection_options(instance_host, false);
     // We assume the login credentials are the same on all instances
     target_coptions.set_login_options_from(
@@ -1391,19 +1388,38 @@ void GRReplicaSet::force_quorum_using_partition_of(
           instance_host.c_str());
       instance_session = Instance::connect(
           target_coptions, current_shell_options()->get().wizards);
+
+      if (instance.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+          instance.second.state == mysqlshdk::gr::Member_state::RECOVERING) {
+        // Add GCS address of active instance to the force quorum membership.
+        std::string group_peer_instance_xcom_address =
+            instance_session
+                ->get_sysvar_string("group_replication_local_address")
+                .get_safe();
+
+        group_peers.append(group_peer_instance_xcom_address);
+        group_peers.append(",");
+
+        online_count++;
+      } else {
+        // Stop GR on not active instances.
+        mysqlshdk::gr::stop_group_replication(*instance_session);
+      }
     } catch (const std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
-      throw;
+
+      // Only throw errors if the instance is active, otherwise ignore it.
+      if (instance.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+          instance.second.state == mysqlshdk::gr::Member_state::RECOVERING) {
+        throw;
+      }
     }
+  }
 
-    // Get @@group_replication_local_address
-    std::string group_peer_instance_xcom_address =
-        instance_session->get_sysvar_string("group_replication_local_address")
-            .get_safe();
-
-    group_peers.append(group_peer_instance_xcom_address);
-    group_peers.append(",");
+  if (online_count == 0) {
+    throw shcore::Exception::logic_error(
+        "No online instances are visible from the given one.");
   }
 
   // Force the reconfiguration of the GR group
