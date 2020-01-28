@@ -47,8 +47,8 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was removed from th
 
 //@<OUT> check state after removal
 view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	master_member_id
-9	[[*]]	3	<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>	5ef81566-9395-11e9-87e9-333333333333	SECONDARY	1	5ef81566-9395-11e9-87e9-111111111111
 9	[[*]]	1	<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>	5ef81566-9395-11e9-87e9-111111111111	PRIMARY	NULL	NULL
+9	[[*]]	3	<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>	5ef81566-9395-11e9-87e9-333333333333	SECONDARY	1	5ef81566-9395-11e9-87e9-111111111111
 2
 0
 0

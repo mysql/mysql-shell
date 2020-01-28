@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #include <Windows.h>
 #endif
 
+#include "my_config.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -797,6 +798,36 @@ TEST_F(ConfigFileTest, test_constructor) {
   cfg.read(cfg_path);
   Config_file cfg_copy = Config_file(cfg);
   EXPECT_TRUE(cfg_copy.groups() == cfg.groups());
+}
+
+TEST_F(ConfigFileTest, get_default_config_paths) {
+  using mysqlshdk::config::get_default_config_paths;
+  using shcore::OperatingSystem;
+
+  // BUG#30171324 : mysql shell does not know about my.cnf default location
+  // Test default path include /etc/my.cnf and /etc/mysql/my.cnf for all
+  // unix and unix-like systems.
+  auto test_unix_defaults = [](shcore::OperatingSystem os) {
+    SCOPED_TRACE("Test mandatory default paths for '" + to_string(os) + "'");
+    std::vector<std::string> res = get_default_config_paths(os);
+    std::string sysconfdir;
+#ifdef DEFAULT_SYSCONFDIR
+    sysconfdir = std::string(DEFAULT_SYSCONFDIR);
+#endif
+    EXPECT_THAT(res, Contains("/etc/my.cnf"));
+    EXPECT_THAT(res, Contains("/etc/mysql/my.cnf"));
+    if (!sysconfdir.empty()) {
+      EXPECT_THAT(res, Contains(sysconfdir + "/my.cnf"));
+    }
+  };
+
+  std::vector<shcore::OperatingSystem> unix_os_list{
+      shcore::OperatingSystem::DEBIAN, shcore::OperatingSystem::REDHAT,
+      shcore::OperatingSystem::SOLARIS, shcore::OperatingSystem::LINUX,
+      shcore::OperatingSystem::MACOS};
+  for (const auto &unix_os : unix_os_list) {
+    test_unix_defaults(unix_os);
+  }
 }
 
 }  // namespace testing

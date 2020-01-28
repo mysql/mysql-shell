@@ -113,7 +113,7 @@ rs.removeInstance(__sandbox2);
 // SRO
 EXPECT_TRUE(get_sysvar(session2, "super_read_only"));
 // metadata exists, but instance is not there
-shell.dumpRows(session2.runSql("SELECT * FROM mysql_innodb_cluster_metadata.v2_ar_members"), "tabbed");
+shell.dumpRows(session2.runSql("SELECT * FROM mysql_innodb_cluster_metadata.v2_ar_members ORDER BY instance_id"), "tabbed");
 // repl should be stopped
 shell.dumpRows(session2.runSql("SHOW SLAVE STATUS"));
 // slave_master_info should be empty

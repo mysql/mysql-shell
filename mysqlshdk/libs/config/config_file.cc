@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "my_config.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -802,18 +803,29 @@ std::string Config_file::parse_include_path(
 
 std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {
   std::vector<std::string> default_paths;
+  // NOTE: According to the docs MySQL programs read startup options files
+  // according to a predefined location and order. Those my.cnf files for
+  // global options should be included in the default locations.
+  // See: https://dev.mysql.com/doc/en/option-files.html
   log_info("Getting default config paths for OS %s", to_string(os).c_str());
+  std::string sysconfdir;
+#ifdef DEFAULT_SYSCONFDIR
+  sysconfdir = std::string(DEFAULT_SYSCONFDIR);
+#endif
   switch (os) {
     case shcore::OperatingSystem::DEBIAN:
+      default_paths.push_back("/etc/my.cnf");
+      default_paths.push_back("/etc/mysql/my.cnf");
+      if (!sysconfdir.empty()) default_paths.push_back(sysconfdir + "/my.cnf");
       default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
       break;
     case shcore::OperatingSystem::REDHAT:
     case shcore::OperatingSystem::SOLARIS:
-      default_paths.push_back("/etc/my.cnf");
-      break;
     case shcore::OperatingSystem::LINUX:
+    case shcore::OperatingSystem::MACOS:
       default_paths.push_back("/etc/my.cnf");
       default_paths.push_back("/etc/mysql/my.cnf");
+      if (!sysconfdir.empty()) default_paths.push_back(sysconfdir + "/my.cnf");
       break;
     case shcore::OperatingSystem::WINDOWS: {
       char *program_data_ptr = getenv("PROGRAMDATA");
@@ -824,11 +836,6 @@ std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {
                                 R"(\MySQL\MySQL Server 8.0\my.ini)");
       }
     } break;
-    case shcore::OperatingSystem::MACOS:
-      default_paths.push_back("/etc/my.cnf");
-      default_paths.push_back("/etc/mysql/my.cnf");
-      default_paths.push_back("/usr/local/mysql/etc/my.cnf");
-      break;
     default:
       // The non-handled OS case will keep default_paths and cnfPath empty
       break;
