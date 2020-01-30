@@ -31,10 +31,10 @@
 #include <memory>
 #include <string>
 
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP

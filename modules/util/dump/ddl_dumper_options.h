@@ -26,10 +26,7 @@
 
 #include <string>
 
-#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/dump_options.h"
-#include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -46,50 +43,50 @@ class Ddl_dumper_options : public Dump_options {
 
   virtual ~Ddl_dumper_options() = default;
 
-  bool dump_events() const { return m_dump_events; }
+  bool split() const override { return m_split; }
 
-  bool dump_routines() const { return m_dump_routines; }
+  uint64_t bytes_per_chunk() const override { return m_bytes_per_chunk; }
 
-  bool dump_triggers() const { return m_dump_triggers; }
+  std::size_t threads() const override { return m_threads; }
 
-  bool timezone_utc() const { return m_timezone_utc; }
+  bool is_export_only() const override { return false; }
 
-  bool dump_ddl_only() const { return m_ddl_only; }
+  bool use_single_file() const override { return false; }
 
-  bool dump_data_only() const { return m_data_only; }
+  bool dump_ddl() const override { return !m_data_only; }
 
-  bool dry_run() const { return m_dry_run; }
+  bool table_only() const override { return false; }
 
-  bool consistent_dump() const { return m_consistent_dump; }
+  bool dump_data() const override { return !m_ddl_only; }
 
-  // MySQL Database Service
-  const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
-      &mds_compatibility() const {
-    return m_mds;
-  }
+  bool is_dry_run() const override { return m_dry_run; }
 
-  const Compatibility_options &compatibility_options() const {
-    return m_compatibility_options;
-  }
+  bool consistent_dump() const override { return m_consistent_dump; }
+
+  bool dump_triggers() const override { return m_dump_triggers; }
+
+  bool use_timezone_utc() const override { return m_timezone_utc; }
 
  protected:
-  explicit Ddl_dumper_options(const std::string &output_dir);
+  explicit Ddl_dumper_options(const std::string &output_url);
 
   void unpack_options(shcore::Option_unpacker *unpacker) override;
+
+  void on_set_session(
+      const std::shared_ptr<mysqlshdk::db::ISession> &) override {}
 
   void validate_options() const override;
 
  private:
-  bool m_dump_events = true;
-  bool m_dump_routines = true;
+  bool m_split = true;
+  uint64_t m_bytes_per_chunk;
+  std::size_t m_threads = 4;
   bool m_dump_triggers = true;
   bool m_timezone_utc = true;
   bool m_ddl_only = false;
   bool m_data_only = false;
   bool m_dry_run = false;
   bool m_consistent_dump = true;
-  mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
-  Compatibility_options m_compatibility_options;
 };
 
 }  // namespace dump

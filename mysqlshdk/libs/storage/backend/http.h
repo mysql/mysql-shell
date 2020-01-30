@@ -64,6 +64,10 @@ class Http_get : public IFile {
     throw std::logic_error("Http_get::exists() - not implemented");
   }
 
+  std::unique_ptr<IDirectory> parent() const override {
+    throw std::logic_error("Http_get::parent() - not implemented");
+  }
+
   off64_t seek(off64_t offset) override;
   off64_t tell() const override {
     throw std::logic_error("Http_get::tell() - not implemented");

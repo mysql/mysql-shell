@@ -76,9 +76,11 @@ class Text_dump_writer : public Dump_writer {
 
   bool m_escape;
 
-  char m_escaped_characters[3];
+  char m_escaped_characters[4];
 
   char m_escape_char;
+
+  bool m_double_enclosed_by = false;
 
   uint32_t m_num_fields;
 

@@ -33,8 +33,10 @@ Load_dump_options::Load_dump_options(const std::string &url)
           mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE) {}
 
 void Load_dump_options::set_session(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &session,
+    const std::string &current_schema) {
   m_base_session = session;
+  m_current_schema = current_schema;
 
   m_target = get_classic_connection_options(m_base_session);
 
@@ -161,7 +163,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("ignoreVersion", &m_ignore_version)
       .optional("analyzeTables", &analyze_tables)
       .optional("deferTableIndexes", &defer_table_indexes)
-      .optional("loadIndexes", &m_load_indexes);
+      .optional("loadIndexes", &m_load_indexes)
+      .optional("schema", &m_target_schema);
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();

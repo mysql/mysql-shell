@@ -31,8 +31,8 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_instance_options::Dump_instance_options(const std::string &output_dir)
-    : Dump_schemas_options(output_dir) {}
+Dump_instance_options::Dump_instance_options(const std::string &output_url)
+    : Dump_schemas_options(output_url) {}
 
 void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Dump_schemas_options::unpack_options(unpacker);

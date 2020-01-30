@@ -29,7 +29,8 @@
 #include <rapidjson/writer.h>
 #include <string>
 
-#include "mysqlshdk_export.h"
+#include "mysqlshdk/include/mysqlshdk_export.h"
+#include "mysqlshdk/include/scripting/types.h"
 
 namespace shcore {
 
@@ -169,7 +170,6 @@ class SHCORE_PUBLIC Pretty_writer : public Writer_base {
   My_pretty_writer<SStream> _writer;
 };
 
-struct Value;
 class SHCORE_PUBLIC JSON_dumper {
  public:
   JSON_dumper(bool pprint = false);
@@ -192,33 +192,66 @@ class SHCORE_PUBLIC JSON_dumper {
     _writer->end_object();
   }
 
-  void append_value(const Value &value);
-  void append_value(const std::string &key, const Value &value);
+  void append_value(const shcore::Value &value);
+  void append_value(const std::string &key, const shcore::Value &value);
+  void append(const shcore::Value &value);
+  void append(const std::string &key, const shcore::Value &value);
+  void append(const char *key, const shcore::Value &value);
+
+  void append(const Dictionary_t &value);
+  void append(const std::string &key, const Dictionary_t &value);
+  void append(const char *key, const Dictionary_t &value);
+
+  void append(const Array_t &value);
+  void append(const std::string &key, const Array_t &value);
+  void append(const char *key, const Array_t &value);
 
   void append_null() const;
   void append_null(const std::string &key) const;
+  void append_null(const char *key) const;
 
   void append_bool(bool data) const;
   void append_bool(const std::string &key, bool data) const;
+  void append(bool data) const;
+  void append(const std::string &key, bool data) const;
+  void append(const char *key, bool data) const;
 
   void append_int(int data) const;
   void append_int(const std::string &key, int data) const;
+  void append(int data) const;
+  void append(const std::string &key, int data) const;
+  void append(const char *key, int data) const;
 
   void append_int64(int64_t data) const;
   void append_int64(const std::string &key, int64_t data) const;
+  void append(int64_t data) const;
+  void append(const std::string &key, int64_t data) const;
+  void append(const char *key, int64_t data) const;
 
   void append_uint(unsigned int data) const;
   void append_uint(const std::string &key, unsigned int data) const;
+  void append(unsigned int data) const;
+  void append(const std::string &key, unsigned int data) const;
+  void append(const char *key, unsigned int data) const;
 
   void append_uint64(uint64_t data) const;
   void append_uint64(const std::string &key, uint64_t data) const;
+  void append(uint64_t data) const;
+  void append(const std::string &key, uint64_t data) const;
+  void append(const char *key, uint64_t data) const;
 
   void append_string(const std::string &data) const;
   void append_string(const char *data, size_t length) const;
   void append_string(const std::string &key, const std::string &data) const;
+  void append(const std::string &data) const;
+  void append(const std::string &key, const std::string &data) const;
+  void append(const char *key, const std::string &data) const;
 
   void append_float(double data) const;
   void append_float(const std::string &key, double data) const;
+  void append(double data) const;
+  void append(const std::string &key, double data) const;
+  void append(const char *key, double data) const;
 
   void append_json(const std::string &data) const;
 

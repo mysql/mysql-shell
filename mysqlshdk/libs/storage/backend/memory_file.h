@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_MEMORY_FILE_H_
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_MEMORY_FILE_H_
 
+#include <memory>
 #include <string>
 
 #include "mysqlshdk/libs/storage/ifile.h"
@@ -54,6 +55,10 @@ class Memory_file : public IFile {
   std::string full_path() const override;
   std::string filename() const override;
   bool exists() const override;
+
+  std::unique_ptr<IDirectory> parent() const override {
+    throw std::logic_error("Memory_file::parent() - not implemented");
+  }
 
   off64_t seek(off64_t offset) override;
   off64_t tell() const override {

@@ -156,9 +156,9 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
 
   Oci_options options{get_options(PRIVATE_BUCKET)};
   Bucket bucket(options);
-  Directory root(options, "");
+  Directory root(options, "test");
 
-  auto file = root.file("sample.txt");
+  auto file = root.file("sample\".txt");
   auto oci_file =
       dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(file.get());
   oci_file->set_max_part_size(3);
@@ -173,14 +173,15 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
 
   auto uploads = bucket.list_multipart_uploads();
   EXPECT_EQ(1, uploads.size());
-  EXPECT_STREQ("sample.txt", uploads[0].name.c_str());
+  EXPECT_STREQ("test/sample\".txt", uploads[0].name.c_str());
   auto parts = bucket.list_multipart_upload_parts(uploads[0]);
   EXPECT_EQ(4, parts.size());  // Last part is still on the buffer
 
   file->close();
-  EXPECT_THROW_LIKE(
-      bucket.list_multipart_upload_parts(uploads[0]), Response_error,
-      "Failed to list uploaded parts for object 'sample.txt': No such upload");
+  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
+                    Response_error,
+                    "Failed to list uploaded parts for object "
+                    "'test/sample\".txt': No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
 
@@ -192,7 +193,7 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   EXPECT_STREQ("0123456789ABCDE", final_data.c_str());
   file->close();
 
-  bucket.delete_object("sample.txt");
+  bucket.delete_object("test/sample\".txt");
 }
 
 TEST_F(Oci_os_tests, file_append_new_file) {
@@ -427,7 +428,19 @@ TEST_F(Oci_os_tests, file_rename) {
   EXPECT_EQ(1, files.size());
   EXPECT_STREQ("testing.txt", files[0].name.c_str());
 
-  bucket.delete_object("testing.txt");
+  file->rename("`test`");
+  EXPECT_STREQ("`test`", file->filename().c_str());
+  EXPECT_STREQ("`test`", file->full_path().c_str());
+
+  file->rename("_test1~");
+  EXPECT_STREQ("_test1~", file->filename().c_str());
+  EXPECT_STREQ("_test1~", file->full_path().c_str());
+
+  file->rename("\"ois\"");
+  EXPECT_STREQ("\"ois\"", file->filename().c_str());
+  EXPECT_STREQ("\"ois\"", file->full_path().c_str());
+
+  bucket.delete_object("\"ois\"");
 
   Directory other(options, "other");
   file = other.file("sample.txt");

@@ -24,6 +24,20 @@ util.help('dump_schemas');
 #@ util dump_schemas help, \? [USE:util dump_schemas help]
 \? dump_schemas
 
+# WL13804-TSFR_6_1
+#@ util dump_tables help
+util.help('dump_tables');
+
+#@ util dump_tables help, \? [USE:util dump_tables help]
+\? dump_tables
+
+# WL13804-TSFR_1_4
+#@ util export_table help
+util.help('export_table');
+
+#@ util export_table help, \? [USE:util export_table help]
+\? export_table
+
 #@ util import_json help
 util.help('import_json')
 

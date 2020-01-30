@@ -94,6 +94,8 @@ void Import_table_options::validate() {
                                       m_filename, {}, &m_oci_options,
                                       &m_filename);
 
+    m_oci_options.check_option_values();
+
     m_file_handle = create_file_handle();
     m_file_handle->open(mysqlshdk::storage::Mode::READ);
     m_full_path = m_file_handle->full_path();

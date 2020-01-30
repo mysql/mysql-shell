@@ -5,6 +5,14 @@ target_schema = 'wl12193'
 uri = "mysql://" + __mysqluripwd
 xuri = "mysqlx://" + __uripwd
 
+if __os_type != "windows":
+    def filename_for_output(filename):
+        return filename
+else:
+    def filename_for_output(filename):
+        long_path_prefix = r"\\?" "\\"
+        return long_path_prefix + filename.replace("/", "\\")
+
 #@<> Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }),
     "A classic protocol session is required to perform this operation.")
@@ -53,7 +61,7 @@ session.run_sql('SET GLOBAL local_infile = true')
 #/ through the command line for method util.import_table
 rc = testutil.call_mysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', __import_data_path + '/world_x_cities.dump', '--table=cities'])
 EXPECT_EQ(0, rc)
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 session.run_sql('TRUNCATE TABLE ' + target_schema + '.cities')
 
@@ -64,12 +72,12 @@ session.run_sql('TRUNCATE TABLE ' + target_schema + '.cities')
 #/ and line terminators can be imported in parallel without specifying field and line terminators.
 #/ LOAD DATA with default dialect
 util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": target_schema, "table": 'cities' })
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Ignore on duplicate primary key
 util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": target_schema, "table": 'cities' })
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079")
 
 
@@ -99,7 +107,7 @@ EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry 
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '3' for key '{0}PRIMARY'".format(prefix))
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '4' for key '{0}PRIMARY'".format(prefix))
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '5' for key '{0}PRIMARY'".format(prefix))
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.csv' (250.53 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.csv") + "' (250.53 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079")
 
 #@<> TSET_4: Using the function util.import_table, set the option 'replace' to true. Validate that new rows replace old rows if both have the same Unique Key Value.
@@ -110,7 +118,7 @@ util.import_table(__import_data_path + '/world_x_cities.csv', {
 })
 
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.csv' (250.53 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.csv") + "' (250.53 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 
@@ -149,9 +157,10 @@ util.import_table(__import_data_path + '/primer-dataset-id.json', {
     "fieldsEscapedBy": '', "linesTerminatedBy": '\n', "bytesPerChunk": '20M', "threads": 1})
 
 EXPECT_STDOUT_CONTAINS("wl12193.document_store: Records: 25359  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/primer-dataset-id.json' (11.29 MB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/primer-dataset-id.json") + "' (11.29 MB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 0  Warnings: 0")
 
+WIPE_OUTPUT()
 util.import_table(__import_data_path + '/primer-dataset-id.json', {
     "schema": target_schema, "table": 'document_store',
     "columns": ['doc'], "dialect": 'json', "bytesPerChunk": '20M'})
@@ -167,11 +176,11 @@ EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate en
 EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000003' for key '{0}PRIMARY'".format(prefix))
 EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000004' for key '{0}PRIMARY'".format(prefix))
 EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000005' for key '{0}PRIMARY'".format(prefix))
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/primer-dataset-id.json' (11.29 MB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/primer-dataset-id.json") + "' (11.29 MB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359")
 
 
-#/@<> Max bytes per chunk - minimum value is 2 * BUFFER_SIZE = 65KB * 2 = 128KB
+#@<> Max bytes per chunk - minimum value is 2 * BUFFER_SIZE = 65KB * 2 = 128KB
 util.import_table(__import_data_path + '/world_x_cities.dump', {
     "schema": target_schema, "table": 'cities',
     "bytesPerChunk": '1'
@@ -179,8 +188,8 @@ util.import_table(__import_data_path + '/world_x_cities.dump', {
 
 EXPECT_STDOUT_CONTAINS("world_x_cities.dump: Records: 1523  Deleted: 0  Skipped: 1523  Warnings: 1523")
 EXPECT_STDOUT_CONTAINS("world_x_cities.dump: Records: 2556  Deleted: 0  Skipped: 2556  Warnings: 2556")
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")
-EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079")
 
 
 #@<> TSF5
@@ -199,14 +208,14 @@ EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.du
 shell.set_current_schema(target_schema)
 util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' })
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079")
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079")
 
 #@<> BUG29822312 Import of table with foreign keys
 session.run_sql("CREATE TABLE `employee` (`id` int(11) NOT NULL AUTO_INCREMENT, `boss` int(11) DEFAULT NULL, PRIMARY KEY (`id`), KEY `boss` (`boss`), CONSTRAINT `employee_ibfk_1` FOREIGN KEY (`boss`) REFERENCES `employee` (`id`)) ENGINE=InnoDB;")
 util.import_table(__import_data_path + '/employee_boss.csv', {'table': 'employee', 'fieldsTerminatedBy': ','})
 EXPECT_STDOUT_CONTAINS("wl12193.employee: Records: 7  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/employee_boss.csv' (28 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/employee_boss.csv") + "' (28 bytes) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".employee: Records: 7  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<OUT> Show employee table

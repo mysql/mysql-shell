@@ -70,8 +70,6 @@ class Dumper {
  protected:
   struct Table_info {
     std::string name;
-    std::string index;
-    bool primary_index = false;
     std::string basename;
     uint64_t row_count = 0;
   };
@@ -83,9 +81,29 @@ class Dumper {
     std::string basename;
   };
 
+  struct Column_info {
+    std::string name;
+    bool csv_unsafe = false;
+  };
+
+  struct Index_info {
+    std::string name;
+    bool primary = false;
+  };
+
+  struct Table_task : Table_info {
+    std::string schema;
+    Index_info index;
+    std::vector<Column_info> columns;
+  };
+
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const;
 
   void add_schema_task(Schema_task &&task);
+
+  bool exists(const std::string &schema) const;
+
+  bool exists(const std::string &schema, const std::string &table) const;
 
   virtual std::unique_ptr<Schema_dumper> schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
@@ -97,14 +115,7 @@ class Dumper {
     mysqlshdk::db::Type type;
   };
 
-  struct Column_info {
-    std::string name;
-    bool csv_unsafe = false;
-  };
-
-  struct Table_data_task : Table_info {
-    std::string schema;
-    std::vector<Column_info> columns;
+  struct Table_data_task : Table_task {
     Range_info range;
     bool include_nulls = false;
     Dump_writer *writer = nullptr;
@@ -126,34 +137,17 @@ class Dumper {
 
   static std::string quote(const Schema_task &schema, const std::string &view);
 
+  static std::string quote(const Table_task &table);
+
   static std::string quote(const std::string &schema, const std::string &table);
 
   virtual void create_schema_tasks() = 0;
 
-  virtual bool is_export_only() const = 0;
-
-  virtual bool should_dump_ddl() const = 0;
-
-  virtual bool should_dump_data() const = 0;
-
-  virtual bool is_dry_run() const = 0;
-
-  virtual bool consistent_dump() const = 0;
-
-  virtual bool dump_events() const = 0;
-
-  virtual bool dump_routines() const = 0;
-
-  virtual bool dump_triggers() const = 0;
-
-  virtual bool dump_users() const = 0;
-
-  virtual const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
-      &mds_compatibility() const = 0;
-
-  virtual bool use_timezone_utc() const = 0;
-
   virtual const char *name() const = 0;
+
+  virtual void summary() const = 0;
+
+  virtual void on_create_table_task(const Table_task &task) = 0;
 
   void do_run();
 
@@ -230,13 +224,26 @@ class Dumper {
 
   void create_table_tasks();
 
-  void create_table_task(const Schema_task &schema, Table_info *table);
+  Table_task create_table_task(const Schema_task &schema,
+                               const Table_info &table);
 
-  std::string choose_index(const Schema_task &schema, Table_info *table) const;
+  void push_table_task(Table_task &&task);
+
+  Index_info choose_index(const Schema_task &schema,
+                          const Table_info &table) const;
+
+  std::vector<Column_info> get_columns(const Schema_task &schema,
+                                       const Table_info &table) const;
+
+  bool is_chunked(const Table_task &task) const;
+
+  bool should_dump_data(const Table_task &table);
 
   Dump_writer *get_table_data_writer(const std::string &filename);
 
   void finish_writing(Dump_writer *writer);
+
+  void close_file(const Dump_writer &writer) const;
 
   void write_metadata() const;
 
@@ -246,11 +253,7 @@ class Dumper {
 
   void write_schema_metadata(const Schema_task &schema) const;
 
-  void write_table_metadata(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const std::string &schema, const std::string &table,
-      const std::vector<Column_info> &columns, bool chunked,
-      const std::string &basename, const std::string &primary_index) const;
+  void write_table_metadata(const Table_task &table) const;
 
   void summarize() const;
 
@@ -305,7 +308,8 @@ class Dumper {
 
   // input data
   const Dump_options &m_options;
-  std::unique_ptr<mysqlshdk::storage::IDirectory> m_output;
+  std::unique_ptr<mysqlshdk::storage::IDirectory> m_output_dir;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
   bool m_use_json = false;
   std::vector<Schema_task> m_schema_tasks;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;

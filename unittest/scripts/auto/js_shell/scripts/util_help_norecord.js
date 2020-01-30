@@ -24,6 +24,20 @@ util.help('dumpSchemas');
 //@ util dumpSchemas help, \? [USE:util dumpSchemas help]
 \? dumpSchemas
 
+// WL13804-TSFR_6_1
+//@ util dumpTables help
+util.help('dumpTables');
+
+//@ util dumpTables help, \? [USE:util dumpTables help]
+\? dumpTables
+
+// WL13804-TSFR_1_4
+//@ util exportTable help
+util.help('exportTable');
+
+//@ util exportTable help, \? [USE:util exportTable help]
+\? exportTable
+
 //@ util importJson help
 util.help('importJson');
 

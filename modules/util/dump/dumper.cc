@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,7 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -57,7 +58,7 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/console_with_progress.h"
-#include "modules/util/dump/default_dump_writer.h"
+#include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
@@ -69,15 +70,6 @@ using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
 
 namespace {
-
-struct Table_task {
-  std::string schema;
-  std::string table;
-  std::string index;
-  bool primary_index = false;
-  std::string basename;
-  uint64_t row_count = 0;
-};
 
 static constexpr auto k_dump_in_progress_ext = ".dumping";
 
@@ -240,18 +232,18 @@ class Dumper::Table_worker final {
     query += shcore::sqlstring(" FROM !.!", 0) << table.schema << table.name;
 
     if (!table.range.begin.empty()) {
-      query += shcore::sqlstring(" WHERE ! BETWEEN ", 0) << table.index;
+      query += shcore::sqlstring(" WHERE ! BETWEEN ", 0) << table.index.name;
       query += quote_value(table.range.begin, table.range.type);
       query += " AND ";
       query += quote_value(table.range.end, table.range.type);
 
       if (table.include_nulls) {
-        query += shcore::sqlstring(" OR ! IS NULL", 0) << table.index;
+        query += shcore::sqlstring(" OR ! IS NULL", 0) << table.index.name;
       }
     }
 
-    if (!table.index.empty()) {
-      query += shcore::sqlstring(" ORDER BY !", 0) << table.index;
+    if (!table.index.name.empty()) {
+      query += shcore::sqlstring(" ORDER BY !", 0) << table.index.name;
     }
 
     query += " " + m_dumper->get_query_comment(table, "dumping");
@@ -273,13 +265,16 @@ class Dumper::Table_worker final {
 
     const auto result = m_session->query(prepare_query(table));
 
-    shcore::on_leave_scope close_files([&table]() {
-      table.index_file->close();
-      table.writer->close();
+    shcore::on_leave_scope close_index_file([&table]() {
+      if (table.index_file) {
+        table.index_file->close();
+      }
     });
 
     table.writer->open();
-    table.index_file->open(Mode::WRITE);
+    if (table.index_file) {
+      table.index_file->open(Mode::WRITE);
+    }
     bytes_written = table.writer->write_preamble(result->get_metadata());
     bytes_written_per_file += bytes_written;
     bytes_written_per_update += bytes_written;
@@ -295,7 +290,7 @@ class Dumper::Table_worker final {
       ++rows_written_per_update;
       ++rows_written_per_idx;
 
-      if (write_idx_every == rows_written_per_idx) {
+      if (table.index_file && write_idx_every == rows_written_per_idx) {
         // the idx file contains offsets to the data stream, not to binary one
         const auto offset = mysqlshdk::utils::host_to_network(
             bytes_written_per_file.data_bytes());
@@ -325,24 +320,20 @@ class Dumper::Table_worker final {
 
     timer.stage_end();
 
-    {
+    if (table.index_file) {
       const auto total = mysqlshdk::utils::host_to_network(
           bytes_written_per_file.data_bytes());
       table.index_file->write(&total, sizeof(uint64_t));
     }
 
-    m_dumper->finish_writing(table.writer);
-    m_dumper->update_progress(rows_written_per_update,
-                              bytes_written_per_update);
-
     log_debug("Dump of `%s`.`%s` into '%s' took %f seconds",
               table.schema.c_str(), table.name.c_str(),
               table.writer->output()->full_path().c_str(),
               timer.total_seconds_elapsed());
-  }
 
-  bool is_chunked(const Table_task &task) const {
-    return m_dumper->m_options.split() && !task.index.empty();
+    m_dumper->finish_writing(table.writer);
+    m_dumper->update_progress(rows_written_per_update,
+                              bytes_written_per_update);
   }
 
   void push_table_data_task(Table_data_task &&task) {
@@ -359,103 +350,71 @@ class Dumper::Table_worker final {
     });
   }
 
-  void create_table_data_task(const Table_task &task,
-                              std::vector<Dumper::Column_info> &&columns) {
+  void create_table_data_task(const Table_task &table) {
     Table_data_task data_task;
 
-    data_task.name = task.table;
-    data_task.index = task.index;
-    data_task.schema = task.schema;
-    data_task.columns = std::move(columns);
+    data_task.name = table.name;
+    data_task.index = table.index;
+    data_task.schema = table.schema;
+    data_task.columns = table.columns;
     data_task.writer = m_dumper->get_table_data_writer(
-        m_dumper->get_table_data_filename(task.basename));
-    data_task.index_file = m_dumper->make_file(
-        m_dumper->get_table_data_filename(task.basename) + ".idx");
+        m_dumper->get_table_data_filename(table.basename));
+    if (!m_dumper->m_options.is_export_only()) {
+      data_task.index_file = m_dumper->make_file(
+          m_dumper->get_table_data_filename(table.basename) + ".idx");
+    }
     data_task.id = "1";
 
     push_table_data_task(std::move(data_task));
   }
 
-  void create_table_data_task(const Table_task &task,
-                              const std::vector<Dumper::Column_info> &columns,
+  void create_table_data_task(const Table_task &table,
                               Dumper::Range_info &&range, const std::string &id,
                               std::size_t idx, bool last_chunk) {
     Table_data_task data_task;
 
-    data_task.name = task.table;
-    data_task.index = task.index;
-    data_task.schema = task.schema;
-    data_task.columns = columns;
+    data_task.name = table.name;
+    data_task.index = table.index;
+    data_task.schema = table.schema;
+    data_task.columns = table.columns;
     data_task.range = std::move(range);
     data_task.include_nulls = 0 == idx;
     data_task.writer = m_dumper->get_table_data_writer(
-        m_dumper->get_table_data_filename(task.basename, idx, last_chunk));
-    data_task.index_file = m_dumper->make_file(
-        m_dumper->get_table_data_filename(task.basename, idx, last_chunk) +
-        ".idx");
+        m_dumper->get_table_data_filename(table.basename, idx, last_chunk));
+    if (!m_dumper->m_options.is_export_only()) {
+      data_task.index_file = m_dumper->make_file(
+          m_dumper->get_table_data_filename(table.basename, idx, last_chunk) +
+          ".idx");
+    }
     data_task.id = id;
 
     push_table_data_task(std::move(data_task));
   }
 
-  void create_table_data_tasks(const Table_task &task) {
-    auto columns = get_columns(task);
-
-    m_dumper->write_table_metadata(m_session, task.schema, task.table, columns,
-                                   is_chunked(task), task.basename,
-                                   task.primary_index ? task.index : "");
-
-    auto ranges = create_ranged_tasks(task, columns);
+  void create_table_data_tasks(const Table_task &table) {
+    auto ranges = create_ranged_tasks(table);
 
     if (0 == ranges) {
-      create_table_data_task(task, std::move(columns));
+      create_table_data_task(table);
       ++ranges;
     }
 
     current_console()->print_status(
-        "Data dump for table " + Dumper::quote(task.schema, task.table) +
+        "Data dump for table " + Dumper::quote(table.schema, table.name) +
         " will be written to " + std::to_string(ranges) + " file" +
         (ranges > 1 ? "s" : ""));
 
     m_dumper->chunking_task_finished();
   }
 
-  std::vector<Dumper::Column_info> get_columns(const Table_task &task) const {
-    const auto result = m_session->queryf(
-        "SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.columns WHERE "
-        "EXTRA <> 'VIRTUAL GENERATED' AND EXTRA <> 'STORED GENERATED' AND "
-        "TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION",
-        task.schema, task.table);
-
-    std::vector<Column_info> columns;
-
-    while (auto row = result->fetch_one()) {
-      Column_info column;
-      column.name = row->get_string(0);
-      const auto type = row->get_string(1);
-      column.csv_unsafe = shcore::str_iendswith(type, "binary") ||
-                          shcore::str_iendswith(type, "bit") ||
-                          shcore::str_iendswith(type, "blob") ||
-                          shcore::str_iendswith(type, "geometry") ||
-                          shcore::str_iendswith(type, "geometrycollection") ||
-                          shcore::str_iendswith(type, "linestring") ||
-                          shcore::str_iendswith(type, "point") ||
-                          shcore::str_iendswith(type, "polygon");
-      columns.emplace_back(std::move(column));
-    }
-
-    return columns;
-  }
-
-  std::size_t create_ranged_tasks(
-      const Table_task &task, const std::vector<Dumper::Column_info> &columns) {
-    if (!is_chunked(task)) {
+  std::size_t create_ranged_tasks(const Table_task &table) {
+    if (!m_dumper->is_chunked(table)) {
       return 0;
     }
 
-    auto result =
-        m_session->queryf("SELECT SQL_NO_CACHE MIN(!), MAX(!) FROM !.!;",
-                          task.index, task.index, task.schema, task.table);
+    auto result = m_session->queryf(
+        "SELECT SQL_NO_CACHE MIN(!), MAX(!) FROM !.!;", table.index.name,
+        table.index.name, table.schema, table.name);
     result->buffer();
     const auto min_max = result->fetch_one();
 
@@ -473,14 +432,14 @@ class Dumper::Table_worker final {
 
     const auto rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() /
-        std::max(UINT64_C(1), get_average_row_length(task));
+        std::max(UINT64_C(1), get_average_row_length(table));
 
-    const auto generate_ranges = [&task, &columns, &ranges_count, &total,
+    const auto generate_ranges = [&table, &ranges_count, &total,
                                   &rows_per_chunk,
                                   this](const auto min, const auto max) {
       const auto estimated_chunks =
           rows_per_chunk > 0
-              ? std::max(task.row_count / rows_per_chunk, UINT64_C(1))
+              ? std::max(table.row_count / rows_per_chunk, UINT64_C(1))
               : UINT64_C(1);
       const auto estimated_step = (max - min + 1) / estimated_chunks;
       const auto accuracy = std::max(estimated_step / 10, UINT64_C(10));
@@ -488,21 +447,21 @@ class Dumper::Table_worker final {
       std::string chunk_id;
 
       const auto next_step =
-          task.row_count < 1'000'000
+          table.row_count < 1'000'000
               ? std::function<decltype(min)(const decltype(min),
                                             const decltype(min))>(
                     [](const auto, const auto step) { return step; })
-              : [&task, &rows_per_chunk, &accuracy, &chunk_id, this](
+              : [&table, &rows_per_chunk, &accuracy, &chunk_id, this](
                     const auto from, const auto step) {
                   auto left = from;
                   auto right = left + 2 * step;
 
                   auto middle = from;
                   auto previous_row_count = rows_per_chunk;
-                  const auto comment = this->get_query_comment(task, chunk_id);
+                  const auto comment = this->get_query_comment(table, chunk_id);
 
                   for (int i = 0; i < 10; ++i) {
-                    middle = (left + right) / 2;
+                    middle = left + (right - left) / 2;
 
                     if (middle >= right || middle <= left) {
                       break;
@@ -514,8 +473,8 @@ class Dumper::Table_worker final {
                                 "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! "
                                 "BETWEEN ? AND ? ORDER BY ! " +
                                     comment,
-                                task.schema, task.table, task.index, from,
-                                middle, task.index)
+                                table.schema, table.name, table.index.name,
+                                from, middle, table.index.name)
                             ->fetch_one()
                             ->get_uint(9);
 
@@ -570,7 +529,7 @@ class Dumper::Table_worker final {
 
         range.end = std::to_string(current);
 
-        create_table_data_task(task, columns, std::move(range), chunk_id,
+        create_table_data_task(table, std::move(range), chunk_id,
                                ranges_count++, current >= max);
 
         ++current;
@@ -588,21 +547,21 @@ class Dumper::Table_worker final {
                 ? ""
                 : (shcore::sqlstring(
                        " WHERE ! > " + quote_value(range_end, total.type), 0)
-                   << task.index)
+                   << table.index.name)
                       .str();
 
         const auto chunk_id = std::to_string(ranges_count);
-        const auto comment = get_query_comment(task, chunk_id);
+        const auto comment = get_query_comment(table, chunk_id);
 
         Range_info range;
         range.type = total.type;
-        range.begin =
-            m_session
-                ->queryf("SELECT SQL_NO_CACHE ! FROM !.!" + where +
-                             " ORDER BY ! LIMIT 0,1 " + comment,
-                         task.index, task.schema, task.table, task.index)
-                ->fetch_one()
-                ->get_as_string(0);
+        range.begin = m_session
+                          ->queryf("SELECT SQL_NO_CACHE ! FROM !.!" + where +
+                                       " ORDER BY ! LIMIT 0,1 " + comment,
+                                   table.index.name, table.schema, table.name,
+                                   table.index.name)
+                          ->fetch_one()
+                          ->get_as_string(0);
 
         if (m_dumper->m_worker_interrupt) {
           return 0;
@@ -610,8 +569,8 @@ class Dumper::Table_worker final {
 
         result = m_session->queryf("SELECT SQL_NO_CACHE ! FROM !.!" + where +
                                        " ORDER BY ! LIMIT ?,1 " + comment,
-                                   task.index, task.schema, task.table,
-                                   task.index, rows_per_chunk - 1);
+                                   table.index.name, table.schema, table.name,
+                                   table.index.name, rows_per_chunk - 1);
 
         if (m_dumper->m_worker_interrupt) {
           return 0;
@@ -621,23 +580,23 @@ class Dumper::Table_worker final {
         range.end = end && !end->is_null(0) ? end->get_as_string(0) : total.end;
         range_end = range.end;
 
-        create_table_data_task(task, columns, std::move(range), chunk_id,
+        create_table_data_task(table, std::move(range), chunk_id,
                                ranges_count++, range_end == total.end);
       } while (range_end != total.end);
     }
 
     timer.stage_end();
-    log_debug("Chunking of `%s`.`%s` took %f seconds", task.schema.c_str(),
-              task.table.c_str(), timer.total_seconds_elapsed());
+    log_debug("Chunking of `%s`.`%s` took %f seconds", table.schema.c_str(),
+              table.name.c_str(), timer.total_seconds_elapsed());
 
     return ranges_count;
   }
 
-  uint64_t get_average_row_length(const Table_task &task) const {
+  uint64_t get_average_row_length(const Table_task &table) const {
     const auto result = m_session->queryf(
         "SELECT AVG_ROW_LENGTH FROM information_schema.tables WHERE "
         "TABLE_SCHEMA = ? AND TABLE_NAME = ?",
-        task.schema, task.table);
+        table.schema, table.name);
     return result->fetch_one()->get_uint(0);
   }
 
@@ -672,7 +631,7 @@ class Dumper::Table_worker final {
         *m_dumper->dump_table(dumper.get(), schema.name, table.name),
         get_table_filename(table.basename));
 
-    if (m_dumper->dump_triggers() &&
+    if (m_dumper->m_options.dump_triggers() &&
         dumper->count_triggers_for_table(schema.name, table.name) > 0) {
       m_dumper->write_ddl(
           *m_dumper->dump_triggers(dumper.get(), schema.name, table.name),
@@ -697,9 +656,10 @@ class Dumper::Table_worker final {
         get_table_filename(view.basename));
   }
 
-  std::string get_query_comment(const Table_task &task,
+  std::string get_query_comment(const Table_task &table,
                                 const std::string &id) const {
-    return m_dumper->get_query_comment(task.schema, task.table, id, "chunking");
+    return m_dumper->get_query_comment(table.schema, table.name, id,
+                                       "chunking");
   }
 
   const std::size_t m_id;
@@ -861,37 +821,76 @@ Dumper::Dumper(const Dump_options &options)
       m_options(options) {
   m_options.validate();
 
-  using mysqlshdk::storage::make_directory;
-  m_output =
-      make_directory(m_options.output_directory(), m_options.oci_options());
+  if (m_options.use_single_file()) {
+    using mysqlshdk::storage::make_file;
 
-  if (m_output->exists()) {
-    auto files = m_output->list_files(true);
+    {
+      using mysqlshdk::storage::utils::get_scheme;
+      using mysqlshdk::storage::utils::scheme_matches;
+      using mysqlshdk::storage::utils::strip_scheme;
 
-    if (!files.empty()) {
-      std::vector<std::string> file_data;
-      const auto full_path = m_output->full_path();
+      const auto scheme = get_scheme(m_options.output_url());
 
-      for (const auto &file : files) {
-        file_data.push_back(shcore::str_format(
-            "%s [size %zu]", m_output->join_path(full_path, file.name).c_str(),
-            file.size));
+      if (!scheme.empty() && !scheme_matches(scheme, "file") &&
+          !scheme_matches(scheme, "oci+os")) {
+        throw std::invalid_argument("File handling for " + scheme +
+                                    " protocol is not supported.");
       }
 
-      log_error(
-          "Unable to dump to %s, the directory exists and is not empty:\n  %s",
-          full_path.c_str(), shcore::str_join(file_data, "\n  ").c_str());
+      if (m_options.output_url().empty() ||
+          (!scheme.empty() &&
+           strip_scheme(m_options.output_url(), scheme).empty())) {
+        throw std::invalid_argument(
+            "The name of the output file cannot be empty.");
+      }
+    }
 
-      if (m_options.oci_options()) {
-        throw std::invalid_argument(
-            "Cannot proceed with the dump, bucket '" +
-            *m_options.oci_options().os_bucket_name +
-            "' already contains files with the specified prefix '" +
-            m_options.output_directory() + "'.");
-      } else {
-        throw std::invalid_argument(
-            "Cannot proceed with the dump, '" + m_options.output_directory() +
-            "' already exists at the target location " + full_path + ".");
+    m_output_file = make_file(m_options.output_url(), m_options.oci_options());
+    m_output_dir = m_output_file->parent();
+
+    if (!m_output_dir->exists()) {
+      throw std::invalid_argument(
+          "Cannot proceed with the dump, the directory containing '" +
+          m_options.output_url() + "' does not exist at the target location " +
+          m_output_dir->full_path() + ".");
+    }
+  } else {
+    using mysqlshdk::storage::make_directory;
+    m_output_dir =
+        make_directory(m_options.output_url(), m_options.oci_options());
+
+    if (m_output_dir->exists()) {
+      auto files = m_output_dir->list_files(true);
+
+      if (!files.empty()) {
+        std::vector<std::string> file_data;
+        const auto full_path = m_output_dir->full_path();
+
+        for (const auto &file : files) {
+          file_data.push_back(shcore::str_format(
+              "%s [size %zu]",
+              m_output_dir->join_path(full_path, file.name).c_str(),
+              file.size));
+        }
+
+        log_error(
+            "Unable to dump to %s, the directory exists and is not empty:\n  "
+            "%s",
+            full_path.c_str(), shcore::str_join(file_data, "\n  ").c_str());
+
+        if (m_options.oci_options()) {
+          throw std::invalid_argument(
+              "Cannot proceed with the dump, bucket '" +
+              *m_options.oci_options().os_bucket_name +
+              "' already contains files with the specified prefix '" +
+              m_options.output_url() + "'.");
+        } else {
+          throw std::invalid_argument(
+              "Cannot proceed with the dump, the specified directory '" +
+              m_options.output_url() +
+              "' already exists at the target location " + full_path +
+              " and is not empty.");
+        }
       }
     }
   }
@@ -950,7 +949,7 @@ void Dumper::do_run() {
     create_worker_threads();
     wait_for_workers();
 
-    if (consistent_dump() && !m_worker_interrupt) {
+    if (m_options.consistent_dump() && !m_worker_interrupt) {
       current_console()->print_info("All transactions have been started");
       lock_instance();
     }
@@ -961,7 +960,7 @@ void Dumper::do_run() {
   create_schema_ddl_tasks();
   create_table_tasks();
 
-  if (!is_dry_run() && !m_worker_interrupt) {
+  if (!m_options.is_dry_run() && !m_worker_interrupt) {
     current_console()->print_status(
         "Running data dump using " + std::to_string(m_options.threads()) +
         " thread" + (m_options.threads() > 1 ? "s" : "") + ".");
@@ -976,7 +975,7 @@ void Dumper::do_run() {
   maybe_push_shutdown_tasks();
   wait_for_all_tasks();
 
-  if (!is_dry_run() && !m_worker_interrupt) {
+  if (!m_options.is_dry_run() && !m_worker_interrupt) {
     shutdown_progress();
     write_dump_finished_metadata();
     summarize();
@@ -1005,9 +1004,10 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   dumper->opt_drop_routine = true;
   dumper->opt_drop_trigger = true;
   dumper->opt_reexecutable = true;
-  dumper->opt_tz_utc = use_timezone_utc();
-  dumper->opt_mysqlaas = mds_compatibility();
+  dumper->opt_tz_utc = m_options.use_timezone_utc();
+  dumper->opt_mysqlaas = m_options.mds_compatibility();
   dumper->opt_character_set_results = m_options.character_set();
+  dumper->opt_column_statistics = false;
 
   return dumper;
 }
@@ -1024,7 +1024,7 @@ void Dumper::on_init_thread_session(
   session->executef("SET SESSION net_write_timeout = ?",
                     k_mysql_server_net_write_timeout);
 
-  if (use_timezone_utc()) {
+  if (m_options.use_timezone_utc()) {
     session->execute("SET TIME_ZONE = '+00:00';");
   }
 }
@@ -1058,7 +1058,7 @@ void Dumper::close_session() {
 }
 
 void Dumper::acquire_read_locks() const {
-  if (consistent_dump()) {
+  if (m_options.consistent_dump()) {
     // TODO(pawel): this blocks until all statements finish execution, kill
     //              long running queries or ask user what to do?
     current_console()->print_info("Acquiring global read lock");
@@ -1079,7 +1079,7 @@ void Dumper::acquire_read_locks() const {
 }
 
 void Dumper::release_read_locks() const {
-  if (consistent_dump()) {
+  if (m_options.consistent_dump()) {
     session()->execute("UNLOCK TABLES;");
 
     if (!m_worker_interrupt) {
@@ -1092,7 +1092,7 @@ void Dumper::release_read_locks() const {
 
 void Dumper::start_transaction(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
-  if (consistent_dump()) {
+  if (m_options.consistent_dump()) {
     session->execute(
         "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
     session->execute("START TRANSACTION WITH CONSISTENT SNAPSHOT;");
@@ -1100,16 +1100,16 @@ void Dumper::start_transaction(
 }
 
 void Dumper::lock_instance() const {
-  if (consistent_dump()) {
+  if (m_options.consistent_dump()) {
     current_console()->print_info("Locking instance for backup");
     session()->execute("/*!80000 LOCK INSTANCE FOR BACKUP */;");
   }
 }
 
 void Dumper::validate_mds() const {
-  if (mds_compatibility() && should_dump_ddl()) {
+  if (m_options.mds_compatibility() && m_options.dump_ddl()) {
     const auto console = current_console();
-    const auto version = mds_compatibility()->get_base();
+    const auto version = m_options.mds_compatibility()->get_base();
 
     console->print_info(
         "Checking for compatibility with MySQL Database Service " + version);
@@ -1141,7 +1141,7 @@ void Dumper::validate_mds() const {
 
     const auto dumper = schema_dumper(session());
 
-    if (dump_users()) {
+    if (m_options.dump_users()) {
       issues(dump_users(dumper.get()));
     }
 
@@ -1153,7 +1153,7 @@ void Dumper::validate_mds() const {
       for (const auto &table : schema.tables) {
         issues(dump_table(dumper.get(), schema.name, table.name));
 
-        if (dump_triggers() &&
+        if (m_options.dump_triggers() &&
             dumper->count_triggers_for_table(schema.name, table.name) > 0) {
           issues(dump_triggers(dumper.get(), schema.name, table.name));
         }
@@ -1200,7 +1200,7 @@ void Dumper::initialize_counters() {
 }
 
 void Dumper::initialize_dump() {
-  if (is_dry_run()) {
+  if (m_options.is_dry_run()) {
     return;
   }
 
@@ -1263,8 +1263,16 @@ void Dumper::chunking_task_finished() {
 }
 
 void Dumper::wait_for_all_tasks() {
-  for (auto &t : m_workers) {
-    t.join();
+  for (auto &worker : m_workers) {
+    worker.join();
+  }
+
+  // when using a single file as an output, it's not closed until the whole
+  // dump is done
+  if (m_options.use_single_file()) {
+    for (const auto &writer : m_worker_writers) {
+      close_file(*writer);
+    }
   }
 
   m_workers.clear();
@@ -1272,7 +1280,7 @@ void Dumper::wait_for_all_tasks() {
 }
 
 void Dumper::dump_ddl() const {
-  if (!should_dump_ddl()) {
+  if (!m_options.dump_ddl()) {
     return;
   }
 
@@ -1283,7 +1291,7 @@ void Dumper::dump_ddl() const {
 void Dumper::dump_global_ddl() const {
   current_console()->print_status("Writing global DDL files");
 
-  if (is_dry_run()) {
+  if (m_options.is_dry_run()) {
     return;
   }
 
@@ -1311,7 +1319,7 @@ void Dumper::dump_global_ddl() const {
 }
 
 void Dumper::dump_users_ddl() const {
-  if (!dump_users()) {
+  if (!m_options.dump_users()) {
     return;
   }
 
@@ -1324,7 +1332,7 @@ void Dumper::dump_users_ddl() const {
 
 void Dumper::write_ddl(const Memory_dumper &in_memory,
                        const std::string &file) const {
-  if (!mds_compatibility()) {
+  if (!m_options.mds_compatibility()) {
     // if MDS is on, changes done by compatibility options were printed earlier
     // MDS is off, so no errors here
     const auto console = current_console();
@@ -1334,7 +1342,7 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
     }
   }
 
-  if (is_dry_run()) {
+  if (m_options.is_dry_run()) {
     return;
   }
 
@@ -1363,11 +1371,11 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_schema(
     m->dump(&Schema_dumper::write_comment, schema, std::string{});
     m->dump(&Schema_dumper::dump_schema_ddl, schema);
 
-    if (dump_events()) {
+    if (m_options.dump_events()) {
       m->dump(&Schema_dumper::dump_events_ddl, schema);
     }
 
-    if (dump_routines()) {
+    if (m_options.dump_routines()) {
       m->dump(&Schema_dumper::dump_routines_ddl, schema);
     }
   });
@@ -1420,13 +1428,15 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
 }
 
 void Dumper::create_schema_ddl_tasks() {
-  if (!should_dump_ddl()) {
+  if (!m_options.dump_ddl()) {
     return;
   }
 
   for (const auto &schema : m_schema_tasks) {
-    m_worker_tasks.push(
-        [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); });
+    if (m_options.dump_schema_ddl()) {
+      m_worker_tasks.push(
+          [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); });
+    }
 
     for (const auto &view : schema.views) {
       m_worker_tasks.push([&schema, &view](Table_worker *worker) {
@@ -1446,27 +1456,54 @@ void Dumper::create_table_tasks() {
   m_chunking_tasks = 0;
   m_main_thread_finished_producing_chunking_tasks = true;
 
-  if (!should_dump_data()) {
+  std::vector<Table_task> tasks;
+
+  for (const auto &schema : m_schema_tasks) {
+    for (const auto &table : schema.tables) {
+      tasks.emplace_back(create_table_task(schema, table));
+    }
+  }
+
+  if (!m_options.is_dry_run()) {
+    for (const auto &task : tasks) {
+      if (should_dump_data(task)) {
+        write_table_metadata(task);
+      }
+    }
+  }
+
+  if (!m_options.dump_data()) {
     return;
   }
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
-  for (auto &schema : m_schema_tasks) {
-    for (auto &table : schema.tables) {
-      create_table_task(schema, &table);
-    }
+  for (auto &task : tasks) {
+    push_table_task(std::move(task));
   }
 
   m_main_thread_finished_producing_chunking_tasks = true;
 }
 
-void Dumper::create_table_task(const Schema_task &schema, Table_info *table) {
-  const auto quoted_name = quote(schema, *table);
+Dumper::Table_task Dumper::create_table_task(const Schema_task &schema,
+                                             const Table_info &table) {
+  Table_task task;
+  task.name = table.name;
+  task.basename = table.basename;
+  task.row_count = table.row_count;
+  task.schema = schema.name;
+  task.index = choose_index(schema, table);
+  task.columns = get_columns(schema, table);
 
-  if (schema.name == "mysql" &&
-      (table->name == "apply_status" || table->name == "general_log" ||
-       table->name == "schema" || table->name == "slow_log")) {
+  on_create_table_task(task);
+
+  return task;
+}
+
+void Dumper::push_table_task(Table_task &&task) {
+  const auto quoted_name = quote(task);
+
+  if (!should_dump_data(task)) {
     current_console()->print_warning("Skipping data dump for table " +
                                      quoted_name);
     return;
@@ -1475,10 +1512,10 @@ void Dumper::create_table_task(const Schema_task &schema, Table_info *table) {
   current_console()->print_status("Preparing data dump for table " +
                                   quoted_name);
 
-  const auto index = choose_index(schema, table);
+  const auto &index = task.index;
 
   if (m_options.split()) {
-    if (index.empty()) {
+    if (index.name.empty()) {
       current_console()->print_warning(
           "Could not select a column to be used as an index for table " +
           quoted_name +
@@ -1487,24 +1524,23 @@ void Dumper::create_table_task(const Schema_task &schema, Table_info *table) {
     } else {
       current_console()->print_status("Data dump for table " + quoted_name +
                                       " will be chunked using column " +
-                                      shcore::quote_identifier(index));
+                                      shcore::quote_identifier(index.name));
     }
   } else {
     current_console()->print_status(
         "Data dump for table " + quoted_name +
-        (index.empty() ? " will not use an index"
-                       : " will use column " + shcore::quote_identifier(index) +
-                             " as an index"));
+        (index.name.empty()
+             ? " will not use an index"
+             : " will use column " + shcore::quote_identifier(index.name) +
+                   " as an index"));
   }
 
-  if (is_dry_run()) {
+  if (m_options.is_dry_run()) {
     return;
   }
 
   ++m_chunking_tasks;
 
-  Table_task task{schema.name,          table->name,     index,
-                  table->primary_index, table->basename, table->row_count};
   m_worker_tasks.push([task = std::move(task)](Table_worker *worker) {
     ++worker->m_dumper->m_num_threads_chunking;
 
@@ -1514,30 +1550,28 @@ void Dumper::create_table_task(const Schema_task &schema, Table_info *table) {
   });
 }
 
-std::string Dumper::choose_index(const Schema_task &schema,
-                                 Table_info *table) const {
-  if (table->index.empty()) {
-    // check if there's a primary key or a unique index, use first column in
-    // index
-    const auto result = session()->queryf(
-        "SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.statistics "
-        "WHERE "
-        "NON_UNIQUE = 0 AND SEQ_IN_INDEX = 1 AND TABLE_SCHEMA = ? AND "
-        "TABLE_NAME "
-        "= ?",
-        schema.name, table->name);
+Dumper::Index_info Dumper::choose_index(const Schema_task &schema,
+                                        const Table_info &table) const {
+  Index_info index;
 
-    while (const auto row = result->fetch_one()) {
-      if ("PRIMARY" == row->get_string(0)) {
-        table->index = row->get_string(1);
-        table->primary_index = true;
-        break;
-      } else if (table->index.empty()) {
-        table->index = row->get_string(1);
-      }
+  // check if there's a primary key or a unique index, use first column in index
+  const auto result = session()->queryf(
+      "SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.statistics WHERE "
+      "NON_UNIQUE = 0 AND SEQ_IN_INDEX = 1 AND TABLE_SCHEMA = ? AND TABLE_NAME "
+      "= ?",
+      schema.name, table.name);
+
+  while (const auto row = result->fetch_one()) {
+    if ("PRIMARY" == row->get_string(0)) {
+      index.name = row->get_string(1);
+      index.primary = true;
+      break;
+    } else if (index.name.empty()) {
+      index.name = row->get_string(1);
     }
   }
-  return table->index;
+
+  return index;
 }
 
 Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
@@ -1546,30 +1580,74 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
   //              pointer each time
   std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
 
-  auto file = mysqlshdk::storage::make_file(
-      make_file(filename + k_dump_in_progress_ext), m_options.compression());
-  std::unique_ptr<Dump_writer> writer;
+  // create new writer if we're writing to multiple files, or to a single file
+  // and writer hasn't been created yet
+  if (!m_options.use_single_file() || m_worker_writers.empty()) {
+    // if we're writing to a single file, simply use the provided name
+    auto file = m_options.use_single_file()
+                    ? std::move(m_output_file)
+                    : make_file(filename + k_dump_in_progress_ext);
+    auto compressed_file =
+        mysqlshdk::storage::make_file(std::move(file), m_options.compression());
+    std::unique_ptr<Dump_writer> writer;
 
-  if (import_table::Dialect::default_() == m_options.dialect()) {
-    writer = std::make_unique<Default_dump_writer>(std::move(file));
-  } else {
-    writer = std::make_unique<Text_dump_writer>(std::move(file),
-                                                m_options.dialect());
+    if (import_table::Dialect::default_() == m_options.dialect()) {
+      writer =
+          std::make_unique<Default_dump_writer>(std::move(compressed_file));
+    } else if (import_table::Dialect::json() == m_options.dialect()) {
+      writer = std::make_unique<Json_dump_writer>(std::move(compressed_file));
+    } else if (import_table::Dialect::csv() == m_options.dialect()) {
+      writer = std::make_unique<Csv_dump_writer>(std::move(compressed_file));
+    } else if (import_table::Dialect::tsv() == m_options.dialect()) {
+      writer = std::make_unique<Tsv_dump_writer>(std::move(compressed_file));
+    } else if (import_table::Dialect::csv_unix() == m_options.dialect()) {
+      writer =
+          std::make_unique<Csv_unix_dump_writer>(std::move(compressed_file));
+    } else {
+      writer = std::make_unique<Text_dump_writer>(std::move(compressed_file),
+                                                  m_options.dialect());
+    }
+
+    m_worker_writers.emplace_back(std::move(writer));
   }
-
-  m_worker_writers.emplace_back(std::move(writer));
 
   return m_worker_writers.back().get();
 }
 
 void Dumper::finish_writing(Dump_writer *writer) {
-  const auto output = writer->output();
-  output->close();
-  output->rename(trim_in_progress_extension(output->filename()));
+  // close the file if we're writing to multiple files, otherwise the single
+  // file is going to be closed when all tasks are finished
+  if (!m_options.use_single_file()) {
+    close_file(*writer);
+
+    {
+      std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
+
+      m_worker_writers.erase(
+          std::remove_if(m_worker_writers.begin(), m_worker_writers.end(),
+                         [writer](const auto &w) { return w.get() == writer; }),
+          m_worker_writers.end());
+    }
+  }
+}
+
+void Dumper::close_file(const Dump_writer &writer) const {
+  const auto output = writer.output();
+
+  if (output->is_open()) {
+    output->close();
+  }
+
+  const auto filename = output->filename();
+  const auto trimmed = trim_in_progress_extension(filename);
+
+  if (trimmed != filename) {
+    output->rename(trimmed);
+  }
 }
 
 void Dumper::write_metadata() const {
-  if (is_export_only()) {
+  if (m_options.is_export_only()) {
     return;
   }
 
@@ -1581,7 +1659,7 @@ void Dumper::write_metadata() const {
 }
 
 void Dumper::write_dump_started_metadata() const {
-  if (is_export_only()) {
+  if (m_options.is_export_only()) {
     return;
   }
 
@@ -1619,7 +1697,7 @@ void Dumper::write_dump_started_metadata() const {
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
   }
 
-  if (dump_users()) {
+  if (m_options.dump_users()) {
     const auto dumper = schema_dumper(session());
 
     // list of users
@@ -1635,7 +1713,8 @@ void Dumper::write_dump_started_metadata() const {
 
   doc.AddMember(StringRef("defaultCharacterSet"),
                 ref(m_options.character_set()), a);
-  doc.AddMember(StringRef("tzUtc"), use_timezone_utc(), a);
+  doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
+  doc.AddMember(StringRef("tableOnly"), m_options.table_only(), a);
 
   doc.AddMember(StringRef("user"), ref(m_dump_info->user()), a);
   doc.AddMember(StringRef("hostname"), ref(m_dump_info->hostname()), a);
@@ -1644,18 +1723,20 @@ void Dumper::write_dump_started_metadata() const {
                 a);
   doc.AddMember(StringRef("gtidExecuted"), ref(m_dump_info->gtid_executed()),
                 a);
-  doc.AddMember(StringRef("consistent"), consistent_dump(), a);
-  if (!mds_compatibility().is_null()) {
-    bool compat = mds_compatibility();
+  doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
+
+  if (m_options.mds_compatibility()) {
+    bool compat = m_options.mds_compatibility();
     doc.AddMember(StringRef("mdsCompatibility"), compat, a);
   }
+
   doc.AddMember(StringRef("begin"), ref(m_dump_info->begin()), a);
 
   write_json(make_file("@.json"), &doc);
 }
 
 void Dumper::write_dump_finished_metadata() const {
-  if (is_export_only()) {
+  if (m_options.is_export_only()) {
     return;
   }
 
@@ -1690,7 +1771,7 @@ void Dumper::write_dump_finished_metadata() const {
 }
 
 void Dumper::write_schema_metadata(const Schema_task &schema) const {
-  if (is_export_only()) {
+  if (m_options.is_export_only()) {
     return;
   }
 
@@ -1703,8 +1784,9 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
   auto &a = doc.GetAllocator();
 
   doc.AddMember(StringRef("schema"), ref(schema.name), a);
-  doc.AddMember(StringRef("includesDdl"), should_dump_ddl(), a);
-  doc.AddMember(StringRef("includesData"), should_dump_data(), a);
+  doc.AddMember(StringRef("includesDdl"), m_options.dump_schema_ddl(), a);
+  doc.AddMember(StringRef("includesViewsDdl"), m_options.dump_ddl(), a);
+  doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
 
   {
     // list of tables
@@ -1717,7 +1799,7 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
     doc.AddMember(StringRef("tables"), std::move(tables), a);
   }
 
-  if (should_dump_ddl()) {
+  if (m_options.dump_ddl()) {
     // list of views
     Value views{Type::kArrayType};
 
@@ -1728,10 +1810,10 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
     doc.AddMember(StringRef("views"), std::move(views), a);
   }
 
-  if (should_dump_ddl()) {
+  if (m_options.dump_schema_ddl()) {
     const auto dumper = schema_dumper(session());
 
-    if (dump_events()) {
+    if (m_options.dump_events()) {
       // list of events
       Value events{Type::kArrayType};
 
@@ -1742,7 +1824,7 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
       doc.AddMember(StringRef("events"), std::move(events), a);
     }
 
-    if (dump_routines()) {
+    if (m_options.dump_routines()) {
       // list of functions
       Value functions{Type::kArrayType};
 
@@ -1754,7 +1836,7 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
       doc.AddMember(StringRef("functions"), std::move(functions), a);
     }
 
-    if (dump_routines()) {
+    if (m_options.dump_routines()) {
       // list of stored procedures
       Value procedures{Type::kArrayType};
 
@@ -1785,11 +1867,11 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
   write_json(make_file(get_schema_filename(schema.basename, "json")), &doc);
 }
 
-void Dumper::write_table_metadata(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const std::string &schema, const std::string &table,
-    const std::vector<Column_info> &columns, bool chunked,
-    const std::string &basename, const std::string &primary_index) const {
+void Dumper::write_table_metadata(const Table_task &table) const {
+  if (m_options.is_export_only()) {
+    return;
+  }
+
   using rapidjson::Document;
   using rapidjson::StringRef;
   using rapidjson::Type;
@@ -1802,13 +1884,13 @@ void Dumper::write_table_metadata(
     // options - to be used by importer
     Value options{Type::kObjectType};
 
-    options.AddMember(StringRef("schema"), ref(schema), a);
-    options.AddMember(StringRef("table"), ref(table), a);
+    options.AddMember(StringRef("schema"), ref(table.schema), a);
+    options.AddMember(StringRef("table"), ref(table.name), a);
 
     Value cols{Type::kArrayType};
     Value decode{Type::kObjectType};
 
-    for (const auto &c : columns) {
+    for (const auto &c : table.columns) {
       cols.PushBack(ref(c.name), a);
 
       if (c.csv_unsafe) {
@@ -1824,7 +1906,9 @@ void Dumper::write_table_metadata(
       options.AddMember(StringRef("decodeColumns"), std::move(decode), a);
     }
 
-    options.AddMember(StringRef("primaryIndex"), ref(primary_index), a);
+    options.AddMember(
+        StringRef("primaryIndex"),
+        table.index.primary ? ref(table.index.name) : StringRef(""), a);
 
     options.AddMember(
         StringRef("compression"),
@@ -1847,20 +1931,20 @@ void Dumper::write_table_metadata(
     doc.AddMember(StringRef("options"), std::move(options), a);
   }
 
-  const auto dumper = schema_dumper(session);
+  const auto dumper = schema_dumper(session());
 
-  if (dump_triggers() && should_dump_ddl()) {
+  if (m_options.dump_triggers() && m_options.dump_ddl()) {
     // list of triggers
     Value triggers{Type::kArrayType};
 
-    for (const auto &trigger : dumper->get_triggers(schema, table)) {
+    for (const auto &trigger : dumper->get_triggers(table.schema, table.name)) {
       triggers.PushBack({trigger.c_str(), a}, a);
     }
 
     doc.AddMember(StringRef("triggers"), std::move(triggers), a);
   }
 
-  const auto all_histograms = dumper->get_histograms(schema, table);
+  const auto all_histograms = dumper->get_histograms(table.schema, table.name);
 
   if (!all_histograms.empty()) {
     // list of histograms
@@ -1879,13 +1963,14 @@ void Dumper::write_table_metadata(
     doc.AddMember(StringRef("histograms"), std::move(histograms), a);
   }
 
-  doc.AddMember(StringRef("includesData"), should_dump_data(), a);
-  doc.AddMember(StringRef("includesDdl"), should_dump_ddl(), a);
+  doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
+  doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
 
   doc.AddMember(StringRef("extension"), {get_table_data_ext().c_str(), a}, a);
-  doc.AddMember(StringRef("chunking"), chunked, a);
+  doc.AddMember(StringRef("chunking"), is_chunked(table), a);
 
-  write_json(make_file(dump::get_table_data_filename(basename, "json")), &doc);
+  write_json(make_file(dump::get_table_data_filename(table.basename, "json")),
+             &doc);
 }
 
 void Dumper::summarize() const {
@@ -1893,7 +1978,7 @@ void Dumper::summarize() const {
 
   console->print_status("Duration: " + m_dump_info->duration());
 
-  if (!is_export_only()) {
+  if (!m_options.is_export_only()) {
     console->print_status("Schemas dumped: " + std::to_string(m_total_schemas));
     console->print_status("Tables dumped: " + std::to_string(m_total_tables));
   }
@@ -1923,6 +2008,8 @@ void Dumper::summarize() const {
                           mysqlshdk::utils::format_throughput_bytes(
                               m_bytes_written, m_dump_info->seconds()));
   }
+
+  summary();
 }
 
 void Dumper::rethrow() const {
@@ -2025,16 +2112,18 @@ void Dumper::update_progress(uint64_t new_rows,
       m_bytes_throughput->push(m_bytes_written);
       m_progress->current(m_rows_written);
 
-      const uint64_t chunking = m_num_threads_chunking;
-      const uint64_t dumping = m_num_threads_dumping;
+      if (!m_options.is_export_only()) {
+        const uint64_t chunking = m_num_threads_chunking;
+        const uint64_t dumping = m_num_threads_dumping;
 
-      if (0 == chunking) {
-        m_progress->set_left_label(std::to_string(dumping) +
-                                   " thds dumping - ");
-      } else {
-        m_progress->set_left_label(std::to_string(chunking) +
-                                   " thds chunking, " +
-                                   std::to_string(dumping) + " dumping - ");
+        if (0 == chunking) {
+          m_progress->set_left_label(std::to_string(dumping) +
+                                     " thds dumping - ");
+        } else {
+          m_progress->set_left_label(std::to_string(chunking) +
+                                     " thds chunking, " +
+                                     std::to_string(dumping) + " dumping - ");
+        }
       }
 
       m_progress->show_status(false, ", " + throughput());
@@ -2074,13 +2163,17 @@ std::string Dumper::quote(const Schema_task &schema, const std::string &view) {
   return quote(schema.name, view);
 }
 
+std::string Dumper::quote(const Table_task &table) {
+  return quote(table.schema, table.name);
+}
+
 std::string Dumper::quote(const std::string &schema, const std::string &table) {
   return shcore::quote_identifier(schema) + "." +
          shcore::quote_identifier(table);
 }
 
 mysqlshdk::storage::IDirectory *Dumper::directory() const {
-  return m_output.get();
+  return m_output_dir.get();
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_file(
@@ -2172,6 +2265,63 @@ std::string Dumper::get_query_comment(const std::string &schema,
 std::string Dumper::get_query_comment(const Table_data_task &task,
                                       const char *context) const {
   return get_query_comment(task.schema, task.name, task.id, context);
+}
+
+bool Dumper::exists(const std::string &schema) const {
+  const auto result = session()->queryf(
+      "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME=?",
+      schema);
+  return nullptr != result->fetch_one();
+}
+
+bool Dumper::exists(const std::string &schema, const std::string &table) const {
+  const auto result = session()->queryf(
+      "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = ? "
+      "AND TABLE_NAME = ?;",
+      schema, table);
+  return nullptr != result->fetch_one();
+}
+
+bool Dumper::is_chunked(const Table_task &task) const {
+  return m_options.split() && !task.index.name.empty();
+}
+
+std::vector<Dumper::Column_info> Dumper::get_columns(
+    const Schema_task &schema, const Table_info &table) const {
+  const auto result = session()->queryf(
+      "SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.columns WHERE "
+      "EXTRA <> 'VIRTUAL GENERATED' AND EXTRA <> 'STORED GENERATED' AND "
+      "TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION",
+      schema.name, table.name);
+
+  std::vector<Column_info> columns;
+
+  while (auto row = result->fetch_one()) {
+    Column_info column;
+    column.name = row->get_string(0);
+    const auto type = row->get_string(1);
+    column.csv_unsafe = shcore::str_iendswith(type, "binary") ||
+                        shcore::str_iendswith(type, "bit") ||
+                        shcore::str_iendswith(type, "blob") ||
+                        shcore::str_iendswith(type, "geometry") ||
+                        shcore::str_iendswith(type, "geometrycollection") ||
+                        shcore::str_iendswith(type, "linestring") ||
+                        shcore::str_iendswith(type, "point") ||
+                        shcore::str_iendswith(type, "polygon");
+    columns.emplace_back(std::move(column));
+  }
+
+  return columns;
+}
+
+bool Dumper::should_dump_data(const Table_task &table) {
+  if (table.schema == "mysql" &&
+      (table.name == "apply_status" || table.name == "general_log" ||
+       table.name == "schema" || table.name == "slow_log")) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 }  // namespace dump

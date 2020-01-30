@@ -29,16 +29,17 @@
 #include <string>
 #include <vector>
 
+#include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/object_factory.h"
+#include "mysqlshdk/include/scripting/proxy_object.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlxtest_utils.h"
-#include "scripting/common.h"
-#include "scripting/lang_base.h"
-#include "scripting/object_factory.h"
-#include "scripting/proxy_object.h"
-#include "shellcore/base_session.h"
-#include "shellcore/shell_core.h"
-#include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

@@ -90,7 +90,7 @@ def EXPECT_THROWS(func, etext):
 def EXPECT_NO_THROWS(func, context):
   try:
     func()
-  except:
+  except Exception as e:
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>")
 
 def EXPECT_STDOUT_CONTAINS(text):

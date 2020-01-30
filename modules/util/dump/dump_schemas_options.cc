@@ -31,18 +31,25 @@ namespace mysqlsh {
 namespace dump {
 
 Dump_schemas_options::Dump_schemas_options(
-    const std::vector<std::string> &schemas, const std::string &output_dir)
-    : Ddl_dumper_options(output_dir),
+    const std::vector<std::string> &schemas, const std::string &output_url)
+    : Ddl_dumper_options(output_url),
       m_schemas(schemas.begin(), schemas.end()) {}
 
-Dump_schemas_options::Dump_schemas_options(const std::string &output_dir)
-    : Ddl_dumper_options(output_dir) {}
+Dump_schemas_options::Dump_schemas_options(const std::string &output_url)
+    : Ddl_dumper_options(output_url) {}
 
 void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Ddl_dumper_options::unpack_options(unpacker);
 
   std::vector<std::string> tables;
-  unpacker->optional("excludeTables", &tables);
+  std::vector<std::string> compatibility_options;
+  bool mds = false;
+
+  unpacker->optional("excludeTables", &tables)
+      .optional("events", &m_dump_events)
+      .optional("routines", &m_dump_routines)
+      .optional("ocimds", &mds)
+      .optional("compatibility", &compatibility_options);
 
   std::string schema;
   std::string table;
@@ -63,6 +70,14 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
     }
 
     m_excluded_tables[schema].emplace(std::move(table));
+  }
+
+  if (mds) {
+    set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+  }
+
+  for (const auto &option : compatibility_options) {
+    m_compatibility_options |= to_compatibility_option(option);
   }
 }
 

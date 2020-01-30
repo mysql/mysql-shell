@@ -70,7 +70,8 @@ class Load_dump_options final {
 
   void set_options(const shcore::Dictionary_t &options);
 
-  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
+  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                   const std::string &current_schema);
 
   mysqlshdk::db::ISession *base_session() const { return m_base_session.get(); }
 
@@ -126,6 +127,10 @@ class Load_dump_options final {
 
   static std::vector<std::string> get_excluded_users(bool is_mds);
 
+  const std::string &target_schema() const { return m_target_schema; }
+
+  const std::string &current_schema() const { return m_current_schema; }
+
  private:
   std::string m_url;
   int64_t m_threads_count = 4;
@@ -156,6 +161,8 @@ class Load_dump_options final {
   bool m_ignore_version = false;
   Defer_index_mode m_defer_table_indexes = Defer_index_mode::FULLTEXT;
   bool m_load_indexes = true;
+  std::string m_target_schema;
+  std::string m_current_schema;
 };
 
 }  // namespace mysqlsh

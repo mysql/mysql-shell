@@ -216,15 +216,16 @@ class Dump_loader {
   bool handle_table_data(Worker *worker);
   void handle_schema_post_scripts();
 
-  void handle_schema(const std::string &schema,
-                     const std::list<Name_and_file> &tables,
-                     const std::list<Name_and_file> &views);
+  void handle_schema(const std::string &schema, bool resuming);
+  void switch_schema(const std::string &schema, bool load_done);
+  void handle_tables(const std::string &schema,
+                     const std::list<Name_and_file> &tables, bool is_view);
   bool handle_indexes(const std::string &schema, const std::string &table,
                       std::string *script, bool fulltext_only,
                       bool check_recreated);
   void handle_table(const std::string &schema, const std::string &table,
                     const std::string &script, bool resuming,
-                    bool indexes_deferred = false);
+                    bool indexes_deferred);
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
                             ssize_t chunk_index, Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -271,6 +272,8 @@ class Dump_loader {
       const std::string &script, const std::string &error_prefix,
       const std::function<bool(const char *, size_t, std::string *)>
           &process_stmt = {});
+
+  void handle_table_only_dump();
 
  private:
 #ifdef FRIEND_TEST

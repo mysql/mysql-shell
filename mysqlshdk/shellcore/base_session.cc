@@ -21,21 +21,23 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
+
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/object_factory.h"
+#include "mysqlshdk/include/scripting/proxy_object.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
+#include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "scripting/common.h"
-#include "scripting/lang_base.h"
-#include "scripting/object_factory.h"
-#include "scripting/proxy_object.h"
-#include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_core.h"
-#include "utils/debug.h"
-#include "utils/utils_file.h"
-#include "utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 using namespace mysqlsh;
 using namespace shcore;

@@ -66,6 +66,10 @@ class Dump_reader {
 
   bool tz_utc() const { return m_contents.tz_utc; }
 
+  bool table_only() const { return m_contents.table_only; }
+
+  void replace_target_schema(const std::string &schema);
+
   std::string users_script() const;
   std::string begin_script() const;
   std::string end_script() const;
@@ -74,7 +78,11 @@ class Dump_reader {
 
   bool next_schema(std::string *out_schema,
                    std::list<Name_and_file> *out_tables,
-                   std::list<Name_and_file> *out_views, bool *out_has_ddl);
+                   std::list<Name_and_file> *out_views);
+
+  bool has_ddl(const std::string &schema) const;
+
+  bool has_ddl(const std::string &schema, const std::string &table) const;
 
   std::vector<std::string> schemas() const;
 
@@ -127,6 +135,8 @@ class Dump_reader {
 
   void add_deferred_indexes(const std::string &schema, const std::string &table,
                             std::vector<std::string> &&indexes);
+
+  void validate_options();
 
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
@@ -239,6 +249,7 @@ class Dump_reader {
     bool md_done = false;
 
     bool has_sql = true;
+    bool has_view_sql = true;
     bool has_data = true;
 
     bool sql_seen = false;
@@ -266,10 +277,13 @@ class Dump_reader {
     std::unique_ptr<std::string> post_sql;
     std::unique_ptr<std::string> users_sql;
 
+    bool has_users = false;
+
     std::string default_charset;
     std::string gtid_executed;
     bool tz_utc = true;
     bool mds_compatibility = false;
+    bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;
 

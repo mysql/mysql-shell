@@ -48,22 +48,31 @@ Text_dump_writer::Text_dump_writer(
     // escape if character is:
     // - FIELDS ESCAPED BY character
     // - FIELDS ENCLOSED BY character
-    // - if the FIELDS ENCLOSED BY is empty, the first character of the FIELDS
-    //   TERMINATED BY or LINES TERMINATED BY values
+    // - the first character of the FIELDS TERMINATED BY or LINES TERMINATED BY
+    //   values
     size_t idx = 0;
     m_escaped_characters[idx++] = m_escape_char;
 
-    if (m_dialect.fields_enclosed_by.empty()) {
-      if (!m_dialect.fields_terminated_by.empty()) {
-        m_escaped_characters[idx++] = m_dialect.fields_terminated_by[0];
-      }
-
-      if (!m_dialect.lines_terminated_by.empty()) {
-        m_escaped_characters[idx++] = m_dialect.lines_terminated_by[0];
-      }
-    } else {
+    if (!m_dialect.fields_enclosed_by.empty()) {
       m_escaped_characters[idx++] = m_dialect.fields_enclosed_by[0];
     }
+
+    if (!m_dialect.fields_terminated_by.empty()) {
+      m_escaped_characters[idx++] = m_dialect.fields_terminated_by[0];
+    }
+
+    if (!m_dialect.lines_terminated_by.empty()) {
+      m_escaped_characters[idx++] = m_dialect.lines_terminated_by[0];
+    }
+  }
+
+  if (!m_dialect.fields_enclosed_by.empty()) {
+    // FIELDS ENCLOSED BY character can also be escaped by doubling it,
+    // use this method if this character in combination with FIELDS ESCAPED BY
+    // character would create another escape sequence
+    const auto c = m_dialect.fields_enclosed_by[0];
+    m_double_enclosed_by = ('0' == c || 'b' == c || 'n' == c || 'r' == c ||
+                            't' == c || 'Z' == c || 'N' == c);
   }
 }
 
@@ -136,8 +145,6 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
     buffer()->append_fixed(m_dialect.fields_terminated_by);
   }
 
-  quote_field(idx);
-
   const char *data = nullptr;
   std::size_t length = 0;
   row->get_raw_data(idx, &data, &length);
@@ -159,6 +166,8 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
   if (is_null) {
     store_null();
   } else {
+    quote_field(idx);
+
     if (m_escape) {
       buffer()->will_write(2 * length);
       const auto end = data + length;
@@ -166,6 +175,7 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
       for (auto p = data; p != end; ++p) {
         const auto c = *p;
         char to_write = 0;
+        char escape = m_escape_char;
 
         // note: this doesn't produce output consistent with SELECT .. INTO
         // OUTFILE (i.e. tabs are escaped), but LOAD DATA INFILE handles
@@ -199,14 +209,21 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
 
           default:
             if (c == m_escaped_characters[0] || c == m_escaped_characters[1] ||
-                c == m_escaped_characters[2]) {
+                c == m_escaped_characters[2] || c == m_escaped_characters[3]) {
               to_write = c;
+
+              // m_double_enclosed_by can only be true if fields_enclosed_by is
+              // not empty
+              if (m_double_enclosed_by &&
+                  to_write == m_dialect.fields_enclosed_by[0]) {
+                escape = to_write;
+              }
             }
             break;
         }
 
         if (0 != to_write) {
-          buffer()->append(m_escape_char);
+          buffer()->append(escape);
           buffer()->append(to_write);
         } else {
           buffer()->append(c);
@@ -216,9 +233,9 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
       buffer()->will_write(length);
       buffer()->append(data, length);
     }
-  }
 
-  quote_field(idx);
+    quote_field(idx);
+  }
 }
 
 void Text_dump_writer::quote_field(uint32_t idx) {

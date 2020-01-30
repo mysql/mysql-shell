@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 using shcore::Value;
 using std::placeholders::_1;

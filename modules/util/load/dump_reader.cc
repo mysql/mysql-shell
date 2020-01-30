@@ -28,6 +28,7 @@
 #include "modules/util/dump/dump_utils.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -107,6 +108,11 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("mdsCompatibility"))
     m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
 
+  if (md->has_key("tableOnly"))
+    m_contents.table_only = md->get_bool("tableOnly");
+
+  m_contents.has_users = md->has_key("users");
+
   try {
     m_contents.parse_done_metadata(m_dir.get());
 
@@ -137,8 +143,7 @@ std::string Dump_reader::users_script() const {
 
 bool Dump_reader::next_schema(std::string *out_schema,
                               std::list<Name_and_file> *out_tables,
-                              std::list<Name_and_file> *out_views,
-                              bool *out_has_ddl) {
+                              std::list<Name_and_file> *out_views) {
   out_tables->clear();
   out_views->clear();
 
@@ -158,13 +163,28 @@ bool Dump_reader::next_schema(std::string *out_schema,
 
       s->sql_done = true;
 
-      *out_has_ddl = s->has_sql;
-
       return true;
     }
   }
 
   return false;
+}
+
+bool Dump_reader::has_ddl(const std::string &schema) const {
+  return m_contents.schemas.at(schema)->has_sql;
+}
+
+bool Dump_reader::has_ddl(const std::string &schema,
+                          const std::string &table) const {
+  const auto &s = m_contents.schemas.at(schema);
+  const auto t = s->tables.find(table);
+
+  if (s->tables.end() != t) {
+    return t->second->has_sql;
+  } else {
+    // if table was not found we assume it is a view
+    return s->has_view_sql;
+  }
 }
 
 std::vector<std::string> Dump_reader::schemas() const {
@@ -243,12 +263,20 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
 
   const auto &s = m_contents.schemas.at(schema);
 
-  // Get the base script for the schema
-  script = fetch_file(m_dir.get(), s->script_name());
+  if (s->has_sql) {
+    // Get the base script for the schema
+    script = fetch_file(m_dir.get(), s->script_name());
+  }
 
-  // Get the pre-scripts for views and append them to the script
-  for (const auto &v : s->views) {
-    script += "\n" + fetch_file(m_dir.get(), v.pre_script_name());
+  if (s->has_view_sql) {
+    if (script.empty()) {
+      script = shcore::sqlstring("USE !;", 0) << schema;
+    }
+
+    // Get the pre-scripts for views and append them to the script
+    for (const auto &v : s->views) {
+      script += "\n" + fetch_file(m_dir.get(), v.pre_script_name());
+    }
   }
 
   return script;
@@ -513,6 +541,74 @@ void Dump_reader::add_deferred_indexes(const std::string &schema,
       idx.end());
 }
 
+void Dump_reader::replace_target_schema(const std::string &schema) {
+  if (1 != m_contents.schemas.size()) {
+    throw std::logic_error("Dump was not created using util.dumpTables().");
+  }
+
+  const auto info = m_contents.schemas.begin()->second;
+  m_contents.schemas.clear();
+  m_contents.schemas.emplace(schema, info);
+
+  info->schema = schema;
+
+  for (const auto &table : info->tables) {
+    table.second->schema = schema;
+  }
+
+  for (auto &view : info->views) {
+    view.schema = schema;
+  }
+
+  for (const auto &table : m_tables_with_data) {
+    table->schema = schema;
+    table->options->set("schema", shcore::Value(schema));
+  }
+}
+
+void Dump_reader::validate_options() {
+  if (m_options.load_users() && !m_contents.has_users) {
+    throw std::invalid_argument(
+        "The 'loadUsers' option is set to true, but the dump does not contain "
+        "the user data.");
+  }
+
+  if (table_only()) {
+    if (m_options.target_schema().empty()) {
+      // user didn't provide an option, use the current schema
+      // if there's no current schema, we cannot proceed
+      if (m_options.current_schema().empty()) {
+        current_console()->print_error(
+            "The dump was created by the util." +
+            shcore::get_member_name("dumpTables",
+                                    shcore::current_naming_style()) +
+            "() function and needs to be loaded into an existing schema. "
+            "Please set the default schema for the global session or use the "
+            "'schema' option.");
+        throw std::invalid_argument("The target schema was not specified.");
+      }
+    } else {
+      const auto result = m_options.base_session()->queryf(
+          "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE "
+          "SCHEMA_NAME = ?",
+          m_options.target_schema());
+
+      if (nullptr == result->fetch_one()) {
+        throw std::invalid_argument("The specified schema does not exist.");
+      }
+    }
+  } else {
+    if (!m_options.target_schema().empty()) {
+      current_console()->print_error(
+          "The dump was not created by the util." +
+          shcore::get_member_name("dumpTables",
+                                  shcore::current_naming_style()) +
+          "() function, the 'schema' option cannot be used.");
+      throw std::invalid_argument("Invalid option: schema.");
+    }
+  }
+}
+
 std::string Dump_reader::Table_info::script_name() const {
   return dump::get_table_filename(basename);
 }
@@ -522,7 +618,7 @@ std::string Dump_reader::Table_info::triggers_script_name() const {
 }
 
 bool Dump_reader::Table_info::ready() const {
-  return (!has_data || md_seen) && (!has_sql || sql_seen);
+  return md_seen && (!has_sql || sql_seen);
 }
 
 void Dump_reader::Table_info::rescan(
@@ -693,6 +789,7 @@ void Dump_reader::Schema_info::rescan(
       auto md = fetch_metadata(dir, mdpath);
 
       has_sql = md->get_bool("includesDdl", true);
+      has_view_sql = md->get_bool("includesViewsDdl", has_sql);
       has_data = md->get_bool("includesData", true);
 
       shcore::Dictionary_t basenames = md->get_map("basenames");
@@ -713,6 +810,7 @@ void Dump_reader::Schema_info::rescan(
               info->basename = basenames->get_string(info->table);
             else
               info->basename = basename + "@" + info->table;
+
             tables.emplace(info->table, info);
           }
         }
@@ -803,7 +901,7 @@ bool Dump_reader::Schema_info::data_done() const {
 }
 
 bool Dump_reader::Dump_info::ready() const {
-  return sql && post_sql && users_sql;
+  return sql && post_sql && has_users == !!users_sql;
 }
 
 void Dump_reader::Dump_info::rescan(
@@ -815,7 +913,7 @@ void Dump_reader::Dump_info::rescan(
   if (!post_sql && files.count("@.post.sql") > 0) {
     post_sql = std::make_unique<std::string>(fetch_file(dir, "@.post.sql"));
   }
-  if (!users_sql && files.count("@.users.sql") > 0) {
+  if (has_users && !users_sql && files.count("@.users.sql") > 0) {
     users_sql = std::make_unique<std::string>(fetch_file(dir, "@.users.sql"));
   }
 

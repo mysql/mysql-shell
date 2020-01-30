@@ -32,11 +32,13 @@
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/schema_dumper.h"
+
 namespace mysqlsh {
 namespace dump {
 
 Dump_schemas::Dump_schemas(const Dump_schemas_options &options)
-    : Ddl_dumper(options), m_options(options) {}
+    : Dumper(options), m_options(options) {}
 
 void Dump_schemas::create_schema_tasks() {
   std::unordered_set<std::string> all_schemas;
@@ -134,16 +136,28 @@ std::vector<Dumper::Table_info> Dump_schemas::get_tables(
   return infos;
 }
 
-bool Dump_schemas::exists(const std::string &schema) const {
-  const auto result = session()->queryf(
-      "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME=?",
-      schema);
-  return nullptr != result->fetch_one();
-}
-
 const std::unordered_set<std::string> &Dump_schemas::excluded_schemas() const {
   static std::unordered_set<std::string> empty;
   return empty;
+}
+
+std::unique_ptr<Schema_dumper> Dump_schemas::schema_dumper(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
+  auto dumper = Dumper::schema_dumper(session);
+
+  const auto &options = m_options.compatibility_options();
+
+  dumper->opt_force_innodb = options.is_set(Compatibility_option::FORCE_INNODB);
+  dumper->opt_strip_definer =
+      options.is_set(Compatibility_option::STRIP_DEFINERS);
+  dumper->opt_strip_restricted_grants =
+      options.is_set(Compatibility_option::STRIP_RESTRICTED_GRANTS);
+  dumper->opt_strip_role_admin =
+      options.is_set(Compatibility_option::STRIP_ROLE_ADMIN);
+  dumper->opt_strip_tablespaces =
+      options.is_set(Compatibility_option::STRIP_TABLESPACES);
+
+  return dumper;
 }
 
 }  // namespace dump

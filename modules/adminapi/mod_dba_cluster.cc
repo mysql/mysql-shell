@@ -38,6 +38,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
 using std::placeholders::_1;

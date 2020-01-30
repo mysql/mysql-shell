@@ -39,6 +39,7 @@
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"  // TODO(alfredo) - move this to modules/
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 using namespace mysqlsh;
 using namespace shcore;

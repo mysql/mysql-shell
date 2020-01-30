@@ -71,6 +71,12 @@ void Dialect::validate() const {
     throw std::invalid_argument(
         "fieldsEnclosedBy must be set if fieldsOptionallyEnclosed is true.");
   }
+
+  if (fields_terminated_by.empty() && fields_enclosed_by.empty()) {
+    throw std::invalid_argument(
+        "The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting "
+        "in a fixed-row format. This is currently not supported.");
+  }
 }
 
 Dialect Dialect::json() {

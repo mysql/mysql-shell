@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

@@ -27,6 +27,7 @@
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
 #include "mysqlshdk/libs/storage/compression/zstd_file.h"
+#include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -59,6 +60,10 @@ size_t Compressed_file::file_size() const { return m_file->file_size(); }
 std::string Compressed_file::full_path() const { return m_file->full_path(); }
 
 bool Compressed_file::exists() const { return m_file->exists(); }
+
+std::unique_ptr<IDirectory> Compressed_file::parent() const {
+  return m_file->parent();
+}
 
 bool Compressed_file::flush() { return m_file->flush(); }
 
