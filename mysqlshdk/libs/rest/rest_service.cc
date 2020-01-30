@@ -25,6 +25,7 @@
 
 #include <curl/curl.h>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -176,8 +177,11 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_ERRORBUFFER, m_error_buffer);
 
     verify_ssl(verify);
-    // set timeout to 2 seconds
-    set_timeout(2000);
+
+    // Default timeout for HEAD/DELETE: 30000 milliseconds
+    // The rest of the operations will timeout if transfer rate is lower than
+    // one byte in 5 minutes (300 seconds)
+    set_timeout(30000, 1, 300);
 
     // set the callbacks
     curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, nullptr);
@@ -343,9 +347,12 @@ class Rest_service::Impl {
     m_default_headers = headers;
   }
 
-  void set_timeout(uint32_t timeout) {
-    curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS,
-                     static_cast<long>(timeout));
+  void set_timeout(long timeout, long low_speed_limit, long low_speed_time) {
+    m_default_timeout = timeout;
+    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_LIMIT,
+                     static_cast<long>(low_speed_limit));
+    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_TIME,
+                     static_cast<long>(low_speed_time));
   }
 
  private:
@@ -358,6 +365,7 @@ class Rest_service::Impl {
     // custom request overwrites any other option, make sure it's set to
     // default
     curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, nullptr);
+    curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, 0);
 
     switch (type) {
       case Type::GET:
@@ -367,6 +375,7 @@ class Rest_service::Impl {
       case Type::HEAD:
         curl_easy_setopt(m_handle.get(), CURLOPT_HTTPGET, 1L);
         curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, m_default_timeout);
         break;
 
       case Type::POST:
@@ -390,6 +399,7 @@ class Rest_service::Impl {
       case Type::DELETE:
         curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
         curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "DELETE");
+        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, m_default_timeout);
         break;
     }
   }
@@ -455,6 +465,8 @@ class Rest_service::Impl {
   std::string m_id;
 
   int m_request_sequence;
+
+  long m_default_timeout;
 };
 
 Rest_service::Rest_service(const std::string &base_url, bool verify_ssl,
@@ -477,8 +489,9 @@ Rest_service &Rest_service::set_default_headers(const Headers &headers) {
   return *this;
 }
 
-Rest_service &Rest_service::set_timeout(uint32_t timeout) {
-  m_impl->set_timeout(timeout);
+Rest_service &Rest_service::set_timeout(long timeout, long low_speed_limit,
+                                        long low_speed_time) {
+  m_impl->set_timeout(timeout, low_speed_limit, low_speed_time);
   return *this;
 }
 

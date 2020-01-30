@@ -40,19 +40,23 @@ std::unique_ptr<IFile> IDirectory::file(const std::string &name) const {
 std::unique_ptr<IDirectory> make_directory(
     const std::string &path,
     const std::unordered_map<std::string, std::string> &options) {
-  mysqlshdk::oci::Oci_options oci_options;
-  std::string os_path;
-  bool is_oci =
-      mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::DIRECTORY,
-                                        path, options, &oci_options, &os_path);
+  if (!options.empty()) {
+    mysqlshdk::oci::Oci_options oci_options;
+    std::string os_path;
+    bool is_oci = mysqlshdk::oci::parse_oci_options(
+        mysqlshdk::oci::Oci_uri_type::DIRECTORY, path, options, &oci_options,
+        &os_path);
 
-  if (is_oci) {
-    return std::make_unique<backend::oci::Directory>(oci_options, os_path);
+    if (is_oci) {
+      return make_directory(os_path, oci_options);
+    }
   }
 
   const auto scheme = utils::get_scheme(path);
   if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
     return std::make_unique<backend::Directory>(path);
+  } else if (utils::scheme_matches(scheme, "oci+os")) {
+    throw std::invalid_argument("The osBucketName option is missing.");
   }
 
   throw std::invalid_argument("Directory handling for " + scheme +
@@ -61,7 +65,11 @@ std::unique_ptr<IDirectory> make_directory(
 
 std::unique_ptr<IDirectory> make_directory(
     const std::string &path, const mysqlshdk::oci::Oci_options &options) {
-  return std::make_unique<backend::oci::Directory>(options, path);
+  if (options) {
+    return std::make_unique<backend::oci::Directory>(options, path);
+  } else {
+    return make_directory(path);
+  }
 }
 
 }  // namespace storage

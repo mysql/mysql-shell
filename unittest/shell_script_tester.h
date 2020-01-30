@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -115,6 +115,10 @@ class Shell_script_tester : public Crud_test_wrapper {
   void reset_shell() override;
   virtual void set_scripting_context();
   void def_var(const std::string &var, const std::string &value);
+  void def_string_var_from_env(const std::string &var,
+                               const std::string &env_var = "");
+  void def_numeric_var_from_env(const std::string &var,
+                                const std::string &env_var = "");
   virtual std::string get_if_def(const std::string &variable) {
     return variable;
   }

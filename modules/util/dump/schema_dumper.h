@@ -44,6 +44,11 @@ class Schema_dumper {
     bool fixed;
   };
 
+  struct Histogram {
+    std::string column;
+    std::size_t buckets;
+  };
+
   explicit Schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
       const std::vector<std::string> &mysqlaas_supported_charsets = {"utf8mb4"},
@@ -52,6 +57,8 @@ class Schema_dumper {
 
   static std::string normalize_user(const std::string &user,
                                     const std::string &host);
+
+  static const char *version();
 
   void dump_all_tablespaces_ddl(IFile *file);
   void dump_tablespaces_ddl_for_dbs(IFile *file,
@@ -85,15 +92,26 @@ class Schema_dumper {
   std::vector<std::pair<std::string, std::string>> get_users(
       const std::vector<std::string> &filter);
 
+  std::vector<Histogram> get_histograms(const std::string &db_name,
+                                        const std::string &table_name);
+
   // Must be called for each file
-  void write_header(IFile *sql_file, const std::string &db_name);
+  void write_header(IFile *sql_file);
   void write_footer(IFile *sql_file);
+
+  void write_comment(IFile *sql_file, const std::string &db_name = "",
+                     const std::string &table_name = "");
 
  public:
   // Config options
   bool opt_force = false;
   bool opt_flush_privileges = false;
-  bool opt_drop = true;
+  bool opt_drop_database = false;
+  bool opt_drop_table = false;
+  bool opt_drop_view = false;
+  bool opt_drop_event = true;
+  bool opt_drop_routine = true;
+  bool opt_drop_trigger = true;
   bool opt_reexecutable = true;
   bool opt_create_options = true;
   bool opt_quoted = false;
@@ -104,9 +122,7 @@ class Schema_dumper {
   bool opt_single_transaction = false;
   bool opt_comments = true;
   bool opt_compact = false;
-  bool opt_drop_database = false;
   bool opt_tz_utc = true;
-  bool opt_drop_trigger = true;
   bool opt_ansi_mode = false;  ///< Force the "ANSI" SQL_MODE.
   bool opt_column_statistics = false;
   bool opt_mysqlaas = false;
@@ -116,6 +132,7 @@ class Schema_dumper {
   bool opt_strip_restricted_grants = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
+  std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {
     SET_GTID_PURGED_OFF = 0,
@@ -169,8 +186,7 @@ class Schema_dumper {
       const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
       mysqlshdk::db::Error *out_error = nullptr);
 
-  void fetch_db_collation(const std::string &db_name,
-                          std::string *out_db_cl_name);
+  void fetch_db_collation(const std::string &db, std::string *out_db_cl_name);
 
   void switch_character_set_results(const char *cs_name);
 
@@ -220,8 +236,8 @@ class Schema_dumper {
       const std::string &trigger_name);
 
   std::vector<Issue> dump_triggers_for_table(IFile *sql_file,
-                                             const std::string &table_name,
-                                             const std::string &db_name);
+                                             const std::string &table,
+                                             const std::string &db);
   void dump_column_statistics_for_table(IFile *sql_file,
                                         const std::string &table_name,
                                         const std::string &db_name);

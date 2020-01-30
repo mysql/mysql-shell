@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,9 +61,11 @@ Mem_row::Mem_row() {}
 
 Row_copy::Row_copy(const IRow &row) {
   _data = std::make_shared<Data>();
+  _data->types.reserve(row.num_fields());
+  _data->fields.reserve(row.num_fields());
 
   for (uint32_t c = row.num_fields(), i = 0; i < c; i++) {
-    _data->types.push_back(row.get_type(i));
+    _data->types.emplace_back(row.get_type(i));
 
     if (row.is_null(i)) {
       _data->fields.emplace_back(nullptr);
@@ -76,8 +78,8 @@ Row_copy::Row_copy(const IRow &row) {
         break;
 
       case Type::Decimal:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
-            new Field_data<std::string>(row.get_as_string(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<std::string>>(row.get_as_string(i)));
         break;
 
       case Type::Date:
@@ -87,43 +89,43 @@ Row_copy::Row_copy(const IRow &row) {
       case Type::Json:
       case Type::Enum:
       case Type::Set:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
-            new Field_data<std::string>(row.get_string(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<std::string>>(row.get_string(i)));
         break;
 
       case Type::String:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
-            new Field_data<std::string>(row.get_string(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<std::string>>(row.get_string(i)));
         break;
 
       case Type::Bytes:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
-            new Field_data<std::string>(row.get_string(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<std::string>>(row.get_string(i)));
         break;
 
       case Type::Integer:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<int64_t>>(
-            new Field_data<int64_t>(row.get_int(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<int64_t>>(row.get_int(i)));
         break;
 
       case Type::UInteger:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<uint64_t>>(
-            new Field_data<uint64_t>(row.get_uint(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<uint64_t>>(row.get_uint(i)));
         break;
 
       case Type::Float:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<float>>(
-            new Field_data<float>(row.get_float(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<float>>(row.get_float(i)));
         break;
 
       case Type::Double:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<double>>(
-            new Field_data<double>(row.get_double(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<double>>(row.get_double(i)));
         break;
 
       case Type::Bit:
-        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
-            new Field_data<std::string>(row.get_as_string(i))));
+        _data->fields.emplace_back(
+            std::make_unique<Field_data<std::string>>(row.get_as_string(i)));
         break;
     }
   }
@@ -245,6 +247,18 @@ std::pair<const char *, size_t> Mem_row::get_string_data(uint32_t index) const {
   const auto &s =
       static_cast<Field_data<std::string> *>(_data->fields[index].get())->value;
   return {s.data(), s.size()};
+}
+
+void Mem_row::get_raw_data(uint32_t index, const char **out_data,
+                           size_t *out_size) const {
+  if (is_null(index)) {
+    *out_data = nullptr;
+    *out_size = 0;
+  } else {
+    m_raw_data_cache = get_as_string(index);
+    *out_data = m_raw_data_cache.c_str();
+    *out_size = m_raw_data_cache.length();
+  }
 }
 
 float Mem_row::get_float(uint32_t index) const {

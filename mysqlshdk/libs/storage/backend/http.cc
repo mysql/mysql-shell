@@ -41,8 +41,12 @@ namespace backend {
 
 Http_get::Http_get(const std::string &uri) : m_uri(uri) {
   m_rest = std::make_unique<Rest_service>(m_uri, true);
-  m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
-                               // ok? maybe we could make it configurable
+
+  // Timeout conditions:
+  // - 30 seconds for HEAD and DELETE requests
+  // - The rest will timeout if less than 1K is received in 60 seconds
+  m_rest->set_timeout(30000, 1024, 60);
+
   auto response = m_rest->head(std::string{});
   if (response.status == Response::Status_code::OK) {
     m_file_size = std::stoul(response.headers["content-length"]);

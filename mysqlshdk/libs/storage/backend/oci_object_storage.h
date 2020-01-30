@@ -100,7 +100,7 @@ class Directory : public mysqlshdk::storage::IDirectory {
    * object names that reside on the emulated directory but dont have / as part
    * of their name.
    */
-  std::vector<File_info> list_files() const override;
+  std::vector<File_info> list_files(bool hidden_files = false) const override;
 
   /**
    * Creates a new file handle for for a file contained on this directory.
@@ -128,10 +128,13 @@ class Object : public mysqlshdk::storage::IFile {
   /**
    * Creates an handle for an object in the specified bucket.
    *
-   * @param bucketName: the name of the bucket where the object is located.
+   * @param options: the name of the bucket where the object is located.
    * @param name: the name of the object to be represented by this handle.
+   * @param prefix: a prefix to be appended to the real object name, i.e.
+   * containing "folder"
    */
-  explicit Object(const Oci_options &bucketName, const std::string &name);
+  explicit Object(const Oci_options &options, const std::string &name,
+                  const std::string &prefix = "");
 
   Object(Object &&other) = default;
 
@@ -158,7 +161,8 @@ class Object : public mysqlshdk::storage::IFile {
    */
   bool is_open() const override;
   int error() const override {
-    throw std::logic_error("Oci_object_storage::error() - not implemented");
+    // OCI throws exceptions
+    return 0;
   }
 
   /**
@@ -180,7 +184,7 @@ class Object : public mysqlshdk::storage::IFile {
   /**
    * Returns the full path to the object.
    */
-  std::string full_path() const override { return m_name; }
+  std::string full_path() const override { return m_prefix + m_name; }
 
   /**
    * Returns the file name of the object within the bucket that contains it.
@@ -206,9 +210,7 @@ class Object : public mysqlshdk::storage::IFile {
    */
   off64_t seek(off64_t offset) override;
 
-  off64_t tell() const override {
-    throw std::logic_error("Oci_object_storage::tell() - not implemented");
-  }
+  off64_t tell() const override;
 
   /**
    * Fills up to length bytes into the buffer starting at the internal offset
@@ -250,6 +252,7 @@ class Object : public mysqlshdk::storage::IFile {
 
  private:
   std::string m_name;
+  std::string m_prefix;
   std::unique_ptr<Bucket> m_bucket;
   mysqlshdk::utils::nullable<Mode> m_open_mode;
   size_t m_max_part_size;
@@ -276,6 +279,7 @@ class Object : public mysqlshdk::storage::IFile {
     virtual ~Writer() = default;
 
     off64_t seek(off64_t offset);
+    off64_t tell() const;
     ssize_t write(const void *incoming, size_t length);
     size_t size() const { return m_size; }
     void close();
@@ -298,6 +302,7 @@ class Object : public mysqlshdk::storage::IFile {
     virtual ~Reader() = default;
 
     off64_t seek(off64_t offset);
+    off64_t tell() const;
     ssize_t read(void *buffer, size_t length);
     size_t size() const { return m_size; }
 

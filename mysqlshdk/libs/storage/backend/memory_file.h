@@ -47,9 +47,7 @@ class Memory_file : public IFile {
 
   void open(Mode m) override;
   bool is_open() const override;
-  int error() const override {
-    throw std::logic_error("Memory_file::error() - not implemented");
-  }
+  int error() const override;
   void close() override;
 
   size_t file_size() const override;
@@ -68,7 +66,7 @@ class Memory_file : public IFile {
 
   void rename(const std::string &new_name) override;
 
-  std::string &content() { return m_content; }
+  const std::string &content() const { return m_content; }
 
  private:
   std::string m_content;

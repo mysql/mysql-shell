@@ -27,20 +27,48 @@ TEST_F(Oci_os_tests, directory_list_files) {
 
   Oci_options options{get_options(PRIVATE_BUCKET)};
   Bucket bucket(options);
+  Directory root_directory(options);
+  Directory sakila(options, "oci+os://sakila");
+
+  // The root directory exists for sure
+  EXPECT_TRUE(root_directory.exists());
+
+  // A subdirectory only exist if created or if there are files/multipart
+  // uploads
+  EXPECT_FALSE(sakila.exists());
+
+  bucket.create_multipart_upload("multipart_object.txt");
+  bucket.create_multipart_upload("sakila/sakila_multipart_object.txt");
+
+  // The directories exist if there's files or multipart uploads
+  EXPECT_TRUE(root_directory.exists());
+  EXPECT_TRUE(sakila.exists());
+
+  // Normal listing doesn't include multipart uploads
+  auto root_files = root_directory.list_files();
+  EXPECT_TRUE(root_files.empty());
+
+  // With hidden files we get active multipart uploads
+  root_files = root_directory.list_files(true);
+  EXPECT_EQ(1, root_files.size());
+
   create_objects(bucket);
 
-  Directory root_directory(options);
-  EXPECT_TRUE(root_directory.exists());
   EXPECT_STREQ("", root_directory.full_path().c_str());
 
-  auto root_files = root_directory.list_files();
+  root_files = root_directory.list_files();
   EXPECT_EQ(3, root_files.size());
   EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
   EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
   EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
 
-  Directory sakila(options, "sakila");
-  EXPECT_TRUE(sakila.exists());
+  root_files = root_directory.list_files(true);
+  EXPECT_EQ(4, root_files.size());
+  EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
+  EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
+  EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
+  EXPECT_STREQ("multipart_object.txt", root_files[3].name.c_str());
+
   EXPECT_STREQ("sakila", sakila.full_path().c_str());
 
   auto files = sakila.list_files();
@@ -52,6 +80,16 @@ TEST_F(Oci_os_tests, directory_list_files) {
   EXPECT_STREQ("category.csv", files[4].name.c_str());
   EXPECT_STREQ("category_metadata.txt", files[5].name.c_str());
 
+  files = sakila.list_files(true);
+  EXPECT_EQ(7, files.size());
+  EXPECT_STREQ("actor.csv", files[0].name.c_str());
+  EXPECT_STREQ("actor_metadata.txt", files[1].name.c_str());
+  EXPECT_STREQ("address.csv", files[2].name.c_str());
+  EXPECT_STREQ("address_metadata.txt", files[3].name.c_str());
+  EXPECT_STREQ("category.csv", files[4].name.c_str());
+  EXPECT_STREQ("category_metadata.txt", files[5].name.c_str());
+  EXPECT_STREQ("sakila_multipart_object.txt", files[6].name.c_str());
+
   Directory unexisting(options, "unexisting");
   EXPECT_FALSE(unexisting.exists());
   unexisting.create();
@@ -60,11 +98,32 @@ TEST_F(Oci_os_tests, directory_list_files) {
   clean_bucket(bucket);
 }
 
+TEST_F(Oci_os_tests, file_errors) {
+  SKIP_IF_NO_OCI_CONFIGURATION
+
+  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Bucket bucket(options);
+  Directory root(options, "");
+
+  auto file = root.file("sample.txt");
+
+  // Attempt to rename unexisting file
+  EXPECT_THROW_LIKE(
+      file->rename("other.txt"), shcore::Exception,
+      "Failed to rename object 'sample.txt' to 'other.txt': Not Found (404)");
+
+  // Attempt to open unexisting file for read
+  EXPECT_THROW_LIKE(
+      file->open(Mode::READ), shcore::Exception,
+      "Failed opening object 'sample.txt' in READ mode: Not Found (404)");
+}
+
 TEST_F(Oci_os_tests, file_write_simple_upload) {
   SKIP_IF_NO_OCI_CONFIGURATION
 
   Oci_options options{get_options(PRIVATE_BUCKET)};
   Bucket bucket(options);
+  clean_bucket(bucket);
   Directory root(options, "");
 
   auto file = root.file("sample.txt");
@@ -115,8 +174,9 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   EXPECT_EQ(4, parts.size());  // Last part is still on the buffer
 
   file->close();
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
-                    Response_error, "No such upload");
+  EXPECT_THROW_LIKE(
+      bucket.list_multipart_upload_parts(uploads[0]), Response_error,
+      "Failed to list uploaded parts for object 'sample.txt': No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
 
@@ -131,7 +191,35 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   bucket.delete_object("sample.txt");
 }
 
-TEST_F(Oci_os_tests, file_write_resume_interrupted_upload) {
+TEST_F(Oci_os_tests, file_append_new_file) {
+  SKIP_IF_NO_OCI_CONFIGURATION
+
+  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Bucket bucket(options);
+  Directory root(options, "");
+
+  auto file = root.file("sample.txt");
+  file->open(Mode::APPEND);
+  file->write("01234", 5);
+  file->write("56789", 5);
+  file->write("ABCDE", 5);
+
+  auto in_progress_uploads = bucket.list_multipart_uploads();
+  EXPECT_TRUE(in_progress_uploads.empty());
+  file->close();
+
+  file->open(Mode::READ);
+  char buffer[20];
+  size_t read = file->read(buffer, 20);
+  EXPECT_EQ(15, read);
+  std::string data(buffer, read);
+  EXPECT_STREQ("0123456789ABCDE", data.c_str());
+  file->close();
+
+  bucket.delete_object("sample.txt");
+}
+
+TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
   SKIP_IF_NO_OCI_CONFIGURATION
 
   Oci_options options{get_options(PRIVATE_BUCKET)};
@@ -173,8 +261,9 @@ TEST_F(Oci_os_tests, file_write_resume_interrupted_upload) {
   offset += final_file->write(data.data() + offset, data.size() - offset);
 
   final_file->close();
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
-                    Response_error, "No such upload");
+  EXPECT_THROW_LIKE(
+      bucket.list_multipart_upload_parts(uploads[0]), Response_error,
+      "Failed to list uploaded parts for object 'sample.txt': No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
 
@@ -187,6 +276,70 @@ TEST_F(Oci_os_tests, file_write_resume_interrupted_upload) {
   final_file->close();
 
   bucket.delete_object("sample.txt");
+}
+
+TEST_F(Oci_os_tests, file_append_existing_file) {
+  SKIP_IF_NO_OCI_CONFIGURATION
+
+  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Bucket bucket(options);
+  Directory root(options, "");
+
+  auto file = root.file("sample.txt");
+  file->open(Mode::WRITE);
+  file->write("01234", 5);
+  file->close();
+
+  // APPEND is forbidden here as the file exist and there' no active multipart
+  // upload
+  EXPECT_THROW_LIKE(file->open(Mode::APPEND), std::invalid_argument,
+                    "Object Storage only supports APPEND mode for in-progress "
+                    "multipart uploads or new files.");
+
+  // Now APPEND should be allowed
+  bucket.create_multipart_upload("sample.txt");
+  file->open(Mode::APPEND);
+  file->write("67890", 5);
+  file->close();
+
+  file->open(Mode::READ);
+  char buffer[10];
+  size_t read = file->read(buffer, 10);
+  EXPECT_EQ(5, read);
+  std::string final_data(buffer, read);
+  EXPECT_STREQ("67890", final_data.c_str());
+  file->close();
+
+  bucket.delete_object("sample.txt");
+}
+
+TEST_F(Oci_os_tests, file_write_multipart_errors) {
+  SKIP_IF_NO_OCI_CONFIGURATION
+
+  output_handler.set_log_level(shcore::Logger::LOG_LEVEL::LOG_DEBUG2);
+
+  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Bucket bucket(options);
+  Directory root(options, "");
+  // Now APPEND should be allowed
+  auto mpo1 = bucket.create_multipart_upload("sample.txt");
+  auto file = root.file("sample.txt");
+
+  auto oci_file =
+      dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(file.get());
+  oci_file->set_max_part_size(3);
+
+  file->open(Mode::APPEND);
+
+  bucket.abort_multipart_upload(mpo1);
+
+  EXPECT_THROW_LIKE(
+      file->write("67890", 5), shcore::Exception,
+      "Failed to upload part 1 for object 'sample.txt': No such upload (404)");
+
+  EXPECT_THROW_LIKE(file->close(), shcore::Exception,
+                    "Failed to commit multipart upload for object "
+                    "'sample.txt': There are no parts to commit (400)");
 }
 
 TEST_F(Oci_os_tests, file_writing) {
@@ -251,17 +404,44 @@ TEST_F(Oci_os_tests, file_rename) {
 
   Oci_options options{get_options(PRIVATE_BUCKET)};
   Bucket bucket(options);
-  bucket.put_object("sample.txt", "SOME CONTENT", 12);
-
   Directory root(options, "");
+
   auto file = root.file("sample.txt");
 
+  file->open(Mode::WRITE);
+  file->write("SOME CONTENT", 12);
+  file->close();
+
+  EXPECT_STREQ("sample.txt", file->filename().c_str());
+  EXPECT_STREQ("sample.txt", file->full_path().c_str());
+
   file->rename("testing.txt");
+  EXPECT_STREQ("testing.txt", file->filename().c_str());
+  EXPECT_STREQ("testing.txt", file->full_path().c_str());
 
   auto files = root.list_files();
   EXPECT_EQ(1, files.size());
   EXPECT_STREQ("testing.txt", files[0].name.c_str());
 
   bucket.delete_object("testing.txt");
+
+  Directory other(options, "other");
+  file = other.file("sample.txt");
+  file->open(Mode::WRITE);
+  file->write("SOME CONTENT", 12);
+  file->close();
+
+  EXPECT_STREQ("sample.txt", file->filename().c_str());
+  EXPECT_STREQ("other/sample.txt", file->full_path().c_str());
+
+  file->rename("testing.txt");
+  EXPECT_STREQ("testing.txt", file->filename().c_str());
+  EXPECT_STREQ("other/testing.txt", file->full_path().c_str());
+
+  files = other.list_files();
+  EXPECT_EQ(1, files.size());
+  EXPECT_STREQ("testing.txt", files[0].name.c_str());
+
+  bucket.delete_object("other/testing.txt");
 }
 }  // namespace testing

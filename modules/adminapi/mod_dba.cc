@@ -1777,21 +1777,22 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   }
 
   int rc = 0;
-  if (function == "deploy")
+  if (function == "deploy") {
     // First we need to create the instance
     rc = _provisioning_interface->create_sandbox(
         port, portx, sandbox_dir, password, mycnf_options, true,
         ignore_ssl_error, 0, "", &errors);
-  else if (function == "delete") {
+  } else if (function == "delete") {
     rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, false,
                                                  &errors);
-  } else if (function == "kill")
+  } else if (function == "kill") {
     rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, &errors);
-  else if (function == "stop")
+  } else if (function == "stop") {
     rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, password,
                                                &errors);
-  else if (function == "start")
+  } else if (function == "start") {
     rc = _provisioning_interface->start_sandbox(port, sandbox_dir, &errors);
+  }
 
   if (rc != 0) {
     std::vector<std::string> str_errors;

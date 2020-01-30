@@ -549,18 +549,6 @@ struct value_type_for_native<bool> {
   static bool extract(const Value &value) { return value.as_bool(); }
 };
 template <>
-struct value_type_for_native<int64_t> {
-  static const Value_type type = Integer;
-
-  static int64_t extract(const Value &value) { return value.as_int(); }
-};
-template <>
-struct value_type_for_native<uint64_t> {
-  static const Value_type type = UInteger;
-
-  static uint64_t extract(const Value &value) { return value.as_uint(); }
-};
-template <>
 struct value_type_for_native<int> {
   static const Value_type type = Integer;
 
@@ -574,6 +562,38 @@ struct value_type_for_native<unsigned int> {
 
   static unsigned int extract(const Value &value) {
     return static_cast<unsigned int>(value.as_uint());
+  }
+};
+template <>
+struct value_type_for_native<long int> {
+  static const Value_type type = Integer;
+
+  static long int extract(const Value &value) {
+    return static_cast<long int>(value.as_int());
+  }
+};
+template <>
+struct value_type_for_native<unsigned long int> {
+  static const Value_type type = UInteger;
+
+  static unsigned long int extract(const Value &value) {
+    return static_cast<unsigned long int>(value.as_uint());
+  }
+};
+template <>
+struct value_type_for_native<long long int> {
+  static const Value_type type = Integer;
+
+  static long long int extract(const Value &value) {
+    return static_cast<long long int>(value.as_int());
+  }
+};
+template <>
+struct value_type_for_native<unsigned long long int> {
+  static const Value_type type = UInteger;
+
+  static unsigned long long int extract(const Value &value) {
+    return static_cast<unsigned long long int>(value.as_uint());
   }
 };
 template <>

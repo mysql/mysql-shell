@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #include <chrono>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 
 namespace mysqlshdk {
@@ -62,14 +63,21 @@ uint64_t Throughput::rate() const {
   return bytes_diff * 1000 / time_diff;  // bytes per second
 }
 
-void Text_progress::show_status(bool force) {
+void Text_progress::set_left_label(const std::string &label) {
+  m_left_label = label;
+}
+
+void Text_progress::show_status(bool force, const std::string &extra) {
+  if (m_hide != 0) return;
+
   const auto current_time = std::chrono::steady_clock::now();
   const auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
                              current_time - m_refresh_clock)
                              .count();
-  const bool refresh_timeout = time_diff >= 500;  // update status every 500ms
+  const bool refresh_timeout = time_diff >= 2000;  // update status every 2000ms
   if ((refresh_timeout && m_changed) || force) {
     render_status();
+    m_status += extra;
     m_changed = false;
     const auto status_printable_size =
         m_status.size() - 1;  // -1 because of leading '\r'
@@ -79,10 +87,21 @@ void Text_progress::show_status(bool force) {
     {
       const auto ignore = write(fileno(stderr), &m_status[0], m_status.size());
       (void)ignore;
+      was_shown = true;
     }
     m_last_status_size = status_printable_size;
-    m_refresh_clock = current_time;
   }
+}
+
+void Text_progress::hide(bool flag) {
+  if (flag) {
+    if (m_hide == 0 && was_shown) clear_status();
+    m_hide++;
+  } else {
+    m_hide--;
+    if (m_hide == 0 && was_shown) show_status(false);
+  }
+  assert(m_hide >= 0);
 }
 
 void Text_progress::clear_status() {
@@ -103,21 +122,36 @@ void Text_progress::shutdown() {
 void Text_progress::render_status() {
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s
   m_status.clear();
-  m_status +=
-      "\r" + std::to_string(percent()) + "% (" +
-      mysqlshdk::utils::format_bytes(m_current) + " / " +
-      mysqlshdk::utils::format_bytes(m_total) + "), " +
-      mysqlshdk::utils::format_throughput_bytes(m_throughput.rate(), 1.0);
+  if (m_total == 0)
+    m_status += "\r" + m_left_label + "?% (" +
+                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
+                                               m_current, m_space_before_item) +
+                " / ?), " +
+                mysqlshdk::utils::format_throughput_items(
+                    m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
+                    m_space_before_item);
+  else
+    m_status += "\r" + m_left_label + std::to_string(percent()) + "% (" +
+                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
+                                               m_current, m_space_before_item) +
+                (m_total_is_approx ? " / ~" : " / ") +
+                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
+                                               m_total, m_space_before_item) +
+                "), " +
+                mysqlshdk::utils::format_throughput_items(
+                    m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
+                    m_space_before_item);
 }
 
-void Json_progress::show_status(bool force) {
+void Json_progress::show_status(bool force, const std::string &extra) {
   const auto current_time = std::chrono::steady_clock::now();
   const auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
                              current_time - m_refresh_clock)
                              .count();
-  const bool refresh_timeout = time_diff >= 2000;  // update status every 2000ms
+  const bool refresh_timeout = time_diff >= 1000;  // update status every 1s
   if ((refresh_timeout && m_changed) || force) {
     render_status();
+    m_status += extra;
     m_changed = false;
     mysqlsh::current_console()->raw_print(m_status,
                                           mysqlsh::Output_stream::STDOUT, true);
@@ -129,11 +163,16 @@ void Json_progress::render_status() {
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s
   // todo(kg): build proper json doc
   m_status.clear();
-  m_status +=
-      std::to_string(percent()) + "% (" +
-      mysqlshdk::utils::format_bytes(m_current) + " / " +
-      mysqlshdk::utils::format_bytes(m_total) + "), " +
-      mysqlshdk::utils::format_throughput_bytes(m_throughput.rate(), 1.0);
+  m_status += std::to_string(percent()) + "% (" +
+              mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
+                                             m_current, m_space_before_item) +
+              " / " +
+              mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
+                                             m_total, m_space_before_item) +
+              "), " +
+              mysqlshdk::utils::format_throughput_items(
+                  m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
+                  m_space_before_item);
 }
 
 }  // namespace textui

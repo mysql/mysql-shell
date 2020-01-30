@@ -48,7 +48,7 @@ class Compressed_file : public IFile {
 
   void open(Mode m) override;
   bool is_open() const override;
-  int error() const override { return m_file->error(); }
+  int error() const override;
   void close() override;
 
   size_t file_size() const override;
@@ -60,7 +60,6 @@ class Compressed_file : public IFile {
 
   void rename(const std::string &new_name) override;
 
- protected:
   IFile *file() const { return m_file.get(); }
 
  private:

@@ -33,6 +33,7 @@ if(WITH_TESTS)
     ADD_DEFINITIONS(-DWITH_GTEST=1)
     add_definitions(-DGTEST_LANG_CXX11=1 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
+    ADD_DEFINITIONS(-DCURL_VERSION="${CURL_VERSION_MAJOR}.${CURL_VERSION_MINOR}")
 
     include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
@@ -79,6 +80,7 @@ if(WITH_TESTS)
         ${mysqlsh_tests_SRC}
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/dump_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_replicaset_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"

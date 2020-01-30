@@ -513,7 +513,12 @@ bool Shell_script_tester::validate(const std::string &context,
 
         if (!val->expected_error.empty()) expect_failures = true;
       } else {
-        SKIP_VALIDATION(val->def->line);
+        if (output_handler.internal_std_err.empty()) {
+          SKIP_VALIDATION(val->def->line);
+        } else {
+          SKIP_VALIDATION(val->def->line + ": " +
+                          output_handler.internal_std_err);
+        }
       }
     }
 
@@ -712,7 +717,8 @@ bool Shell_script_tester::validate(const std::string &context,
     _cout.clear();
   } else {
     // There were errors
-    if (!original_std_err.empty()) {
+    if (!original_std_err.empty() &&
+        !_chunks[chunk_id].is_validation_optional()) {
       ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                      _chunks[chunk_id].code[0].first)
           << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
@@ -801,7 +807,11 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
       if (chunk_def->id.empty()) {
         if ((last_id.empty() || last_id == prefix + "__global__") &&
             !context_enabled(chunk_def->context)) {
-          ADD_SKIPPED_TEST(line);
+          if (output_handler.internal_std_err.empty()) {
+            ADD_SKIPPED_TEST(line);
+          } else {
+            ADD_SKIPPED_TEST(line + ": " + output_handler.internal_std_err);
+          }
           ret_val = false;
         }
       } else {
@@ -917,7 +927,11 @@ bool Shell_script_tester::add_source_chunk(const std::string &path,
     }
   } else {
     _skipped_chunks.insert(chunk.def->id);
-    SKIP_CHUNK(chunk.def->line);
+    if (output_handler.internal_std_err.empty()) {
+      SKIP_CHUNK(chunk.def->line);
+    } else {
+      SKIP_CHUNK(chunk.def->line + ": " + output_handler.internal_std_err);
+    }
   }
 
   return enabled;
@@ -1401,7 +1415,12 @@ void Shell_script_tester::execute_script(const std::string &path,
           }
         } else {
           _skipped_chunks.insert(chunk.def->id);
-          SKIP_CHUNK(chunk.def->line);
+          if (output_handler.internal_std_err.empty()) {
+            SKIP_CHUNK(chunk.def->line);
+          } else {
+            SKIP_CHUNK(chunk.def->line + ": " +
+                       output_handler.internal_std_err);
+          }
         }
       }
 
@@ -1524,6 +1543,24 @@ void Shell_script_tester::def_var(const std::string &var,
   exec_and_out_equals(code);
 }
 
+void Shell_script_tester::def_string_var_from_env(const std::string &var,
+                                                  const std::string &env_var) {
+  const char *variable =
+      getenv(env_var.empty() ? var.c_str() : env_var.c_str());
+  if (variable) {
+    def_var(var, shcore::str_format("'%s'", variable));
+  }
+}
+
+void Shell_script_tester::def_numeric_var_from_env(const std::string &var,
+                                                   const std::string &env_var) {
+  const char *variable =
+      getenv(env_var.empty() ? var.c_str() : env_var.c_str());
+  if (variable) {
+    def_var(var, variable);
+  }
+}
+
 void Shell_script_tester::set_defaults() {
   output_handler.wipe_all();
   _cout.str("");
@@ -1601,6 +1638,26 @@ void Shell_script_tester::set_defaults() {
   def_var("__dbug_off", "0");
   def_var("__dbug", "0==1");
 #endif
+  // Variables for OCI Tests
+  def_string_var_from_env("OCI_CONFIG_HOME");
+  def_string_var_from_env("OCI_COMPARTMENT_ID");
+  def_string_var_from_env("OS_NAMESPACE");
+
+  // Variables for MDS Tests
+  def_string_var_from_env("OCI_INSTANCE_HOST");
+  def_string_var_from_env("OCI_INSTANCE_USER");
+  def_string_var_from_env("OCI_SSH_PKEY_PATH");
+  def_string_var_from_env("OCI_SSH_PKEY_PASSPHRASE");
+  def_string_var_from_env("OCI_INSTANCE_SHELL_PATH");
+  def_string_var_from_env("MDS_HOST");
+  def_string_var_from_env("MDS_USER");
+  def_string_var_from_env("MDS_PASSWORD");
+
+  const char *oci_config_home = getenv("OCI_CONFIG_HOME");
+  if (oci_config_home) {
+    _opts->set_oci_config_file(
+        shcore::path::join_path(oci_config_home, "config"));
+  }
 }
 
 void Shell_js_script_tester::set_defaults() {

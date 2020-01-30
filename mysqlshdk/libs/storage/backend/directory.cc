@@ -37,18 +37,17 @@ namespace backend {
 Directory::Directory(const std::string &dir) {
   const auto expanded =
       shcore::path::expand_user(utils::strip_scheme(dir, "file"));
-  m_path = shcore::path::is_absolute(expanded)
-               ? expanded
-               : join_path(shcore::path::getcwd(), expanded);
+  m_path = shcore::get_absolute_path(expanded);
 }
 
 bool Directory::exists() const { return shcore::is_folder(full_path()); }
 
-void Directory::create() { shcore::create_directory(full_path()); }
+void Directory::create() { shcore::create_directory(full_path(), false, 0750); }
 
 std::string Directory::full_path() const { return m_path; }
 
-std::vector<IDirectory::File_info> Directory::list_files() const {
+std::vector<IDirectory::File_info> Directory::list_files(
+    bool /*hidden_files*/) const {
   const auto path = full_path();
   std::vector<IDirectory::File_info> files;
 

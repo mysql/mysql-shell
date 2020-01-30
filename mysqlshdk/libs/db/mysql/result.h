@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,8 @@ namespace mysqlshdk {
 namespace db {
 namespace mysql {
 class Session_impl;
+class Row;
+
 class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
                              public std::enable_shared_from_this<Result> {
   friend class Session_impl;
@@ -93,7 +95,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
 
   std::weak_ptr<mysqlshdk::db::mysql::Session_impl> _session;
   std::vector<Column> _metadata;
-  std::unique_ptr<IRow> _row;
+  std::unique_ptr<Row> _row;
   std::weak_ptr<MYSQL_RES> _result;
   std::vector<std::string> _gtids;
   mutable std::shared_ptr<Field_names> _field_names;

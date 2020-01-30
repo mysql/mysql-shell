@@ -25,7 +25,7 @@
 // Dump a table's contents and format to a text file.
 // Adapted from mysqldump.cc
 
-#define DUMP_VERSION "11.0"
+#define DUMP_VERSION "1.0.0"
 
 #include "include/mysh_config.h"
 
@@ -301,23 +301,8 @@ class Object_guard_msg {
 };
 }  // namespace
 
-void Schema_dumper::write_header(IFile *sql_file, const std::string &db_name) {
+void Schema_dumper::write_header(IFile *sql_file) {
   if (!opt_compact) {
-    print_comment(
-        sql_file, false, "-- MySQLShell dump %s  Distrib %s, for %s (%s)\n--\n",
-        DUMP_VERSION, shcore::get_long_version(), SYSTEM_TYPE, MACHINE_TYPE);
-
-    std::string text = fix_identifier_with_newline(db_name);
-    std::string host = m_mysql->get_connection_options().get_host();
-    print_comment(sql_file, false, "-- Host: %s    Database: %s\n",
-                  host.empty() ? "localhost" : host.c_str(), text.c_str());
-
-    print_comment(
-        sql_file, false,
-        "-- ------------------------------------------------------\n");
-    print_comment(sql_file, false, "-- Server version\t%s\n",
-                  m_mysql->get_server_version().get_full().c_str());
-
     if (opt_set_charset)
       fprintf(
           sql_file,
@@ -386,12 +371,40 @@ void Schema_dumper::write_footer(IFile *sql_file) {
     fputs("/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;\n", sql_file);
     fputs("\n", sql_file);
 
-    print_comment(sql_file, false, "-- Dump completed on %s\n",
-                  mysqlshdk::utils::fmttime("%Y-%m-%d %T").c_str());
-
     check_io(sql_file);
   }
 } /* write_footer */
+
+void Schema_dumper::write_comment(IFile *sql_file, const std::string &db_name,
+                                  const std::string &table_name) {
+  if (!opt_compact) {
+    print_comment(
+        sql_file, false, "-- MySQLShell dump %s  Distrib %s, for %s (%s)\n--\n",
+        DUMP_VERSION, shcore::get_long_version(), SYSTEM_TYPE, MACHINE_TYPE);
+
+    std::string host = m_mysql->get_connection_options().get_host();
+    print_comment(sql_file, false, "-- Host: %s",
+                  host.empty() ? "localhost" : host.c_str());
+
+    if (!db_name.empty()) {
+      print_comment(sql_file, false, "    Database: %s",
+                    fix_identifier_with_newline(db_name).c_str());
+    }
+
+    if (!table_name.empty()) {
+      print_comment(sql_file, false, "    Table: %s",
+                    fix_identifier_with_newline(table_name).c_str());
+    }
+
+    print_comment(sql_file, false, "\n");
+
+    print_comment(
+        sql_file, false,
+        "-- ------------------------------------------------------\n");
+    print_comment(sql_file, false, "-- Server version\t%s\n",
+                  m_mysql->get_server_version().get_full().c_str());
+  }
+}
 
 int Schema_dumper::execute_no_throw(const std::string &s,
                                     mysqlshdk::db::Error *out_error) {
@@ -456,16 +469,15 @@ int Schema_dumper::query_with_binary_charset(
   switch_character_set_results("binary");
   if (query_no_throw(s, out_result, out_error)) return 1;
   (*out_result)->buffer();
-  switch_character_set_results(default_charset);
+  switch_character_set_results(opt_character_set_results.c_str());
   return 0;
 }
 
-void Schema_dumper::fetch_db_collation(const std::string &db_name,
+void Schema_dumper::fetch_db_collation(const std::string &db,
                                        std::string *out_db_cl_name) {
   bool err_status = false;
-  std::string qdatabase = shcore::quote_identifier(db_name);
 
-  m_mysql->execute("use " + qdatabase);
+  m_mysql->executef("use !", db);
   auto db_cl_res = query_log_and_throw("select @@collation_database");
 
   do {
@@ -652,7 +664,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
 
     /* Get database collation. */
 
-    fetch_db_collation(db_name, &db_cl_name);
+    fetch_db_collation(db, &db_cl_name);
 
     switch_character_set_results("binary");
 
@@ -671,7 +683,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
         std::string field3 = row->get_string(3);
         if (!field3.empty()) {
           Object_guard_msg guard(sql_file, "event", db, event_name);
-          if (opt_drop)
+          if (opt_drop_event)
             fprintf(sql_file, "/*!50106 DROP EVENT IF EXISTS %s */%s\n",
                     event_name.c_str(), delimiter);
 
@@ -747,7 +759,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
       fputs("/*!50106 SET TIME_ZONE= @save_time_zone */ ;\n", sql_file);
     }
 
-    switch_character_set_results(default_charset);
+    switch_character_set_results(opt_character_set_results.c_str());
   }
 
   return res;
@@ -797,7 +809,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
   /* Get database collation. */
 
-  fetch_db_collation(db_name, &db_cl_name);
+  fetch_db_collation(db, &db_cl_name);
 
   switch_character_set_results("binary");
 
@@ -836,7 +848,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
               query_buff));
         } else if (body.length() > 0) {
           Object_guard_msg guard(sql_file, routine_type, db, routine_name);
-          if (opt_drop || opt_reexecutable)
+          if (opt_drop_routine || opt_reexecutable)
             fprintf(sql_file, "/*!50003 DROP %s IF EXISTS %s */;\n",
                     routine_type.c_str(), routine_name.c_str());
 
@@ -897,7 +909,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
   } /* end of for i (0 .. 1)  */
 
-  switch_character_set_results(default_charset);
+  switch_character_set_results(opt_character_set_results.c_str());
 
   if (lock_tables) {
     try {
@@ -1134,7 +1146,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
                       "\n--\n-- Table structure for table %s\n--\n\n",
                       text.c_str());
 
-      if (opt_drop) {
+      if ((*out_table_type == "VIEW" && opt_drop_view) ||
+          (*out_table_type != "VIEW" && opt_drop_table)) {
         /*
           Even if the "table" is a view, we do a DROP TABLE here.  The
           view-specific code below fills in the DROP VIEW.
@@ -1182,7 +1195,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
         row = result->fetch_one();
         if (row != nullptr) {
-          if (opt_drop) {
+          if (opt_drop_view) {
             /*
               We have already dropped any table of the same name above, so
               here we just drop the view.
@@ -1283,7 +1296,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
                     "\n--\n-- Table structure for table %s\n--\n\n",
                     text.c_str());
 
-      if (opt_drop)
+      if (opt_drop_table)
         fprintf(sql_file, "DROP TABLE IF EXISTS %s;\n", result_table.c_str());
       fprintf(sql_file, "CREATE TABLE IF NOT EXISTS %s (\n",
               result_table.c_str());
@@ -1437,11 +1450,16 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 
     switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
 
-    if (opt_drop || opt_reexecutable || opt_drop_trigger)
+    if (opt_reexecutable || opt_drop_trigger)
       fprintf(sql_file, "/*!50032 DROP TRIGGER IF EXISTS %s */;\n",
               row->get_string(0).c_str());
 
-    std::string body = row->get_string(2);
+    // 5.7 server adds schema name to CREATE TRIGGER statement
+    const auto trigger_with_schema =
+        " TRIGGER " + shcore::quote_identifier(db_name) + ".";
+
+    std::string body = shcore::str_replace(row->get_string(2),
+                                           trigger_with_schema, " TRIGGER ");
     check_object_for_definer(db_name, "Trigger", trigger_name, &body, &res);
 
     fprintf(sql_file,
@@ -1473,8 +1491,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 */
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
-    IFile *sql_file, const std::string &table_name,
-    const std::string &db_name) {
+    IFile *sql_file, const std::string &table, const std::string &db) {
   std::vector<Issue> res;
   bool old_ansi_quotes_mode = ansi_quotes_mode;
 
@@ -1487,30 +1504,30 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
 
   switch_character_set_results("binary");
 
-  fetch_db_collation(db_name, &db_cl_name);
+  fetch_db_collation(db, &db_cl_name);
 
   /* Get list of triggers. */
 
-  const auto triggers = get_triggers(db_name, table_name);
+  const auto triggers = get_triggers(db, table);
 
   /* Dump triggers. */
   if (!triggers.empty())
     print_comment(sql_file, false,
                   "\n--\n-- Dumping triggers for table '%s'.'%s'\n--\n\n",
-                  db_name.c_str(), table_name.c_str());
+                  db.c_str(), table.c_str());
 
   for (const auto &trigger : triggers) {
     std::shared_ptr<mysqlshdk::db::IResult> show_create_trigger_rs;
     if (query_no_throw("SHOW CREATE TRIGGER " + trigger,
                        &show_create_trigger_rs) == 0) {
-      Object_guard_msg guard(sql_file, "trigger", db_name, trigger);
-      const auto out = dump_trigger(sql_file, show_create_trigger_rs, db_name,
+      Object_guard_msg guard(sql_file, "trigger", db, trigger);
+      const auto out = dump_trigger(sql_file, show_create_trigger_rs, db,
                                     db_cl_name, trigger);
       if (!out.empty()) res.insert(res.end(), out.begin(), out.end());
     }
   }
 
-  switch_character_set_results(default_charset);
+  switch_character_set_results(opt_character_set_results.c_str());
 
   /*
     make sure to set back ansi_quotes_mode mode to
@@ -1521,49 +1538,60 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
   return res;
 }
 
+std::vector<Schema_dumper::Histogram> Schema_dumper::get_histograms(
+    const std::string &db_name, const std::string &table_name) {
+  std::vector<Histogram> histograms;
+
+  if (m_mysql->get_server_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+    char query_buff[QUERY_LENGTH * 3 / 2];
+    const auto old_ansi_quotes_mode = ansi_quotes_mode;
+    const auto escaped_db = m_mysql->escape_string(db_name);
+    const auto escaped_table = m_mysql->escape_string(table_name);
+
+    switch_character_set_results("binary");
+
+    /* Get list of columns with statistics. */
+    snprintf(query_buff, sizeof(query_buff),
+             "SELECT COLUMN_NAME, \
+                JSON_EXTRACT(HISTOGRAM, '$.\"number-of-buckets-specified\"') \
+              FROM information_schema.COLUMN_STATISTICS \
+              WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s';",
+             escaped_db.c_str(), escaped_table.c_str());
+
+    const auto column_statistics_rs = query_log_and_throw(query_buff);
+
+    while (auto row = column_statistics_rs->fetch_one()) {
+      Histogram histogram;
+
+      histogram.column = shcore::quote_identifier_if_needed(row->get_string(0));
+      histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(1));
+
+      histograms.emplace_back(std::move(histogram));
+    }
+
+    switch_character_set_results(opt_character_set_results.c_str());
+
+    /*
+      make sure to set back ansi_quotes_mode mode to
+      original value
+    */
+    ansi_quotes_mode = old_ansi_quotes_mode;
+  }
+
+  return histograms;
+}
+
 void Schema_dumper::dump_column_statistics_for_table(
     IFile *sql_file, const std::string &table_name,
     const std::string &db_name) {
-  if (m_mysql->get_server_version() < mysqlshdk::utils::Version(8, 0, 0))
-    return;
+  const auto quoted_table = shcore::quote_identifier_if_needed(table_name);
 
-  char query_buff[QUERY_LENGTH * 3 / 2];
-  bool old_ansi_quotes_mode = ansi_quotes_mode;
-  std::string quoted_table;
-  std::string escaped_db = m_mysql->escape_string(db_name);
-  std::string escaped_table = m_mysql->escape_string(table_name);
-
-  switch_character_set_results("binary");
-
-  /* Get list of columns with statistics. */
-  snprintf(query_buff, sizeof(query_buff),
-           "SELECT COLUMN_NAME, \
-                      JSON_EXTRACT(HISTOGRAM, '$.\"number-of-buckets-specified\"') \
-               FROM information_schema.COLUMN_STATISTICS \
-               WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s';",
-           escaped_db.c_str(), escaped_table.c_str());
-
-  auto column_statistics_rs = query_log_and_throw(query_buff);
-
-  /* Dump column statistics. */
-  quoted_table = shcore::quote_identifier_if_needed(table_name);
-  while (auto row = column_statistics_rs->fetch_one()) {
-    std::string quoted_column =
-        shcore::quote_identifier_if_needed(row->get_string(0));
+  for (const auto &histogram : get_histograms(db_name, table_name)) {
     fprintf(sql_file,
             "/*!80002 ANALYZE TABLE %s UPDATE HISTOGRAM ON %s "
-            "WITH %s BUCKETS */;\n",
-            quoted_table.c_str(), quoted_column.c_str(),
-            row->get_string(1).c_str());
+            "WITH %zu BUCKETS */;\n",
+            quoted_table.c_str(), histogram.column.c_str(), histogram.buckets);
   }
-
-  switch_character_set_results(default_charset);
-
-  /*
-    make sure to set back ansi_quotes_mode mode to
-    original value
-  */
-  ansi_quotes_mode = old_ansi_quotes_mode;
 }
 
 /*
@@ -2427,10 +2455,11 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
                                                      const std::string &type) {
   m_mysql->executef("USE !", db);
 
-  char query_buff[QUERY_LENGTH];
-  snprintf(query_buff, sizeof(query_buff), "SHOW %s STATUS WHERE Db = '%s'",
-           type.c_str(), db.c_str());
-  auto routine_list_res = query_log_and_throw(query_buff);
+  shcore::sqlstring query(
+      shcore::str_format("SHOW %s STATUS WHERE Db = ?", type.c_str()), 0);
+  query << db;
+
+  auto routine_list_res = query_log_and_throw(query.str());
   std::vector<std::string> routine_list;
   while (auto routine_list_row = routine_list_res->fetch_one())
     routine_list.emplace_back(
@@ -2542,5 +2571,7 @@ std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
   }
   return users;
 }
+
+const char *Schema_dumper::version() { return DUMP_VERSION; }
 
 }  // namespace mysqlsh

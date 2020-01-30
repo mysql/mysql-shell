@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -230,6 +230,16 @@ std::pair<std::string, uint16_t> split_host_and_port(const std::string &s);
  * within [] if needed.
  */
 std::string make_host_and_port(const std::string &host, uint16_t port);
+
+/**
+ * Converts the given value from host byte order to network byte order.
+ */
+uint64_t host_to_network(uint64_t v);
+
+/**
+ * Converts the given value from network byte order to host byte order.
+ */
+uint64_t network_to_host(uint64_t v);
 
 }  // namespace utils
 }  // namespace mysqlshdk

@@ -88,7 +88,13 @@ class Oci_os_tests : public Shell_core_test_wrapper {
   Oci_options get_options(const std::string bucket) {
     Oci_options options;
     options.os_bucket_name = bucket;
-    options.load_defaults();
+
+    const char *ns = getenv("OS_NAMESPACE");
+    if (ns) {
+      options.os_namespace = std::string(ns);
+    }
+
+    options.check_option_values();
     return options;
   }
 

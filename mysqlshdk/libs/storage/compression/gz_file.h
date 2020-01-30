@@ -134,7 +134,8 @@ ssize_t Gz_file::do_write(void *buffer, size_t length, int flag) {
     const auto ret = deflate(&m_stream, flag);
     if (ret == Z_STREAM_ERROR) {
       throw std::runtime_error(std::string("deflate: stream error (") +
-                               m_stream.msg + ")");
+                               (m_stream.msg ? m_stream.msg : "unknown error") +
+                               ")");
     }
     ssize_t have = CHUNK - m_stream.avail_out;
     const auto write_bytes = file()->write(buff, have);

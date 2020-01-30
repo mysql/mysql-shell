@@ -3828,17 +3828,18 @@ void Testutils::upload_oci_object(const std::string &bucket,
 
   mysqlshdk::oci::Oci_options options;
   options.os_bucket_name = bucket;
-  options.load_defaults();
+  options.check_option_values();
   mysqlshdk::storage::backend::oci::Object object(options, name);
   object.open(mysqlshdk::storage::Mode::WRITE);
 
-  char buffer[1024];
+  std::string buffer;
+  buffer.reserve(1024 * 1024 * 10);
   while (ifile) {
-    ifile.read(buffer, 1024);
+    ifile.read(&buffer[0], 1024 * 1024 * 10);
     if (ifile) {
-      object.write(buffer, 1024);
+      object.write(&buffer[0], 1024 * 1024 * 10);
     } else {
-      object.write(buffer, ifile.gcount());
+      object.write(&buffer[0], ifile.gcount());
     }
   }
 
@@ -3856,7 +3857,7 @@ void Testutils::create_oci_object(const std::string &bucket,
 
   mysqlshdk::oci::Oci_options options;
   options.os_bucket_name = bucket;
-  options.load_defaults();
+  options.check_option_values();
   mysqlshdk::storage::backend::oci::Object object(options, name);
   object.open(mysqlshdk::storage::Mode::WRITE);
   object.write(content.c_str(), content.size());
@@ -3872,7 +3873,7 @@ void Testutils::delete_oci_object(const std::string &bucket_name,
 
   mysqlshdk::oci::Oci_options options;
   options.os_bucket_name = bucket_name;
-  options.load_defaults();
+  options.check_option_values();
   mysqlshdk::storage::backend::oci::Bucket bucket(options);
   bucket.delete_object(name);
 }

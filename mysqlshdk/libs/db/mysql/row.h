@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,15 +58,24 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
   double get_double(uint32_t index) const override;
   std::pair<const char *, size_t> get_string_data(
       uint32_t index) const override;
+  void get_raw_data(uint32_t index, const char **out_data,
+                    size_t *out_size) const override;
   uint64_t get_bit(uint32_t index) const override;
+
+  inline void reset(MYSQL_ROW row, const unsigned long *lengths) {
+    _row = row;
+    _lengths = lengths;
+  }
 
  private:
   friend class Result;
+  explicit Row(Result *result);
   Row(Result *result, MYSQL_ROW row, const unsigned long *lengths);
 
   Result &_result;
   MYSQL_ROW _row;
-  std::vector<uint64_t> _lengths;
+  const unsigned long *_lengths;
+  uint32_t m_num_fields;
 };
 
 }  // namespace mysql

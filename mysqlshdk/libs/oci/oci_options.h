@@ -40,6 +40,12 @@ constexpr const char kOciProfile[] = "ociProfile";
 enum class Oci_uri_type { FILE, DIRECTORY };
 
 struct Oci_options {
+  Oci_options(const Oci_options &) = default;
+  Oci_options(Oci_options &&) = default;
+
+  Oci_options &operator=(const Oci_options &) = default;
+  Oci_options &operator=(Oci_options &&) = default;
+
   enum Unpack_target { OBJECT_STORAGE };
 
   Oci_options() : target(OBJECT_STORAGE) {}
@@ -52,15 +58,7 @@ struct Oci_options {
     return *options;
   }
 
-  /**
-   * Read the Object_storage options from the default location:
-   *
-   * - Shell Option: oci.configFile
-   * - Shell Option: oci.Profile
-   *
-   * @param instance target Instance object to read the GR options.
-   */
-  void load_defaults();
+  explicit operator bool() const { return !os_bucket_name.get_safe().empty(); }
 
   void check_option_values();
 
@@ -70,16 +68,29 @@ struct Oci_options {
   mysqlshdk::utils::nullable<std::string> os_namespace;
   mysqlshdk::utils::nullable<std::string> config_path;
   mysqlshdk::utils::nullable<std::string> config_profile;
+  mysqlshdk::utils::nullable<size_t> part_size;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);
+
+  static std::mutex s_tenancy_name_mutex;
+  static std::map<std::string, std::string> s_tenancy_names;
+
+  /**
+   * Read the Object_storage options from the default location:
+   *
+   * - Shell Option: oci.configFile
+   * - Shell Option: oci.Profile
+   *
+   * @param instance target Instance object to read the GR options.
+   */
+  void load_defaults();
 };
 
 bool parse_oci_options(
     Oci_uri_type type, const std::string &in_path,
     const std::unordered_map<std::string, std::string> &in_options,
     Oci_options *out_options, std::string *out_path);
-
 }  // namespace oci
 }  // namespace mysqlshdk
 

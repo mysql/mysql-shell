@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,8 @@ class SHCORE_PUBLIC Mem_row : public IRow {
   double get_double(uint32_t index) const override;
   std::pair<const char *, size_t> get_string_data(
       uint32_t index) const override;
+  void get_raw_data(uint32_t index, const char **out_data,
+                    size_t *out_size) const override;
   uint64_t get_bit(uint32_t index) const override;
 
   /** Inserts new field at specified offset. Field value is set to null.
@@ -78,6 +80,7 @@ class SHCORE_PUBLIC Mem_row : public IRow {
   class Field_data : public Field_data_ {
    public:
     explicit Field_data(const T &v) : value(v) {}
+    explicit Field_data(T &&v) : value(std::move(v)) {}
     T value;
   };
 
@@ -96,6 +99,7 @@ class SHCORE_PUBLIC Mem_row : public IRow {
         : types(types_), fields(types_.size()) {}
   };
   std::shared_ptr<Data> _data;
+  mutable std::string m_raw_data_cache;
 };
 
 /**

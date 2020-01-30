@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -794,6 +794,21 @@ TEST(utils_string, is_valid_utf8) {
   // U+110000
   EXPECT_FALSE(
       is_valid_utf8({0b11110100_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
+}
+
+TEST(utils_string, truncate) {
+  EXPECT_EQ("", truncate("", 0));
+  EXPECT_EQ("", truncate("zß水𝄋", 0));
+  EXPECT_EQ("z", truncate("zß水𝄋", 1));
+  EXPECT_EQ("zß", truncate("zß水𝄋", 2));
+  EXPECT_EQ("zß水", truncate("zß水𝄋", 3));
+  EXPECT_EQ("zß水𝄋", truncate("zß水𝄋", 4));
+  EXPECT_EQ("zß水𝄋", truncate("zß水𝄋", 5));
+  EXPECT_EQ("zß水𝄋", truncate("zß水𝄋zß水𝄋", 4));
+  EXPECT_EQ("zß水𝄋z", truncate("zß水𝄋zß水𝄋", 5));
+  EXPECT_EQ("zß水𝄋zß", truncate("zß水𝄋zß水𝄋", 6));
+  EXPECT_EQ("zß水𝄋zß水", truncate("zß水𝄋zß水𝄋", 7));
+  EXPECT_EQ("zß水𝄋zß水𝄋", truncate("zß水𝄋zß水𝄋", 8));
 }
 
 }  // namespace shcore

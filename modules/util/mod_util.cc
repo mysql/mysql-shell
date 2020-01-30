@@ -28,6 +28,10 @@
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/util/dump/dump_instance.h"
+#include "modules/util/dump/dump_instance_options.h"
+#include "modules/util/dump/dump_schemas.h"
+#include "modules/util/dump/dump_schemas_options.h"
 #include "modules/util/import_table/import_table.h"
 #include "modules/util/import_table/import_table_options.h"
 #include "modules/util/json_importer.h"
@@ -72,6 +76,9 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   shcore::ssl::init();
   expose("configureOci", &Util::configure_oci, "?profile");
   expose("importTable", &Util::import_table, "path", "?options");
+  expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl",
+         "?options");
+  expose("dumpInstance", &Util::dump_instance, "outputUrl", "?options");
 }
 
 namespace {
@@ -1279,4 +1286,318 @@ void Util::import_table(const std::string &filename,
   console->print_info(importer.rows_affected_info());
   importer.rethrow_exceptions();
 }
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION, R"*(
+The <b>outputUrl</b> specifies where the dump is going to be stored.
+
+By default, a local directory is used, and in this case <b>outputUrl</b> can be
+prefixed with <b>file://</b> scheme. If a relative path is given, the absolute
+path is computed as relative to the current working directory. If the output
+directory does not exist but its parent does, it is created. If the output
+directory exists, it must be empty. All directories created during the dump will
+have the following access rights (on operating systems which support them):
+<b>rwxr-x---</b>. All files created during the dump will have the following
+access rights (on operating systems which support them): <b>rw-r-----</b>.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS, R"*(
+@li <b>chunking</b>: bool (default: true) - Enable chunking of the tables.
+@li <b>bytesPerChunk</b>: string (default: "32M") - Sets average estimated
+number of bytes to be written to each chunk file, enables <b>chunking</b>.
+@li <b>threads</b>: int (default: 4) - Use N threads to dump data chunks from
+the server.
+@li <b>maxRate</b>: string (default: "0") - Limit data read throughput to
+maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
+limit.
+@li <b>showProgress</b>: bool (default: true if stdout is a TTY device, false
+otherwise) - Enable or disable dump progress information.
+@li <b>compression</b>: string (default: "gzip") - Compression used when writing
+the data dump files, one of: "none", "gzip".
+@li <b>defaultCharacterSet</b>: string (default: "utf8mb4") - Character set used
+for the dump.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS, R"*(
+@li <b>osBucketName</b>: string (default: "") - Write dump data to the specified
+OCI bucket.
+@li <b>osNamespace</b>: string (default: "") - Specify the OCI namespace
+(tenancy name) where the OCI bucket is located.
+@li <b>ociConfigFile</b>: string (default: "") - Use the specified OCI
+configuration file instead of the one in the default location.
+@li <b>ociProfile</b>: string (default: "") - Use the specified OCI profile
+instead of the default one.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
+@li <b>events</b>: bool (default: true) - Include events from each dumped
+schema.
+@li <b>routines</b>: bool (default: true) - Include functions and stored
+procedures for each dumped schema.
+@li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
+table.
+@li <b>tzUtc</b>: bool (default: true) - Convert TMESTAMP data to UTC.
+@li <b>consistent</b>: bool (default: true) - Enable or disable consistent data
+dumps.
+@li <b>ddlOnly</b>: bool (default: false) - Only dump Data Definition Language
+(DDL) from the database.
+@li <b>dataOnly</b>: bool (default: false) - Only dump data from the database.
+@li <b>dryRun</b>: bool (default: false) - Print information about what would be
+dumped, but do not dump anything.
+@li <b>ocimds</b>: bool (default: false) - Enable checks for compatibility with
+MySQL Database Service (MDS)
+@li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
+Database Service compatibility modifications when writing dump files. Supported
+values: "force_innodb", "strip_definers", "strip_restricted_grants",
+"strip_tablespaces".
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_OPTIONS, R"*(
+@li <b>excludeTables</b>: list of strings (default: empty) - List of tables to
+be excluded from the dump in the format of <b>schema</b>.<b>table</b>.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_DETAILS, R"*(
+<b>Requirements</b>
+@li MySQL Server 5.7 or newer is required.
+@li Schema object names must use latin1 or utf8 character set.
+@li Only tables which use the InnoDB storage engine are guaranteed to be dumped
+with consistent data.
+@li File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+
+<b>Details</b>
+
+This operation writes SQL files per each schema, table and view dumped, along
+with some global SQL files.
+
+Table data dumps are written to TSV files, optionally splitting them into
+multiple chunk files.
+
+Requires an open, global Shell session, and uses its connection
+options, such as compression, ssl-mode, etc., to establish additional
+connections.
+
+Data dumps cannot be created for the following tables:
+@li mysql.apply_status
+@li mysql.general_log
+@li mysql.schema
+@li mysql.slow_log
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_OPTION_DETAILS, R"*(
+The names given in the <b>excludeTables</b> option should be valid MySQL
+identifiers, quoted using backtick characters when required.
+
+If the <b>excludeTables</b> option contains a table which does not exist, or a
+table which belongs to a schema which is not included in the dump or does not
+exist, it is ignored.
+
+The <b>tzUtc</b> option allows dumping TIMESTAMP data when a server has data in
+different time zones or data is being moved between servers with different time
+zones.
+
+If the <b>consistent</b> option is set to true, a global read lock is set using
+the <b>FLUSH TABLES WITH READ LOCK</b> statement, all threads establish
+connections with the server and start transactions using:
+@li SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ
+@li START TRANSACTION WITH CONSISTENT SNAPSHOT
+
+Once all the threads start transactions, the instance is locked for backup and
+the global read lock is released.
+
+The <b>ddlOnly</b> and <b>dataOnly</b> options cannot both be set to true at
+the same time.
+
+If the <b>ocimds</b> option is set to <b>true</b>, the following modifications
+are applied to the created SQL files:
+@li <b>DATA DIRECTORY</b>, <b>INDEX DIRECTORY</b> and <b>ENCRYPTION</b> options
+in <b>CREATE TABLE</b> statements will be commented out.
+
+Additionally, the following checks are performed and an exception will be raised
+if an incompatible SQL statement is found:
+@li users and roles granted the SUPER, FILE, RELOAD, or BINLOG_ADMIN privileges,
+@li the engine used in <b>CREATE TABLE</b> statement is set to <b>InnoDB</b>.
+
+In order to automatically fix the issues, use the <b>compatibility</b> option.
+
+The <b>compatibility</b> option supports the following values:
+@li force_innodb - replaces incompatible table engines with <b>InnoDB</b>
+@li strip_definers - removes DEFINER clause from views, triggers, events and
+routines, changes SQL SECURITY property to INVOKER for views and routines
+@li strip_restricted_grants - removes disallowed grants
+@li strip_tablespaces - removes unsupported TABLESPACE syntax
+
+The <b>chunking</b> option causes the the data from each table to be split and
+written to multiple chunk files. If this option is set to false, table data is
+written to a single file.
+
+If the <b>chunking</b> option is set to <b>true</b>, but a table to be dumped
+cannot be chunked (for example if it does not contain a primary key or a unique
+index), a warning is displayed and chunking is disabled for this table.
+
+The value of the <b>threads</b> option must be a positive number.
+
+Both the <b>bytesPerChunk</b> and <b>maxRate</b> options support unit suffixes:
+@li k - for Kilobytes (n * 1'000 bytes),
+@li M - for Megabytes (n * 1'000'000 bytes),
+@li G - for Gigabytes (n * 1'000'000'000 bytes),
+
+i.e. maxRate="2k" - limit throughput to 2 kilobytes per second.
+
+The value of the <b>bytesPerChunk</b> option cannot be smaller than "128k".
+
+<b>Dumping to OCI</b>
+
+If the <b>osBucketName</b> option is used, the dump is stored in the specified
+OCI bucket, connection is established using the local OCI profile. The directory
+structure is simulated within the object name.
+
+The <b>osNamespace</b>, <b>ociConfigFile</b> and <b>ociProfile</b> options
+cannot be used if option <b>osBucketName</b> is set to an empty string.
+
+The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
+tenancy ID from the local OCI profile.
+)*");
+
+REGISTER_HELP_FUNCTION(dumpSchemas, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_DUMPSCHEMAS, R"*(
+Dumps the specified schemas to the files in the output directory.
+
+@param schemas List of schemas to be dumped.
+@param outputUrl Target directory to store the dump files.
+@param options Optional dictionary with the dump options.
+
+The <b>schemas</b> parameter cannot be an empty list.
+
+${TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION}
+
+<b>The following options are supported:</b>
+${TOPIC_UTIL_DUMP_COMMON_OPTIONS}
+@li <b>users</b>: bool (default: false) - Include users, roles and grants in the
+dump file.
+${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+
+${TOPIC_UTIL_DUMP_COMMON_DETAILS}
+
+<b>Options</b>
+
+${TOPIC_UTIL_DUMP_COMMON_OPTION_DETAILS}
+
+@throws ArgumentError in the following scenarios:
+@li If any of the input arguments contains an invalid value.
+
+@throws RuntimeError in the following scenarios:
+@li If there is no open global session.
+@li If creating the output directory fails.
+@li If creating or writing to the output file fails.
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_DUMPSCHEMAS_BRIEF)
+ *
+ * $(UTIL_DUMPSCHEMAS)
+ */
+#if DOXYGEN_JS
+Undefined Util::dumpSchemas(List schemas, String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+None Util::dump_schemas(list schemas, str outputUrl, dict options);
+#endif
+void Util::dump_schemas(const std::vector<std::string> &schemas,
+                        const std::string &directory,
+                        const shcore::Dictionary_t &options) {
+  const auto session = _shell_core.get_dev_session();
+
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  using mysqlsh::dump::Dump_schemas;
+  using mysqlsh::dump::Dump_schemas_options;
+
+  Dump_schemas_options opts{schemas, directory};
+  opts.set_options(options);
+  opts.set_session(session->get_core_session());
+
+  Dump_schemas{opts}.run();
+}
+
+REGISTER_HELP_FUNCTION(dumpInstance, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_DUMPINSTANCE, R"*(
+Dumps the whole database to files in the output directory.
+
+@param outputUrl Target directory to store the dump files.
+@param options Optional dictionary with the dump options.
+
+${TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION}
+
+<b>The following options are supported:</b>
+@li <b>excludeSchemas</b>: list of strings (default: empty) - list of schemas to
+be excluded from the dump.
+${TOPIC_UTIL_DUMP_COMMON_OPTIONS}
+@li <b>users</b>: bool (default: true) - Include users, roles and grants in the
+dump file.
+${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+
+${TOPIC_UTIL_DUMP_COMMON_DETAILS}
+
+Dumps cannot be created for the following schemas:
+@li information_schema,
+@li mysql,
+@li ndbinfo,
+@li performance_schema,
+@li sys.
+
+<b>Options</b>
+
+If the <b>excludeSchemas</b> option contains a schema which is not included in
+the dump or does not exist, it is ignored.
+
+${TOPIC_UTIL_DUMP_COMMON_OPTION_DETAILS}
+
+@throws ArgumentError in the following scenarios:
+@li If any of the input arguments contains an invalid value.
+
+@throws RuntimeError in the following scenarios:
+@li If there is no open global session.
+@li If creating the output directory fails.
+@li If creating or writing to the output file fails.
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_DUMPINSTANCE_BRIEF)
+ *
+ * $(UTIL_DUMPINSTANCE)
+ */
+#if DOXYGEN_JS
+Undefined Util::dumpInstance(String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+None Util::dump_instance(str outputUrl, dict options);
+#endif
+void Util::dump_instance(const std::string &directory,
+                         const shcore::Dictionary_t &options) {
+  const auto session = _shell_core.get_dev_session();
+
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  using mysqlsh::dump::Dump_instance;
+  using mysqlsh::dump::Dump_instance_options;
+
+  Dump_instance_options opts{directory};
+  opts.set_options(options);
+  opts.set_session(session->get_core_session());
+
+  Dump_instance{opts}.run();
+}
+
 }  // namespace mysqlsh

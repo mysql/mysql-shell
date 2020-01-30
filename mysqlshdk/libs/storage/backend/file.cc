@@ -41,6 +41,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -49,6 +50,8 @@ namespace backend {
 File::File(const std::string &filename)
     : m_filepath(
           shcore::path::expand_user(utils::strip_scheme(filename, "file"))) {}
+
+File::~File() { do_close(); }
 
 void File::open(Mode m) {
   assert(!is_open());
@@ -78,7 +81,7 @@ void File::open(Mode m) {
   }
 
   _wsopen_s(&m_fd, wpath.c_str(), oflag, _SH_DENYWR, _S_IREAD | _S_IWRITE);
-#else
+#else   // !_WIN32
   int flags = 0;
 
   switch (m) {
@@ -96,32 +99,42 @@ void File::open(Mode m) {
   }
 
   m_fd = ::open(m_filepath.c_str(), flags, S_IRUSR | S_IWUSR | S_IRGRP);
-#endif
+#endif  // !_WIN32
 
-#else
+#else  // !USE_UNBUFFERED_FILES
 
-  int ret = 0;
 #ifdef _WIN32
   const wchar_t *mode =
       m == Mode::READ ? L"rb" : m == Mode::WRITE ? L"wb" : L"ab";
   m_file = _wfsopen(wpath.c_str(), mode, _SH_DENYWR);
-  if (m != Mode::READ) ret = _wchmod(wpath.c_str(), _S_IREAD | _S_IWRITE);
-#else
+#else   // !_WIN32
   const char *mode = m == Mode::READ ? "rb" : m == Mode::WRITE ? "wb" : "ab";
   m_file = fopen(m_filepath.c_str(), mode);
-  if (m != Mode::READ)
-    ret = chmod(m_filepath.c_str(), S_IRUSR | S_IWUSR | S_IRGRP);
-#endif
-  if (ret)
-    throw std::runtime_error("Unable to set permissions on file: " +
-                             m_filepath);
+#endif  // !_WIN32
 
-#endif
+#endif  // !USE_UNBUFFERED_FILES
 
   if (!is_open()) {
     throw std::runtime_error("Cannot open file '" + full_path() +
                              "': " + shcore::errno_to_string(errno));
   }
+
+#ifndef USE_UNBUFFERED_FILES
+  int ret = 0;
+
+#ifdef _WIN32
+  if (m != Mode::READ) ret = _wchmod(wpath.c_str(), _S_IREAD | _S_IWRITE);
+#else   // !_WIN32
+  if (m != Mode::READ)
+    ret = chmod(m_filepath.c_str(), S_IRUSR | S_IWUSR | S_IRGRP);
+#endif  // !_WIN32
+
+  if (ret) {
+    throw std::runtime_error("Unable to set permissions on file '" +
+                             full_path() +
+                             "': " + shcore::errno_to_string(errno));
+  }
+#endif  // !USE_UNBUFFERED_FILES
 }
 
 bool File::is_open() const {
@@ -140,7 +153,9 @@ int File::error() const {
 #endif
 }
 
-void File::close() {
+void File::close() { do_close(); }
+
+void File::do_close() {
 #ifdef USE_UNBUFFERED_FILES
 
   if (m_fd >= 0) {

@@ -107,10 +107,11 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     file->flush();
     file->close();
     auto out = testutil->cat_file(file_path);
-    for (const auto i : items)
+    for (const auto i : items) {
       if (std::string::npos == out.find(i)) {
         EXPECT_EQ(out, i);
       }
+    }
   }
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
@@ -127,6 +128,7 @@ bool Schema_dumper_test::initialized = false;
 
 TEST_F(Schema_dumper_test, dump_table) {
   Schema_dumper sd(session);
+  sd.opt_drop_table = true;
   EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db_name, "at1"));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -155,13 +157,16 @@ CREATE TABLE IF NOT EXISTS `at1` (
 
 TEST_F(Schema_dumper_test, dump_table_with_trigger) {
   Schema_dumper sd(session);
+  sd.opt_drop_table = true;
   sd.opt_drop_trigger = true;
   EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db_name, "t1"));
-  if (sd.count_triggers_for_table(db_name, "t1"))
+  if (sd.count_triggers_for_table(db_name, "t1")) {
     EXPECT_NO_THROW(sd.dump_triggers_for_table_ddl(file.get(), db_name, "t1"));
+  }
   EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db_name, "t2"));
-  if (sd.count_triggers_for_table(db_name, "t2"))
+  if (sd.count_triggers_for_table(db_name, "t2")) {
     EXPECT_NO_THROW(sd.dump_triggers_for_table_ddl(file.get(), db_name, "t2"));
+  }
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   if (_target_server_version < mysqlshdk::utils::Version(8, 0, 20)) return;
@@ -301,7 +306,7 @@ DELIMITER ;
 TEST_F(Schema_dumper_test, dump_schema) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
-  EXPECT_NO_THROW(sd.write_header(file.get(), db_name));
+  EXPECT_NO_THROW(sd.write_header(file.get()));
   EXPECT_EQ(1, sd.dump_schema_ddl(file.get(), db_name).size());
   EXPECT_NO_THROW(sd.write_footer(file.get()));
   EXPECT_TRUE(output_handler.std_err.empty());
@@ -343,6 +348,7 @@ USE mysqldump_test_db;
 
 TEST_F(Schema_dumper_test, dump_view) {
   Schema_dumper sd(session);
+  sd.opt_drop_view = true;
   EXPECT_NO_THROW(sd.dump_temporary_view_ddl(file.get(), db_name, "v1"));
   EXPECT_NO_THROW(sd.dump_temporary_view_ddl(file.get(), db_name, "v2"));
   EXPECT_NO_THROW(sd.dump_temporary_view_ddl(file.get(), db_name, "v3"));
@@ -1112,10 +1118,11 @@ TEST_F(Schema_dumper_test, compat_ddl) {
     auto out = testutil->cat_file(file_path);
     out = shcore::str_replace(out, "`", "");
     out = shcore::str_replace(out, "(11)", "");
-    for (const auto i : items)
+    for (const auto i : items) {
       if (std::string::npos == out.find(shcore::str_replace(i, "`", ""))) {
         EXPECT_EQ(out, i);
       }
+    }
     file.reset(new mysqlshdk::storage::backend::File(file_path));
     file->open(mysqlshdk::storage::Mode::WRITE);
   };
@@ -1219,7 +1226,8 @@ TEST_F(Schema_dumper_test, dump_and_load) {
     sd.opt_strip_restricted_grants = true;
     sd.opt_strip_tablespaces = true;
     sd.opt_strip_definer = true;
-    EXPECT_NO_THROW(sd.write_header(file.get(), db));
+    EXPECT_NO_THROW(sd.write_header(file.get()));
+    EXPECT_NO_THROW(sd.write_comment(file.get(), db));
     EXPECT_NO_THROW(sd.dump_schema_ddl(file.get(), db));
     session->execute(std::string("use ") + db);
     auto res = session->query("show tables", true);
@@ -1227,8 +1235,9 @@ TEST_F(Schema_dumper_test, dump_and_load) {
     while (auto row = res->fetch_one()) tables.emplace_back(row->get_string(0));
     for (const auto &table : tables) {
       EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db, table));
-      if (sd.count_triggers_for_table(db, table))
+      if (sd.count_triggers_for_table(db, table)) {
         EXPECT_NO_THROW(sd.dump_triggers_for_table_ddl(file.get(), db, table));
+      }
     }
     EXPECT_NO_THROW(sd.dump_events_ddl(file.get(), db));
     EXPECT_NO_THROW(sd.dump_routines_ddl(file.get(), db));

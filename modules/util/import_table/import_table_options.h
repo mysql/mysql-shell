@@ -122,7 +122,6 @@ class Import_table_options {
   std::string m_max_rate;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
   uint64_t m_skip_rows_count = 0;
-  std::string m_base_dialect_name;
   Dialect m_dialect;
   mysqlshdk::oci::Oci_options m_oci_options;
   std::shared_ptr<mysqlsh::ShellBaseSession> m_base_session;

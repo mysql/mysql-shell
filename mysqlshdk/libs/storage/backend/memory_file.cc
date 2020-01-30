@@ -52,6 +52,8 @@ void Memory_file::open(Mode m) {
 
 bool Memory_file::is_open() const { return !m_open_mode.is_null(); }
 
+int Memory_file::error() const { return 0; }
+
 void Memory_file::close() { m_open_mode.reset(); }
 
 size_t Memory_file::file_size() const { return m_content.size(); }

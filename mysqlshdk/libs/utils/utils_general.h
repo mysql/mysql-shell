@@ -59,9 +59,9 @@ constexpr static std::size_t array_size(const T (&)[N]) noexcept {
 
 class Scoped_callback {
  public:
-  explicit Scoped_callback(std::function<void()> c) : callback(c) {}
+  explicit Scoped_callback(const std::function<void()> &c) : callback(c) {}
 
-  ~Scoped_callback() { call(); }
+  ~Scoped_callback();
 
   void call() {
     if (!cancelled && !called) {
@@ -162,6 +162,12 @@ std::string SHCORE_PUBLIC make_account(const std::string &user,
 
 std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);
+
+void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
+                                          std::string *out_schema,
+                                          std::string *out_table);
+
+std::string SHCORE_PUBLIC unquote_identifier(const std::string &str);
 
 /** Substitute variables in string.
  *

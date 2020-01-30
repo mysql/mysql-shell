@@ -21,6 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/oci/oci_options.h"
+
+#include <map>
+
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/oci/oci_rest_service.h"
@@ -29,6 +32,10 @@
 
 namespace mysqlshdk {
 namespace oci {
+const size_t KIB = 1024;
+const size_t MIB = KIB * 1024;
+const size_t DEFAULT_MULTIPART_PART_SIZE = MIB * 64;
+
 using Status_code = Response::Status_code;
 
 namespace {
@@ -40,6 +47,9 @@ void validate_config_profile(const std::string &config_path,
   }
 }
 }  // namespace
+
+std::mutex Oci_options::s_tenancy_name_mutex;
+std::map<std::string, std::string> Oci_options::s_tenancy_names = {};
 
 void Oci_options::do_unpack(shcore::Option_unpacker *unpacker) {
   switch (target) {
@@ -53,6 +63,10 @@ void Oci_options::do_unpack(shcore::Option_unpacker *unpacker) {
 }
 
 void Oci_options::load_defaults() {
+  if (os_bucket_name.is_null()) {
+    throw std::invalid_argument("The osBucketName option is missing.");
+  }
+
   if (config_path.is_null()) {
     config_path = mysqlsh::current_shell_options()->get().oci_config_file;
   }
@@ -62,32 +76,65 @@ void Oci_options::load_defaults() {
   }
 
   if (os_namespace.is_null()) {
-    check_option_values();
-
     Oci_rest_service identity(Oci_service::IDENTITY, *this);
-    mysqlshdk::rest::String_buffer raw_data;
-    identity.get("/20160918/tenancies/" + identity.get_tenancy_id(), {},
-                 &raw_data);
+    std::lock_guard<std::mutex> lock(s_tenancy_name_mutex);
+    if (s_tenancy_names.find(identity.get_tenancy_id()) ==
+        s_tenancy_names.end()) {
+      mysqlshdk::rest::String_buffer raw_data;
+      identity.get("/20160918/tenancies/" + identity.get_tenancy_id(), {},
+                   &raw_data);
 
-    auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
-    os_namespace = data->get_string("name");
+      shcore::Dictionary_t data;
+      try {
+        data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
+      } catch (const shcore::Exception &error) {
+        log_debug2("%s\n%.*s", error.what(), static_cast<int>(raw_data.size()),
+                   raw_data.data());
+        throw;
+      }
 
-    mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
-                                          mysqlshdk::config::Escape::NO);
+      s_tenancy_names[identity.get_tenancy_id()] = data->get_string("name");
+    }
+
+    os_namespace = s_tenancy_names.at(identity.get_tenancy_id());
+  }
+
+  if (part_size.is_null()) {
+    part_size = DEFAULT_MULTIPART_PART_SIZE;
   }
 }
 
 void Oci_options::check_option_values() {
-  if (!config_profile.is_null()) {
-    validate_config_profile(*config_path, *config_profile);
-  }
-
   switch (target) {
     case OBJECT_STORAGE:
-      if (os_bucket_name.is_null()) {
-        throw std::runtime_error("The osBucketName option is missing.");
+      if (os_bucket_name.get_safe().empty()) {
+        if (!os_namespace.get_safe().empty()) {
+          throw std::invalid_argument(
+              "The option 'osNamespace' cannot be used when the value of "
+              "'osBucketName' option is not set.");
+        }
+
+        if (!config_path.get_safe().empty()) {
+          throw std::invalid_argument(
+              "The option 'ociConfigFile' cannot be used when the value of "
+              "'osBucketName' option is not set.");
+        }
+
+        if (!config_profile.get_safe().empty()) {
+          throw std::invalid_argument(
+              "The option 'ociProfile' cannot be used when the value of "
+              "'osBucketName' option is not set.");
+        }
       }
       break;
+  }
+
+  if (!os_bucket_name.is_null()) {
+    load_defaults();
+  }
+
+  if (!config_profile.is_null()) {
+    validate_config_profile(*config_path, *config_profile);
   }
 }
 
@@ -161,7 +208,6 @@ bool parse_oci_options(
       out_options->config_profile = in_options.at(mysqlshdk::oci::kOciProfile);
 
     out_options->check_option_values();
-    out_options->load_defaults();
 
     ret_val = true;
   }

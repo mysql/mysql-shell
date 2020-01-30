@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/db/connection_options.h"
 
@@ -81,6 +82,23 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #endif
   void import_table(const std::string &filename,
                     const shcore::Dictionary_t &options);
+
+#if DOXYGEN_JS
+  Undefined dumpSchemas(List schemas, String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+  None dump_schemas(list schemas, str outputUrl, dict options);
+#endif
+  void dump_schemas(const std::vector<std::string> &schemas,
+                    const std::string &directory,
+                    const shcore::Dictionary_t &options);
+
+#if DOXYGEN_JS
+  Undefined dumpInstance(String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+  None dump_instance(str outputUrl, dict options);
+#endif
+  void dump_instance(const std::string &directory,
+                     const shcore::Dictionary_t &options);
 
  private:
   shcore::IShell_core &_shell_core;

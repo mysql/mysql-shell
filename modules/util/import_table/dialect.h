@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,12 @@
 
 #include <string>
 
+namespace shcore {
+
+class Option_unpacker;
+
+}  // namespace shcore
+
 namespace mysqlsh {
 namespace import_table {
 
@@ -40,10 +46,12 @@ struct Dialect {
   bool fields_optionally_enclosed = false;
   std::string lines_starting_by{""};  // string
 
+  bool operator==(const Dialect &d) const;
+
   /**
    * Validate provided options
    */
-  void validate();
+  void validate() const;
 
   /**
    * Build part of LOAD DATA LOCAL INFILE SQL statement describing import file
@@ -80,6 +88,11 @@ struct Dialect {
    * (comma-separated values) file format.
    */
   static Dialect csv_unix();
+
+  /**
+   * Returns dialect described by the options.
+   */
+  static Dialect unpack(shcore::Option_unpacker *unpacker);
 };
 
 }  // namespace import_table

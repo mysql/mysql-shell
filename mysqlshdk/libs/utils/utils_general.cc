@@ -22,6 +22,9 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+
+#include <utility>
+
 #include "mysqlshdk/libs/textui/textui.h"
 
 #include "include/mysh_config.h"
@@ -64,6 +67,15 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 #include <mysql_version.h>
 
 namespace shcore {
+
+Scoped_callback::~Scoped_callback() {
+  try {
+    call();
+  } catch (const std::exception &e) {
+    log_error("Unexpected exception: %s", e.what());
+  }
+}
+
 bool is_valid_identifier(const std::string &name) {
   bool ret_val = false;
 
@@ -876,6 +888,63 @@ void split_account(const std::string &account, std::string *out_user,
  */
 std::string make_account(const std::string &user, const std::string &host) {
   return shcore::sqlstring("?@?", 0) << user << host;
+}
+
+void split_schema_and_table(const std::string &str, std::string *out_schema,
+                            std::string *out_table) {
+  std::string schema;
+  std::string table;
+
+  auto pos = span_quotable_identifier(str, 0, &schema);
+
+  if (pos < str.length()) {
+    if (str[pos] != '.') {
+      throw std::runtime_error(
+          std::string("Invalid object name, expected '.', but got: '") +
+          str[pos] + "'.");
+    }
+
+    pos = span_quotable_identifier(str, ++pos, &table);
+
+    if (pos < str.length()) {
+      throw std::runtime_error(
+          std::string("Invalid object name, expected end of name, but got: '") +
+          str[pos] + "'.");
+    }
+  } else {
+    // there's only table name
+    std::swap(schema, table);
+  }
+
+  if (table.empty()) {
+    throw std::runtime_error(
+        "Invalid object name, table name cannot be empty.");
+  }
+
+  if (out_schema) {
+    *out_schema = std::move(schema);
+  }
+
+  if (out_table) {
+    *out_table = std::move(table);
+  }
+}
+
+std::string SHCORE_PUBLIC unquote_identifier(const std::string &str) {
+  std::string object;
+  const auto pos = span_quotable_identifier(str, 0, &object);
+
+  if (pos < str.length()) {
+    throw std::runtime_error(
+        std::string("Invalid object name, expected end of name, but got: '") +
+        str[pos] + "'.");
+  }
+
+  if (object.empty()) {
+    throw std::runtime_error("Object name cannot be empty.");
+  }
+
+  return object;
 }
 
 void sleep_ms(uint32_t ms) {

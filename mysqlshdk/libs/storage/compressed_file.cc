@@ -46,6 +46,8 @@ void Compressed_file::open(Mode m) { m_file->open(m); }
 
 bool Compressed_file::is_open() const { return m_file->is_open(); }
 
+int Compressed_file::error() const { return m_file->error(); }
+
 void Compressed_file::close() { m_file->close(); }
 
 size_t Compressed_file::file_size() const { return m_file->file_size(); }

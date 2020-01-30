@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,7 +75,7 @@ bool SHCORE_PUBLIC is_folder(const std::string &filename);
 bool SHCORE_PUBLIC path_exists(const std::string &path);
 void SHCORE_PUBLIC ensure_dir_exists(const std::string &path);  // delme
 void SHCORE_PUBLIC create_directory(const std::string &path,
-                                    bool recursive = true);
+                                    bool recursive = true, int mode = 0700);
 void SHCORE_PUBLIC remove_directory(const std::string &path,
                                     bool recursive = true);
 std::string SHCORE_PUBLIC get_last_error();
@@ -100,8 +100,8 @@ int SHCORE_PUBLIC make_file_readonly(const std::string &path);
 int SHCORE_PUBLIC ch_mod(const std::string &path, int mode);
 int SHCORE_PUBLIC set_user_only_permissions(const std::string &path);
 
-std::string SHCORE_PUBLIC get_absolute_path(const std::string &base_dir,
-                                            const std::string &file_path);
+std::string SHCORE_PUBLIC get_absolute_path(const std::string &file_path,
+                                            const std::string &base_dir = "");
 
 /**
  * Calculate a temporary file path based on a given file_path.

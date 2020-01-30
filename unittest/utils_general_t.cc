@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 
 #include "gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 #include "utils/utils_general.h"
 
 #include <mysql_version.h>
@@ -188,6 +189,81 @@ TEST(utils_general, make_account) {
     SCOPED_TRACE(t.account);
     EXPECT_EQ(t.account, make_account(t.user, t.host));
   }
+}
+
+TEST(utils_general, split_schema_and_table) {
+  std::string schema;
+  std::string table;
+
+  EXPECT_THROW_LIKE(split_schema_and_table("", &schema, &table),
+                    std::runtime_error,
+                    "Invalid object name, table name cannot be empty.");
+  EXPECT_THROW_LIKE(split_schema_and_table("`schema`x`table`", &schema, &table),
+                    std::runtime_error,
+                    "Invalid object name, expected '.', but got: 'x'.");
+  EXPECT_THROW_LIKE(
+      split_schema_and_table("`schema`.`table`.", &schema, &table),
+      std::runtime_error,
+      "Invalid object name, expected end of name, but got: '.'.");
+  EXPECT_THROW_LIKE(split_schema_and_table("`schema`.", &schema, &table),
+                    std::runtime_error,
+                    "Invalid object name, table name cannot be empty.");
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("table", &schema, &table));
+  EXPECT_EQ("", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("`table`", &schema, &table));
+  EXPECT_EQ("", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("schema.table", &schema, &table));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("`schema`.table", &schema, &table));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("schema.`table`", &schema, &table));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("`schema`.`table`", &schema, &table));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
+
+  schema = table = "";
+  EXPECT_NO_THROW(split_schema_and_table("`schema.table`", &schema, &table));
+  EXPECT_EQ("", schema);
+  EXPECT_EQ("schema.table", table);
+}
+
+TEST(utils_general, unquote_identifier) {
+  EXPECT_THROW_LIKE(unquote_identifier(""), std::runtime_error,
+                    "Object name cannot be empty.");
+
+  EXPECT_THROW_LIKE(unquote_identifier("``"), std::runtime_error,
+                    "Object name cannot be empty.");
+
+  EXPECT_THROW_LIKE(unquote_identifier("schema.table"), std::runtime_error,
+                    "Invalid object name, expected end of name, but got: '.'.");
+
+  EXPECT_THROW_LIKE(unquote_identifier("`schema`.table"), std::runtime_error,
+                    "Invalid object name, expected end of name, but got: '.'.");
+
+  EXPECT_THROW_LIKE(unquote_identifier("`schema`table"), std::runtime_error,
+                    "Invalid object name, expected end of name, but got: 't'.");
+
+  EXPECT_EQ("table", unquote_identifier("table"));
+  EXPECT_EQ("table", unquote_identifier("`table`"));
+  EXPECT_EQ("schema.table", unquote_identifier("`schema.table`"));
 }
 
 TEST(utils_general, split_string_chars) {

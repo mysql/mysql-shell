@@ -43,7 +43,7 @@ class File : public IFile {
   File &operator=(const File &other) = delete;
   File &operator=(File &&other) = default;
 
-  ~File() override = default;
+  ~File() override;
 
   void open(Mode m) override;
   bool is_open() const override;
@@ -64,6 +64,8 @@ class File : public IFile {
   void rename(const std::string &new_name) override;
 
  private:
+  void do_close();
+
 #ifdef USE_UNBUFFERED_FILES
   int m_fd = -1;
   int m_error = 0;

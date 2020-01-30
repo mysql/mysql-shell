@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,8 @@ void Mock_row::enable_fake_engine() {
       .WillByDefault(Invoke(this, &Mock_row::def_get_string));
   ON_CALL(*this, get_string_data(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_string_data));
+  ON_CALL(*this, get_raw_data(_, _, _))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_raw_data));
   ON_CALL(*this, get_float(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_float));
   ON_CALL(*this, get_double(_))
@@ -92,6 +94,17 @@ std::pair<const char *, size_t> Mock_row::def_get_string_data(
     uint32_t index) const {
   return std::pair<const char *, size_t>(_record[index].c_str(),
                                          _record[index].size());
+}
+
+void Mock_row::def_get_raw_data(uint32_t index, const char **out_data,
+                                size_t *out_size) const {
+  if (def_is_null(index)) {
+    *out_data = nullptr;
+    *out_size = 0;
+  } else {
+    *out_data = _record[index].c_str();
+    *out_size = _record[index].size();
+  }
 }
 
 float Mock_row::def_get_float(uint32_t index) const {
