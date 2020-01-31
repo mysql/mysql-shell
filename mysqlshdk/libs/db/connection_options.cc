@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -412,6 +412,12 @@ Transport_type Connection_options::get_transport_type() const {
     throw std::invalid_argument("Transport Type is undefined.");
 
   return *m_transport_type;
+}
+
+int64_t Connection_options::get_compression_level() const {
+  if (m_compress_level.is_null())
+    throw std::invalid_argument("Compression level is undefined.");
+  return *m_compress_level;
 }
 
 const std::string &Connection_options::get(const std::string &name) const {

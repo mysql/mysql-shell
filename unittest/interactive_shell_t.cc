@@ -2682,7 +2682,9 @@ TEST_F(Interactive_shell_test, compression) {
     wipe_all();
   };
 
-  const auto check_x_compression = [this](const char *status) {
+  const auto check_x_compression = [this](const char *status,
+                                          const char *algorithm = nullptr,
+                                          const char *level = nullptr) {
     if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 19)) {
       execute(
           "select case when variable_value > 0 then 'ON' else 'OFF' end from "
@@ -2697,6 +2699,12 @@ TEST_F(Interactive_shell_test, compression) {
       MY_EXPECT_STDOUT_CONTAINS("Compression:                  Enabled");
     else if (output_handler.std_out.find("Compression:") != std::string::npos)
       MY_EXPECT_STDOUT_CONTAINS("Compression:                  Disabled");
+    if (algorithm != nullptr) MY_EXPECT_STDOUT_CONTAINS(algorithm);
+    if (level != nullptr) {
+      wipe_all();
+      execute("show status like 'Mysqlx_compression_level';");
+      MY_EXPECT_STDOUT_CONTAINS(level);
+    }
     wipe_all();
   };
 
@@ -2736,14 +2744,29 @@ TEST_F(Interactive_shell_test, compression) {
     execute("\\connect " + _uri + "?compression=DISABLED");
     check_x_compression("OFF");
 
-    execute("\\connect " + _uri + "?compression-algorithms=zstd");
-    check_x_compression("ON");
+    if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
+      execute("\\connect " + _uri +
+              "?compression-algorithms=zstd&compression-level=7");
+      check_x_compression("ON", "ZSTD_STREAM", "7");
 
-    execute("\\connect " + _uri + "?compression-algorithms=lz4");
-    check_x_compression("ON");
+      execute("\\connect " + _uri +
+              "?compression-algorithms=lz4&compression-level=4");
+      check_x_compression("ON", "LZ4_MESSAGE", "4");
 
-    execute("\\connect " + _uri + "?compression-algorithms=zlib,uncompressed");
-    check_x_compression("ON");
+      execute("\\connect " + _uri +
+              "?compression-algorithms=zlib,uncompressed&compression-level=4");
+      check_x_compression("ON", "DEFLATE_STREAM", "4");
+    } else {
+      execute("\\connect " + _uri + "?compression-algorithms=zstd");
+      check_x_compression("ON");
+
+      execute("\\connect " + _uri + "?compression-algorithms=lz4");
+      check_x_compression("ON");
+
+      execute("\\connect " + _uri +
+              "?compression-algorithms=zlib,uncompressed");
+      check_x_compression("ON");
+    }
 
     execute("\\connect " + _uri + "?compression-algorithms=uncompressed");
     check_x_compression("OFF");
@@ -2760,9 +2783,6 @@ TEST_F(Interactive_shell_test, compression) {
     execute("\\connect " + _mysql_uri +
             "?compression-algorithms=zstd,uncompressed&compression-level=19");
     check_compression("ON", "zstd", "19");
-
-    execute("\\connect " + _mysql_uri + "?compression-level=21");
-    check_compression("ON", "zstd", "21");
 
     // conflict
     execute("\\connect " + _mysql_uri +

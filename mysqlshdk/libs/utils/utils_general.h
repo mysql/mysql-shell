@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,7 @@ void SHCORE_PUBLIC update_connection_data(
     const std::string &server_public_key_path,
     const std::string &connect_timeout, const std::string &compression,
     const std::string &compress_algorithm,
-    mysqlshdk::utils::nullable<int> compress_level);
+    mysqlshdk::utils::nullable<int64_t> compress_level);
 
 std::string SHCORE_PUBLIC get_system_user();
 

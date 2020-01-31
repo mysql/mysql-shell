@@ -158,18 +158,11 @@ void Session_impl::connect(
                   _connection_options.get_compression_algorithms().c_str());
 
   if (_connection_options.has_compression_level()) {
-    uint zcl = _connection_options.get_compression_level();
+    uint zcl = static_cast<uint>(_connection_options.get_compression_level());
     if (zcl < 1 || zcl > 22)
       throw std::invalid_argument(
           "Valid range for zstd compression level in classic protocol is "
           "1-22.");
-    if (!_connection_options.has_compression_algorithms())
-      mysql_options(_mysql, MYSQL_OPT_COMPRESSION_ALGORITHMS, "zstd");
-    else if (shcore::str_lower(_connection_options.get_compression_algorithms())
-                 .find("zstd") == std::string::npos)
-      throw std::invalid_argument(
-          "Compression level in classic protocol is only supported by zstd "
-          "algorithm.");
     mysql_options(_mysql, MYSQL_OPT_ZSTD_COMPRESSION_LEVEL, &zcl);
   }
 

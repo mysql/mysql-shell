@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,7 +78,7 @@ class SHCORE_PUBLIC Connection_options {
   const std::string &get_compression_algorithms() const {
     return m_extra_options.get_value(kCompressionAlgorithms);
   }
-  int get_compression_level() const { return *m_compress_level; }
+  int64_t get_compression_level() const;
 
   const std::string &get(const std::string &name) const;
 
@@ -116,7 +116,7 @@ class SHCORE_PUBLIC Connection_options {
   void set_pipe(const std::string &pipe);
   void set_compression(const std::string &compress);
   void set_compression_algorithms(const std::string &compression_algorithms);
-  void set_compression_level(int compression_level) {
+  void set_compression_level(int64_t compression_level) {
     m_compress_level = compression_level;
   }
 
@@ -195,7 +195,7 @@ class SHCORE_PUBLIC Connection_options {
 
   nullable<int> m_port;
   nullable<Transport_type> m_transport_type;
-  nullable<int> m_compress_level;
+  nullable<int64_t> m_compress_level;
 
   Comparison_mode m_mode;
   Nullable_options m_options;

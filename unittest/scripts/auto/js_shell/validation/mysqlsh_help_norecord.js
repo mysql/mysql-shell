@@ -58,8 +58,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   causes connection to succeed even if
                                   compression negotiation fails.
   --compression-level=<int>       Use this compression level in the
-  --zstd-compression-level=<int>  client/server protocol. Supported by zstd
-                                  algorithm in classic protocol.
+  --zstd-compression-level=<int>  client/server protocol. Supported by X
+                                  protocol and zstd compression in classic
+                                  protocol.
   --import <file> <collection>    Import JSON documents from file to collection
   --import <file> <table> <col>   or table in MySQL Server. Set file to - if
                                   you want to read the data from stdin.

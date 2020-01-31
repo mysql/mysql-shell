@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,8 +84,8 @@ class Shell_options : public shcore::Options {
     std::string auth_method;
     std::string m_connect_timeout;
     std::string compress;
-    std::string compress_algorithm;
-    mysqlshdk::utils::nullable<int> compress_level;
+    std::string compress_algorithms;
+    mysqlshdk::utils::nullable<int64_t> compress_level;
 
     std::string protocol;
 
