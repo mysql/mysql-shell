@@ -236,7 +236,7 @@ group_replication_start_on_boot = ON
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -503,7 +503,7 @@ group_replication_start_on_boot = ON
         "name": "default",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -622,7 +622,7 @@ group_replication_start_on_boot = ON
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
@@ -820,14 +820,16 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"

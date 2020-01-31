@@ -21,28 +21,35 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": <<<"\"" + __version + "\"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceErrors": [
+                    <<<(__version_num<80000) ? "\"WARNING: Instance is NOT a PRIMARY but super_read_only option is OFF.\",\n                    ":"">>>"NOTE: group_replication is stopped."
+                ], 
+                "memberState": "OFFLINE", 
                 "mode": <<<(__version_num>=80012)?"\"R/O\"":"\"R/W\"">>>,
                 "readReplicas": {},
                 "role": "HA",
-                "status": "(MISSING)"
+                "status": "(MISSING)",
+                "version": <<<"\"" + __version + "\"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": <<<"\"" + __version + "\"">>>
             }
         },
         "topologyMode": "Single-Primary"
@@ -72,21 +79,24 @@ WARNING: Option 'memberSslMode' is deprecated for this operation and it will be 
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": <<<"\"" + __version + "\"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": <<<"\"" + __version + "\"">>>
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": <<<"\"" + __version + "\"">>>
             }
         },
         "topologyMode": "Single-Primary"

@@ -9,17 +9,19 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberState": "(MISSING)",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -43,17 +45,19 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -78,17 +82,19 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -115,17 +121,19 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -149,10 +157,11 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -164,7 +173,8 @@
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -184,10 +194,11 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -199,7 +210,8 @@
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -221,10 +233,11 @@
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "NO_QUORUM",
-        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active",
+        "statusText": "Cluster has no quorum as visible from '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' and cannot process write transactions. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberState": "(MISSING)", 
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -236,7 +249,8 @@
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"

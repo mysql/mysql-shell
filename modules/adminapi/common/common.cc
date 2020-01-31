@@ -82,6 +82,9 @@ std::string describe(Status state) {
     case NO_QUORUM:
       ret_val = "NO_QUORUM";
       break;
+    case ERROR:
+      ret_val = "ERROR";
+      break;
     case UNKNOWN:
       ret_val = "UNKNOWN";
       break;

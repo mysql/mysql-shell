@@ -4,6 +4,178 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 //@ Error when executing status on a cluster that its name is not registered in the metadata
 ||Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
+//@# memberState=OFFLINE
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",|
+|    "instanceErrors": [|
+|        "NOTE: group_replication is stopped."|
+|    ],|
+|    "memberState": "OFFLINE",|
+|    "mode": "R/O",|
+|    "readReplicas": {},|
+|    "role": "HA",|
+|    "status": "(MISSING)"|
+|},|
+
+//@# memberState=ERROR
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]",|
+|        "ERROR: group_replication has stopped with an error."|
+|    ], |
+|    "memberState": "ERROR", |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "(MISSING)"|
+|}|
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "applierChannel": {|
+|        "applierLastErrors": [|
+|            {|
+|                "error": "[[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar'", |
+|                "errorNumber": 1007, |
+|                "errorTimestamp": "[[*]]"|
+|            }|
+|        ], |
+|        "applierQueuedTransactionSetSize": 1, |
+|        "applierStatus": "ERROR", |
+|        "applierThreadState": "", |
+|        "receiverStatus": "ON", |
+|        "receiverThreadState": "", |
+|        "source": null|
+|    }, |
+|    "instanceErrors": [|
+|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]", |    
+|        "ERROR: group_replication has stopped with an error."|
+|    ], |
+|    "memberState": "ERROR", |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "(MISSING)"|
+|},|
+
+//@# recoveryChannel during recovery
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "recovery": {|
+|        "recoveryChannel": {|
+|            "applierQueuedTransactionSetSize": [[*]], |
+|            "applierStatus": "[[*]]", |
+|            "applierThreadState": "[[*]]", |
+|            "receiverStatus": "ON", |
+|            "receiverThreadState": "[[*]]", |
+|            "source": "<<<hostname>>>:[[*]]"|
+|        }, |
+|        "state": "ON"|
+|    }, |
+|    "recoveryStatusText": "Distributed recovery in progress", |
+|    "role": "HA", |
+|    "status": "RECOVERING", |
+|    "version": "[[*]]"|
+|},|
+
+
+//@# recoveryChannel with error
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|       "ERROR: GR Recovery channel applier stopped with an error: [[*]]Could not execute Write_rows event on table testdb.data; Duplicate entry '42' for key '[[*]]PRIMARY', Error_code: 1062; handler error HA_ERR_FOUND_DUPP_KEY; [[*]]",|
+|       "ERROR: group_replication has stopped with an error."|
+|    ],|
+|    "memberState": "ERROR", |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "[[*]]", |
+|    "version": "[[*]]"|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+
+
+//@# instanceError with split-brain {VER(>=8.0.11)}
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "ERROR: split-brain! Instance is not part of the majority group, but has state [[*]]"|
+|    ], |
+|    "memberState": "RECOVERING", |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "(MISSING)",|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+
+//@# instanceError with split-brain {VER(<8.0.11)}
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "ERROR: split-brain! Instance is not part of the majority group, but has state [[*]]",|
+|        "WARNING: Instance is NOT a PRIMARY but super_read_only option is OFF."|
+|    ], |
+|    "memberState": "ONLINE", |
+|    "mode": "R/W", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "(MISSING)",|
+|}, |
+
+//@# instanceError with unmanaged member
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."|
+|    ], |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "ONLINE", |
+|    "version": "[[*]]"|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+
+//@ instanceError with an instance that has its UUID changed
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "WARNING: server_uuid for instance has changed from its last known value. Use cluster.rescan() to update the metadata."|
+|    ], |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "ONLINE", |
+|    "version": "[[*]]"|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+
 //@<OUT> Status cluster
 {
     "clusterName": "cluster",
@@ -19,21 +191,24 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -56,21 +231,27 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceErrors": [
+                    "WARNING: Instance is NOT a PRIMARY but super_read_only option is OFF."
+                ],
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -93,14 +274,16 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -123,21 +306,24 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -160,21 +346,24 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -197,14 +386,16 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"

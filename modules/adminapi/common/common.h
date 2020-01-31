@@ -280,7 +280,7 @@ struct Instance_definition {
 };
 
 namespace ClusterStatus {
-enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, UNKNOWN };
+enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, ERROR, UNKNOWN };
 
 std::string describe(Status state);
 }  // namespace ClusterStatus

@@ -40,17 +40,21 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceErrors": [
+                    "ERROR: GR Recovery channel receiver stopped with an error: error connecting to master 'not_exist@<<<hostname>>>:[[*]]' - retry-time: 60 [[*]]retries: 1[[*]] (1045) at [[*]]"
+                ], 
                 "mode": "R/O",
                 "readReplicas": {},
                 "recovery": {
@@ -60,14 +64,16 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
                 },
                 "recoveryStatusText": "Distributed recovery in progress",
                 "role": "HA",
-                "status": "RECOVERING"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "RECOVERING",
+                "version": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"

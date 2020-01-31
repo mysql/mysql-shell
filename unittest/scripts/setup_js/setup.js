@@ -372,6 +372,33 @@ function exist_in_metadata_schema() {
   return row[0] != 0;
 }
 
+function reset_instance(session) {
+  session.runSql("STOP SLAVE");
+  session.runSql("SET GLOBAL super_read_only=0");
+  session.runSql("SET GLOBAL read_only=0");
+  session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
+  var r = session.runSql("SHOW SCHEMAS");
+  var rows = r.fetchAll();
+  for (var i in rows) {
+      var row = rows[i];
+      if (["mysql", "performance_schema", "sys", "information_schema"].includes(row[0]))
+          continue;
+      session.runSql("DROP SCHEMA "+row[0]);
+  }
+  var r = session.runSql("SELECT user,host FROM mysql.user");
+  var rows = r.fetchAll();
+  for (var i in rows) {
+      var row = rows[i];
+      if (["mysql.sys", "mysql.session", "mysql.infoschema"].includes(row[0]))
+          continue;
+      if (row[0] == "root" && (row[1] == "localhost" || row[1] == "%"))
+          continue;
+      session.runSql("DROP USER ?@?", [row[0], row[1]]);
+  }
+  session.runSql("RESET MASTER");
+  session.runSql("RESET SLAVE ALL");
+}
+
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
@@ -426,6 +453,18 @@ function json_find_key(json, key) {
   }
 
   return undefined;
+}
+
+function wait(timeout, wait_interval, condition) {
+  if (__replaying) wait_interval = 0;
+  waiting = 0;
+  res = condition();
+  while(!res && waiting < timeout) {
+    os.sleep(wait_interval);
+    waiting = waiting + 1;
+    res = condition();
+  }
+  return res;
 }
 
 // --------

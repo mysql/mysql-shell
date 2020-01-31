@@ -66,7 +66,7 @@ enum class Member_state {
   MISSING
 };
 
-enum class Member_role { PRIMARY, SECONDARY };
+enum class Member_role { PRIMARY, SECONDARY, NONE };
 
 enum class Topology_mode { SINGLE_PRIMARY, MULTI_PRIMARY, NONE };
 

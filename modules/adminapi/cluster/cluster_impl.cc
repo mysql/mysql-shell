@@ -1864,7 +1864,7 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
       std::string op = enable_clone ? "enable" : "disable";
 
       std::string err_msg = "Unable to " + op + " clone on the instance '" +
-                            instance_address + "': " + std::string(err.what());
+                            instance_address + "': " + err.format();
 
       // If a cluster member is unreachable, just print a warning. Otherwise
       // print error

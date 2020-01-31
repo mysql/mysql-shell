@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -37,189 +38,6 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
-
-void add_error(const mysqlshdk::mysql::Replication_channel::Error &error,
-               const std::string &prefix, shcore::Dictionary_t status) {
-  status->set(prefix + "Error", shcore::Value(error.message));
-  status->set(prefix + "ErrorNumber", shcore::Value(error.code));
-  status->set(prefix + "ErrorTimestamp", shcore::Value(error.timestamp));
-}
-
-shcore::Dictionary_t make_error(
-    const mysqlshdk::mysql::Replication_channel::Error &error) {
-  return shcore::make_dict("error", shcore::Value(error.message), "errorNumber",
-                           shcore::Value(error.code), "errorTimestamp",
-                           shcore::Value(error.timestamp));
-}
-
-void add_channel_errors(const mysqlshdk::mysql::Replication_channel &channel,
-                        shcore::Dictionary_t status,
-                        const Status_options &opts) {
-  status->set(
-      "receiverStatus",
-      shcore::Value(mysqlshdk::mysql::to_string(channel.receiver.status)));
-  if (!channel.receiver.thread_state.empty())
-    status->set("receiverThreadState",
-                shcore::Value(channel.receiver.thread_state));
-  else
-    status->set("receiverThreadState", shcore::Value(""));
-
-  if (channel.receiver.last_error.code != 0)
-    add_error(channel.receiver.last_error, "receiverLast", status);
-
-  if (opts.show_details) {
-    if (channel.coordinator.state !=
-        mysqlshdk::mysql::Replication_channel::Coordinator::NONE) {
-      status->set("coordinatorState", shcore::Value(mysqlshdk::mysql::to_string(
-                                          channel.coordinator.state)));
-      if (!channel.coordinator.thread_state.empty())
-        status->set("coordinatorThreadState",
-                    shcore::Value(channel.coordinator.thread_state));
-
-      if (channel.coordinator.last_error.code != 0)
-        add_error(channel.coordinator.last_error, "coordinatorLast", status);
-    }
-  }
-
-  {
-    const auto &applier = channel.appliers.front();
-    if (!applier.thread_state.empty())
-      status->set("applierThreadState", shcore::Value(applier.thread_state));
-    else
-      status->set("applierThreadState", shcore::Value(""));
-
-    if (opts.show_details)
-      status->set("applierState",
-                  shcore::Value(mysqlshdk::mysql::to_string(applier.state)));
-
-    mysqlshdk::mysql::Replication_channel::Applier::Status astatus =
-        applier.status;
-
-    shcore::Array_t applier_errors = shcore::make_array();
-    for (const auto &channel_applier : channel.appliers) {
-      if (channel_applier.last_error.code != 0) {
-        applier_errors->push_back(
-            shcore::Value(make_error(channel_applier.last_error)));
-        astatus = mysqlshdk::mysql::Replication_channel::Applier::Status::ERROR;
-      }
-    }
-
-    status->set("applierStatus",
-                shcore::Value(mysqlshdk::mysql::to_string(astatus)));
-
-    if (!applier_errors->empty()) {
-      status->set("applierLastErrors", shcore::Value(applier_errors));
-    }
-  }
-}
-
-void channel_status(shcore::Dictionary_t status, const topology::Server &server,
-                    const topology::Instance &instance,
-                    const Status_options &opts) {
-  const topology::Channel *channel = instance.master_channel.get();
-
-  if ((server.primary_master || server.invalidated) && !channel) return;
-
-  shcore::Dictionary_t rstatus = shcore::make_dict();
-
-  bool show_expected_master = false;
-  if (channel) {
-    add_channel_errors(channel->info, rstatus, opts);
-
-    if (channel->info.status() !=
-        mysqlshdk::mysql::Replication_channel::Status::ON)
-      show_expected_master = true;
-
-    const topology::Instance *actual_master = channel->master_ptr;
-    if (show_expected_master || opts.show_details) {
-      if (actual_master) {
-        rstatus->set("source", shcore::Value(actual_master->label));
-      }
-    }
-    if (!actual_master) {
-      rstatus->set("source", shcore::Value::Null());  // shouldn't happen
-      show_expected_master = true;
-    }
-
-    if (opts.show_details > 1 || channel->info.appliers.size() > 1) {
-      rstatus->set(
-          "applierWorkerThreads",
-          shcore::Value(static_cast<int>(channel->info.appliers.size())));
-    }
-
-    if (opts.show_details > 1 || channel->relay_log_info.sql_delay > 0) {
-      shcore::Dictionary_t conf = shcore::make_dict();
-
-      conf->set("delay", shcore::Value(channel->relay_log_info.sql_delay));
-
-      if (opts.show_details > 1) {
-        conf->set("heartbeatPeriod",
-                  shcore::Value(channel->master_info.heartbeat));
-        conf->set("connectRetry",
-                  shcore::Value(channel->master_info.connect_retry));
-        conf->set("retryCount",
-                  shcore::Value(channel->master_info.retry_count));
-      }
-
-      rstatus->set("options", shcore::Value(conf));
-    }
-
-    if (opts.show_details) {
-      rstatus->set("receiverTimeSinceLastMessage",
-                   shcore::Value(channel->info.time_since_last_message));
-
-      rstatus->set("applierQueuedTransactionSet",
-                   shcore::Value(channel->info.queued_gtid_set_to_apply));
-    }
-    if (!channel->info.queued_gtid_set_to_apply.empty() || opts.show_details) {
-      rstatus->set(
-          "applierQueuedTransactionSetSize",
-          shcore::Value(int64_t(mysqlshdk::mysql::estimate_gtid_set_size(
-              channel->info.queued_gtid_set_to_apply))));
-    }
-
-    if (channel->info.status() ==
-        mysqlshdk::mysql::Replication_channel::Status::ON) {
-      if (channel->info.repl_lag_from_original ==
-          channel->info.repl_lag_from_immediate) {
-        rstatus->set("replicationLag",
-                     channel->info.repl_lag_from_original.empty()
-                         ? shcore::Value::Null()
-                         : shcore::Value(channel->info.repl_lag_from_original));
-      } else {
-        rstatus->set("replicationLagFromOriginalSource",
-                     shcore::Value(channel->info.repl_lag_from_original));
-
-        rstatus->set("replicationLagFromImmediateMaster",
-                     shcore::Value(channel->info.repl_lag_from_immediate));
-      }
-    } else {
-      rstatus->set("replicationLag", shcore::Value::Null());
-    }
-
-    if (auto master =
-            dynamic_cast<const topology::Server *>(server.master_node_ptr)) {
-      if (master->get_primary_member() != actual_master)
-        show_expected_master = true;
-    }
-  } else {
-    rstatus->set("receiverStatus", shcore::Value::Null());
-    rstatus->set("applierStatus", shcore::Value::Null());
-    show_expected_master = true;
-  }
-  if (show_expected_master) {
-    if (auto master =
-            dynamic_cast<const topology::Server *>(server.master_node_ptr)) {
-      rstatus->set("expectedSource", shcore::Value(master->label));
-    } else {
-      // shouldn't happen
-      rstatus->set("expectedSource",
-                   shcore::Value(server.master_instance_uuid));
-    }
-  }
-
-  status->set("replication", shcore::Value(rstatus));
-}
 
 void instance_diagnostics(shcore::Dictionary_t status,
                           const topology::Server &server,
@@ -428,7 +246,24 @@ shcore::Dictionary_t server_status(const topology::Server &server,
   }
 
   if (instance->connect_error.empty()) {
-    channel_status(status, server, *instance, opts);
+    const topology::Channel *channel = instance->master_channel.get();
+
+    if ((!server.primary_master && !server.invalidated) || channel) {
+      std::string expected_source;
+
+      if (!server.primary_master) {
+        expected_source = instance->node_ptr->master_node_ptr
+                              ? instance->node_ptr->master_node_ptr->label
+                              : "";
+      }
+
+      status->set("replication",
+                  shcore::Value(channel_status(
+                      channel ? &channel->info : nullptr,
+                      channel ? &channel->master_info : nullptr,
+                      channel ? &channel->relay_log_info : nullptr,
+                      expected_source, opts.show_details)));
+    }
 
     if (!server.master_instance_uuid.empty() || server.invalidated) {
       shcore::Value txstatus;

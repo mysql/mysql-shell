@@ -15,13 +15,8 @@
                 "replicationLag": null, 
 ?{}
                 "role": "HA", 
-?{VER(<8.0.16)}
-                "status": "ONLINE"
-?{}
-?{VER(>=8.0.16)}
                 "status": "ONLINE", 
                 "version": "[[*]]"
-?{}
             }
         }, 
         "topologyMode": "Multi-Primary"

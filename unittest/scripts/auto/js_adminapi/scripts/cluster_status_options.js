@@ -129,7 +129,8 @@ const base_status_templ_57 = {
                 "mode": "",
                 "readReplicas": {},
                 "role": "",
-                "status": ""
+                "status": "",
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -224,6 +225,7 @@ const extended_1_status_templ_57 = {
                 "readReplicas": {},
                 "role": "",
                 "status": "",
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -345,7 +347,8 @@ const extended_2_status_templ_57 = {
                     "conflictsDetectedCount": 0,
                     "inQueueCount": 0,
                     "lastConflictFree" : ""
-                }
+                },
+                "version": __version
             }
         },
         "topologyMode": "Single-Primary"
@@ -833,12 +836,12 @@ cluster.addInstance(__sandbox_uri2, {waitRecovery: 0});
 //@<> F7- Check that recovery stats are there 5.7 - extended 2 {VER(<8.0)}
 var stat = cluster.status({extended:2});
 var allowed_missing = ["transactions"];
-var allowed_unexpected = ["recovery", "recoveryStatusText", ["replicationLag"]];
+var allowed_unexpected = ["recovery", "recoveryStatusText", ["replicationLag"], "instanceErrors"];
 json_check(stat, extended_2_status_templ_57, allowed_missing, allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 - extended 2 {VER(>=8.0) && VER(<8.0.23)}
 var stat = cluster.status({extended:2});
-var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag"];
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
 json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.23)}
@@ -856,7 +859,7 @@ allowed_missing.push("currentlyQueueing");
 
 //@<> F7- Check that recovery stats for transactions are there 8.0 {VER(>=8.0) && VER(<8.0.23)}
 var transactions = json_find_key(stat, "transactions");
-json_check(transactions, transaction_status_templ, allowed_missing);
+json_check(transactions, transaction_status_templ, allowed_missing, ["recoveryChannel"]);
 
 //@<> F7- Check that recovery stats for transactions are there 8.0.23 {VER(>=8.0.23)}
 var transactions = json_find_key(stat, "transactions");
@@ -869,7 +872,7 @@ json_check(transactions["coordinator"], coordinator_status_templ_80);
 
 // WL13208-TS_FR8_3 - Distributed Recovery displays state
 var recovery = json_find_key(stat, "recovery");
-json_check(recovery, distributed_recovery_status_templ);
+json_check(recovery, distributed_recovery_status_templ, [], ["recoveryChannel"]);
 
 // Wait recovery to finish
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -904,7 +907,7 @@ while (recovery["currentStage"] == undefined) {
 }
 
 var allowed_missing = ["currentStageProgress"];
-json_check(recovery, clone_recovery_status_templ, allowed_missing);
+json_check(recovery, clone_recovery_status_templ, allowed_missing, ["recoveryChannel"]);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

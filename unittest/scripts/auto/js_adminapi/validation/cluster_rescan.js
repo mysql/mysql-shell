@@ -22,21 +22,24 @@
                 "mode": "R/W", 
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }, 
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O", 
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -169,7 +172,30 @@ WARNING: The following instances were not removed from the metadata because they
                 "mode": "R/W", 
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA", 
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
+            }, 
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -223,21 +249,24 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -260,7 +289,30 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
+            }, 
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -313,21 +365,24 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -350,7 +405,30 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
+            }, 
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -401,14 +479,27 @@ A new instance '<<<member_address3>>>' was discovered in the cluster.
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<member_address3>>>": {
+                "address": "<<<member_address3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -431,7 +522,30 @@ A new instance '<<<member_address3>>>' was discovered in the cluster.
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
+            }, 
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -484,21 +598,24 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -521,7 +638,30 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
+            }, 
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
+                "instanceErrors": [
+                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
+                ], 
+                "mode": "R/O", 
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA", 
+                "status": "ONLINE", 
+                "version": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"
@@ -574,21 +714,24 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address3>>>": {
                 "address": "<<<member_address3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -607,14 +750,15 @@ The instance '<<<member_address3>>>' was successfully added to the cluster metad
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<member_address2>>>": {
                 "address": "<<<member_address2>>>",
@@ -689,7 +833,8 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -711,14 +856,15 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -794,7 +940,8 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -816,14 +963,15 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -890,14 +1038,15 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the cluster.
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
@@ -927,14 +1076,15 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the cluster.
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -1009,7 +1159,8 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -1031,14 +1182,15 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
+        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -1113,7 +1265,8 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -1154,21 +1307,24 @@ mm
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Single-Primary"
@@ -1198,21 +1354,24 @@ auto_increment_offset: 2
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
-                "status": "ONLINE"<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
+                "status": "ONLINE",
+                "version": "<<<__version>>>"
             }
         },
         "topologyMode": "Multi-Primary"

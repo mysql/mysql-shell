@@ -2269,7 +2269,7 @@ int Testutils::wait_for_rpl_applier_error(int port,
   int elapsed_time = 0;
   int last_error_num = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
-  const mysqlshdk::db::IRow *row;
+  const mysqlshdk::db::IRow *row = nullptr;
 
   const uint32_t sleep_time = mysqlshdk::db::replay::g_replay_mode ==
                                       mysqlshdk::db::replay::Mode::Replay
@@ -2278,9 +2278,11 @@ int Testutils::wait_for_rpl_applier_error(int port,
 
   int timeout = k_wait_repl_connection_error;
   std::string service_state = "ON";
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
   while (elapsed_time < timeout) {
     // NOTE: It is assumed that MTS is not used (checking status of one worker).
-    auto result = session->queryf(
+    result = session->queryf(
         "SELECT service_state, last_error_number, last_error_message, "
         "last_error_timestamp "
         "FROM performance_schema.replication_applier_status_by_worker "
@@ -2300,8 +2302,6 @@ int Testutils::wait_for_rpl_applier_error(int port,
     elapsed_time += 1;
     shcore::sleep_ms(sleep_time);
   }
-
-  session->close();
 
   if (last_error_num == 0) {
     // Print some debug information if timeout is reached.

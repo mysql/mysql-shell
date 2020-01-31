@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -114,6 +114,8 @@ std::string to_string(const Member_role role) {
       return "PRIMARY";
     case Member_role::SECONDARY:
       return "SECONDARY";
+    case Member_role::NONE:
+      return "NONE";
   }
   throw std::logic_error("invalid role");
 }
@@ -123,6 +125,8 @@ Member_role to_member_role(const std::string &role) {
     return Member_role::PRIMARY;
   } else if (shcore::str_casecmp("SECONDARY", role.c_str()) == 0) {
     return Member_role::SECONDARY;
+  } else if (role.empty()) {
+    return Member_role::NONE;
   } else {
     throw std::runtime_error("Unsupported GR member role value: " + role);
   }
@@ -247,6 +251,8 @@ bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
  */
 bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
                 int *out_unreachable, int *out_total) {
+  // Note: ERROR members aren't supposed to be in the members list (except for
+  // itself), but there's a GR bug.
   const char *q =
       "SELECT "
       "  CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNRCH,"
@@ -254,7 +260,8 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
       "  (SELECT member_state"
       "      FROM performance_schema.replication_group_members"
       "      WHERE member_id = @@server_uuid) AS my_state"
-      "  FROM performance_schema.replication_group_members";
+      "  FROM performance_schema.replication_group_members"
+      "  WHERE member_id = @@server_uuid OR member_state <> 'ERROR'";
 
   std::shared_ptr<db::IResult> resultset = instance.query(q);
   auto row = resultset->fetch_one();
@@ -290,10 +297,14 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
  *         https://dev.mysql.com/doc/refman/5.7/en/group-replication-server-states.html
  */
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
+  // replication_group_members will have a single row with member_id = '' and
+  // member_state = OFFLINE in 5.7 if the server is started and GR doesn't
+  // auto-start.
   static const char *member_state_stmt =
       "SELECT member_state "
       "FROM performance_schema.replication_group_members "
-      "WHERE member_id = @@server_uuid";
+      "WHERE member_id = @@server_uuid OR"
+      " (member_id = '' AND member_state = 'OFFLINE')";
   auto resultset = instance.query(member_state_stmt);
   auto row = resultset->fetch_one();
   if (row) {
@@ -331,6 +342,9 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
   std::shared_ptr<db::IResult> result;
   const char *query;
 
+  // Note: member_state is supposed to not be possible to be ERROR except
+  // for the queried member itself, but that's not true because of a bug in GR
+
   // 8.0.2 added member_role and member_version columns
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     query =
@@ -340,6 +354,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
         " LEFT JOIN performance_schema.replication_group_member_stats s"
         "   ON m.member_id = s.member_id"
         "      AND s.channel_name = 'group_replication_applier'"
+        " WHERE m.member_id = @@server_uuid OR m.member_state <> 'ERROR'"
         " ORDER BY m.member_id";
   } else {
     // query the old way
@@ -355,6 +370,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
         " LEFT JOIN performance_schema.replication_group_member_stats s"
         "   ON m.member_id = s.member_id"
         "     AND s.channel_name = 'group_replication_applier'"
+        " WHERE m.member_id = @@server_uuid OR m.member_state <> 'ERROR'"
         " ORDER BY m.member_id";
   }
 
@@ -448,7 +464,9 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
         " member_state, "
         " (SELECT "
         "   sum(IF(member_state in ('ONLINE', 'RECOVERING'), 1, 0)) > sum(1)/2 "
-        "  FROM performance_schema.replication_group_members) has_quorum,"
+        "  FROM performance_schema.replication_group_members"
+        "  WHERE member_id = @@server_uuid OR member_state <> 'ERROR'"
+        " ) has_quorum,"
         " COALESCE(/*!80002 member_role = 'PRIMARY', NULL AND */"
         "     NOT @@group_replication_single_primary_mode OR"
         "     member_id = (select variable_value"

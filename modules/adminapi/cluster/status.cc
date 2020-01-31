@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/status.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/sql.h"
@@ -128,15 +129,14 @@ void Status::connect_to_members() {
 
 shcore::Dictionary_t Status::check_group_status(
     const mysqlsh::dba::Instance &instance,
-    const std::vector<mysqlshdk::gr::Member> &members) {
+    const std::vector<mysqlshdk::gr::Member> &members, bool has_quorum) {
   shcore::Dictionary_t dict = shcore::make_dict();
 
-  int unreachable_in_group;
-  int total_in_group;
-  bool has_quorum = mysqlshdk::gr::has_quorum(instance, &unreachable_in_group,
-                                              &total_in_group);
   m_no_quorum = !has_quorum;
 
+  int total_in_group = 0;
+  int online_count = 0;
+  int quorum_size = 0;
   // count inconsistencies in the group vs metadata
   int missing_from_group = 0;
   int missing_from_md = 0;
@@ -157,16 +157,29 @@ shcore::Dictionary_t Status::check_group_status(
                      }) != m_instances.end()) {
       missing_from_md++;
     }
+
+    total_in_group++;
+    if (member.state == mysqlshdk::gr::Member_state::ONLINE ||
+        member.state == mysqlshdk::gr::Member_state::RECOVERING)
+      quorum_size++;
+    if (member.state == mysqlshdk::gr::Member_state::ONLINE) online_count++;
   }
 
-  size_t online_count = total_in_group - unreachable_in_group;
   size_t number_of_failures_tolerated =
-      online_count > 0 ? (online_count - 1) / 2 : 0;
+      quorum_size > 0 ? (quorum_size - 1) / 2 : 0;
 
   ClusterStatus::Status rs_status;
   std::string desc_status;
 
-  if (!has_quorum) {
+  if (online_count == 0) {
+    rs_status = ClusterStatus::ERROR;
+    if (has_quorum)
+      desc_status = "There are no ONLINE members in the cluster.";
+    else
+      desc_status = "Cluster has no quorum as visible from '" +
+                    instance.descr() +
+                    "' and no ONLINE members that can be used to restore it.";
+  } else if (!has_quorum) {
     rs_status = ClusterStatus::NO_QUORUM;
     desc_status = "Cluster has no quorum as visible from '" + instance.descr() +
                   "' and cannot process write transactions.";
@@ -176,7 +189,7 @@ shcore::Dictionary_t Status::check_group_status(
 
       desc_status = "Cluster is NOT tolerant to any failures.";
     } else {
-      if (missing_from_group + unreachable_in_group > 0) {
+      if (missing_from_group > 0 || total_in_group != quorum_size) {
         rs_status = ClusterStatus::OK_PARTIAL;
       } else {
         rs_status = ClusterStatus::OK;
@@ -192,13 +205,13 @@ shcore::Dictionary_t Status::check_group_status(
     }
   }
 
-  if (m_instances.size() > online_count) {
+  if (static_cast<int>(m_instances.size()) > online_count) {
     if (m_instances.size() - online_count == 1) {
-      desc_status.append(" 1 member is not active");
+      desc_status.append(" 1 member is not active.");
     } else {
       desc_status.append(" " +
                          std::to_string(m_instances.size() - online_count) +
-                         " members are not active");
+                         " members are not active.");
     }
   }
 
@@ -569,9 +582,7 @@ void Status::collect_local_status(shcore::Dictionary_t dict,
     (*dict)["recovery"] = shcore::Value(recovery_node);
   }
 
-  if (version < Version(8, 0, 2)) {
-    (*dict)["version"] = shcore::Value(version.get_full());
-  }
+  (*dict)["version"] = shcore::Value(version.get_full());
 }
 
 void Status::feed_metadata_info(shcore::Dictionary_t dict,
@@ -584,7 +595,7 @@ void Status::feed_member_info(
     shcore::Dictionary_t dict, const mysqlshdk::gr::Member &member,
     const mysqlshdk::utils::nullable<bool> &super_read_only,
     const std::vector<std::string> &fence_sysvars,
-    bool is_auto_rejoin_running) {
+    mysqlshdk::gr::Member_state self_state, bool is_auto_rejoin_running) {
   (*dict)["readReplicas"] = shcore::Value(shcore::make_dict());
 
   if (!m_extended.is_null() && *m_extended >= 1) {
@@ -599,10 +610,15 @@ void Status::feed_member_info(
     (*dict)["memberId"] = shcore::Value(member.uuid);
     (*dict)["memberRole"] =
         shcore::Value(mysqlshdk::gr::to_string(member.role));
+  }
+  if ((!m_extended.is_null() && *m_extended >= 1) ||
+      member.state != self_state) {
+    // memberState is from the point of view of the member itself
     (*dict)["memberState"] =
-        shcore::Value(mysqlshdk::gr::to_string(member.state));
+        shcore::Value(mysqlshdk::gr::to_string(self_state));
   }
 
+  // status is the status from the point of view of the quorum
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
 
   // Set the instance mode (read-only or read-write).
@@ -659,11 +675,12 @@ shcore::Value distributed_progress(
                 shcore::Value(channel.receiver.last_error.message));
     }
 
-    if (!channel.appliers.empty() && channel.appliers[0].last_error.code != 0) {
-      dict->set("applierErrorNumber",
-                shcore::Value(channel.appliers[0].last_error.code));
-      dict->set("applierError",
-                shcore::Value(channel.appliers[0].last_error.message));
+    for (const auto &applier : channel.appliers) {
+      if (applier.last_error.code != 0) {
+        dict->set("applierErrorNumber", shcore::Value(applier.last_error.code));
+        dict->set("applierError", shcore::Value(applier.last_error.message));
+        break;
+      }
     }
   }
   return shcore::Value(dict);
@@ -748,11 +765,105 @@ std::pair<std::string, shcore::Value> recovery_status(
 
   return {status, info};
 }
+
+struct Instance_metadata_info {
+  Instance_metadata md;
+  std::string actual_server_uuid;
+};
+
+shcore::Array_t instance_diagnostics(
+    const Instance_metadata_info &instance_md,
+    const mysqlshdk::mysql::Replication_channel &recovery_channel,
+    const mysqlshdk::mysql::Replication_channel &applier_channel,
+    const mysqlshdk::utils::nullable<bool> &super_read_only,
+    mysqlshdk::gr::Member_state state, mysqlshdk::gr::Member_state self_state,
+    mysqlshdk::gr::Member_role role) {
+  using mysqlshdk::mysql::Replication_channel;
+
+  auto check_channel_error = [](shcore::Array_t issues,
+                                const std::string &channel_label,
+                                const Replication_channel &channel) {
+    switch (channel.status()) {
+      case Replication_channel::OFF:
+      case Replication_channel::ON:
+      case Replication_channel::RECEIVER_OFF:
+      case Replication_channel::APPLIER_OFF:
+      case Replication_channel::CONNECTING:
+        break;
+      case Replication_channel::CONNECTION_ERROR:
+        issues->push_back(shcore::Value(
+            "ERROR: " + channel_label +
+            " channel receiver stopped with an error: " +
+            mysqlshdk::mysql::to_string(channel.receiver.last_error)));
+        break;
+      case Replication_channel::APPLIER_ERROR:
+        for (const auto &a : channel.appliers) {
+          if (a.last_error.code != 0) {
+            issues->push_back(
+                shcore::Value("ERROR: " + channel_label +
+                              " channel applier stopped with an error: " +
+                              mysqlshdk::mysql::to_string(a.last_error)));
+            break;
+          }
+        }
+        break;
+    }
+  };
+
+  shcore::Array_t issues = shcore::make_array();
+
+  // split-brain
+  if ((state == mysqlshdk::gr::Member_state::UNREACHABLE ||
+       state == mysqlshdk::gr::Member_state::MISSING) &&
+      (self_state == mysqlshdk::gr::Member_state::ONLINE ||
+       self_state == mysqlshdk::gr::Member_state::RECOVERING)) {
+    issues->push_back(shcore::Value(
+        "ERROR: split-brain! Instance is not part of the majority group, "
+        "but has state " +
+        to_string(self_state)));
+  }
+  // SECONDARY that's not SRO
+  if (role == mysqlshdk::gr::Member_role::SECONDARY &&
+      self_state != mysqlshdk::gr::Member_state::RECOVERING &&
+      !super_read_only.is_null() && !*super_read_only) {
+    issues->push_back(
+        shcore::Value("WARNING: Instance is NOT a PRIMARY but super_read_only "
+                      "option is OFF."));
+  }
+
+  check_channel_error(issues, "GR Recovery", recovery_channel);
+  check_channel_error(issues, "GR Applier", applier_channel);
+
+  if (self_state == mysqlshdk::gr::Member_state::OFFLINE) {
+    issues->push_back(shcore::Value("NOTE: group_replication is stopped."));
+  } else if (self_state == mysqlshdk::gr::Member_state::ERROR) {
+    issues->push_back(
+        shcore::Value("ERROR: group_replication has stopped with an error."));
+  }
+
+  if (instance_md.actual_server_uuid != instance_md.md.uuid)
+    issues->push_back(
+        shcore::Value("WARNING: server_uuid for instance has changed from "
+                      "its last known value. Use cluster.rescan() to update "
+                      "the metadata."));
+  else if (instance_md.md.cluster_id.empty() &&
+           self_state != mysqlshdk::gr::Member_state::RECOVERING)
+    issues->push_back(
+        shcore::Value("WARNING: Instance is not managed by InnoDB cluster. Use "
+                      "cluster.rescan() to repair."));
+
+  if (!issues->empty())
+    return issues;
+  else
+    return nullptr;
+}
 }  // namespace
 
 shcore::Dictionary_t Status::get_topology(
-    const std::vector<mysqlshdk::gr::Member> &member_info,
-    const mysqlsh::dba::Instance * /* primary_instance */) {
+    const std::vector<mysqlshdk::gr::Member> &member_info) {
+  using mysqlshdk::gr::Member_state;
+  using mysqlshdk::mysql::Replication_channel;
+
   Member_stats_map member_stats = query_member_stats();
 
   shcore::Dictionary_t dict = shcore::make_dict();
@@ -764,22 +875,109 @@ shcore::Dictionary_t Status::get_topology(
     return mysqlshdk::gr::Member();
   };
 
-  for (const auto &inst : m_instances) {
-    shcore::Dictionary_t member = shcore::make_dict();
-    mysqlshdk::gr::Member minfo(get_member(inst.uuid));
+  std::vector<Instance_metadata_info> instances;
 
-    auto instance(m_member_sessions[inst.endpoint]);
+  // add placeholders for unmanaged members
+  for (const auto &m : member_info) {
+    bool found = false;
+    for (const auto &i : m_instances) {
+      if (i.uuid == m.uuid) {
+        Instance_metadata_info mdi;
+        mdi.md = i;
+        mdi.actual_server_uuid = m.uuid;
+        instances.emplace_back(std::move(mdi));
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // if instance in MD was not found by uuid, then search by address
+      for (const auto &i : m_instances) {
+        if (i.address == m.host + ":" + std::to_string(m.port)) {
+          log_debug(
+              "Instance with address=%s is in group, but UUID doesn't match "
+              "group=%s MD=%s",
+              i.endpoint.c_str(), m.uuid.c_str(), i.uuid.c_str());
+
+          Instance_metadata_info mdi;
+          mdi.md = i;
+          mdi.actual_server_uuid = m.uuid;
+          instances.emplace_back(std::move(mdi));
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) {
+      Instance_metadata_info mdi;
+      mdi.md.address = m.host + ":" + std::to_string(m.port);
+      mdi.md.label = mdi.md.address;
+      mdi.md.uuid = m.uuid;
+      mdi.md.endpoint = mdi.md.address;
+      mdi.actual_server_uuid = mdi.md.uuid;
+
+      log_debug("Instance %s with uuid=%s found in group but not in MD",
+                mdi.md.address.c_str(), m.uuid.c_str());
+
+      auto group_instance = m_cluster.get_target_server();
+
+      mysqlshdk::db::Connection_options opts(mdi.md.endpoint);
+      mysqlshdk::db::Connection_options group_session_copts(
+          group_instance->get_connection_options());
+      opts.set_login_options_from(group_session_copts);
+      try {
+        m_member_sessions[mdi.md.endpoint] = Instance::connect(opts);
+      } catch (const shcore::Error &e) {
+        m_member_connect_errors[mdi.md.endpoint] = e.format();
+      }
+
+      instances.emplace_back(std::move(mdi));
+    }
+  }
+  // look for instances in MD but not in group
+  for (const auto &i : m_instances) {
+    bool found = false;
+    for (const auto &m : member_info) {
+      if (m.uuid == i.uuid ||
+          i.endpoint == m.host + ":" + std::to_string(m.port)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      log_debug("Instance with uuid=%s address=%s is in MD but not in group",
+                i.uuid.c_str(), i.endpoint.c_str());
+      Instance_metadata_info mdi;
+      mdi.md = i;
+      mdi.actual_server_uuid = i.uuid;
+      instances.emplace_back(std::move(mdi));
+    }
+  }
+
+  for (const auto &inst : instances) {
+    shcore::Dictionary_t member = shcore::make_dict();
+    mysqlshdk::gr::Member minfo(get_member(inst.actual_server_uuid));
+    mysqlshdk::gr::Member_state self_state =
+        mysqlshdk::gr::Member_state::MISSING;
+
+    auto instance(m_member_sessions[inst.md.endpoint]);
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;
     bool auto_rejoin = false;
 
+    Replication_channel applier_channel;
+    Replication_channel recovery_channel;
     if (instance) {
       // Get super_read_only value of each instance to set the mode accurately.
       super_read_only = instance->get_sysvar_bool("super_read_only");
 
       // Check if auto-rejoin is running.
       auto_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
+
+      self_state = mysqlshdk::gr::get_member_state(*instance);
+
+      minfo.version = instance->get_version().get_base();
 
       if (!m_extended.is_null()) {
         if (*m_extended >= 1) {
@@ -794,43 +992,94 @@ shcore::Dictionary_t Status::get_topology(
         }
 
         if (*m_extended >= 3) {
-          collect_local_status(
-              member, *instance,
-              minfo.state == mysqlshdk::gr::Member_state::RECOVERING);
+          collect_local_status(member, *instance,
+                               minfo.state == Member_state::RECOVERING);
         } else {
-          if (minfo.state == mysqlshdk::gr::Member_state::ONLINE) {
+          if (minfo.state == Member_state::ONLINE)
             collect_basic_local_status(member, *instance);
-          }
         }
 
-        if (minfo.state == mysqlshdk::gr::Member_state::RECOVERING) {
+        shcore::Value recovery_info;
+        if (minfo.state == Member_state::RECOVERING) {
           std::string status;
-          shcore::Value info;
           // Get the join timestamp from the Metadata
           shcore::Value join_time;
           m_cluster.get_metadata_storage()->query_instance_attribute(
               instance->get_uuid(), k_instance_attribute_join_time, &join_time);
 
-          std::tie(status, info) = recovery_status(
+          std::tie(status, recovery_info) = recovery_status(
               *instance,
               join_time.type == shcore::String ? join_time.as_string() : "");
           if (!status.empty()) {
             (*member)["recoveryStatusText"] = shcore::Value(status);
           }
-          if (info) (*member)["recovery"] = info;
+        }
+
+        // Include recovery channel info if RECOVERING or if there's an error
+        if (mysqlshdk::mysql::get_channel_status(
+                *instance, mysqlshdk::gr::k_gr_recovery_channel,
+                &recovery_channel) &&
+            *m_extended > 0) {
+          if (minfo.state == Member_state::RECOVERING ||
+              recovery_channel.status() != Replication_channel::OFF) {
+            mysqlshdk::mysql::Replication_channel_master_info master_info;
+            mysqlshdk::mysql::Replication_channel_relay_log_info relay_info;
+
+            mysqlshdk::mysql::get_channel_info(
+                *instance, mysqlshdk::gr::k_gr_recovery_channel, &master_info,
+                &relay_info);
+
+            if (!recovery_info) recovery_info = shcore::Value::new_map();
+
+            (*recovery_info.as_map())["recoveryChannel"] = shcore::Value(
+                channel_status(&recovery_channel, &master_info, &relay_info, "",
+                               *m_extended - 1, true, false));
+          }
+        }
+        if (recovery_info) (*member)["recovery"] = recovery_info;
+
+        // Include applier channel info ONLINE and channel not ON
+        // or != RECOVERING and channel not OFF
+        if (mysqlshdk::mysql::get_channel_status(
+                *instance, mysqlshdk::gr::k_gr_applier_channel,
+                &applier_channel) &&
+            *m_extended > 0) {
+          if ((self_state == Member_state::ONLINE &&
+               applier_channel.status() != Replication_channel::ON) ||
+              (self_state != Member_state::RECOVERING &&
+               self_state != Member_state::ONLINE &&
+               applier_channel.status() != Replication_channel::OFF)) {
+            mysqlshdk::mysql::Replication_channel_master_info master_info;
+            mysqlshdk::mysql::Replication_channel_relay_log_info relay_info;
+
+            mysqlshdk::mysql::get_channel_info(
+                *instance, mysqlshdk::gr::k_gr_applier_channel, &master_info,
+                &relay_info);
+
+            (*member)["applierChannel"] = shcore::Value(
+                channel_status(&applier_channel, &master_info, &relay_info, "",
+                               *m_extended - 1, false, false));
+          }
         }
       }
+
     } else {
       (*member)["shellConnectError"] =
-          shcore::Value(m_member_connect_errors[inst.endpoint]);
+          shcore::Value(m_member_connect_errors[inst.md.endpoint]);
     }
-
-    feed_metadata_info(member, inst);
-    feed_member_info(member, minfo, super_read_only, fence_sysvars,
+    feed_metadata_info(member, inst.md);
+    feed_member_info(member, minfo, super_read_only, fence_sysvars, self_state,
                      auto_rejoin);
 
+    shcore::Array_t issues = instance_diagnostics(
+        inst, recovery_channel, applier_channel, super_read_only, minfo.state,
+        self_state, minfo.role);
+    if (issues && !issues->empty()) {
+      (*member)["instanceErrors"] = shcore::Value(issues);
+    }
+
     if ((!m_extended.is_null() && *m_extended >= 2) &&
-        member_stats.find(inst.uuid) != member_stats.end()) {
+        member_stats.find(inst.md.uuid) != member_stats.end()) {
       shcore::Dictionary_t mdict = member;
 
       auto dict_for = [mdict](const std::string &key) {
@@ -840,16 +1089,17 @@ shcore::Dictionary_t Status::get_topology(
         return mdict->get_map(key);
       };
 
-      if (member_stats[inst.uuid].first) {
-        feed_member_stats(dict_for("recovery"), member_stats[inst.uuid].first);
+      if (member_stats[inst.md.uuid].first) {
+        feed_member_stats(dict_for("recovery"),
+                          member_stats[inst.md.uuid].first);
       }
-      if (member_stats[inst.uuid].second) {
+      if (member_stats[inst.md.uuid].second) {
         feed_member_stats(dict_for("transactions"),
-                          member_stats[inst.uuid].second);
+                          member_stats[inst.md.uuid].second);
       }
     }
 
-    (*dict)[inst.label] = shcore::Value(member);
+    (*dict)[inst.md.label] = shcore::Value(member);
   }
 
   return dict;
@@ -904,16 +1154,16 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
 
   bool single_primary;
   std::string view_id;
+  bool has_quorum;
   std::vector<mysqlshdk::gr::Member> member_info(mysqlshdk::gr::get_members(
-      *group_instance, &single_primary, nullptr, &view_id));
+      *group_instance, &single_primary, &has_quorum, &view_id));
 
-  tmp = check_group_status(*group_instance, member_info);
+  tmp = check_group_status(*group_instance, member_info, has_quorum);
   (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
   (*ret)["status"] = shcore::Value(tmp->get_string("status"));
   if (!m_extended.is_null() && *m_extended >= 1)
     (*ret)["groupViewId"] = shcore::Value(view_id);
 
-  bool has_primary = false;
   std::shared_ptr<Instance> primary_instance;
   {
     if (single_primary) {
@@ -925,7 +1175,6 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
           if (primary) {
             auto s = m_member_sessions.find(primary->endpoint);
             if (s != m_member_sessions.end()) {
-              has_primary = true;
               primary_instance = s->second;
             }
             (*ret)["primary"] = shcore::Value(primary->endpoint);
@@ -935,8 +1184,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
       }
     }
   }
-  (*ret)["topology"] = shcore::Value(get_topology(
-      member_info, has_primary ? primary_instance.get() : nullptr));
+  (*ret)["topology"] = shcore::Value(get_topology(member_info));
 
   return ret;
 }

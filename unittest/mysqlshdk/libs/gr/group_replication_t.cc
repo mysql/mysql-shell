@@ -1472,7 +1472,8 @@ TEST_F(Group_replication_test, is_protocol_upgrade_required) {
           "performance_schema.replication_group_members m LEFT JOIN "
           "performance_schema.replication_group_member_stats s   ON "
           "m.member_id = s.member_id      AND s.channel_name = "
-          "'group_replication_applier' ORDER BY m.member_id")
+          "'group_replication_applier' WHERE m.member_id = @@server_uuid OR "
+          "m.member_state <> 'ERROR' ORDER BY m.member_id")
       .then_return(
           {{"",
             {"member_id", "member_state", "member_host", "member_port",
@@ -1527,7 +1528,8 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
           "performance_schema.replication_group_members m LEFT JOIN "
           "performance_schema.replication_group_member_stats s   ON "
           "m.member_id = s.member_id      AND s.channel_name = "
-          "'group_replication_applier' ORDER BY m.member_id")
+          "'group_replication_applier' WHERE m.member_id = @@server_uuid OR "
+          "m.member_state <> 'ERROR' ORDER BY m.member_id")
       .then_return(
           {{"",
             {"member_id", "member_state", "member_host", "member_port",

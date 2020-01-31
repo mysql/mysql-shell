@@ -99,7 +99,7 @@ class Status : public Command_interface {
 
   shcore::Dictionary_t check_group_status(
       const mysqlsh::dba::Instance &instance,
-      const std::vector<mysqlshdk::gr::Member> &members);
+      const std::vector<mysqlshdk::gr::Member> &members, bool has_quorum);
 
   const Instance_metadata *instance_with_uuid(const std::string &uuid);
 
@@ -138,14 +138,14 @@ class Status : public Command_interface {
                         const mysqlshdk::gr::Member &member,
                         const mysqlshdk::utils::nullable<bool> &super_read_only,
                         const std::vector<std::string> &fence_sysvars,
+                        mysqlshdk::gr::Member_state self_state,
                         bool is_auto_rejoin_running);
 
   void feed_member_stats(shcore::Dictionary_t dict,
                          const mysqlshdk::db::Row_by_name &stats);
 
   shcore::Dictionary_t get_topology(
-      const std::vector<mysqlshdk::gr::Member> &member_info,
-      const mysqlsh::dba::Instance *primary_instance);
+      const std::vector<mysqlshdk::gr::Member> &member_info);
 
   shcore::Dictionary_t collect_replicaset_status();
 };

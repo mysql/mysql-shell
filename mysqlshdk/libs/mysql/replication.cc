@@ -440,8 +440,8 @@ void unserialize_channel_master_info(
 void unserialize_channel_relay_log_info(
     const mysqlshdk::db::Row_ref_by_name &row,
     Replication_channel_relay_log_info *out_relay_log_info) {
-  out_relay_log_info->relay_log_name = row.get_string("Relay_log_name");
-  out_relay_log_info->relay_log_pos = row.get_uint("Relay_log_pos");
+  out_relay_log_info->relay_log_name = row.get_string("Relay_log_name", "");
+  out_relay_log_info->relay_log_pos = row.get_uint("Relay_log_pos", 0);
   out_relay_log_info->master_log_name = row.get_string("Master_log_name");
   out_relay_log_info->master_log_pos = row.get_uint("Master_log_pos");
   out_relay_log_info->sql_delay = row.get_uint("Sql_delay");
