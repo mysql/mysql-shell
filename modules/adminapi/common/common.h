@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,6 +44,13 @@
 #include "scripting/types.h"
 
 namespace mysqlsh {
+
+// Return how many iterations are needed for a given timeout in seconds using
+// the given polling interval in milliseconds
+inline int adjust_timeout(int timeout, int poll_interval) {
+  return (timeout * poll_interval) / 1000;
+}
+
 namespace dba {
 
 class cancel_sync : public std::exception {};

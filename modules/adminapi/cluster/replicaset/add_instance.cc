@@ -848,7 +848,7 @@ shcore::Value Add_instance::execute() {
       monitor_gr_recovery_status(
           m_instance_cnx_opts, join_begin_time, m_progress_style,
           k_recovery_start_timeout,
-          mysqlshdk::mysql::k_server_recovery_restart_timeout);
+          current_shell_options()->get().dba_restart_wait_timeout);
     } catch (const shcore::Exception &e) {
       // If the recovery itself failed we abort, but monitoring errors can be
       // ignored.
@@ -867,10 +867,12 @@ shcore::Value Add_instance::execute() {
           "MySQL server, but it has not yet started back up.");
 
       console->print_info();
-      console->print_info("Please make sure the MySQL server at '" +
-                          m_target_instance->descr() +
-                          "' is restarted and call "
-                          "<Cluster>.rescan() to complete the process.");
+      console->print_info(
+          "Please make sure the MySQL server at '" +
+          m_target_instance->descr() +
+          "' is restarted and call <Cluster>.rescan() to complete the process. "
+          "To increase the timeout, change "
+          "shell.options[\"dba.restartWaitTimeout\"].");
 
       throw shcore::Exception("Timeout waiting for server to restart",
                               SHERR_DBA_SERVER_RESTART_TIMEOUT);

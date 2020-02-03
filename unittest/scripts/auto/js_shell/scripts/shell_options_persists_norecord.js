@@ -116,6 +116,13 @@ os.loadTextFile(options_file);
 shell.options.unsetPersist("dba.gtidWaitTimeout");
 shell.options["dba.gtidWaitTimeout"]
 
+//@ dba.restartWaitTimeout update and set back to default using shell.options
+shell.options.setPersist("dba.restartWaitTimeout", "180");
+shell.options["dba.restartWaitTimeout"]
+os.loadTextFile(options_file);
+shell.options.unsetPersist("dba.restartWaitTimeout");
+shell.options["dba.restartWaitTimeout"]
+
 //@ dba.logSql update and set back to default using shell.options
 // WL#13294
 shell.options.setPersist("dba.logSql", "1");
@@ -235,6 +242,13 @@ os.loadTextFile(options_file);
 \option --unset --persist dba.gtidWaitTimeout
 \option dba.gtidWaitTimeout
 
+//@ dba.restartWaitTimeout update and set back to default using \option
+\option --persist dba.restartWaitTimeout = 120
+\option dba.restartWaitTimeout
+os.loadTextFile(options_file);
+\option --unset --persist dba.restartWaitTimeout
+\option dba.restartWaitTimeout
+
 //@ dba.logSql update and set back to default using \option
 // WL#13294
 \option --persist dba.logSql = 2
@@ -300,6 +314,14 @@ shell.options.unset(InvalidOption)
 \option dba.gtidWaitTimeout = 0
 \option dba.gtidWaitTimeout = 1
 \option --unset dba.gtidWaitTimeout
+
+//@ Verify option dba.restartWaitTimeout
+\option dba.restartWaitTimeout = 0.2
+\option dba.restartWaitTimeout = -1
+\option dba.restartWaitTimeout = "Hello world"
+\option dba.restartWaitTimeout = 0
+\option dba.restartWaitTimeout = 1
+\option --unset dba.restartWaitTimeout
 
 //@ Verify option dba.logSql
 // WL#13294

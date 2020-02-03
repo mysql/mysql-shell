@@ -112,6 +112,13 @@
 ||
 |60|
 
+//@ dba.restartWaitTimeout update and set back to default using shell.options
+||
+|180|
+|"dba.restartWaitTimeout": "180"|
+||
+|60|
+
 //@ dba.logSql update and set back to default using shell.options
 ||
 |1|
@@ -223,6 +230,13 @@
 ||
 |60|
 
+//@ dba.restartWaitTimeout update and set back to default using \option
+||
+|120|
+|"dba.restartWaitTimeout": "120"|
+||
+|60|
+
 //@ dba.logSql update and set back to default using \option
 ||
 |2|
@@ -266,6 +280,7 @@
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
  dba.logSql                      0
+ dba.restartWaitTimeout          60
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -294,6 +309,7 @@
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
+ dba.restartWaitTimeout          60 (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
@@ -337,6 +353,14 @@
 ||
 ||
 
+//@ Verify option dba.restartWaitTimeout
+||Malformed option value.
+||value out of range
+||Incorrect option value.
+||
+||
+||
+
 //@ Verify option dba.logSql
 ||Malformed option value.
 ||value out of range
@@ -371,6 +395,7 @@
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
  dba.logSql                      0
+ dba.restartWaitTimeout          60
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -400,6 +425,7 @@ Switching to SQL mode... Commands end with ;
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
+ dba.restartWaitTimeout          60 (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)

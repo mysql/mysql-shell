@@ -421,16 +421,19 @@ EXPECT_EQ(num_recovery_users, num_recovery_users_after);
 // To test it, we change the sandbox configuration file to introduce a bogus setting which will
 // cause the failure of the instance restart, simulating then a timeout.
 
-//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.16)}
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
 testutil.changeSandboxConf(__mysql_sandbox_port2, "foo", "bar");
+// Also tests the restartWaitTimeout option
+shell.options["dba.restartWaitTimeout"] = 1;
 c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"clone"});
+shell.options["dba.restartWaitTimeout"] = 60;
 
-//@<> BUG#30281908: restart the instance manually {VER(>= 8.0.16)}
+//@<> BUG#30281908: restart the instance manually {VER(>= 8.0.17)}
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "foo");
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.16)}
+//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.17)}
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
 c.rescan({interactive:true});
 

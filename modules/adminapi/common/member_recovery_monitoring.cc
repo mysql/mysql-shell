@@ -43,12 +43,6 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
 
 namespace {
 
-// Return how many iterations are needed for a given timeout in seconds using
-// the given polling interval in milliseconds
-int adjust_timeout(int timeout, int poll_interval) {
-  return (timeout * poll_interval) / 1000;
-}
-
 void throw_clone_recovery_error(const mysqlshdk::mysql::IInstance &instance,
                                 const std::string &start_time) {
   mysqlshdk::mysql::Clone_status status;
@@ -587,9 +581,10 @@ void monitor_post_clone_gr_recovery_status(
   mysqlshdk::gr::Group_member_recovery_status rm =
       mysqlshdk::gr::Group_member_recovery_status::UNKNOWN;
 
-  startup_timeout_sec =
+  int startup_timeout_iters =
       adjust_timeout(startup_timeout_sec, k_recovery_status_poll_interval_ms);
-  while (startup_timeout_sec > 0 && !stop) {
+
+  while (startup_timeout_iters > 0 && !stop) {
     try {
       rm = mysqlshdk::gr::detect_recovery_status(*instance, begin_time);
       if (rm != mysqlshdk::gr::Group_member_recovery_status::CLONE) {
@@ -602,7 +597,7 @@ void monitor_post_clone_gr_recovery_status(
       throw;
     }
     shcore::sleep_ms(k_recovery_status_poll_interval_ms);
-    startup_timeout_sec--;
+    startup_timeout_iters--;
   }
 
   if (stop) throw stop_monitoring();

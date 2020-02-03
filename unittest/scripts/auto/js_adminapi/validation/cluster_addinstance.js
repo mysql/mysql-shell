@@ -138,12 +138,12 @@ Number of recovery user before addInstance(): 1
 //@<ERR> BUG#25503159: add instance fail (using an invalid localaddress).
 Cluster.addInstance: Group Replication failed to start: [[*]]
 
-//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.16)}
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
 |WARNING: Clone process appears to have finished and tried to restart the MySQL server, but it has not yet started back up.|
-|Please make sure the MySQL server at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is restarted and call <Cluster>.rescan() to complete the process.|
+|Please make sure the MySQL server at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is restarted and call <Cluster>.rescan() to complete the process. To increase the timeout, change shell.options["dba.restartWaitTimeout"].|
 ||Cluster.addInstance: Timeout waiting for server to restart (MYSQLSH 51156)
 
-//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.16)}
+//@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.17)}
 |Adding instance to the cluster metadata...|
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster metadata.|
 

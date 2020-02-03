@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/instance_monitoring.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -43,7 +44,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
     stick.done("");
   }
 
-  timeout *= 2;
+  timeout = adjust_timeout(timeout, k_server_restart_poll_interval_ms);
   while (timeout > 0) {
     try {
       out_instance = Instance::connect(instance_def);

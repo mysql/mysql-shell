@@ -433,6 +433,10 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.dba_gtid_wait_timeout, 60, SHCORE_DBA_GTID_WAIT_TIMEOUT,
         "Timeout value in seconds to wait for GTIDs to be synchronized.",
         shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))
+    (&storage.dba_restart_wait_timeout, 60, SHCORE_DBA_RESTART_WAIT_TIMEOUT,
+        "Timeout in seconds to wait for MySQL server to come back after a "
+        "restart during clone recovery.",
+        shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))
     (&storage.wizards, true, SHCORE_USE_WIZARDS, "Enables wizard mode.")
     (&storage.initial_mode, shcore::IShell_core::Mode::None,
         "defaultMode", "Specifies the shell mode to use when shell is started "

@@ -280,8 +280,8 @@ void drop_clone_recovery_user_nobinlog(
   }
 }
 
-void revert_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
-                           const mysqlshdk::mysql::Auth_options &clone_user) {
+void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
+                            const mysqlshdk::mysql::Auth_options &clone_user) {
   // NOTE: disable binlog to avoid messing up with the GTID
   drop_clone_recovery_user_nobinlog(recipient, clone_user);
 
@@ -2353,7 +2353,7 @@ void Replica_set_impl::handle_clone(
       monitor_clone_instance(
           recipient->get_connection_options(), begin_time, progress_style,
           k_clone_start_timeout,
-          mysqlshdk::mysql::k_server_recovery_restart_timeout);
+          current_shell_options()->get().dba_restart_wait_timeout);
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -2392,10 +2392,23 @@ void Replica_set_impl::handle_clone(
       get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
                                      ar_options.repl_credentials->user);
 
-      revert_clone_recovery(recipient.get(), *ar_options.repl_credentials);
+      cleanup_clone_recovery(recipient.get(), *ar_options.repl_credentials);
 
       // Thrown the exception cancel_sync up
       throw cancel_sync();
+    } catch (const restart_timeout &) {
+      console->print_warning(
+          "Clone process appears to have finished and tried to restart the "
+          "MySQL server, but it has not yet started back up.");
+
+      console->print_info();
+      console->print_info(
+          "Please make sure the MySQL server at '" + recipient->descr() +
+          "' is properly restarted. The operation will be reverted, but you may"
+          " retry adding the instance after restarting it. ");
+
+      throw shcore::Exception("Timeout waiting for server to restart",
+                              SHERR_DBA_SERVER_RESTART_TIMEOUT);
     } catch (const shcore::Error &e) {
       throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
